@@ -24,6 +24,10 @@ if ! command -v docker >/dev/null 2>&1; then
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 
+if getent group docker >/dev/null 2>&1; then
+  usermod -aG docker "$OWNER_USER" || true
+fi
+
 mkdir -p "$APP_DIR"
 chown -R "$OWNER_USER:$OWNER_USER" "$APP_DIR"
 
