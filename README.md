@@ -3,7 +3,7 @@
 Этот репозиторий подготовлен под backend деплой.
 
 Внутри:
-- `backend/` с NestJS, Prisma, PostgreSQL, Redis, MinIO
+- `backend/` с NestJS, Prisma, PostgreSQL, Redis
 - `compose.yaml` для локального запуска
 - `compose.prod.yml` для production
 - `deploy/nginx/frendly.conf` для публичных маршрутов
@@ -19,10 +19,10 @@
 - API: `http://194.113.34.223/`
 - Health: `http://194.113.34.223/health`
 - Chat WebSocket: `ws://194.113.34.223/ws`
-- S3 public endpoint: `http://194.113.34.223/storage`
+- S3 public endpoint: `https://s3.cloud.ru/frendly`
 
-MinIO наружу напрямую не открыт. Файлы идут через nginx на `/storage`.
-MinIO console доступна только через SSH tunnel на `127.0.0.1:9001`.
+В production файлы лежат в Cloud.ru Object Storage.
+Локальный `compose.yaml` все еще использует MinIO для разработки.
 
 ## Первый запуск на сервере
 
