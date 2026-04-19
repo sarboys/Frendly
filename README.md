@@ -33,10 +33,7 @@ MinIO console наружу не открывается. Если она нужн
 ## GitHub Actions secrets
 
 Для автодеплоя нужны секреты репозитория:
-- `DEPLOY_HOST`
 - `DEPLOY_USER`
-- `DEPLOY_PORT`
-- `DEPLOY_APP_DIR`
 - `DEPLOY_SSH_KEY`
 
-`DEPLOY_HOST` для этого сервера, `194.113.34.223`.
+Хост, порт `22` и путь `/opt/frendly` уже зашиты в workflow.
