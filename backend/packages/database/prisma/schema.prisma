@@ -1,0 +1,539 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x", "linux-arm64-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChatKind {
+  meetup
+  direct
+}
+
+enum ChatOrigin {
+  meetup
+  people
+}
+
+enum MediaAssetKind {
+  avatar
+  chat_attachment
+}
+
+enum MediaAssetStatus {
+  pending
+  ready
+  failed
+}
+
+enum NotificationKind {
+  message
+  attachment_ready
+  event_joined
+}
+
+enum PushProvider {
+  fcm
+  apns
+}
+
+enum OutboxStatus {
+  pending
+  processing
+  done
+  failed
+}
+
+enum EventTone {
+  warm
+  evening
+  sage
+}
+
+enum EventJoinMode {
+  open
+  request
+}
+
+enum EventJoinRequestStatus {
+  pending
+  approved
+  rejected
+  canceled
+}
+
+enum AttendanceStatus {
+  not_checked_in
+  checked_in
+  left
+}
+
+enum AttendanceCheckInMethod {
+  qr
+  host_manual
+}
+
+enum EventLiveStatus {
+  idle
+  live
+  finished
+}
+
+enum TrustedContactMode {
+  all_plans
+  sos_only
+}
+
+enum VerificationStatus {
+  not_started
+  selfie_submitted
+  document_submitted
+  under_review
+  verified
+  rejected
+}
+
+enum ReportStatus {
+  open
+  in_review
+  resolved
+}
+
+enum SubscriptionPlan {
+  month
+  year
+}
+
+enum SubscriptionStatus {
+  inactive
+  trial
+  active
+  canceled
+}
+
+model User {
+  id                String                  @id @default(cuid())
+  displayName       String
+  phoneNumber       String?                 @unique
+  verified          Boolean                 @default(false)
+  online            Boolean                 @default(false)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  profile           Profile?
+  onboarding        OnboardingPreferences?
+  settings          UserSettings?
+  verification      UserVerification?
+  sessions          Session[]
+  otpChallenges     PhoneOtpChallenge[]
+  pushTokens        PushToken[]
+  notifications     Notification[]
+  hostedEvents      Event[]                 @relation("HostedEvents")
+  eventParticipants EventParticipant[]
+  joinRequests      EventJoinRequest[]
+  reviewedRequests  EventJoinRequest[]      @relation("ReviewedJoinRequests")
+  eventAttendances  EventAttendance[]       @relation("EventAttendanceUser")
+  checkedInEvents   EventAttendance[]       @relation("AttendanceCheckedInBy")
+  feedbacks         EventFeedback[]
+  favoriteSources   EventFavorite[]         @relation("EventFavoriteSource")
+  favoriteTargets   EventFavorite[]         @relation("EventFavoriteTarget")
+  trustedContacts   TrustedContact[]
+  reportsSent       UserReport[]            @relation("UserReportsSent")
+  reportsReceived   UserReport[]            @relation("UserReportsReceived")
+  blockedUsers      UserBlock[]             @relation("UserBlocks")
+  blockedByUsers    UserBlock[]             @relation("BlockedByUsers")
+  stories           EventStory[]
+  subscriptions     UserSubscription[]
+  chatMembers       ChatMember[]
+  messages          Message[]
+  mediaAssets       MediaAsset[]
+}
+
+model UserSettings {
+  userId              String   @id
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allowLocation       Boolean  @default(true)
+  allowPush           Boolean  @default(true)
+  allowContacts       Boolean  @default(false)
+  autoSharePlans      Boolean  @default(true)
+  hideExactLocation   Boolean  @default(false)
+  quietHours          Boolean  @default(false)
+  showAge             Boolean  @default(true)
+  discoverable        Boolean  @default(true)
+  darkMode            Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
+}
+
+model UserVerification {
+  userId        String             @id
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        VerificationStatus @default(not_started)
+  selfieDone    Boolean            @default(false)
+  documentDone  Boolean            @default(false)
+  reviewedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model PhoneOtpChallenge {
+  id           String    @id @default(cuid())
+  userId       String?
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  phoneNumber  String
+  code         String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([phoneNumber, createdAt])
+}
+
+model Profile {
+  userId         String      @id
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age            Int?
+  city           String?
+  area           String?
+  bio            String?
+  vibe           String?
+  rating         Float       @default(0)
+  meetupCount    Int         @default(0)
+  avatarUrl      String?
+  avatarAssetId  String?     @unique
+  avatarAsset    MediaAsset? @relation("ProfileAvatar", fields: [avatarAssetId], references: [id])
+  updatedAt      DateTime    @updatedAt
+}
+
+model OnboardingPreferences {
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  intent     String?
+  city       String?
+  area       String?
+  interests  Json
+  vibe       String?
+  updatedAt  DateTime @updatedAt
+}
+
+model Session {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenId String    @unique
+  createdAt      DateTime  @default(now())
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+}
+
+model Event {
+  id              String             @id @default(cuid())
+  title           String
+  emoji           String
+  startsAt        DateTime
+  durationMinutes Int                @default(120)
+  place           String
+  distanceKm      Float
+  vibe            String
+  tone            EventTone          @default(warm)
+  joinMode        EventJoinMode      @default(open)
+  hostNote        String?
+  description     String
+  partnerName     String?
+  partnerOffer    String?
+  capacity        Int
+  isCalm          Boolean            @default(false)
+  isNewcomers     Boolean            @default(false)
+  isDate          Boolean            @default(false)
+  hostId          String
+  host            User               @relation("HostedEvents", fields: [hostId], references: [id])
+  participants    EventParticipant[]
+  joinRequests    EventJoinRequest[]
+  attendances     EventAttendance[]
+  liveState       EventLiveState?
+  feedbacks       EventFeedback[]
+  favorites       EventFavorite[]
+  stories         EventStory[]
+  chat            Chat?
+  sourceChats     Chat[]             @relation("ChatSourceEvent")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model EventParticipant {
+  id        String   @id @default(cuid())
+  eventId    String
+  userId     String
+  joinedAt   DateTime @default(now())
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model EventJoinRequest {
+  id                 String                 @id @default(cuid())
+  eventId            String
+  userId             String
+  note               String?
+  status             EventJoinRequestStatus @default(pending)
+  compatibilityScore Int                    @default(0)
+  reviewedById       String?
+  reviewedAt         DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  event              Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy         User?                  @relation("ReviewedJoinRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+}
+
+model EventAttendance {
+  id              String                 @id @default(cuid())
+  eventId         String
+  userId          String
+  status          AttendanceStatus       @default(not_checked_in)
+  checkedInAt     DateTime?
+  checkedInById   String?
+  checkInMethod   AttendanceCheckInMethod?
+  leftAt          DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  event           Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User                   @relation("EventAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
+  checkedInBy     User?                  @relation("AttendanceCheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+}
+
+model EventLiveState {
+  id         String          @id @default(cuid())
+  eventId     String          @unique
+  status      EventLiveStatus @default(idle)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model EventFeedback {
+  id         String   @id @default(cuid())
+  eventId     String
+  userId      String
+  vibe        String
+  hostRating  Int
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model EventFavorite {
+  id            String   @id @default(cuid())
+  eventId        String
+  sourceUserId   String
+  targetUserId   String
+  createdAt      DateTime @default(now())
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sourceUser     User     @relation("EventFavoriteSource", fields: [sourceUserId], references: [id], onDelete: Cascade)
+  targetUser     User     @relation("EventFavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, sourceUserId, targetUserId])
+}
+
+model TrustedContact {
+  id          String             @id @default(cuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  phoneNumber  String
+  mode         TrustedContactMode @default(all_plans)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model UserReport {
+  id            String       @id @default(cuid())
+  reporterId     String
+  targetUserId   String
+  reason         String
+  details        String?
+  status         ReportStatus @default(open)
+  blockRequested Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  reporter       User         @relation("UserReportsSent", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUser     User         @relation("UserReportsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+}
+
+model UserBlock {
+  id            String   @id @default(cuid())
+  userId        String
+  blockedUserId String
+  createdAt     DateTime @default(now())
+  user          User     @relation("UserBlocks", fields: [userId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("BlockedByUsers", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blockedUserId])
+}
+
+model EventStory {
+  id         String   @id @default(cuid())
+  eventId     String
+  authorId    String
+  caption     String
+  emoji       String
+  createdAt   DateTime @default(now())
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt])
+}
+
+model UserSubscription {
+  id          String             @id @default(cuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         SubscriptionPlan
+  status       SubscriptionStatus @default(inactive)
+  startedAt    DateTime?
+  renewsAt     DateTime?
+  trialEndsAt  DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model Chat {
+  id             String          @id @default(cuid())
+  kind           ChatKind
+  origin         ChatOrigin
+  title          String?
+  emoji          String?
+  eventId        String?         @unique
+  event          Event?          @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  sourceEventId  String?
+  sourceEvent    Event?          @relation("ChatSourceEvent", fields: [sourceEventId], references: [id], onDelete: SetNull)
+  directKey      String?         @unique
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  messages       Message[]
+  members        ChatMember[]
+  realtimeEvents RealtimeEvent[]
+}
+
+model ChatMember {
+  id                String    @id @default(cuid())
+  chatId            String
+  userId            String
+  joinedAt          DateTime  @default(now())
+  lastReadMessageId String?
+  lastReadAt        DateTime?
+  chat              Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id              String              @id @default(cuid())
+  chatId          String
+  senderId        String
+  text            String
+  clientMessageId String
+  createdAt       DateTime            @default(now())
+  chat            Chat                @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender          User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  attachments     MessageAttachment[]
+
+  @@unique([chatId, clientMessageId])
+}
+
+model MessageAttachment {
+  id           String     @id @default(cuid())
+  messageId     String
+  mediaAssetId  String
+  createdAt     DateTime   @default(now())
+  message       Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mediaAsset    MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, mediaAssetId])
+}
+
+model MediaAsset {
+  id               String            @id @default(cuid())
+  ownerId          String
+  owner            User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind             MediaAssetKind
+  status           MediaAssetStatus  @default(pending)
+  bucket           String
+  objectKey        String            @unique
+  mimeType         String
+  byteSize         Int
+  originalFileName String
+  publicUrl        String?
+  error            String?
+  chatId           String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  profileAvatar    Profile?          @relation("ProfileAvatar")
+  messageLinks     MessageAttachment[]
+}
+
+model Notification {
+  id         String            @id @default(cuid())
+  userId      String
+  kind        NotificationKind
+  title       String
+  body        String
+  payload     Json
+  readAt      DateTime?
+  createdAt   DateTime          @default(now())
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushToken {
+  id         String       @id @default(cuid())
+  userId      String
+  provider    PushProvider
+  token       String       @unique
+  deviceId    String?
+  platform    String?
+  disabledAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OutboxEvent {
+  id          String       @id @default(cuid())
+  type        String
+  payload     Json
+  status      OutboxStatus @default(pending)
+  availableAt DateTime     @default(now())
+  attempts    Int          @default(0)
+  lockedAt    DateTime?
+  processedAt DateTime?
+  lastError   String?
+  createdAt   DateTime     @default(now())
+}
+
+model RealtimeEvent {
+  id         BigInt   @id @default(autoincrement())
+  chatId      String
+  eventType   String
+  payload     Json
+  createdAt   DateTime @default(now())
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, id])
+}

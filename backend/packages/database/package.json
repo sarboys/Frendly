@@ -1,0 +1,30 @@
+{
+  "name": "@big-break/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "jest --config jest.config.js",
+    "test:unit": "jest --config jest.config.js --runInBand test/unit",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
+    "db:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
+    "db:seed": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.787.0",
+    "@aws-sdk/s3-request-presigner": "^3.787.0",
+    "@big-break/contracts": "workspace:*",
+    "@prisma/client": "^6.6.0",
+    "apn": "^2.2.0",
+    "firebase-admin": "^13.4.0",
+    "ioredis": "^5.6.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.9",
+    "prisma": "^6.6.0"
+  }
+}
