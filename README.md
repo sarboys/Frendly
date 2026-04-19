@@ -19,9 +19,10 @@
 - API: `http://194.113.34.223/`
 - Health: `http://194.113.34.223/health`
 - Chat WebSocket: `ws://194.113.34.223/ws`
-- S3 upload endpoint: `http://194.113.34.223:9000`
+- S3 public endpoint: `http://194.113.34.223/storage`
 
-MinIO console наружу не открывается. Если она нужна, можно зайти через SSH tunnel на `127.0.0.1:9001`.
+MinIO наружу напрямую не открыт. Файлы идут через nginx на `/storage`.
+MinIO console доступна только через SSH tunnel на `127.0.0.1:9001`.
 
 ## Первый запуск на сервере
 

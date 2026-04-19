@@ -35,7 +35,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
@@ -199,6 +199,8 @@ services:
       api:
         condition: service_healthy
       chat:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     ports:
       - "80:80"
