@@ -27,7 +27,7 @@ fi
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build postgres redis minio
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up minio-init
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up --build migrate
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build api chat worker
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate nginx
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --remove-orphans api chat worker nginx
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf minio-init migrate || true
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --no-deps api chat worker
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps --force-recreate nginx
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
