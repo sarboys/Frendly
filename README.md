@@ -19,9 +19,10 @@
 - API: `http://194.113.34.223/`
 - Health: `http://194.113.34.223/health`
 - Chat WebSocket: `ws://194.113.34.223/ws`
-- S3 public endpoint: `https://s3.cloud.ru/frendly`
+- S3 public endpoint: `https://global.s3.cloud.ru/frendly`
 
 В production файлы лежат в Cloud.ru Object Storage.
+Для Cloud.ru S3 ключ доступа задается в формате `<tenant_id>:<key_id>`.
 Локальный `compose.yaml` все еще использует MinIO для разработки.
 
 ## Первый запуск на сервере
