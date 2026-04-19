@@ -48,6 +48,4 @@ jobs:
             cd "$APP_DIR"
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
-
-      - name: Check public health
-        run: curl --fail --retry 12 --retry-delay 5 "http://194.113.34.223/health"
+            curl --fail --retry 12 --retry-delay 5 "http://127.0.0.1/health"
