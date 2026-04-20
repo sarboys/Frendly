@@ -10,11 +10,21 @@ export class EventsController {
   listEvents(
     @CurrentUser() currentUser: { userId: string },
     @Query('filter') filter?: string,
+    @Query('q') q?: string,
+    @Query('lifestyle') lifestyle?: string,
+    @Query('price') price?: string,
+    @Query('gender') gender?: string,
+    @Query('access') access?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
     return this.eventsService.listEvents(currentUser.userId, {
       filter,
+      q,
+      lifestyle,
+      price,
+      gender,
+      access,
       cursor,
       limit: limit ? Number(limit) : undefined,
     });

@@ -58,6 +58,38 @@ enum EventJoinMode {
   request
 }
 
+enum EventLifestyle {
+  zozh
+  neutral
+  anti
+}
+
+enum EventPriceMode {
+  free
+  fixed
+  from
+  upto
+  range
+  split
+}
+
+enum EventAccessMode {
+  open
+  request
+  free
+}
+
+enum EventGenderMode {
+  all
+  male
+  female
+}
+
+enum EventVisibilityMode {
+  public
+  friends
+}
+
 enum EventJoinRequestStatus {
   pending
   approved
@@ -238,6 +270,13 @@ model Event {
   vibe            String
   tone            EventTone          @default(warm)
   joinMode        EventJoinMode      @default(open)
+  lifestyle       EventLifestyle     @default(neutral)
+  priceMode       EventPriceMode     @default(free)
+  priceAmountFrom Int?
+  priceAmountTo   Int?
+  accessMode      EventAccessMode    @default(open)
+  genderMode      EventGenderMode    @default(all)
+  visibilityMode  EventVisibilityMode @default(public)
   hostNote        String?
   description     String
   partnerName     String?

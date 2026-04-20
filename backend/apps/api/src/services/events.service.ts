@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { EventFilter } from '@big-break/contracts';
+import {
+  EventAccessFilter,
+  EventFilter,
+  EventGenderFilter,
+  EventLifestyleFilter,
+  EventPriceFilter,
+} from '@big-break/contracts';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { paginateArray } from '../common/pagination';
@@ -19,15 +25,39 @@ type EventListRecord = Awaited<ReturnType<EventsService['loadEvents']>>[number];
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async listEvents(userId: string, params: { filter?: string; cursor?: string; limit?: number }) {
+  async listEvents(
+    userId: string,
+    params: {
+      filter?: string;
+      q?: string;
+      lifestyle?: string;
+      price?: string;
+      gender?: string;
+      access?: string;
+      cursor?: string;
+      limit?: number;
+    },
+  ) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const events = await this.loadEvents(userId);
-    const filtered = this.applyFilter(
-      events.filter((event) => !blockedUserIds.has(event.hostId)),
-      params.filter as EventFilter | undefined,
-    );
+    const visibleEvents = events
+      .filter((event) => !blockedUserIds.has(event.hostId))
+      .filter(
+        (event) =>
+          event.visibilityMode === 'public' ||
+          event.hostId === userId ||
+          event.participants.some((participant) => participant.userId === userId),
+      );
+    const filtered = this.applyFilter(visibleEvents, params.filter as EventFilter | undefined);
+    const refined = this.applyAdvancedFilters(filtered, {
+      q: params.q,
+      lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
+      price: params.price as EventPriceFilter | undefined,
+      gender: params.gender as EventGenderFilter | undefined,
+      access: params.access as EventAccessFilter | undefined,
+    });
 
-    const mapped = filtered.map((event) =>
+    const mapped = refined.map((event) =>
       mapEventSummary({
         event,
         participants: event.participants.filter(
@@ -352,8 +382,41 @@ export class EventsService {
     const startsAtRaw =
       typeof body.startsAt === 'string' ? body.startsAt : undefined;
     const startsAt = startsAtRaw != null ? new Date(startsAtRaw) : new Date();
+    const lifestyle =
+      body.lifestyle === 'zozh' || body.lifestyle === 'anti' || body.lifestyle === 'neutral'
+        ? body.lifestyle
+        : 'neutral';
+    const priceMode =
+      body.priceMode === 'fixed' ||
+      body.priceMode === 'from' ||
+      body.priceMode === 'upto' ||
+      body.priceMode === 'range' ||
+      body.priceMode === 'split' ||
+      body.priceMode === 'free'
+        ? body.priceMode
+        : 'free';
+    const priceAmountFrom =
+      typeof body.priceAmountFrom === 'number'
+        ? Math.max(0, Math.round(body.priceAmountFrom))
+        : null;
+    const priceAmountTo =
+      typeof body.priceAmountTo === 'number'
+        ? Math.max(0, Math.round(body.priceAmountTo))
+        : null;
+    const accessMode =
+      body.accessMode === 'request' || body.accessMode === 'free' || body.accessMode === 'open'
+        ? body.accessMode
+        : 'open';
+    const genderMode =
+      body.genderMode === 'male' || body.genderMode === 'female' || body.genderMode === 'all'
+        ? body.genderMode
+        : 'all';
+    const visibilityMode =
+      body.visibilityMode === 'friends' || body.visibility === 'private'
+        ? 'friends'
+        : 'public';
     const joinMode =
-      body.joinMode === 'request' || body.visibility === 'private'
+      accessMode === 'request' || body.joinMode === 'request'
         ? 'request'
         : 'open';
 
@@ -382,6 +445,13 @@ export class EventsService {
                 ? 'evening'
                 : 'warm',
           joinMode,
+          lifestyle,
+          priceMode,
+          priceAmountFrom,
+          priceAmountTo,
+          accessMode,
+          genderMode,
+          visibilityMode,
           description,
           capacity,
           hostId: userId,
@@ -731,6 +801,81 @@ export class EventsService {
       case 'nearby':
       default:
         return [...events].sort((left, right) => left.distanceKm - right.distanceKm);
+    }
+  }
+
+  private applyAdvancedFilters(
+    events: EventListRecord[],
+    params: {
+      q?: string;
+      lifestyle?: EventLifestyleFilter;
+      price?: EventPriceFilter;
+      gender?: EventGenderFilter;
+      access?: EventAccessFilter;
+    },
+  ) {
+    const query = params.q?.trim().toLowerCase();
+
+    return events.filter((event) => {
+      if (query) {
+        const haystack = [
+          event.title,
+          event.place,
+          event.description,
+          event.hostNote ?? '',
+          event.vibe,
+        ]
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(query)) {
+          return false;
+        }
+      }
+
+      if (
+        params.lifestyle &&
+        params.lifestyle !== 'any' &&
+        event.lifestyle !== params.lifestyle
+      ) {
+        return false;
+      }
+
+      if (params.gender && params.gender !== 'any' && event.genderMode !== params.gender) {
+        return false;
+      }
+
+      if (params.access && params.access !== 'any' && event.accessMode !== params.access) {
+        return false;
+      }
+
+      if (params.price && params.price !== 'any' && !this.matchesPrice(event, params.price)) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  private matchesPrice(event: EventListRecord, price: EventPriceFilter) {
+    if (price === 'free') {
+      return event.priceMode === 'free';
+    }
+
+    const amount = event.priceAmountTo ?? event.priceAmountFrom ?? null;
+    if (amount == null) {
+      return false;
+    }
+
+    switch (price) {
+      case 'cheap':
+        return amount <= 1000;
+      case 'mid':
+        return amount > 1000 && amount <= 3000;
+      case 'premium':
+        return amount > 3000;
+      case 'any':
+      default:
+        return true;
     }
   }
 

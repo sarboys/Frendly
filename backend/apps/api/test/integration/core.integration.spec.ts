@@ -326,6 +326,11 @@ describe('core api flows', () => {
         capacity: expect.any(Number),
         joined: expect.any(Boolean),
         joinMode: expect.any(String),
+        lifestyle: expect.any(String),
+        priceMode: expect.any(String),
+        accessMode: expect.any(String),
+        genderMode: expect.any(String),
+        visibilityMode: expect.any(String),
         attendanceStatus: expect.any(String),
         liveStatus: expect.any(String),
         isHost: expect.any(Boolean),
@@ -341,6 +346,45 @@ describe('core api flows', () => {
 
     expect(
       dateResponse.body.items.every((item: { tone: string }) => item.tone === 'evening'),
+    ).toBe(true);
+  });
+
+  it('creates event with discovery filters and filters feed by extended params', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Трезвый бранч по фильтрам',
+        description: 'Без алкоголя, по заявке, только девушки.',
+        emoji: '☕',
+        vibe: 'Спокойно',
+        place: 'Чистые пруды 1',
+        startsAt: '2026-04-22T10:30:00.000Z',
+        capacity: 6,
+        distanceKm: 0.5,
+        lifestyle: 'zozh',
+        priceMode: 'upto',
+        priceAmountTo: 900,
+        accessMode: 'request',
+        genderMode: 'female',
+        visibilityMode: 'public',
+      })
+      .expect(201);
+
+    expect(createResponse.body.lifestyle).toBe('zozh');
+    expect(createResponse.body.priceMode).toBe('upto');
+    expect(createResponse.body.accessMode).toBe('request');
+    expect(createResponse.body.genderMode).toBe('female');
+    expect(createResponse.body.visibilityMode).toBe('public');
+
+    const filteredResponse = await request(app.getHttpServer())
+      .get('/events?filter=nearby&lifestyle=zozh&price=cheap&gender=female&access=request&q=бранч')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(filteredResponse.body.items.length).toBeGreaterThan(0);
+    expect(
+      filteredResponse.body.items.some((item: { id: string }) => item.id === createResponse.body.id),
     ).toBe(true);
   });
 

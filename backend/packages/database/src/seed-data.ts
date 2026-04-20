@@ -91,6 +91,13 @@ export const seededEvents: Array<{
   vibe: string;
   tone: 'warm' | 'evening' | 'sage';
   joinMode?: 'open' | 'request';
+  lifestyle?: 'zozh' | 'neutral' | 'anti';
+  priceMode?: 'free' | 'fixed' | 'from' | 'upto' | 'range' | 'split';
+  priceAmountFrom?: number | null;
+  priceAmountTo?: number | null;
+  accessMode?: 'open' | 'request' | 'free';
+  genderMode?: 'all' | 'male' | 'female';
+  visibilityMode?: 'public' | 'friends';
   hostNote?: string;
   description: string;
   partnerName?: string;
@@ -112,6 +119,13 @@ export const seededEvents: Array<{
     vibe: 'Спокойно',
     tone: 'evening',
     joinMode: 'open',
+    lifestyle: 'anti',
+    priceMode: 'range',
+    priceAmountFrom: 1800,
+    priceAmountTo: 2800,
+    accessMode: 'open',
+    genderMode: 'all',
+    visibilityMode: 'public',
     hostNote: 'Знакомимся за бокалом, без спешки.',
     description: 'Камерный вечер на крыше с вином и спокойным разговором.',
     partnerName: 'Brix Wine',
@@ -133,6 +147,11 @@ export const seededEvents: Array<{
     vibe: 'Активно',
     tone: 'sage',
     joinMode: 'open',
+    lifestyle: 'zozh',
+    priceMode: 'free',
+    accessMode: 'free',
+    genderMode: 'all',
+    visibilityMode: 'public',
     description: 'Легкая пробежка без гонки и с остановкой на кофе после финиша.',
     capacity: 6,
     isCalm: false,
@@ -151,6 +170,12 @@ export const seededEvents: Array<{
     vibe: 'Уютно',
     tone: 'warm',
     joinMode: 'open',
+    lifestyle: 'neutral',
+    priceMode: 'upto',
+    priceAmountTo: 900,
+    accessMode: 'open',
+    genderMode: 'all',
+    visibilityMode: 'public',
     description: 'Небольшая компания, кофе и настолки до закрытия.',
     capacity: 8,
     isCalm: true,
@@ -169,6 +194,12 @@ export const seededEvents: Array<{
     vibe: 'Свидание',
     tone: 'evening',
     joinMode: 'open',
+    lifestyle: 'neutral',
+    priceMode: 'from',
+    priceAmountFrom: 3500,
+    accessMode: 'free',
+    genderMode: 'all',
+    visibilityMode: 'public',
     description: 'Летний киносеанс под открытым небом и короткая прогулка после фильма.',
     capacity: 10,
     isCalm: true,
@@ -187,6 +218,13 @@ export const seededEvents: Array<{
     vibe: 'Уютно',
     tone: 'warm',
     joinMode: 'request',
+    lifestyle: 'neutral',
+    priceMode: 'range',
+    priceAmountFrom: 1200,
+    priceAmountTo: 2200,
+    accessMode: 'request',
+    genderMode: 'all',
+    visibilityMode: 'friends',
     hostNote: 'Хочу собрать маленькую спокойную компанию.',
     description: 'Ужин в маленькой компании. Сначала заявка, потом подтверждение хостом.',
     capacity: 5,

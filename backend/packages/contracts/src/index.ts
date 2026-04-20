@@ -11,6 +11,10 @@ export interface ApiErrorPayload {
 }
 
 export type EventFilter = 'nearby' | 'now' | 'calm' | 'newcomers' | 'date';
+export type EventLifestyleFilter = 'any' | 'zozh' | 'neutral' | 'anti';
+export type EventPriceFilter = 'any' | 'free' | 'cheap' | 'mid' | 'premium';
+export type EventGenderFilter = 'any' | 'male' | 'female';
+export type EventAccessFilter = 'any' | 'open' | 'request' | 'free';
 
 export interface DevLoginRequest {
   userId?: string;
