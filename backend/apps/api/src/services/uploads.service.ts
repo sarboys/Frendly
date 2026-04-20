@@ -5,6 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
+const BYPASS_S3_UPLOAD = process.env.NODE_ENV === 'test';
+
 @Injectable()
 export class UploadsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -63,14 +65,16 @@ export class UploadsService {
     const objectKey =
       `chat-attachments/${userId}/${randomUUID()}-${file.originalname}`;
 
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET ?? 'big-break',
-        Key: objectKey,
-        ContentType: file.mimetype,
-        Body: file.buffer,
-      }),
-    );
+    if (!BYPASS_S3_UPLOAD) {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Key: objectKey,
+          ContentType: file.mimetype,
+          Body: file.buffer,
+        }),
+      );
+    }
 
     const asset = await this.prismaService.client.mediaAsset.create({
       data: {

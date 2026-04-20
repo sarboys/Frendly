@@ -12,6 +12,7 @@ const ALLOWED_AVATAR_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+const BYPASS_S3_UPLOAD = process.env.NODE_ENV === 'test';
 
 @Injectable()
 export class ProfileService {
@@ -119,14 +120,16 @@ export class ProfileService {
     }
 
     const objectKey = `avatars/${userId}/${randomUUID()}-${file.originalname}`;
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET ?? 'big-break',
-        Key: objectKey,
-        ContentType: file.mimetype,
-        Body: file.buffer,
-      }),
-    );
+    if (!BYPASS_S3_UPLOAD) {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Key: objectKey,
+          ContentType: file.mimetype,
+          Body: file.buffer,
+        }),
+      );
+    }
 
     const asset = await this.prismaService.client.mediaAsset.create({
       data: {

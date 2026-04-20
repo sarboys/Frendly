@@ -136,6 +136,7 @@ export function mapEventSummary(params: {
   liveState?: Pick<EventLiveState, 'status'> | null;
 }) {
   const { event, participants, currentUserId, joinRequest, attendance, liveState } = params;
+  const attendeePreview = participants.filter((participant) => participant.userId !== currentUserId);
 
   return {
     id: event.id,
@@ -144,7 +145,7 @@ export function mapEventSummary(params: {
     time: formatEventTime(event.startsAt),
     place: event.place,
     distance: `${event.distanceKm.toFixed(1)} км`,
-    attendees: participants.slice(0, 5).map((participant) => participant.user.displayName),
+    attendees: attendeePreview.slice(0, 5).map((participant) => participant.user.displayName),
     going: participants.length,
     capacity: event.capacity,
     vibe: event.vibe,

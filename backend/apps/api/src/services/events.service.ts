@@ -116,6 +116,9 @@ export class EventsService {
     const visibleParticipants = event.participants.filter(
       (participant) => !blockedUserIds.has(participant.userId),
     );
+    const attendeePreview = visibleParticipants.filter(
+      (participant) => participant.userId !== userId,
+    );
     const hasChatAccess =
       event.hostId === userId ||
       event.participants.some((participant) => participant.userId === userId);
@@ -141,7 +144,7 @@ export class EventsService {
         meetupCount: event.host.profile?.meetupCount ?? 0,
         avatarUrl: event.host.profile?.avatarUrl ?? null,
       },
-      attendees: visibleParticipants.map((participant) => ({
+      attendees: attendeePreview.map((participant) => ({
         id: participant.user.id,
         displayName: participant.user.displayName,
         avatarUrl: participant.user.profile?.avatarUrl ?? null,
