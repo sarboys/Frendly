@@ -49,6 +49,24 @@ export class EventsController {
     return this.eventsService.createJoinRequest(currentUser.userId, eventId, body);
   }
 
+  @Post(':eventId/invites/:requestId/accept')
+  acceptInvite(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('eventId') eventId: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.eventsService.acceptInvite(currentUser.userId, eventId, requestId);
+  }
+
+  @Post(':eventId/invites/:requestId/decline')
+  declineInvite(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('eventId') eventId: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.eventsService.declineInvite(currentUser.userId, eventId, requestId);
+  }
+
   @Delete(':eventId/join-request')
   cancelJoinRequest(
     @CurrentUser() currentUser: { userId: string },

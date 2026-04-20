@@ -30,7 +30,7 @@ export class HostService {
             },
           },
           joinRequests: {
-            where: { status: 'pending' },
+            where: { status: 'pending', reviewedById: null },
             include: {
               user: {
                 include: { profile: true },
@@ -48,6 +48,7 @@ export class HostService {
             hostId: userId,
           },
           status: 'pending',
+          reviewedById: null,
         },
         include: {
           event: true,
@@ -115,6 +116,9 @@ export class HostService {
         },
         attendances: true,
         joinRequests: {
+          where: {
+            reviewedById: null,
+          },
           include: {
             user: {
               include: { profile: true },

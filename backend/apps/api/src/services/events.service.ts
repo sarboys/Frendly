@@ -422,6 +422,7 @@ export class EventsService {
       accessMode === 'request' || body.joinMode === 'request'
         ? 'request'
         : 'open';
+    const inviteeUserId = typeof body.inviteeUserId === 'string' ? body.inviteeUserId : undefined;
 
     if (title.length === 0 || description.length === 0 || place.length === 0) {
       throw new ApiError(
@@ -429,6 +430,36 @@ export class EventsService {
         'invalid_event_payload',
         'title, description and place are required',
       );
+    }
+
+    if (inviteeUserId === userId) {
+      throw new ApiError(400, 'invalid_invitee', 'Invitee cannot be the host');
+    }
+
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    if (inviteeUserId != null && blockedUserIds.has(inviteeUserId)) {
+      throw new ApiError(404, 'user_not_found', 'Invitee user not found');
+    }
+
+    const [hostUser, inviteeUser] = await Promise.all([
+      this.prismaService.client.user.findUnique({
+        where: { id: userId },
+        select: { displayName: true },
+      }),
+      inviteeUserId == null
+        ? null
+        : this.prismaService.client.user.findUnique({
+            where: { id: inviteeUserId },
+            select: { id: true, displayName: true },
+          }),
+    ]);
+
+    if (!hostUser) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
+    }
+
+    if (inviteeUserId != null && !inviteeUser) {
+      throw new ApiError(404, 'user_not_found', 'Invitee user not found');
     }
 
     const created = await this.prismaService.client.$transaction(async (tx) => {
@@ -503,10 +534,183 @@ export class EventsService {
         },
       });
 
+      if (inviteeUser != null) {
+        const inviteRequest = await tx.eventJoinRequest.create({
+          data: {
+            eventId: event.id,
+            userId: inviteeUser.id,
+            note: null,
+            status: 'pending',
+            compatibilityScore: 0,
+            reviewedById: userId,
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: inviteeUser.id,
+            kind: 'event_joined',
+            title: 'Приглашение на встречу',
+            body: `приглашает тебя на встречу «${event.title}»`,
+            payload: {
+              eventId: event.id,
+              requestId: inviteRequest.id,
+              invite: true,
+              userId,
+              userName: hostUser.displayName,
+              eventTitle: event.title,
+            },
+          },
+        });
+      }
+
       return event;
     });
 
     return this.getEventDetail(userId, created.id);
+  }
+
+  async acceptInvite(userId: string, eventId: string, requestId: string) {
+    const invite = await this.prismaService.client.eventJoinRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        event: {
+          include: { chat: true },
+        },
+      },
+    });
+
+    if (
+      !invite ||
+      invite.eventId !== eventId ||
+      invite.userId !== userId ||
+      invite.status !== 'pending' ||
+      invite.reviewedById == null ||
+      invite.reviewedById !== invite.event.hostId
+    ) {
+      throw new ApiError(404, 'invite_not_found', 'Invite not found');
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.eventJoinRequest.update({
+        where: { id: invite.id },
+        data: {
+          status: 'approved',
+          reviewedAt: new Date(),
+        },
+      });
+
+      await tx.eventParticipant.upsert({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        update: {},
+        create: {
+          eventId,
+          userId,
+        },
+      });
+
+      await tx.eventAttendance.upsert({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        update: {
+          status: 'not_checked_in',
+        },
+        create: {
+          eventId,
+          userId,
+          status: 'not_checked_in',
+        },
+      });
+
+      if (invite.event.chat != null) {
+        await tx.chatMember.upsert({
+          where: {
+            chatId_userId: {
+              chatId: invite.event.chat.id,
+              userId,
+            },
+          },
+          update: {},
+          create: {
+            chatId: invite.event.chat.id,
+            userId,
+          },
+        });
+      }
+
+      await this.markInviteNotificationsRead(tx, userId, eventId, requestId);
+    });
+
+    return this.getEventDetail(userId, eventId);
+  }
+
+  async declineInvite(userId: string, eventId: string, requestId: string) {
+    const invite = await this.prismaService.client.eventJoinRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        event: {
+          include: { chat: true },
+        },
+        user: {
+          select: { displayName: true },
+        },
+      },
+    });
+
+    if (
+      !invite ||
+      invite.eventId !== eventId ||
+      invite.userId !== userId ||
+      invite.status !== 'pending' ||
+      invite.reviewedById == null ||
+      invite.reviewedById !== invite.event.hostId
+    ) {
+      throw new ApiError(404, 'invite_not_found', 'Invite not found');
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.eventJoinRequest.update({
+        where: { id: invite.id },
+        data: {
+          status: 'rejected',
+          reviewedAt: new Date(),
+        },
+      });
+
+      await this.markInviteNotificationsRead(tx, userId, eventId, requestId);
+
+      if (invite.event.chat != null) {
+        await tx.message.create({
+          data: {
+            chatId: invite.event.chat.id,
+            senderId: invite.event.hostId,
+            text: `${invite.user.displayName} не присоединится к встрече.`,
+            clientMessageId: `invite-decline-${requestId}`,
+          },
+        });
+
+        await tx.chat.update({
+          where: { id: invite.event.chat.id },
+          data: { updatedAt: new Date() },
+        });
+      }
+    });
+
+    return {
+      ok: true,
+      eventId,
+      requestId,
+      status: 'rejected',
+    };
   }
 
   async getCheckIn(userId: string, eventId: string) {
@@ -963,6 +1167,48 @@ export class EventsService {
     }
 
     return Math.min(95, Math.max(52, 52 + commonInterests.size * 9));
+  }
+
+  private async markInviteNotificationsRead(
+    tx: any,
+    userId: string,
+    eventId: string,
+    requestId: string,
+  ) {
+    const notifications = await tx.notification.findMany({
+      where: {
+        userId,
+        readAt: null,
+      },
+      select: {
+        id: true,
+        payload: true,
+      },
+    });
+
+    const notificationIds = notifications
+      .filter((notification: { id: string; payload: unknown }) => {
+        const payload = notification.payload as Record<string, unknown> | null;
+        return (
+          payload?.invite === true &&
+          payload?.eventId === eventId &&
+          payload?.requestId === requestId
+        );
+      })
+      .map((notification: { id: string }) => notification.id);
+
+    if (notificationIds.length > 0) {
+      await tx.notification.updateMany({
+        where: {
+          id: {
+            in: notificationIds,
+          },
+        },
+        data: {
+          readAt: new Date(),
+        },
+      });
+    }
   }
 
   private async getBlockedUserIds(userId: string) {

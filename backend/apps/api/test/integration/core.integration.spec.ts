@@ -660,6 +660,115 @@ describe('core api flows', () => {
     expect(feedbackResponse.body.favoritesCount).toBe(1);
   });
 
+  it('creates invite notification for selected user and lets them accept it', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Ужин по приглашению',
+        description: 'Только для одной приглашенной гостьи',
+        emoji: '🍷',
+        vibe: 'Уютно',
+        place: 'Покровка 7',
+        startsAt: '2026-04-23T18:30:00.000Z',
+        capacity: 4,
+        distanceKm: 0.5,
+        joinMode: 'request',
+        inviteeUserId: 'user-sonya',
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+
+    const notificationsResponse = await request(app.getHttpServer())
+      .get('/notifications')
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
+
+    const inviteNotification = notificationsResponse.body.items.find(
+      (item: { payload?: { invite?: boolean; eventId?: string } }) =>
+        item.payload?.invite === true && item.payload?.eventId === eventId,
+    );
+
+    expect(inviteNotification).toBeDefined();
+
+    const acceptResponse = await request(app.getHttpServer())
+      .post(`/events/${eventId}/invites/${inviteNotification.payload.requestId}/accept`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(201);
+
+    expect(acceptResponse.body.id).toBe(eventId);
+    expect(acceptResponse.body.joined).toBe(true);
+    expect(acceptResponse.body.joinRequestStatus).toBe('approved');
+    expect(acceptResponse.body.chatId).toEqual(expect.any(String));
+
+    const detailResponse = await request(app.getHttpServer())
+      .get(`/events/${eventId}`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
+
+    expect(detailResponse.body.joined).toBe(true);
+    expect(detailResponse.body.joinRequestStatus).toBe('approved');
+    expect(detailResponse.body.chatId).toEqual(expect.any(String));
+  });
+
+  it('writes a meetup chat message when invited user declines', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Ужин с возможностью отказа',
+        description: 'Проверяем системное сообщение после отказа',
+        emoji: '🍲',
+        vibe: 'Спокойно',
+        place: 'Мясницкая 3',
+        startsAt: '2026-04-23T19:30:00.000Z',
+        capacity: 4,
+        distanceKm: 0.8,
+        joinMode: 'request',
+        inviteeUserId: 'user-sonya',
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+
+    const notificationsResponse = await request(app.getHttpServer())
+      .get('/notifications')
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
+
+    const inviteNotification = notificationsResponse.body.items.find(
+      (item: { payload?: { invite?: boolean; eventId?: string } }) =>
+        item.payload?.invite === true && item.payload?.eventId === eventId,
+    );
+
+    expect(inviteNotification).toBeDefined();
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/invites/${inviteNotification.payload.requestId}/decline`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(201);
+
+    const hostEventResponse = await request(app.getHttpServer())
+      .get(`/host/events/${eventId}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(hostEventResponse.body.chatId).toEqual(expect.any(String));
+    expect(hostEventResponse.body.requests).toHaveLength(0);
+
+    const messagesResponse = await request(app.getHttpServer())
+      .get(`/chats/${hostEventResponse.body.chatId}/messages`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(
+      messagesResponse.body.items.some(
+        (item: { text: string }) => item.text === 'Соня М не присоединится к встрече.',
+      ),
+    ).toBe(true);
+  });
+
   it('does not allow canceling a join request after approval', async () => {
     const createResponse = await request(app.getHttpServer())
       .post('/events')

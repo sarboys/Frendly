@@ -91,7 +91,7 @@ describe('auth flows', () => {
     expect(seededVerifyResponse.status).toBe(201);
     expect(seededVerifyResponse.body.userId).toBe('user-me');
 
-    const freshChallenge = await requestPhoneCode('+7 555 555 55 55');
+    const freshChallenge = await requestPhoneCode('+7 888 888 88 88');
     const freshVerifyResponse = await verifyPhoneCode(freshChallenge.body.challengeId);
 
     expect(freshVerifyResponse.status).toBe(201);
@@ -99,11 +99,11 @@ describe('auth flows', () => {
     expect(freshVerifyResponse.body.userId).not.toBe('user-me');
 
     const createdUser = await prisma.user.findUnique({
-      where: { phoneNumber: '+75555555555' },
+      where: { phoneNumber: '+78888888888' },
     });
 
     expect(createdUser?.id).toBe(freshVerifyResponse.body.userId);
-    expect(createdUser?.displayName).toBe('Пользователь 5555');
+    expect(createdUser?.displayName).toBe('Пользователь 8888');
   });
 
   it('rejects wrong otp code', async () => {
