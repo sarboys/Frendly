@@ -1,5 +1,6 @@
 import { PrismaClient, ChatKind, ChatOrigin } from '@prisma/client';
-import { seededEvents, seededUsers } from '../src/seed-data';
+
+const { seededEvents, seededUsers }: typeof import('../src/seed-data') = require('../src/seed-data.ts');
 
 const prisma = new PrismaClient();
 
@@ -178,6 +179,42 @@ async function main() {
         },
       },
     });
+
+    const createdAssets = [];
+    for (const [index, url] of user.photoUrls.entries()) {
+      const asset = await prisma.mediaAsset.create({
+        data: {
+          ownerId: user.id,
+          kind: 'avatar',
+          status: 'ready',
+          bucket: 'seeded',
+          objectKey: `seeded/profile/${user.id}/${index}`,
+          mimeType: 'image/svg+xml',
+          byteSize: 0,
+          originalFileName: `${user.id}-${index}.svg`,
+          publicUrl: url,
+        },
+      });
+      createdAssets.push(asset);
+
+      await prisma.profilePhoto.create({
+        data: {
+          profileUserId: user.id,
+          mediaAssetId: asset.id,
+          sortOrder: index,
+        },
+      });
+    }
+
+    if (createdAssets.length > 0) {
+      await prisma.profile.update({
+        where: { userId: user.id },
+        data: {
+          avatarAssetId: createdAssets[0]!.id,
+          avatarUrl: createdAssets[0]!.publicUrl,
+        },
+      });
+    }
   }
 
   await prisma.event.createMany({

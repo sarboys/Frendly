@@ -1,9 +1,10 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { buildPublicAssetUrl, createPresignedUpload, createS3Client } from '@big-break/database';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
-import { mapBasicProfile } from '../common/presenters';
+import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 
 const ALLOWED_AVATAR_MIME_TYPES = new Set([
@@ -21,10 +22,7 @@ export class ProfileService {
   private readonly s3 = createS3Client();
 
   async getBasicUser(userId: string) {
-    const user = await this.prismaService.client.user.findUnique({
-      where: { id: userId },
-      include: { profile: true },
-    });
+    const user = await this._loadProfileUser(this.prismaService.client, userId);
 
     if (!user) {
       throw new ApiError(404, 'user_not_found', 'User not found');
@@ -111,6 +109,17 @@ export class ProfileService {
   }
 
   async uploadAvatarFile(userId: string, file: Express.Multer.File) {
+    const result = await this.uploadProfilePhotoFile(userId, file);
+    await this.makePrimaryPhoto(userId, result.photo.id);
+    return {
+      assetId: result.assetId,
+      status: result.status,
+      url: result.url,
+      photo: result.photo,
+    };
+  }
+
+  async uploadProfilePhotoFile(userId: string, file: Express.Multer.File) {
     if (!file) {
       throw new ApiError(400, 'avatar_file_required', 'Avatar file is required');
     }
@@ -131,33 +140,136 @@ export class ProfileService {
       );
     }
 
-    const asset = await this.prismaService.client.mediaAsset.create({
-      data: {
-        ownerId: userId,
-        kind: 'avatar',
-        status: 'ready',
-        bucket: process.env.S3_BUCKET ?? 'big-break',
-        objectKey,
-        mimeType: file.mimetype,
-        byteSize: file.size,
-        originalFileName: file.originalname,
-        publicUrl: buildPublicAssetUrl(objectKey),
-      },
-    });
+    const next = await this.prismaService.client.$transaction(async (tx) => {
+      const asset = await tx.mediaAsset.create({
+        data: {
+          ownerId: userId,
+          kind: 'avatar',
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey,
+          mimeType: file.mimetype,
+          byteSize: file.size,
+          originalFileName: file.originalname,
+          publicUrl: buildPublicAssetUrl(objectKey),
+        },
+      });
 
-    await this.prismaService.client.profile.update({
-      where: { userId },
-      data: {
-        avatarAssetId: asset.id,
-        avatarUrl: asset.publicUrl,
-      },
+      const currentCount = await tx.profilePhoto.count({
+        where: { profileUserId: userId },
+      });
+
+      const photo = await tx.profilePhoto.create({
+        data: {
+          profileUserId: userId,
+          mediaAssetId: asset.id,
+          sortOrder: currentCount,
+        },
+        include: {
+          mediaAsset: true,
+        },
+      });
+
+      await this._syncPrimaryPhoto(tx, userId);
+      return { asset, photo };
     });
 
     return {
-      assetId: asset.id,
-      status: asset.status,
-      url: asset.publicUrl,
+      assetId: next.asset.id,
+      status: next.asset.status,
+      url: next.asset.publicUrl,
+      photo: mapProfilePhoto(next.photo),
     };
+  }
+
+  async deleteProfilePhoto(userId: string, photoId: string) {
+    await this.prismaService.client.$transaction(async (tx) => {
+      const photo = await tx.profilePhoto.findFirst({
+        where: {
+          id: photoId,
+          profileUserId: userId,
+        },
+      });
+      if (!photo) {
+        throw new ApiError(404, 'profile_photo_not_found', 'Profile photo not found');
+      }
+
+      await tx.profilePhoto.delete({
+        where: { id: photoId },
+      });
+      await tx.mediaAsset.delete({
+        where: { id: photo.mediaAssetId },
+      });
+
+      await this._normalizePhotoOrder(tx, userId);
+      await this._syncPrimaryPhoto(tx, userId);
+    });
+
+    return this.getProfile(userId);
+  }
+
+  async makePrimaryPhoto(userId: string, photoId: string) {
+    await this.prismaService.client.$transaction(async (tx) => {
+      const photos = await tx.profilePhoto.findMany({
+        where: { profileUserId: userId },
+        orderBy: { sortOrder: 'asc' },
+      });
+
+      const target = photos.find((photo) => photo.id === photoId);
+      if (!target) {
+        throw new ApiError(404, 'profile_photo_not_found', 'Profile photo not found');
+      }
+
+      const ordered = [target, ...photos.filter((photo) => photo.id !== photoId)];
+      for (const [index, photo] of ordered.entries()) {
+        await tx.profilePhoto.update({
+          where: { id: photo.id },
+          data: { sortOrder: index },
+        });
+      }
+
+      await this._syncPrimaryPhoto(tx, userId);
+    });
+
+    return this.getProfile(userId);
+  }
+
+  async reorderProfilePhotos(userId: string, body: Record<string, unknown>) {
+    const photoIds = Array.isArray(body.photoIds)
+      ? body.photoIds.filter((item): item is string => typeof item === 'string')
+      : null;
+    if (photoIds == null || photoIds.length === 0) {
+      throw new ApiError(400, 'invalid_profile_photo_order', 'photoIds must be a non-empty string array');
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      const photos = await tx.profilePhoto.findMany({
+        where: { profileUserId: userId },
+        orderBy: { sortOrder: 'asc' },
+      });
+
+      if (photos.length !== photoIds.length) {
+        throw new ApiError(400, 'invalid_profile_photo_order', 'photoIds length mismatch');
+      }
+
+      const currentIds = new Set(photos.map((photo) => photo.id));
+      for (const photoId of photoIds) {
+        if (!currentIds.has(photoId)) {
+          throw new ApiError(400, 'invalid_profile_photo_order', 'photoIds must belong to the user');
+        }
+      }
+
+      for (const [index, photoId] of photoIds.entries()) {
+        await tx.profilePhoto.update({
+          where: { id: photoId },
+          data: { sortOrder: index },
+        });
+      }
+
+      await this._syncPrimaryPhoto(tx, userId);
+    });
+
+    return this.getProfile(userId);
   }
 
   private validateProfilePayload(body: Record<string, unknown>) {
@@ -179,5 +291,57 @@ export class ProfileService {
         throw new ApiError(400, 'invalid_profile_payload', `${field} must be a string`);
       }
     }
+  }
+
+  private async _loadProfileUser(
+    client: Prisma.TransactionClient | PrismaService['client'],
+    userId: string,
+  ) {
+    return client.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: {
+          include: {
+            photos: {
+              include: { mediaAsset: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  private async _normalizePhotoOrder(tx: Prisma.TransactionClient, userId: string) {
+    const photos = await tx.profilePhoto.findMany({
+      where: { profileUserId: userId },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    for (const [index, photo] of photos.entries()) {
+      if (photo.sortOrder === index) {
+        continue;
+      }
+      await tx.profilePhoto.update({
+        where: { id: photo.id },
+        data: { sortOrder: index },
+      });
+    }
+  }
+
+  private async _syncPrimaryPhoto(tx: Prisma.TransactionClient, userId: string) {
+    const firstPhoto = await tx.profilePhoto.findFirst({
+      where: { profileUserId: userId },
+      include: { mediaAsset: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    await tx.profile.update({
+      where: { userId },
+      data: {
+        avatarAssetId: firstPhoto?.mediaAssetId ?? null,
+        avatarUrl: firstPhoto?.mediaAsset.publicUrl ?? null,
+      },
+    });
   }
 }

@@ -29,6 +29,17 @@ describe('extended rollout api flows', () => {
     accessToken = loginResponse.body.accessToken;
   });
 
+  beforeEach(async () => {
+    await prisma.userBlock.deleteMany({
+      where: {
+        OR: [
+          { userId: 'user-me' },
+          { blockedUserId: 'user-me' },
+        ],
+      },
+    });
+  });
+
   afterAll(async () => {
     await app.close();
   });

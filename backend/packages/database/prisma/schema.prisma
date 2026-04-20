@@ -235,7 +235,21 @@ model Profile {
   avatarUrl      String?
   avatarAssetId  String?     @unique
   avatarAsset    MediaAsset? @relation("ProfileAvatar", fields: [avatarAssetId], references: [id])
+  photos         ProfilePhoto[]
   updatedAt      DateTime    @updatedAt
+}
+
+model ProfilePhoto {
+  id            String     @id @default(cuid())
+  profileUserId String
+  profile       Profile    @relation(fields: [profileUserId], references: [userId], onDelete: Cascade)
+  mediaAssetId  String     @unique
+  mediaAsset    MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  sortOrder     Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([profileUserId, sortOrder])
 }
 
 model OnboardingPreferences {
@@ -525,6 +539,7 @@ model MediaAsset {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   profileAvatar    Profile?          @relation("ProfileAvatar")
+  profilePhotos    ProfilePhoto[]
   messageLinks     MessageAttachment[]
 }
 

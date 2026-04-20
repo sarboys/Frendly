@@ -41,8 +41,8 @@ describe('core api flows', () => {
     await prisma.userBlock.deleteMany({
       where: {
         OR: [
-          { userId: 'user-me', blockedUserId: 'user-sonya' },
-          { userId: 'user-sonya', blockedUserId: 'user-me' },
+          { userId: 'user-me' },
+          { blockedUserId: 'user-me' },
         ],
       },
     });
@@ -246,6 +246,76 @@ describe('core api flows', () => {
 
     expect(invalidUploadResponse.status).toBe(400);
     expect(invalidUploadResponse.body.code).toBe('invalid_avatar_mime_type');
+  });
+
+  it('supports multiple profile photos with primary switch and delete', async () => {
+    const initialRead = await request(app.getHttpServer())
+      .get('/profile/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    const initialCount = initialRead.body.photos.length as number;
+
+    const firstUpload = await request(app.getHttpServer())
+      .post('/profile/me/photos/file')
+      .set('authorization', `Bearer ${accessToken}`)
+      .attach('file', Buffer.from('fake-first-png'), {
+        filename: 'first.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+
+    const secondUpload = await request(app.getHttpServer())
+      .post('/profile/me/photos/file')
+      .set('authorization', `Bearer ${accessToken}`)
+      .attach('file', Buffer.from('fake-second-png'), {
+        filename: 'second.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+
+    expect(firstUpload.body.photo.id).toEqual(expect.any(String));
+    expect(secondUpload.body.photo.id).toEqual(expect.any(String));
+
+    const readAfterUpload = await request(app.getHttpServer())
+      .get('/profile/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    const lastPhotoAfterUpload = readAfterUpload.body.photos[
+      readAfterUpload.body.photos.length - 1
+    ];
+
+    expect(readAfterUpload.body.photos).toHaveLength(initialCount + 2);
+    expect(lastPhotoAfterUpload.id).toBe(secondUpload.body.photo.id);
+
+    await request(app.getHttpServer())
+      .post(`/profile/me/photos/${secondUpload.body.photo.id}/primary`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    const readAfterPrimary = await request(app.getHttpServer())
+      .get('/profile/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(readAfterPrimary.body.photos[0].id).toBe(secondUpload.body.photo.id);
+    expect(readAfterPrimary.body.avatarUrl).toBe(readAfterPrimary.body.photos[0].url);
+
+    await request(app.getHttpServer())
+      .delete(`/profile/me/photos/${firstUpload.body.photo.id}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const readAfterDelete = await request(app.getHttpServer())
+      .get('/profile/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(readAfterDelete.body.photos).toHaveLength(initialCount + 1);
+    expect(
+      readAfterDelete.body.photos.every(
+        (item: { id: string }) => item.id !== firstUpload.body.photo.id,
+      ),
+    ).toBe(true);
   });
 
   it('uploads chat attachment only for chat members and keeps owner metadata', async () => {

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { buildDirectChatKey } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { paginateArray } from '../common/pagination';
+import { mapBasicProfile } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -102,7 +103,14 @@ export class PeopleService {
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
       include: {
-        profile: true,
+        profile: {
+          include: {
+            photos: {
+              include: { mediaAsset: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
         onboarding: true,
       },
     });
@@ -112,18 +120,7 @@ export class PeopleService {
     }
 
     return {
-      id: user.id,
-      displayName: user.displayName,
-      verified: user.verified,
-      online: user.online,
-      age: user.profile?.age ?? null,
-      city: user.profile?.city ?? null,
-      area: user.profile?.area ?? null,
-      bio: user.profile?.bio ?? null,
-      vibe: user.profile?.vibe ?? null,
-      rating: user.profile?.rating ?? 0,
-      meetupCount: user.profile?.meetupCount ?? 0,
-      avatarUrl: user.profile?.avatarUrl ?? null,
+      ...mapBasicProfile(user),
       interests: Array.isArray(user.onboarding?.interests)
           ? (user.onboarding!.interests as unknown[]).filter(
               (item): item is string => typeof item === 'string',

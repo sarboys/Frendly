@@ -11,6 +11,7 @@ export const seededUsers: Array<{
   rating: number;
   meetupCount: number;
   avatarUrl: string;
+  photoUrls: string[];
   intent: string;
   interests: string[];
 }> = [
@@ -27,6 +28,11 @@ export const seededUsers: Array<{
     rating: 4.8,
     meetupCount: 12,
     avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Nikita',
+    photoUrls: [
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Nikita',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Nikita-evening',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Nikita-city',
+    ],
     intent: 'both',
     interests: ['Кофе', 'Бары', 'Настолки', 'Кино', 'Книги', 'Велик'],
   },
@@ -43,6 +49,11 @@ export const seededUsers: Array<{
     rating: 4.9,
     meetupCount: 23,
     avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Anna',
+    photoUrls: [
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Anna',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Anna-gallery',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Anna-park',
+    ],
     intent: 'dating',
     interests: ['Кофе', 'Настолки', 'Книги', 'Кино', 'Бары', 'Выставки'],
   },
@@ -59,6 +70,10 @@ export const seededUsers: Array<{
     rating: 4.4,
     meetupCount: 9,
     avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Mark',
+    photoUrls: [
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Mark',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Mark-night',
+    ],
     intent: 'friendship',
     interests: ['Бары', 'Кино'],
   },
@@ -75,6 +90,10 @@ export const seededUsers: Array<{
     rating: 4.6,
     meetupCount: 8,
     avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Liza',
+    photoUrls: [
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Liza',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Liza-books',
+    ],
     intent: 'both',
     interests: ['Йога', 'Книги'],
   },
@@ -91,6 +110,10 @@ export const seededUsers: Array<{
     rating: 4.3,
     meetupCount: 7,
     avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Dima',
+    photoUrls: [
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Dima',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Dima-bike',
+    ],
     intent: 'friendship',
     interests: ['Бег', 'Велик'],
   },
@@ -107,6 +130,10 @@ export const seededUsers: Array<{
     rating: 4.7,
     meetupCount: 11,
     avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Sonya',
+    photoUrls: [
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Sonya',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Sonya-theatre',
+    ],
     intent: 'both',
     interests: ['Театр', 'Готовка'],
   },
@@ -123,6 +150,10 @@ export const seededUsers: Array<{
     rating: 4.5,
     meetupCount: 10,
     avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Oleg',
+    photoUrls: [
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Oleg',
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=Oleg-music',
+    ],
     intent: 'friendship',
     interests: ['Музыка', 'Бары'],
   },

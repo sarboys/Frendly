@@ -61,6 +61,20 @@ export function mapMediaAsset(asset: MediaAsset) {
   };
 }
 
+export function mapProfilePhoto(
+  photo: {
+    id: string;
+    sortOrder: number;
+    mediaAsset: MediaAsset;
+  },
+) {
+  return {
+    id: photo.id,
+    url: photo.mediaAsset.publicUrl,
+    order: photo.sortOrder,
+  };
+}
+
 export function mapMessage(
   message: Message & {
     sender: User;
@@ -81,7 +95,24 @@ export function mapMessage(
   };
 }
 
-export function mapBasicProfile(user: User & { profile: Profile | null }) {
+export function mapBasicProfile(
+  user: User & {
+    profile:
+      | (Profile & {
+          photos?: Array<{
+            id: string;
+            sortOrder: number;
+            mediaAsset: MediaAsset;
+          }>;
+        })
+      | null;
+  },
+) {
+  const photos = (user.profile?.photos ?? [])
+    .filter((photo) => photo.mediaAsset.publicUrl)
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map((photo) => mapProfilePhoto(photo));
+
   return {
     id: user.id,
     displayName: user.displayName,
@@ -94,7 +125,8 @@ export function mapBasicProfile(user: User & { profile: Profile | null }) {
     vibe: user.profile?.vibe ?? null,
     rating: user.profile?.rating ?? 0,
     meetupCount: user.profile?.meetupCount ?? 0,
-    avatarUrl: user.profile?.avatarUrl ?? null,
+    avatarUrl: user.profile?.avatarUrl ?? photos[0]?.url ?? null,
+    photos,
   };
 }
 
