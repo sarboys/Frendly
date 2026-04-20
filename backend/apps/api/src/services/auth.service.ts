@@ -281,6 +281,10 @@ export class AuthService {
   private normalizePhone(raw: string) {
     const digits = raw.replace(/\D/g, '');
 
+    if (digits.length === 12 && digits.startsWith('375')) {
+      return `+${digits}`;
+    }
+
     if (digits.length === 10) {
       return `+7${digits}`;
     }
