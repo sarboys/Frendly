@@ -84,6 +84,28 @@ describe('auth flows', () => {
     expect(secondRequest.body.localCodeHint).toBe('1111');
   });
 
+  it('logs into existing seeded account by phone and creates a new user for unknown phone', async () => {
+    const seededChallenge = await requestPhoneCode('+7 111 111 11 11');
+    const seededVerifyResponse = await verifyPhoneCode(seededChallenge.body.challengeId);
+
+    expect(seededVerifyResponse.status).toBe(201);
+    expect(seededVerifyResponse.body.userId).toBe('user-me');
+
+    const freshChallenge = await requestPhoneCode('+7 555 555 55 55');
+    const freshVerifyResponse = await verifyPhoneCode(freshChallenge.body.challengeId);
+
+    expect(freshVerifyResponse.status).toBe(201);
+    expect(freshVerifyResponse.body.userId).toEqual(expect.any(String));
+    expect(freshVerifyResponse.body.userId).not.toBe('user-me');
+
+    const createdUser = await prisma.user.findUnique({
+      where: { phoneNumber: '+75555555555' },
+    });
+
+    expect(createdUser?.id).toBe(freshVerifyResponse.body.userId);
+    expect(createdUser?.displayName).toBe('Пользователь 5555');
+  });
+
   it('rejects wrong otp code', async () => {
     const challengeResponse = await requestPhoneCode();
     const response = await verifyPhoneCode(challengeResponse.body.challengeId, '0000');
