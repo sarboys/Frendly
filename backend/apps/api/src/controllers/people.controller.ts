@@ -19,8 +19,11 @@ export class PeopleController {
   }
 
   @Get(':userId')
-  getPerson(@Param('userId') userId: string) {
-    return this.peopleService.getPersonProfile(userId);
+  getPerson(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('userId') userId: string,
+  ) {
+    return this.peopleService.getPersonProfile(currentUser.userId, userId);
   }
 
   @Post(':userId/direct-chat')

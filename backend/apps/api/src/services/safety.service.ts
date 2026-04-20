@@ -7,7 +7,7 @@ export class SafetyService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getSafety(userId: string) {
-    const [user, settings, contacts, blocksCount, reportsCount] = await Promise.all([
+    const [user, settings, contacts, blocksCount, activeReportsCount, activeReportsAgainstUserCount] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
         include: { profile: true, verification: true },
@@ -23,7 +23,20 @@ export class SafetyService {
         where: { userId },
       }),
       this.prismaService.client.userReport.count({
-        where: { reporterId: userId },
+        where: {
+          reporterId: userId,
+          status: {
+            in: ['open', 'in_review'],
+          },
+        },
+      }),
+      this.prismaService.client.userReport.count({
+        where: {
+          targetUserId: userId,
+          status: {
+            in: ['open', 'in_review'],
+          },
+        },
       }),
     ]);
 
@@ -31,7 +44,7 @@ export class SafetyService {
       verified: user?.verification?.status == 'verified',
       meetupCount: user?.profile?.meetupCount ?? 0,
       contactsCount: contacts.length,
-      reportsCount,
+      reportsCount: activeReportsAgainstUserCount,
     });
 
     return {
@@ -39,7 +52,7 @@ export class SafetyService {
       settings: settings,
       trustedContacts: contacts,
       blockedUsersCount: blocksCount,
-      reportsCount,
+      reportsCount: activeReportsCount,
     };
   }
 
@@ -101,6 +114,19 @@ export class SafetyService {
       throw new ApiError(400, 'invalid_report_payload', 'targetUserId and reason are required');
     }
 
+    if (targetUserId === userId) {
+      throw new ApiError(400, 'self_report_not_allowed', 'Cannot report yourself');
+    }
+
+    const targetUser = await this.prismaService.client.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true },
+    });
+
+    if (!targetUser) {
+      throw new ApiError(404, 'user_not_found', 'Target user not found');
+    }
+
     const report = await this.prismaService.client.$transaction(async (tx) => {
       const created = await tx.userReport.create({
         data: {
@@ -152,14 +178,56 @@ export class SafetyService {
 
   async createSos(userId: string, body: Record<string, unknown>) {
     const eventId = typeof body.eventId === 'string' ? body.eventId : null;
-    const contacts = await this.prismaService.client.trustedContact.count({
-      where: { userId },
+    if (eventId != null) {
+      const event = await this.prismaService.client.event.findUnique({
+        where: { id: eventId },
+        select: { id: true },
+      });
+
+      if (!event) {
+        throw new ApiError(404, 'event_not_found', 'Event not found');
+      }
+
+      const participant = await this.prismaService.client.eventParticipant.findUnique({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+      });
+
+      if (!participant) {
+        throw new ApiError(403, 'event_forbidden', 'You are not a participant of this event');
+      }
+    }
+
+    const contacts = await this.prismaService.client.trustedContact.findMany({
+      where: {
+        userId,
+        mode: {
+          in: ['all_plans', 'sos_only'],
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    await this.prismaService.client.outboxEvent.create({
+      data: {
+        type: 'safety.sos_triggered',
+        payload: {
+          userId,
+          eventId,
+          notifiedContacts: contacts.length,
+          trustedContactIds: contacts.map((contact) => contact.id),
+        },
+      },
     });
 
     return {
       ok: true,
       eventId,
-      notifiedContacts: contacts,
+      notifiedContacts: contacts.length,
     };
   }
 

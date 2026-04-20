@@ -13,6 +13,7 @@ export class HostService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getDashboard(userId: string) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
     const [host, events, pendingRequests] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -62,7 +63,15 @@ export class HostService {
       events.length === 0
         ? 0
         : Math.round(
-            (events.reduce((acc, event) => acc + event.participants.length / Math.max(event.capacity, 1), 0) /
+            (events.reduce(
+              (acc, event) =>
+                acc +
+                event.participants.filter(
+                  (participant) => !blockedUserIds.has(participant.userId),
+                ).length /
+                  Math.max(event.capacity, 1),
+              0,
+            ) /
               events.length) *
               100,
           );
@@ -73,12 +82,18 @@ export class HostService {
         rating: host?.profile?.rating ?? 0,
         fillRate: averageFillRate,
       },
-      pendingRequestsCount: pendingRequests.length,
-      requests: pendingRequests.map((request) => this.mapRequest(request)),
+      pendingRequestsCount: pendingRequests.filter(
+        (request) => !blockedUserIds.has(request.user.id),
+      ).length,
+      requests: pendingRequests
+        .filter((request) => !blockedUserIds.has(request.user.id))
+        .map((request) => this.mapRequest(request)),
       events: events.map((event) =>
         mapEventSummary({
           event,
-          participants: event.participants,
+          participants: event.participants.filter(
+            (participant) => !blockedUserIds.has(participant.userId),
+          ),
           currentUserId: userId,
           liveState: event.liveState,
         }),
@@ -87,6 +102,7 @@ export class HostService {
   }
 
   async getHostedEvent(userId: string, eventId: string) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
     const event = await this.prismaService.client.event.findFirst({
       where: { id: eventId, hostId: userId },
       include: {
@@ -122,22 +138,28 @@ export class HostService {
     return {
       event: mapEventSummary({
         event,
-        participants: event.participants,
+        participants: event.participants.filter(
+          (participant) => !blockedUserIds.has(participant.userId),
+        ),
         currentUserId: userId,
         liveState: event.liveState,
       }),
       chatId: event.chat?.id ?? null,
       liveStatus: mapLiveStatus(event.liveState),
-      requests: event.joinRequests.map((request) =>
-        this.mapRequest({
-          ...request,
-          event: {
-            id: event.id,
-            title: event.title,
-          },
-        }),
-      ),
-      attendees: event.participants.map((participant) => ({
+      requests: event.joinRequests
+        .filter((request) => !blockedUserIds.has(request.userId))
+        .map((request) =>
+          this.mapRequest({
+            ...request,
+            event: {
+              id: event.id,
+              title: event.title,
+            },
+          }),
+        ),
+      attendees: event.participants
+        .filter((participant) => !blockedUserIds.has(participant.userId))
+        .map((participant) => ({
         ...mapUserPreview(participant.user),
         attendanceStatus: mapAttendanceStatus(attendanceByUserId.get(participant.userId)),
         checkedInAt:
@@ -161,6 +183,19 @@ export class HostService {
 
     if (!request || request.event.hostId !== userId) {
       throw new ApiError(404, 'join_request_not_found', 'Join request not found');
+    }
+
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    if (blockedUserIds.has(request.userId)) {
+      throw new ApiError(404, 'join_request_not_found', 'Join request not found');
+    }
+
+    if (request.status !== 'pending') {
+      throw new ApiError(
+        409,
+        'join_request_already_reviewed',
+        'Join request is already reviewed',
+      );
     }
 
     const approved = await this.prismaService.client.$transaction(async (tx) => {
@@ -247,6 +282,19 @@ export class HostService {
       throw new ApiError(404, 'join_request_not_found', 'Join request not found');
     }
 
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    if (blockedUserIds.has(request.userId)) {
+      throw new ApiError(404, 'join_request_not_found', 'Join request not found');
+    }
+
+    if (request.status !== 'pending') {
+      throw new ApiError(
+        409,
+        'join_request_already_reviewed',
+        'Join request is already reviewed',
+      );
+    }
+
     const rejected = await this.prismaService.client.eventJoinRequest.update({
       where: { id: requestId },
       data: {
@@ -267,6 +315,11 @@ export class HostService {
 
   async manualCheckIn(userId: string, eventId: string, targetUserId: string) {
     await this.assertHost(userId, eventId);
+
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    if (blockedUserIds.has(targetUserId)) {
+      throw new ApiError(404, 'event_participant_not_found', 'Participant not found');
+    }
 
     const participant = await this.prismaService.client.eventParticipant.findUnique({
       where: {
@@ -400,5 +453,32 @@ export class HostService {
       userName: request.user.displayName,
       avatarUrl: request.user.profile?.avatarUrl ?? null,
     };
+  }
+
+  private async getBlockedUserIds(userId: string) {
+    const blocks = await this.prismaService.client.userBlock.findMany({
+      where: {
+        OR: [
+          { userId },
+          { blockedUserId: userId },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+
+    const blockedUserIds = new Set<string>();
+    for (const block of blocks) {
+      if (block.userId === userId) {
+        blockedUserIds.add(block.blockedUserId);
+      }
+      if (block.blockedUserId === userId) {
+        blockedUserIds.add(block.userId);
+      }
+    }
+
+    return blockedUserIds;
   }
 }

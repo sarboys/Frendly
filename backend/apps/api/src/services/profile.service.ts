@@ -6,6 +6,13 @@ import { ApiError } from '../common/api-error';
 import { mapBasicProfile } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 
+const ALLOWED_AVATAR_MIME_TYPES = new Set([
+  'image/gif',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
 @Injectable()
 export class ProfileService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -30,7 +37,9 @@ export class ProfileService {
   }
 
   async updateProfile(userId: string, body: Record<string, unknown>) {
-    const displayName = typeof body.displayName === 'string' ? body.displayName : undefined;
+    this.validateProfilePayload(body);
+
+    const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : undefined;
 
     await this.prismaService.client.$transaction(async (tx) => {
       if (displayName) {
@@ -101,6 +110,14 @@ export class ProfileService {
   }
 
   async uploadAvatarFile(userId: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new ApiError(400, 'avatar_file_required', 'Avatar file is required');
+    }
+
+    if (!ALLOWED_AVATAR_MIME_TYPES.has(file.mimetype)) {
+      throw new ApiError(400, 'invalid_avatar_mime_type', 'Avatar MIME type is invalid');
+    }
+
     const objectKey = `avatars/${userId}/${randomUUID()}-${file.originalname}`;
     await this.s3.send(
       new PutObjectCommand({
@@ -138,5 +155,26 @@ export class ProfileService {
       status: asset.status,
       url: asset.publicUrl,
     };
+  }
+
+  private validateProfilePayload(body: Record<string, unknown>) {
+    if (body.displayName !== undefined) {
+      if (typeof body.displayName !== 'string' || body.displayName.trim().length === 0) {
+        throw new ApiError(400, 'invalid_profile_payload', 'displayName must be a non-empty string');
+      }
+    }
+
+    if (body.age !== undefined) {
+      if (!Number.isInteger(body.age) || (body.age as number) < 18 || (body.age as number) > 100) {
+        throw new ApiError(400, 'invalid_profile_payload', 'age must be an integer from 18 to 100');
+      }
+    }
+
+    for (const field of ['bio', 'city', 'area', 'vibe'] as const) {
+      const value = body[field];
+      if (value !== undefined && typeof value !== 'string') {
+        throw new ApiError(400, 'invalid_profile_payload', `${field} must be a string`);
+      }
+    }
   }
 }

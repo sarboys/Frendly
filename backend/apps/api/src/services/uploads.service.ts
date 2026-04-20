@@ -12,18 +12,22 @@ export class UploadsService {
   private readonly s3 = createS3Client();
 
   async createChatAttachmentUpload(userId: string, body: Record<string, unknown>) {
+    const chatId = await this.requireChatIdForAttachment(userId, body);
     const fileName = typeof body.fileName === 'string' ? body.fileName : 'attachment.bin';
     const contentType = typeof body.contentType === 'string' ? body.contentType : 'application/octet-stream';
     const objectKey = `chat-attachments/${userId}/${randomUUID()}-${fileName}`;
-    return createPresignedUpload({ objectKey, contentType });
+    return {
+      ...(await createPresignedUpload({ objectKey, contentType })),
+      chatId,
+    };
   }
 
   async completeChatAttachmentUpload(userId: string, body: Record<string, unknown>) {
+    const chatId = await this.requireChatIdForAttachment(userId, body);
     const objectKey = typeof body.objectKey === 'string' ? body.objectKey : undefined;
     const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'application/octet-stream';
     const byteSize = typeof body.byteSize === 'number' ? body.byteSize : 0;
     const fileName = typeof body.fileName === 'string' ? body.fileName : 'attachment.bin';
-    const chatId = typeof body.chatId === 'string' ? body.chatId : undefined;
 
     if (!objectKey) {
       throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
@@ -55,7 +59,7 @@ export class UploadsService {
     body: Record<string, unknown>,
     file: Express.Multer.File,
   ) {
-    const chatId = typeof body.chatId === 'string' ? body.chatId : undefined;
+    const chatId = await this.requireChatIdForAttachment(userId, body);
     const objectKey =
       `chat-attachments/${userId}/${randomUUID()}-${file.originalname}`;
 
@@ -88,5 +92,28 @@ export class UploadsService {
       status: asset.status,
       url: asset.publicUrl,
     };
+  }
+
+  private async requireChatIdForAttachment(userId: string, body: Record<string, unknown>) {
+    const chatId = typeof body.chatId === 'string' ? body.chatId : undefined;
+
+    if (!chatId) {
+      throw new ApiError(400, 'chat_id_required', 'chatId is required');
+    }
+
+    const membership = await this.prismaService.client.chatMember.findUnique({
+      where: {
+        chatId_userId: {
+          chatId,
+          userId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new ApiError(403, 'chat_attachment_forbidden', 'You are not a member of this chat');
+    }
+
+    return chatId;
   }
 }

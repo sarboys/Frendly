@@ -8,6 +8,7 @@ export class StoriesService {
 
   async listStories(userId: string, eventId: string) {
     await this.assertParticipant(userId, eventId);
+    const blockedUserIds = await this.getBlockedUserIds(userId);
 
     const stories = await this.prismaService.client.eventStory.findMany({
       where: { eventId },
@@ -19,16 +20,18 @@ export class StoriesService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return stories.map((story) => ({
-      id: story.id,
-      eventId: story.eventId,
-      authorId: story.authorId,
-      authorName: story.author.displayName,
-      avatarUrl: story.author.profile?.avatarUrl ?? null,
-      caption: story.caption,
-      emoji: story.emoji,
-      createdAt: story.createdAt.toISOString(),
-    }));
+    return stories
+      .filter((story) => !blockedUserIds.has(story.authorId))
+      .map((story) => ({
+        id: story.id,
+        eventId: story.eventId,
+        authorId: story.authorId,
+        authorName: story.author.displayName,
+        avatarUrl: story.author.profile?.avatarUrl ?? null,
+        caption: story.caption,
+        emoji: story.emoji,
+        createdAt: story.createdAt.toISOString(),
+      }));
   }
 
   async createStory(userId: string, eventId: string, body: Record<string, unknown>) {
@@ -61,17 +64,55 @@ export class StoriesService {
   }
 
   private async assertParticipant(userId: string, eventId: string) {
-    const participant = await this.prismaService.client.eventParticipant.findUnique({
-      where: {
-        eventId_userId: {
-          eventId,
-          userId,
+    const [participant, event, blockedUserIds] = await Promise.all([
+      this.prismaService.client.eventParticipant.findUnique({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
         },
-      },
-    });
+      }),
+      this.prismaService.client.event.findUnique({
+        where: { id: eventId },
+        select: { hostId: true },
+      }),
+      this.getBlockedUserIds(userId),
+    ]);
+
+    if (!event || blockedUserIds.has(event.hostId)) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
 
     if (!participant) {
       throw new ApiError(403, 'event_forbidden', 'You are not a participant of this event');
     }
+  }
+
+  private async getBlockedUserIds(userId: string) {
+    const blocks = await this.prismaService.client.userBlock.findMany({
+      where: {
+        OR: [
+          { userId },
+          { blockedUserId: userId },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+
+    const blockedUserIds = new Set<string>();
+    for (const block of blocks) {
+      if (block.userId === userId) {
+        blockedUserIds.add(block.blockedUserId);
+      }
+      if (block.blockedUserId === userId) {
+        blockedUserIds.add(block.userId);
+      }
+    }
+
+    return blockedUserIds;
   }
 }

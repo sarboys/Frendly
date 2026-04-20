@@ -9,14 +9,17 @@ export class PeopleService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async listPeople(userId: string, params: { cursor?: string; limit?: number }) {
-    const self = await this.prismaService.client.onboardingPreferences.findUnique({
-      where: { userId },
-    });
+    const [self, blockedUserIds] = await Promise.all([
+      this.prismaService.client.onboardingPreferences.findUnique({
+        where: { userId },
+      }),
+      this.getBlockedUserIds(userId),
+    ]);
 
     const people = await this.prismaService.client.user.findMany({
       where: {
         id: {
-          not: userId,
+          notIn: [userId, ...blockedUserIds],
         },
       },
       include: {
@@ -52,6 +55,11 @@ export class PeopleService {
       throw new ApiError(400, 'self_chat_not_allowed', 'Cannot create chat with yourself');
     }
 
+    const blockedUserIds = await this.getBlockedUserIds(currentUserId);
+    if (blockedUserIds.has(peerUserId)) {
+      throw new ApiError(404, 'user_not_found', 'Peer user not found');
+    }
+
     const peer = await this.prismaService.client.user.findUnique({
       where: { id: peerUserId },
     });
@@ -83,7 +91,14 @@ export class PeopleService {
     });
   }
 
-  async getPersonProfile(userId: string) {
+  async getPersonProfile(currentUserId: string, userId: string) {
+    if (currentUserId !== userId) {
+      const blockedUserIds = await this.getBlockedUserIds(currentUserId);
+      if (blockedUserIds.has(userId)) {
+        throw new ApiError(404, 'user_not_found', 'User not found');
+      }
+    }
+
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
       include: {
@@ -116,5 +131,32 @@ export class PeopleService {
           : [],
       intent: user.onboarding?.intent,
     };
+  }
+
+  private async getBlockedUserIds(userId: string) {
+    const blocks = await this.prismaService.client.userBlock.findMany({
+      where: {
+        OR: [
+          { userId },
+          { blockedUserId: userId },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+
+    const blockedUserIds = new Set<string>();
+    for (const block of blocks) {
+      if (block.userId === userId) {
+        blockedUserIds.add(block.blockedUserId);
+      }
+      if (block.blockedUserId === userId) {
+        blockedUserIds.add(block.userId);
+      }
+    }
+
+    return blockedUserIds;
   }
 }

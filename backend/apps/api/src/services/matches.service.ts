@@ -6,15 +6,43 @@ export class MatchesService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async listMatches(userId: string) {
-    const favorites = await this.prismaService.client.eventFavorite.findMany({
-      where: { sourceUserId: userId },
-      include: {
-        event: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [favorites, blockedPairs] = await Promise.all([
+      this.prismaService.client.eventFavorite.findMany({
+        where: { sourceUserId: userId },
+        include: {
+          event: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prismaService.client.userBlock.findMany({
+        where: {
+          OR: [
+            { userId },
+            { blockedUserId: userId },
+          ],
+        },
+        select: {
+          userId: true,
+          blockedUserId: true,
+        },
+      }),
+    ]);
 
-    const targetUserIds = [...new Set(favorites.map((favorite) => favorite.targetUserId))];
+    const blockedUserIds = new Set<string>();
+    for (const block of blockedPairs) {
+      if (block.userId === userId) {
+        blockedUserIds.add(block.blockedUserId);
+      }
+      if (block.blockedUserId === userId) {
+        blockedUserIds.add(block.userId);
+      }
+    }
+
+    const visibleFavorites = favorites.filter(
+      (favorite) => !blockedUserIds.has(favorite.targetUserId),
+    );
+
+    const targetUserIds = [...new Set(visibleFavorites.map((favorite) => favorite.targetUserId))];
     const reverseFavorites = await this.prismaService.client.eventFavorite.findMany({
       where: {
         sourceUserId: { in: targetUserIds },
@@ -25,13 +53,20 @@ export class MatchesService {
       reverseFavorites.map((favorite) => `${favorite.sourceUserId}:${favorite.eventId}`),
     );
 
-    const matches = favorites.filter((favorite) =>
+    const matches = visibleFavorites.filter((favorite) =>
       reverseKeys.has(`${favorite.targetUserId}:${favorite.eventId}`),
     );
+    const uniqueMatches = new Map<string, (typeof matches)[number]>();
+
+    for (const match of matches) {
+      if (!uniqueMatches.has(match.targetUserId)) {
+        uniqueMatches.set(match.targetUserId, match);
+      }
+    }
 
     const users = await this.prismaService.client.user.findMany({
       where: {
-        id: { in: matches.map((match) => match.targetUserId) },
+        id: { in: [...uniqueMatches.keys()] },
       },
       include: {
         profile: true,
@@ -47,7 +82,7 @@ export class MatchesService {
       : [];
     const usersById = new Map(users.map((user) => [user.id, user]));
 
-    return matches.map((match) => {
+    return [...uniqueMatches.values()].map((match) => {
       const user = usersById.get(match.targetUserId)!;
       const interests = Array.isArray(user.onboarding?.interests)
         ? (user.onboarding!.interests as string[])

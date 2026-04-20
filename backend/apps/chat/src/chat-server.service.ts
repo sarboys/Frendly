@@ -24,6 +24,15 @@ interface Envelope {
   payload: any;
 }
 
+class ChatServerError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 @Injectable()
 export class ChatServerService implements OnModuleDestroy {
   private wss?: WebSocketServer;
@@ -38,9 +47,9 @@ export class ChatServerService implements OnModuleDestroy {
     this.wss.on('connection', (socket: WebSocket) => this.handleConnection(socket));
 
     this.subscriber.subscribe(PUBSUB_CHANNEL).then(() => {
-      this.subscriber.on('message', (_channel, payload) => {
+      this.subscriber.on('message', async (_channel, payload) => {
         const event = JSON.parse(payload) as Envelope;
-        this.broadcastEvent(event);
+        await this.broadcastEvent(event);
       });
     });
   }
@@ -62,7 +71,7 @@ export class ChatServerService implements OnModuleDestroy {
         this.send(socket, {
           type: 'error',
           payload: {
-            code: 'invalid_message',
+            code: error instanceof ChatServerError ? error.code : 'invalid_message',
             message: error instanceof Error ? error.message : 'Unable to process message',
           },
         });
@@ -113,10 +122,29 @@ export class ChatServerService implements OnModuleDestroy {
 
   private async authenticate(socket: WebSocket, accessToken?: string) {
     if (!accessToken) {
-      throw new Error('accessToken is required');
+      throw new ChatServerError('auth_required', 'accessToken is required');
     }
 
-    const payload = verifyAccessToken(accessToken);
+    let payload;
+
+    try {
+      payload = verifyAccessToken(accessToken);
+    } catch {
+      throw new ChatServerError('invalid_access_token', 'Access token is invalid');
+    }
+
+    const session = await this.prismaService.client.session.findUnique({
+      where: { id: payload.sessionId },
+      select: {
+        userId: true,
+        revokedAt: true,
+      },
+    });
+
+    if (!session || session.userId !== payload.userId || session.revokedAt != null) {
+      throw new ChatServerError('stale_access_token', 'Access token is stale');
+    }
+
     const state = this.getState(socket);
     state.userId = payload.userId;
     state.sessionId = payload.sessionId;
@@ -203,6 +231,13 @@ export class ChatServerService implements OnModuleDestroy {
       throw new Error('Some attachments are missing or not ready');
     }
 
+    if (readyAssets.some((asset) => asset.chatId !== chatId)) {
+      throw new ChatServerError(
+        'attachment_chat_mismatch',
+        'Attachment belongs to another chat',
+      );
+    }
+
     const message = await this.prismaService.client.$transaction(async (tx) => {
       const created = await tx.message.create({
         data: {
@@ -245,6 +280,12 @@ export class ChatServerService implements OnModuleDestroy {
         where: { chatId },
       });
 
+      const notificationEvents: Array<{
+        userId: string;
+        notificationId: string;
+        kind: string;
+      }> = [];
+
       for (const member of members) {
         if (member.userId === state.userId) {
           continue;
@@ -270,40 +311,54 @@ export class ChatServerService implements OnModuleDestroy {
           },
         });
 
-        await publishBusEvent(this.publisher, {
-          type: 'notification.created',
-          payload: {
-            userId: member.userId,
-            notificationId: notification.id,
-            kind: notification.kind,
-          },
+        notificationEvents.push({
+          userId: member.userId,
+          notificationId: notification.id,
+          kind: notification.kind,
         });
       }
 
-      await publishBusEvent(this.publisher, {
-        type: 'message.created',
-        payload: this.mapMessage(created),
-      });
-
-      for (const member of members) {
-        const unreadCount = await this.countUnread(chatId, member.userId, member.lastReadMessageId ?? undefined);
-        await publishBusEvent(this.publisher, {
-          type: 'unread.updated',
-          payload: {
-            userId: member.userId,
-            chatId,
-            unreadCount,
-          },
-        });
-      }
-
-      return { created, realtimeEventId: realtimeEvent.id.toString() };
+      return {
+        created,
+        realtimeEventId: realtimeEvent.id.toString(),
+        members: members.map((member) => ({
+          userId: member.userId,
+          lastReadMessageId: member.lastReadMessageId ?? undefined,
+        })),
+        notificationEvents,
+      };
     });
 
-    this.send(socket, {
+    for (const notificationEvent of message.notificationEvents) {
+      await publishBusEvent(this.publisher, {
+        type: 'notification.created',
+        payload: notificationEvent,
+      });
+    }
+
+    await publishBusEvent(this.publisher, {
       type: 'message.created',
       payload: this.mapMessage(message.created),
     });
+
+    for (const member of message.members) {
+      const unreadCount = await this.countUnread(chatId, member.userId, member.lastReadMessageId);
+      await publishBusEvent(this.publisher, {
+        type: 'unread.updated',
+        payload: {
+          userId: member.userId,
+          chatId,
+          unreadCount,
+        },
+      });
+    }
+
+    if (!state.subscriptions.has(chatId)) {
+      this.send(socket, {
+        type: 'message.created',
+        payload: this.mapMessage(message.created),
+      });
+    }
   }
 
   private async markRead(socket: WebSocket, payload: any) {
@@ -317,7 +372,9 @@ export class ChatServerService implements OnModuleDestroy {
 
     await this.assertMembership(state.userId!, chatId);
 
-    await this.prismaService.client.$transaction(async (tx) => {
+    const result = await this.prismaService.client.$transaction(async (tx) => {
+      const now = new Date();
+
       await tx.chatMember.update({
         where: {
           chatId_userId: {
@@ -327,15 +384,47 @@ export class ChatServerService implements OnModuleDestroy {
         },
         data: {
           lastReadMessageId: messageId,
-          lastReadAt: new Date(),
+          lastReadAt: now,
         },
       });
+
+      const unreadNotifications = await tx.notification.findMany({
+        where: {
+          userId: state.userId!,
+          kind: 'message',
+          readAt: null,
+        },
+        select: {
+          id: true,
+          payload: true,
+        },
+      });
+
+      const notificationIds = unreadNotifications
+        .filter((notification) => {
+          const notificationPayload = notification.payload as Record<string, unknown> | null;
+          return notificationPayload?.chatId === chatId;
+        })
+        .map((notification) => notification.id);
+
+      if (notificationIds.length > 0) {
+        await tx.notification.updateMany({
+          where: {
+            id: {
+              in: notificationIds,
+            },
+          },
+          data: {
+            readAt: now,
+          },
+        });
+      }
 
       const payloadRecord = {
         chatId,
         userId: state.userId!,
         messageId,
-        readAt: new Date().toISOString(),
+        readAt: now.toISOString(),
       };
 
       await tx.realtimeEvent.create({
@@ -346,20 +435,26 @@ export class ChatServerService implements OnModuleDestroy {
         },
       });
 
-      await publishBusEvent(this.publisher, {
-        type: 'message.read',
-        payload: payloadRecord,
-      });
-
       const unreadCount = await this.countUnread(chatId, state.userId!, messageId);
-      await publishBusEvent(this.publisher, {
-        type: 'unread.updated',
-        payload: {
-          userId: state.userId!,
-          chatId,
-          unreadCount,
-        },
-      });
+
+      return {
+        payloadRecord,
+        unreadCount,
+      };
+    });
+
+    await publishBusEvent(this.publisher, {
+      type: 'message.read',
+      payload: result.payloadRecord,
+    });
+
+    await publishBusEvent(this.publisher, {
+      type: 'unread.updated',
+      payload: {
+        userId: state.userId!,
+        chatId,
+        unreadCount: result.unreadCount,
+      },
     });
   }
 
@@ -391,6 +486,7 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     await this.assertMembership(state.userId!, chatId);
+    const blockedUserIds = await this.getBlockedUserIds(state.userId!);
 
     const events = await this.prismaService.client.realtimeEvent.findMany({
       where: {
@@ -405,13 +501,21 @@ export class ChatServerService implements OnModuleDestroy {
       },
       orderBy: { id: 'asc' },
     });
+    const visibleEvents = events.filter((event) => {
+      const actorUserId = this.getActorUserId({
+        type: event.eventType,
+        payload: event.payload,
+      });
+
+      return actorUserId == null || !blockedUserIds.has(actorUserId);
+    });
 
     this.send(socket, {
       type: 'sync.snapshot',
       payload: {
         chatId,
         sinceEventId,
-        events: events.map((event) => ({
+        events: visibleEvents.map((event) => ({
           id: event.id.toString(),
           type: event.eventType,
           payload: event.payload,
@@ -421,7 +525,9 @@ export class ChatServerService implements OnModuleDestroy {
     });
   }
 
-  private broadcastEvent(event: Envelope) {
+  private async broadcastEvent(event: Envelope) {
+    const actorUserId = this.getActorUserId(event);
+
     for (const [socket, state] of this.stateBySocket.entries()) {
       if (socket.readyState !== WebSocket.OPEN) {
         continue;
@@ -436,6 +542,15 @@ export class ChatServerService implements OnModuleDestroy {
 
       const chatId = event.payload?.chatId as string | undefined;
       if (chatId && state.subscriptions.has(chatId)) {
+        if (
+          actorUserId != null &&
+          state.userId != null &&
+          actorUserId !== state.userId &&
+          await this.isBlockedPair(state.userId, actorUserId)
+        ) {
+          continue;
+        }
+
         this.send(socket, event);
       }
     }
@@ -464,21 +579,53 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async assertMembership(userId: string, chatId: string) {
-    const membership = await this.prismaService.client.chatMember.findUnique({
+    const membership = await this.prismaService.client.chatMember.findFirst({
       where: {
-        chatId_userId: {
-          chatId,
-          userId,
+        chatId,
+        userId,
+      },
+      include: {
+        chat: {
+          include: {
+            event: {
+              select: {
+                hostId: true,
+              },
+            },
+            members: {
+              select: {
+                userId: true,
+              },
+            },
+          },
         },
       },
     });
 
     if (!membership) {
-      throw new Error('Not a chat member');
+      throw new ChatServerError('chat_forbidden', 'Not a chat member');
+    }
+
+    if (membership.chat.kind === 'direct') {
+      const peerUserId = membership.chat.members.find((entry) => entry.userId !== userId)?.userId;
+      if (peerUserId != null) {
+        const blockedUserIds = await this.getBlockedUserIds(userId);
+        if (blockedUserIds.has(peerUserId)) {
+          throw new ChatServerError('chat_forbidden', 'Not a chat member');
+        }
+      }
+    }
+
+    if (membership.chat.kind === 'meetup' && membership.chat.event?.hostId != null) {
+      const blockedUserIds = await this.getBlockedUserIds(userId);
+      if (blockedUserIds.has(membership.chat.event.hostId) && membership.chat.event.hostId !== userId) {
+        throw new ChatServerError('chat_forbidden', 'Not a chat member');
+      }
     }
   }
 
   private async countUnread(chatId: string, userId: string, lastReadMessageId?: string) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
     let createdAfter: Date | undefined;
 
     if (lastReadMessageId) {
@@ -491,10 +638,70 @@ export class ChatServerService implements OnModuleDestroy {
     return this.prismaService.client.message.count({
       where: {
         chatId,
-        senderId: { not: userId },
+        senderId: {
+          notIn: [userId, ...blockedUserIds],
+        },
         ...(createdAfter ? { createdAt: { gt: createdAfter } } : {}),
       },
     });
+  }
+
+  private async getBlockedUserIds(userId: string) {
+    const blocks = await this.prismaService.client.userBlock.findMany({
+      where: {
+        OR: [
+          { userId },
+          { blockedUserId: userId },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+
+    const blockedUserIds = new Set<string>();
+    for (const block of blocks) {
+      if (block.userId === userId) {
+        blockedUserIds.add(block.blockedUserId);
+      }
+      if (block.blockedUserId === userId) {
+        blockedUserIds.add(block.userId);
+      }
+    }
+
+    return blockedUserIds;
+  }
+
+  private getActorUserId(event: Envelope) {
+    const payload = event.payload as Record<string, unknown> | null;
+    if (!payload) {
+      return undefined;
+    }
+
+    if (typeof payload.senderId === 'string') {
+      return payload.senderId;
+    }
+
+    if (typeof payload.userId === 'string') {
+      return payload.userId;
+    }
+
+    return undefined;
+  }
+
+  private async isBlockedPair(leftUserId: string, rightUserId: string) {
+    const block = await this.prismaService.client.userBlock.findFirst({
+      where: {
+        OR: [
+          { userId: leftUserId, blockedUserId: rightUserId },
+          { userId: rightUserId, blockedUserId: leftUserId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    return block != null;
   }
 
   private mapMessage(message: {

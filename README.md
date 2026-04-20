@@ -10,6 +10,7 @@
 - `scripts/bootstrap-server.sh` для первого запуска на Ubuntu
 - `scripts/deploy.sh` для ручного деплоя и для GitHub Actions
 - `.github/workflows/deploy.yml` для автодеплоя по пушу в `main`
+- `docs/backend-deploy-runbook.md` как опорная инструкция по деплою
 
 `front/` и `mobile/` в этот backend репозиторий не входят.
 

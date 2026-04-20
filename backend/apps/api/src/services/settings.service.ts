@@ -2,6 +2,30 @@ import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
+function mapSettings(settings: {
+  allowLocation: boolean;
+  allowPush: boolean;
+  allowContacts: boolean;
+  autoSharePlans: boolean;
+  hideExactLocation: boolean;
+  quietHours: boolean;
+  showAge: boolean;
+  discoverable: boolean;
+  darkMode: boolean;
+}) {
+  return {
+    allowLocation: settings.allowLocation,
+    allowPush: settings.allowPush,
+    allowContacts: settings.allowContacts,
+    autoSharePlans: settings.autoSharePlans,
+    hideExactLocation: settings.hideExactLocation,
+    quietHours: settings.quietHours,
+    showAge: settings.showAge,
+    discoverable: settings.discoverable,
+    darkMode: settings.darkMode,
+  };
+}
+
 @Injectable()
 export class SettingsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -15,11 +39,11 @@ export class SettingsService {
       throw new ApiError(404, 'settings_not_found', 'Settings not found');
     }
 
-    return settings;
+    return mapSettings(settings);
   }
 
   async updateSettings(userId: string, body: Record<string, unknown>) {
-    return this.prismaService.client.userSettings.update({
+    const settings = await this.prismaService.client.userSettings.update({
       where: { userId },
       data: {
         allowLocation: typeof body.allowLocation === 'boolean' ? body.allowLocation : undefined,
@@ -35,5 +59,7 @@ export class SettingsService {
         darkMode: typeof body.darkMode === 'boolean' ? body.darkMode : undefined,
       },
     });
+
+    return mapSettings(settings);
   }
 }

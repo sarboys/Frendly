@@ -1,12 +1,16 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { PrismaClient } from '@prisma/client';
 import { ApiAppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/services/prisma.service';
 
 jest.setTimeout(30000);
 
-describe('auth dev login', () => {
+describe('auth flows', () => {
   let app: INestApplication;
+  let prisma: PrismaClient;
+  let phoneCounter = 0;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -15,13 +19,50 @@ describe('auth dev login', () => {
 
     app = moduleRef.createNestApplication();
     await app.init();
+    prisma = moduleRef.get(PrismaService).client;
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it('returns access and refresh token', async () => {
+  const nextPhoneNumber = () => `+7999${String(++phoneCounter).padStart(7, '0')}`;
+
+  const requestPhoneCode = async (phoneNumber = nextPhoneNumber()) => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/phone/request')
+      .send({ phoneNumber })
+      .expect(201);
+
+    return {
+      phoneNumber,
+      body: response.body,
+    };
+  };
+
+  const verifyPhoneCode = async (challengeId: string, code = '1111') => {
+    return request(app.getHttpServer())
+      .post('/auth/phone/verify')
+      .send({ challengeId, code });
+  };
+
+  const loginWithPhone = async (phoneNumber = nextPhoneNumber()) => {
+    const challengeResponse = await requestPhoneCode(phoneNumber);
+    const verifyResponse = await verifyPhoneCode(challengeResponse.body.challengeId);
+
+    expect(verifyResponse.status).toBe(201);
+    expect(verifyResponse.body.userId).toEqual(expect.any(String));
+    expect(verifyResponse.body.accessToken).toEqual(expect.any(String));
+    expect(verifyResponse.body.refreshToken).toEqual(expect.any(String));
+
+    return verifyResponse.body as {
+      userId: string;
+      accessToken: string;
+      refreshToken: string;
+    };
+  };
+
+  it('returns access and refresh token for dev login', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/dev/login')
       .send({})
@@ -31,25 +72,118 @@ describe('auth dev login', () => {
     expect(response.body.refreshToken).toEqual(expect.any(String));
   });
 
-  it('requests and verifies phone otp in local mode', async () => {
-    const requestResponse = await request(app.getHttpServer())
-      .post('/auth/phone/request')
-      .send({ phoneNumber: '+7 999 123 45 67' })
+  it('requests phone otp with deterministic local stub payload', async () => {
+    const firstRequest = await requestPhoneCode();
+    const secondRequest = await requestPhoneCode(firstRequest.phoneNumber);
+
+    expect(firstRequest.body.challengeId).toEqual(expect.any(String));
+    expect(firstRequest.body.maskedPhone).toContain('***');
+    expect(firstRequest.body.resendAfterSeconds).toBe(42);
+    expect(firstRequest.body.localCodeHint).toBe('1111');
+    expect(secondRequest.body.challengeId).not.toBe(firstRequest.body.challengeId);
+    expect(secondRequest.body.localCodeHint).toBe('1111');
+  });
+
+  it('rejects wrong otp code', async () => {
+    const challengeResponse = await requestPhoneCode();
+    const response = await verifyPhoneCode(challengeResponse.body.challengeId, '0000');
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('invalid_otp_code');
+  });
+
+  it('rejects expired otp challenge', async () => {
+    const challengeResponse = await requestPhoneCode();
+
+    await prisma.phoneOtpChallenge.update({
+      where: { id: challengeResponse.body.challengeId },
+      data: { expiresAt: new Date(Date.now() - 60_000) },
+    });
+
+    const response = await verifyPhoneCode(challengeResponse.body.challengeId);
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('invalid_otp_challenge');
+  });
+
+  it('rejects reused otp challenge', async () => {
+    const challengeResponse = await requestPhoneCode();
+
+    const firstVerifyResponse = await verifyPhoneCode(challengeResponse.body.challengeId);
+
+    expect(firstVerifyResponse.status).toBe(201);
+
+    const reusedResponse = await verifyPhoneCode(challengeResponse.body.challengeId);
+
+    expect(reusedResponse.status).toBe(400);
+    expect(reusedResponse.body.code).toBe('invalid_otp_challenge');
+  });
+
+  it('refreshes session and returns a working access token', async () => {
+    const session = await loginWithPhone();
+
+    const refreshResponse = await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: session.refreshToken })
       .expect(201);
 
-    expect(requestResponse.body.challengeId).toEqual(expect.any(String));
-    expect(requestResponse.body.localCodeHint).toBe('1111');
+    const meResponse = await request(app.getHttpServer())
+      .get('/me')
+      .set('authorization', `Bearer ${refreshResponse.body.accessToken}`)
+      .expect(200);
 
-    const verifyResponse = await request(app.getHttpServer())
-      .post('/auth/phone/verify')
-      .send({
-        challengeId: requestResponse.body.challengeId,
-        code: '1111',
-      })
+    expect(refreshResponse.body.accessToken).toEqual(expect.any(String));
+    expect(refreshResponse.body.refreshToken).toEqual(expect.any(String));
+    expect(refreshResponse.body.refreshToken).not.toBe(session.refreshToken);
+    expect(meResponse.body.id).toBe(session.userId);
+  });
+
+  it('rejects invalid refresh token', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: 'not-a-real-refresh-token' });
+
+    expect(response.status).toBe(401);
+    expect(response.body.code).toBe('invalid_refresh_token');
+  });
+
+  it('rejects refresh for a revoked session', async () => {
+    const session = await loginWithPhone();
+
+    await request(app.getHttpServer())
+      .post('/auth/logout')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .send({})
       .expect(201);
 
-    expect(verifyResponse.body.userId).toEqual(expect.any(String));
-    expect(verifyResponse.body.accessToken).toEqual(expect.any(String));
-    expect(verifyResponse.body.refreshToken).toEqual(expect.any(String));
+    const refreshResponse = await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: session.refreshToken });
+
+    expect(refreshResponse.status).toBe(401);
+    expect(refreshResponse.body.code).toBe('invalid_refresh_token');
+  });
+
+  it('rejects stale access token after logout on me and profile endpoints', async () => {
+    const session = await loginWithPhone();
+
+    await request(app.getHttpServer())
+      .post('/auth/logout')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .send({})
+      .expect(201);
+
+    const meResponse = await request(app.getHttpServer())
+      .get('/me')
+      .set('authorization', `Bearer ${session.accessToken}`);
+
+    const profileResponse = await request(app.getHttpServer())
+      .get('/profile/me')
+      .set('authorization', `Bearer ${session.accessToken}`);
+
+    expect(meResponse.status).toBe(401);
+    expect(meResponse.body.code).toBe('stale_access_token');
+    expect(profileResponse.status).toBe(401);
+    expect(profileResponse.body.code).toBe('stale_access_token');
   });
 });

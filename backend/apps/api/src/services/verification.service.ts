@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -21,23 +22,44 @@ export class VerificationService {
   async submitVerification(userId: string, body: Record<string, unknown>) {
     const step = typeof body.step === 'string' ? body.step : 'document';
 
+    if (step !== 'selfie' && step !== 'document') {
+      throw new ApiError(400, 'invalid_verification_step', 'Verification step is invalid');
+    }
+
+    const current = await this.prismaService.client.userVerification.findUnique({
+      where: { userId },
+    });
+
+    if (current?.status === 'verified') {
+      return {
+        status: current.status,
+        selfieDone: current.selfieDone,
+        documentDone: current.documentDone,
+        reviewedAt: current.reviewedAt?.toISOString() ?? null,
+      };
+    }
+
+    const nextSelfieDone = current?.selfieDone === true || step === 'selfie';
+    const nextDocumentDone = current?.documentDone === true || step === 'document';
+    const nextStatus =
+      nextDocumentDone
+        ? 'under_review'
+        : nextSelfieDone
+          ? 'selfie_submitted'
+          : 'not_started';
+
     const verification = await this.prismaService.client.userVerification.upsert({
       where: { userId },
       update: {
-        selfieDone: step == 'selfie' ? true : undefined,
-        documentDone: step == 'document' ? true : undefined,
-        status:
-            step == 'document'
-                ? 'under_review'
-                : step == 'selfie'
-                    ? 'selfie_submitted'
-                    : 'not_started',
+        selfieDone: nextSelfieDone,
+        documentDone: nextDocumentDone,
+        status: nextStatus,
       },
       create: {
         userId,
-        selfieDone: step == 'selfie',
-        documentDone: step == 'document',
-        status: step == 'document' ? 'under_review' : 'selfie_submitted',
+        selfieDone: nextSelfieDone,
+        documentDone: nextDocumentDone,
+        status: nextStatus,
       },
     });
 
