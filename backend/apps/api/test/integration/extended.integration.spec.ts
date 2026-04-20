@@ -250,6 +250,34 @@ describe('extended rollout api flows', () => {
     expect(chatResponse.body.code).toBe('user_not_found');
   });
 
+  it('creates direct block without report flow', async () => {
+    await prisma.userBlock.deleteMany({
+      where: {
+        userId: 'user-me',
+        blockedUserId: 'user-mark',
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/blocks')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({ targetUserId: 'user-mark' })
+      .expect(201);
+
+    expect(response.body.blockedUserId).toBe('user-mark');
+
+    const blocks = await request(app.getHttpServer())
+      .get('/blocks')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(
+      blocks.body.some(
+        (item: { blockedUserId: string }) => item.blockedUserId === 'user-mark',
+      ),
+    ).toBe(true);
+  });
+
   it('persists sos event with event reference and notified contacts count', async () => {
     const contact = await request(app.getHttpServer())
       .post('/safety/trusted-contacts')

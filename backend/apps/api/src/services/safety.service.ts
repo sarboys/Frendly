@@ -176,6 +176,42 @@ export class SafetyService {
     });
   }
 
+  async createBlock(userId: string, body: Record<string, unknown>) {
+    const targetUserId =
+      typeof body.targetUserId === 'string' ? body.targetUserId : '';
+
+    if (targetUserId.length === 0) {
+      throw new ApiError(400, 'invalid_block_payload', 'targetUserId is required');
+    }
+
+    if (targetUserId === userId) {
+      throw new ApiError(400, 'self_block_not_allowed', 'Cannot block yourself');
+    }
+
+    const targetUser = await this.prismaService.client.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true },
+    });
+
+    if (!targetUser) {
+      throw new ApiError(404, 'user_not_found', 'Target user not found');
+    }
+
+    return this.prismaService.client.userBlock.upsert({
+      where: {
+        userId_blockedUserId: {
+          userId,
+          blockedUserId: targetUserId,
+        },
+      },
+      update: {},
+      create: {
+        userId,
+        blockedUserId: targetUserId,
+      },
+    });
+  }
+
   async createSos(userId: string, body: Record<string, unknown>) {
     const eventId = typeof body.eventId === 'string' ? body.eventId : null;
     if (eventId != null) {

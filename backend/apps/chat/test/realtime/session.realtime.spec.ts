@@ -1,7 +1,11 @@
+import { INestApplication } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { PrismaClient } from '@prisma/client';
 import WebSocket, { RawData } from 'ws';
 import { randomUUID } from 'node:crypto';
 import { buildPublicAssetUrl, signAccessToken } from '@big-break/database';
+import { ChatAppModule } from '../../src/app.module';
+import { ChatServerService } from '../../src/chat-server.service';
 
 process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/big_break';
 
@@ -9,12 +13,23 @@ jest.setTimeout(30000);
 
 describe('chat websocket auth', () => {
   const prisma = new PrismaClient();
+  let app: INestApplication;
+  let wsUrl = '';
 
-  afterAll(async () => {
-    await prisma.$disconnect();
+  beforeAll(async () => {
+    app = await NestFactory.create(ChatAppModule, { logger: false });
+    app.get(ChatServerService).attach(app.getHttpServer());
+    await app.listen(0);
+    const address = app.getHttpServer().address();
+    const port =
+      typeof address === 'string' ? Number(address.split(':').pop()) : address.port;
+    wsUrl = `ws://127.0.0.1:${port}`;
   });
 
-  const wsUrl = process.env.WS_URL ?? 'ws://127.0.0.1:3001';
+  afterAll(async () => {
+    await app.close();
+    await prisma.$disconnect();
+  });
 
   const createSessionToken = async (userId: string, options?: { revokedAt?: Date | null }) => {
     const sessionId = `realtime-${randomUUID()}`;

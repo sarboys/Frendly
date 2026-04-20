@@ -50,6 +50,14 @@ export class SafetyController {
     return this.safetyService.listBlocks(currentUser.userId);
   }
 
+  @Post('blocks')
+  createBlock(
+    @CurrentUser() currentUser: { userId: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.safetyService.createBlock(currentUser.userId, body);
+  }
+
   @Post('safety/sos')
   createSos(
     @CurrentUser() currentUser: { userId: string },
