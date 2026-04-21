@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { PrismaClient } from '@prisma/client';
+import { ChatKind, ChatOrigin, PrismaClient } from '@prisma/client';
 import { buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
@@ -681,6 +681,227 @@ describe('core api flows', () => {
     expect(runClubChat?.fromMeetup).toBe('Вечерняя пробежка по бульварам');
   });
 
+  it('returns latest chat messages page with cursor pagination and last realtime event id', async () => {
+    const chatId = `pagination-chat-${Date.now()}`;
+    const directKey = `user-me:user-sonya:${Date.now()}`;
+
+    await prisma.chat.create({
+      data: {
+        id: chatId,
+        kind: ChatKind.direct,
+        origin: ChatOrigin.people,
+        directKey,
+      },
+    });
+
+    await prisma.chatMember.createMany({
+      data: [
+        { chatId, userId: 'user-me' },
+        { chatId, userId: 'user-sonya' },
+      ],
+    });
+
+    const seededMessages = await prisma.$transaction([
+      prisma.message.create({
+        data: {
+          id: `${chatId}-1`,
+          chatId,
+          senderId: 'user-sonya',
+          text: 'msg-1',
+          clientMessageId: `${chatId}-client-1`,
+          createdAt: new Date('2026-04-19T21:00:00.000Z'),
+        },
+      }),
+      prisma.message.create({
+        data: {
+          id: `${chatId}-2`,
+          chatId,
+          senderId: 'user-me',
+          text: 'msg-2',
+          clientMessageId: `${chatId}-client-2`,
+          createdAt: new Date('2026-04-19T21:01:00.000Z'),
+        },
+      }),
+      prisma.message.create({
+        data: {
+          id: `${chatId}-3`,
+          chatId,
+          senderId: 'user-sonya',
+          text: 'msg-3',
+          clientMessageId: `${chatId}-client-3`,
+          createdAt: new Date('2026-04-19T21:02:00.000Z'),
+        },
+      }),
+      prisma.message.create({
+        data: {
+          id: `${chatId}-4`,
+          chatId,
+          senderId: 'user-me',
+          text: 'msg-4',
+          clientMessageId: `${chatId}-client-4`,
+          createdAt: new Date('2026-04-19T21:03:00.000Z'),
+        },
+      }),
+      prisma.message.create({
+        data: {
+          id: `${chatId}-5`,
+          chatId,
+          senderId: 'user-sonya',
+          text: 'msg-5',
+          clientMessageId: `${chatId}-client-5`,
+          createdAt: new Date('2026-04-19T21:04:00.000Z'),
+        },
+      }),
+      prisma.message.create({
+        data: {
+          id: `${chatId}-6`,
+          chatId,
+          senderId: 'user-me',
+          text: 'msg-6',
+          clientMessageId: `${chatId}-client-6`,
+          createdAt: new Date('2026-04-19T21:05:00.000Z'),
+        },
+      }),
+    ]);
+
+    const eventA = await prisma.realtimeEvent.create({
+      data: {
+        chatId,
+        eventType: 'message.created',
+        payload: { messageId: seededMessages[4].id },
+      },
+    });
+    const eventB = await prisma.realtimeEvent.create({
+      data: {
+        chatId,
+        eventType: 'message.created',
+        payload: { messageId: seededMessages[5].id },
+      },
+    });
+
+    try {
+      const firstPage = await request(app.getHttpServer())
+        .get(`/chats/${chatId}/messages?limit=2`)
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(firstPage.body.items.map((item: { id: string }) => item.id)).toEqual([
+        `${chatId}-5`,
+        `${chatId}-6`,
+      ]);
+      expect(firstPage.body.nextCursor).toEqual(expect.any(String));
+      expect(firstPage.body.lastEventId).toBe(eventB.id.toString());
+
+      const secondPage = await request(app.getHttpServer())
+        .get(
+          `/chats/${chatId}/messages?limit=2&cursor=${encodeURIComponent(
+            firstPage.body.nextCursor as string,
+          )}`,
+        )
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(secondPage.body.items.map((item: { id: string }) => item.id)).toEqual([
+        `${chatId}-3`,
+        `${chatId}-4`,
+      ]);
+      expect(secondPage.body.nextCursor).toEqual(expect.any(String));
+      expect(secondPage.body.lastEventId).toBe(eventB.id.toString());
+      expect(eventA.id < eventB.id).toBe(true);
+    } finally {
+      await prisma.message.deleteMany({
+        where: {
+          chatId,
+        },
+      });
+      await prisma.chatMember.deleteMany({
+        where: {
+          chatId,
+        },
+      });
+      await prisma.realtimeEvent.deleteMany({
+        where: {
+          id: {
+            in: [eventA.id, eventB.id],
+          },
+        },
+      });
+      await prisma.chat.delete({
+        where: { id: chatId },
+      });
+    }
+  });
+
+  it('returns reply preview metadata for replied messages', async () => {
+    const chatId = `reply-chat-${Date.now()}`;
+    const directKey = `user-me:user-sonya:reply:${Date.now()}`;
+
+    await prisma.chat.create({
+      data: {
+        id: chatId,
+        kind: ChatKind.direct,
+        origin: ChatOrigin.people,
+        directKey,
+      },
+    });
+
+    await prisma.chatMember.createMany({
+      data: [
+        { chatId, userId: 'user-me' },
+        { chatId, userId: 'user-sonya' },
+      ],
+    });
+
+    try {
+      await prisma.message.create({
+        data: {
+          id: `${chatId}-1`,
+          chatId,
+          senderId: 'user-sonya',
+          text: 'Исходное сообщение',
+          clientMessageId: `${chatId}-client-1`,
+          createdAt: new Date('2026-04-19T21:00:00.000Z'),
+        },
+      });
+      await prisma.message.create({
+        data: {
+          id: `${chatId}-2`,
+          chatId,
+          senderId: 'user-me',
+          text: 'Ответ на сообщение',
+          clientMessageId: `${chatId}-client-2`,
+          createdAt: new Date('2026-04-19T21:01:00.000Z'),
+          replyToMessageId: `${chatId}-1`,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/chats/${chatId}/messages?limit=10`)
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      const replyMessage = response.body.items.find(
+        (item: { id: string }) => item.id === `${chatId}-2`,
+      );
+
+      expect(replyMessage.replyTo).toMatchObject({
+        id: `${chatId}-1`,
+        text: 'Исходное сообщение',
+        isVoice: false,
+      });
+    } finally {
+      await prisma.message.deleteMany({
+        where: { chatId },
+      });
+      await prisma.chatMember.deleteMany({
+        where: { chatId },
+      });
+      await prisma.chat.delete({
+        where: { id: chatId },
+      });
+    }
+  });
+
   it('keeps notification unread count in sync with chat mark read', async () => {
     await prisma.notification.updateMany({
       where: {
@@ -723,6 +944,28 @@ describe('core api flows', () => {
       .expect(200);
 
     expect(response.body.unreadCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('returns notifications with cursor pagination', async () => {
+    const firstPage = await request(app.getHttpServer())
+      .get('/notifications?limit=2')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(firstPage.body.items).toHaveLength(2);
+    expect(firstPage.body.nextCursor).toEqual(expect.any(String));
+
+    const secondPage = await request(app.getHttpServer())
+      .get(
+        `/notifications?limit=2&cursor=${encodeURIComponent(
+          firstPage.body.nextCursor as string,
+        )}`,
+      )
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(secondPage.body.items).toHaveLength(2);
+    expect(secondPage.body.items[0].id).not.toBe(firstPage.body.items[0].id);
   });
 
   it('marks one notification as read through notifications api', async () => {

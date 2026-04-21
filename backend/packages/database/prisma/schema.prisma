@@ -496,6 +496,7 @@ model ChatMember {
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([chatId, userId])
+  @@index([userId])
 }
 
 model Message {
@@ -504,12 +505,17 @@ model Message {
   senderId        String
   text            String
   clientMessageId String
+  replyToMessageId String?
   createdAt       DateTime            @default(now())
   chat            Chat                @relation(fields: [chatId], references: [id], onDelete: Cascade)
   sender          User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo         Message?            @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies         Message[]           @relation("MessageReplies")
   attachments     MessageAttachment[]
 
   @@unique([chatId, clientMessageId])
+  @@index([chatId, createdAt, id])
+  @@index([chatId, replyToMessageId])
 }
 
 model MessageAttachment {
@@ -543,6 +549,8 @@ model MediaAsset {
   profileAvatar    Profile?          @relation("ProfileAvatar")
   profilePhotos    ProfilePhoto[]
   messageLinks     MessageAttachment[]
+
+  @@index([ownerId, status, chatId])
 }
 
 model Notification {
@@ -551,10 +559,20 @@ model Notification {
   kind        NotificationKind
   title       String
   body        String
+  chatId      String?
+  messageId   String?
+  eventId     String?
+  requestId   String?
+  actorUserId String?
   payload     Json
   readAt      DateTime?
   createdAt   DateTime          @default(now())
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind, readAt])
+  @@index([userId, kind, readAt, chatId])
+  @@index([userId, kind, readAt, actorUserId])
+  @@index([userId, readAt, eventId, requestId])
 }
 
 model PushToken {

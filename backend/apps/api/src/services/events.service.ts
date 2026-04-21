@@ -549,9 +549,12 @@ export class EventsService {
         await tx.notification.create({
           data: {
             userId: inviteeUser.id,
+            actorUserId: userId,
             kind: 'event_joined',
             title: 'Приглашение на встречу',
             body: `приглашает тебя на встречу «${event.title}»`,
+            eventId: event.id,
+            requestId: inviteRequest.id,
             payload: {
               eventId: event.id,
               requestId: inviteRequest.id,
@@ -1175,40 +1178,17 @@ export class EventsService {
     eventId: string,
     requestId: string,
   ) {
-    const notifications = await tx.notification.findMany({
+    await tx.notification.updateMany({
       where: {
         userId,
         readAt: null,
+        eventId,
+        requestId,
       },
-      select: {
-        id: true,
-        payload: true,
+      data: {
+        readAt: new Date(),
       },
     });
-
-    const notificationIds = notifications
-      .filter((notification: { id: string; payload: unknown }) => {
-        const payload = notification.payload as Record<string, unknown> | null;
-        return (
-          payload?.invite === true &&
-          payload?.eventId === eventId &&
-          payload?.requestId === requestId
-        );
-      })
-      .map((notification: { id: string }) => notification.id);
-
-    if (notificationIds.length > 0) {
-      await tx.notification.updateMany({
-        where: {
-          id: {
-            in: notificationIds,
-          },
-        },
-        data: {
-          readAt: new Date(),
-        },
-      });
-    }
   }
 
   private async getBlockedUserIds(userId: string) {

@@ -1,6 +1,7 @@
 export interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
+  lastEventId?: string | null;
 }
 
 export interface ApiErrorPayload {
@@ -44,7 +45,16 @@ export interface ChatMessageDto {
   text: string;
   clientMessageId: string;
   createdAt: string;
+  eventId?: string;
+  replyTo?: ReplyPreviewDto | null;
   attachments: MediaAssetDto[];
+}
+
+export interface ReplyPreviewDto {
+  id: string;
+  author: string;
+  text: string;
+  isVoice: boolean;
 }
 
 export interface MediaAssetDto {
@@ -62,7 +72,13 @@ export interface WsClientEventMap {
   'session.authenticate': { accessToken: string };
   'chat.subscribe': { chatId: string };
   'chat.unsubscribe': { chatId: string };
-  'message.send': { chatId: string; text: string; clientMessageId: string; attachmentIds?: string[] };
+  'message.send': {
+    chatId: string;
+    text: string;
+    clientMessageId: string;
+    attachmentIds?: string[];
+    replyToMessageId?: string;
+  };
   'message.read': { chatId: string; messageId: string };
   'typing.start': { chatId: string };
   'typing.stop': { chatId: string };
@@ -77,6 +93,15 @@ export interface WsServerEventMap {
   'typing.changed': { chatId: string; userId: string; isTyping: boolean };
   'chat.updated': { chatId: string };
   'unread.updated': { chatId: string; unreadCount: number };
-  'notification.created': { notificationId: string; kind: string };
+  'notification.created': {
+    userId: string;
+    notificationId: string;
+    kind: string;
+    title: string;
+    body: string;
+    payload: Record<string, unknown>;
+    readAt: string | null;
+    createdAt: string;
+  };
   'sync.snapshot': { chatId: string; sinceEventId?: string; events: Array<{ id: string; type: string; payload: unknown; createdAt: string }> };
 }

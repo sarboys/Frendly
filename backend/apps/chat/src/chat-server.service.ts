@@ -1,6 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
-  OUTBOX_EVENT_TYPES,
   PUBSUB_CHANNEL,
   buildMessagePreview,
   buildPublicAssetUrl,
@@ -12,6 +11,7 @@ import {
 import Redis from 'ioredis';
 import { Server as HttpServer } from 'node:http';
 import { RawData, WebSocket, WebSocketServer } from 'ws';
+import { buildMessageNotificationBatch } from './chat-notification-batch';
 import { PrismaService } from './prisma.service';
 
 interface SocketState {
@@ -186,6 +186,7 @@ export class ChatServerService implements OnModuleDestroy {
     const text =
       typeof payload?.text === 'string' ? payload.text.trim() : '';
     const clientMessageId = payload?.clientMessageId as string | undefined;
+    const replyToMessageId = payload?.replyToMessageId as string | undefined;
     const attachmentIds = Array.isArray(payload?.attachmentIds)
       ? payload.attachmentIds.filter((item: unknown): item is string => typeof item === 'string')
       : [];
@@ -210,6 +211,16 @@ export class ChatServerService implements OnModuleDestroy {
       },
       include: {
         sender: true,
+        replyTo: {
+          include: {
+            sender: true,
+            attachments: {
+              include: {
+                mediaAsset: true,
+              },
+            },
+          },
+        },
         attachments: {
           include: {
             mediaAsset: true,
@@ -247,6 +258,23 @@ export class ChatServerService implements OnModuleDestroy {
       );
     }
 
+    if (replyToMessageId) {
+      const replyTarget = await this.prismaService.client.message.findFirst({
+        where: {
+          id: replyToMessageId,
+          chatId,
+        },
+        select: { id: true },
+      });
+
+      if (!replyTarget) {
+        throw new ChatServerError(
+          'reply_message_not_found',
+          'Reply target was not found in chat',
+        );
+      }
+    }
+
     const previewText = buildMessagePreview({
       text,
       attachments: readyAssets.map((asset) => ({
@@ -255,12 +283,14 @@ export class ChatServerService implements OnModuleDestroy {
     });
 
     const message = await this.prismaService.client.$transaction(async (tx) => {
+      const now = new Date();
       const created = await tx.message.create({
         data: {
           chatId,
           senderId: state.userId!,
           text,
           clientMessageId,
+          replyToMessageId,
           attachments: {
             createMany: {
               data: readyAssets.map((asset) => ({
@@ -271,6 +301,16 @@ export class ChatServerService implements OnModuleDestroy {
         },
         include: {
           sender: true,
+          replyTo: {
+            include: {
+              sender: true,
+              attachments: {
+                include: {
+                  mediaAsset: true,
+                },
+              },
+            },
+          },
           attachments: {
             include: {
               mediaAsset: true,
@@ -281,7 +321,7 @@ export class ChatServerService implements OnModuleDestroy {
 
       await tx.chat.update({
         where: { id: chatId },
-        data: { updatedAt: new Date() },
+        data: { updatedAt: now },
       });
 
       const realtimeEvent = await tx.realtimeEvent.create({
@@ -294,43 +334,31 @@ export class ChatServerService implements OnModuleDestroy {
 
       const members = await tx.chatMember.findMany({
         where: { chatId },
+        select: {
+          userId: true,
+          lastReadMessageId: true,
+          lastReadAt: true,
+        },
       });
 
-      const notificationEvents: Array<{
-        userId: string;
-        notificationId: string;
-        kind: string;
-      }> = [];
+      const notificationBatch = buildMessageNotificationBatch({
+        recipientUserIds: members
+            .filter((member) => member.userId !== state.userId)
+            .map((member) => member.userId),
+        actorUserId: state.userId!,
+        chatId,
+        messageId: created.id,
+        body: previewText,
+        now,
+      });
 
-      for (const member of members) {
-        if (member.userId === state.userId) {
-          continue;
-        }
-
-        const notification = await tx.notification.create({
-          data: {
-            userId: member.userId,
-            kind: 'message',
-            title: 'Новое сообщение',
-            body: previewText,
-            payload: { chatId, messageId: created.id },
-          },
+      if (notificationBatch.notifications.length > 0) {
+        await tx.notification.createMany({
+          data: notificationBatch.notifications,
         });
 
-        await tx.outboxEvent.create({
-          data: {
-            type: OUTBOX_EVENT_TYPES.pushDispatch,
-            payload: {
-              userId: member.userId,
-              notificationId: notification.id,
-            },
-          },
-        });
-
-        notificationEvents.push({
-          userId: member.userId,
-          notificationId: notification.id,
-          kind: notification.kind,
+        await tx.outboxEvent.createMany({
+          data: notificationBatch.outboxEvents,
         });
       }
 
@@ -340,39 +368,60 @@ export class ChatServerService implements OnModuleDestroy {
         members: members.map((member) => ({
           userId: member.userId,
           lastReadMessageId: member.lastReadMessageId ?? undefined,
+          lastReadAt: member.lastReadAt ?? undefined,
         })),
-        notificationEvents,
+        notificationEvents: notificationBatch.realtimeEvents,
       };
     });
 
-    for (const notificationEvent of message.notificationEvents) {
-      await publishBusEvent(this.publisher, {
-        type: 'notification.created',
-        payload: notificationEvent,
-      });
-    }
+    await Promise.all(
+      message.notificationEvents.map((notificationEvent) =>
+        publishBusEvent(this.publisher, {
+          type: 'notification.created',
+          payload: notificationEvent,
+        }),
+      ),
+    );
 
     await publishBusEvent(this.publisher, {
       type: 'message.created',
-      payload: this.mapMessage(message.created),
+      payload: this.mapMessage(
+        message.created,
+        message.realtimeEventId,
+      ),
     });
 
-    for (const member of message.members) {
-      const unreadCount = await this.countUnread(chatId, member.userId, member.lastReadMessageId);
-      await publishBusEvent(this.publisher, {
-        type: 'unread.updated',
-        payload: {
-          userId: member.userId,
+    const unreadUpdates = await Promise.all(
+      message.members.map(async (member) => ({
+        userId: member.userId,
+        unreadCount: await this.countUnread(
           chatId,
-          unreadCount,
-        },
-      });
-    }
+          member.userId,
+          member.lastReadAt,
+        ),
+      })),
+    );
+
+    await Promise.all(
+      unreadUpdates.map((update) =>
+        publishBusEvent(this.publisher, {
+          type: 'unread.updated',
+          payload: {
+            userId: update.userId,
+            chatId,
+            unreadCount: update.unreadCount,
+          },
+        }),
+      ),
+    );
 
     if (!state.subscriptions.has(chatId)) {
       this.send(socket, {
         type: 'message.created',
-        payload: this.mapMessage(message.created),
+        payload: this.mapMessage(
+          message.created,
+          message.realtimeEventId,
+        ),
       });
     }
   }
@@ -409,19 +458,14 @@ export class ChatServerService implements OnModuleDestroy {
           userId: state.userId!,
           kind: 'message',
           readAt: null,
+          chatId,
         },
         select: {
           id: true,
-          payload: true,
         },
       });
 
-      const notificationIds = unreadNotifications
-        .filter((notification) => {
-          const notificationPayload = notification.payload as Record<string, unknown> | null;
-          return notificationPayload?.chatId === chatId;
-        })
-        .map((notification) => notification.id);
+      const notificationIds = unreadNotifications.map((notification) => notification.id);
 
       if (notificationIds.length > 0) {
         await tx.notification.updateMany({
@@ -451,7 +495,7 @@ export class ChatServerService implements OnModuleDestroy {
         },
       });
 
-      const unreadCount = await this.countUnread(chatId, state.userId!, messageId);
+      const unreadCount = await this.countUnread(chatId, state.userId!, now);
 
       return {
         payloadRecord,
@@ -543,6 +587,8 @@ export class ChatServerService implements OnModuleDestroy {
 
   private async broadcastEvent(event: Envelope) {
     const actorUserId = this.getActorUserId(event);
+    const blockedUserIds =
+      actorUserId != null ? await this.getBlockedUserIds(actorUserId) : null;
 
     for (const [socket, state] of this.stateBySocket.entries()) {
       if (socket.readyState !== WebSocket.OPEN) {
@@ -559,10 +605,10 @@ export class ChatServerService implements OnModuleDestroy {
       const chatId = event.payload?.chatId as string | undefined;
       if (chatId && state.subscriptions.has(chatId)) {
         if (
-          actorUserId != null &&
+          blockedUserIds != null &&
           state.userId != null &&
           actorUserId !== state.userId &&
-          await this.isBlockedPair(state.userId, actorUserId)
+          blockedUserIds.has(state.userId)
         ) {
           continue;
         }
@@ -640,16 +686,8 @@ export class ChatServerService implements OnModuleDestroy {
     }
   }
 
-  private async countUnread(chatId: string, userId: string, lastReadMessageId?: string) {
+  private async countUnread(chatId: string, userId: string, lastReadAt?: Date) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
-    let createdAfter: Date | undefined;
-
-    if (lastReadMessageId) {
-      const lastReadMessage = await this.prismaService.client.message.findUnique({
-        where: { id: lastReadMessageId },
-      });
-      createdAfter = lastReadMessage?.createdAt;
-    }
 
     return this.prismaService.client.message.count({
       where: {
@@ -657,7 +695,7 @@ export class ChatServerService implements OnModuleDestroy {
         senderId: {
           notIn: [userId, ...blockedUserIds],
         },
-        ...(createdAfter ? { createdAt: { gt: createdAfter } } : {}),
+        ...(lastReadAt ? { createdAt: { gt: lastReadAt } } : {}),
       },
     });
   }
@@ -706,20 +744,6 @@ export class ChatServerService implements OnModuleDestroy {
     return undefined;
   }
 
-  private async isBlockedPair(leftUserId: string, rightUserId: string) {
-    const block = await this.prismaService.client.userBlock.findFirst({
-      where: {
-        OR: [
-          { userId: leftUserId, blockedUserId: rightUserId },
-          { userId: rightUserId, blockedUserId: leftUserId },
-        ],
-      },
-      select: { id: true },
-    });
-
-    return block != null;
-  }
-
   private mapMessage(message: {
     id: string;
     chatId: string;
@@ -728,6 +752,16 @@ export class ChatServerService implements OnModuleDestroy {
     clientMessageId: string;
     createdAt: Date;
     sender: { displayName: string };
+    replyTo?: {
+      id: string;
+      text: string;
+      sender: { displayName: string };
+      attachments: Array<{
+        mediaAsset: {
+          kind: string;
+        };
+      }>;
+    } | null;
     attachments: Array<{
       mediaAsset: {
         id: string;
@@ -741,7 +775,7 @@ export class ChatServerService implements OnModuleDestroy {
         objectKey: string;
       };
     }>;
-  }) {
+  }, eventId?: string) {
     return {
       id: message.id,
       chatId: message.chatId,
@@ -750,6 +784,22 @@ export class ChatServerService implements OnModuleDestroy {
       text: message.text,
       clientMessageId: message.clientMessageId,
       createdAt: message.createdAt.toISOString(),
+      ...(eventId != null ? { eventId } : {}),
+      replyTo: message.replyTo
+          ? {
+              id: message.replyTo.id,
+              author: message.replyTo.sender.displayName,
+              text: buildMessagePreview({
+                text: message.replyTo.text,
+                attachments: message.replyTo.attachments.map((entry) => ({
+                  kind: entry.mediaAsset.kind,
+                })),
+              }),
+              isVoice: message.replyTo.attachments.some(
+                (entry) => entry.mediaAsset.kind === 'chat_voice',
+              ),
+            }
+          : null,
       attachments: message.attachments.map((entry) => ({
         id: entry.mediaAsset.id,
         kind: entry.mediaAsset.kind,

@@ -9,6 +9,7 @@ import {
   Profile,
   User,
 } from '@prisma/client';
+import { buildMessagePreview } from '@big-break/database';
 
 export function formatRelativeTime(date: Date): string {
   const diffMs = Date.now() - date.getTime();
@@ -79,6 +80,12 @@ export function mapProfilePhoto(
 export function mapMessage(
   message: Message & {
     sender: User;
+    replyTo?: (Message & {
+      sender: User;
+      attachments: Array<{
+        mediaAsset: MediaAsset;
+      }>;
+    }) | null;
     attachments: Array<{
       mediaAsset: MediaAsset;
     }>;
@@ -92,7 +99,34 @@ export function mapMessage(
     text: message.text,
     clientMessageId: message.clientMessageId,
     createdAt: message.createdAt.toISOString(),
+    replyTo: message.replyTo ? mapReplyPreview(message.replyTo) : null,
     attachments: message.attachments.map((entry) => mapMediaAsset(entry.mediaAsset)),
+  };
+}
+
+function mapReplyPreview(
+  message: Message & {
+    sender: User;
+    attachments: Array<{
+      mediaAsset: MediaAsset;
+    }>;
+  },
+) {
+  const isVoice = message.attachments.some(
+    (entry) => entry.mediaAsset.kind === 'chat_voice',
+  );
+  const previewText = buildMessagePreview({
+    text: message.text,
+    attachments: message.attachments.map((entry) => ({
+      kind: entry.mediaAsset.kind,
+    })),
+  });
+
+  return {
+    id: message.id,
+    author: message.sender.displayName,
+    text: previewText,
+    isVoice,
   };
 }
 

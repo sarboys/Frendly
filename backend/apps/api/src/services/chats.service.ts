@@ -1,4 +1,4 @@
-import { buildMessagePreview } from '@big-break/database';
+import { buildMessagePreview, decodeCursor, encodeCursor } from '@big-break/database';
 import { ChatKind } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
@@ -23,13 +23,26 @@ export class ChatsService {
       include: {
         chat: {
           include: {
-            event: true,
-            sourceEvent: true,
+            event: {
+              select: {
+                id: true,
+                hostId: true,
+                startsAt: true,
+              },
+            },
+            sourceEvent: {
+              select: {
+                title: true,
+                hostId: true,
+              },
+            },
             members: {
               include: {
                 user: {
-                  include: {
-                    profile: true,
+                  select: {
+                    id: true,
+                    displayName: true,
+                    online: true,
                   },
                 },
               },
@@ -44,7 +57,7 @@ export class ChatsService {
                 },
               },
               orderBy: { createdAt: 'desc' },
-              take: 20,
+              take: 1,
             },
           },
         },
@@ -71,7 +84,11 @@ export class ChatsService {
               })),
             })
           : '';
-        const unread = await this.countUnread(member.chat.id, userId, member.lastReadMessageId ?? undefined);
+        const unread = await this.countUnread(
+          member.chat.id,
+          userId,
+          member.lastReadAt ?? undefined,
+        );
 
         if (kind === 'meetup') {
           if (member.chat.event?.hostId && blockedUserIds.has(member.chat.event.hostId)) {
@@ -127,24 +144,91 @@ export class ChatsService {
   async getMessages(userId: string, chatId: string, params: { cursor?: string; limit?: number }) {
     await this.assertMembership(userId, chatId);
     const blockedUserIds = await this.getBlockedUserIds(userId);
+    const take = this.normalizeMessagesLimit(params.limit);
+    const cursorId = this.decodeMessageCursor(params.cursor);
+    const cursorMessage = cursorId
+      ? await this.prismaService.client.message.findFirst({
+          where: {
+            id: cursorId,
+            chatId,
+            senderId: {
+              notIn: [...blockedUserIds],
+            },
+          },
+          select: {
+            id: true,
+            createdAt: true,
+          },
+        })
+      : null;
 
     const messages = await this.prismaService.client.message.findMany({
-      where: { chatId },
+      where: {
+        chatId,
+        senderId: {
+          notIn: [...blockedUserIds],
+        },
+        ...(cursorMessage
+          ? {
+              OR: [
+                {
+                  createdAt: {
+                    lt: cursorMessage.createdAt,
+                  },
+                },
+                {
+                  createdAt: cursorMessage.createdAt,
+                  id: {
+                    lt: cursorMessage.id,
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
       include: {
         sender: true,
+        replyTo: {
+          include: {
+            sender: true,
+            attachments: {
+              include: {
+                mediaAsset: true,
+              },
+            },
+          },
+        },
         attachments: {
           include: {
             mediaAsset: true,
           },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
+      take: take + 1,
+    });
+    const hasMore = messages.length > take;
+    const page = hasMore ? messages.slice(0, take) : messages;
+    const mapped = [...page]
+      .reverse()
+      .map((message) => mapMessage(message));
+    const latestEvent = await this.prismaService.client.realtimeEvent.findFirst({
+      where: { chatId },
+      orderBy: { id: 'desc' },
+      select: { id: true },
     });
 
-    const mapped = messages
-      .filter((message) => !blockedUserIds.has(message.senderId))
-      .map((message) => mapMessage(message));
-    return paginateArray(mapped, params.limit ?? 50, (item) => item.id, params.cursor);
+    return {
+      items: mapped,
+      nextCursor:
+        hasMore && page.length > 0
+          ? encodeCursor({ value: page[page.length - 1]!.id })
+          : null,
+      lastEventId: latestEvent?.id.toString() ?? null,
+    };
   }
 
   async markRead(userId: string, chatId: string, messageId: string) {
@@ -171,19 +255,14 @@ export class ChatsService {
           userId,
           kind: 'message',
           readAt: null,
+          chatId,
         },
         select: {
           id: true,
-          payload: true,
         },
       });
 
-      const notificationIds = unreadNotifications
-        .filter((notification) => {
-          const payload = notification.payload as Record<string, unknown> | null;
-          return payload?.chatId === chatId;
-        })
-        .map((notification) => notification.id);
+      const notificationIds = unreadNotifications.map((notification) => notification.id);
 
       if (notificationIds.length > 0) {
         await tx.notification.updateMany({
@@ -202,16 +281,8 @@ export class ChatsService {
     return { ok: true };
   }
 
-  async countUnread(chatId: string, userId: string, lastReadMessageId?: string) {
+  async countUnread(chatId: string, userId: string, lastReadAt?: Date) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
-    let createdAfter: Date | undefined;
-
-    if (lastReadMessageId) {
-      const lastReadMessage = await this.prismaService.client.message.findUnique({
-        where: { id: lastReadMessageId },
-      });
-      createdAfter = lastReadMessage?.createdAt;
-    }
 
     return this.prismaService.client.message.count({
       where: {
@@ -219,15 +290,35 @@ export class ChatsService {
         senderId: {
           notIn: [userId, ...blockedUserIds],
         },
-        ...(createdAfter
+        ...(lastReadAt
           ? {
               createdAt: {
-                gt: createdAfter,
+                gt: lastReadAt,
               },
             }
           : {}),
       },
     });
+  }
+
+  private normalizeMessagesLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 50;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 100));
+  }
+
+  private decodeMessageCursor(cursor?: string) {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      return decodeCursor(cursor)?.value ?? null;
+    } catch {
+      return cursor;
+    }
   }
 
   private async assertMembership(userId: string, chatId: string) {

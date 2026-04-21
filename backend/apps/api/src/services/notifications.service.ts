@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
-import { paginateArray } from '../common/pagination';
+import { decodeCursor, encodeCursor } from '@big-break/database';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -8,13 +8,60 @@ export class NotificationsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async listNotifications(userId: string, params: { cursor?: string; limit?: number }) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const take = this.normalizeLimit(params.limit);
+    const cursorId = this.decodeNotificationCursor(params.cursor);
+    const cursorNotification = cursorId
+      ? await this.prismaService.client.notification.findFirst({
+          where: {
+            id: cursorId,
+            userId,
+          },
+          select: {
+            id: true,
+            createdAt: true,
+          },
+        })
+      : null;
     const notifications = await this.prismaService.client.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
+      where: {
+        userId,
+        ...this.buildActorVisibilityWhere(blockedUserIds),
+        ...(cursorNotification
+          ? {
+              OR: [
+                {
+                  createdAt: {
+                    lt: cursorNotification.createdAt,
+                  },
+                },
+                {
+                  createdAt: cursorNotification.createdAt,
+                  id: {
+                    lt: cursorNotification.id,
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
+      take: take + 1,
     });
-    const visibleNotifications = await this.filterVisibleNotifications(userId, notifications);
+    const visibleNotifications = await this.filterVisibleNotifications(
+      userId,
+      notifications,
+      blockedUserIds,
+    );
 
-    const mapped = visibleNotifications.map((notification) => ({
+    const hasMore = visibleNotifications.length > take;
+    const page = hasMore
+      ? visibleNotifications.slice(0, take)
+      : visibleNotifications;
+    const mapped = page.map((notification) => ({
       id: notification.id,
       kind: notification.kind,
       title: notification.title,
@@ -24,18 +71,30 @@ export class NotificationsService {
       createdAt: notification.createdAt.toISOString(),
     }));
 
-    return paginateArray(mapped, params.limit ?? 20, (item) => item.id, params.cursor);
+    return {
+      items: mapped,
+      nextCursor:
+          hasMore && page.length > 0
+              ? encodeCursor({ value: page[page.length - 1]!.id })
+              : null,
+    };
   }
 
   async getUnreadCount(userId: string) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
     const notifications = await this.prismaService.client.notification.findMany({
       where: {
         userId,
         readAt: null,
+        ...this.buildActorVisibilityWhere(blockedUserIds),
       },
       orderBy: { createdAt: 'desc' },
     });
-    const visibleNotifications = await this.filterVisibleNotifications(userId, notifications);
+    const visibleNotifications = await this.filterVisibleNotifications(
+      userId,
+      notifications,
+      blockedUserIds,
+    );
 
     return { unreadCount: visibleNotifications.length };
   }
@@ -140,6 +199,11 @@ export class NotificationsService {
     userId: string,
     notifications: Array<{
       id: string;
+      actorUserId: string | null;
+      chatId: string | null;
+      messageId: string | null;
+      eventId: string | null;
+      requestId: string | null;
       kind: string;
       title: string;
       body: string;
@@ -147,14 +211,25 @@ export class NotificationsService {
       readAt: Date | null;
       createdAt: Date;
     }>,
+    blockedUserIds: Set<string>,
   ) {
     if (notifications.length === 0) {
       return notifications;
     }
 
-    const blockedUserIds = await this.getBlockedUserIds(userId);
     if (blockedUserIds.size === 0) {
       return notifications;
+    }
+
+    const notificationsWithoutActor = notifications.filter(
+      (notification) => notification.actorUserId == null,
+    );
+    if (notificationsWithoutActor.length === 0) {
+      return notifications.filter(
+        (notification) =>
+          notification.actorUserId == null ||
+          !blockedUserIds.has(notification.actorUserId),
+      );
     }
 
     const chatIds = new Set<string>();
@@ -162,19 +237,18 @@ export class NotificationsService {
     const messageIds = new Set<string>();
     const requestIds = new Set<string>();
 
-    for (const notification of notifications) {
-      const payload = this.asPayloadMap(notification.payload);
-      if (typeof payload?.chatId === 'string') {
-        chatIds.add(payload.chatId);
+    for (const notification of notificationsWithoutActor) {
+      if (notification.chatId != null) {
+        chatIds.add(notification.chatId);
       }
-      if (typeof payload?.eventId === 'string') {
-        eventIds.add(payload.eventId);
+      if (notification.eventId != null) {
+        eventIds.add(notification.eventId);
       }
-      if (typeof payload?.messageId === 'string') {
-        messageIds.add(payload.messageId);
+      if (notification.messageId != null) {
+        messageIds.add(notification.messageId);
       }
-      if (typeof payload?.requestId === 'string') {
-        requestIds.add(payload.requestId);
+      if (notification.requestId != null) {
+        requestIds.add(notification.requestId);
       }
     }
 
@@ -252,11 +326,14 @@ export class NotificationsService {
     );
 
     return notifications.filter((notification) => {
-      const payload = this.asPayloadMap(notification.payload);
-      const chatId = typeof payload?.chatId === 'string' ? payload.chatId : null;
-      const eventId = typeof payload?.eventId === 'string' ? payload.eventId : null;
-      const messageId = typeof payload?.messageId === 'string' ? payload.messageId : null;
-      const requestId = typeof payload?.requestId === 'string' ? payload.requestId : null;
+      if (notification.actorUserId != null) {
+        return !blockedUserIds.has(notification.actorUserId);
+      }
+
+      const chatId = notification.chatId;
+      const eventId = notification.eventId;
+      const messageId = notification.messageId;
+      const requestId = notification.requestId;
 
       if (chatId != null && hiddenChatIds.has(chatId)) {
         return false;
@@ -305,11 +382,40 @@ export class NotificationsService {
     return blockedUserIds;
   }
 
-  private asPayloadMap(payload: unknown) {
-    if (payload == null || typeof payload !== 'object' || Array.isArray(payload)) {
+  private buildActorVisibilityWhere(blockedUserIds: Set<string>) {
+    if (blockedUserIds.size === 0) {
+      return {};
+    }
+
+    return {
+      OR: [
+        { actorUserId: null },
+        {
+          actorUserId: {
+            notIn: [...blockedUserIds],
+          },
+        },
+      ],
+    };
+  }
+
+  private normalizeLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 100));
+  }
+
+  private decodeNotificationCursor(cursor?: string) {
+    if (!cursor) {
       return null;
     }
 
-    return payload as Record<string, unknown>;
+    try {
+      return decodeCursor(cursor)?.value ?? null;
+    } catch {
+      return cursor;
+    }
   }
 }

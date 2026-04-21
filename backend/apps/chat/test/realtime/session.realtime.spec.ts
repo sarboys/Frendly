@@ -142,6 +142,7 @@ describe('chat websocket auth', () => {
 
           if (event.type === 'message.created' && event.payload.clientMessageId === clientMessageId) {
             expect(event.payload.attachments).toHaveLength(1);
+            expect(event.payload.eventId).toEqual(expect.any(String));
             expect(event.payload.attachments[0]).toMatchObject({
               id: attachmentId,
               kind: 'chat_attachment',
@@ -172,6 +173,63 @@ describe('chat websocket auth', () => {
         socket.once('error', reject);
       }),
     ).resolves.toEqual(expect.any(String));
+  });
+
+  it('sends reply message with reply preview metadata', async () => {
+    const token = await createSessionToken('user-me');
+    const clientMessageId = `reply-${Date.now()}`;
+
+    await expect(
+      new Promise((resolve, reject) => {
+        const socket = new WebSocket(wsUrl);
+
+        socket.once('open', () => {
+          socket.send(JSON.stringify({ type: 'session.authenticate', payload: { accessToken: token } }));
+        });
+
+        socket.on('message', (data: RawData) => {
+          const event = JSON.parse(data.toString()) as { type: string; payload: any };
+
+          if (event.type === 'session.authenticated') {
+            socket.send(JSON.stringify({ type: 'chat.subscribe', payload: { chatId: 'p1' } }));
+            return;
+          }
+
+          if (event.type === 'chat.updated') {
+            socket.send(
+              JSON.stringify({
+                type: 'message.send',
+                payload: {
+                  chatId: 'p1',
+                  text: 'Отвечаю на первое сообщение',
+                  clientMessageId,
+                  replyToMessageId: 'p1',
+                },
+              }),
+            );
+            return;
+          }
+
+          if (event.type === 'message.created' && event.payload.clientMessageId === clientMessageId) {
+            resolve(event);
+            socket.close();
+          }
+        });
+
+        socket.once('error', reject);
+      }),
+    ).resolves.toMatchObject({
+      type: 'message.created',
+      payload: {
+        clientMessageId,
+        text: 'Отвечаю на первое сообщение',
+        replyTo: {
+          id: 'p1',
+          text: 'Привет, классно посидели вчера.',
+          isVoice: false,
+        },
+      },
+    });
   });
 
   it('sends voice-only message with empty text and emits duration metadata', async () => {
@@ -245,6 +303,7 @@ describe('chat websocket auth', () => {
 
           if (event.type === 'message.created' && event.payload.clientMessageId === clientMessageId) {
             expect(event.payload.text).toBe('');
+            expect(event.payload.eventId).toEqual(expect.any(String));
             expect(event.payload.attachments[0]).toMatchObject({
               id: attachmentId,
               kind: 'chat_voice',
@@ -276,6 +335,8 @@ describe('chat websocket auth', () => {
       });
 
       expect(notification?.body).toBe('Голосовое сообщение');
+      expect(notification?.chatId).toBe('p1');
+      expect(notification?.messageId).toBe(createdMessageId);
     } finally {
       if (createdMessageId != null) {
         const notifications = await prisma.notification.findMany({
@@ -513,6 +574,104 @@ describe('chat websocket auth', () => {
         receiverSocket.once('error', reject);
       }),
     ).resolves.toEqual(expect.any(String));
+  });
+
+  it('publishes rich notification.created payload to recipient user', async () => {
+    const senderToken = await createSessionToken('user-me');
+    const recipientToken = await createSessionToken('user-anya');
+    const clientMessageId = `notification-${Date.now()}`;
+
+    await expect(
+      new Promise((resolve, reject) => {
+        const senderSocket = new WebSocket(wsUrl);
+        const recipientSocket = new WebSocket(wsUrl);
+        let senderReady = false;
+        let recipientReady = false;
+        let sent = false;
+
+        const maybeSend = () => {
+          if (!senderReady || !recipientReady || sent) {
+            return;
+          }
+          sent = true;
+          senderSocket.send(
+            JSON.stringify({
+              type: 'message.send',
+              payload: {
+                chatId: 'p1',
+                text: 'notification payload check',
+                clientMessageId,
+              },
+            }),
+          );
+        };
+
+        senderSocket.once('open', () => {
+          senderSocket.send(
+            JSON.stringify({
+              type: 'session.authenticate',
+              payload: { accessToken: senderToken },
+            }),
+          );
+        });
+
+        recipientSocket.once('open', () => {
+          recipientSocket.send(
+            JSON.stringify({
+              type: 'session.authenticate',
+              payload: { accessToken: recipientToken },
+            }),
+          );
+        });
+
+        senderSocket.on('message', (data: RawData) => {
+          const event = JSON.parse(data.toString()) as { type: string; payload: any };
+
+          if (event.type === 'session.authenticated') {
+            senderSocket.send(JSON.stringify({ type: 'chat.subscribe', payload: { chatId: 'p1' } }));
+            return;
+          }
+
+          if (event.type === 'chat.updated') {
+            senderReady = true;
+            maybeSend();
+          }
+        });
+
+        recipientSocket.on('message', (data: RawData) => {
+          const event = JSON.parse(data.toString()) as { type: string; payload: any };
+
+          if (event.type === 'session.authenticated') {
+            recipientReady = true;
+            maybeSend();
+            return;
+          }
+
+          if (event.type === 'notification.created') {
+            resolve(event);
+            senderSocket.close();
+            recipientSocket.close();
+          }
+        });
+
+        senderSocket.once('error', reject);
+        recipientSocket.once('error', reject);
+      }),
+    ).resolves.toMatchObject({
+      type: 'notification.created',
+      payload: {
+        userId: 'user-anya',
+        kind: 'message',
+        title: 'Новое сообщение',
+        body: 'notification payload check',
+        payload: {
+          chatId: 'p1',
+          messageId: expect.any(String),
+        },
+        createdAt: expect.any(String),
+        readAt: null,
+      },
+    });
   });
 
   it('does not emit duplicate message.created to the subscribed sender', async () => {
