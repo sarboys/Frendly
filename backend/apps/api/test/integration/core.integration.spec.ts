@@ -219,7 +219,7 @@ describe('core api flows', () => {
 
     expect(uploadResponse.body.assetId).toEqual(expect.any(String));
     expect(uploadResponse.body.status).toBe('ready');
-    expect(uploadResponse.body.url).toContain('/big-break/avatars/user-me/');
+    expect(uploadResponse.body.url).toMatch(/^\/media\//);
 
     const asset = await prisma.mediaAsset.findUnique({
       where: { id: uploadResponse.body.assetId as string },
@@ -287,6 +287,7 @@ describe('core api flows', () => {
 
     expect(readAfterUpload.body.photos).toHaveLength(initialCount + 2);
     expect(lastPhotoAfterUpload.id).toBe(secondUpload.body.photo.id);
+    expect(lastPhotoAfterUpload.url).toMatch(/^\/media\//);
 
     await request(app.getHttpServer())
       .post(`/profile/me/photos/${secondUpload.body.photo.id}/primary`)

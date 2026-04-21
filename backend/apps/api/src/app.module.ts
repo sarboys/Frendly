@@ -6,6 +6,7 @@ import { EventsController } from './controllers/events.controller';
 import { HealthController } from './controllers/health.controller';
 import { HostController } from './controllers/host.controller';
 import { MatchesController } from './controllers/matches.controller';
+import { MediaController } from './controllers/media.controller';
 import { NotificationsController } from './controllers/notifications.controller';
 import { OnboardingController } from './controllers/onboarding.controller';
 import { PeopleController } from './controllers/people.controller';
@@ -24,6 +25,7 @@ import { ChatsService } from './services/chats.service';
 import { EventsService } from './services/events.service';
 import { HostService } from './services/host.service';
 import { MatchesService } from './services/matches.service';
+import { MediaService } from './services/media.service';
 import { NotificationsService } from './services/notifications.service';
 import { OnboardingService } from './services/onboarding.service';
 import { PeopleService } from './services/people.service';
@@ -44,6 +46,7 @@ import { VerificationService } from './services/verification.service';
     HealthController,
     HostController,
     MatchesController,
+    MediaController,
     NotificationsController,
     OnboardingController,
     PeopleController,
@@ -61,6 +64,7 @@ import { VerificationService } from './services/verification.service';
     EventsService,
     HostService,
     MatchesService,
+    MediaService,
     NotificationsService,
     OnboardingService,
     PeopleService,

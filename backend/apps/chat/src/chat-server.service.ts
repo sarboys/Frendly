@@ -1,8 +1,8 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   PUBSUB_CHANNEL,
+  buildMediaProxyPath,
   buildMessagePreview,
-  buildPublicAssetUrl,
   createRedisPublisher,
   createRedisSubscriber,
   publishBusEvent,
@@ -804,7 +804,7 @@ export class ChatServerService implements OnModuleDestroy {
         id: entry.mediaAsset.id,
         kind: entry.mediaAsset.kind,
         status: entry.mediaAsset.status,
-        url: entry.mediaAsset.publicUrl ?? buildPublicAssetUrl(entry.mediaAsset.objectKey),
+        url: buildMediaProxyPath(entry.mediaAsset.id),
         mimeType: entry.mediaAsset.mimeType,
         byteSize: entry.mediaAsset.byteSize,
         fileName: entry.mediaAsset.originalFileName,

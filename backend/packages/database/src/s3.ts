@@ -78,3 +78,7 @@ export function buildPublicAssetUrl(objectKey: string): string {
   const config = getS3Config();
   return `${config.publicEndpoint}/${config.bucket}/${objectKey}`;
 }
+
+export function buildMediaProxyPath(assetId: string): string {
+  return `/media/${assetId}`;
+}

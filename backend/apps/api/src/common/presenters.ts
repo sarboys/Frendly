@@ -9,7 +9,7 @@ import {
   Profile,
   User,
 } from '@prisma/client';
-import { buildMessagePreview } from '@big-break/database';
+import { buildMediaProxyPath, buildMessagePreview } from '@big-break/database';
 
 export function formatRelativeTime(date: Date): string {
   const diffMs = Date.now() - date.getTime();
@@ -55,7 +55,7 @@ export function mapMediaAsset(asset: MediaAsset) {
     id: asset.id,
     kind: asset.kind,
     status: asset.status,
-    url: asset.publicUrl,
+    url: buildMediaProxyPath(asset.id),
     mimeType: asset.mimeType,
     byteSize: asset.byteSize,
     fileName: asset.originalFileName,
@@ -72,7 +72,7 @@ export function mapProfilePhoto(
 ) {
   return {
     id: photo.id,
-    url: photo.mediaAsset.publicUrl,
+    url: buildMediaProxyPath(photo.mediaAsset.id),
     order: photo.sortOrder,
   };
 }
@@ -160,7 +160,7 @@ export function mapBasicProfile(
     vibe: user.profile?.vibe ?? null,
     rating: user.profile?.rating ?? 0,
     meetupCount: user.profile?.meetupCount ?? 0,
-    avatarUrl: user.profile?.avatarUrl ?? photos[0]?.url ?? null,
+    avatarUrl: photos[0]?.url ?? user.profile?.avatarUrl ?? null,
     photos,
   };
 }

@@ -1,7 +1,12 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { buildPublicAssetUrl, createPresignedUpload, createS3Client } from '@big-break/database';
+import {
+  buildMediaProxyPath,
+  buildPublicAssetUrl,
+  createPresignedUpload,
+  createS3Client,
+} from '@big-break/database';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
@@ -98,7 +103,7 @@ export class ProfileService {
       where: { userId },
       data: {
         avatarAssetId: asset.id,
-        avatarUrl: buildPublicAssetUrl(objectKey),
+        avatarUrl: buildMediaProxyPath(asset.id),
       },
     });
 
@@ -114,7 +119,7 @@ export class ProfileService {
     return {
       assetId: result.assetId,
       status: result.status,
-      url: result.url,
+      url: buildMediaProxyPath(result.assetId),
       photo: result.photo,
     };
   }
@@ -340,7 +345,9 @@ export class ProfileService {
       where: { userId },
       data: {
         avatarAssetId: firstPhoto?.mediaAssetId ?? null,
-        avatarUrl: firstPhoto?.mediaAsset.publicUrl ?? null,
+        avatarUrl: firstPhoto != null
+            ? buildMediaProxyPath(firstPhoto.mediaAssetId)
+            : null,
       },
     });
   }
