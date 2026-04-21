@@ -9,7 +9,10 @@ import { PrismaService } from './prisma.service';
 export class PeopleService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async listPeople(userId: string, params: { cursor?: string; limit?: number }) {
+  async listPeople(
+    userId: string,
+    params: { cursor?: string; limit?: number; q?: string },
+  ) {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.onboardingPreferences.findUnique({
         where: { userId },
@@ -31,6 +34,7 @@ export class PeopleService {
     });
 
     const selfInterests = new Set(Array.isArray(self?.interests) ? (self?.interests as string[]) : []);
+    const query = params.q?.trim().toLowerCase();
     const mapped = people.map((person) => {
       const interests = Array.isArray(person.onboarding?.interests) ? (person.onboarding?.interests as string[]) : [];
       const common = interests.filter((interest) => selfInterests.has(interest));
@@ -46,6 +50,19 @@ export class PeopleService {
         vibe: person.profile?.vibe ?? null,
         avatarUrl: person.profile?.avatarUrl ?? null,
       };
+    }).filter((person) => {
+      if (!query) {
+        return true;
+      }
+
+      const haystack = [
+        person.name,
+        person.area ?? '',
+        person.vibe ?? '',
+        ...person.common,
+      ].join(' ').toLowerCase();
+
+      return haystack.includes(query);
     });
 
     return paginateArray(mapped, params.limit ?? 20, (item) => item.id, params.cursor);

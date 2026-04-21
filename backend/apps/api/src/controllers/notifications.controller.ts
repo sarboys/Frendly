@@ -23,6 +23,19 @@ export class NotificationsController {
     return this.notificationsService.getUnreadCount(currentUser.userId);
   }
 
+  @Post('notifications/:notificationId/read')
+  markRead(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('notificationId') notificationId: string,
+  ) {
+    return this.notificationsService.markRead(currentUser.userId, notificationId);
+  }
+
+  @Post('notifications/read-all')
+  markAllRead(@CurrentUser() currentUser: { userId: string }) {
+    return this.notificationsService.markAllRead(currentUser.userId);
+  }
+
   @Post('push-tokens')
   registerPushToken(@CurrentUser() currentUser: { userId: string }, @Body() body: Record<string, unknown>) {
     return this.notificationsService.registerPushToken(currentUser.userId, body);

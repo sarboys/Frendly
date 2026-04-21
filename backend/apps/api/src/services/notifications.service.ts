@@ -40,6 +40,59 @@ export class NotificationsService {
     return { unreadCount: visibleNotifications.length };
   }
 
+  async markRead(userId: string, notificationId: string) {
+    const notification = await this.prismaService.client.notification.findUnique({
+      where: { id: notificationId },
+      select: {
+        id: true,
+        userId: true,
+        readAt: true,
+      },
+    });
+
+    if (!notification || notification.userId !== userId) {
+      throw new ApiError(404, 'notification_not_found', 'Notification not found');
+    }
+
+    if (notification.readAt != null) {
+      return {
+        ok: true,
+        notificationId,
+        alreadyRead: true,
+      };
+    }
+
+    await this.prismaService.client.notification.update({
+      where: { id: notificationId },
+      data: {
+        readAt: new Date(),
+      },
+    });
+
+    return {
+      ok: true,
+      notificationId,
+      alreadyRead: false,
+    };
+  }
+
+  async markAllRead(userId: string) {
+    const result = await this.prismaService.client.notification.updateMany({
+      where: {
+        userId,
+        readAt: null,
+      },
+      data: {
+        readAt: new Date(),
+      },
+    });
+
+    return {
+      ok: true,
+      updatedCount: result.count,
+    };
+  }
+
   async registerPushToken(userId: string, body: Record<string, unknown>) {
     const token = typeof body.token === 'string' ? body.token : undefined;
     const provider = body.provider === 'apns' ? 'apns' : 'fcm';

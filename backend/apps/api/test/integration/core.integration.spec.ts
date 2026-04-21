@@ -725,6 +725,96 @@ describe('core api flows', () => {
     expect(response.body.unreadCount).toBeGreaterThanOrEqual(0);
   });
 
+  it('marks one notification as read through notifications api', async () => {
+    await prisma.notification.updateMany({
+      where: {
+        userId: 'user-me',
+      },
+      data: {
+        readAt: null,
+      },
+    });
+
+    const beforeResponse = await request(app.getHttpServer())
+      .get('/notifications/unread-count')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const notificationsResponse = await request(app.getHttpServer())
+      .get('/notifications')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const unreadItem = notificationsResponse.body.items.find(
+      (item: { id: string; readAt: string | null }) => item.readAt == null,
+    );
+
+    expect(unreadItem).toBeDefined();
+
+    await request(app.getHttpServer())
+      .post(`/notifications/${unreadItem.id}/read`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    const afterResponse = await request(app.getHttpServer())
+      .get('/notifications/unread-count')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(afterResponse.body.unreadCount).toBe(beforeResponse.body.unreadCount - 1);
+
+    const updated = await prisma.notification.findUnique({
+      where: { id: unreadItem.id as string },
+    });
+
+    expect(updated?.readAt).not.toBeNull();
+  });
+
+  it('marks all notifications as read through notifications api', async () => {
+    await prisma.notification.updateMany({
+      where: {
+        userId: 'user-me',
+      },
+      data: {
+        readAt: null,
+      },
+    });
+
+    const beforeResponse = await request(app.getHttpServer())
+      .get('/notifications')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(
+      beforeResponse.body.items.some(
+        (item: { readAt: string | null }) => item.readAt == null,
+      ),
+    ).toBe(true);
+
+    await request(app.getHttpServer())
+      .post('/notifications/read-all')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    const afterResponse = await request(app.getHttpServer())
+      .get('/notifications')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(
+      afterResponse.body.items.every(
+        (item: { readAt: string | null }) => item.readAt != null,
+      ),
+    ).toBe(true);
+
+    const unreadCountResponse = await request(app.getHttpServer())
+      .get('/notifications/unread-count')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(unreadCountResponse.body.unreadCount).toBe(0);
+  });
+
   it('reflects event stories in live meetup payload', async () => {
     await request(app.getHttpServer())
       .post('/events/e1/stories')
