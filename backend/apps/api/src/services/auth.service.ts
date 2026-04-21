@@ -46,7 +46,10 @@ export class AuthService {
     };
   }
 
-  async verifyPhoneCode(challengeId: string, code: string): Promise<TokenPair & { userId: string }> {
+  async verifyPhoneCode(
+    challengeId: string,
+    code: string,
+  ): Promise<TokenPair & { userId: string; isNewUser: boolean }> {
     const challenge = await this.prismaService.client.phoneOtpChallenge.findUnique({
       where: { id: challengeId },
     });
@@ -62,8 +65,10 @@ export class AuthService {
     let user = await this.prismaService.client.user.findUnique({
       where: { phoneNumber: challenge.phoneNumber },
     });
+    let isNewUser = false;
 
     if (!user) {
+      isNewUser = true;
       const userId = `user-${randomUUID()}`;
       const registrationPreset = this.buildRegistrationPreset(challenge.phoneNumber);
       await this.ensureUser(userId, {
@@ -94,6 +99,7 @@ export class AuthService {
     return {
       ...tokens,
       userId: user.id,
+      isNewUser,
     };
   }
 
