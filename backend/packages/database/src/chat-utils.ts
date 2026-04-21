@@ -7,6 +7,9 @@ export function buildMessagePreview(input: {
   attachments?: Array<{ kind: string }>;
 }): string {
   const normalized = input.text.trim();
+  if (normalized.startsWith('__bb_location__:')) {
+    return 'Локация';
+  }
   if (normalized.length > 0) {
     return normalized;
   }
