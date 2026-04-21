@@ -6,20 +6,18 @@ import {
   EventLifestyleFilter,
   EventPriceFilter,
 } from '@big-break/contracts';
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import { decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
-import { paginateArray } from '../common/pagination';
 import {
   formatEventTime,
   mapAttendanceStatus,
   mapEventSummary,
-  mapJoinRequestStatus,
   mapLiveStatus,
   mapUserPreview,
 } from '../common/presenters';
 import { PrismaService } from './prisma.service';
-
-type EventListRecord = Awaited<ReturnType<EventsService['loadEvents']>>[number];
 
 @Injectable()
 export class EventsService {
@@ -39,30 +37,66 @@ export class EventsService {
     },
   ) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
-    const events = await this.loadEvents(userId);
-    const visibleEvents = events
-      .filter((event) => !blockedUserIds.has(event.hostId))
-      .filter(
-        (event) =>
-          event.visibilityMode === 'public' ||
-          event.hostId === userId ||
-          event.participants.some((participant) => participant.userId === userId),
-      );
-    const filtered = this.applyFilter(visibleEvents, params.filter as EventFilter | undefined);
-    const refined = this.applyAdvancedFilters(filtered, {
+    const take = this.normalizeListLimit(params.limit);
+    const filter = params.filter as EventFilter | undefined;
+    const where = this.buildListWhere(userId, blockedUserIds, filter, {
       q: params.q,
       lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
       price: params.price as EventPriceFilter | undefined,
       gender: params.gender as EventGenderFilter | undefined,
       access: params.access as EventAccessFilter | undefined,
     });
+    const cursorEvent = await this.resolveListCursor(params.cursor, filter);
+    const cursorWhere = this.buildListCursorWhere(cursorEvent, filter);
 
-    const mapped = refined.map((event) =>
+    if (cursorWhere) {
+      const conditions = (where.AND as Prisma.EventWhereInput[] | undefined) ?? [];
+      where.AND = [...conditions, cursorWhere];
+    }
+
+    const events = await this.prismaService.client.event.findMany({
+      where,
+      include: {
+        participants: {
+          where: {
+            userId: {
+              notIn: [...blockedUserIds],
+            },
+          },
+          include: {
+            user: {
+              select: {
+                displayName: true,
+              },
+            },
+          },
+          orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+        },
+        joinRequests: {
+          where: { userId },
+          take: 1,
+          select: { status: true },
+        },
+        attendances: {
+          where: { userId },
+          take: 1,
+          select: { status: true },
+        },
+        liveState: {
+          select: { status: true },
+        },
+      },
+      orderBy: this.listOrderBy(filter),
+      take: take + 1,
+    });
+
+    const hasMore = events.length > take;
+    const page = hasMore ? events.slice(0, take) : events;
+
+    const mapped = page.map((event) =>
       mapEventSummary({
         event,
-        participants: event.participants.filter(
-          (participant) => !blockedUserIds.has(participant.userId),
-        ),
+        participants: event.participants,
         currentUserId: userId,
         joinRequest: event.joinRequests[0],
         attendance: event.attendances[0],
@@ -70,7 +104,13 @@ export class EventsService {
       }),
     );
 
-    return paginateArray(mapped, params.limit ?? 20, (item) => item.id, params.cursor);
+    return {
+      items: mapped,
+      nextCursor:
+        hasMore && page.length > 0
+          ? encodeCursor({ value: page[page.length - 1]!.id })
+          : null,
+    };
   }
 
   async getEventDetail(userId: string, eventId: string) {
@@ -1001,53 +1041,10 @@ export class EventsService {
     };
   }
 
-  private async loadEvents(userId: string) {
-    return this.prismaService.client.event.findMany({
-      include: {
-        participants: {
-          include: {
-            user: {
-              include: {
-                profile: true,
-              },
-            },
-          },
-        },
-        joinRequests: {
-          where: { userId },
-          take: 1,
-        },
-        attendances: {
-          where: { userId },
-          take: 1,
-        },
-        liveState: true,
-      },
-      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
-    });
-  }
-
-  private applyFilter(events: EventListRecord[], filter?: EventFilter) {
-    switch (filter) {
-      case 'now':
-        return events.filter((event) => {
-          const delta = Math.abs(event.startsAt.getTime() - Date.now());
-          return delta <= 3 * 60 * 60 * 1000;
-        });
-      case 'calm':
-        return events.filter((event) => event.isCalm);
-      case 'newcomers':
-        return events.filter((event) => event.isNewcomers);
-      case 'date':
-        return events.filter((event) => event.isDate);
-      case 'nearby':
-      default:
-        return [...events].sort((left, right) => left.distanceKm - right.distanceKm);
-    }
-  }
-
-  private applyAdvancedFilters(
-    events: EventListRecord[],
+  private buildListWhere(
+    userId: string,
+    blockedUserIds: Set<string>,
+    filter: EventFilter | undefined,
     params: {
       q?: string;
       lifestyle?: EventLifestyleFilter;
@@ -1055,70 +1052,204 @@ export class EventsService {
       gender?: EventGenderFilter;
       access?: EventAccessFilter;
     },
-  ) {
-    const query = params.q?.trim().toLowerCase();
+  ): Prisma.EventWhereInput {
+    const conditions: Prisma.EventWhereInput[] = [
+      {
+        OR: [
+          { visibilityMode: 'public' },
+          { hostId: userId },
+          {
+            participants: {
+              some: {
+                userId,
+              },
+            },
+          },
+        ],
+      },
+    ];
+    const where: Prisma.EventWhereInput = {
+      hostId: {
+        notIn: [...blockedUserIds],
+      },
+      AND: conditions,
+    };
+    const now = new Date();
 
-    return events.filter((event) => {
-      if (query) {
-        const haystack = [
-          event.title,
-          event.place,
-          event.description,
-          event.hostNote ?? '',
-          event.vibe,
-        ]
-          .join(' ')
-          .toLowerCase();
-        if (!haystack.includes(query)) {
-          return false;
-        }
-      }
+    switch (filter) {
+      case 'now':
+        conditions.push({
+          startsAt: {
+            gte: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+            lte: new Date(now.getTime() + 3 * 60 * 60 * 1000),
+          },
+        });
+        break;
+      case 'calm':
+        conditions.push({ isCalm: true });
+        break;
+      case 'newcomers':
+        conditions.push({ isNewcomers: true });
+        break;
+      case 'date':
+        conditions.push({ isDate: true });
+        break;
+      case 'nearby':
+      default:
+        break;
+    }
 
-      if (
-        params.lifestyle &&
-        params.lifestyle !== 'any' &&
-        event.lifestyle !== params.lifestyle
-      ) {
-        return false;
-      }
+    const query = params.q?.trim();
+    if (query) {
+      conditions.push({
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { place: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { hostNote: { contains: query, mode: 'insensitive' } },
+          { vibe: { contains: query, mode: 'insensitive' } },
+        ],
+      });
+    }
 
-      if (params.gender && params.gender !== 'any' && event.genderMode !== params.gender) {
-        return false;
-      }
+    if (params.lifestyle && params.lifestyle !== 'any') {
+      conditions.push({ lifestyle: params.lifestyle });
+    }
 
-      if (params.access && params.access !== 'any' && event.accessMode !== params.access) {
-        return false;
-      }
+    if (params.gender && params.gender !== 'any') {
+      conditions.push({ genderMode: params.gender });
+    }
 
-      if (params.price && params.price !== 'any' && !this.matchesPrice(event, params.price)) {
-        return false;
-      }
+    if (params.access && params.access !== 'any') {
+      conditions.push({ accessMode: params.access });
+    }
 
-      return true;
-    });
+    const priceWhere = this.buildPriceWhere(params.price);
+    if (priceWhere) {
+      conditions.push(priceWhere);
+    }
+
+    return where;
   }
 
-  private matchesPrice(event: EventListRecord, price: EventPriceFilter) {
-    if (price === 'free') {
-      return event.priceMode === 'free';
+  private buildPriceWhere(price?: EventPriceFilter): Prisma.EventWhereInput | null {
+    if (!price || price === 'any') {
+      return null;
     }
 
-    const amount = event.priceAmountTo ?? event.priceAmountFrom ?? null;
-    if (amount == null) {
-      return false;
+    if (price === 'free') {
+      return {
+        priceMode: 'free',
+      };
     }
+
+    const between = (min: number, max?: number): Prisma.EventWhereInput => ({
+      OR: [
+        {
+          priceAmountTo: max == null ? { gt: min } : { gte: min, lte: max },
+        },
+        {
+          priceAmountTo: null,
+          priceAmountFrom: max == null ? { gt: min } : { gte: min, lte: max },
+        },
+      ],
+    });
 
     switch (price) {
       case 'cheap':
-        return amount <= 1000;
+        return between(0, 1000);
       case 'mid':
-        return amount > 1000 && amount <= 3000;
+        return between(1001, 3000);
       case 'premium':
-        return amount > 3000;
-      case 'any':
+        return between(3000);
       default:
-        return true;
+        return null;
     }
+  }
+
+  private listOrderBy(filter?: EventFilter): Prisma.EventOrderByWithRelationInput[] {
+    if (filter === 'nearby' || !filter) {
+      return [{ distanceKm: 'asc' }, { id: 'asc' }];
+    }
+
+    return [{ startsAt: 'asc' }, { id: 'asc' }];
+  }
+
+  private normalizeListLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private async resolveListCursor(cursor?: string, filter?: EventFilter) {
+    if (!cursor) {
+      return null;
+    }
+
+    let cursorId: string | null = null;
+    try {
+      cursorId = decodeCursor(cursor)?.value ?? null;
+    } catch {
+      cursorId = cursor;
+    }
+
+    if (!cursorId) {
+      return null;
+    }
+
+    return this.prismaService.client.event.findUnique({
+      where: { id: cursorId },
+      select: {
+        id: true,
+        distanceKm: true,
+        startsAt: true,
+      },
+    });
+  }
+
+  private buildListCursorWhere(
+    cursorEvent: { id: string; distanceKm: number; startsAt: Date } | null,
+    filter?: EventFilter,
+  ): Prisma.EventWhereInput | null {
+    if (!cursorEvent) {
+      return null;
+    }
+
+    if (filter === 'nearby' || !filter) {
+      return {
+        OR: [
+          {
+            distanceKm: {
+              gt: cursorEvent.distanceKm,
+            },
+          },
+          {
+            distanceKm: cursorEvent.distanceKm,
+            id: {
+              gt: cursorEvent.id,
+            },
+          },
+        ],
+      };
+    }
+
+    return {
+      OR: [
+        {
+          startsAt: {
+            gt: cursorEvent.startsAt,
+          },
+        },
+        {
+          startsAt: cursorEvent.startsAt,
+          id: {
+            gt: cursorEvent.id,
+          },
+        },
+      ],
+    };
   }
 
   private async assertParticipant(userId: string, eventId: string) {

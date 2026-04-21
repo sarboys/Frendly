@@ -196,7 +196,7 @@ export function mapEventSummary(params: {
   event: Event;
   participants: Array<{
     userId: string;
-    user: User & { profile: Profile | null };
+    user: Pick<User, 'displayName'>;
   }>;
   currentUserId: string;
   joinRequest?: Pick<EventJoinRequest, 'status'> | null;

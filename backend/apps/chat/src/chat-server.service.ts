@@ -391,16 +391,14 @@ export class ChatServerService implements OnModuleDestroy {
       ),
     });
 
-    const unreadUpdates = await Promise.all(
-      message.members.map(async (member) => ({
-        userId: member.userId,
-        unreadCount: await this.countUnread(
-          chatId,
-          member.userId,
-          member.lastReadAt,
-        ),
-      })),
+    const unreadCounts = await this.getUnreadCountsByUser(
+      chatId,
+      message.members.map((member) => member.userId),
     );
+    const unreadUpdates = message.members.map((member) => ({
+      userId: member.userId,
+      unreadCount: unreadCounts.get(member.userId) ?? 0,
+    }));
 
     await Promise.all(
       unreadUpdates.map((update) =>
@@ -453,32 +451,17 @@ export class ChatServerService implements OnModuleDestroy {
         },
       });
 
-      const unreadNotifications = await tx.notification.findMany({
+      await tx.notification.updateMany({
         where: {
           userId: state.userId!,
           kind: 'message',
           readAt: null,
           chatId,
         },
-        select: {
-          id: true,
+        data: {
+          readAt: now,
         },
       });
-
-      const notificationIds = unreadNotifications.map((notification) => notification.id);
-
-      if (notificationIds.length > 0) {
-        await tx.notification.updateMany({
-          where: {
-            id: {
-              in: notificationIds,
-            },
-          },
-          data: {
-            readAt: now,
-          },
-        });
-      }
 
       const payloadRecord = {
         chatId,
@@ -495,11 +478,9 @@ export class ChatServerService implements OnModuleDestroy {
         },
       });
 
-      const unreadCount = await this.countUnread(chatId, state.userId!, now);
-
       return {
         payloadRecord,
-        unreadCount,
+        unreadCount: 0,
       };
     });
 
@@ -686,18 +667,27 @@ export class ChatServerService implements OnModuleDestroy {
     }
   }
 
-  private async countUnread(chatId: string, userId: string, lastReadAt?: Date) {
-    const blockedUserIds = await this.getBlockedUserIds(userId);
+  private async getUnreadCountsByUser(chatId: string, userIds: string[]) {
+    if (userIds.length === 0) {
+      return new Map<string, number>();
+    }
 
-    return this.prismaService.client.message.count({
+    const grouped = await this.prismaService.client.notification.groupBy({
+      by: ['userId'],
       where: {
         chatId,
-        senderId: {
-          notIn: [userId, ...blockedUserIds],
+        kind: 'message',
+        readAt: null,
+        userId: {
+          in: userIds,
         },
-        ...(lastReadAt ? { createdAt: { gt: lastReadAt } } : {}),
+      },
+      _count: {
+        _all: true,
       },
     });
+
+    return new Map(grouped.map((item) => [item.userId, item._count._all]));
   }
 
   private async getBlockedUserIds(userId: string) {

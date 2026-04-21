@@ -23,38 +23,11 @@ export class NotificationsService {
           },
         })
       : null;
-    const notifications = await this.prismaService.client.notification.findMany({
-      where: {
-        userId,
-        ...this.buildActorVisibilityWhere(blockedUserIds),
-        ...(cursorNotification
-          ? {
-              OR: [
-                {
-                  createdAt: {
-                    lt: cursorNotification.createdAt,
-                  },
-                },
-                {
-                  createdAt: cursorNotification.createdAt,
-                  id: {
-                    lt: cursorNotification.id,
-                  },
-                },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [
-        { createdAt: 'desc' },
-        { id: 'desc' },
-      ],
-      take: take + 1,
-    });
-    const visibleNotifications = await this.filterVisibleNotifications(
+    const visibleNotifications = await this.collectVisibleNotificationsPage(
       userId,
-      notifications,
       blockedUserIds,
+      take,
+      cursorNotification,
     );
 
     const hasMore = visibleNotifications.length > take;
@@ -82,6 +55,17 @@ export class NotificationsService {
 
   async getUnreadCount(userId: string) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
+    if (blockedUserIds.size === 0) {
+      const unreadCount = await this.prismaService.client.notification.count({
+        where: {
+          userId,
+          readAt: null,
+        },
+      });
+
+      return { unreadCount };
+    }
+
     const notifications = await this.prismaService.client.notification.findMany({
       where: {
         userId,
@@ -89,6 +73,16 @@ export class NotificationsService {
         ...this.buildActorVisibilityWhere(blockedUserIds),
       },
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        actorUserId: true,
+        chatId: true,
+        messageId: true,
+        eventId: true,
+        requestId: true,
+        readAt: true,
+        createdAt: true,
+      },
     });
     const visibleNotifications = await this.filterVisibleNotifications(
       userId,
@@ -195,9 +189,18 @@ export class NotificationsService {
     return { ok: true };
   }
 
-  private async filterVisibleNotifications(
+  private async collectVisibleNotificationsPage(
     userId: string,
-    notifications: Array<{
+    blockedUserIds: Set<string>,
+    take: number,
+    cursorNotification:
+      | {
+          id: string;
+          createdAt: Date;
+        }
+      | null,
+  ) {
+    const collected: Array<{
       id: string;
       actorUserId: string | null;
       chatId: string | null;
@@ -210,7 +213,77 @@ export class NotificationsService {
       payload: unknown;
       readAt: Date | null;
       createdAt: Date;
-    }>,
+    }> = [];
+    let boundary = cursorNotification;
+    const batchSize = Math.max(take + 1, 50);
+
+    while (collected.length < take + 1) {
+      const notifications = await this.prismaService.client.notification.findMany({
+        where: {
+          userId,
+          ...this.buildActorVisibilityWhere(blockedUserIds),
+          ...(boundary
+            ? {
+                OR: [
+                  {
+                    createdAt: {
+                      lt: boundary.createdAt,
+                    },
+                  },
+                  {
+                    createdAt: boundary.createdAt,
+                    id: {
+                      lt: boundary.id,
+                    },
+                  },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        take: batchSize,
+      });
+
+      if (notifications.length === 0) {
+        break;
+      }
+
+      const visibleBatch = await this.filterVisibleNotifications(
+        userId,
+        notifications,
+        blockedUserIds,
+      );
+      collected.push(...visibleBatch);
+
+      if (notifications.length < batchSize) {
+        break;
+      }
+
+      const tail = notifications[notifications.length - 1]!;
+      boundary = {
+        id: tail.id,
+        createdAt: tail.createdAt,
+      };
+    }
+
+    return collected;
+  }
+
+  private async filterVisibleNotifications<T extends {
+    id: string;
+    actorUserId: string | null;
+    chatId: string | null;
+    messageId: string | null;
+    eventId: string | null;
+    requestId: string | null;
+    readAt: Date | null;
+    createdAt: Date;
+  }>(
+    userId: string,
+    notifications: T[],
     blockedUserIds: Set<string>,
   ) {
     if (notifications.length === 0) {

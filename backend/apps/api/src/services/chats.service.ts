@@ -68,6 +68,11 @@ export class ChatsService {
         },
       },
     });
+    const unreadByChatId = await this.getUnreadCountsByChat(
+      userId,
+      membership.map((member) => member.chat.id),
+      blockedUserIds,
+    );
 
     const items = (
       await Promise.all(
@@ -84,11 +89,7 @@ export class ChatsService {
               })),
             })
           : '';
-        const unread = await this.countUnread(
-          member.chat.id,
-          userId,
-          member.lastReadAt ?? undefined,
-        );
+        const unread = unreadByChatId.get(member.chat.id) ?? 0;
 
         if (kind === 'meetup') {
           if (member.chat.event?.hostId && blockedUserIds.has(member.chat.event.hostId)) {
@@ -250,55 +251,20 @@ export class ChatsService {
         },
       });
 
-      const unreadNotifications = await tx.notification.findMany({
+      await tx.notification.updateMany({
         where: {
           userId,
           kind: 'message',
           readAt: null,
           chatId,
         },
-        select: {
-          id: true,
+        data: {
+          readAt: now,
         },
       });
-
-      const notificationIds = unreadNotifications.map((notification) => notification.id);
-
-      if (notificationIds.length > 0) {
-        await tx.notification.updateMany({
-          where: {
-            id: {
-              in: notificationIds,
-            },
-          },
-          data: {
-            readAt: now,
-          },
-        });
-      }
     });
 
     return { ok: true };
-  }
-
-  async countUnread(chatId: string, userId: string, lastReadAt?: Date) {
-    const blockedUserIds = await this.getBlockedUserIds(userId);
-
-    return this.prismaService.client.message.count({
-      where: {
-        chatId,
-        senderId: {
-          notIn: [userId, ...blockedUserIds],
-        },
-        ...(lastReadAt
-          ? {
-              createdAt: {
-                gt: lastReadAt,
-              },
-            }
-          : {}),
-      },
-    });
   }
 
   private normalizeMessagesLimit(limit?: number) {
@@ -319,6 +285,49 @@ export class ChatsService {
     } catch {
       return cursor;
     }
+  }
+
+  private async getUnreadCountsByChat(
+    userId: string,
+    chatIds: string[],
+    blockedUserIds: Set<string>,
+  ) {
+    if (chatIds.length === 0) {
+      return new Map<string, number>();
+    }
+
+    const grouped = await this.prismaService.client.notification.groupBy({
+      by: ['chatId'],
+      where: {
+        userId,
+        kind: 'message',
+        readAt: null,
+        chatId: {
+          in: chatIds,
+        },
+        ...(blockedUserIds.size === 0
+          ? {}
+          : {
+              OR: [
+                { actorUserId: null },
+                {
+                  actorUserId: {
+                    notIn: [...blockedUserIds],
+                  },
+                },
+              ],
+            }),
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    return new Map(
+      grouped
+        .filter((item) => item.chatId != null)
+        .map((item) => [item.chatId!, item._count._all]),
+    );
   }
 
   private async assertMembership(userId: string, chatId: string) {

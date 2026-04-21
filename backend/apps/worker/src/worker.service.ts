@@ -14,6 +14,7 @@ import { PrismaService } from './prisma.service';
 @Injectable()
 export class WorkerService implements OnModuleDestroy {
   private timer?: NodeJS.Timeout;
+  private running = false;
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
   private readonly fakePushProvider = new FakePushProvider();
@@ -39,32 +40,26 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   async runOnce() {
-    const event = await this.prismaService.client.outboxEvent.findFirst({
-      where: {
-        status: 'pending',
-        availableAt: {
-          lte: new Date(),
-        },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    if (!event) {
+    if (this.running) {
       return;
     }
 
-    await this.prismaService.client.outboxEvent.update({
-      where: { id: event.id },
-      data: {
-        status: 'processing',
-        lockedAt: new Date(),
-        attempts: {
-          increment: 1,
-        },
-      },
-    });
+    this.running = true;
+    let event:
+      | {
+          id: string;
+          type: string;
+          payload: unknown;
+          attempts: number;
+        }
+      | null = null;
 
     try {
+      event = await this.claimNextEvent();
+      if (!event) {
+        return;
+      }
+
       switch (event.type) {
         case OUTBOX_EVENT_TYPES.mediaFinalize:
           await this.handleMediaFinalize(event.payload as { assetId: string; chatId?: string });
@@ -81,18 +76,76 @@ export class WorkerService implements OnModuleDestroy {
         data: {
           status: 'done',
           processedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      await this.prismaService.client.outboxEvent.update({
-        where: { id: event.id },
-        data: {
-          status: 'failed',
-          lastError: error instanceof Error ? error.message : 'Unknown worker error',
           lockedAt: null,
         },
       });
+    } catch (error) {
+      if (event) {
+        await this.handleFailure(event.id, event.attempts, error);
+      }
+    } finally {
+      this.running = false;
     }
+  }
+
+  private async claimNextEvent() {
+    const now = new Date();
+    const event = await this.prismaService.client.outboxEvent.findFirst({
+      where: {
+        status: 'pending',
+        availableAt: {
+          lte: now,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!event) {
+      return null;
+    }
+
+    const claimed = await this.prismaService.client.outboxEvent.updateMany({
+      where: {
+        id: event.id,
+        status: 'pending',
+        availableAt: {
+          lte: now,
+        },
+      },
+      data: {
+        status: 'processing',
+        lockedAt: now,
+        attempts: {
+          increment: 1,
+        },
+      },
+    });
+
+    if (claimed.count === 0) {
+      return null;
+    }
+
+    return {
+      ...event,
+      attempts: event.attempts + 1,
+    };
+  }
+
+  private async handleFailure(eventId: string, attempts: number, error: unknown) {
+    const shouldFailPermanently = attempts >= 5;
+    const retryDelaySeconds = Math.min(300, attempts * 15);
+
+    await this.prismaService.client.outboxEvent.update({
+      where: { id: eventId },
+      data: {
+        status: shouldFailPermanently ? 'failed' : 'pending',
+        lastError: error instanceof Error ? error.message : 'Unknown worker error',
+        lockedAt: null,
+        availableAt: shouldFailPermanently
+          ? undefined
+          : new Date(Date.now() + retryDelaySeconds * 1000),
+      },
+    });
   }
 
   private async handleMediaFinalize(payload: { assetId: string; chatId?: string }) {
