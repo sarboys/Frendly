@@ -11,10 +11,12 @@ export class PeopleController {
     @CurrentUser() currentUser: { userId: string },
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('q') q?: string,
   ) {
     return this.peopleService.listPeople(currentUser.userId, {
       cursor,
       limit: limit ? Number(limit) : undefined,
+      q,
     });
   }
 

@@ -231,6 +231,21 @@ describe('extended rollout api flows', () => {
     ).toBe(false);
   });
 
+  it('filters people discovery by q', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/people')
+      .query({ q: 'соня' })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.items.length).toBeGreaterThan(0);
+    expect(
+      response.body.items.every((item: { name: string }) =>
+        item.name.toLowerCase().includes('соня'),
+      ),
+    ).toBe(true);
+  });
+
   it('hides blocked users from profile view and direct chat creation', async () => {
     await prisma.userBlock.upsert({
       where: {
