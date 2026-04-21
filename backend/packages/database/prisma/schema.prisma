@@ -21,6 +21,7 @@ enum ChatOrigin {
 enum MediaAssetKind {
   avatar
   chat_attachment
+  chat_voice
 }
 
 enum MediaAssetStatus {
@@ -532,6 +533,7 @@ model MediaAsset {
   objectKey        String            @unique
   mimeType         String
   byteSize         Int
+  durationMs       Int?
   originalFileName String
   publicUrl        String?
   error            String?

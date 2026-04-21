@@ -58,6 +58,7 @@ export function mapMediaAsset(asset: MediaAsset) {
     mimeType: asset.mimeType,
     byteSize: asset.byteSize,
     fileName: asset.originalFileName,
+    durationMs: asset.durationMs ?? null,
   };
 }
 

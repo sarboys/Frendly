@@ -174,6 +174,146 @@ describe('chat websocket auth', () => {
     ).resolves.toEqual(expect.any(String));
   });
 
+  it('sends voice-only message with empty text and emits duration metadata', async () => {
+    const token = await createSessionToken('user-me');
+    const clientMessageId = `voice-${Date.now()}`;
+    const attachmentId = `asset-${randomUUID()}`;
+    const objectKey = `chat-attachments/user-me/${attachmentId}-voice.webm`;
+    const recipientUserId =
+      (
+        await prisma.chatMember.findFirst({
+          where: {
+            chatId: 'p1',
+            userId: {
+              not: 'user-me',
+            },
+          },
+          select: {
+            userId: true,
+          },
+        })
+      )?.userId ?? 'user-sonya';
+    let createdMessageId: string | null = null;
+
+    await prisma.mediaAsset.create({
+      data: {
+        id: attachmentId,
+        ownerId: 'user-me',
+        kind: 'chat_voice',
+        status: 'ready',
+        bucket: process.env.S3_BUCKET ?? 'big-break',
+        objectKey,
+        mimeType: 'audio/webm',
+        byteSize: 4096,
+        durationMs: 14000,
+        originalFileName: 'voice.webm',
+        publicUrl: buildPublicAssetUrl(objectKey),
+        chatId: 'p1',
+      } as any,
+    });
+
+    try {
+      createdMessageId = await new Promise<string>((resolve, reject) => {
+        const socket = new WebSocket(wsUrl);
+
+        socket.once('open', () => {
+          socket.send(JSON.stringify({ type: 'session.authenticate', payload: { accessToken: token } }));
+        });
+
+        socket.on('message', (data: RawData) => {
+          const event = JSON.parse(data.toString()) as { type: string; payload: any };
+
+          if (event.type === 'session.authenticated') {
+            socket.send(JSON.stringify({ type: 'chat.subscribe', payload: { chatId: 'p1' } }));
+            return;
+          }
+
+          if (event.type === 'chat.updated') {
+            socket.send(
+              JSON.stringify({
+                type: 'message.send',
+                payload: {
+                  chatId: 'p1',
+                  text: '',
+                  clientMessageId,
+                  attachmentIds: [attachmentId],
+                },
+              }),
+            );
+            return;
+          }
+
+          if (event.type === 'message.created' && event.payload.clientMessageId === clientMessageId) {
+            expect(event.payload.text).toBe('');
+            expect(event.payload.attachments[0]).toMatchObject({
+              id: attachmentId,
+              kind: 'chat_voice',
+              mimeType: 'audio/webm',
+              durationMs: 14000,
+            });
+            resolve(event.payload.id as string);
+            socket.close();
+          }
+        });
+
+        socket.once('error', reject);
+      });
+
+      const notifications = await prisma.notification.findMany({
+        where: {
+          userId: recipientUserId,
+          kind: 'message',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 10,
+      });
+
+      const notification = notifications.find((item) => {
+        const payload = item.payload as Record<string, unknown> | null;
+        return payload?.messageId === createdMessageId;
+      });
+
+      expect(notification?.body).toBe('Голосовое сообщение');
+    } finally {
+      if (createdMessageId != null) {
+        const notifications = await prisma.notification.findMany({
+          where: {
+            userId: recipientUserId,
+            kind: 'message',
+          },
+          select: {
+            id: true,
+            payload: true,
+          },
+        });
+
+        const notificationIds = notifications
+          .filter((item) => {
+            const payload = item.payload as Record<string, unknown> | null;
+            return payload?.messageId === createdMessageId;
+          })
+          .map((item) => item.id);
+
+        if (notificationIds.length > 0) {
+          await prisma.notification.deleteMany({
+            where: {
+              id: {
+                in: notificationIds,
+              },
+            },
+          });
+        }
+        await prisma.message.delete({ where: { id: createdMessageId } });
+      }
+
+      await prisma.mediaAsset.deleteMany({
+        where: { id: attachmentId },
+      });
+    }
+  });
+
   it('rejects sending attachment linked to another chat', async () => {
     const token = await createSessionToken('user-me');
     const attachmentId = `asset-${randomUUID()}`;

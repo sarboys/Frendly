@@ -2,6 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
+import { buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
 
@@ -363,6 +364,127 @@ describe('core api flows', () => {
 
     expect(missingChatIdResponse.status).toBe(400);
     expect(missingChatIdResponse.body.code).toBe('chat_id_required');
+  });
+
+  it('uploads voice message asset with duration metadata', async () => {
+    const uploadResponse = await request(app.getHttpServer())
+      .post('/uploads/chat-attachment/file')
+      .set('authorization', `Bearer ${accessToken}`)
+      .field('chatId', 'p1')
+      .field('kind', 'chat_voice')
+      .field('durationMs', '14000')
+      .attach('file', Buffer.from('voice-bytes'), {
+        filename: 'voice.webm',
+        contentType: 'audio/webm',
+      })
+      .expect(201);
+
+    expect(uploadResponse.body.assetId).toEqual(expect.any(String));
+    expect(uploadResponse.body.status).toBe('ready');
+
+    const asset = await prisma.mediaAsset.findUnique({
+      where: { id: uploadResponse.body.assetId as string },
+    });
+
+    expect(asset?.ownerId).toBe('user-me');
+    expect(asset?.chatId).toBe('p1');
+    expect(asset?.kind).toBe('chat_voice');
+    expect(asset?.mimeType).toBe('audio/webm');
+    expect(asset?.durationMs).toBe(14000);
+  });
+
+  it('completes presigned voice upload with duration metadata', async () => {
+    const uploadUrlResponse = await request(app.getHttpServer())
+      .post('/uploads/chat-attachment/upload-url')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        chatId: 'p1',
+        kind: 'chat_voice',
+        fileName: 'voice.m4a',
+        contentType: 'audio/mp4',
+        durationMs: 9000,
+      })
+      .expect(201);
+
+    expect(uploadUrlResponse.body.objectKey).toEqual(expect.any(String));
+
+    const completeResponse = await request(app.getHttpServer())
+      .post('/uploads/chat-attachment/complete')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        chatId: 'p1',
+        kind: 'chat_voice',
+        objectKey: uploadUrlResponse.body.objectKey,
+        mimeType: 'audio/mp4',
+        byteSize: 2048,
+        fileName: 'voice.m4a',
+        durationMs: 9000,
+      })
+      .expect(201);
+
+    const asset = await prisma.mediaAsset.findUnique({
+      where: { id: completeResponse.body.assetId as string },
+    });
+
+    expect(asset?.kind).toBe('chat_voice');
+    expect(asset?.durationMs).toBe(9000);
+    expect(asset?.mimeType).toBe('audio/mp4');
+  });
+
+  it('returns voice fallback preview when last message text is empty', async () => {
+    const assetId = `voice-preview-${Date.now()}`;
+    const objectKey = `chat-attachments/user-sonya/${assetId}-voice.webm`;
+    const clientMessageId = `voice-preview-message-${Date.now()}`;
+    let messageId: string | null = null;
+
+    try {
+      await prisma.mediaAsset.create({
+        data: {
+          id: assetId,
+          ownerId: 'user-sonya',
+          kind: 'chat_voice',
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey,
+          mimeType: 'audio/webm',
+          byteSize: 2048,
+          durationMs: 12000,
+          originalFileName: 'voice.webm',
+          publicUrl: buildPublicAssetUrl(objectKey),
+          chatId: 'p1',
+        } as any,
+      });
+
+      const message = await prisma.message.create({
+        data: {
+          chatId: 'p1',
+          senderId: 'user-sonya',
+          text: '',
+          clientMessageId,
+          attachments: {
+            create: [{ mediaAssetId: assetId }],
+          },
+        },
+      });
+      messageId = message.id;
+
+      const response = await request(app.getHttpServer())
+        .get('/chats/personal')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      const chat = response.body.items.find((item: { id: string }) => item.id === 'p1');
+      expect(chat.lastMessage).toBe('Голосовое сообщение');
+    } finally {
+      if (messageId != null) {
+        await prisma.message.delete({ where: { id: messageId } });
+      }
+      await prisma.mediaAsset.deleteMany({
+        where: {
+          id: assetId,
+        },
+      });
+    }
   });
 
   it('returns event feed with cursor pagination', async () => {

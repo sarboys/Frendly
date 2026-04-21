@@ -49,12 +49,13 @@ export interface ChatMessageDto {
 
 export interface MediaAssetDto {
   id: string;
-  kind: 'avatar' | 'chat_attachment';
+  kind: 'avatar' | 'chat_attachment' | 'chat_voice';
   status: 'pending' | 'ready' | 'failed';
   url: string | null;
   mimeType: string;
   byteSize: number;
   fileName: string;
+  durationMs: number | null;
 }
 
 export interface WsClientEventMap {

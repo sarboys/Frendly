@@ -1,3 +1,4 @@
+import { buildMessagePreview } from '@big-break/database';
 import { ChatKind } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
@@ -62,6 +63,14 @@ export class ChatsService {
           (message) => !blockedUserIds.has(message.senderId),
         );
         const lastMessage = visibleMessages[0] ?? null;
+        const lastMessagePreview = lastMessage
+          ? buildMessagePreview({
+              text: lastMessage.text,
+              attachments: lastMessage.attachments.map((entry) => ({
+                kind: entry.mediaAsset.kind,
+              })),
+            })
+          : '';
         const unread = await this.countUnread(member.chat.id, userId, member.lastReadMessageId ?? undefined);
 
         if (kind === 'meetup') {
@@ -79,7 +88,7 @@ export class ChatsService {
             emoji: member.chat.emoji,
             time: parts[1]?.trim() ?? '',
             status: parts[0]?.trim() ?? '',
-            lastMessage: lastMessage?.text ?? '',
+            lastMessage: lastMessagePreview,
             lastAuthor: lastMessage?.sender.displayName ?? '',
             lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
             unread,
@@ -98,7 +107,7 @@ export class ChatsService {
         return {
           id: member.chat.id,
           name: peer?.displayName ?? 'Личный чат',
-          lastMessage: lastMessage?.text ?? '',
+          lastMessage: lastMessagePreview,
           lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
           unread,
           online: peer?.online ?? false,

@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   OUTBOX_EVENT_TYPES,
   PUBSUB_CHANNEL,
+  buildMessagePreview,
   buildPublicAssetUrl,
   createRedisPublisher,
   createRedisSubscriber,
@@ -182,14 +183,22 @@ export class ChatServerService implements OnModuleDestroy {
   private async sendMessage(socket: WebSocket, payload: any) {
     const state = this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
-    const text = payload?.text as string | undefined;
+    const text =
+      typeof payload?.text === 'string' ? payload.text.trim() : '';
     const clientMessageId = payload?.clientMessageId as string | undefined;
     const attachmentIds = Array.isArray(payload?.attachmentIds)
       ? payload.attachmentIds.filter((item: unknown): item is string => typeof item === 'string')
       : [];
 
-    if (!chatId || !text || !clientMessageId) {
-      throw new Error('chatId, text and clientMessageId are required');
+    if (!chatId || !clientMessageId) {
+      throw new Error('chatId and clientMessageId are required');
+    }
+
+    if (text.length === 0 && attachmentIds.length === 0) {
+      throw new ChatServerError(
+        'message_payload_empty',
+        'text or attachmentIds are required',
+      );
     }
 
     await this.assertMembership(state.userId!, chatId);
@@ -237,6 +246,13 @@ export class ChatServerService implements OnModuleDestroy {
         'Attachment belongs to another chat',
       );
     }
+
+    const previewText = buildMessagePreview({
+      text,
+      attachments: readyAssets.map((asset) => ({
+        kind: asset.kind,
+      })),
+    });
 
     const message = await this.prismaService.client.$transaction(async (tx) => {
       const created = await tx.message.create({
@@ -296,7 +312,7 @@ export class ChatServerService implements OnModuleDestroy {
             userId: member.userId,
             kind: 'message',
             title: 'Новое сообщение',
-            body: text,
+            body: previewText,
             payload: { chatId, messageId: created.id },
           },
         });
@@ -720,6 +736,7 @@ export class ChatServerService implements OnModuleDestroy {
         publicUrl: string | null;
         mimeType: string;
         byteSize: number;
+        durationMs: number | null;
         originalFileName: string;
         objectKey: string;
       };
@@ -741,6 +758,7 @@ export class ChatServerService implements OnModuleDestroy {
         mimeType: entry.mediaAsset.mimeType,
         byteSize: entry.mediaAsset.byteSize,
         fileName: entry.mediaAsset.originalFileName,
+        durationMs: entry.mediaAsset.durationMs ?? null,
       })),
     };
   }
