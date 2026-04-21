@@ -568,6 +568,77 @@ describe('core api flows', () => {
     ).toBe(true);
   });
 
+  it('returns posters feed for city discovery', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/posters')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.items.length).toBeGreaterThan(0);
+    expect(response.body.items[0]).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        title: expect.any(String),
+        category: expect.any(String),
+        emoji: expect.any(String),
+        date: expect.any(String),
+        time: expect.any(String),
+        venue: expect.any(String),
+        address: expect.any(String),
+        distance: expect.any(String),
+        priceFrom: expect.any(Number),
+        ticketUrl: expect.any(String),
+        provider: expect.any(String),
+        tone: expect.any(String),
+        description: expect.any(String),
+        isFeatured: expect.any(Boolean),
+      }),
+    );
+    expect(Array.isArray(response.body.items[0].tags)).toBe(true);
+  });
+
+  it('returns one poster detail by id', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/posters/ps1')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        id: 'ps1',
+        title: 'Молчат Дома · большой концерт',
+        category: 'concert',
+        provider: 'Яндекс Афиша',
+        ticketUrl: 'https://afisha.yandex.ru',
+      }),
+    );
+    expect(response.body.tags).toContain('пост-панк');
+  });
+
+  it('creates event linked to poster and stores sourcePosterId', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Идем на концерт вместе',
+        description: 'Собираю компанию без долгих переписок.',
+        emoji: '🎶',
+        vibe: 'Шумно',
+        place: 'Черновик адреса',
+        startsAt: '2026-04-26T17:00:00.000Z',
+        capacity: 5,
+        distanceKm: 0.3,
+        posterId: 'ps1',
+      })
+      .expect(201);
+
+    const createdEvent = await prisma.event.findUnique({
+      where: { id: createResponse.body.id as string },
+    });
+
+    expect((createdEvent as any)?.sourcePosterId).toBe('ps1');
+  });
+
   it('creates event with discovery filters and filters feed by extended params', async () => {
     const createResponse = await request(app.getHttpServer())
       .post('/events')

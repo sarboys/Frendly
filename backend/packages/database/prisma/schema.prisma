@@ -91,6 +91,16 @@ enum EventVisibilityMode {
   friends
 }
 
+enum PosterCategory {
+  concert
+  sport
+  exhibition
+  theatre
+  standup
+  festival
+  cinema
+}
+
 enum EventJoinRequestStatus {
   pending
   approved
@@ -300,8 +310,10 @@ model Event {
   isCalm          Boolean            @default(false)
   isNewcomers     Boolean            @default(false)
   isDate          Boolean            @default(false)
+  sourcePosterId  String?
   hostId          String
   host            User               @relation("HostedEvents", fields: [hostId], references: [id])
+  sourcePoster    Poster?            @relation(fields: [sourcePosterId], references: [id], onDelete: SetNull)
   participants    EventParticipant[]
   joinRequests    EventJoinRequest[]
   attendances     EventAttendance[]
@@ -313,6 +325,36 @@ model Event {
   sourceChats     Chat[]             @relation("ChatSourceEvent")
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
+
+  @@index([sourcePosterId])
+}
+
+model Poster {
+  id          String         @id
+  city        String
+  category    PosterCategory
+  title       String
+  emoji       String
+  startsAt    DateTime
+  dateLabel   String
+  timeLabel   String
+  venue       String
+  address     String
+  distanceKm  Float
+  priceFrom   Int
+  ticketUrl   String
+  provider    String
+  tone        EventTone      @default(warm)
+  tags        Json
+  description String
+  isFeatured  Boolean        @default(false)
+  events      Event[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([city, startsAt])
+  @@index([city, category, startsAt])
+  @@index([city, isFeatured, startsAt])
 }
 
 model EventParticipant {

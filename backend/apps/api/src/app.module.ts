@@ -10,6 +10,7 @@ import { MediaController } from './controllers/media.controller';
 import { NotificationsController } from './controllers/notifications.controller';
 import { OnboardingController } from './controllers/onboarding.controller';
 import { PeopleController } from './controllers/people.controller';
+import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { SafetyController } from './controllers/safety.controller';
 import { SettingsController } from './controllers/settings.controller';
@@ -29,6 +30,7 @@ import { MediaService } from './services/media.service';
 import { NotificationsService } from './services/notifications.service';
 import { OnboardingService } from './services/onboarding.service';
 import { PeopleService } from './services/people.service';
+import { PostersService } from './services/posters.service';
 import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
 import { SafetyService } from './services/safety.service';
@@ -50,6 +52,7 @@ import { VerificationService } from './services/verification.service';
     NotificationsController,
     OnboardingController,
     PeopleController,
+    PostersController,
     ProfileController,
     SafetyController,
     SettingsController,
@@ -68,6 +71,7 @@ import { VerificationService } from './services/verification.service';
     NotificationsService,
     OnboardingService,
     PeopleService,
+    PostersService,
     PrismaService,
     ProfileService,
     SafetyService,

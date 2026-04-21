@@ -373,18 +373,49 @@ export class EventsService {
   }
 
   async createEvent(userId: string, body: Record<string, unknown>) {
-    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const posterId =
+      typeof body.posterId === 'string' && body.posterId.trim().length > 0
+        ? body.posterId.trim()
+        : undefined;
+    const poster =
+      posterId == null
+        ? null
+        : await this.prismaService.client.poster.findUnique({
+            where: { id: posterId },
+          });
+
+    if (posterId != null && !poster) {
+      throw new ApiError(404, 'poster_not_found', 'Poster not found');
+    }
+
+    const title =
+      typeof body.title === 'string' && body.title.trim().length > 0
+        ? body.title.trim()
+        : poster?.title ?? '';
     const description =
-      typeof body.description === 'string' ? body.description.trim() : '';
-    const emoji = typeof body.emoji === 'string' ? body.emoji : '🍷';
+      typeof body.description === 'string' && body.description.trim().length > 0
+        ? body.description.trim()
+        : poster?.description ?? '';
+    const emoji =
+      typeof body.emoji === 'string' && body.emoji.trim().length > 0
+        ? body.emoji
+        : poster?.emoji ?? '🍷';
     const vibe = typeof body.vibe === 'string' ? body.vibe : 'Спокойно';
-    const place = typeof body.place === 'string' ? body.place.trim() : '';
+    const place =
+      typeof body.place === 'string' && body.place.trim().length > 0
+        ? body.place.trim()
+        : poster == null
+          ? ''
+          : `${poster.venue}, ${poster.address}`;
     const distanceKm =
-      typeof body.distanceKm === 'number' ? body.distanceKm : 1.0;
+      typeof body.distanceKm === 'number'
+        ? body.distanceKm
+        : poster?.distanceKm ?? 1.0;
     const capacity = typeof body.capacity === 'number' ? body.capacity : 8;
     const startsAtRaw =
       typeof body.startsAt === 'string' ? body.startsAt : undefined;
-    const startsAt = startsAtRaw != null ? new Date(startsAtRaw) : new Date();
+    const startsAt =
+      startsAtRaw != null ? new Date(startsAtRaw) : poster?.startsAt ?? new Date();
     const lifestyle =
       body.lifestyle === 'zozh' || body.lifestyle === 'anti' || body.lifestyle === 'neutral'
         ? body.lifestyle
@@ -487,6 +518,7 @@ export class EventsService {
           genderMode,
           visibilityMode,
           description,
+          sourcePosterId: poster?.id,
           capacity,
           hostId: userId,
           isCalm: vibe === 'Спокойно' || vibe === 'Уютно',

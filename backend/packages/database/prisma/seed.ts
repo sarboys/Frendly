@@ -1,6 +1,6 @@
 import { PrismaClient, ChatKind, ChatOrigin } from '@prisma/client';
 
-const { seededEvents, seededUsers }: typeof import('../src/seed-data') = require('../src/seed-data.ts');
+const { seededEvents, seededPosters, seededUsers }: typeof import('../src/seed-data') = require('../src/seed-data.ts');
 
 const prisma = new PrismaClient();
 
@@ -130,6 +130,7 @@ async function main() {
   await prisma.chat.deleteMany();
   await prisma.eventParticipant.deleteMany();
   await prisma.event.deleteMany();
+  await prisma.poster.deleteMany();
   await prisma.pushToken.deleteMany();
   await prisma.session.deleteMany();
   await prisma.onboardingPreferences.deleteMany();
@@ -219,6 +220,13 @@ async function main() {
 
   await prisma.event.createMany({
     data: seededEvents,
+  });
+
+  await prisma.poster.createMany({
+    data: seededPosters.map((poster) => ({
+      ...poster,
+      tags: poster.tags,
+    })),
   });
 
   await prisma.eventParticipant.createMany({
@@ -381,6 +389,9 @@ async function main() {
         kind: 'message',
         title: 'Новое сообщение',
         body: 'Анна Л: Тогда до восьми у входа?',
+        chatId: 'p1',
+        messageId: 'p6',
+        actorUserId: 'user-anya',
         payload: { chatId: 'p1', messageId: 'p6', userId: 'user-anya', userName: 'Анна Л' },
         createdAt: new Date('2026-04-20T18:55:00.000Z'),
       },
@@ -390,6 +401,8 @@ async function main() {
         kind: 'event_joined',
         title: 'Приглашение',
         body: 'Анна Л приглашает тебя на «Винный вечер на крыше» сегодня в 20:00',
+        eventId: 'e1',
+        actorUserId: 'user-anya',
         payload: { eventId: 'e1', userId: 'user-anya', userName: 'Анна Л', invite: true },
         createdAt: new Date('2026-04-20T18:48:00.000Z'),
       },
@@ -399,6 +412,8 @@ async function main() {
         kind: 'event_joined',
         title: 'Новый участник',
         body: 'присоединился к встрече «Настолки и кофе»',
+        eventId: 'e3',
+        actorUserId: 'user-mark',
         payload: { eventId: 'e3', userId: 'user-mark', userName: 'Марк С' },
         createdAt: new Date('2026-04-20T17:50:00.000Z'),
       },
@@ -408,6 +423,7 @@ async function main() {
         kind: 'message',
         title: 'Новый интерес',
         body: 'отметила вас как интересного человека',
+        actorUserId: 'user-liza',
         payload: { userId: 'user-liza', userName: 'Лиза П' },
         readAt: new Date('2026-04-19T20:20:00.000Z'),
         createdAt: new Date('2026-04-19T20:10:00.000Z'),
@@ -418,6 +434,7 @@ async function main() {
         kind: 'event_joined',
         title: 'Напоминание',
         body: 'Завтра в 21:00 — «Кино под открытым небом»',
+        eventId: 'e4',
         payload: { eventId: 'e4' },
         readAt: new Date('2026-04-19T18:10:00.000Z'),
         createdAt: new Date('2026-04-19T18:00:00.000Z'),
@@ -428,6 +445,8 @@ async function main() {
         kind: 'event_joined',
         title: 'Ещё участники',
         body: 'и ещё двое присоединились к «Вечерней пробежке»',
+        eventId: 'e2',
+        actorUserId: 'user-sonya',
         payload: { eventId: 'e2', userId: 'user-sonya', userName: 'Соня М' },
         readAt: new Date('2026-04-18T18:10:00.000Z'),
         createdAt: new Date('2026-04-18T18:00:00.000Z'),
