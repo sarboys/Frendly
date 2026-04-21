@@ -60,6 +60,7 @@ export function mapMediaAsset(asset: MediaAsset) {
     byteSize: asset.byteSize,
     fileName: asset.originalFileName,
     durationMs: asset.durationMs ?? null,
+    waveform: asset.waveform ?? [],
   };
 }
 

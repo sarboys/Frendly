@@ -540,6 +540,7 @@ model MediaAsset {
   mimeType         String
   byteSize         Int
   durationMs       Int?
+  waveform         Float[]           @default([])
   originalFileName String
   publicUrl        String?
   error            String?

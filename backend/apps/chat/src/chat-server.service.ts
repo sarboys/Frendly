@@ -771,6 +771,7 @@ export class ChatServerService implements OnModuleDestroy {
         mimeType: string;
         byteSize: number;
         durationMs: number | null;
+        waveform: number[];
         originalFileName: string;
         objectKey: string;
       };
@@ -809,6 +810,7 @@ export class ChatServerService implements OnModuleDestroy {
         byteSize: entry.mediaAsset.byteSize,
         fileName: entry.mediaAsset.originalFileName,
         durationMs: entry.mediaAsset.durationMs ?? null,
+        waveform: entry.mediaAsset.waveform ?? [],
       })),
     };
   }

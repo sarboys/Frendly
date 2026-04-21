@@ -66,6 +66,7 @@ export interface MediaAssetDto {
   byteSize: number;
   fileName: string;
   durationMs: number | null;
+  waveform: number[];
 }
 
 export interface WsClientEventMap {

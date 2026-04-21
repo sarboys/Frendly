@@ -2,7 +2,8 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ChatKind, ChatOrigin, PrismaClient } from '@prisma/client';
-import { buildPublicAssetUrl } from '@big-break/database';
+import { buildPublicAssetUrl, createS3Client } from '@big-break/database';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
 
@@ -11,6 +12,7 @@ jest.setTimeout(30000);
 describe('core api flows', () => {
   let app: INestApplication;
   let prisma: PrismaClient;
+  const s3 = createS3Client();
   let accessToken = '';
   let peerAccessToken = '';
 
@@ -368,12 +370,14 @@ describe('core api flows', () => {
   });
 
   it('uploads voice message asset with duration metadata', async () => {
+    const waveform = [0.12, 0.42, 0.76, 0.33];
     const uploadResponse = await request(app.getHttpServer())
       .post('/uploads/chat-attachment/file')
       .set('authorization', `Bearer ${accessToken}`)
       .field('chatId', 'p1')
       .field('kind', 'chat_voice')
       .field('durationMs', '14000')
+      .field('waveform', JSON.stringify(waveform))
       .attach('file', Buffer.from('voice-bytes'), {
         filename: 'voice.webm',
         contentType: 'audio/webm',
@@ -392,9 +396,11 @@ describe('core api flows', () => {
     expect(asset?.kind).toBe('chat_voice');
     expect(asset?.mimeType).toBe('audio/webm');
     expect(asset?.durationMs).toBe(14000);
+    expect((asset as any)?.waveform).toEqual(waveform);
   });
 
   it('completes presigned voice upload with duration metadata', async () => {
+    const waveform = [0.2, 0.48, 0.67, 0.28];
     const uploadUrlResponse = await request(app.getHttpServer())
       .post('/uploads/chat-attachment/upload-url')
       .set('authorization', `Bearer ${accessToken}`)
@@ -404,6 +410,7 @@ describe('core api flows', () => {
         fileName: 'voice.m4a',
         contentType: 'audio/mp4',
         durationMs: 9000,
+        waveform,
       })
       .expect(201);
 
@@ -420,6 +427,7 @@ describe('core api flows', () => {
         byteSize: 2048,
         fileName: 'voice.m4a',
         durationMs: 9000,
+        waveform,
       })
       .expect(201);
 
@@ -430,12 +438,14 @@ describe('core api flows', () => {
     expect(asset?.kind).toBe('chat_voice');
     expect(asset?.durationMs).toBe(9000);
     expect(asset?.mimeType).toBe('audio/mp4');
+    expect((asset as any)?.waveform).toEqual(waveform);
   });
 
   it('returns voice fallback preview when last message text is empty', async () => {
     const assetId = `voice-preview-${Date.now()}`;
     const objectKey = `chat-attachments/user-sonya/${assetId}-voice.webm`;
     const clientMessageId = `voice-preview-message-${Date.now()}`;
+    const waveform = [0.19, 0.53, 0.61, 0.27];
     let messageId: string | null = null;
 
     try {
@@ -450,6 +460,7 @@ describe('core api flows', () => {
           mimeType: 'audio/webm',
           byteSize: 2048,
           durationMs: 12000,
+          waveform,
           originalFileName: 'voice.webm',
           publicUrl: buildPublicAssetUrl(objectKey),
           chatId: 'p1',
@@ -476,6 +487,21 @@ describe('core api flows', () => {
 
       const chat = response.body.items.find((item: { id: string }) => item.id === 'p1');
       expect(chat.lastMessage).toBe('Голосовое сообщение');
+
+      const messagesResponse = await request(app.getHttpServer())
+        .get('/chats/p1/messages')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      const voiceMessage = messagesResponse.body.items.find(
+        (item: { clientMessageId: string }) => item.clientMessageId === clientMessageId,
+      );
+      expect(voiceMessage.attachments[0]).toMatchObject({
+        id: assetId,
+        kind: 'chat_voice',
+        durationMs: 12000,
+        waveform,
+      });
     } finally {
       if (messageId != null) {
         await prisma.message.delete({ where: { id: messageId } });
@@ -829,6 +855,60 @@ describe('core api flows', () => {
       });
       await prisma.chat.delete({
         where: { id: chatId },
+      });
+    }
+  });
+
+  it('streams media with byte range support for voice assets', async () => {
+    const assetId = `voice-stream-${Date.now()}`;
+    const objectKey = `chat-attachments/user-me/${assetId}-voice.webm`;
+    const payload = Buffer.from('voice-stream-payload');
+
+    try {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Key: objectKey,
+          ContentType: 'audio/webm',
+          Body: payload,
+        }),
+      );
+
+      await prisma.mediaAsset.create({
+        data: {
+          id: assetId,
+          ownerId: 'user-me',
+          kind: 'chat_voice',
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey,
+          mimeType: 'audio/webm',
+          byteSize: payload.length,
+          durationMs: 5000,
+          waveform: [0.11, 0.22, 0.44, 0.88],
+          originalFileName: 'voice.webm',
+          publicUrl: buildPublicAssetUrl(objectKey),
+          chatId: 'p1',
+        } as any,
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/media/${assetId}`)
+        .set('range', 'bytes=0-4')
+        .expect(206);
+
+      expect(response.headers['accept-ranges']).toBe('bytes');
+      expect(response.headers['content-range']).toBe(
+        `bytes 0-4/${payload.length}`,
+      );
+      expect(Buffer.from(response.body).toString()).toBe(
+        payload.subarray(0, 5).toString(),
+      );
+    } finally {
+      await prisma.mediaAsset.deleteMany({
+        where: {
+          id: assetId,
+        },
       });
     }
   });

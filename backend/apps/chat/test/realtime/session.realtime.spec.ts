@@ -237,6 +237,7 @@ describe('chat websocket auth', () => {
     const clientMessageId = `voice-${Date.now()}`;
     const attachmentId = `asset-${randomUUID()}`;
     const objectKey = `chat-attachments/user-me/${attachmentId}-voice.webm`;
+    const waveform = [0.12, 0.34, 0.58, 0.81];
     const recipientUserId =
       (
         await prisma.chatMember.findFirst({
@@ -264,6 +265,7 @@ describe('chat websocket auth', () => {
         mimeType: 'audio/webm',
         byteSize: 4096,
         durationMs: 14000,
+        waveform,
         originalFileName: 'voice.webm',
         publicUrl: buildPublicAssetUrl(objectKey),
         chatId: 'p1',
@@ -309,6 +311,7 @@ describe('chat websocket auth', () => {
               kind: 'chat_voice',
               mimeType: 'audio/webm',
               durationMs: 14000,
+              waveform,
             });
             resolve(event.payload.id as string);
             socket.close();

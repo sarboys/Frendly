@@ -15,6 +15,7 @@ interface ChatUploadMeta {
   chatId: string;
   kind: ChatUploadKind;
   durationMs: number | null;
+  waveform: number[];
 }
 
 @Injectable()
@@ -59,6 +60,7 @@ export class UploadsService {
         mimeType,
         byteSize,
         durationMs: uploadMeta.durationMs,
+        waveform: uploadMeta.waveform,
         originalFileName: fileName,
         chatId: uploadMeta.chatId,
         publicUrl: buildPublicAssetUrl(objectKey),
@@ -104,6 +106,7 @@ export class UploadsService {
         mimeType: file.mimetype,
         byteSize: file.size,
         durationMs: uploadMeta.durationMs,
+        waveform: uploadMeta.waveform,
         originalFileName: file.originalname,
         chatId: uploadMeta.chatId,
         publicUrl: buildPublicAssetUrl(objectKey),
@@ -139,6 +142,7 @@ export class UploadsService {
         : typeof body.durationMs === 'string'
           ? Number(body.durationMs)
           : null;
+    const waveform = this.resolveChatWaveform(body.waveform);
 
     if (rawKind === 'chat_voice') {
       if (
@@ -159,6 +163,7 @@ export class UploadsService {
       chatId,
       kind: rawKind,
       durationMs: rawKind === 'chat_voice' ? rawDuration : null,
+      waveform: rawKind === 'chat_voice' ? waveform : [],
     };
   }
 
@@ -180,6 +185,61 @@ export class UploadsService {
         'Voice attachment is too large',
       );
     }
+  }
+
+  private resolveChatWaveform(input: unknown): number[] {
+    if (input == null) {
+      return [];
+    }
+
+    let parsed = input;
+    if (typeof input === 'string') {
+      try {
+        parsed = JSON.parse(input);
+      } catch {
+        throw new ApiError(
+          400,
+          'invalid_chat_voice_waveform',
+          'Voice waveform is invalid',
+        );
+      }
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new ApiError(
+        400,
+        'invalid_chat_voice_waveform',
+        'Voice waveform is invalid',
+      );
+    }
+
+    const waveform = parsed.map((item) => {
+      if (typeof item !== 'number' || !Number.isFinite(item)) {
+        throw new ApiError(
+          400,
+          'invalid_chat_voice_waveform',
+          'Voice waveform is invalid',
+        );
+      }
+      if (item < 0 || item > 1) {
+        throw new ApiError(
+          400,
+          'invalid_chat_voice_waveform',
+          'Voice waveform is invalid',
+        );
+      }
+      return item;
+    });
+
+    if (waveform.length > 96) {
+      throw new ApiError(
+        400,
+        'invalid_chat_voice_waveform',
+        'Voice waveform is invalid',
+      );
+    }
+
+    return waveform;
   }
 
   private async requireChatIdForAttachment(userId: string, body: Record<string, unknown>) {
