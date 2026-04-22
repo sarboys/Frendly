@@ -2,6 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
+import { createHash, randomUUID } from 'node:crypto';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
 
@@ -11,6 +12,9 @@ describe('auth flows', () => {
   let app: INestApplication;
   let prisma: PrismaClient;
   let phoneCounter = 0;
+  let telegramCounter = 0;
+  const phoneSeed = Number(`${Date.now()}`.slice(-7));
+  const telegramSeed = `${Date.now()}`;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -26,7 +30,12 @@ describe('auth flows', () => {
     await app.close();
   });
 
-  const nextPhoneNumber = () => `+7999${String(++phoneCounter).padStart(7, '0')}`;
+  const nextPhoneNumber = () =>
+    `+7999${String((phoneSeed + ++phoneCounter) % 10_000_000).padStart(7, '0')}`;
+  const nextTelegramUserId = () => `tg-user-${telegramSeed}-${++telegramCounter}`;
+
+  const hashTelegramCode = (code: string, salt: string) =>
+    createHash('sha256').update(`${salt}:${code}`).digest('hex');
 
   const requestPhoneCode = async (phoneNumber = nextPhoneNumber()) => {
     const response = await request(app.getHttpServer())
@@ -65,9 +74,71 @@ describe('auth flows', () => {
     };
   };
 
-  afterEach(() => {
+  const createTelegramLoginSession = async ({
+    loginSessionId = `login-${randomUUID()}`,
+    startToken = `start-${randomUUID()}`,
+    telegramUserId = nextTelegramUserId(),
+    chatId = `chat-${randomUUID()}`,
+    phoneNumber = nextPhoneNumber(),
+    code = '654321',
+    status = 'code_issued',
+    expiresAt = new Date(Date.now() + 10 * 60 * 1000),
+    attemptCount = 0,
+    consumedAt = null,
+    lastCodeIssuedAt = new Date(),
+  }: {
+    loginSessionId?: string;
+    startToken?: string;
+    telegramUserId?: string;
+    chatId?: string;
+    phoneNumber?: string;
+    code?: string;
+    status?: string;
+    expiresAt?: Date;
+    attemptCount?: number;
+    consumedAt?: Date | null;
+    lastCodeIssuedAt?: Date;
+  } = {}) => {
+    const codeSalt = `salt-${randomUUID()}`;
+
+    await (prisma as any).telegramLoginSession.create({
+      data: {
+        loginSessionId,
+        startToken,
+        status,
+        telegramUserId,
+        chatId,
+        phoneNumber,
+        codeSalt,
+        codeHash: hashTelegramCode(code, codeSalt),
+        attemptCount,
+        expiresAt,
+        consumedAt,
+        lastCodeIssuedAt,
+      },
+    });
+
+    return {
+      loginSessionId,
+      startToken,
+      telegramUserId,
+      phoneNumber,
+      chatId,
+      code,
+    };
+  };
+
+  afterEach(async () => {
+    await (prisma as any).authAuditEvent.deleteMany();
+    await (prisma as any).telegramLoginSession.deleteMany();
+    await (prisma as any).telegramAccount.deleteMany();
+
     process.env.ENABLE_DEV_AUTH = 'true';
     process.env.ENABLE_DEV_OTP = 'true';
+    process.env.TELEGRAM_AUTH_ENABLED = 'true';
+    process.env.TELEGRAM_BOT_TOKEN = 'test-telegram-bot-token';
+    process.env.TELEGRAM_BOT_USERNAME = 'frendly_auth_test_bot';
+    process.env.TELEGRAM_POLL_INTERVAL_MS = '1500';
   });
 
   it('returns access and refresh token for dev login when dev auth is enabled', async () => {
@@ -204,6 +275,237 @@ describe('auth flows', () => {
 
     expect(reusedResponse.status).toBe(400);
     expect(reusedResponse.body.code).toBe('invalid_otp_challenge');
+  });
+
+  it('starts telegram auth session and returns bot deep link', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/start')
+      .send({})
+      .expect(201);
+
+    expect(response.body.loginSessionId).toEqual(expect.any(String));
+    expect(response.body.botUrl).toMatch(
+      /^https:\/\/t\.me\/frendly_auth_test_bot\?start=login_/,
+    );
+    expect(response.body.codeLength).toBe(6);
+    expect(Date.parse(response.body.expiresAt)).toBeGreaterThan(Date.now());
+
+    const session = await (prisma as any).telegramLoginSession.findUnique({
+      where: { loginSessionId: response.body.loginSessionId },
+    });
+
+    expect(session).toEqual(
+      expect.objectContaining({
+        loginSessionId: response.body.loginSessionId,
+        status: 'pending_bot',
+      }),
+    );
+  });
+
+  it('rejects telegram verify while contact is still missing', async () => {
+    const startResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/start')
+      .send({})
+      .expect(201);
+
+    const verifyResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: startResponse.body.loginSessionId,
+        code: '654321',
+      });
+
+    expect(verifyResponse.status).toBe(400);
+    expect(verifyResponse.body.code).toBe('invalid_telegram_login_session');
+  });
+
+  it('increments telegram attempts for invalid code', async () => {
+    const session = await createTelegramLoginSession();
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: session.loginSessionId,
+        code: '000000',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('invalid_telegram_code');
+
+    const storedSession = await (prisma as any).telegramLoginSession.findUnique({
+      where: { loginSessionId: session.loginSessionId },
+    });
+
+    expect(storedSession.attemptCount).toBe(1);
+  });
+
+  it('rate limits telegram session after five invalid attempts', async () => {
+    const session = await createTelegramLoginSession();
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const response = await request(app.getHttpServer())
+        .post('/auth/telegram/verify')
+        .send({
+          loginSessionId: session.loginSessionId,
+          code: '000000',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('invalid_telegram_code');
+    }
+
+    const finalResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: session.loginSessionId,
+        code: '000000',
+      });
+
+    expect(finalResponse.status).toBe(429);
+    expect(finalResponse.body.code).toBe('telegram_auth_rate_limited');
+
+    const storedSession = await (prisma as any).telegramLoginSession.findUnique({
+      where: { loginSessionId: session.loginSessionId },
+    });
+
+    expect(storedSession.attemptCount).toBe(5);
+    expect(storedSession.consumedAt).toEqual(expect.any(Date));
+  });
+
+  it('rejects expired telegram auth session', async () => {
+    const session = await createTelegramLoginSession({
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: session.loginSessionId,
+        code: session.code,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('invalid_telegram_login_session');
+  });
+
+  it('logs into existing user by telegram phone and creates telegram link', async () => {
+    const session = await createTelegramLoginSession({
+      telegramUserId: nextTelegramUserId(),
+      phoneNumber: '+71111111111',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: session.loginSessionId,
+        code: session.code,
+      })
+      .expect(201);
+
+    expect(response.body.userId).toBe('user-me');
+    expect(response.body.isNewUser).toBe(false);
+    expect(response.body.accessToken).toEqual(expect.any(String));
+    expect(response.body.refreshToken).toEqual(expect.any(String));
+
+    const telegramAccount = await (prisma as any).telegramAccount.findUnique({
+      where: { telegramUserId: session.telegramUserId },
+    });
+
+    expect(telegramAccount.userId).toBe('user-me');
+  });
+
+  it('creates a new user and telegram account for unknown phone', async () => {
+    const session = await createTelegramLoginSession({
+      telegramUserId: nextTelegramUserId(),
+      phoneNumber: nextPhoneNumber(),
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: session.loginSessionId,
+        code: session.code,
+      })
+      .expect(201);
+
+    expect(response.body.userId).toEqual(expect.any(String));
+    expect(response.body.isNewUser).toBe(true);
+
+    const createdUser = await prisma.user.findUnique({
+      where: { phoneNumber: session.phoneNumber },
+    });
+    const telegramAccount = await (prisma as any).telegramAccount.findUnique({
+      where: { telegramUserId: session.telegramUserId },
+    });
+
+    expect(createdUser?.id).toBe(response.body.userId);
+    expect(telegramAccount.userId).toBe(response.body.userId);
+  });
+
+  it('fails closed when telegram id and phone resolve to different users', async () => {
+    const telegramUserId = nextTelegramUserId();
+
+    await (prisma as any).telegramAccount.create({
+      data: {
+        userId: 'user-anya',
+        telegramUserId,
+        chatId: `chat-${randomUUID()}`,
+        username: 'anya_linked',
+        firstName: 'Аня',
+      },
+    });
+
+    const session = await createTelegramLoginSession({
+      telegramUserId,
+      phoneNumber: '+71111111111',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: session.loginSessionId,
+        code: session.code,
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe('telegram_auth_conflict');
+  });
+
+  it('writes telegram auth audit trail without raw secrets', async () => {
+    const session = await createTelegramLoginSession({
+      telegramUserId: nextTelegramUserId(),
+      code: '843921',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .set('user-agent', 'jest-telegram-auth')
+      .send({
+        loginSessionId: session.loginSessionId,
+        code: session.code,
+      })
+      .expect(201);
+
+    const auditEvents = await (prisma as any).authAuditEvent.findMany({
+      where: { loginSessionId: session.loginSessionId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    expect(auditEvents.length).toBeGreaterThan(0);
+    expect(auditEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: 'telegram',
+          loginSessionId: session.loginSessionId,
+        }),
+      ]),
+    );
+
+    const serialized = JSON.stringify(auditEvents);
+    expect(serialized).not.toContain(session.code);
+    expect(serialized).not.toContain(response.body.accessToken);
+    expect(serialized).not.toContain(response.body.refreshToken);
+    expect(serialized).not.toContain(process.env.TELEGRAM_BOT_TOKEN!);
   });
 
   it('refreshes session and returns a working access token', async () => {

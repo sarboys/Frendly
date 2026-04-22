@@ -157,6 +157,36 @@ enum SubscriptionStatus {
   canceled
 }
 
+enum TelegramLoginSessionStatus {
+  pending_bot
+  awaiting_contact
+  code_issued
+  consumed
+  failed
+}
+
+enum AuthProvider {
+  dev
+  phone_otp
+  telegram
+}
+
+enum AuthAuditKind {
+  start
+  verify
+  refresh
+  logout
+}
+
+enum AuthAuditResult {
+  issued
+  success
+  rejected
+  conflict
+  rate_limited
+  revoked
+}
+
 model User {
   id                String                  @id @default(cuid())
   displayName       String
@@ -192,6 +222,8 @@ model User {
   chatMembers       ChatMember[]
   messages          Message[]
   mediaAssets       MediaAsset[]
+  telegramAccount   TelegramAccount?
+  authAuditEvents   AuthAuditEvent[]
 }
 
 model UserSettings {
@@ -233,6 +265,66 @@ model PhoneOtpChallenge {
   createdAt    DateTime  @default(now())
 
   @@index([phoneNumber, createdAt])
+}
+
+model TelegramAccount {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  telegramUserId  String   @unique
+  chatId          String
+  username        String?
+  firstName       String?
+  lastName        String?
+  lastLoginAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TelegramLoginSession {
+  id               String                     @id @default(cuid())
+  loginSessionId   String                     @unique
+  startToken       String                     @unique
+  status           TelegramLoginSessionStatus @default(pending_bot)
+  telegramUserId   String?
+  chatId           String?
+  username         String?
+  firstName        String?
+  lastName         String?
+  phoneNumber      String?
+  codeSalt         String?
+  codeHash         String?
+  attemptCount     Int                        @default(0)
+  expiresAt        DateTime
+  consumedAt       DateTime?
+  lastCodeIssuedAt DateTime?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([telegramUserId, status])
+}
+
+model AuthAuditEvent {
+  id             String          @id @default(cuid())
+  provider       AuthProvider
+  kind           AuthAuditKind
+  result         AuthAuditResult
+  requestId      String
+  userId         String?
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  telegramUserId String?
+  loginSessionId String?
+  sessionId      String?
+  maskedPhone    String?
+  ip             String?
+  userAgent      String?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+
+  @@index([provider, kind, createdAt])
+  @@index([loginSessionId, createdAt])
+  @@index([telegramUserId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model Profile {
@@ -668,4 +760,11 @@ model RealtimeEvent {
   chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([chatId, id])
+}
+
+model TelegramBotState {
+  id           String   @id
+  lastUpdateId BigInt?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

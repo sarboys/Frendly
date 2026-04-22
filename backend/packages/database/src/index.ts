@@ -8,3 +8,4 @@ export * from './push-providers';
 export * from './pubsub';
 export * from './s3';
 export * from './seed-data';
+export * from './telegram-auth';

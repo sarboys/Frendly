@@ -38,6 +38,7 @@ import { ProfileService } from './services/profile.service';
 import { SafetyService } from './services/safety.service';
 import { SettingsService } from './services/settings.service';
 import { StoriesService } from './services/stories.service';
+import { TelegramAuthService } from './services/telegram-auth.service';
 import { SubscriptionService } from './services/subscription.service';
 import { UploadsService } from './services/uploads.service';
 import { VerificationService } from './services/verification.service';
@@ -81,6 +82,7 @@ import { VerificationService } from './services/verification.service';
     SafetyService,
     SettingsService,
     StoriesService,
+    TelegramAuthService,
     SubscriptionService,
     UploadsService,
     VerificationService,

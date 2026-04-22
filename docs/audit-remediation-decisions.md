@@ -360,3 +360,48 @@ Event payload получил стабильные поля `startsAtIso`, `latit
 - `GET /matches`
 - `SearchScreen`
 - `MatchScreen`
+
+## 2026-04-22, Telegram auth through bot with polling-first delivery
+
+**Вопрос**
+
+Как добавить Telegram login flow без обязательного webhook и TLS слоя, привязать номер из Telegram, сохранить audit trail и не хранить сырой код входа в базе.
+
+**Выбранное решение**
+
+Для v1 Telegram bot работает через polling в `worker`.
+
+Приложение создает login session, открывает deep link в бота, бот после `/start` просит контакт, после контакта выдает 6-значный код, приложение подтверждает `loginSessionId + code`, backend выдает обычные access и refresh токены.
+
+Телефон из Telegram обязателен. Без контакта код не выдается.
+
+Если Telegram id и phoneNumber указывают на разных пользователей, backend отвечает `409 telegram_auth_conflict` и не делает автоматический relink.
+
+`AuthAuditEvent` пишет provider, request id, masked phone, session link и результат. Raw code, bot token, access token и refresh token туда не попадают.
+
+**Почему**
+
+Это самый прямой путь для текущего репозитория.
+
+В infra пока нет обязательного HTTPS контура под Telegram webhook. Polling можно поднять сразу в существующем `worker`.
+
+Contact-required flow закрывает продуктовое требование по привязке номера. Fail-closed conflict policy не дает тихо склеить две разные identity в один аккаунт.
+
+**Какие пункты аудита это закрывает**
+
+- login flow без подтвержденного ownership номера
+- отсутствие audit trail для нового auth provider
+- хранение сырого одноразового кода
+- silent relink при конфликте Telegram и phone identity
+- зависимость первого релиза от webhook plus TLS
+
+**Какие контракты или экраны это затронуло**
+
+- `POST /auth/telegram/start`
+- `POST /auth/telegram/verify`
+- `TelegramLoginSession`
+- `TelegramAccount`
+- `AuthAuditEvent`
+- `TelegramBotState`
+- `TelegramAuthScreen`
+- `WelcomeScreen`

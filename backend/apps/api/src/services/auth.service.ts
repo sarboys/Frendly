@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { TokenPair } from '@big-break/contracts';
 import {
+  maskPhoneNumber,
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
@@ -8,6 +10,8 @@ import {
 import { randomInt, randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
+
+type DbClient = PrismaClient | Prisma.TransactionClient;
 
 @Injectable()
 export class AuthService {
@@ -19,7 +23,8 @@ export class AuthService {
     }
 
     await this.ensureUser(userId, { displayName: 'Dev User' });
-    return this.createSession(userId);
+    const session = await this.createSessionRecord(userId);
+    return session.tokens;
   }
 
   async requestPhoneCode(phoneNumber: string) {
@@ -31,7 +36,7 @@ export class AuthService {
       );
     }
 
-    const normalized = this.normalizePhone(phoneNumber);
+    const normalized = this.normalizePhoneNumber(phoneNumber);
     if (!normalized) {
       throw new ApiError(400, 'invalid_phone_number', 'Phone number is invalid');
     }
@@ -52,7 +57,7 @@ export class AuthService {
 
     return {
       challengeId: challenge.id,
-      maskedPhone: `${normalized.substring(0, 2)} *** *** ${normalized.substring(normalized.length - 2)}`,
+      maskedPhone: maskPhoneNumber(normalized),
       resendAfterSeconds: 42,
       localCodeHint: challenge.code,
     };
@@ -83,26 +88,9 @@ export class AuthService {
       throw new ApiError(400, 'invalid_otp_code', 'OTP code is invalid');
     }
 
-    let user = await this.prismaService.client.user.findUnique({
-      where: { phoneNumber: challenge.phoneNumber },
-    });
-    let isNewUser = false;
-
-    if (!user) {
-      isNewUser = true;
-      const userId = `user-${randomUUID()}`;
-      const registrationPreset = this.buildRegistrationPreset(challenge.phoneNumber);
-      await this.ensureUser(userId, {
-        displayName: registrationPreset.displayName,
-        phoneNumber: challenge.phoneNumber,
-        profile: registrationPreset.profile,
-        onboarding: registrationPreset.onboarding,
-        settings: registrationPreset.settings,
-      });
-      user = await this.prismaService.client.user.findUnique({
-        where: { id: userId },
-      });
-    }
+    const { user, isNewUser } = await this.findOrCreateUserByPhoneNumber(
+      challenge.phoneNumber,
+    );
 
     if (!user) {
       throw new ApiError(500, 'auth_user_create_failed', 'Could not create user');
@@ -128,9 +116,9 @@ export class AuthService {
       throw new ApiError(400, 'invalid_otp_challenge', 'OTP challenge is invalid');
     }
 
-    const tokens = await this.createSession(user.id);
+    const session = await this.createSessionRecord(user.id);
     return {
-      ...tokens,
+      ...session.tokens,
       userId: user.id,
       isNewUser,
     };
@@ -190,6 +178,67 @@ export class AuthService {
     return { ok: true };
   }
 
+  async findOrCreateUserByPhoneNumber(phoneNumber: string, prisma?: DbClient) {
+    const client = prisma ?? this.prismaService.client;
+    let user = await client.user.findUnique({
+      where: { phoneNumber },
+    });
+    let isNewUser = false;
+
+    if (!user) {
+      isNewUser = true;
+      const userId = `user-${randomUUID()}`;
+      const registrationPreset = this.buildRegistrationPreset(phoneNumber);
+      await this.ensureUser(
+        userId,
+        {
+          displayName: registrationPreset.displayName,
+          phoneNumber,
+          profile: registrationPreset.profile,
+          onboarding: registrationPreset.onboarding,
+          settings: registrationPreset.settings,
+        },
+        client,
+      );
+      user = await client.user.findUnique({
+        where: { id: userId },
+      });
+    }
+
+    if (!user) {
+      throw new ApiError(500, 'auth_user_create_failed', 'Could not create user');
+    }
+
+    return { user, isNewUser };
+  }
+
+  async createSessionRecord(userId: string, prisma?: DbClient) {
+    const sessionId = randomUUID();
+    const refreshTokenId = randomUUID();
+    const client = prisma ?? this.prismaService.client;
+
+    await client.session.create({
+      data: {
+        id: sessionId,
+        userId,
+        refreshTokenId,
+      },
+    });
+
+    return {
+      sessionId,
+      refreshTokenId,
+      tokens: {
+        accessToken: signAccessToken(userId, sessionId),
+        refreshToken: signRefreshToken(userId, sessionId, refreshTokenId),
+      },
+    };
+  }
+
+  normalizePhoneNumber(raw: string) {
+    return this.normalizePhone(raw);
+  }
+
   async getMe(userId: string) {
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
@@ -242,16 +291,17 @@ export class AuthService {
         darkMode?: boolean;
       };
     },
+    prisma?: DbClient,
   ) {
-    const prisma = this.prismaService.client;
-    const existing = await prisma.user.findUnique({ where: { id: userId } });
+    const client = prisma ?? this.prismaService.client;
+    const existing = await client.user.findUnique({ where: { id: userId } });
 
     if (existing) {
       return existing;
     }
 
     if (params.phoneNumber) {
-      const existingByPhone = await prisma.user.findUnique({
+      const existingByPhone = await client.user.findUnique({
         where: { phoneNumber: params.phoneNumber },
       });
 
@@ -275,7 +325,7 @@ export class AuthService {
       vibe: params.onboarding?.vibe ?? profilePreset.vibe,
     };
 
-    return prisma.user.create({
+    return client.user.create({
       data: {
         id: userId,
         displayName: params.displayName,
@@ -305,24 +355,6 @@ export class AuthService {
         },
       },
     });
-  }
-
-  private async createSession(userId: string): Promise<TokenPair> {
-    const sessionId = randomUUID();
-    const refreshTokenId = randomUUID();
-
-    await this.prismaService.client.session.create({
-      data: {
-        id: sessionId,
-        userId,
-        refreshTokenId,
-      },
-    });
-
-    return {
-      accessToken: signAccessToken(userId, sessionId),
-      refreshToken: signRefreshToken(userId, sessionId, refreshTokenId),
-    };
   }
 
   private normalizePhone(raw: string) {

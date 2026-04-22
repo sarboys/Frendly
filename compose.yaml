@@ -67,6 +67,10 @@ services:
       JWT_REFRESH_SECRET: dev-refresh-secret
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 30d
+      TELEGRAM_AUTH_ENABLED: "false"
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_BOT_USERNAME: ""
+      TELEGRAM_POLL_INTERVAL_MS: 1500
       PUSH_PROVIDER: fake
     depends_on:
       postgres:
@@ -98,6 +102,10 @@ services:
       JWT_REFRESH_SECRET: dev-refresh-secret
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 30d
+      TELEGRAM_AUTH_ENABLED: "false"
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_BOT_USERNAME: ""
+      TELEGRAM_POLL_INTERVAL_MS: 1500
       PUSH_PROVIDER: fake
       PORT: 3000
     depends_on:
@@ -124,6 +132,10 @@ services:
       JWT_REFRESH_SECRET: dev-refresh-secret
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 30d
+      TELEGRAM_AUTH_ENABLED: "false"
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_BOT_USERNAME: ""
+      TELEGRAM_POLL_INTERVAL_MS: 1500
       PUSH_PROVIDER: fake
       PORT: 3001
     depends_on:

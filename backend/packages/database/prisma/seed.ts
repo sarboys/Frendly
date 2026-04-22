@@ -112,6 +112,10 @@ const seededSettings: Record<
 async function main() {
   await prisma.realtimeEvent.deleteMany();
   await prisma.outboxEvent.deleteMany();
+  await prisma.authAuditEvent.deleteMany();
+  await prisma.telegramLoginSession.deleteMany();
+  await prisma.telegramAccount.deleteMany();
+  await prisma.telegramBotState.deleteMany();
   await prisma.userSubscription.deleteMany();
   await prisma.eventStory.deleteMany();
   await prisma.userBlock.deleteMany();
