@@ -17,6 +17,15 @@ type DbClient = PrismaClient | Prisma.TransactionClient;
 export class AuthService {
   constructor(private readonly prismaService: PrismaService) {}
 
+  private static readonly testPhoneShortcutNumbers = new Set<string>([
+    '+71111111111',
+    '+72222222222',
+    '+73333333333',
+    '+74444444444',
+    '+75555555555',
+    '+76666666666',
+  ]);
+
   async createDevSession(userId = 'user-me'): Promise<TokenPair> {
     if (!this.isDevAuthEnabled()) {
       throw new ApiError(404, 'dev_auth_disabled', 'Dev auth is disabled');
@@ -121,6 +130,41 @@ export class AuthService {
       ...session.tokens,
       userId: user.id,
       isNewUser,
+    };
+  }
+
+  async loginWithTestPhoneShortcut(phoneNumber: string) {
+    const normalized = this.normalizePhone(phoneNumber);
+    if (!normalized) {
+      throw new ApiError(400, 'invalid_phone_number', 'Phone number is invalid');
+    }
+
+    if (!AuthService.testPhoneShortcutNumbers.has(normalized)) {
+      throw new ApiError(
+        404,
+        'test_phone_shortcut_not_found',
+        'Test phone shortcut is not available',
+      );
+    }
+
+    const user = await this.prismaService.client.user.findUnique({
+      where: { phoneNumber: normalized },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new ApiError(
+        404,
+        'test_phone_user_not_found',
+        'Test phone user not found',
+      );
+    }
+
+    const session = await this.createSessionRecord(user.id);
+    return {
+      ...session.tokens,
+      userId: user.id,
+      isNewUser: false,
     };
   }
 

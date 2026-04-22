@@ -18,8 +18,9 @@ const ALLOWED_AVATAR_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
-const BYPASS_S3_UPLOAD = process.env.NODE_ENV === 'test';
+const BYPASS_S3_UPLOAD = process.env.NODE_ENV !== 'production';
 export const MAX_PROFILE_ASSET_UPLOAD_BYTES = 10 * 1024 * 1024;
+const INLINE_MEDIA_BUCKET = '__inline__';
 
 @Injectable()
 export class ProfileService {
@@ -142,6 +143,9 @@ export class ProfileService {
         }),
       );
     }
+    const inlinePublicUrl = BYPASS_S3_UPLOAD
+      ? this.buildInlineMediaDataUrl(file)
+      : buildPublicAssetUrl(objectKey);
 
     const result = await this.prismaService.client.$transaction(async (tx) => {
       await tx.profilePhoto.updateMany({
@@ -158,12 +162,16 @@ export class ProfileService {
           ownerId: userId,
           kind: 'avatar',
           status: 'ready',
-          bucket: process.env.S3_BUCKET ?? 'big-break',
-          objectKey,
+          bucket: BYPASS_S3_UPLOAD
+            ? INLINE_MEDIA_BUCKET
+            : process.env.S3_BUCKET ?? 'big-break',
+          objectKey: BYPASS_S3_UPLOAD
+            ? `inline-avatar/${userId}/${randomUUID()}-${file.originalname}`
+            : objectKey,
           mimeType: file.mimetype,
           byteSize: file.size,
           originalFileName: file.originalname,
-          publicUrl: buildPublicAssetUrl(objectKey),
+          publicUrl: inlinePublicUrl,
         },
       });
 
@@ -216,6 +224,9 @@ export class ProfileService {
         }),
       );
     }
+    const inlinePublicUrl = BYPASS_S3_UPLOAD
+      ? this.buildInlineMediaDataUrl(file)
+      : buildPublicAssetUrl(objectKey);
 
     const next = await this.prismaService.client.$transaction(async (tx) => {
       const asset = await tx.mediaAsset.create({
@@ -223,12 +234,16 @@ export class ProfileService {
           ownerId: userId,
           kind: 'avatar',
           status: 'ready',
-          bucket: process.env.S3_BUCKET ?? 'big-break',
-          objectKey,
+          bucket: BYPASS_S3_UPLOAD
+            ? INLINE_MEDIA_BUCKET
+            : process.env.S3_BUCKET ?? 'big-break',
+          objectKey: BYPASS_S3_UPLOAD
+            ? `inline-avatar/${userId}/${randomUUID()}-${file.originalname}`
+            : objectKey,
           mimeType: file.mimetype,
           byteSize: file.size,
           originalFileName: file.originalname,
-          publicUrl: buildPublicAssetUrl(objectKey),
+          publicUrl: inlinePublicUrl,
         },
       });
 
@@ -259,6 +274,10 @@ export class ProfileService {
       url: next.asset.publicUrl,
       photo: mapProfilePhoto(next.photo),
     };
+  }
+
+  private buildInlineMediaDataUrl(file: Express.Multer.File) {
+    return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
   }
 
   async deleteProfilePhoto(userId: string, photoId: string) {

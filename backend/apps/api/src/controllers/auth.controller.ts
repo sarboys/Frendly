@@ -45,6 +45,12 @@ export class AuthController {
   }
 
   @Public()
+  @Post('auth/phone/test-login')
+  loginWithTestPhoneShortcut(@Body() body: { phoneNumber?: string }) {
+    return this.authService.loginWithTestPhoneShortcut(body.phoneNumber ?? '');
+  }
+
+  @Public()
   @Post('auth/refresh')
   refresh(@Body() body: { refreshToken?: string }) {
     return this.authService.refreshSession(body.refreshToken ?? '');

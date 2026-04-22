@@ -173,6 +173,20 @@ describe('auth flows', () => {
     expect(response.body.code).toBe('dev_auth_disabled');
   });
 
+  it('logs into seeded shortcut phone without otp even when dev auth is disabled', async () => {
+    process.env.ENABLE_DEV_AUTH = 'false';
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/phone/test-login')
+      .send({ phoneNumber: '+7 111 111 11 11' })
+      .expect(201);
+
+    expect(response.body.userId).toBe('user-me');
+    expect(response.body.isNewUser).toBe(false);
+    expect(response.body.accessToken).toEqual(expect.any(String));
+    expect(response.body.refreshToken).toEqual(expect.any(String));
+  });
+
   it('requests phone otp with local code hint only in dev otp mode', async () => {
     const firstRequest = await requestPhoneCode();
     const secondRequest = await requestPhoneCode(firstRequest.phoneNumber);

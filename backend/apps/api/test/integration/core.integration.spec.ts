@@ -256,6 +256,13 @@ describe('core api flows', () => {
 
     expect(profileResponse.body.avatarUrl).toBe(uploadResponse.body.url);
 
+    const mediaResponse = await request(app.getHttpServer())
+      .get(uploadResponse.body.url)
+      .expect(200);
+
+    expect(mediaResponse.headers['content-type']).toContain('image/png');
+    expect(mediaResponse.body).toBeDefined();
+
     const invalidUploadResponse = await request(app.getHttpServer())
       .post('/profile/me/avatar/file')
       .set('authorization', `Bearer ${accessToken}`)

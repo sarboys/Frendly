@@ -28,6 +28,7 @@ export class MediaService {
         objectKey: true,
         mimeType: true,
         byteSize: true,
+        publicUrl: true,
       },
     });
 
@@ -38,6 +39,17 @@ export class MediaService {
     const cacheControl = await this.resolveCachePolicy(asset, authorizationHeader);
 
     const requestedRange = this.parseRange(rangeHeader, asset.byteSize);
+    const inlineAsset = this.tryReadInlineAsset(asset.publicUrl, requestedRange);
+    if (inlineAsset != null) {
+      return {
+        stream: inlineAsset.stream,
+        mimeType: inlineAsset.mimeType,
+        cacheControl,
+        contentLength: inlineAsset.contentLength,
+        contentRange: inlineAsset.contentRange,
+      };
+    }
+
     const object = await this.s3.send(
       new GetObjectCommand({
         Bucket: asset.bucket,
@@ -156,5 +168,35 @@ export class MediaService {
     }
 
     return { start, end };
+  }
+
+  private tryReadInlineAsset(
+    publicUrl: string | null,
+    requestedRange: { start: number; end: number } | null,
+  ) {
+    if (publicUrl == null || !publicUrl.startsWith('data:')) {
+      return null;
+    }
+
+    const match = /^data:([^;]+);base64,(.+)$/.exec(publicUrl);
+    if (match == null) {
+      throw new ApiError(500, 'invalid_inline_media', 'Inline media is invalid');
+    }
+
+    const mimeType = match[1]!;
+    const payload = Buffer.from(match[2]!, 'base64');
+    const start = requestedRange?.start ?? 0;
+    const end = requestedRange?.end ?? (payload.length - 1);
+    const sliced = payload.subarray(start, end + 1);
+
+    return {
+      stream: Readable.from(sliced),
+      mimeType,
+      contentLength: sliced.length,
+      contentRange:
+          requestedRange == null
+              ? null
+              : 'bytes $start-$end/${payload.length}',
+    };
   }
 }
