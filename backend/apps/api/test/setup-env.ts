@@ -18,3 +18,4 @@ process.env.TELEGRAM_AUTH_ENABLED ??= 'true';
 process.env.TELEGRAM_BOT_TOKEN ??= 'test-telegram-bot-token';
 process.env.TELEGRAM_BOT_USERNAME ??= 'frendly_auth_test_bot';
 process.env.TELEGRAM_POLL_INTERVAL_MS ??= '1500';
+process.env.TELEGRAM_INTERNAL_SECRET ??= 'test-internal-secret';

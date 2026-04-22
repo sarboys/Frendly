@@ -17,8 +17,8 @@
     "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
-      "@big-break/contracts": ["packages/contracts/src"],
-      "@big-break/database": ["packages/database/src"]
+      "@big-break/contracts": ["packages/contracts/src/index.ts"],
+      "@big-break/database": ["packages/database/src/index.ts"]
     }
   }
 }

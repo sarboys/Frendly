@@ -7,6 +7,7 @@ WORKDIR /app/backend
 COPY backend/package.json backend/pnpm-workspace.yaml backend/tsconfig.base.json backend/jest.preset.js ./
 COPY backend/apps/api/package.json ./apps/api/package.json
 COPY backend/apps/chat/package.json ./apps/chat/package.json
+COPY backend/apps/telegram-relay/package.json ./apps/telegram-relay/package.json
 COPY backend/apps/worker/package.json ./apps/worker/package.json
 COPY backend/packages/contracts/package.json ./packages/contracts/package.json
 COPY backend/packages/database/package.json ./packages/database/package.json

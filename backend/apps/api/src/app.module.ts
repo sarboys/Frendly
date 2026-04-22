@@ -6,6 +6,7 @@ import { ChatsController } from './controllers/chats.controller';
 import { EventsController } from './controllers/events.controller';
 import { HealthController } from './controllers/health.controller';
 import { HostController } from './controllers/host.controller';
+import { InternalTelegramController } from './controllers/internal-telegram.controller';
 import { MatchesController } from './controllers/matches.controller';
 import { MediaController } from './controllers/media.controller';
 import { NotificationsController } from './controllers/notifications.controller';
@@ -51,6 +52,7 @@ import { VerificationService } from './services/verification.service';
     EventsController,
     HealthController,
     HostController,
+    InternalTelegramController,
     MatchesController,
     MediaController,
     NotificationsController,

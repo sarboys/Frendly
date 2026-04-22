@@ -55,6 +55,13 @@ describe('auth flows', () => {
       .send({ challengeId, code });
   };
 
+  const dispatchTelegram = async (body: Record<string, unknown>) => {
+    return request(app.getHttpServer())
+      .post('/internal/telegram/dispatch')
+      .set('x-telegram-internal-secret', process.env.TELEGRAM_INTERNAL_SECRET ?? '')
+      .send(body);
+  };
+
   const loginWithPhone = async (phoneNumber = nextPhoneNumber()) => {
     const challengeResponse = await requestPhoneCode(phoneNumber);
     const verifyResponse = await verifyPhoneCode(
@@ -142,6 +149,7 @@ describe('auth flows', () => {
     process.env.TELEGRAM_BOT_TOKEN = 'test-telegram-bot-token';
     process.env.TELEGRAM_BOT_USERNAME = 'frendly_auth_test_bot';
     process.env.TELEGRAM_POLL_INTERVAL_MS = '1500';
+    process.env.TELEGRAM_INTERNAL_SECRET = 'test-internal-secret';
   });
 
   it('returns access and refresh token for dev login when dev auth is enabled', async () => {
@@ -303,6 +311,50 @@ describe('auth flows', () => {
         status: 'pending_bot',
       }),
     );
+  });
+
+  it('dispatches contact prompt for first telegram start without linked account', async () => {
+    const response = await dispatchTelegram({
+      kind: 'start',
+      telegramUserId: nextTelegramUserId(),
+      chatId: `chat-${randomUUID()}`,
+      firstName: 'Ира',
+    });
+
+    expect(response.status).toBe(201);
+
+    expect(response.body.actions).toHaveLength(1);
+    expect(response.body.actions[0]).toEqual(
+      expect.objectContaining({
+        type: 'send_message',
+        text: expect.stringContaining('Поделись номером телефона'),
+      }),
+    );
+  });
+
+  it('dispatches login code for linked telegram user on plain start', async () => {
+    const telegramUserId = nextTelegramUserId();
+    await (prisma as any).telegramAccount.create({
+      data: {
+        userId: 'user-me',
+        telegramUserId,
+        chatId: `chat-${randomUUID()}`,
+        username: 'linked_user',
+        firstName: 'Лена',
+      },
+    });
+
+    const response = await dispatchTelegram({
+      kind: 'start',
+      telegramUserId,
+      chatId: `chat-${randomUUID()}`,
+      firstName: 'Лена',
+    });
+
+    expect(response.status).toBe(201);
+
+    expect(response.body.actions).toHaveLength(1);
+    expect(response.body.actions[0].text).toMatch(/Код для входа: \d{4}/);
   });
 
   it('reuses active telegram session for the same start token', async () => {

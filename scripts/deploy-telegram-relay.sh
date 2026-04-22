@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-/opt/frendly-telegram}"
+REPO_URL="${REPO_URL:-https://github.com/sarboys/Frendly.git}"
+BRANCH="${BRANCH:-main}"
+ENV_FILE="${ENV_FILE:-$APP_DIR/.env.telegram-relay}"
+COMPOSE_FILE="${COMPOSE_FILE:-$APP_DIR/compose.telegram-relay.yml}"
+
+mkdir -p "$APP_DIR"
+
+if [ ! -d "$APP_DIR/.git" ]; then
+  git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+fi
+
+cd "$APP_DIR"
+git fetch origin "$BRANCH"
+git checkout "$BRANCH"
+git pull --ff-only origin "$BRANCH"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing env file: $ENV_FILE" >&2
+  exit 1
+fi
+
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build telegram-relay
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps

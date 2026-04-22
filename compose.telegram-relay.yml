@@ -1,0 +1,29 @@
+name: frendly-telegram
+
+services:
+  telegram-relay:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.telegram-relay
+    environment:
+      PORT: 3003
+    command: ["pnpm", "--filter", "@big-break/telegram-relay", "start"]
+    volumes:
+      - telegram_relay_data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3003/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  telegram_relay_data:

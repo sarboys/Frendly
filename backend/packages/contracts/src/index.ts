@@ -26,6 +26,30 @@ export interface TokenPair {
   refreshToken: string;
 }
 
+export type TelegramDispatchKind = 'start' | 'contact';
+
+export interface TelegramDispatchRequest {
+  kind: TelegramDispatchKind;
+  telegramUserId: string;
+  chatId: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  startToken?: string;
+  startPayload?: string;
+}
+
+export interface TelegramDispatchAction {
+  type: 'send_message';
+  text: string;
+  replyMarkup?: Record<string, unknown>;
+}
+
+export interface TelegramDispatchResponse {
+  actions: TelegramDispatchAction[];
+}
+
 export interface UploadUrlResponse {
   uploadUrl: string;
   objectKey: string;
