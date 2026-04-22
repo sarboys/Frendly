@@ -1,4 +1,4 @@
-import { PrismaClient, ChatKind, ChatOrigin } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const { seededEvents, seededPosters, seededUsers }: typeof import('../src/seed-data') = require('../src/seed-data.ts');
 
@@ -332,22 +332,22 @@ async function main() {
 
   await prisma.chat.createMany({
     data: [
-      { id: 'mc1', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Винный вечер на крыше', emoji: '🍷', eventId: 'e1' },
-      { id: 'mc2', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Вечерняя пробежка по бульварам', emoji: '🌿', eventId: 'e2' },
-      { id: 'mc3', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Настолки и кофе', emoji: '♟️', eventId: 'e3' },
-      { id: 'mc4', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Кино под открытым небом', emoji: '🎬', eventId: 'e4' },
-      { id: 'mc5', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Камерный ужин по заявкам', emoji: '🍝', eventId: 'e5' },
-      { id: 'mc-ad1', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Velvet Room · Speakeasy', emoji: '🥃', eventId: 'ad1' },
-      { id: 'mc-ad2', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Blind Dinner · Round 7', emoji: '🕯️', eventId: 'ad2' },
-      { id: 'mc-ad3', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Banya Night · Sauna Social', emoji: '♨️', eventId: 'ad3' },
-      { id: 'mc-ad4', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'After Hours · Underground', emoji: '🔮', eventId: 'ad4' },
-      { id: 'mc-ad5', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Speed Dating · 30+', emoji: '💋', eventId: 'ad5' },
-      { id: 'mc-ad6', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Naked Yoga · Female only', emoji: '🧘‍♀️', eventId: 'ad6' },
-      { id: 'mc-ad7', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Munch · Знакомство сообщества', emoji: '🖤', eventId: 'ad7' },
-      { id: 'mc-ad8', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Dress Code Night · Fetish Friendly', emoji: '🦋', eventId: 'ad8' },
-      { id: 'p1', kind: ChatKind.direct, origin: ChatOrigin.meetup, directKey: 'user-anya:user-me', sourceEventId: 'e1' },
-      { id: 'p2', kind: ChatKind.direct, origin: ChatOrigin.meetup, directKey: 'user-mark:user-me', sourceEventId: 'e1' },
-      { id: 'p3', kind: ChatKind.direct, origin: ChatOrigin.meetup, directKey: 'user-me:user-sonya', sourceEventId: 'e2' },
+      { id: 'mc1', kind: 'meetup', origin: 'meetup', title: 'Винный вечер на крыше', emoji: '🍷', eventId: 'e1' },
+      { id: 'mc2', kind: 'meetup', origin: 'meetup', title: 'Вечерняя пробежка по бульварам', emoji: '🌿', eventId: 'e2' },
+      { id: 'mc3', kind: 'meetup', origin: 'meetup', title: 'Настолки и кофе', emoji: '♟️', eventId: 'e3' },
+      { id: 'mc4', kind: 'meetup', origin: 'meetup', title: 'Кино под открытым небом', emoji: '🎬', eventId: 'e4' },
+      { id: 'mc5', kind: 'meetup', origin: 'meetup', title: 'Камерный ужин по заявкам', emoji: '🍝', eventId: 'e5' },
+      { id: 'mc-ad1', kind: 'meetup', origin: 'meetup', title: 'Velvet Room · Speakeasy', emoji: '🥃', eventId: 'ad1' },
+      { id: 'mc-ad2', kind: 'meetup', origin: 'meetup', title: 'Blind Dinner · Round 7', emoji: '🕯️', eventId: 'ad2' },
+      { id: 'mc-ad3', kind: 'meetup', origin: 'meetup', title: 'Banya Night · Sauna Social', emoji: '♨️', eventId: 'ad3' },
+      { id: 'mc-ad4', kind: 'meetup', origin: 'meetup', title: 'After Hours · Underground', emoji: '🔮', eventId: 'ad4' },
+      { id: 'mc-ad5', kind: 'meetup', origin: 'meetup', title: 'Speed Dating · 30+', emoji: '💋', eventId: 'ad5' },
+      { id: 'mc-ad6', kind: 'meetup', origin: 'meetup', title: 'Naked Yoga · Female only', emoji: '🧘‍♀️', eventId: 'ad6' },
+      { id: 'mc-ad7', kind: 'meetup', origin: 'meetup', title: 'Munch · Знакомство сообщества', emoji: '🖤', eventId: 'ad7' },
+      { id: 'mc-ad8', kind: 'meetup', origin: 'meetup', title: 'Dress Code Night · Fetish Friendly', emoji: '🦋', eventId: 'ad8' },
+      { id: 'p1', kind: 'direct', origin: 'meetup', directKey: 'user-anya:user-me', sourceEventId: 'e1' },
+      { id: 'p2', kind: 'direct', origin: 'meetup', directKey: 'user-mark:user-me', sourceEventId: 'e1' },
+      { id: 'p3', kind: 'direct', origin: 'meetup', directKey: 'user-me:user-sonya', sourceEventId: 'e2' },
     ],
   });
 
