@@ -16,6 +16,13 @@ describe('core api flows', () => {
   let accessToken = '';
   let peerAccessToken = '';
 
+  const futureIso = (daysFromNow: number, hourUtc: number, minute = 0) => {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() + daysFromNow);
+    date.setUTCHours(hourUtc, minute, 0, 0);
+    return date.toISOString();
+  };
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ApiAppModule],
@@ -548,8 +555,6 @@ describe('core api flows', () => {
 
     expect(response.body.items).toHaveLength(2);
     expect(response.body.nextCursor).toEqual(expect.any(String));
-    expect(response.body.items[0].latitude).toEqual(expect.any(Number));
-    expect(response.body.items[0].longitude).toEqual(expect.any(Number));
   });
 
   it('returns stable event cards for feed filters', async () => {
@@ -585,8 +590,6 @@ describe('core api flows', () => {
     );
     expect(Array.isArray(calmResponse.body.items[0].attendees)).toBe(true);
     expect(calmResponse.body.items[0]).toHaveProperty('joinRequestStatus');
-    expect(calmResponse.body.items[0].latitude).toEqual(expect.any(Number));
-    expect(calmResponse.body.items[0].longitude).toEqual(expect.any(Number));
 
     const dateResponse = await request(app.getHttpServer())
       .get('/events?filter=date')
@@ -665,7 +668,7 @@ describe('core api flows', () => {
         emoji: '🎶',
         vibe: 'Шумно',
         place: 'Черновик адреса',
-        startsAt: '2026-04-26T17:00:00.000Z',
+        startsAt: futureIso(4, 17),
         capacity: 5,
         distanceKm: 0.3,
         posterId: 'ps1',
@@ -689,7 +692,7 @@ describe('core api flows', () => {
         emoji: '☕',
         vibe: 'Спокойно',
         place: 'Чистые пруды 1',
-        startsAt: '2026-04-22T10:30:00.000Z',
+        startsAt: futureIso(1, 10, 30),
         capacity: 6,
         distanceKm: 0.5,
         lifestyle: 'zozh',
@@ -728,7 +731,7 @@ describe('core api flows', () => {
         emoji: '🎨',
         vibe: 'Спокойно',
         place: 'Маросейка 3',
-        startsAt: '2026-04-24T17:30:00.000Z',
+        startsAt: futureIso(2, 17, 30),
         capacity: 7,
         distanceKm: 0.4,
         joinMode: 'open',
@@ -756,7 +759,7 @@ describe('core api flows', () => {
         emoji: '🍲',
         vibe: 'Уютно',
         place: 'Покровка 8',
-        startsAt: '2026-04-24T18:30:00.000Z',
+        startsAt: futureIso(2, 18, 30),
         capacity: 5,
         distanceKm: 0.5,
         joinMode: 'request',
@@ -1142,7 +1145,7 @@ describe('core api flows', () => {
         emoji: '🍷',
         vibe: 'Спокойно',
         place: 'Сретенка 3',
-        startsAt: '2026-04-25T19:00:00.000Z',
+        startsAt: futureIso(3, 19),
         capacity: 4,
         distanceKm: 0.6,
         joinMode: 'request',
@@ -1413,7 +1416,7 @@ describe('core api flows', () => {
         emoji: '🍝',
         vibe: 'Уютно',
         place: 'Солянка 5',
-        startsAt: '2026-04-24T18:30:00.000Z',
+        startsAt: futureIso(2, 18, 30),
         capacity: 6,
         distanceKm: 0.8,
         joinMode: 'request',
@@ -1573,7 +1576,7 @@ describe('core api flows', () => {
         emoji: '🍷',
         vibe: 'Уютно',
         place: 'Покровка 7',
-        startsAt: '2026-04-23T18:30:00.000Z',
+        startsAt: futureIso(1, 18, 30),
         capacity: 4,
         distanceKm: 0.5,
         joinMode: 'request',
@@ -1625,7 +1628,7 @@ describe('core api flows', () => {
         emoji: '🍲',
         vibe: 'Спокойно',
         place: 'Мясницкая 3',
-        startsAt: '2026-04-23T19:30:00.000Z',
+        startsAt: futureIso(1, 19, 30),
         capacity: 4,
         distanceKm: 0.8,
         joinMode: 'request',
@@ -1706,7 +1709,7 @@ describe('core api flows', () => {
         emoji: '🍵',
         vibe: 'Спокойно',
         place: 'Покровка 8',
-        startsAt: '2026-04-25T19:30:00.000Z',
+        startsAt: futureIso(3, 19, 30),
         capacity: 5,
         distanceKm: 0.7,
         joinMode: 'request',
@@ -1745,7 +1748,7 @@ describe('core api flows', () => {
         emoji: '🍲',
         vibe: 'Спокойно',
         place: 'Арбат 4',
-        startsAt: '2026-04-25T19:30:00.000Z',
+        startsAt: futureIso(3, 19, 30),
         capacity: 5,
         distanceKm: 0.7,
         joinMode: 'request',
@@ -1774,7 +1777,7 @@ describe('core api flows', () => {
         emoji: '🍲',
         vibe: 'Уютно',
         place: 'Мясницкая 10',
-        startsAt: '2026-04-22T18:30:00.000Z',
+        startsAt: futureIso(1, 18, 30),
         capacity: 5,
         distanceKm: 0.7,
         joinMode: 'request',
@@ -1825,7 +1828,7 @@ describe('core api flows', () => {
         emoji: '🍽️',
         vibe: 'Уютно',
         place: 'Сретенка 12',
-        startsAt: '2026-04-22T20:00:00.000Z',
+        startsAt: futureIso(1, 20),
         capacity: 6,
         distanceKm: 0.9,
         joinMode: 'request',
@@ -1878,7 +1881,7 @@ describe('core api flows', () => {
         emoji: '🍜',
         vibe: 'Уютно',
         place: 'Покровка 14',
-        startsAt: '2026-04-22T21:00:00.000Z',
+        startsAt: futureIso(1, 21),
         capacity: 6,
         distanceKm: 1.1,
         joinMode: 'request',

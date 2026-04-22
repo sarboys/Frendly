@@ -12,6 +12,20 @@ describe('extended rollout api flows', () => {
   let prisma: PrismaClient;
   let accessToken = '';
 
+  const futureIso = (daysFromNow: number, hourUtc: number, minute = 0) => {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() + daysFromNow);
+    date.setUTCHours(hourUtc, minute, 0, 0);
+    return date.toISOString();
+  };
+
+  const pastDate = (daysAgo: number, hourUtc: number, minute = 0) => {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() - daysAgo);
+    date.setUTCHours(hourUtc, minute, 0, 0);
+    return date;
+  };
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ApiAppModule],
@@ -685,7 +699,7 @@ describe('extended rollout api flows', () => {
         emoji: '🍸',
         vibe: 'Спокойно',
         place: 'Петровка 11',
-        startsAt: '2026-04-22T19:00:00.000Z',
+        startsAt: futureIso(1, 19),
         capacity: 4,
         distanceKm: 0.6,
         joinMode: 'open',
@@ -695,7 +709,7 @@ describe('extended rollout api flows', () => {
     await prisma.event.update({
       where: { id: createResponse.body.id as string },
       data: {
-        startsAt: new Date('2026-04-20T19:00:00.000Z'),
+        startsAt: pastDate(2, 19),
       },
     });
 
