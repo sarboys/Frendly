@@ -12,11 +12,16 @@ export class MediaController {
   async getMedia(
     @Param('assetId') assetId: string,
     @Headers('range') rangeHeader: string | undefined,
+    @Headers('authorization') authorizationHeader: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const media = await this.mediaService.getAsset(assetId, rangeHeader);
+    const media = await this.mediaService.getAsset(
+      assetId,
+      rangeHeader,
+      authorizationHeader,
+    );
     response.setHeader('Content-Type', media.mimeType);
-    response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    response.setHeader('Cache-Control', media.cacheControl);
     response.setHeader('Accept-Ranges', 'bytes');
     response.setHeader('Content-Length', String(media.contentLength));
     if (media.contentRange != null) {

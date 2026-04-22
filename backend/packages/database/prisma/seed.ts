@@ -26,6 +26,8 @@ const seededSettings: Record<
     showAge: boolean;
     discoverable: boolean;
     darkMode: boolean;
+    afterDarkAgeConfirmedAt?: Date | null;
+    afterDarkCodeAcceptedAt?: Date | null;
   }
 > = {
   'user-me': {
@@ -246,6 +248,14 @@ async function main() {
       { id: 'ep13', eventId: 'e4', userId: 'user-anya' },
       { id: 'ep14', eventId: 'e5', userId: 'user-me' },
       { id: 'ep15', eventId: 'e5', userId: 'user-anya' },
+      { id: 'ep-ad1-host', eventId: 'ad1', userId: 'user-anya' },
+      { id: 'ep-ad2-host', eventId: 'ad2', userId: 'user-sonya' },
+      { id: 'ep-ad3-host', eventId: 'ad3', userId: 'user-liza' },
+      { id: 'ep-ad4-host', eventId: 'ad4', userId: 'user-oleg' },
+      { id: 'ep-ad5-host', eventId: 'ad5', userId: 'user-anya' },
+      { id: 'ep-ad6-host', eventId: 'ad6', userId: 'user-liza' },
+      { id: 'ep-ad7-host', eventId: 'ad7', userId: 'user-oleg' },
+      { id: 'ep-ad8-host', eventId: 'ad8', userId: 'user-sonya' },
     ],
   });
 
@@ -327,6 +337,14 @@ async function main() {
       { id: 'mc3', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Настолки и кофе', emoji: '♟️', eventId: 'e3' },
       { id: 'mc4', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Кино под открытым небом', emoji: '🎬', eventId: 'e4' },
       { id: 'mc5', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Камерный ужин по заявкам', emoji: '🍝', eventId: 'e5' },
+      { id: 'mc-ad1', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Velvet Room · Speakeasy', emoji: '🥃', eventId: 'ad1' },
+      { id: 'mc-ad2', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Blind Dinner · Round 7', emoji: '🕯️', eventId: 'ad2' },
+      { id: 'mc-ad3', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Banya Night · Sauna Social', emoji: '♨️', eventId: 'ad3' },
+      { id: 'mc-ad4', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'After Hours · Underground', emoji: '🔮', eventId: 'ad4' },
+      { id: 'mc-ad5', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Speed Dating · 30+', emoji: '💋', eventId: 'ad5' },
+      { id: 'mc-ad6', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Naked Yoga · Female only', emoji: '🧘‍♀️', eventId: 'ad6' },
+      { id: 'mc-ad7', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Munch · Знакомство сообщества', emoji: '🖤', eventId: 'ad7' },
+      { id: 'mc-ad8', kind: ChatKind.meetup, origin: ChatOrigin.meetup, title: 'Dress Code Night · Fetish Friendly', emoji: '🦋', eventId: 'ad8' },
       { id: 'p1', kind: ChatKind.direct, origin: ChatOrigin.meetup, directKey: 'user-anya:user-me', sourceEventId: 'e1' },
       { id: 'p2', kind: ChatKind.direct, origin: ChatOrigin.meetup, directKey: 'user-mark:user-me', sourceEventId: 'e1' },
       { id: 'p3', kind: ChatKind.direct, origin: ChatOrigin.meetup, directKey: 'user-me:user-sonya', sourceEventId: 'e2' },
@@ -350,6 +368,14 @@ async function main() {
       { id: 'cm13', chatId: 'mc4', userId: 'user-anya', lastReadMessageId: 'm7' },
       { id: 'cm14', chatId: 'mc5', userId: 'user-me', lastReadMessageId: 'm8' },
       { id: 'cm15', chatId: 'mc5', userId: 'user-anya', lastReadMessageId: 'm8' },
+      { id: 'cm-ad1-host', chatId: 'mc-ad1', userId: 'user-anya' },
+      { id: 'cm-ad2-host', chatId: 'mc-ad2', userId: 'user-sonya' },
+      { id: 'cm-ad3-host', chatId: 'mc-ad3', userId: 'user-liza' },
+      { id: 'cm-ad4-host', chatId: 'mc-ad4', userId: 'user-oleg' },
+      { id: 'cm-ad5-host', chatId: 'mc-ad5', userId: 'user-anya' },
+      { id: 'cm-ad6-host', chatId: 'mc-ad6', userId: 'user-liza' },
+      { id: 'cm-ad7-host', chatId: 'mc-ad7', userId: 'user-oleg' },
+      { id: 'cm-ad8-host', chatId: 'mc-ad8', userId: 'user-sonya' },
       { id: 'cm16', chatId: 'p1', userId: 'user-anya', lastReadMessageId: 'p6' },
       { id: 'cm17', chatId: 'p1', userId: 'user-me', lastReadMessageId: 'p3' },
       { id: 'cm18', chatId: 'p2', userId: 'user-mark', lastReadMessageId: 'p7' },

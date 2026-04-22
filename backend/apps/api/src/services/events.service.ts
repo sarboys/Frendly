@@ -7,7 +7,7 @@ import {
   EventPriceFilter,
 } from '@big-break/contracts';
 import { Prisma } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import {
@@ -153,6 +153,10 @@ export class EventsService {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
+    if (!this.canViewEvent(userId, event)) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
     const visibleParticipants = event.participants.filter(
       (participant) => !blockedUserIds.has(participant.userId),
     );
@@ -214,6 +218,8 @@ export class EventsService {
     const chatId = event.chat.id;
 
     await this.prismaService.client.$transaction(async (tx) => {
+      await this.assertCapacityAvailable(tx, eventId);
+
       await tx.eventParticipant.upsert({
         where: {
           eventId_userId: {
@@ -305,7 +311,10 @@ export class EventsService {
       },
     });
 
-    if (existingRequest?.status === 'approved') {
+    if (
+      existingRequest != null &&
+      existingRequest.status !== 'pending'
+    ) {
       throw new ApiError(
         409,
         'join_request_already_reviewed',
@@ -314,6 +323,13 @@ export class EventsService {
     }
 
     const note = typeof body.note === 'string' ? body.note.trim() : '';
+    if (note.length > 200) {
+      throw new ApiError(
+        400,
+        'invalid_join_request_note',
+        'Join request note is too long',
+      );
+    }
     const compatibilityScore = await this.calculateCompatibilityScore(userId, event);
 
     const request = await this.prismaService.client.eventJoinRequest.upsert({
@@ -412,7 +428,26 @@ export class EventsService {
     return this.getEventDetail(userId, eventId);
   }
 
-  async createEvent(userId: string, body: Record<string, unknown>) {
+  async createEvent(
+    userId: string,
+    body: Record<string, unknown>,
+    rawIdempotencyKey?: string,
+  ) {
+    const idempotencyKey = this.normalizeIdempotencyKey(rawIdempotencyKey);
+    if (idempotencyKey != null) {
+      const existing = await this.prismaService.client.event.findFirst({
+        where: {
+          hostId: userId,
+          idempotencyKey,
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        return this.getEventDetail(userId, existing.id);
+      }
+    }
+
     const posterId =
       typeof body.posterId === 'string' && body.posterId.trim().length > 0
         ? body.posterId.trim()
@@ -451,7 +486,7 @@ export class EventsService {
       typeof body.distanceKm === 'number'
         ? body.distanceKm
         : poster?.distanceKm ?? 1.0;
-    const capacity = typeof body.capacity === 'number' ? body.capacity : 8;
+    const capacity = typeof body.capacity === 'number' ? Math.trunc(body.capacity) : 8;
     const startsAtRaw =
       typeof body.startsAt === 'string' ? body.startsAt : undefined;
     const startsAt =
@@ -477,7 +512,7 @@ export class EventsService {
       typeof body.priceAmountTo === 'number'
         ? Math.max(0, Math.round(body.priceAmountTo))
         : null;
-    const accessMode =
+    const requestedAccessMode =
       body.accessMode === 'request' || body.accessMode === 'free' || body.accessMode === 'open'
         ? body.accessMode
         : 'open';
@@ -489,8 +524,11 @@ export class EventsService {
       body.visibilityMode === 'friends' || body.visibility === 'private'
         ? 'friends'
         : 'public';
+    const accessMode = visibilityMode === 'friends' ? 'request' : requestedAccessMode;
     const joinMode =
-      accessMode === 'request' || body.joinMode === 'request'
+      visibilityMode === 'friends' ||
+      accessMode === 'request' ||
+      body.joinMode === 'request'
         ? 'request'
         : 'open';
     const inviteeUserId = typeof body.inviteeUserId === 'string' ? body.inviteeUserId : undefined;
@@ -505,6 +543,18 @@ export class EventsService {
 
     if (inviteeUserId === userId) {
       throw new ApiError(400, 'invalid_invitee', 'Invitee cannot be the host');
+    }
+
+    if (!Number.isFinite(distanceKm) || distanceKm < 0 || distanceKm > 500) {
+      throw new ApiError(400, 'invalid_event_payload', 'distanceKm is invalid');
+    }
+
+    if (!Number.isFinite(capacity) || capacity < 2 || capacity > 100) {
+      throw new ApiError(400, 'invalid_event_payload', 'capacity is invalid');
+    }
+
+    if (Number.isNaN(startsAt.getTime()) || startsAt.getTime() < Date.now() - 60000) {
+      throw new ApiError(400, 'invalid_event_payload', 'startsAt is invalid');
     }
 
     const blockedUserIds = await this.getBlockedUserIds(userId);
@@ -558,6 +608,7 @@ export class EventsService {
           genderMode,
           visibilityMode,
           description,
+          idempotencyKey,
           sourcePosterId: poster?.id,
           capacity,
           hostId: userId,
@@ -666,7 +717,14 @@ export class EventsService {
       throw new ApiError(404, 'invite_not_found', 'Invite not found');
     }
 
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    if (blockedUserIds.has(invite.event.hostId)) {
+      throw new ApiError(404, 'invite_not_found', 'Invite not found');
+    }
+
     await this.prismaService.client.$transaction(async (tx) => {
+      await this.assertCapacityAvailable(tx, eventId);
+
       await tx.eventJoinRequest.update({
         where: { id: invite.id },
         data: {
@@ -764,7 +822,7 @@ export class EventsService {
       await this.markInviteNotificationsRead(tx, userId, eventId, requestId);
 
       if (invite.event.chat != null) {
-        await tx.message.create({
+        const message = await tx.message.create({
           data: {
             chatId: invite.event.chat.id,
             senderId: invite.event.hostId,
@@ -777,7 +835,46 @@ export class EventsService {
           where: { id: invite.event.chat.id },
           data: { updatedAt: new Date() },
         });
+
+        await tx.realtimeEvent.create({
+          data: {
+            chatId: invite.event.chat.id,
+            eventType: 'chat.updated',
+            payload: {
+              chatId: invite.event.chat.id,
+              messageId: message.id,
+            },
+          },
+        });
       }
+
+      const notification = await tx.notification.create({
+        data: {
+          userId: invite.event.hostId,
+          actorUserId: userId,
+          kind: 'event_joined',
+          title: 'Приглашение отклонено',
+          body: `${invite.user.displayName} отклонил приглашение на встречу «${invite.event.title}»`,
+          eventId,
+          requestId,
+          payload: {
+            eventId,
+            requestId,
+            status: 'rejected',
+            userId,
+          },
+        },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          type: 'push.dispatch',
+          payload: {
+            userId: invite.event.hostId,
+            notificationId: notification.id,
+          },
+        },
+      });
     });
 
     return {
@@ -813,13 +910,19 @@ export class EventsService {
     const attendanceByUserId = new Map(
       event.attendances.map((attendance) => [attendance.userId, attendance]),
     );
+    const eventCoordinates = event as typeof event & {
+      latitude?: number | null;
+      longitude?: number | null;
+    };
 
     return {
       eventId: event.id,
       title: event.title,
       place: event.place,
+      latitude: eventCoordinates.latitude ?? null,
+      longitude: eventCoordinates.longitude ?? null,
       status: mapAttendanceStatus(attendanceByUserId.get(userId)),
-      code: Buffer.from(`${eventId}:${userId}`).toString('base64'),
+      code: this.buildCheckInCode(eventId, userId),
       attendees: event.participants
         .filter((participant) => !blockedUserIds.has(participant.userId))
         .map((participant) => ({
@@ -833,11 +936,9 @@ export class EventsService {
     await this.assertParticipant(userId, eventId);
 
     const code = typeof body.code === 'string' ? body.code : undefined;
-    if (code != null) {
-      const expected = Buffer.from(`${eventId}:${userId}`).toString('base64');
-      if (code !== expected) {
-        throw new ApiError(400, 'invalid_check_in_code', 'Invalid check-in code');
-      }
+    const expected = this.buildCheckInCode(eventId, userId);
+    if (code == null || code !== expected) {
+      throw new ApiError(400, 'invalid_check_in_code', 'Invalid check-in code');
     }
 
     const attendance = await this.prismaService.client.eventAttendance.upsert({
@@ -981,6 +1082,29 @@ export class EventsService {
   async saveFeedback(userId: string, eventId: string, body: Record<string, unknown>) {
     await this.assertParticipant(userId, eventId);
     const blockedUserIds = await this.getBlockedUserIds(userId);
+    const event = await this.prismaService.client.event.findUnique({
+      where: { id: eventId },
+      include: {
+        participants: {
+          select: { userId: true },
+        },
+        liveState: {
+          select: { status: true },
+        },
+      },
+    });
+
+    if (!event) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
+    const feedbackOpen =
+      event.startsAt.getTime() <= Date.now() ||
+      event.liveState?.status === 'finished';
+
+    if (!feedbackOpen) {
+      throw new ApiError(409, 'event_feedback_not_open', 'Feedback is not open yet');
+    }
 
     const vibe = typeof body.vibe === 'string' ? body.vibe : 'ok';
     const hostRating =
@@ -991,7 +1115,11 @@ export class EventsService {
     const favoriteUserIds = Array.isArray(body.favoriteUserIds)
       ? body.favoriteUserIds
           .filter((item): item is string => typeof item === 'string')
+          .filter((targetUserId) => targetUserId !== userId)
           .filter((targetUserId) => !blockedUserIds.has(targetUserId))
+          .filter((targetUserId) =>
+            event.participants.some((participant) => participant.userId === targetUserId),
+          )
       : [];
 
     await this.prismaService.client.$transaction(async (tx) => {
@@ -1055,6 +1183,9 @@ export class EventsService {
   ): Prisma.EventWhereInput {
     const conditions: Prisma.EventWhereInput[] = [
       {
+        isAfterDark: false,
+      },
+      {
         OR: [
           { visibilityMode: 'public' },
           { hostId: userId },
@@ -1086,16 +1217,20 @@ export class EventsService {
         });
         break;
       case 'calm':
+        conditions.push({ startsAt: { gte: now } });
         conditions.push({ isCalm: true });
         break;
       case 'newcomers':
+        conditions.push({ startsAt: { gte: now } });
         conditions.push({ isNewcomers: true });
         break;
       case 'date':
+        conditions.push({ startsAt: { gte: now } });
         conditions.push({ isDate: true });
         break;
       case 'nearby':
       default:
+        conditions.push({ startsAt: { gte: now } });
         break;
     }
 
@@ -1379,5 +1514,85 @@ export class EventsService {
     }
 
     return blockedUserIds;
+  }
+
+  private canViewEvent(
+    userId: string,
+    event: {
+      hostId: string;
+      visibilityMode: string;
+      participants: Array<{ userId: string }>;
+      joinRequests: Array<{
+        userId: string;
+        status: string;
+        reviewedById: string | null;
+      }>;
+    },
+  ) {
+    if (event.visibilityMode !== 'friends') {
+      return true;
+    }
+
+    if (event.hostId === userId) {
+      return true;
+    }
+
+    if (event.participants.some((participant) => participant.userId === userId)) {
+      return true;
+    }
+
+    return event.joinRequests.some(
+      (request) =>
+        request.userId === userId &&
+        request.reviewedById === event.hostId &&
+        (request.status === 'pending' || request.status === 'approved'),
+    );
+  }
+
+  private buildCheckInCode(eventId: string, userId: string) {
+    return createHmac(
+      'sha256',
+      process.env.CHECK_IN_SECRET ?? process.env.JWT_ACCESS_SECRET ?? 'dev-check-in-secret',
+    )
+      .update(`${eventId}:${userId}`)
+      .digest('hex')
+      .slice(0, 24);
+  }
+
+  private normalizeIdempotencyKey(raw: string | undefined) {
+    if (raw == null) {
+      return null;
+    }
+
+    const value = raw.trim();
+    if (value.length === 0) {
+      return null;
+    }
+
+    if (value.length > 128) {
+      throw new ApiError(400, 'invalid_idempotency_key', 'Idempotency key is invalid');
+    }
+
+    return value;
+  }
+
+  private async assertCapacityAvailable(tx: Prisma.TransactionClient, eventId: string) {
+    const [event, participantsCount] = await Promise.all([
+      tx.event.findUnique({
+        where: { id: eventId },
+        select: { capacity: true },
+      }),
+      tx.eventParticipant.count({
+        where: { eventId },
+      }),
+    ]);
+
+    if (!event) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
+    if (participantsCount >= event.capacity) {
+      throw new ApiError(409, 'event_full', 'Event capacity is full');
+    }
   }
 }

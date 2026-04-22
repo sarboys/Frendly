@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { StoriesService } from '../services/stories.service';
 
@@ -10,8 +10,13 @@ export class StoriesController {
   listStories(
     @CurrentUser() currentUser: { userId: string },
     @Param('eventId') eventId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.storiesService.listStories(currentUser.userId, eventId);
+    return this.storiesService.listStories(currentUser.userId, eventId, {
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Post()

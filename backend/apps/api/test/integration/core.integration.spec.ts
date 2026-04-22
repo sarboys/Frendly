@@ -49,6 +49,16 @@ describe('core api flows', () => {
         ],
       },
     });
+    await prisma.notification.updateMany({
+      where: { userId: 'user-me' },
+      data: { readAt: null },
+    });
+    await prisma.eventStory.deleteMany({
+      where: {
+        eventId: 'e1',
+        authorId: 'user-me',
+      },
+    });
   });
 
   afterAll(async () => {
@@ -369,6 +379,22 @@ describe('core api flows', () => {
     expect(missingChatIdResponse.body.code).toBe('chat_id_required');
   });
 
+  it('rejects oversized chat attachment uploads', async () => {
+    const oversized = Buffer.alloc(21 * 1024 * 1024, 7);
+
+    const response = await request(app.getHttpServer())
+      .post('/uploads/chat-attachment/file')
+      .set('authorization', `Bearer ${accessToken}`)
+      .field('chatId', 'p1')
+      .attach('file', oversized, {
+        filename: 'oversized.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('chat_attachment_too_large');
+  });
+
   it('uploads voice message asset with duration metadata', async () => {
     const waveform = [0.12, 0.42, 0.76, 0.33];
     const uploadResponse = await request(app.getHttpServer())
@@ -522,6 +548,8 @@ describe('core api flows', () => {
 
     expect(response.body.items).toHaveLength(2);
     expect(response.body.nextCursor).toEqual(expect.any(String));
+    expect(response.body.items[0].latitude).toEqual(expect.any(Number));
+    expect(response.body.items[0].longitude).toEqual(expect.any(Number));
   });
 
   it('returns stable event cards for feed filters', async () => {
@@ -557,6 +585,8 @@ describe('core api flows', () => {
     );
     expect(Array.isArray(calmResponse.body.items[0].attendees)).toBe(true);
     expect(calmResponse.body.items[0]).toHaveProperty('joinRequestStatus');
+    expect(calmResponse.body.items[0].latitude).toEqual(expect.any(Number));
+    expect(calmResponse.body.items[0].longitude).toEqual(expect.any(Number));
 
     const dateResponse = await request(app.getHttpServer())
       .get('/events?filter=date')
@@ -566,6 +596,16 @@ describe('core api flows', () => {
     expect(
       dateResponse.body.items.every((item: { tone: string }) => item.tone === 'evening'),
     ).toBe(true);
+  });
+
+  it('returns coordinates in check-in payload when event has them', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/events/e1/check-in')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.latitude).toEqual(expect.any(Number));
+    expect(response.body.longitude).toEqual(expect.any(Number));
   });
 
   it('returns posters feed for city discovery', async () => {
@@ -688,7 +728,7 @@ describe('core api flows', () => {
         emoji: '🎨',
         vibe: 'Спокойно',
         place: 'Маросейка 3',
-        startsAt: '2026-04-21T17:30:00.000Z',
+        startsAt: '2026-04-24T17:30:00.000Z',
         capacity: 7,
         distanceKm: 0.4,
         joinMode: 'open',
@@ -716,7 +756,7 @@ describe('core api flows', () => {
         emoji: '🍲',
         vibe: 'Уютно',
         place: 'Покровка 8',
-        startsAt: '2026-04-21T18:30:00.000Z',
+        startsAt: '2026-04-24T18:30:00.000Z',
         capacity: 5,
         distanceKm: 0.5,
         joinMode: 'request',
@@ -777,6 +817,46 @@ describe('core api flows', () => {
     expect(response.body.items[0].id).toBeDefined();
     const runClubChat = response.body.items.find((item: { id: string }) => item.id === 'p3');
     expect(runClubChat?.fromMeetup).toBe('Вечерняя пробежка по бульварам');
+  });
+
+  it('paginates meetup chats by cursor', async () => {
+    const firstPage = await request(app.getHttpServer())
+      .get('/chats/meetups')
+      .query({ limit: 1 })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(firstPage.body.items).toHaveLength(1);
+    expect(firstPage.body.nextCursor).toEqual(expect.any(String));
+
+    const secondPage = await request(app.getHttpServer())
+      .get('/chats/meetups')
+      .query({ limit: 1, cursor: firstPage.body.nextCursor })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(secondPage.body.items).toHaveLength(1);
+    expect(secondPage.body.items[0].id).not.toBe(firstPage.body.items[0].id);
+  });
+
+  it('paginates personal chats by cursor', async () => {
+    const firstPage = await request(app.getHttpServer())
+      .get('/chats/personal')
+      .query({ limit: 1 })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(firstPage.body.items).toHaveLength(1);
+    expect(firstPage.body.nextCursor).toEqual(expect.any(String));
+
+    const secondPage = await request(app.getHttpServer())
+      .get('/chats/personal')
+      .query({ limit: 1, cursor: firstPage.body.nextCursor })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(secondPage.body.items).toHaveLength(1);
+    expect(secondPage.body.items[0].id).not.toBe(firstPage.body.items[0].id);
   });
 
   it('returns latest chat messages page with cursor pagination and last realtime event id', async () => {
@@ -930,12 +1010,24 @@ describe('core api flows', () => {
     }
   });
 
-  it('streams media with byte range support for voice assets', async () => {
+  it('streams public avatar media without auth and protects private chat media', async () => {
+    const avatarAssetId = `avatar-stream-${Date.now()}`;
+    const avatarObjectKey = `avatars/user-me/${avatarAssetId}-avatar.png`;
+    const avatarPayload = Buffer.from('avatar-stream-payload');
     const assetId = `voice-stream-${Date.now()}`;
     const objectKey = `chat-attachments/user-me/${assetId}-voice.webm`;
     const payload = Buffer.from('voice-stream-payload');
+    const privateChatId = `private-media-${Date.now()}`;
 
     try {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Key: avatarObjectKey,
+          ContentType: 'image/png',
+          Body: avatarPayload,
+        }),
+      );
       await s3.send(
         new PutObjectCommand({
           Bucket: process.env.S3_BUCKET ?? 'big-break',
@@ -945,6 +1037,34 @@ describe('core api flows', () => {
         }),
       );
 
+      await prisma.chat.create({
+        data: {
+          id: privateChatId,
+          kind: 'direct',
+          origin: 'people',
+          directKey: `user-me:user-mark:${privateChatId}`,
+          members: {
+            createMany: {
+              data: [{ userId: 'user-me' }, { userId: 'user-mark' }],
+            },
+          },
+        },
+      });
+
+      await prisma.mediaAsset.create({
+        data: {
+          id: avatarAssetId,
+          ownerId: 'user-me',
+          kind: 'avatar',
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey: avatarObjectKey,
+          mimeType: 'image/png',
+          byteSize: avatarPayload.length,
+          originalFileName: 'avatar.png',
+          publicUrl: buildPublicAssetUrl(avatarObjectKey),
+        } as any,
+      });
       await prisma.mediaAsset.create({
         data: {
           id: assetId,
@@ -959,12 +1079,32 @@ describe('core api flows', () => {
           waveform: [0.11, 0.22, 0.44, 0.88],
           originalFileName: 'voice.webm',
           publicUrl: buildPublicAssetUrl(objectKey),
-          chatId: 'p1',
+          chatId: privateChatId,
         } as any,
       });
 
+      const avatarResponse = await request(app.getHttpServer())
+        .get(`/media/${avatarAssetId}`)
+        .expect(200);
+
+      expect(Buffer.from(avatarResponse.body).toString()).toBe(
+        avatarPayload.toString(),
+      );
+
+      const unauthorizedResponse = await request(app.getHttpServer())
+        .get(`/media/${assetId}`);
+      expect(unauthorizedResponse.status).toBe(401);
+      expect(unauthorizedResponse.body.code).toBe('auth_required');
+
+      const forbiddenResponse = await request(app.getHttpServer())
+        .get(`/media/${assetId}`)
+        .set('authorization', `Bearer ${peerAccessToken}`);
+      expect(forbiddenResponse.status).toBe(403);
+      expect(forbiddenResponse.body.code).toBe('media_forbidden');
+
       const response = await request(app.getHttpServer())
         .get(`/media/${assetId}`)
+        .set('authorization', `Bearer ${accessToken}`)
         .set('range', 'bytes=0-4')
         .expect(206);
 
@@ -978,10 +1118,44 @@ describe('core api flows', () => {
     } finally {
       await prisma.mediaAsset.deleteMany({
         where: {
+          id: avatarAssetId,
+        },
+      });
+      await prisma.mediaAsset.deleteMany({
+        where: {
           id: assetId,
         },
       });
+      await prisma.chat.deleteMany({
+        where: { id: privateChatId },
+      });
     }
+  });
+
+  it('hides private event details from non-members', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Приватный ужин для своих',
+        description: 'Закрытая встреча',
+        emoji: '🍷',
+        vibe: 'Спокойно',
+        place: 'Сретенка 3',
+        startsAt: '2026-04-25T19:00:00.000Z',
+        capacity: 4,
+        distanceKm: 0.6,
+        joinMode: 'request',
+        visibilityMode: 'friends',
+      })
+      .expect(201);
+
+    const hiddenResponse = await request(app.getHttpServer())
+      .get(`/events/${createResponse.body.id}`)
+      .set('authorization', `Bearer ${peerAccessToken}`);
+
+    expect(hiddenResponse.status).toBe(404);
+    expect(hiddenResponse.body.code).toBe('event_not_found');
   });
 
   it('returns reply preview metadata for replied messages', async () => {
@@ -1239,7 +1413,7 @@ describe('core api flows', () => {
         emoji: '🍝',
         vibe: 'Уютно',
         place: 'Солянка 5',
-        startsAt: '2026-04-20T18:30:00.000Z',
+        startsAt: '2026-04-24T18:30:00.000Z',
         capacity: 6,
         distanceKm: 0.8,
         joinMode: 'request',
@@ -1261,6 +1435,7 @@ describe('core api flows', () => {
 
     const hostDashboardResponse = await request(app.getHttpServer())
       .get('/host/dashboard')
+      .query({ eventsLimit: 50 })
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
 
@@ -1281,6 +1456,28 @@ describe('core api flows', () => {
       .expect(201);
 
     expect(approveResponse.body.status).toBe('approved');
+
+    const approvalNotification = await prisma.notification.findFirst({
+      where: {
+        userId: 'user-sonya',
+        eventId,
+        requestId: hostEventResponse.body.requests[0].id,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(approvalNotification?.body).toContain('Тебя приняли');
+
+    const approvalPush = await prisma.outboxEvent.findFirst({
+      where: {
+        type: 'push.dispatch',
+        payload: {
+          path: ['notificationId'],
+          equals: approvalNotification?.id,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(approvalPush).not.toBeNull();
 
     const detailResponse = await request(app.getHttpServer())
       .get(`/events/${eventId}`)
@@ -1335,6 +1532,35 @@ describe('core api flows', () => {
 
     expect(feedbackResponse.body.saved).toBe(true);
     expect(feedbackResponse.body.favoritesCount).toBe(1);
+  });
+
+  it('paginates host dashboard requests and events independently', async () => {
+    const firstPage = await request(app.getHttpServer())
+      .get('/host/dashboard')
+      .query({ eventsLimit: 1, requestsLimit: 1 })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(firstPage.body.events).toHaveLength(1);
+    expect(firstPage.body.requests).toHaveLength(1);
+    expect(firstPage.body.nextEventsCursor).toEqual(expect.any(String));
+    expect(firstPage.body).toHaveProperty('nextRequestsCursor');
+
+    const secondPage = await request(app.getHttpServer())
+      .get('/host/dashboard')
+      .query({
+        eventsLimit: 1,
+        requestsLimit: 1,
+        eventsCursor: firstPage.body.nextEventsCursor,
+        requestsCursor: firstPage.body.nextRequestsCursor,
+      })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(secondPage.body.events[0].id).not.toBe(firstPage.body.events[0].id);
+    if (firstPage.body.nextRequestsCursor != null) {
+      expect(secondPage.body.requests[0].id).not.toBe(firstPage.body.requests[0].id);
+    }
   });
 
   it('creates invite notification for selected user and lets them accept it', async () => {
@@ -1444,6 +1670,98 @@ describe('core api flows', () => {
         (item: { text: string }) => item.text === 'Соня М не присоединится к встрече.',
       ),
     ).toBe(true);
+
+    const declineNotification = await prisma.notification.findFirst({
+      where: {
+        userId: 'user-me',
+        eventId,
+        requestId: inviteNotification.payload.requestId,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(declineNotification?.body).toContain('отклонил');
+
+    const declinePush = await prisma.outboxEvent.findFirst({
+      where: {
+        type: 'push.dispatch',
+        payload: {
+          path: ['notificationId'],
+          equals: declineNotification?.id,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(declinePush).not.toBeNull();
+  });
+
+  it('does not allow reopening a canceled join request immediately', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Ужин без повторного спама заявками',
+        description: 'После отмены нельзя тут же открыть ту же заявку',
+        emoji: '🍵',
+        vibe: 'Спокойно',
+        place: 'Покровка 8',
+        startsAt: '2026-04-25T19:30:00.000Z',
+        capacity: 5,
+        distanceKm: 0.7,
+        joinMode: 'request',
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/join-request`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .send({ note: 'Хочу присоединиться' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/events/${eventId}/join-request`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
+
+    const secondCreate = await request(app.getHttpServer())
+      .post(`/events/${eventId}/join-request`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .send({ note: 'И еще раз' });
+
+    expect(secondCreate.status).toBe(409);
+    expect(secondCreate.body.code).toBe('join_request_already_reviewed');
+  });
+
+  it('rejects too long join request note on server', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Ужин с лимитом note',
+        description: 'Проверка длины note',
+        emoji: '🍲',
+        vibe: 'Спокойно',
+        place: 'Арбат 4',
+        startsAt: '2026-04-25T19:30:00.000Z',
+        capacity: 5,
+        distanceKm: 0.7,
+        joinMode: 'request',
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+    const longNote = 'x'.repeat(201);
+
+    const response = await request(app.getHttpServer())
+      .post(`/events/${eventId}/join-request`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .send({ note: longNote });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('invalid_join_request_note');
   });
 
   it('does not allow canceling a join request after approval', async () => {

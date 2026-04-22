@@ -2,7 +2,6 @@ import { buildMessagePreview, decodeCursor, encodeCursor } from '@big-break/data
 import { ChatKind } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
-import { paginateArray } from '../common/pagination';
 import { formatEventTime, formatRelativeTime, mapMessage } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 
@@ -12,72 +11,88 @@ export class ChatsService {
 
   async listChats(userId: string, kind: 'meetup' | 'direct', params: { cursor?: string; limit?: number }) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
+    const take = this.normalizeChatListLimit(params.limit);
+    const cursorChat = await this.resolveChatListCursor(params.cursor);
 
-    const membership = await this.prismaService.client.chatMember.findMany({
+    const chats = await this.prismaService.client.chat.findMany({
       where: {
-        userId,
-        chat: {
-          kind: kind === 'meetup' ? ChatKind.meetup : ChatKind.direct,
+        kind: kind === 'meetup' ? ChatKind.meetup : ChatKind.direct,
+        members: {
+          some: {
+            userId,
+          },
         },
+        ...(cursorChat == null
+            ? {}
+            : {
+                OR: [
+                  {
+                    updatedAt: {
+                      lt: cursorChat.updatedAt,
+                    },
+                  },
+                  {
+                    updatedAt: cursorChat.updatedAt,
+                    id: {
+                      lt: cursorChat.id,
+                    },
+                  },
+                ],
+              }),
       },
       include: {
-        chat: {
+        event: {
+          select: {
+            id: true,
+            hostId: true,
+            startsAt: true,
+          },
+        },
+        sourceEvent: {
+          select: {
+            title: true,
+            hostId: true,
+          },
+        },
+        members: {
           include: {
-            event: {
+            user: {
               select: {
                 id: true,
-                hostId: true,
-                startsAt: true,
+                displayName: true,
+                online: true,
               },
-            },
-            sourceEvent: {
-              select: {
-                title: true,
-                hostId: true,
-              },
-            },
-            members: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    displayName: true,
-                    online: true,
-                  },
-                },
-              },
-            },
-            messages: {
-              include: {
-                sender: true,
-                attachments: {
-                  include: {
-                    mediaAsset: true,
-                  },
-                },
-              },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
             },
           },
         },
-      },
-      orderBy: {
-        chat: {
-          updatedAt: 'desc',
+        messages: {
+          include: {
+            sender: true,
+            attachments: {
+              include: {
+                mediaAsset: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
         },
       },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
     });
+    const hasMore = chats.length > take;
+    const page = hasMore ? chats.slice(0, take) : chats;
     const unreadByChatId = await this.getUnreadCountsByChat(
       userId,
-      membership.map((member) => member.chat.id),
+      page.map((chat) => chat.id),
       blockedUserIds,
     );
 
     const items = (
       await Promise.all(
-      membership.map(async (member) => {
-        const visibleMessages = member.chat.messages.filter(
+      page.map(async (chat) => {
+        const visibleMessages = chat.messages.filter(
           (message) => !blockedUserIds.has(message.senderId),
         );
         const lastMessage = visibleMessages[0] ?? null;
@@ -89,57 +104,63 @@ export class ChatsService {
               })),
             })
           : '';
-        const unread = unreadByChatId.get(member.chat.id) ?? 0;
+        const unread = unreadByChatId.get(chat.id) ?? 0;
 
         if (kind === 'meetup') {
-          if (member.chat.event?.hostId && blockedUserIds.has(member.chat.event.hostId)) {
+          if (chat.event?.hostId && blockedUserIds.has(chat.event.hostId)) {
             return null;
           }
 
-          const eventTime = member.chat.event ? formatEventTime(member.chat.event.startsAt) : '';
+          const eventTime = chat.event ? formatEventTime(chat.event.startsAt) : '';
           const parts = eventTime.split('·');
 
           return {
-            id: member.chat.id,
-            eventId: member.chat.event?.id,
-            title: member.chat.title,
-            emoji: member.chat.emoji,
+            id: chat.id,
+            eventId: chat.event?.id,
+            title: chat.title,
+            emoji: chat.emoji,
             time: parts[1]?.trim() ?? '',
             status: parts[0]?.trim() ?? '',
             lastMessage: lastMessagePreview,
             lastAuthor: lastMessage?.sender.displayName ?? '',
             lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
             unread,
-            members: member.chat.members
+            members: chat.members
               .filter((entry) => !blockedUserIds.has(entry.userId))
               .map((entry) => entry.user.displayName),
             typing: false,
           };
         }
 
-        const peer = member.chat.members.find((entry) => entry.userId !== userId)?.user;
+        const peer = chat.members.find((entry) => entry.userId !== userId)?.user;
         if (!peer || blockedUserIds.has(peer.id)) {
           return null;
         }
 
         return {
-          id: member.chat.id,
+          id: chat.id,
           name: peer?.displayName ?? 'Личный чат',
           lastMessage: lastMessagePreview,
           lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
           unread,
           online: peer?.online ?? false,
           fromMeetup:
-            member.chat.sourceEvent?.hostId != null &&
-            blockedUserIds.has(member.chat.sourceEvent.hostId)
+            chat.sourceEvent?.hostId != null &&
+            blockedUserIds.has(chat.sourceEvent.hostId)
               ? null
-              : member.chat.sourceEvent?.title ?? null,
+              : chat.sourceEvent?.title ?? null,
         };
       }),
       )
     ).filter((item): item is NonNullable<typeof item> => item != null);
 
-    return paginateArray(items, params.limit ?? 20, (item) => item.id, params.cursor);
+    return {
+      items,
+      nextCursor:
+          hasMore && page.length > 0
+              ? encodeCursor({ value: page[page.length - 1]!.id })
+              : null,
+    };
   }
 
   async getMessages(userId: string, chatId: string, params: { cursor?: string; limit?: number }) {
@@ -234,6 +255,17 @@ export class ChatsService {
 
   async markRead(userId: string, chatId: string, messageId: string) {
     await this.assertMembership(userId, chatId);
+    const message = await this.prismaService.client.message.findFirst({
+      where: {
+        id: messageId,
+        chatId,
+      },
+      select: { id: true },
+    });
+
+    if (!message) {
+      throw new ApiError(404, 'message_not_found', 'Message not found');
+    }
 
     const now = new Date();
 
@@ -257,6 +289,7 @@ export class ChatsService {
           kind: 'message',
           readAt: null,
           chatId,
+          messageId,
         },
         data: {
           readAt: now,
@@ -273,6 +306,29 @@ export class ChatsService {
     }
 
     return Math.max(1, Math.min(Math.trunc(limit), 100));
+  }
+
+  private normalizeChatListLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private async resolveChatListCursor(cursor?: string) {
+    const cursorId = this.decodeMessageCursor(cursor);
+    if (cursorId == null) {
+      return null;
+    }
+
+    return this.prismaService.client.chat.findUnique({
+      where: { id: cursorId },
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+    });
   }
 
   private decodeMessageCursor(cursor?: string) {

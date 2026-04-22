@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: big_break
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d big_break"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd="curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        command: server /data
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/big_break
+      REDIS_URL: redis://localhost:6379
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: big-break
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      ENABLE_DEV_AUTH: true
+      ENABLE_DEV_OTP: true
+      PUSH_PROVIDER: fake
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
+      - name: Install backend deps
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply database migrations
+        working-directory: backend
+        run: pnpm db:deploy
+
+      - name: Run backend tests
+        working-directory: backend
+        run: pnpm test
+
+      - name: Run backend audit
+        working-directory: backend
+        run: pnpm audit --prod --audit-level high
+
+  mobile:
+    if: ${{ hashFiles('mobile/pubspec.yaml') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install mobile deps
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Analyze mobile
+        working-directory: mobile
+        run: flutter analyze
+
+      - name: Run mobile tests
+        working-directory: mobile
+        run: flutter test
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2

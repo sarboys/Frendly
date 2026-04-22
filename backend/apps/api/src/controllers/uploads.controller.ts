@@ -1,7 +1,10 @@
 import { Body, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../common/current-user.decorator';
-import { UploadsService } from '../services/uploads.service';
+import {
+  MAX_CHAT_ATTACHMENT_UPLOAD_BYTES,
+  UploadsService,
+} from '../services/uploads.service';
 
 @Controller('uploads')
 export class UploadsController {
@@ -18,7 +21,13 @@ export class UploadsController {
   }
 
   @Post('chat-attachment/file')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: MAX_CHAT_ATTACHMENT_UPLOAD_BYTES + 5 * 1024 * 1024,
+      },
+    }),
+  )
   uploadChatAttachmentFile(
     @CurrentUser() currentUser: { userId: string },
     @UploadedFile() file: Express.Multer.File,

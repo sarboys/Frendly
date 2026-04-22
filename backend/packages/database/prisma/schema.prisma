@@ -206,6 +206,8 @@ model UserSettings {
   showAge             Boolean  @default(true)
   discoverable        Boolean  @default(true)
   darkMode            Boolean  @default(false)
+  afterDarkAgeConfirmedAt DateTime?
+  afterDarkCodeAcceptedAt DateTime?
   updatedAt           DateTime @updatedAt
 }
 
@@ -292,6 +294,8 @@ model Event {
   durationMinutes Int                @default(120)
   place           String
   distanceKm      Float
+  latitude        Float?
+  longitude       Float?
   vibe            String
   tone            EventTone          @default(warm)
   joinMode        EventJoinMode      @default(open)
@@ -306,7 +310,16 @@ model Event {
   description     String
   partnerName     String?
   partnerOffer    String?
+  isAfterDark     Boolean            @default(false)
+  afterDarkCategory String?
+  afterDarkGlow   String?
+  dressCode       String?
+  ageRange        String?
+  ratioLabel      String?
+  consentRequired Boolean            @default(false)
+  rules           Json?
   capacity        Int
+  idempotencyKey  String?
   isCalm          Boolean            @default(false)
   isNewcomers     Boolean            @default(false)
   isDate          Boolean            @default(false)
@@ -327,6 +340,8 @@ model Event {
   updatedAt       DateTime           @updatedAt
 
   @@index([sourcePosterId])
+  @@index([isAfterDark, startsAt])
+  @@unique([hostId, idempotencyKey])
 }
 
 model Poster {

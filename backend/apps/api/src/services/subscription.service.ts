@@ -52,76 +52,42 @@ export class SubscriptionService {
       throw new ApiError(400, 'invalid_subscription_plan', 'Subscription plan is invalid');
     }
 
-    const now = new Date();
-    const renewsAt = new Date(now);
-    renewsAt.setMonth(renewsAt.getMonth() + (plan == 'month' ? 1 : 12));
-    const trialEndsAt = plan == 'year' ? new Date(now.getTime() + 7 * 86400000) : null;
-
-    const subscription = await this.prismaService.client.$transaction(async (tx) => {
-      await tx.userSubscription.updateMany({
-        where: {
-          userId,
-          status: {
-            in: ['trial', 'active'],
-          },
-        },
-        data: {
-          status: 'canceled',
-        },
-      });
-
-      return tx.userSubscription.create({
-        data: {
-          userId,
-          plan,
-          status: plan == 'year' ? 'trial' : 'active',
-          startedAt: now,
-          renewsAt,
-          trialEndsAt,
-        },
-      });
-    });
-
-    return {
-      plan: subscription.plan,
-      status: this.resolveStatus(subscription),
-      renewsAt: subscription.renewsAt?.toISOString() ?? null,
-      trialEndsAt: subscription.trialEndsAt?.toISOString() ?? null,
-    };
-  }
-
-  async restore(userId: string) {
-    const subscription = await this.prismaService.client.userSubscription.findFirst({
+    const current = await this.prismaService.client.userSubscription.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+    const currentStatus = this.resolveStatus(current);
 
-    if (!subscription) {
-      return {
-        restored: false,
-      };
+    if (
+      current &&
+      current.plan === plan &&
+      (currentStatus === 'trial' || currentStatus === 'active')
+    ) {
+      return this.getCurrent(userId);
     }
 
-    const nextStatus = this.resolveStatus(subscription);
-
-    if (nextStatus === 'inactive') {
-      return {
-        restored: false,
-      };
-    }
-
-    const restored = await this.prismaService.client.userSubscription.update({
-      where: { id: subscription.id },
+    const now = new Date();
+    const isYear = plan === 'year';
+    await this.prismaService.client.userSubscription.create({
       data: {
-        status: nextStatus,
+        userId,
+        plan,
+        status: isYear ? 'trial' : 'active',
+        startedAt: now,
+        renewsAt: new Date(
+          now.getTime() + (isYear ? 365 : 30) * 24 * 60 * 60 * 1000,
+        ),
+        trialEndsAt: isYear
+          ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+          : null,
       },
     });
 
-    return {
-      restored: true,
-      plan: restored.plan,
-      status: restored.status,
-    };
+    return this.getCurrent(userId);
+  }
+
+  async restore(userId: string) {
+    return this.getCurrent(userId);
   }
 
   private resolveStatus(

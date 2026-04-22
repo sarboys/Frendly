@@ -1,3 +1,4 @@
+import { decodeCursor, encodeCursor } from '@big-break/database';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import {
@@ -12,15 +13,57 @@ import { PrismaService } from './prisma.service';
 export class HostService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getDashboard(userId: string) {
+  async getDashboard(
+    userId: string,
+    params: {
+      eventsCursor?: string;
+      eventsLimit?: number;
+      requestsCursor?: string;
+      requestsLimit?: number;
+    } = {},
+  ) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
-    const [host, events, pendingRequests] = await Promise.all([
+    const eventsTake = this.normalizeLimit(params.eventsLimit);
+    const requestsTake = this.normalizeLimit(params.requestsLimit);
+    const [host, statsEvents, pendingRequestsCount, eventsCursor, requestsCursor] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
         include: { profile: true },
       }),
       this.prismaService.client.event.findMany({
         where: { hostId: userId },
+        select: {
+          id: true,
+          capacity: true,
+          participants: {
+            where: {
+              userId: {
+                notIn: [...blockedUserIds],
+              },
+            },
+            select: { id: true },
+          },
+        },
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prismaService.client.eventJoinRequest.count({
+        where: {
+          event: {
+            hostId: userId,
+          },
+          status: 'pending',
+          reviewedById: null,
+        },
+      }),
+      this.resolveEventCursor(params.eventsCursor),
+      this.resolveRequestCursor(params.requestsCursor),
+    ]);
+    const [eventsPage, requestsPage] = await Promise.all([
+      this.prismaService.client.event.findMany({
+        where: {
+          hostId: userId,
+          ...this.buildEventCursorWhere(eventsCursor),
+        },
         include: {
           participants: {
             include: {
@@ -41,6 +84,7 @@ export class HostService {
           liveState: true,
         },
         orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        take: eventsTake + 1,
       }),
       this.prismaService.client.eventJoinRequest.findMany({
         where: {
@@ -49,6 +93,7 @@ export class HostService {
           },
           status: 'pending',
           reviewedById: null,
+          ...this.buildRequestCursorWhere(requestsCursor),
         },
         include: {
           event: true,
@@ -56,49 +101,59 @@ export class HostService {
             include: { profile: true },
           },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        take: requestsTake + 1,
       }),
     ]);
 
     const averageFillRate =
-      events.length === 0
+      statsEvents.length === 0
         ? 0
         : Math.round(
-            (events.reduce(
+            (statsEvents.reduce(
               (acc, event) =>
-                acc +
-                event.participants.filter(
-                  (participant) => !blockedUserIds.has(participant.userId),
-                ).length /
-                  Math.max(event.capacity, 1),
+                acc + event.participants.length / Math.max(event.capacity, 1),
               0,
             ) /
-              events.length) *
+              statsEvents.length) *
               100,
           );
 
+    const hasMoreRequests = requestsPage.length > requestsTake;
+    const requestPage = hasMoreRequests ? requestsPage.slice(0, requestsTake) : requestsPage;
+    const requestItems = requestPage
+      .filter((request) => !blockedUserIds.has(request.user.id))
+      .map((request) => this.mapRequest(request));
+    const hasMoreEvents = eventsPage.length > eventsTake;
+    const eventPage = hasMoreEvents ? eventsPage.slice(0, eventsTake) : eventsPage;
+    const eventItems = eventPage.map((event) =>
+      mapEventSummary({
+        event,
+        participants: event.participants.filter(
+          (participant) => !blockedUserIds.has(participant.userId),
+        ),
+        currentUserId: userId,
+        liveState: event.liveState,
+      }),
+    );
+
     return {
       stats: {
-        meetupsCount: events.length,
+        meetupsCount: statsEvents.length,
         rating: host?.profile?.rating ?? 0,
         fillRate: averageFillRate,
       },
-      pendingRequestsCount: pendingRequests.filter(
-        (request) => !blockedUserIds.has(request.user.id),
-      ).length,
-      requests: pendingRequests
-        .filter((request) => !blockedUserIds.has(request.user.id))
-        .map((request) => this.mapRequest(request)),
-      events: events.map((event) =>
-        mapEventSummary({
-          event,
-          participants: event.participants.filter(
-            (participant) => !blockedUserIds.has(participant.userId),
-          ),
-          currentUserId: userId,
-          liveState: event.liveState,
-        }),
-      ),
+      pendingRequestsCount,
+      requests: requestItems,
+      nextRequestsCursor:
+          hasMoreRequests && requestPage.length > 0
+              ? encodeCursor({ value: requestPage[requestPage.length - 1]!.id })
+              : null,
+      events: eventItems,
+      nextEventsCursor:
+          hasMoreEvents && eventPage.length > 0
+              ? encodeCursor({ value: eventPage[eventPage.length - 1]!.id })
+              : null,
     };
   }
 
@@ -265,6 +320,34 @@ export class HostService {
         });
       }
 
+      const notification = await tx.notification.create({
+        data: {
+          userId: request.userId,
+          actorUserId: userId,
+          kind: 'event_joined',
+          title: 'Заявка одобрена',
+          body: `Тебя приняли на встречу «${request.event.title}»`,
+          eventId: request.eventId,
+          requestId: request.id,
+          payload: {
+            eventId: request.eventId,
+            requestId: request.id,
+            status: 'approved',
+            userId,
+          },
+        },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          type: 'push.dispatch',
+          payload: {
+            userId: request.userId,
+            notificationId: notification.id,
+          },
+        },
+      });
+
       return next;
     });
 
@@ -299,19 +382,51 @@ export class HostService {
       );
     }
 
-    const rejected = await this.prismaService.client.eventJoinRequest.update({
-      where: { id: requestId },
-      data: {
-        status: 'rejected',
-        reviewedById: userId,
-        reviewedAt: new Date(),
-      },
-      include: {
-        event: true,
-        user: {
-          include: { profile: true },
+    const rejected = await this.prismaService.client.$transaction(async (tx) => {
+      const next = await tx.eventJoinRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'rejected',
+          reviewedById: userId,
+          reviewedAt: new Date(),
         },
-      },
+        include: {
+          event: true,
+          user: {
+            include: { profile: true },
+          },
+        },
+      });
+
+      const notification = await tx.notification.create({
+        data: {
+          userId: request.userId,
+          actorUserId: userId,
+          kind: 'event_joined',
+          title: 'Заявка отклонена',
+          body: `Заявку на встречу «${request.event.title}» отклонили`,
+          eventId: request.eventId,
+          requestId: request.id,
+          payload: {
+            eventId: request.eventId,
+            requestId: request.id,
+            status: 'rejected',
+            userId,
+          },
+        },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          type: 'push.dispatch',
+          payload: {
+            userId: request.userId,
+            notificationId: notification.id,
+          },
+        },
+      });
+
+      return next;
     });
 
     return this.mapRequest(rejected);
@@ -484,5 +599,113 @@ export class HostService {
     }
 
     return blockedUserIds;
+  }
+
+  private normalizeLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private buildEventCursorWhere(
+    cursor:
+      | {
+          id: string;
+          startsAt: Date;
+        }
+      | null,
+  ) {
+    if (cursor == null) {
+      return {};
+    }
+
+    return {
+      OR: [
+        {
+          startsAt: {
+            gt: cursor.startsAt,
+          },
+        },
+        {
+          startsAt: cursor.startsAt,
+          id: {
+            gt: cursor.id,
+          },
+        },
+      ],
+    };
+  }
+
+  private buildRequestCursorWhere(
+    cursor:
+      | {
+          id: string;
+          createdAt: Date;
+        }
+      | null,
+  ) {
+    if (cursor == null) {
+      return {};
+    }
+
+    return {
+      OR: [
+        {
+          createdAt: {
+            gt: cursor.createdAt,
+          },
+        },
+        {
+          createdAt: cursor.createdAt,
+          id: {
+            gt: cursor.id,
+          },
+        },
+      ],
+    };
+  }
+
+  private decodeCursor(cursor?: string) {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      return decodeCursor(cursor)?.value ?? null;
+    } catch {
+      return cursor;
+    }
+  }
+
+  private async resolveEventCursor(cursor?: string) {
+    const eventId = this.decodeCursor(cursor);
+    if (eventId == null) {
+      return null;
+    }
+
+    return this.prismaService.client.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        startsAt: true,
+      },
+    });
+  }
+
+  private async resolveRequestCursor(cursor?: string) {
+    const requestId = this.decodeCursor(cursor);
+    if (requestId == null) {
+      return null;
+    }
+
+    return this.prismaService.client.eventJoinRequest.findUnique({
+      where: { id: requestId },
+      select: {
+        id: true,
+        createdAt: true,
+      },
+    });
   }
 }

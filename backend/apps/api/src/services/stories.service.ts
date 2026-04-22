@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
@@ -6,21 +7,62 @@ import { PrismaService } from './prisma.service';
 export class StoriesService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async listStories(userId: string, eventId: string) {
+  async listStories(
+    userId: string,
+    eventId: string,
+    params: { cursor?: string; limit?: number },
+  ) {
     await this.assertParticipant(userId, eventId);
     const blockedUserIds = await this.getBlockedUserIds(userId);
+    const take = this.normalizeLimit(params.limit);
+    const cursorId = this.decodeStoryCursor(params.cursor);
+    const cursorStory = cursorId
+      ? await this.prismaService.client.eventStory.findFirst({
+          where: {
+            id: cursorId,
+            eventId,
+          },
+          select: {
+            id: true,
+            createdAt: true,
+          },
+        })
+      : null;
 
     const stories = await this.prismaService.client.eventStory.findMany({
-      where: { eventId },
+      where: {
+        eventId,
+        ...(cursorStory
+          ? {
+              OR: [
+                {
+                  createdAt: {
+                    lt: cursorStory.createdAt,
+                  },
+                },
+                {
+                  createdAt: cursorStory.createdAt,
+                  id: {
+                    lt: cursorStory.id,
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
       include: {
         author: {
           include: { profile: true },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
+      take: take + 1,
     });
 
-    return stories
+    const visibleStories = stories
       .filter((story) => !blockedUserIds.has(story.authorId))
       .map((story) => ({
         id: story.id,
@@ -32,6 +74,18 @@ export class StoriesService {
         emoji: story.emoji,
         createdAt: story.createdAt.toISOString(),
       }));
+    const hasMore = visibleStories.length > take;
+    const page = hasMore
+      ? visibleStories.slice(0, take)
+      : visibleStories;
+
+    return {
+      items: [...page].reverse(),
+      nextCursor:
+        hasMore && page.length > 0
+          ? encodeCursor({ value: page[page.length - 1]!.id })
+          : null,
+    };
   }
 
   async createStory(userId: string, eventId: string, body: Record<string, unknown>) {
@@ -42,6 +96,24 @@ export class StoriesService {
 
     if (caption.length === 0) {
       throw new ApiError(400, 'invalid_story_caption', 'caption is required');
+    }
+
+    if (caption.length > 240) {
+      throw new ApiError(400, 'invalid_story_caption', 'caption is too long');
+    }
+
+    const recentCount = await this.prismaService.client.eventStory.count({
+      where: {
+        eventId,
+        authorId: userId,
+        createdAt: {
+          gte: new Date(Date.now() - 15 * 60 * 1000),
+        },
+      },
+    });
+
+    if (recentCount >= 10) {
+      throw new ApiError(429, 'story_rate_limited', 'Story rate limit exceeded');
     }
 
     const story = await this.prismaService.client.eventStory.create({
@@ -61,6 +133,26 @@ export class StoriesService {
       emoji: story.emoji,
       createdAt: story.createdAt.toISOString(),
     };
+  }
+
+  private normalizeLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private decodeStoryCursor(cursor?: string) {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      return decodeCursor(cursor)?.value ?? null;
+    } catch {
+      return cursor;
+    }
   }
 
   private async assertParticipant(userId: string, eventId: string) {

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { buildDirectChatKey } from '@big-break/database';
+import { buildDirectChatKey, decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
-import { paginateArray } from '../common/pagination';
 import { mapBasicProfile } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 
@@ -20,29 +19,93 @@ export class PeopleService {
       this.getBlockedUserIds(userId),
     ]);
 
+    const take = this.normalizeListLimit(params.limit);
+    const query = params.q?.trim();
+    const cursorUser = await this.resolveCursorUser(params.cursor);
+
     const people = await this.prismaService.client.user.findMany({
       where: {
         id: {
           notIn: [userId, ...blockedUserIds],
         },
+        settings: {
+          is: {
+            discoverable: true,
+          },
+        },
+        ...(query == null || query.length === 0
+            ? {}
+            : {
+                OR: [
+                  {
+                    displayName: {
+                      contains: query,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                  {
+                    profile: {
+                      is: {
+                        area: {
+                          contains: query,
+                          mode: 'insensitive' as const,
+                        },
+                      },
+                    },
+                  },
+                  {
+                    profile: {
+                      is: {
+                        vibe: {
+                          contains: query,
+                          mode: 'insensitive' as const,
+                        },
+                      },
+                    },
+                  },
+                ],
+              }),
+        ...(cursorUser == null
+            ? {}
+            : {
+                OR: [
+                  {
+                    displayName: {
+                      gt: cursorUser.displayName,
+                    },
+                  },
+                  {
+                    displayName: cursorUser.displayName,
+                    id: {
+                      gt: cursorUser.id,
+                    },
+                  },
+                ],
+              }),
       },
       include: {
         profile: true,
         onboarding: true,
+        settings: true,
       },
-      orderBy: { displayName: 'asc' },
+      orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
+      take: take + 1,
     });
 
     const selfInterests = new Set(Array.isArray(self?.interests) ? (self?.interests as string[]) : []);
-    const query = params.q?.trim().toLowerCase();
-    const mapped = people.map((person) => {
+    const hasMore = people.length > take;
+    const page = hasMore ? people.slice(0, take) : people;
+    const mapped = page.map((person) => {
       const interests = Array.isArray(person.onboarding?.interests) ? (person.onboarding?.interests as string[]) : [];
       const common = interests.filter((interest) => selfInterests.has(interest));
 
       return {
         id: person.id,
         name: person.displayName,
-        age: person.profile?.age ?? null,
+        age:
+            person.settings?.showAge === true
+                ? person.profile?.age ?? null
+                : null,
         area: person.profile?.area ?? null,
         common,
         online: person.online,
@@ -50,22 +113,15 @@ export class PeopleService {
         vibe: person.profile?.vibe ?? null,
         avatarUrl: person.profile?.avatarUrl ?? null,
       };
-    }).filter((person) => {
-      if (!query) {
-        return true;
-      }
-
-      const haystack = [
-        person.name,
-        person.area ?? '',
-        person.vibe ?? '',
-        ...person.common,
-      ].join(' ').toLowerCase();
-
-      return haystack.includes(query);
     });
 
-    return paginateArray(mapped, params.limit ?? 20, (item) => item.id, params.cursor);
+    return {
+      items: mapped,
+      nextCursor:
+          hasMore && mapped.length > 0
+              ? encodeCursor({ value: mapped[mapped.length - 1]!.id })
+              : null,
+    };
   }
 
   async createOrGetDirectChat(currentUserId: string, peerUserId: string) {
@@ -95,18 +151,28 @@ export class PeopleService {
       return existing;
     }
 
-    return this.prismaService.client.chat.create({
-      data: {
-        kind: 'direct',
-        origin: 'people',
-        directKey,
-        members: {
-          createMany: {
-            data: [{ userId: currentUserId }, { userId: peerUserId }],
+    try {
+      return await this.prismaService.client.chat.create({
+        data: {
+          kind: 'direct',
+          origin: 'people',
+          directKey,
+          members: {
+            createMany: {
+              data: [{ userId: currentUserId }, { userId: peerUserId }],
+            },
           },
         },
-      },
-    });
+      });
+    } catch {
+      const duplicate = await this.prismaService.client.chat.findUnique({
+        where: { directKey },
+      });
+      if (duplicate) {
+        return duplicate;
+      }
+      throw new ApiError(409, 'direct_chat_create_failed', 'Could not create direct chat');
+    }
   }
 
   async getPersonProfile(currentUserId: string, userId: string) {
@@ -129,6 +195,7 @@ export class PeopleService {
           },
         },
         onboarding: true,
+        settings: true,
       },
     });
 
@@ -136,8 +203,18 @@ export class PeopleService {
       throw new ApiError(404, 'user_not_found', 'User not found');
     }
 
+    if (currentUserId !== userId && user.settings?.discoverable === false) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
+    }
+
+    const profile = mapBasicProfile(user);
+
     return {
-      ...mapBasicProfile(user),
+      ...profile,
+      age:
+          currentUserId === userId || user.settings?.showAge === true
+              ? profile.age
+              : null,
       interests: Array.isArray(user.onboarding?.interests)
           ? (user.onboarding!.interests as unknown[]).filter(
               (item): item is string => typeof item === 'string',
@@ -172,5 +249,44 @@ export class PeopleService {
     }
 
     return blockedUserIds;
+  }
+
+  private normalizeListLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private async resolveCursorUser(cursor?: string) {
+    if (!cursor) {
+      return null;
+    }
+
+    const cursorId = this.decodeCursor(cursor);
+    if (cursorId == null) {
+      return null;
+    }
+
+    return this.prismaService.client.user.findUnique({
+      where: { id: cursorId },
+      select: {
+        id: true,
+        displayName: true,
+      },
+    });
+  }
+
+  private decodeCursor(cursor?: string) {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      return decodeCursor(cursor)?.value ?? null;
+    } catch {
+      return cursor;
+    }
   }
 }

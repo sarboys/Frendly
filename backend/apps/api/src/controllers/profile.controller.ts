@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../common/current-user.decorator';
-import { ProfileService } from '../services/profile.service';
+import {
+  MAX_PROFILE_ASSET_UPLOAD_BYTES,
+  ProfileService,
+} from '../services/profile.service';
 
 @Controller('profile')
 export class ProfileController {
@@ -38,7 +41,13 @@ export class ProfileController {
   }
 
   @Post('me/avatar/file')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: MAX_PROFILE_ASSET_UPLOAD_BYTES + 1024 * 1024,
+      },
+    }),
+  )
   uploadAvatarFile(
     @CurrentUser() currentUser: { userId: string },
     @UploadedFile() file: Express.Multer.File,
@@ -47,7 +56,13 @@ export class ProfileController {
   }
 
   @Post('me/photos/file')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: MAX_PROFILE_ASSET_UPLOAD_BYTES + 1024 * 1024,
+      },
+    }),
+  )
   uploadProfilePhotoFile(
     @CurrentUser() currentUser: { userId: string },
     @UploadedFile() file: Express.Multer.File,

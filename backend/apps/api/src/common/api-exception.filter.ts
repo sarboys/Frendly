@@ -37,7 +37,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     const payload: ApiErrorPayload = {
       code: 'internal_error',
-      message: exception instanceof Error ? exception.message : 'Internal server error',
+      message: 'Internal server error',
       requestId,
     };
 

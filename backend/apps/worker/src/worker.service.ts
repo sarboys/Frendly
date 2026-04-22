@@ -11,6 +11,8 @@ import Redis from 'ioredis';
 import { ApnsPushProvider, FakePushProvider, FcmPushProvider, PushProvider } from './push.providers';
 import { PrismaService } from './prisma.service';
 
+const PROCESSING_STALE_AFTER_MS = 60_000;
+
 @Injectable()
 export class WorkerService implements OnModuleDestroy {
   private timer?: NodeJS.Timeout;
@@ -90,12 +92,23 @@ export class WorkerService implements OnModuleDestroy {
 
   private async claimNextEvent() {
     const now = new Date();
+    const staleBefore = new Date(now.getTime() - PROCESSING_STALE_AFTER_MS);
     const event = await this.prismaService.client.outboxEvent.findFirst({
       where: {
-        status: 'pending',
-        availableAt: {
-          lte: now,
-        },
+        OR: [
+          {
+            status: 'pending',
+            availableAt: {
+              lte: now,
+            },
+          },
+          {
+            status: 'processing',
+            lockedAt: {
+              lte: staleBefore,
+            },
+          },
+        ],
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -107,10 +120,20 @@ export class WorkerService implements OnModuleDestroy {
     const claimed = await this.prismaService.client.outboxEvent.updateMany({
       where: {
         id: event.id,
-        status: 'pending',
-        availableAt: {
-          lte: now,
-        },
+        OR: [
+          {
+            status: 'pending',
+            availableAt: {
+              lte: now,
+            },
+          },
+          {
+            status: 'processing',
+            lockedAt: {
+              lte: staleBefore,
+            },
+          },
+        ],
       },
       data: {
         status: 'processing',

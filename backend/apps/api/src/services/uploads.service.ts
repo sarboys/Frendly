@@ -1,4 +1,4 @@
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import { buildPublicAssetUrl, createPresignedUpload, createS3Client } from '@big-break/database';
 import { randomUUID } from 'node:crypto';
@@ -8,6 +8,16 @@ import { PrismaService } from './prisma.service';
 const BYPASS_S3_UPLOAD = process.env.NODE_ENV === 'test';
 const MAX_CHAT_VOICE_DURATION_MS = 180000;
 const MAX_CHAT_VOICE_BYTES = 8 * 1024 * 1024;
+export const MAX_CHAT_ATTACHMENT_UPLOAD_BYTES = 20 * 1024 * 1024;
+const ALLOWED_CHAT_ATTACHMENT_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/zip',
+  'image/gif',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/plain',
+]);
 
 type ChatUploadKind = 'chat_attachment' | 'chat_voice';
 
@@ -47,8 +57,15 @@ export class UploadsService {
       throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
     }
 
-    this.assertChatUploadMime(uploadMeta.kind, mimeType);
-    this.assertChatUploadSize(uploadMeta.kind, byteSize);
+    this.assertChatUploadObjectKey(userId, objectKey);
+    const verified = await this.resolveVerifiedChatUploadMetadata(
+      objectKey,
+      mimeType,
+      byteSize,
+    );
+
+    this.assertChatUploadMime(uploadMeta.kind, verified.mimeType);
+    this.assertChatUploadSize(uploadMeta.kind, verified.byteSize);
 
     const asset = await this.prismaService.client.mediaAsset.create({
       data: {
@@ -57,8 +74,8 @@ export class UploadsService {
         status: 'ready',
         bucket: process.env.S3_BUCKET ?? 'big-break',
         objectKey,
-        mimeType,
-        byteSize,
+        mimeType: verified.mimeType,
+        byteSize: verified.byteSize,
         durationMs: uploadMeta.durationMs,
         waveform: uploadMeta.waveform,
         originalFileName: fileName,
@@ -175,9 +192,28 @@ export class UploadsService {
         'Voice MIME type is invalid',
       );
     }
+
+    if (
+      kind === 'chat_attachment' &&
+      !ALLOWED_CHAT_ATTACHMENT_MIME_TYPES.has(mimeType)
+    ) {
+      throw new ApiError(
+        400,
+        'invalid_chat_attachment_mime_type',
+        'Attachment MIME type is invalid',
+      );
+    }
   }
 
   private assertChatUploadSize(kind: ChatUploadKind, byteSize: number) {
+    if (kind === 'chat_attachment' && byteSize > MAX_CHAT_ATTACHMENT_UPLOAD_BYTES) {
+      throw new ApiError(
+        400,
+        'chat_attachment_too_large',
+        'Attachment is too large',
+      );
+    }
+
     if (kind === 'chat_voice' && byteSize > MAX_CHAT_VOICE_BYTES) {
       throw new ApiError(
         400,
@@ -240,6 +276,34 @@ export class UploadsService {
     }
 
     return waveform;
+  }
+
+  private assertChatUploadObjectKey(userId: string, objectKey: string) {
+    if (!objectKey.startsWith(`chat-attachments/${userId}/`)) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
+    }
+  }
+
+  private async resolveVerifiedChatUploadMetadata(
+    objectKey: string,
+    mimeType: string,
+    byteSize: number,
+  ) {
+    if (BYPASS_S3_UPLOAD) {
+      return { mimeType, byteSize };
+    }
+
+    const object = await this.s3.send(
+      new HeadObjectCommand({
+        Bucket: process.env.S3_BUCKET ?? 'big-break',
+        Key: objectKey,
+      }),
+    );
+
+    return {
+      mimeType: object.ContentType ?? mimeType,
+      byteSize: object.ContentLength ?? byteSize,
+    };
   }
 
   private async requireChatIdForAttachment(userId: string, body: Record<string, unknown>) {

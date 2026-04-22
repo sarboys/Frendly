@@ -1,4 +1,4 @@
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
@@ -19,6 +19,7 @@ const ALLOWED_AVATAR_MIME_TYPES = new Set([
   'image/webp',
 ]);
 const BYPASS_S3_UPLOAD = process.env.NODE_ENV === 'test';
+export const MAX_PROFILE_ASSET_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 @Injectable()
 export class ProfileService {
@@ -56,11 +57,11 @@ export class ProfileService {
       await tx.profile.update({
         where: { userId },
         data: {
-          age: typeof body.age === 'number' ? body.age : undefined,
-          city: typeof body.city === 'string' ? body.city : undefined,
-          area: typeof body.area === 'string' ? body.area : undefined,
-          bio: typeof body.bio === 'string' ? body.bio : undefined,
-          vibe: typeof body.vibe === 'string' ? body.vibe : undefined,
+          age: body.age == null ? null : typeof body.age === 'number' ? body.age : undefined,
+          city: body.city == null ? null : typeof body.city === 'string' ? body.city : undefined,
+          area: body.area == null ? null : typeof body.area === 'string' ? body.area : undefined,
+          bio: body.bio == null ? null : typeof body.bio === 'string' ? body.bio : undefined,
+          vibe: body.vibe == null ? null : typeof body.vibe === 'string' ? body.vibe : undefined,
         },
       });
     });
@@ -85,6 +86,15 @@ export class ProfileService {
       throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
     }
 
+    this.assertAvatarObjectKey(userId, objectKey);
+    const verified = await this.resolveVerifiedAvatarMetadata(
+      objectKey,
+      mimeType,
+      byteSize,
+    );
+    this.assertAvatarMime(verified.mimeType);
+    this.assertAvatarSize(verified.byteSize);
+
     const asset = await this.prismaService.client.mediaAsset.create({
       data: {
         ownerId: userId,
@@ -92,8 +102,8 @@ export class ProfileService {
         status: 'ready',
         bucket: process.env.S3_BUCKET ?? 'big-break',
         objectKey,
-        mimeType,
-        byteSize,
+        mimeType: verified.mimeType,
+        byteSize: verified.byteSize,
         originalFileName: fileName,
         publicUrl: buildPublicAssetUrl(objectKey),
       },
@@ -114,13 +124,76 @@ export class ProfileService {
   }
 
   async uploadAvatarFile(userId: string, file: Express.Multer.File) {
-    const result = await this.uploadProfilePhotoFile(userId, file);
-    await this.makePrimaryPhoto(userId, result.photo.id);
+    if (!file) {
+      throw new ApiError(400, 'avatar_file_required', 'Avatar file is required');
+    }
+
+    this.assertAvatarMime(file.mimetype);
+    this.assertAvatarSize(file.size);
+
+    const objectKey = `avatars/${userId}/${randomUUID()}-${file.originalname}`;
+    if (!BYPASS_S3_UPLOAD) {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Key: objectKey,
+          ContentType: file.mimetype,
+          Body: file.buffer,
+        }),
+      );
+    }
+
+    const result = await this.prismaService.client.$transaction(async (tx) => {
+      await tx.profilePhoto.updateMany({
+        where: { profileUserId: userId },
+        data: {
+          sortOrder: {
+            increment: 1,
+          },
+        },
+      });
+
+      const asset = await tx.mediaAsset.create({
+        data: {
+          ownerId: userId,
+          kind: 'avatar',
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey,
+          mimeType: file.mimetype,
+          byteSize: file.size,
+          originalFileName: file.originalname,
+          publicUrl: buildPublicAssetUrl(objectKey),
+        },
+      });
+
+      const photo = await tx.profilePhoto.create({
+        data: {
+          profileUserId: userId,
+          mediaAssetId: asset.id,
+          sortOrder: 0,
+        },
+        include: {
+          mediaAsset: true,
+        },
+      });
+
+      await tx.profile.update({
+        where: { userId },
+        data: {
+          avatarAssetId: asset.id,
+          avatarUrl: buildMediaProxyPath(asset.id),
+        },
+      });
+
+      return { asset, photo };
+    });
+
     return {
-      assetId: result.assetId,
-      status: result.status,
-      url: buildMediaProxyPath(result.assetId),
-      photo: result.photo,
+      assetId: result.asset.id,
+      status: result.asset.status,
+      url: buildMediaProxyPath(result.asset.id),
+      photo: mapProfilePhoto(result.photo),
     };
   }
 
@@ -129,9 +202,8 @@ export class ProfileService {
       throw new ApiError(400, 'avatar_file_required', 'Avatar file is required');
     }
 
-    if (!ALLOWED_AVATAR_MIME_TYPES.has(file.mimetype)) {
-      throw new ApiError(400, 'invalid_avatar_mime_type', 'Avatar MIME type is invalid');
-    }
+    this.assertAvatarMime(file.mimetype);
+    this.assertAvatarSize(file.size);
 
     const objectKey = `avatars/${userId}/${randomUUID()}-${file.originalname}`;
     if (!BYPASS_S3_UPLOAD) {
@@ -160,15 +232,17 @@ export class ProfileService {
         },
       });
 
-      const currentCount = await tx.profilePhoto.count({
+      const lastPhoto = await tx.profilePhoto.findFirst({
         where: { profileUserId: userId },
+        orderBy: { sortOrder: 'desc' },
+        select: { sortOrder: true },
       });
 
       const photo = await tx.profilePhoto.create({
         data: {
           profileUserId: userId,
           mediaAssetId: asset.id,
-          sortOrder: currentCount,
+          sortOrder: (lastPhoto?.sortOrder ?? -1) + 1,
         },
         include: {
           mediaAsset: true,
@@ -199,15 +273,30 @@ export class ProfileService {
         throw new ApiError(404, 'profile_photo_not_found', 'Profile photo not found');
       }
 
+      const profile = await tx.profile.findUnique({
+        where: { userId },
+        select: { avatarAssetId: true },
+      });
+
       await tx.profilePhoto.delete({
         where: { id: photoId },
       });
-      await tx.mediaAsset.delete({
-        where: { id: photo.mediaAssetId },
-      });
+
+      if (profile?.avatarAssetId === photo.mediaAssetId) {
+        await tx.profile.update({
+          where: { userId },
+          data: {
+            avatarAssetId: null,
+            avatarUrl: null,
+          },
+        });
+      }
 
       await this._normalizePhotoOrder(tx, userId);
       await this._syncPrimaryPhoto(tx, userId);
+      await tx.mediaAsset.delete({
+        where: { id: photo.mediaAssetId },
+      });
     });
 
     return this.getProfile(userId);
@@ -275,6 +364,46 @@ export class ProfileService {
     });
 
     return this.getProfile(userId);
+  }
+
+  private assertAvatarObjectKey(userId: string, objectKey: string) {
+    if (!objectKey.startsWith(`avatars/${userId}/`)) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
+    }
+  }
+
+  private async resolveVerifiedAvatarMetadata(
+    objectKey: string,
+    mimeType: string,
+    byteSize: number,
+  ) {
+    if (BYPASS_S3_UPLOAD) {
+      return { mimeType, byteSize };
+    }
+
+    const object = await this.s3.send(
+      new HeadObjectCommand({
+        Bucket: process.env.S3_BUCKET ?? 'big-break',
+        Key: objectKey,
+      }),
+    );
+
+    return {
+      mimeType: object.ContentType ?? mimeType,
+      byteSize: object.ContentLength ?? byteSize,
+    };
+  }
+
+  private assertAvatarMime(mimeType: string) {
+    if (!ALLOWED_AVATAR_MIME_TYPES.has(mimeType)) {
+      throw new ApiError(400, 'invalid_avatar_mime_type', 'Avatar MIME type is invalid');
+    }
+  }
+
+  private assertAvatarSize(byteSize: number) {
+    if (byteSize > MAX_PROFILE_ASSET_UPLOAD_BYTES) {
+      throw new ApiError(400, 'avatar_too_large', 'Avatar file is too large');
+    }
   }
 
   private validateProfilePayload(body: Record<string, unknown>) {

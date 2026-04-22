@@ -5,7 +5,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from '@big-break/database';
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
@@ -14,11 +14,23 @@ export class AuthService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createDevSession(userId = 'user-me'): Promise<TokenPair> {
+    if (!this.isDevAuthEnabled()) {
+      throw new ApiError(404, 'dev_auth_disabled', 'Dev auth is disabled');
+    }
+
     await this.ensureUser(userId, { displayName: 'Dev User' });
     return this.createSession(userId);
   }
 
   async requestPhoneCode(phoneNumber: string) {
+    if (!this.isDevOtpEnabled()) {
+      throw new ApiError(
+        503,
+        'phone_auth_unavailable',
+        'Phone auth delivery is unavailable',
+      );
+    }
+
     const normalized = this.normalizePhone(phoneNumber);
     if (!normalized) {
       throw new ApiError(400, 'invalid_phone_number', 'Phone number is invalid');
@@ -33,7 +45,7 @@ export class AuthService {
       data: {
         userId: existingUser?.id,
         phoneNumber: normalized,
-        code: '1111',
+        code: this.generateDevOtpCode(),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
     });
@@ -42,7 +54,7 @@ export class AuthService {
       challengeId: challenge.id,
       maskedPhone: `${normalized.substring(0, 2)} *** *** ${normalized.substring(normalized.length - 2)}`,
       resendAfterSeconds: 42,
-      localCodeHint: '1111',
+      localCodeHint: challenge.code,
     };
   }
 
@@ -59,6 +71,15 @@ export class AuthService {
     }
 
     if (challenge.code !== code) {
+      await this.prismaService.client.phoneOtpChallenge.updateMany({
+        where: {
+          id: challengeId,
+          consumedAt: null,
+        },
+        data: {
+          expiresAt: new Date(Date.now() - 1000),
+        },
+      });
       throw new ApiError(400, 'invalid_otp_code', 'OTP code is invalid');
     }
 
@@ -87,13 +108,25 @@ export class AuthService {
       throw new ApiError(500, 'auth_user_create_failed', 'Could not create user');
     }
 
-    await this.prismaService.client.phoneOtpChallenge.update({
-      where: { id: challengeId },
+    const consumedAt = new Date();
+    const consumeResult = await this.prismaService.client.phoneOtpChallenge.updateMany({
+      where: {
+        id: challengeId,
+        code,
+        consumedAt: null,
+        expiresAt: {
+          gt: consumedAt,
+        },
+      },
       data: {
-        consumedAt: new Date(),
+        consumedAt,
         userId: user.id,
       },
     });
+
+    if (consumeResult.count === 0) {
+      throw new ApiError(400, 'invalid_otp_challenge', 'OTP challenge is invalid');
+    }
 
     const tokens = await this.createSession(user.id);
     return {
@@ -122,13 +155,21 @@ export class AuthService {
     }
 
     const nextRefreshTokenId = randomUUID();
-    await prisma.session.update({
-      where: { id: session.id },
+    const updated = await prisma.session.updateMany({
+      where: {
+        id: session.id,
+        revokedAt: null,
+        refreshTokenId: payload.refreshTokenId,
+      },
       data: {
         refreshTokenId: nextRefreshTokenId,
         lastUsedAt: new Date(),
       },
     });
+
+    if (updated.count === 0) {
+      throw new ApiError(401, 'invalid_refresh_token', 'Refresh token is invalid');
+    }
 
     return {
       accessToken: signAccessToken(session.userId, session.id),
@@ -304,6 +345,18 @@ export class AuthService {
     }
 
     return '';
+  }
+
+  private isDevAuthEnabled() {
+    return process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_AUTH === 'true';
+  }
+
+  private isDevOtpEnabled() {
+    return process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_OTP === 'true';
+  }
+
+  private generateDevOtpCode() {
+    return `${randomInt(1000, 10000)}`;
   }
 
   private buildRegistrationPreset(phoneNumber: string) {

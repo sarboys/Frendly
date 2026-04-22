@@ -193,7 +193,10 @@ export function mapLiveStatus(state?: Pick<EventLiveState, 'status'> | null) {
 }
 
 export function mapEventSummary(params: {
-  event: Event;
+  event: Event & {
+    latitude?: number | null;
+    longitude?: number | null;
+  };
   participants: Array<{
     userId: string;
     user: Pick<User, 'displayName'>;
@@ -211,8 +214,11 @@ export function mapEventSummary(params: {
     title: event.title,
     emoji: event.emoji,
     time: formatEventTime(event.startsAt),
+    startsAtIso: event.startsAt.toISOString(),
     place: event.place,
     distance: `${event.distanceKm.toFixed(1)} км`,
+    latitude: event.latitude ?? null,
+    longitude: event.longitude ?? null,
     attendees: attendeePreview.slice(0, 5).map((participant) => participant.user.displayName),
     going: participants.length,
     capacity: event.capacity,

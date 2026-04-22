@@ -84,6 +84,18 @@ export class SafetyService {
       throw new ApiError(400, 'invalid_trusted_contact', 'name and phoneNumber are required');
     }
 
+    const existing = await this.prismaService.client.trustedContact.findFirst({
+      where: {
+        userId,
+        phoneNumber,
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new ApiError(409, 'trusted_contact_duplicate', 'Trusted contact already exists');
+    }
+
     return this.prismaService.client.trustedContact.create({
       data: {
         userId,
@@ -95,13 +107,28 @@ export class SafetyService {
   }
 
   async listReports(userId: string) {
-    return this.prismaService.client.userReport.findMany({
+    const reports = await this.prismaService.client.userReport.findMany({
       where: { reporterId: userId },
       include: {
-        targetUser: true,
+        targetUser: {
+          select: {
+            id: true,
+            displayName: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return reports.map((report) => ({
+      id: report.id,
+      targetUserId: report.targetUserId,
+      reason: report.reason,
+      details: report.details,
+      status: report.status,
+      blockRequested: report.blockRequested,
+      createdAt: report.createdAt.toISOString(),
+    }));
   }
 
   async createReport(userId: string, body: Record<string, unknown>) {
@@ -118,6 +145,10 @@ export class SafetyService {
       throw new ApiError(400, 'self_report_not_allowed', 'Cannot report yourself');
     }
 
+    if (details.length > 500) {
+      throw new ApiError(400, 'invalid_report_payload', 'details is too long');
+    }
+
     const targetUser = await this.prismaService.client.user.findUnique({
       where: { id: targetUserId },
       select: { id: true },
@@ -125,6 +156,21 @@ export class SafetyService {
 
     if (!targetUser) {
       throw new ApiError(404, 'user_not_found', 'Target user not found');
+    }
+
+    const existing = await this.prismaService.client.userReport.findFirst({
+      where: {
+        reporterId: userId,
+        targetUserId,
+        status: {
+          in: ['open', 'in_review'],
+        },
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new ApiError(409, 'duplicate_report', 'Report already exists');
     }
 
     const report = await this.prismaService.client.$transaction(async (tx) => {
@@ -165,15 +211,28 @@ export class SafetyService {
   }
 
   async listBlocks(userId: string) {
-    return this.prismaService.client.userBlock.findMany({
+    const blocks = await this.prismaService.client.userBlock.findMany({
       where: { userId },
       include: {
         blockedUser: {
-          include: { profile: true },
+          select: {
+            id: true,
+            displayName: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return blocks.map((block) => ({
+      id: block.id,
+      blockedUserId: block.blockedUserId,
+      blockedUser: {
+        id: block.blockedUser.id,
+        displayName: block.blockedUser.displayName,
+      },
+      createdAt: block.createdAt.toISOString(),
+    }));
   }
 
   async createBlock(userId: string, body: Record<string, unknown>) {
@@ -197,7 +256,7 @@ export class SafetyService {
       throw new ApiError(404, 'user_not_found', 'Target user not found');
     }
 
-    return this.prismaService.client.userBlock.upsert({
+    const block = await this.prismaService.client.userBlock.upsert({
       where: {
         userId_blockedUserId: {
           userId,
@@ -210,6 +269,12 @@ export class SafetyService {
         blockedUserId: targetUserId,
       },
     });
+
+    return {
+      id: block.id,
+      blockedUserId: block.blockedUserId,
+      createdAt: block.createdAt.toISOString(),
+    };
   }
 
   async createSos(userId: string, body: Record<string, unknown>) {
@@ -238,33 +303,11 @@ export class SafetyService {
       }
     }
 
-    const contacts = await this.prismaService.client.trustedContact.findMany({
-      where: {
-        userId,
-        mode: {
-          in: ['all_plans', 'sos_only'],
-        },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    await this.prismaService.client.outboxEvent.create({
-      data: {
-        type: 'safety.sos_triggered',
-        payload: {
-          userId,
-          eventId,
-          notifiedContacts: contacts.length,
-          trustedContactIds: contacts.map((contact) => contact.id),
-        },
-      },
-    });
-
-    return {
-      ok: true,
-      eventId,
-      notifiedContacts: contacts.length,
-    };
+    throw new ApiError(
+      503,
+      'sos_delivery_unavailable',
+      'SOS delivery is unavailable',
+    );
   }
 
   private calculateTrustScore(params: {

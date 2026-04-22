@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { HostService } from '../services/host.service';
 
@@ -7,8 +7,19 @@ export class HostController {
   constructor(private readonly hostService: HostService) {}
 
   @Get('dashboard')
-  getDashboard(@CurrentUser() currentUser: { userId: string }) {
-    return this.hostService.getDashboard(currentUser.userId);
+  getDashboard(
+    @CurrentUser() currentUser: { userId: string },
+    @Query('eventsCursor') eventsCursor?: string,
+    @Query('eventsLimit') eventsLimit?: string,
+    @Query('requestsCursor') requestsCursor?: string,
+    @Query('requestsLimit') requestsLimit?: string,
+  ) {
+    return this.hostService.getDashboard(currentUser.userId, {
+      eventsCursor,
+      eventsLimit: eventsLimit == null ? undefined : Number(eventsLimit),
+      requestsCursor,
+      requestsLimit: requestsLimit == null ? undefined : Number(requestsLimit),
+    });
   }
 
   @Get('events/:eventId')

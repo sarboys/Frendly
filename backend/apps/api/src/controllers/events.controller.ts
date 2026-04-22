@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { EventsService } from '../services/events.service';
 
@@ -78,9 +78,10 @@ export class EventsController {
   @Post()
   createEvent(
     @CurrentUser() currentUser: { userId: string },
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body() body: Record<string, unknown>,
   ) {
-    return this.eventsService.createEvent(currentUser.userId, body);
+    return this.eventsService.createEvent(currentUser.userId, body, idempotencyKey);
   }
 
   @Delete(':eventId/join')

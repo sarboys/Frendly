@@ -1,3 +1,4 @@
+import { decodeCursor, encodeCursor } from '@big-break/database';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 
@@ -5,28 +6,23 @@ import { PrismaService } from './prisma.service';
 export class MatchesService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async listMatches(userId: string) {
-    const [favorites, blockedPairs] = await Promise.all([
-      this.prismaService.client.eventFavorite.findMany({
-        where: { sourceUserId: userId },
-        include: {
-          event: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prismaService.client.userBlock.findMany({
-        where: {
-          OR: [
-            { userId },
-            { blockedUserId: userId },
-          ],
-        },
-        select: {
-          userId: true,
-          blockedUserId: true,
-        },
-      }),
-    ]);
+  async listMatches(
+    userId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ) {
+    const take = this.normalizeLimit(params.limit);
+    const blockedPairs = await this.prismaService.client.userBlock.findMany({
+      where: {
+        OR: [
+          { userId },
+          { blockedUserId: userId },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
 
     const blockedUserIds = new Set<string>();
     for (const block of blockedPairs) {
@@ -38,67 +34,170 @@ export class MatchesService {
       }
     }
 
-    const visibleFavorites = favorites.filter(
-      (favorite) => !blockedUserIds.has(favorite.targetUserId),
-    );
+    const items: Array<{
+      userId: string;
+      displayName: string;
+      avatarUrl: string | null;
+      area: string | null;
+      vibe: string | null;
+      score: number;
+      commonInterests: string[];
+      eventId: string;
+      eventTitle: string;
+    }> = [];
+    let cursorTargetUserId = this.decodeCursor(params.cursor);
+    const batchSize = Math.max(take + 1, 20);
 
-    const targetUserIds = [...new Set(visibleFavorites.map((favorite) => favorite.targetUserId))];
-    const reverseFavorites = await this.prismaService.client.eventFavorite.findMany({
-      where: {
-        sourceUserId: { in: targetUserIds },
-        targetUserId: userId,
-      },
-    });
-    const reverseKeys = new Set(
-      reverseFavorites.map((favorite) => `${favorite.sourceUserId}:${favorite.eventId}`),
-    );
+    while (items.length < take + 1) {
+      const targetPage = await this.prismaService.client.eventFavorite.findMany({
+        where: {
+          sourceUserId: userId,
+          targetUserId: {
+            notIn: [...blockedUserIds],
+            ...(cursorTargetUserId == null
+                ? {}
+                : {
+                    gt: cursorTargetUserId,
+                  }),
+          },
+          targetUser: {
+            settings: {
+              is: {
+                discoverable: true,
+              },
+            },
+          },
+        },
+        select: {
+          targetUserId: true,
+        },
+        distinct: ['targetUserId'],
+        orderBy: [{ targetUserId: 'asc' }],
+        take: batchSize,
+      });
 
-    const matches = visibleFavorites.filter((favorite) =>
-      reverseKeys.has(`${favorite.targetUserId}:${favorite.eventId}`),
-    );
-    const uniqueMatches = new Map<string, (typeof matches)[number]>();
+      if (targetPage.length == 0) {
+        break;
+      }
 
-    for (const match of matches) {
-      if (!uniqueMatches.has(match.targetUserId)) {
-        uniqueMatches.set(match.targetUserId, match);
+      cursorTargetUserId = targetPage[targetPage.length - 1]!.targetUserId;
+      const targetUserIds = targetPage.map((item) => item.targetUserId);
+
+      const [sourceFavorites, reverseFavorites, users, currentUser] = await Promise.all([
+        this.prismaService.client.eventFavorite.findMany({
+          where: {
+            sourceUserId: userId,
+            targetUserId: {
+              in: targetUserIds,
+            },
+          },
+          include: {
+            event: true,
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+        this.prismaService.client.eventFavorite.findMany({
+          where: {
+            sourceUserId: { in: targetUserIds },
+            targetUserId: userId,
+          },
+        }),
+        this.prismaService.client.user.findMany({
+          where: {
+            id: { in: targetUserIds },
+            settings: {
+              is: {
+                discoverable: true,
+              },
+            },
+          },
+          include: {
+            profile: true,
+            onboarding: true,
+            settings: true,
+          },
+        }),
+        this.prismaService.client.user.findUnique({
+          where: { id: userId },
+          include: { onboarding: true },
+        }),
+      ]);
+
+      const reverseKeys = new Set(
+        reverseFavorites.map((favorite) => `${favorite.sourceUserId}:${favorite.eventId}`),
+      );
+      const ownInterests = Array.isArray(currentUser?.onboarding?.interests)
+          ? (currentUser!.onboarding!.interests as string[])
+          : [];
+      const usersById = new Map(users.map((user) => [user.id, user]));
+      const firstMatchByTarget = new Map<string, (typeof sourceFavorites)[number]>();
+
+      for (const favorite of sourceFavorites) {
+        if (!reverseKeys.has(`${favorite.targetUserId}:${favorite.eventId}`)) {
+          continue;
+        }
+        if (!firstMatchByTarget.has(favorite.targetUserId)) {
+          firstMatchByTarget.set(favorite.targetUserId, favorite);
+        }
+      }
+
+      for (const targetUserId of targetUserIds) {
+        const match = firstMatchByTarget.get(targetUserId);
+        const user = usersById.get(targetUserId);
+        if (match == null || user == null) {
+          continue;
+        }
+        const interests = Array.isArray(user.onboarding?.interests)
+          ? (user.onboarding!.interests as string[])
+          : [];
+        const common = interests.filter((item) => ownInterests.includes(item));
+        items.push({
+          userId: user.id,
+          displayName: user.displayName,
+          avatarUrl: user.profile?.avatarUrl ?? null,
+          area: user.profile?.area ?? null,
+          vibe: user.profile?.vibe ?? null,
+          score: Math.max(63, Math.min(95, 63 + common.length * 6)),
+          commonInterests: common,
+          eventId: match.eventId,
+          eventTitle: match.event.title,
+        });
+      }
+
+      if (targetPage.length < batchSize) {
+        break;
       }
     }
 
-    const users = await this.prismaService.client.user.findMany({
-      where: {
-        id: { in: [...uniqueMatches.keys()] },
-      },
-      include: {
-        profile: true,
-        onboarding: true,
-      },
-    });
-    const currentUser = await this.prismaService.client.user.findUnique({
-      where: { id: userId },
-      include: { onboarding: true },
-    });
-    const ownInterests = Array.isArray(currentUser?.onboarding?.interests)
-      ? (currentUser!.onboarding!.interests as string[])
-      : [];
-    const usersById = new Map(users.map((user) => [user.id, user]));
+    const hasMore = items.length > take;
+    const page = hasMore ? items.slice(0, take) : items;
 
-    return [...uniqueMatches.values()].map((match) => {
-      const user = usersById.get(match.targetUserId)!;
-      const interests = Array.isArray(user.onboarding?.interests)
-        ? (user.onboarding!.interests as string[])
-        : [];
-      const common = interests.filter((item) => ownInterests.includes(item));
-      return {
-        userId: user.id,
-        displayName: user.displayName,
-        avatarUrl: user.profile?.avatarUrl ?? null,
-        area: user.profile?.area ?? null,
-        vibe: user.profile?.vibe ?? null,
-        score: Math.max(63, Math.min(95, 63 + common.length * 6)),
-        commonInterests: common,
-        eventId: match.eventId,
-        eventTitle: match.event.title,
-      };
-    });
+    return {
+      items: page,
+      nextCursor:
+          hasMore && page.length > 0
+              ? encodeCursor({ value: page[page.length - 1]!.userId })
+              : null,
+    };
+  }
+
+  private normalizeLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private decodeCursor(cursor?: string) {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      return decodeCursor(cursor)?.value ?? null;
+    } catch {
+      return cursor;
+    }
   }
 }

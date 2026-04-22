@@ -12,3 +12,5 @@ process.env.JWT_REFRESH_SECRET ??= 'dev-refresh-secret';
 process.env.JWT_ACCESS_TTL ??= '15m';
 process.env.JWT_REFRESH_TTL ??= '30d';
 process.env.PUSH_PROVIDER ??= 'fake';
+process.env.ENABLE_DEV_AUTH ??= 'true';
+process.env.ENABLE_DEV_OTP ??= 'true';
