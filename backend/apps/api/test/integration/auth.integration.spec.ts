@@ -223,10 +223,25 @@ describe('auth flows', () => {
 
     const createdUser = await prisma.user.findUnique({
       where: { phoneNumber: freshPhoneNumber },
+      include: {
+        profile: true,
+        onboarding: true,
+        settings: true,
+      },
     });
 
     expect(createdUser?.id).toBe(freshVerifyResponse.body.userId);
     expect(createdUser?.displayName).toMatch(/^Пользователь /);
+    expect(createdUser?.profile?.city).toBeNull();
+    expect(createdUser?.profile?.area).toBeNull();
+    expect(createdUser?.onboarding?.city).toBeNull();
+    expect(createdUser?.onboarding?.area).toBeNull();
+    expect(createdUser?.onboarding?.intent).toBeNull();
+    expect(createdUser?.onboarding?.vibe).toBeNull();
+    expect(createdUser?.onboarding?.interests).toEqual([]);
+    expect(createdUser?.settings?.allowLocation).toBe(false);
+    expect(createdUser?.settings?.allowPush).toBe(false);
+    expect(createdUser?.settings?.allowContacts).toBe(false);
   });
 
   it('rejects wrong otp code', async () => {

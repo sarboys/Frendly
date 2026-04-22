@@ -311,8 +311,8 @@ export class AuthService {
     }
 
     const profilePreset = {
-      city: params.profile?.city ?? 'Москва',
-      area: params.profile?.area ?? 'Центр',
+      city: params.profile?.city,
+      area: params.profile?.area,
       bio: params.profile?.bio,
       vibe: params.profile?.vibe,
     };
@@ -393,53 +393,24 @@ export class AuthService {
 
   private buildRegistrationPreset(phoneNumber: string) {
     const digits = phoneNumber.replace(/\D/g, '');
-    const hash = digits
-      .split('')
-      .reduce((acc, digit) => acc + Number(digit), 0);
-
-    const cities = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург'];
-    const areas = ['Центр', 'Покровка', 'Патрики', 'Замоскворечье'];
-    const vibes = ['Спокойно', 'Уютно', 'Активно', 'Легко'];
-    const intents = ['both', 'friendship', 'dating', 'both'];
-    const interestSets = [
-      ['Кофе', 'Кино', 'Прогулки'],
-      ['Настолки', 'Бары', 'Книги'],
-      ['Бег', 'Велик', 'Кино'],
-      ['Театр', 'Готовка', 'Кофе'],
-    ];
-
-    const city = cities[hash % cities.length];
-    const area = areas[hash % areas.length];
-    const vibe = vibes[hash % vibes.length];
-    const intent = intents[hash % intents.length];
-    const interests = interestSets[hash % interestSets.length];
     const suffix = digits.slice(-4);
 
     return {
       displayName: `Пользователь ${suffix}`,
-      profile: {
-        city,
-        area,
-        bio: `Новый аккаунт с номером ${suffix}.`,
-        vibe,
-      },
+      profile: {},
       onboarding: {
-        intent,
-        city,
-        area,
-        interests,
-        vibe,
+        interests: [],
       },
       settings: {
-        allowLocation: hash % 2 === 0,
-        allowPush: true,
-        allowContacts: hash % 3 === 0,
-        autoSharePlans: hash % 2 !== 0,
-        hideExactLocation: hash % 4 === 0,
-        quietHours: hash % 5 === 0,
+        allowLocation: false,
+        allowPush: false,
+        allowContacts: false,
+        autoSharePlans: false,
+        hideExactLocation: false,
+        quietHours: false,
         showAge: true,
         discoverable: true,
-        darkMode: hash % 2 === 1,
+        darkMode: false,
       },
     };
   }

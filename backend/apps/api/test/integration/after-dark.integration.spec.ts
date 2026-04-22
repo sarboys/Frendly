@@ -193,6 +193,21 @@ describe('after dark api flows', () => {
     expect(joinResponse.body.id).toBe('ad1');
     expect(joinResponse.body.joined).toBe(true);
     expect(joinResponse.body.chatId).toEqual(expect.any(String));
+
+    const chatsResponse = await request(app.getHttpServer())
+      .get('/chats/meetups')
+      .query({ limit: 100 })
+      .set('authorization', `Bearer ${meAccessToken}`)
+      .expect(200);
+
+    expect(
+      chatsResponse.body.items.some(
+        (item: { id: string; isAfterDark: boolean; afterDarkGlow: string | null }) =>
+          item.id === joinResponse.body.chatId &&
+          item.isAfterDark === true &&
+          item.afterDarkGlow === 'magenta',
+      ),
+    ).toBe(true);
   });
 
   it('paginates after dark events by cursor with stable order', async () => {

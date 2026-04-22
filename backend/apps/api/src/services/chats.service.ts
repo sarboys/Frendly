@@ -46,12 +46,16 @@ export class ChatsService {
             id: true,
             hostId: true,
             startsAt: true,
+            isAfterDark: true,
+            afterDarkGlow: true,
           },
         },
         sourceEvent: {
           select: {
             title: true,
             hostId: true,
+            isAfterDark: true,
+            afterDarkGlow: true,
           },
         },
         members: {
@@ -129,6 +133,10 @@ export class ChatsService {
               .filter((entry) => !blockedUserIds.has(entry.userId))
               .map((entry) => entry.user.displayName),
             typing: false,
+            isAfterDark:
+              chat.event?.isAfterDark ?? chat.sourceEvent?.isAfterDark ?? false,
+            afterDarkGlow:
+              chat.event?.afterDarkGlow ?? chat.sourceEvent?.afterDarkGlow ?? null,
           };
         }
 
