@@ -90,6 +90,15 @@ export class SubscriptionService {
     return this.getCurrent(userId);
   }
 
+  async hasPremiumAccess(userId: string) {
+    const current = await this.getCurrent(userId);
+    return this.isPremiumStatus(current.status);
+  }
+
+  isPremiumStatus(status: string | null | undefined) {
+    return status === 'trial' || status === 'active';
+  }
+
   private resolveStatus(
     subscription:
       | {

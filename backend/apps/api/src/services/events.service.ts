@@ -18,10 +18,14 @@ import {
   mapUserPreview,
 } from '../common/presenters';
 import { PrismaService } from './prisma.service';
+import { SubscriptionService } from './subscription.service';
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   async listEvents(
     userId: string,
@@ -459,6 +463,21 @@ export class EventsService {
             where: { id: posterId },
           });
 
+    const mode =
+      body.mode === 'dating' || body.mode === 'afterdark'
+        ? body.mode
+        : 'default';
+    const isDatingMode = mode === 'dating';
+    const isAfterDarkMode = mode === 'afterdark';
+
+    if (isDatingMode) {
+      await this.assertDatingUnlocked(userId);
+    }
+
+    if (isAfterDarkMode) {
+      await this.assertAfterDarkUnlocked(userId);
+    }
+
     if (posterId != null && !poster) {
       throw new ApiError(404, 'poster_not_found', 'Poster not found');
     }
@@ -474,8 +493,9 @@ export class EventsService {
     const emoji =
       typeof body.emoji === 'string' && body.emoji.trim().length > 0
         ? body.emoji
-        : poster?.emoji ?? '🍷';
-    const vibe = typeof body.vibe === 'string' ? body.vibe : 'Спокойно';
+        : poster?.emoji ?? (isDatingMode ? '💘' : isAfterDarkMode ? '🖤' : '🍷');
+    const requestedVibe = typeof body.vibe === 'string' ? body.vibe : 'Спокойно';
+    const vibe = isDatingMode ? 'Свидание' : requestedVibe;
     const place =
       typeof body.place === 'string' && body.place.trim().length > 0
         ? body.place.trim()
@@ -495,15 +515,25 @@ export class EventsService {
       body.lifestyle === 'zozh' || body.lifestyle === 'anti' || body.lifestyle === 'neutral'
         ? body.lifestyle
         : 'neutral';
-    const priceMode =
+    const requestedPriceMode =
       body.priceMode === 'fixed' ||
       body.priceMode === 'from' ||
       body.priceMode === 'upto' ||
       body.priceMode === 'range' ||
       body.priceMode === 'split' ||
-      body.priceMode === 'free'
+      body.priceMode === 'free' ||
+      body.priceMode === 'host_pays' ||
+      body.priceMode === 'fifty_fifty'
         ? body.priceMode
         : 'free';
+    const priceMode =
+      isDatingMode
+        ? requestedPriceMode === 'fifty_fifty'
+          ? 'fifty_fifty'
+          : 'host_pays'
+        : requestedPriceMode === 'host_pays' || requestedPriceMode === 'fifty_fifty'
+          ? 'free'
+          : requestedPriceMode;
     const priceAmountFrom =
       typeof body.priceAmountFrom === 'number'
         ? Math.max(0, Math.round(body.priceAmountFrom))
@@ -520,18 +550,58 @@ export class EventsService {
       body.genderMode === 'male' || body.genderMode === 'female' || body.genderMode === 'all'
         ? body.genderMode
         : 'all';
-    const visibilityMode =
+    const requestedVisibilityMode =
       body.visibilityMode === 'friends' || body.visibility === 'private'
         ? 'friends'
         : 'public';
-    const accessMode = visibilityMode === 'friends' ? 'request' : requestedAccessMode;
+    const visibilityMode =
+      isDatingMode ? 'friends' : requestedVisibilityMode;
+    const accessMode =
+      isDatingMode || isAfterDarkMode
+        ? 'request'
+        : visibilityMode === 'friends'
+          ? 'request'
+          : requestedAccessMode;
     const joinMode =
+      isDatingMode ||
+      isAfterDarkMode ||
       visibilityMode === 'friends' ||
       accessMode === 'request' ||
       body.joinMode === 'request'
         ? 'request'
         : 'open';
     const inviteeUserId = typeof body.inviteeUserId === 'string' ? body.inviteeUserId : undefined;
+    const normalizedCapacity = isDatingMode ? 2 : capacity;
+    const afterDarkCategory =
+      isAfterDarkMode &&
+      (body.afterDarkCategory === 'kink' ||
+        body.afterDarkCategory === 'dating' ||
+        body.afterDarkCategory === 'wellness' ||
+        body.afterDarkCategory === 'nightlife')
+        ? body.afterDarkCategory
+        : isAfterDarkMode
+          ? 'nightlife'
+          : null;
+    const afterDarkGlow =
+      isAfterDarkMode && typeof body.afterDarkGlow === 'string' && body.afterDarkGlow.trim().length > 0
+        ? body.afterDarkGlow.trim()
+        : isAfterDarkMode
+          ? 'magenta'
+          : null;
+    const dressCode =
+      typeof body.dressCode === 'string' && body.dressCode.trim().length > 0
+        ? body.dressCode.trim()
+        : null;
+    const ageRange =
+      typeof body.ageRange === 'string' && body.ageRange.trim().length > 0
+        ? body.ageRange.trim()
+        : null;
+    const ratioLabel =
+      typeof body.ratioLabel === 'string' && body.ratioLabel.trim().length > 0
+        ? body.ratioLabel.trim()
+        : null;
+    const consentRequired = isAfterDarkMode ? body.consentRequired === true : false;
+    const rules = this.parseEventRules(body.rules);
 
     if (title.length === 0 || description.length === 0 || place.length === 0) {
       throw new ApiError(
@@ -549,7 +619,7 @@ export class EventsService {
       throw new ApiError(400, 'invalid_event_payload', 'distanceKm is invalid');
     }
 
-    if (!Number.isFinite(capacity) || capacity < 2 || capacity > 100) {
+    if (!Number.isFinite(normalizedCapacity) || normalizedCapacity < 2 || normalizedCapacity > 100) {
       throw new ApiError(400, 'invalid_event_payload', 'capacity is invalid');
     }
 
@@ -610,11 +680,19 @@ export class EventsService {
           description,
           idempotencyKey,
           sourcePosterId: poster?.id,
-          capacity,
+          capacity: normalizedCapacity,
           hostId: userId,
           isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
           isNewcomers: true,
-          isDate: vibe === 'Свидание',
+          isDate: isDatingMode || vibe === 'Свидание',
+          isAfterDark: isAfterDarkMode,
+          afterDarkCategory,
+          afterDarkGlow,
+          dressCode: isAfterDarkMode ? dressCode : null,
+          ageRange: isAfterDarkMode ? ageRange : null,
+          ratioLabel: isAfterDarkMode ? ratioLabel : null,
+          consentRequired,
+          rules: isAfterDarkMode ? (rules ?? Prisma.JsonNull) : Prisma.JsonNull,
         },
       });
 
@@ -1487,6 +1565,48 @@ export class EventsService {
         readAt: new Date(),
       },
     });
+  }
+
+  private async assertDatingUnlocked(userId: string) {
+    const allowed = await this.subscriptionService.hasPremiumAccess(userId);
+    if (!allowed) {
+      throw new ApiError(403, 'dating_locked', 'Dating is available only for Frendly+');
+    }
+  }
+
+  private async assertAfterDarkUnlocked(userId: string) {
+    const [current, settings] = await Promise.all([
+      this.subscriptionService.getCurrent(userId),
+      this.prismaService.client.userSettings.findUnique({
+        where: { userId },
+        select: {
+          afterDarkAgeConfirmedAt: true,
+          afterDarkCodeAcceptedAt: true,
+        },
+      }),
+    ]);
+
+    const unlocked =
+      this.subscriptionService.isPremiumStatus(current.status) &&
+      settings?.afterDarkAgeConfirmedAt != null &&
+      settings.afterDarkCodeAcceptedAt != null;
+
+    if (!unlocked) {
+      throw new ApiError(403, 'after_dark_locked', 'After Dark is locked');
+    }
+  }
+
+  private parseEventRules(raw: unknown) {
+    if (!Array.isArray(raw)) {
+      return null;
+    }
+
+    const rules = raw
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+
+    return rules.length > 0 ? rules : null;
   }
 
   private async getBlockedUserIds(userId: string) {

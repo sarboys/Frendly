@@ -84,6 +84,8 @@ const seededSettings: Record<
     showAge: true,
     discoverable: true,
     darkMode: false,
+    afterDarkAgeConfirmedAt: new Date('2026-04-18T08:00:00.000Z'),
+    afterDarkCodeAcceptedAt: new Date('2026-04-18T08:05:00.000Z'),
   },
   'user-dima': {
     allowLocation: true,
@@ -95,6 +97,8 @@ const seededSettings: Record<
     showAge: true,
     discoverable: true,
     darkMode: false,
+    afterDarkAgeConfirmedAt: new Date('2026-04-18T08:00:00.000Z'),
+    afterDarkCodeAcceptedAt: new Date('2026-04-18T08:05:00.000Z'),
   },
   'user-oleg': {
     allowLocation: true,
@@ -117,6 +121,7 @@ async function main() {
   await prisma.telegramAccount.deleteMany();
   await prisma.telegramBotState.deleteMany();
   await prisma.userSubscription.deleteMany();
+  await prisma.datingAction.deleteMany();
   await prisma.eventStory.deleteMany();
   await prisma.userBlock.deleteMany();
   await prisma.userReport.deleteMany();
@@ -572,6 +577,42 @@ async function main() {
         startedAt: new Date('2026-04-18T08:00:00.000Z'),
         renewsAt: new Date('2027-04-18T08:00:00.000Z'),
         trialEndsAt: new Date('2026-04-25T08:00:00.000Z'),
+      },
+      {
+        id: 'sub2',
+        userId: 'user-sonya',
+        plan: 'month',
+        status: 'active',
+        startedAt: new Date('2026-04-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        trialEndsAt: null,
+      },
+      {
+        id: 'sub3',
+        userId: 'user-oleg',
+        plan: 'month',
+        status: 'active',
+        startedAt: new Date('2026-04-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        trialEndsAt: null,
+      },
+      {
+        id: 'sub4',
+        userId: 'user-liza',
+        plan: 'month',
+        status: 'active',
+        startedAt: new Date('2026-04-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        trialEndsAt: null,
+      },
+      {
+        id: 'sub5',
+        userId: 'user-dima',
+        plan: 'month',
+        status: 'active',
+        startedAt: new Date('2026-04-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        trialEndsAt: null,
       },
     ],
   });

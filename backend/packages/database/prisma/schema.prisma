@@ -72,6 +72,14 @@ enum EventPriceMode {
   upto
   range
   split
+  host_pays
+  fifty_fifty
+}
+
+enum DatingActionKind {
+  pass
+  like
+  super_like
 }
 
 enum EventAccessMode {
@@ -224,6 +232,8 @@ model User {
   mediaAssets       MediaAsset[]
   telegramAccount   TelegramAccount?
   authAuditEvents   AuthAuditEvent[]
+  datingActionsSent DatingAction[]          @relation("DatingActionActor")
+  datingActionsReceived DatingAction[]       @relation("DatingActionTarget")
 }
 
 model UserSettings {
@@ -616,6 +626,21 @@ model UserSubscription {
   updatedAt    DateTime           @updatedAt
 
   @@index([userId, createdAt])
+}
+
+model DatingAction {
+  id           String           @id @default(cuid())
+  actorUserId  String
+  targetUserId String
+  action       DatingActionKind
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  actorUser    User             @relation("DatingActionActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  targetUser   User             @relation("DatingActionTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([actorUserId, targetUserId])
+  @@index([targetUserId, action, createdAt])
+  @@index([actorUserId, action, createdAt])
 }
 
 model Chat {

@@ -147,6 +147,7 @@ export class ChatsService {
 
         return {
           id: chat.id,
+          peerUserId: peer.id,
           name: peer?.displayName ?? 'Личный чат',
           lastMessage: lastMessagePreview,
           lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
