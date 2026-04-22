@@ -2,6 +2,7 @@ import {
   TELEGRAM_BOT_STATE_ID,
   deriveTelegramCodeFromSalt,
   hashTelegramCode,
+  hashTelegramCodeLookup,
 } from '@big-break/database';
 import { TelegramBotPollingService } from '../../src/telegram-bot-polling.service';
 
@@ -18,12 +19,26 @@ type SessionRecord = {
   phoneNumber: string | null;
   codeSalt: string | null;
   codeHash: string | null;
+  codeLookup?: string | null;
   attemptCount: number;
   expiresAt: Date;
   consumedAt: Date | null;
   lastCodeIssuedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+};
+
+type TelegramAccountRecord = {
+  userId: string;
+  telegramUserId: string;
+  chatId: string;
+  username?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  user?: {
+    id: string;
+    phoneNumber: string | null;
+  };
 };
 
 function telegramOk(result: unknown) {
@@ -36,7 +51,11 @@ function telegramOk(result: unknown) {
   });
 }
 
-function buildPrismaMock(initialSessions: SessionRecord[] = [], lastUpdateId?: bigint | null) {
+function buildPrismaMock(
+  initialSessions: SessionRecord[] = [],
+  lastUpdateId?: bigint | null,
+  telegramAccounts: TelegramAccountRecord[] = [],
+) {
   const sessions = new Map(initialSessions.map((session) => [session.id, { ...session }]));
   const state = {
     id: TELEGRAM_BOT_STATE_ID,
@@ -76,20 +95,24 @@ function buildPrismaMock(initialSessions: SessionRecord[] = [], lastUpdateId?: b
             where,
           }: {
             where: {
+              codeLookup?: string;
               telegramUserId?: string;
               chatId?: string;
               consumedAt?: null;
               expiresAt?: { gt: Date };
               status?: { in: string[] };
+              id?: { not?: string };
             };
           }) => {
             return (
               [...sessions.values()]
-                .filter((item) => item.telegramUserId === where.telegramUserId)
-                .filter((item) => item.chatId === where.chatId)
-                .filter((item) => item.consumedAt == null)
-                .filter((item) => item.expiresAt.getTime() > (where.expiresAt?.gt.getTime() ?? 0))
+                .filter((item) => where.codeLookup == null || item.codeLookup === where.codeLookup)
+                .filter((item) => where.telegramUserId == null || item.telegramUserId === where.telegramUserId)
+                .filter((item) => where.chatId == null || item.chatId === where.chatId)
+                .filter((item) => where.consumedAt !== null ? true : item.consumedAt == null)
+                .filter((item) => where.expiresAt == null || item.expiresAt.getTime() > where.expiresAt.gt.getTime())
                 .filter((item) => where.status?.in.includes(item.status) ?? true)
+                .filter((item) => where.id?.not == null || item.id !== where.id?.not)
                 .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())[0] ?? null
             );
           },
@@ -166,6 +189,21 @@ function buildPrismaMock(initialSessions: SessionRecord[] = [], lastUpdateId?: b
           },
         ),
       },
+      telegramAccount: {
+        findUnique: jest.fn(
+          async ({
+            where,
+          }: {
+            where: { telegramUserId: string };
+          }) => {
+            return (
+              telegramAccounts.find(
+              (item) => item.telegramUserId === where.telegramUserId,
+              ) ?? null
+            );
+          },
+        ),
+      },
     },
   } as any;
 
@@ -191,6 +229,7 @@ function buildSession(overrides: Partial<SessionRecord> = {}): SessionRecord {
     phoneNumber: overrides.phoneNumber ?? null,
     codeSalt: overrides.codeSalt ?? null,
     codeHash: overrides.codeHash ?? null,
+    codeLookup: (overrides as any).codeLookup ?? null,
     attemptCount: overrides.attemptCount ?? 0,
     expiresAt: overrides.expiresAt ?? new Date(now.getTime() + 10 * 60 * 1000),
     consumedAt: overrides.consumedAt ?? null,
@@ -377,6 +416,89 @@ describe('telegram bot polling', () => {
     expect(sendMessageCall?.[1]?.body).toContain('другом аккаунте Telegram');
   });
 
+  it('sends code immediately on plain start for linked telegram user', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(() => telegramOk(true))
+      .mockImplementationOnce(() =>
+        telegramOk([
+          {
+            update_id: 1,
+            message: {
+              message_id: 13,
+              text: '/start',
+              chat: { id: 77, type: 'private' },
+              from: {
+                id: 123,
+                is_bot: false,
+                username: 'linked',
+                first_name: 'Linked',
+              },
+            },
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => telegramOk(true));
+    const linkedAccount = {
+      userId: 'user-me',
+      telegramUserId: '123',
+      chatId: '77',
+      user: {
+        id: 'user-me',
+        phoneNumber: '+79991234567',
+      },
+    };
+    const { prismaService, sessions } = buildPrismaMock([], null, [linkedAccount]);
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
+
+    await service.pollOnce();
+
+    const created = [...sessions.values()][0];
+    expect(created?.status).toBe('code_issued');
+    expect(created?.phoneNumber).toBe('+79991234567');
+    const sendMessageCall = fetchMock.mock.calls.find(([url]) =>
+      `${url}`.includes('/sendMessage'),
+    );
+    expect(sendMessageCall?.[1]?.body).toContain('Код для входа');
+  });
+
+  it('requests contact on plain start for user without telegram link', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(() => telegramOk(true))
+      .mockImplementationOnce(() =>
+        telegramOk([
+          {
+            update_id: 1,
+            message: {
+              message_id: 14,
+              text: '/start',
+              chat: { id: 88, type: 'private' },
+              from: {
+                id: 456,
+                is_bot: false,
+                first_name: 'New',
+              },
+            },
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => telegramOk(true));
+    const { prismaService, sessions } = buildPrismaMock();
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
+
+    await service.pollOnce();
+
+    const created = [...sessions.values()][0];
+    expect(created?.status).toBe('awaiting_contact');
+    const sendMessageCall = fetchMock.mock.calls.find(([url]) =>
+      `${url}`.includes('/sendMessage'),
+    );
+    expect(sendMessageCall?.[1]?.body).toContain('Поделись номером телефона');
+  });
+
   it('ignores contact from another telegram user', async () => {
     const session = buildSession({
       id: 'session-1',
@@ -465,6 +587,7 @@ describe('telegram bot polling', () => {
       phoneNumber: '+79991234567',
       codeSalt,
       codeHash: hashTelegramCode(expectedCode, codeSalt),
+      codeLookup: hashTelegramCodeLookup(expectedCode),
       lastCodeIssuedAt: new Date(),
     });
     const fetchMock = jest

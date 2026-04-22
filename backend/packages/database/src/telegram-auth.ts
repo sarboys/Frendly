@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 
-export const TELEGRAM_AUTH_CODE_LENGTH = 6;
+export const TELEGRAM_AUTH_CODE_LENGTH = 4;
 export const TELEGRAM_AUTH_TTL_MS = 10 * 60 * 1000;
 export const TELEGRAM_AUTH_CONTACT_COOLDOWN_MS = 60 * 1000;
 export const TELEGRAM_AUTH_MAX_ATTEMPTS = 5;
@@ -78,6 +78,10 @@ export function createTelegramCodePayload() {
 
 export function hashTelegramCode(code: string, salt: string) {
   return createHash('sha256').update(`${salt}:${code}`).digest('hex');
+}
+
+export function hashTelegramCodeLookup(code: string) {
+  return createHash('sha256').update(`telegram-code-lookup:${code}`).digest('hex');
 }
 
 export function maskPhoneNumber(raw: string) {

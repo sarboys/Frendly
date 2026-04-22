@@ -293,6 +293,7 @@ model TelegramLoginSession {
   phoneNumber      String?
   codeSalt         String?
   codeHash         String?
+  codeLookup       String?
   attemptCount     Int                        @default(0)
   expiresAt        DateTime
   consumedAt       DateTime?
@@ -302,6 +303,7 @@ model TelegramLoginSession {
 
   @@index([status, expiresAt])
   @@index([telegramUserId, status])
+  @@index([codeLookup, status, expiresAt])
 }
 
 model AuthAuditEvent {

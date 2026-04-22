@@ -10,6 +10,7 @@ import {
   createTelegramCodePayload,
   deriveTelegramCodeFromSalt,
   getTelegramAuthConfig,
+  hashTelegramCodeLookup,
 } from '@big-break/database';
 import { PrismaService } from './prisma.service';
 
@@ -173,6 +174,11 @@ export class TelegramBotPollingService implements OnModuleDestroy {
   private async handleStartCommand(message: TelegramMessage) {
     const chat = message.chat!;
     const payload = message.text?.trim().split(/\s+/)[1] ?? '';
+    if (payload.length === 0) {
+      await this.handlePlainStart(message);
+      return;
+    }
+
     const startToken = this.extractStartToken(payload);
     if (!startToken) {
       await this.sendMessage(
@@ -181,6 +187,84 @@ export class TelegramBotPollingService implements OnModuleDestroy {
       );
       return;
     }
+
+    await this.handleDeepLinkStart(message, startToken);
+  }
+
+  private async handlePlainStart(message: TelegramMessage) {
+    const linkedAccount = await this.findLinkedAccount(`${message.from!.id}`);
+    if (linkedAccount?.user?.phoneNumber != null) {
+      const existingSession = await this.prismaService.client.telegramLoginSession.findFirst({
+        where: {
+          telegramUserId: `${message.from!.id}`,
+          chatId: `${message.chat!.id}`,
+          consumedAt: null,
+          expiresAt: {
+            gt: new Date(),
+          },
+          status: {
+            in: ['code_issued'],
+          },
+        },
+      });
+
+      await this.issueCodeForSession(
+        existingSession?.id ??
+            (
+              await this.prismaService.client.telegramLoginSession.create({
+                data: {
+                  loginSessionId: randomUUID(),
+                  startToken: randomUUID(),
+                  status: 'pending_bot',
+                  telegramUserId: `${message.from!.id}`,
+                  chatId: `${message.chat!.id}`,
+                  username: message.from?.username,
+                  firstName: message.from?.first_name,
+                  lastName: message.from?.last_name,
+                  expiresAt: new Date(Date.now() + TELEGRAM_AUTH_TTL_MS),
+                },
+              })
+            ).id,
+        linkedAccount.user.phoneNumber,
+        message,
+      );
+      return;
+    }
+
+    const session = await this.prismaService.client.telegramLoginSession.findFirst({
+      where: {
+        telegramUserId: `${message.from!.id}`,
+        chatId: `${message.chat!.id}`,
+        consumedAt: null,
+        expiresAt: {
+          gt: new Date(),
+        },
+        status: {
+          in: ['awaiting_contact'],
+        },
+      },
+    });
+
+    if (!session) {
+      await this.prismaService.client.telegramLoginSession.create({
+        data: {
+          loginSessionId: randomUUID(),
+          startToken: randomUUID(),
+          status: 'awaiting_contact',
+          telegramUserId: `${message.from!.id}`,
+          chatId: `${message.chat!.id}`,
+          username: message.from?.username,
+          firstName: message.from?.first_name,
+          lastName: message.from?.last_name,
+          expiresAt: new Date(Date.now() + TELEGRAM_AUTH_TTL_MS),
+        },
+      });
+    }
+    await this.sendContactPrompt(message.chat!.id);
+  }
+
+  private async handleDeepLinkStart(message: TelegramMessage, startToken: string) {
+    const chat = message.chat!;
 
     const incomingTelegramUserId = `${message.from!.id}`;
     const session = await this.prismaService.client.telegramLoginSession.findUnique({
@@ -202,7 +286,21 @@ export class TelegramBotPollingService implements OnModuleDestroy {
         },
       });
 
-      await this.sendContactPrompt(chat.id);
+      const linkedAccount = await this.findLinkedAccount(incomingTelegramUserId);
+      if (linkedAccount?.user?.phoneNumber != null) {
+        const createdSession = await this.prismaService.client.telegramLoginSession.findUnique({
+          where: { startToken },
+        });
+        if (createdSession) {
+          await this.issueCodeForSession(
+            createdSession.id,
+            linkedAccount.user.phoneNumber,
+            message,
+          );
+        }
+      } else {
+        await this.sendContactPrompt(chat.id);
+      }
       return;
     }
 
@@ -226,10 +324,12 @@ export class TelegramBotPollingService implements OnModuleDestroy {
       return;
     }
 
-    await this.prismaService.client.telegramLoginSession.update({
+    const linkedAccount = await this.findLinkedAccount(incomingTelegramUserId);
+    const updatedSession = await this.prismaService.client.telegramLoginSession.update({
       where: { id: session.id },
       data: {
-        status: session.status === 'consumed' ? session.status : 'awaiting_contact',
+        status:
+            linkedAccount?.user?.phoneNumber != null ? 'pending_bot' : 'awaiting_contact',
         telegramUserId: incomingTelegramUserId,
         chatId: `${chat.id}`,
         username: message.from?.username,
@@ -237,6 +337,15 @@ export class TelegramBotPollingService implements OnModuleDestroy {
         lastName: message.from?.last_name,
       },
     });
+
+    if (linkedAccount?.user?.phoneNumber != null) {
+      await this.issueCodeForSession(
+        updatedSession.id,
+        linkedAccount.user.phoneNumber,
+        message,
+      );
+      return;
+    }
 
     await this.sendContactPrompt(chat.id);
   }
@@ -277,40 +386,22 @@ export class TelegramBotPollingService implements OnModuleDestroy {
       session.status === 'code_issued' &&
       session.codeSalt != null &&
       session.codeHash != null &&
+      session.codeLookup != null &&
       session.lastCodeIssuedAt != null &&
       now.getTime() - session.lastCodeIssuedAt.getTime() < TELEGRAM_AUTH_CONTACT_COOLDOWN_MS;
 
-    const codePayload = shouldReuseCode
-      ? {
-          salt: session.codeSalt!,
-          code: deriveTelegramCodeFromSalt(session.codeSalt!),
-          hash: session.codeHash!,
-        }
-      : createTelegramCodePayload();
+    if (shouldReuseCode) {
+      await this.sendMessage(
+        chat.id,
+        `Код для входа: ${deriveTelegramCodeFromSalt(session.codeSalt!)}\nВведи его в приложении.`,
+        {
+          remove_keyboard: true,
+        },
+      );
+      return;
+    }
 
-    await this.prismaService.client.telegramLoginSession.update({
-      where: { id: session.id },
-      data: {
-        status: 'code_issued',
-        telegramUserId,
-        chatId,
-        username: message.from?.username,
-        firstName: message.from?.first_name,
-        lastName: message.from?.last_name,
-        phoneNumber: normalizedPhone,
-        codeSalt: codePayload.salt,
-        codeHash: codePayload.hash,
-        lastCodeIssuedAt: shouldReuseCode ? session.lastCodeIssuedAt : now,
-      },
-    });
-
-    await this.sendMessage(
-      chat.id,
-      `Код для входа: ${codePayload.code}\nВведи его в приложении.`,
-      {
-        remove_keyboard: true,
-      },
-    );
+    await this.issueCodeForSession(session.id, normalizedPhone, message);
   }
 
   private extractStartToken(payload: string) {
@@ -363,6 +454,110 @@ export class TelegramBotPollingService implements OnModuleDestroy {
       ],
       resize_keyboard: true,
       one_time_keyboard: true,
+    });
+  }
+
+  private async issueCodeForSession(
+    sessionId: string,
+    phoneNumber: string,
+    message: TelegramMessage,
+  ) {
+    const currentSession = await this.prismaService.client.telegramLoginSession.findUnique({
+      where: { id: sessionId },
+    });
+    const now = new Date();
+
+    if (
+      currentSession?.status === 'code_issued' &&
+      currentSession.codeSalt != null &&
+      currentSession.codeHash != null &&
+      currentSession.codeLookup != null &&
+      currentSession.lastCodeIssuedAt != null &&
+      currentSession.phoneNumber === phoneNumber &&
+      now.getTime() - currentSession.lastCodeIssuedAt.getTime() < TELEGRAM_AUTH_CONTACT_COOLDOWN_MS
+    ) {
+      await this.sendMessage(
+        message.chat!.id,
+        `Код для входа: ${deriveTelegramCodeFromSalt(currentSession.codeSalt)}\nВведи его в приложении.`,
+        {
+          remove_keyboard: true,
+        },
+      );
+      return;
+    }
+
+    const codePayload = await this.createUniqueCodePayload(sessionId);
+
+    await this.prismaService.client.telegramLoginSession.update({
+      where: { id: sessionId },
+      data: {
+        status: 'code_issued',
+        telegramUserId: `${message.from!.id}`,
+        chatId: `${message.chat!.id}`,
+        username: message.from?.username,
+        firstName: message.from?.first_name,
+        lastName: message.from?.last_name,
+        phoneNumber,
+        codeSalt: codePayload.salt,
+        codeHash: codePayload.hash,
+        codeLookup: codePayload.codeLookup,
+        attemptCount: 0,
+        lastCodeIssuedAt: now,
+      },
+    });
+
+    await this.sendMessage(
+      message.chat!.id,
+      `Код для входа: ${codePayload.code}\nВведи его в приложении.`,
+      {
+        remove_keyboard: true,
+      },
+    );
+  }
+
+  private async createUniqueCodePayload(sessionId: string) {
+    const expiresAt = new Date();
+    for (let attempt = 0; attempt < 32; attempt += 1) {
+      const payload = createTelegramCodePayload();
+      const codeLookup = hashTelegramCodeLookup(payload.code);
+      const existing = await this.prismaService.client.telegramLoginSession.findFirst({
+        where: {
+          codeLookup,
+          status: {
+            in: ['code_issued'],
+          },
+          consumedAt: null,
+          expiresAt: {
+            gt: expiresAt,
+          },
+          id: {
+            not: sessionId,
+          },
+        },
+      });
+
+      if (!existing) {
+        return {
+          ...payload,
+          codeLookup,
+        };
+      }
+    }
+
+    throw new Error('telegram_code_space_exhausted');
+  }
+
+  private async findLinkedAccount(telegramUserId: string) {
+    return this.prismaService.client.telegramAccount.findUnique({
+      where: { telegramUserId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phoneNumber: true,
+          },
+        },
+      },
     });
   }
 

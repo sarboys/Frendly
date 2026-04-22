@@ -8,6 +8,7 @@ import {
   generateTelegramStartToken,
   getTelegramAuthConfig,
   hashTelegramCode,
+  hashTelegramCodeLookup,
   maskPhoneNumber,
 } from '@big-break/database';
 import { randomUUID } from 'node:crypto';
@@ -130,7 +131,6 @@ export class TelegramAuthService {
   }
 
   async verify(
-    loginSessionId: string,
     code: string,
     meta: AuthRequestMeta,
   ): Promise<{
@@ -142,60 +142,69 @@ export class TelegramAuthService {
     this.getRequiredConfig();
     const prisma = this.prismaService.client;
     const now = new Date();
-    const session = await prisma.telegramLoginSession.findUnique({
-      where: { loginSessionId },
+    const codeLookup = hashTelegramCodeLookup(code);
+    const sessions = await prisma.telegramLoginSession.findMany({
+      where: {
+        codeLookup,
+        status: 'code_issued',
+        consumedAt: null,
+        expiresAt: {
+          gt: now,
+        },
+      },
     });
 
-    if (!session || session.consumedAt != null || session.expiresAt.getTime() < now.getTime()) {
+    if (sessions.length === 0) {
       await this.writeAuditEvent(prisma, {
         provider: 'telegram',
         kind: 'verify',
         result: 'rejected',
         requestId: meta.requestId,
-        loginSessionId,
         ip: meta.ip,
         userAgent: meta.userAgent,
       });
       throw new ApiError(
         400,
-        'invalid_telegram_login_session',
-        'Telegram login session is invalid',
+        'invalid_telegram_code',
+        'Telegram code is invalid',
       );
     }
 
-    if (session.status === 'failed' || session.attemptCount >= TELEGRAM_AUTH_MAX_ATTEMPTS) {
+    if (sessions.length > 1) {
       await this.writeAuditEvent(prisma, {
         provider: 'telegram',
         kind: 'verify',
-        result: 'rate_limited',
+        result: 'conflict',
         requestId: meta.requestId,
-        loginSessionId,
-        telegramUserId: session.telegramUserId ?? undefined,
-        maskedPhone: session.phoneNumber ? maskPhoneNumber(session.phoneNumber) : undefined,
         ip: meta.ip,
         userAgent: meta.userAgent,
+        metadata: {
+          duplicateCodeLookup: true,
+        },
       });
       throw new ApiError(
-        429,
-        'telegram_auth_rate_limited',
-        'Telegram auth is rate limited',
+        409,
+        'telegram_auth_conflict',
+        'Telegram auth resolves to different users',
       );
     }
 
+    const session = sessions[0]!;
+
     if (
-      session.status !== 'code_issued' ||
       !session.telegramUserId ||
       !session.chatId ||
       !session.phoneNumber ||
       !session.codeSalt ||
-      !session.codeHash
+      !session.codeHash ||
+      !session.codeLookup
     ) {
       await this.writeAuditEvent(prisma, {
         provider: 'telegram',
         kind: 'verify',
         result: 'rejected',
         requestId: meta.requestId,
-        loginSessionId,
+        loginSessionId: session.loginSessionId,
         telegramUserId: session.telegramUserId ?? undefined,
         maskedPhone: session.phoneNumber ? maskPhoneNumber(session.phoneNumber) : undefined,
         ip: meta.ip,
@@ -203,8 +212,8 @@ export class TelegramAuthService {
       });
       throw new ApiError(
         400,
-        'invalid_telegram_login_session',
-        'Telegram login session is invalid',
+        'invalid_telegram_code',
+        'Telegram code is invalid',
       );
     }
 
@@ -227,7 +236,7 @@ export class TelegramAuthService {
         kind: 'verify',
         result: limited ? 'rate_limited' : 'rejected',
         requestId: meta.requestId,
-        loginSessionId,
+        loginSessionId: session.loginSessionId,
         telegramUserId: session.telegramUserId,
         maskedPhone: maskPhoneNumber(session.phoneNumber),
         ip: meta.ip,
@@ -269,7 +278,7 @@ export class TelegramAuthService {
         kind: 'verify',
         result: 'conflict',
         requestId: meta.requestId,
-        loginSessionId,
+        loginSessionId: session.loginSessionId,
         telegramUserId: session.telegramUserId,
         maskedPhone: maskPhoneNumber(session.phoneNumber),
         ip: meta.ip,
@@ -341,7 +350,7 @@ export class TelegramAuthService {
         requestId: meta.requestId,
         userId: user.id,
         telegramUserId: session.telegramUserId!,
-        loginSessionId,
+        loginSessionId: session.loginSessionId,
         sessionId: createdSession.sessionId,
         maskedPhone: maskPhoneNumber(session.phoneNumber!),
         ip: meta.ip,

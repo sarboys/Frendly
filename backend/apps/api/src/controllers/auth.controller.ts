@@ -9,10 +9,7 @@ import { TelegramAuthService } from '../services/telegram-auth.service';
 
 class TelegramVerifyRequest {
   @IsString()
-  loginSessionId!: string;
-
-  @IsString()
-  @Length(6, 6)
+  @Length(4, 4)
   code!: string;
 }
 
@@ -73,7 +70,7 @@ export class AuthController {
     @Body() body: TelegramVerifyRequest,
     @Req() request: RequestWithContext,
   ) {
-    return this.telegramAuthService.verify(body.loginSessionId, body.code, {
+    return this.telegramAuthService.verify(body.code, {
       requestId: request.context.requestId,
       ip: request.ip,
       userAgent: request.get('user-agent') ?? undefined,
