@@ -99,6 +99,10 @@ jobs:
         working-directory: backend
         run: pnpm db:deploy
 
+      - name: Seed database
+        working-directory: backend
+        run: pnpm db:seed
+
       - name: Run backend tests
         working-directory: backend
         run: pnpm test
