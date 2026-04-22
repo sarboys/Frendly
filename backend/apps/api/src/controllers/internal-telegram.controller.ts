@@ -66,6 +66,12 @@ export class InternalTelegramController {
 
   private isValidSecret(secret: string | undefined) {
     const configured = process.env.TELEGRAM_INTERNAL_SECRET?.trim();
-    return configured != null && configured.length > 0 && secret === configured;
+    const fallback = process.env.TELEGRAM_BOT_TOKEN?.trim();
+
+    if (!secret || secret.trim().length == 0) {
+      return false;
+    }
+
+    return secret === configured || secret === fallback;
   }
 }

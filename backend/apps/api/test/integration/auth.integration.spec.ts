@@ -357,6 +357,19 @@ describe('auth flows', () => {
     expect(response.body.actions[0].text).toMatch(/Код для входа: \d{4}/);
   });
 
+  it('accepts telegram bot token as fallback internal secret', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/internal/telegram/dispatch')
+      .set('x-telegram-internal-secret', process.env.TELEGRAM_BOT_TOKEN!)
+      .send({
+        kind: 'start',
+        telegramUserId: nextTelegramUserId(),
+        chatId: `chat-${randomUUID()}`,
+      });
+
+    expect(response.status).toBe(201);
+  });
+
   it('reuses active telegram session for the same start token', async () => {
     const startToken = `start-${randomUUID()}`;
 
