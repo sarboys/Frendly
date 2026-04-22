@@ -10,6 +10,22 @@ permissions:
   contents: read
 
 jobs:
+  detect-mobile:
+    runs-on: ubuntu-latest
+    outputs:
+      has_mobile: ${{ steps.check.outputs.has_mobile }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: check
+        name: Check mobile workspace
+        run: |
+          if [ -f mobile/pubspec.yaml ]; then
+            echo "has_mobile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+
   backend:
     runs-on: ubuntu-latest
     services:
@@ -92,7 +108,8 @@ jobs:
         run: pnpm audit --prod --audit-level high
 
   mobile:
-    if: ${{ hashFiles('mobile/pubspec.yaml') != '' }}
+    needs: detect-mobile
+    if: ${{ needs.detect-mobile.outputs.has_mobile == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
