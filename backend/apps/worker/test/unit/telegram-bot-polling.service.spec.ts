@@ -94,6 +94,23 @@ function buildPrismaMock(initialSessions: SessionRecord[] = [], lastUpdateId?: b
             );
           },
         ),
+        create: jest.fn(
+          async ({
+            data,
+          }: {
+            data: Partial<SessionRecord>;
+          }) => {
+            const created = buildSession({
+              ...data,
+              id: data.id ?? `created-${sessions.size + 1}`,
+              loginSessionId: data.loginSessionId ?? `login-${sessions.size + 1}`,
+              startToken: data.startToken ?? `start-${sessions.size + 1}`,
+              status: data.status ?? 'pending_bot',
+            });
+            sessions.set(created.id, created);
+            return created;
+          },
+        ),
         update: jest.fn(
           async ({
             where,
@@ -252,6 +269,112 @@ describe('telegram bot polling', () => {
     await service.pollOnce();
 
     expect(sessions.get('session-1')?.status).toBe('pending_bot');
+  });
+
+  it('creates stub session when bot gets start token before api start', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(() => telegramOk(true))
+      .mockImplementationOnce(() =>
+        telegramOk([
+          {
+            update_id: 1,
+            message: {
+              message_id: 10,
+              text: '/start login_worker-first-token',
+              chat: { id: 55, type: 'private' },
+              from: {
+                id: 77,
+                is_bot: false,
+                username: 'worker_first',
+                first_name: 'Worker',
+              },
+            },
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => telegramOk(true));
+    const { prismaService, sessions } = buildPrismaMock();
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
+
+    await service.pollOnce();
+
+    const created = [...sessions.values()].find(
+      (item) => item.startToken == 'worker-first-token',
+    );
+    expect(created).toBeDefined();
+    expect(created?.status).toBe('awaiting_contact');
+    expect(created?.telegramUserId).toBe('77');
+    expect(created?.chatId).toBe('55');
+  });
+
+  it('sends explicit message for bad start token format', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(() => telegramOk(true))
+      .mockImplementationOnce(() =>
+        telegramOk([
+          {
+            update_id: 1,
+            message: {
+              message_id: 11,
+              text: '/start wrong_payload',
+              chat: { id: 55, type: 'private' },
+              from: { id: 77, is_bot: false, first_name: 'Bad' },
+            },
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => telegramOk(true));
+    const { prismaService } = buildPrismaMock();
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
+
+    await service.pollOnce();
+
+    const sendMessageCall = fetchMock.mock.calls.find(([url]) =>
+      `${url}`.includes('/sendMessage'),
+    );
+    expect(sendMessageCall?.[1]?.body).toContain('начни вход заново');
+  });
+
+  it('sends explicit conflict message when another telegram user reuses the same start token', async () => {
+    const session = buildSession({
+      id: 'session-1',
+      startToken: 'conflict-token',
+      status: 'awaiting_contact',
+      telegramUserId: '123',
+      chatId: '10',
+    });
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(() => telegramOk(true))
+      .mockImplementationOnce(() =>
+        telegramOk([
+          {
+            update_id: 1,
+            message: {
+              message_id: 12,
+              text: '/start login_conflict-token',
+              chat: { id: 99, type: 'private' },
+              from: { id: 999, is_bot: false, first_name: 'Conflict' },
+            },
+          },
+        ]),
+      )
+      .mockImplementationOnce(() => telegramOk(true));
+    const { prismaService, sessions } = buildPrismaMock([session]);
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
+
+    await service.pollOnce();
+
+    expect(sessions.get('session-1')?.chatId).toBe('10');
+    const sendMessageCall = fetchMock.mock.calls.find(([url]) =>
+      `${url}`.includes('/sendMessage'),
+    );
+    expect(sendMessageCall?.[1]?.body).toContain('другом аккаунте Telegram');
   });
 
   it('ignores contact from another telegram user', async () => {

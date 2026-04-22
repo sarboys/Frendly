@@ -18,6 +18,7 @@ import { PrismaService } from './prisma.service';
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
 interface AuthRequestMeta {
+  startToken?: string;
   requestId: string;
   ip?: string;
   userAgent?: string;
@@ -33,9 +34,69 @@ export class TelegramAuthService {
   async start(meta: AuthRequestMeta) {
     const config = this.getRequiredConfig();
     const botUsername = config.botUsername!;
-    const loginSessionId = randomUUID();
-    const startToken = generateTelegramStartToken();
     const expiresAt = new Date(Date.now() + TELEGRAM_AUTH_TTL_MS);
+    const startToken = meta.startToken ?? generateTelegramStartToken();
+    const existingSession = await this.prismaService.client.telegramLoginSession.findUnique({
+      where: { startToken },
+    });
+
+    if (existingSession) {
+      if (
+        existingSession.consumedAt != null ||
+        existingSession.expiresAt.getTime() <= Date.now() ||
+        existingSession.status === 'failed'
+      ) {
+        await this.writeAuditEvent(this.prismaService.client, {
+          provider: 'telegram',
+          kind: 'start',
+          result: 'rejected',
+          requestId: meta.requestId,
+          loginSessionId: existingSession.loginSessionId,
+          telegramUserId: existingSession.telegramUserId ?? undefined,
+          maskedPhone: existingSession.phoneNumber
+            ? maskPhoneNumber(existingSession.phoneNumber)
+            : undefined,
+          ip: meta.ip,
+          userAgent: meta.userAgent,
+          metadata: {
+            reused: true,
+            reason: 'inactive_session',
+          },
+        });
+        throw new ApiError(
+          400,
+          'invalid_telegram_login_session',
+          'Telegram login session is invalid',
+        );
+      }
+
+      await this.writeAuditEvent(this.prismaService.client, {
+        provider: 'telegram',
+        kind: 'start',
+        result: 'issued',
+        requestId: meta.requestId,
+        loginSessionId: existingSession.loginSessionId,
+        telegramUserId: existingSession.telegramUserId ?? undefined,
+        maskedPhone: existingSession.phoneNumber
+          ? maskPhoneNumber(existingSession.phoneNumber)
+          : undefined,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        metadata: {
+          codeLength: TELEGRAM_AUTH_CODE_LENGTH,
+          reused: true,
+        },
+      });
+
+      return {
+        loginSessionId: existingSession.loginSessionId,
+        botUrl: buildTelegramBotUrl(botUsername, startToken),
+        expiresAt: existingSession.expiresAt,
+        codeLength: TELEGRAM_AUTH_CODE_LENGTH,
+      };
+    }
+
+    const loginSessionId = randomUUID();
 
     await this.prismaService.client.telegramLoginSession.create({
       data: {
@@ -56,6 +117,7 @@ export class TelegramAuthService {
       userAgent: meta.userAgent,
       metadata: {
         codeLength: TELEGRAM_AUTH_CODE_LENGTH,
+        reused: false,
       },
     });
 

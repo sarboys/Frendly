@@ -2,8 +2,10 @@ import {
   Injectable,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import {
   TELEGRAM_AUTH_CONTACT_COOLDOWN_MS,
+  TELEGRAM_AUTH_TTL_MS,
   TELEGRAM_BOT_STATE_ID,
   createTelegramCodePayload,
   deriveTelegramCodeFromSalt,
@@ -173,30 +175,62 @@ export class TelegramBotPollingService implements OnModuleDestroy {
     const payload = message.text?.trim().split(/\s+/)[1] ?? '';
     const startToken = this.extractStartToken(payload);
     if (!startToken) {
+      await this.sendMessage(
+        chat.id,
+        'Ссылка входа невалидна. Вернись в приложение и начни вход заново.',
+      );
       return;
     }
 
+    const incomingTelegramUserId = `${message.from!.id}`;
     const session = await this.prismaService.client.telegramLoginSession.findUnique({
       where: { startToken },
     });
-    if (
-      !session ||
-      session.consumedAt != null ||
-      session.expiresAt.getTime() <= Date.now() ||
-      session.status !== 'pending_bot'
-    ) {
+
+    if (!session) {
+      await this.prismaService.client.telegramLoginSession.create({
+        data: {
+          loginSessionId: randomUUID(),
+          startToken,
+          status: 'awaiting_contact',
+          telegramUserId: incomingTelegramUserId,
+          chatId: `${chat.id}`,
+          username: message.from?.username,
+          firstName: message.from?.first_name,
+          lastName: message.from?.last_name,
+          expiresAt: new Date(Date.now() + TELEGRAM_AUTH_TTL_MS),
+        },
+      });
+
+      await this.sendContactPrompt(chat.id);
       return;
     }
 
-    await this.prismaService.client.telegramLoginSession.updateMany({
-      where: {
-        startToken,
-        status: 'pending_bot',
-        consumedAt: null,
-      },
+    if (session.telegramUserId != null && session.telegramUserId !== incomingTelegramUserId) {
+      await this.sendMessage(
+        chat.id,
+        'Эта ссылка уже открыта в другом аккаунте Telegram. Вернись в приложение и начни вход заново.',
+      );
+      return;
+    }
+
+    if (
+      session.consumedAt != null ||
+      session.expiresAt.getTime() <= Date.now() ||
+      session.status === 'failed'
+    ) {
+      await this.sendMessage(
+        chat.id,
+        'Эта ссылка уже устарела. Вернись в приложение и начни вход заново.',
+      );
+      return;
+    }
+
+    await this.prismaService.client.telegramLoginSession.update({
+      where: { id: session.id },
       data: {
-        status: 'awaiting_contact',
-        telegramUserId: `${message.from!.id}`,
+        status: session.status === 'consumed' ? session.status : 'awaiting_contact',
+        telegramUserId: incomingTelegramUserId,
         chatId: `${chat.id}`,
         username: message.from?.username,
         firstName: message.from?.first_name,
@@ -204,18 +238,7 @@ export class TelegramBotPollingService implements OnModuleDestroy {
       },
     });
 
-    await this.sendMessage(chat.id, 'Поделись номером телефона, чтобы получить код для входа.', {
-      keyboard: [
-        [
-          {
-            text: 'Поделиться контактом',
-            request_contact: true,
-          },
-        ],
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: true,
-    });
+    await this.sendContactPrompt(chat.id);
   }
 
   private async handleContact(message: TelegramMessage) {
@@ -325,6 +348,21 @@ export class TelegramBotPollingService implements OnModuleDestroy {
       chat_id: chatId,
       text,
       ...(replyMarkup == null ? {} : { reply_markup: replyMarkup }),
+    });
+  }
+
+  private async sendContactPrompt(chatId: number) {
+    await this.sendMessage(chatId, 'Поделись номером телефона, чтобы получить код для входа.', {
+      keyboard: [
+        [
+          {
+            text: 'Поделиться контактом',
+            request_contact: true,
+          },
+        ],
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: true,
     });
   }
 

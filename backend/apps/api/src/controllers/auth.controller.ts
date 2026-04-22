@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { DevLoginRequest } from '@big-break/contracts';
-import { IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 import { CurrentUser } from '../common/current-user.decorator';
 import { Public } from '../common/public.decorator';
 import { RequestWithContext } from '../common/request-context';
@@ -14,6 +14,12 @@ class TelegramVerifyRequest {
   @IsString()
   @Length(6, 6)
   code!: string;
+}
+
+class TelegramStartRequest {
+  @IsOptional()
+  @IsString()
+  startToken?: string;
 }
 
 @Controller()
@@ -49,8 +55,12 @@ export class AuthController {
 
   @Public()
   @Post('auth/telegram/start')
-  startTelegramAuth(@Req() request: RequestWithContext) {
+  startTelegramAuth(
+    @Body() body: TelegramStartRequest,
+    @Req() request: RequestWithContext,
+  ) {
     return this.telegramAuthService.start({
+      startToken: body.startToken?.trim() || undefined,
       requestId: request.context.requestId,
       ip: request.ip,
       userAgent: request.get('user-agent') ?? undefined,

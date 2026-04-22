@@ -302,6 +302,80 @@ describe('auth flows', () => {
     );
   });
 
+  it('reuses active telegram session for the same start token', async () => {
+    const startToken = `start-${randomUUID()}`;
+
+    const firstResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/start')
+      .send({ startToken })
+      .expect(201);
+
+    const secondResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/start')
+      .send({ startToken })
+      .expect(201);
+
+    expect(secondResponse.body.loginSessionId).toBe(firstResponse.body.loginSessionId);
+    expect(secondResponse.body.botUrl).toBe(firstResponse.body.botUrl);
+
+    const sessions = await (prisma as any).telegramLoginSession.findMany({
+      where: { startToken },
+    });
+
+    expect(sessions).toHaveLength(1);
+  });
+
+  it('returns worker-created telegram session for the same start token', async () => {
+    const startToken = `start-${randomUUID()}`;
+    const loginSessionId = `login-${randomUUID()}`;
+
+    await (prisma as any).telegramLoginSession.create({
+      data: {
+        loginSessionId,
+        startToken,
+        status: 'awaiting_contact',
+        telegramUserId: nextTelegramUserId(),
+        chatId: `chat-${randomUUID()}`,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/telegram/start')
+      .send({ startToken })
+      .expect(201);
+
+    expect(response.body.loginSessionId).toBe(loginSessionId);
+    expect(response.body.botUrl).toContain(`login_${startToken}`);
+  });
+
+  it('verifies telegram code after bot created the session before api start', async () => {
+    const startToken = `start-${randomUUID()}`;
+    const session = await createTelegramLoginSession({
+      startToken,
+      status: 'code_issued',
+      telegramUserId: nextTelegramUserId(),
+    });
+
+    const startResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/start')
+      .send({ startToken })
+      .expect(201);
+
+    expect(startResponse.body.loginSessionId).toBe(session.loginSessionId);
+
+    const verifyResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: startResponse.body.loginSessionId,
+        code: session.code,
+      })
+      .expect(201);
+
+    expect(verifyResponse.body.userId).toEqual(expect.any(String));
+    expect(verifyResponse.body.accessToken).toEqual(expect.any(String));
+  });
+
   it('rejects telegram verify while contact is still missing', async () => {
     const startResponse = await request(app.getHttpServer())
       .post('/auth/telegram/start')
