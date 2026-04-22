@@ -44,11 +44,13 @@ export class TelegramBotPollingService implements OnModuleDestroy {
   private started = false;
   private polling = false;
   private backoffMs = 0;
+  private fetchImpl: FetchLike = fetch;
 
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly fetchImpl: FetchLike = fetch,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
+
+  setFetchImpl(fetchImpl: FetchLike) {
+    this.fetchImpl = fetchImpl;
+  }
 
   async start() {
     if (!this.isEnabled()) {

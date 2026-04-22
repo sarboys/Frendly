@@ -208,7 +208,8 @@ describe('telegram bot polling', () => {
       .mockImplementationOnce(() => telegramOk(true))
       .mockImplementationOnce(() => telegramOk([]));
     const { prismaService } = buildPrismaMock();
-    const service = new TelegramBotPollingService(prismaService, fetchMock as any);
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
 
     await service.start();
     await service.onModuleDestroy();
@@ -245,7 +246,8 @@ describe('telegram bot polling', () => {
       )
       .mockImplementation(() => telegramOk(true));
     const { prismaService, sessions } = buildPrismaMock([session]);
-    const service = new TelegramBotPollingService(prismaService, fetchMock as any);
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
 
     await service.pollOnce();
 
@@ -279,7 +281,8 @@ describe('telegram bot polling', () => {
         ]),
       );
     const { prismaService, sessions } = buildPrismaMock([session]);
-    const service = new TelegramBotPollingService(prismaService, fetchMock as any);
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
 
     await service.pollOnce();
 
@@ -315,7 +318,8 @@ describe('telegram bot polling', () => {
       )
       .mockImplementationOnce(() => telegramOk(true));
     const { prismaService, sessions } = buildPrismaMock([session]);
-    const service = new TelegramBotPollingService(prismaService, fetchMock as any);
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
 
     await service.pollOnce();
 
@@ -361,7 +365,8 @@ describe('telegram bot polling', () => {
       )
       .mockImplementationOnce(() => telegramOk(true));
     const { prismaService, sessions } = buildPrismaMock([session]);
-    const service = new TelegramBotPollingService(prismaService, fetchMock as any);
+    const service = new TelegramBotPollingService(prismaService);
+    service.setFetchImpl(fetchMock as any);
 
     await service.pollOnce();
 
@@ -383,8 +388,8 @@ describe('telegram bot polling', () => {
     const shared = buildPrismaMock([], 101n);
     const firstService = new TelegramBotPollingService(
       shared.prismaService,
-      fetchFirst as any,
     );
+    firstService.setFetchImpl(fetchFirst as any);
 
     await firstService.pollOnce();
 
@@ -400,8 +405,8 @@ describe('telegram bot polling', () => {
       .mockImplementationOnce(() => telegramOk([]));
     const secondService = new TelegramBotPollingService(
       shared.prismaService,
-      fetchSecond as any,
     );
+    secondService.setFetchImpl(fetchSecond as any);
 
     await secondService.pollOnce();
 
