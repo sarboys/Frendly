@@ -147,24 +147,15 @@ export class AuthService {
       );
     }
 
-    const user = await this.prismaService.client.user.findUnique({
-      where: { phoneNumber: normalized },
-      select: { id: true },
-    });
-
-    if (!user) {
-      throw new ApiError(
-        404,
-        'test_phone_user_not_found',
-        'Test phone user not found',
-      );
-    }
+    const { user, isNewUser } = await this.findOrCreateUserByPhoneNumber(
+      normalized,
+    );
 
     const session = await this.createSessionRecord(user.id);
     return {
       ...session.tokens,
       userId: user.id,
-      isNewUser: false,
+      isNewUser,
     };
   }
 
