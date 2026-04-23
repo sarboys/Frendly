@@ -44,16 +44,35 @@ export class OnboardingService {
     const interests = Array.isArray(body.interests)
       ? body.interests.filter((item): item is string => typeof item === 'string')
       : [];
+    const city = typeof body.city === 'string' ? body.city : null;
+    const area = typeof body.area === 'string' ? body.area : null;
 
-    const onboarding = await this.prismaService.client.onboardingPreferences.update({
-      where: { userId },
-      data: {
-        intent: typeof body.intent === 'string' ? body.intent : null,
-        city: typeof body.city === 'string' ? body.city : null,
-        area: typeof body.area === 'string' ? body.area : null,
-        interests,
-        vibe: typeof body.vibe === 'string' ? body.vibe : null,
-      },
+    const onboarding = await this.prismaService.client.$transaction(async (tx) => {
+      const updated = await tx.onboardingPreferences.update({
+        where: { userId },
+        data: {
+          intent: typeof body.intent === 'string' ? body.intent : null,
+          city,
+          area,
+          interests,
+          vibe: typeof body.vibe === 'string' ? body.vibe : null,
+        },
+      });
+
+      await tx.profile.upsert({
+        where: { userId },
+        update: {
+          city,
+          area,
+        },
+        create: {
+          userId,
+          city,
+          area,
+        },
+      });
+
+      return updated;
     });
 
     return mapOnboarding(onboarding);
