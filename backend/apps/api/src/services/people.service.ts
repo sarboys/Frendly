@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { buildDirectChatKey, decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
-import { mapBasicProfile } from '../common/presenters';
+import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -84,7 +84,14 @@ export class PeopleService {
               }),
       },
       include: {
-        profile: true,
+        profile: {
+          include: {
+            photos: {
+              include: { mediaAsset: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
         onboarding: true,
         settings: true,
       },
@@ -98,6 +105,13 @@ export class PeopleService {
     const mapped = page.map((person) => {
       const interests = Array.isArray(person.onboarding?.interests) ? (person.onboarding?.interests as string[]) : [];
       const common = interests.filter((interest) => selfInterests.has(interest));
+      const photos = (person.profile?.photos ?? [])
+        .filter((photo) => photo.mediaAsset.publicUrl != null)
+        .sort((left, right) => left.sortOrder - right.sortOrder)
+        .map((photo) =>
+          mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),
+        );
+      const primaryPhoto = photos.length === 0 ? null : photos[0]!;
 
       return {
         id: person.id,
@@ -111,7 +125,9 @@ export class PeopleService {
         online: person.online,
         verified: person.verified,
         vibe: person.profile?.vibe ?? null,
-        avatarUrl: person.profile?.avatarUrl ?? null,
+        avatarUrl: primaryPhoto?.url ?? person.profile?.avatarUrl ?? null,
+        primaryPhoto,
+        photos,
       };
     });
 

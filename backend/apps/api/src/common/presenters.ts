@@ -9,7 +9,10 @@ import {
   Profile,
   User,
 } from '@prisma/client';
-import { buildMediaProxyPath, buildMessagePreview } from '@big-break/database';
+import { buildMessagePreview } from '@big-break/database';
+import { mapMediaAsset, mapProfilePhoto } from './media-presenters';
+
+export { mapMediaAsset, mapProfilePhoto } from './media-presenters';
 
 export function formatRelativeTime(date: Date): string {
   const diffMs = Date.now() - date.getTime();
@@ -48,34 +51,6 @@ export function formatEventTime(startDate: Date): string {
   }
 
   return `${hours}:${minutes}`;
-}
-
-export function mapMediaAsset(asset: MediaAsset) {
-  return {
-    id: asset.id,
-    kind: asset.kind,
-    status: asset.status,
-    url: buildMediaProxyPath(asset.id),
-    mimeType: asset.mimeType,
-    byteSize: asset.byteSize,
-    fileName: asset.originalFileName,
-    durationMs: asset.durationMs ?? null,
-    waveform: asset.waveform ?? [],
-  };
-}
-
-export function mapProfilePhoto(
-  photo: {
-    id: string;
-    sortOrder: number;
-    mediaAsset: MediaAsset;
-  },
-) {
-  return {
-    id: photo.id,
-    url: buildMediaProxyPath(photo.mediaAsset.id),
-    order: photo.sortOrder,
-  };
 }
 
 export function mapMessage(

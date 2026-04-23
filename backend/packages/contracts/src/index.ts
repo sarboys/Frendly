@@ -81,15 +81,41 @@ export interface ReplyPreviewDto {
   isVoice: boolean;
 }
 
-export interface MediaAssetDto {
-  id: string;
-  kind: 'avatar' | 'chat_attachment' | 'chat_voice';
-  status: 'pending' | 'ready' | 'failed';
+export type MediaKind =
+  | 'avatar'
+  | 'chat_attachment'
+  | 'chat_voice'
+  | 'story_media'
+  | 'poster_cover';
+export type MediaVisibility = 'public' | 'private';
+
+export interface MediaVariantDto {
   url: string | null;
+  downloadUrl: string | null;
+  mimeType?: string | null;
+  byteSize?: number | null;
+  cacheKey?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface MediaResourceDto {
+  id: string;
+  kind: MediaKind;
+  visibility: MediaVisibility;
   mimeType: string;
   byteSize: number;
-  fileName: string;
+  url: string | null;
+  downloadUrl: string | null;
+  variants: Record<string, MediaVariantDto>;
   durationMs: number | null;
+  previewHash: string | null;
+  cacheKey: string;
+  expiresAt: string | null;
+}
+
+export interface MediaAssetDto extends MediaResourceDto {
+  status: 'pending' | 'ready' | 'failed';
+  fileName: string;
   waveform: number[];
 }
 

@@ -15,6 +15,10 @@ describe('core api flows', () => {
   const s3 = createS3Client();
   let accessToken = '';
   let peerAccessToken = '';
+  const expectDirectPublicUrl = (value: string) => {
+    expect(value).toMatch(/^(https?:\/\/|data:)/);
+    expect(value).not.toMatch(/^\/media\//);
+  };
 
   const futureIso = (daysFromNow: number, hourUtc: number, minute = 0) => {
     const date = new Date();
@@ -238,7 +242,7 @@ describe('core api flows', () => {
 
     expect(uploadResponse.body.assetId).toEqual(expect.any(String));
     expect(uploadResponse.body.status).toBe('ready');
-    expect(uploadResponse.body.url).toMatch(/^\/media\//);
+    expectDirectPublicUrl(uploadResponse.body.url as string);
 
     const asset = await prisma.mediaAsset.findUnique({
       where: { id: uploadResponse.body.assetId as string },
@@ -255,13 +259,12 @@ describe('core api flows', () => {
       .expect(200);
 
     expect(profileResponse.body.avatarUrl).toBe(uploadResponse.body.url);
-
-    const mediaResponse = await request(app.getHttpServer())
-      .get(uploadResponse.body.url)
-      .expect(200);
-
-    expect(mediaResponse.headers['content-type']).toContain('image/png');
-    expect(mediaResponse.body).toBeDefined();
+    expect(uploadResponse.body.media).toMatchObject({
+      visibility: 'public',
+      url: uploadResponse.body.url,
+      downloadUrl: uploadResponse.body.url,
+      expiresAt: null,
+    });
 
     const invalidUploadResponse = await request(app.getHttpServer())
       .post('/profile/me/avatar/file')
@@ -313,7 +316,7 @@ describe('core api flows', () => {
 
     expect(readAfterUpload.body.photos).toHaveLength(initialCount + 2);
     expect(lastPhotoAfterUpload.id).toBe(secondUpload.body.photo.id);
-    expect(lastPhotoAfterUpload.url).toMatch(/^\/media\//);
+    expectDirectPublicUrl(lastPhotoAfterUpload.url as string);
 
     await request(app.getHttpServer())
       .post(`/profile/me/photos/${secondUpload.body.photo.id}/primary`)
@@ -479,6 +482,208 @@ describe('core api flows', () => {
     expect(asset?.durationMs).toBe(9000);
     expect(asset?.mimeType).toBe('audio/mp4');
     expect((asset as any)?.waveform).toEqual(waveform);
+  });
+
+  it('exposes generic upload endpoints for chat assets', async () => {
+    const waveform = [0.16, 0.52, 0.71, 0.21];
+
+    const uploadUrlResponse = await request(app.getHttpServer())
+      .post('/uploads/media/upload-url')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        scope: 'chat',
+        chatId: 'p1',
+        kind: 'chat_voice',
+        fileName: 'generic-voice.m4a',
+        contentType: 'audio/mp4',
+        durationMs: 11000,
+        waveform,
+      })
+      .expect(201);
+
+    expect(uploadUrlResponse.body).toMatchObject({
+      uploadUrl: expect.any(String),
+      objectKey: expect.stringContaining('chat-attachments/user-me/'),
+      completeUrl: '/uploads/media/complete',
+      scope: 'chat',
+      uploadStrategy: 'direct',
+    });
+
+    const completeResponse = await request(app.getHttpServer())
+      .post('/uploads/media/complete')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        scope: 'chat',
+        chatId: 'p1',
+        kind: 'chat_voice',
+        objectKey: uploadUrlResponse.body.objectKey,
+        mimeType: 'audio/mp4',
+        byteSize: 4096,
+        fileName: 'generic-voice.m4a',
+        durationMs: 11000,
+        waveform,
+      })
+      .expect(201);
+
+    const asset = await prisma.mediaAsset.findUnique({
+      where: { id: completeResponse.body.assetId as string },
+    });
+
+    expect(asset?.kind).toBe('chat_voice');
+    expect(asset?.chatId).toBe('p1');
+    expect(asset?.durationMs).toBe(11000);
+  });
+
+  it('supports generic upload endpoints for profile photos', async () => {
+    const uploadUrlResponse = await request(app.getHttpServer())
+      .post('/uploads/media/upload-url')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        scope: 'profile_photo',
+        fileName: 'generic-photo.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+
+    expect(uploadUrlResponse.body).toMatchObject({
+      uploadUrl: expect.any(String),
+      objectKey: expect.stringContaining('avatars/user-me/'),
+      completeUrl: '/uploads/media/complete',
+      scope: 'profile_photo',
+      uploadStrategy: 'direct',
+    });
+
+    const completeResponse = await request(app.getHttpServer())
+      .post('/uploads/media/complete')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        scope: 'profile_photo',
+        objectKey: uploadUrlResponse.body.objectKey,
+        mimeType: 'image/png',
+        byteSize: 2048,
+        fileName: 'generic-photo.png',
+      })
+      .expect(201);
+
+    expect(completeResponse.body.photo).toMatchObject({
+      id: expect.any(String),
+      url: expect.any(String),
+      media: expect.objectContaining({
+        visibility: 'public',
+        url: expect.any(String),
+      }),
+    });
+  });
+
+  it('supports generic upload endpoints for story media', async () => {
+    const eventId = `story-upload-event-${Date.now()}`;
+    try {
+      await prisma.event.create({
+        data: {
+          id: eventId,
+          title: 'Story upload event',
+          emoji: '📸',
+          startsAt: new Date('2026-04-24T18:00:00.000Z'),
+          place: 'Покровка 7',
+          distanceKm: 1.1,
+          vibe: 'Легко',
+          description: 'story upload',
+          capacity: 8,
+          hostId: 'user-me',
+          participants: {
+            create: [{ userId: 'user-me' }],
+          },
+        } as any,
+      });
+
+      const uploadUrlResponse = await request(app.getHttpServer())
+        .post('/uploads/media/upload-url')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({
+          scope: 'story_media',
+          eventId,
+          fileName: 'story.png',
+          contentType: 'image/png',
+        })
+        .expect(201);
+
+      expect(uploadUrlResponse.body).toMatchObject({
+        uploadUrl: expect.any(String),
+        objectKey: expect.stringContaining('stories/user-me/'),
+        completeUrl: '/uploads/media/complete',
+        scope: 'story_media',
+      });
+
+      const completeResponse = await request(app.getHttpServer())
+        .post('/uploads/media/complete')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({
+          scope: 'story_media',
+          eventId,
+          objectKey: uploadUrlResponse.body.objectKey,
+          mimeType: 'image/png',
+          byteSize: 2048,
+          fileName: 'story.png',
+        })
+        .expect(201);
+
+      const asset = await prisma.mediaAsset.findUnique({
+        where: { id: completeResponse.body.assetId as string },
+      });
+
+      expect(asset?.kind).toBe('story_media');
+      expect(asset?.ownerId).toBe('user-me');
+    } finally {
+      await prisma.eventParticipant.deleteMany({
+        where: { eventId },
+      });
+      await prisma.event.deleteMany({
+        where: { id: eventId },
+      });
+    }
+  });
+
+  it('keeps story video upload behind product gate by default', async () => {
+    const eventId = `story-video-event-${Date.now()}`;
+    try {
+      await prisma.event.create({
+        data: {
+          id: eventId,
+          title: 'Story video event',
+          emoji: '🎬',
+          startsAt: new Date('2026-04-24T18:00:00.000Z'),
+          place: 'Покровка 7',
+          distanceKm: 1.0,
+          vibe: 'Легко',
+          description: 'story video gate',
+          capacity: 8,
+          hostId: 'user-me',
+          participants: {
+            create: [{ userId: 'user-me' }],
+          },
+        } as any,
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/uploads/media/upload-url')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({
+          scope: 'story_media',
+          eventId,
+          fileName: 'story.mp4',
+          contentType: 'video/mp4',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('video_upload_disabled');
+    } finally {
+      await prisma.eventParticipant.deleteMany({
+        where: { eventId },
+      });
+      await prisma.event.deleteMany({
+        where: { id: eventId },
+      });
+    }
   });
 
   it('returns voice fallback preview when last message text is empty', async () => {

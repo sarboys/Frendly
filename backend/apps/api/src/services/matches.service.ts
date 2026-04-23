@@ -1,5 +1,6 @@
 import { decodeCursor, encodeCursor } from '@big-break/database';
 import { Injectable } from '@nestjs/common';
+import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -38,6 +39,8 @@ export class MatchesService {
       userId: string;
       displayName: string;
       avatarUrl: string | null;
+      primaryPhoto: ReturnType<typeof mapProfilePhoto> | null;
+      photos: Array<ReturnType<typeof mapProfilePhoto>>;
       area: string | null;
       vibe: string | null;
       score: number;
@@ -112,7 +115,14 @@ export class MatchesService {
             },
           },
           include: {
-            profile: true,
+            profile: {
+              include: {
+                photos: {
+                  include: { mediaAsset: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
+            },
             onboarding: true,
             settings: true,
           },
@@ -151,10 +161,19 @@ export class MatchesService {
           ? (user.onboarding!.interests as string[])
           : [];
         const common = interests.filter((item) => ownInterests.includes(item));
+        const photos = (user.profile?.photos ?? [])
+          .filter((photo) => photo.mediaAsset.publicUrl != null)
+          .sort((left, right) => left.sortOrder - right.sortOrder)
+          .map((photo) =>
+            mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),
+          );
+        const primaryPhoto = photos.length === 0 ? null : photos[0]!;
         items.push({
           userId: user.id,
           displayName: user.displayName,
-          avatarUrl: user.profile?.avatarUrl ?? null,
+          avatarUrl: primaryPhoto?.url ?? user.profile?.avatarUrl ?? null,
+          primaryPhoto,
+          photos,
           area: user.profile?.area ?? null,
           vibe: user.profile?.vibe ?? null,
           score: Math.max(63, Math.min(95, 63 + common.length * 6)),

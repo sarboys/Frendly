@@ -22,6 +22,8 @@ enum MediaAssetKind {
   avatar
   chat_attachment
   chat_voice
+  story_media
+  poster_cover
 }
 
 enum MediaAssetStatus {
@@ -467,7 +469,9 @@ model Poster {
   tags        Json
   description String
   isFeatured  Boolean        @default(false)
+  coverAssetId String?       @unique
   events      Event[]
+  coverAsset  MediaAsset?    @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -606,9 +610,11 @@ model EventStory {
   authorId    String
   caption     String
   emoji       String
+  mediaAssetId String? @unique
   createdAt   DateTime @default(now())
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  mediaAsset  MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
 
   @@index([eventId, createdAt])
 }
@@ -725,6 +731,8 @@ model MediaAsset {
   updatedAt        DateTime          @updatedAt
   profileAvatar    Profile?          @relation("ProfileAvatar")
   profilePhotos    ProfilePhoto[]
+  storyAsset       EventStory?
+  posterCover      Poster?
   messageLinks     MessageAttachment[]
 
   @@index([ownerId, status, chatId])

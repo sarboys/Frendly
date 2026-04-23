@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  createPresignedDownload,
+  decodeCursor,
+  encodeCursor,
+} from '@big-break/database';
 import { ApiError } from '../common/api-error';
+import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -54,6 +59,7 @@ export class StoriesService {
         author: {
           include: { profile: true },
         },
+        mediaAsset: true,
       },
       orderBy: [
         { createdAt: 'desc' },
@@ -62,18 +68,11 @@ export class StoriesService {
       take: take + 1,
     });
 
-    const visibleStories = stories
-      .filter((story) => !blockedUserIds.has(story.authorId))
-      .map((story) => ({
-        id: story.id,
-        eventId: story.eventId,
-        authorId: story.authorId,
-        authorName: story.author.displayName,
-        avatarUrl: story.author.profile?.avatarUrl ?? null,
-        caption: story.caption,
-        emoji: story.emoji,
-        createdAt: story.createdAt.toISOString(),
-      }));
+    const visibleStories = await Promise.all(
+      stories
+        .filter((story) => !blockedUserIds.has(story.authorId))
+        .map((story) => this.mapStory(story)),
+    );
     const hasMore = visibleStories.length > take;
     const page = hasMore
       ? visibleStories.slice(0, take)
@@ -93,9 +92,15 @@ export class StoriesService {
 
     const caption = typeof body.caption === 'string' ? body.caption.trim() : '';
     const emoji = typeof body.emoji === 'string' ? body.emoji : '✨';
+    const mediaAssetId =
+      typeof body.mediaAssetId === 'string' ? body.mediaAssetId.trim() : null;
 
-    if (caption.length === 0) {
-      throw new ApiError(400, 'invalid_story_caption', 'caption is required');
+    if (caption.length === 0 && mediaAssetId == null) {
+      throw new ApiError(
+        400,
+        'invalid_story_payload',
+        'caption or mediaAssetId is required',
+      );
     }
 
     if (caption.length > 240) {
@@ -116,23 +121,46 @@ export class StoriesService {
       throw new ApiError(429, 'story_rate_limited', 'Story rate limit exceeded');
     }
 
+    const asset = mediaAssetId
+      ? await this.prismaService.client.mediaAsset.findFirst({
+          where: {
+            id: mediaAssetId,
+            ownerId: userId,
+            kind: 'story_media',
+            status: 'ready',
+          },
+        })
+      : null;
+
+    if (mediaAssetId != null && !asset) {
+      throw new ApiError(
+        400,
+        'invalid_story_media_asset',
+        'Story media asset is invalid',
+      );
+    }
+
     const story = await this.prismaService.client.eventStory.create({
       data: {
         eventId,
         authorId: userId,
         caption,
         emoji,
+        mediaAssetId,
+      },
+      include: {
+        author: {
+          include: { profile: true },
+        },
+        mediaAsset: true,
       },
     });
 
-    return {
-      id: story.id,
-      eventId: story.eventId,
-      authorId: story.authorId,
-      caption: story.caption,
-      emoji: story.emoji,
-      createdAt: story.createdAt.toISOString(),
-    };
+    return this.mapStory(story);
+  }
+
+  async assertStoryParticipant(userId: string, eventId: string) {
+    await this.assertParticipant(userId, eventId);
   }
 
   private normalizeLimit(limit?: number) {
@@ -206,5 +234,68 @@ export class StoriesService {
     }
 
     return blockedUserIds;
+  }
+
+  private async mapStory(
+    story: {
+      id: string;
+      eventId: string;
+      authorId: string;
+      caption: string;
+      emoji: string;
+      createdAt: Date;
+      author: {
+        displayName: string;
+        profile: {
+          avatarUrl: string | null;
+        } | null;
+      };
+      mediaAsset: {
+        id: string;
+        kind: string;
+        objectKey: string;
+        mimeType: string;
+        byteSize: number;
+        durationMs: number | null;
+        publicUrl: string | null;
+      } | null;
+    },
+  ) {
+    const mediaAsset = story.mediaAsset;
+    const signed = mediaAsset
+      ? await createPresignedDownload(mediaAsset.objectKey ?? '')
+      : null;
+
+    const media = mediaAsset
+      ? mapMediaResource(
+          mediaAsset as Parameters<typeof mapMediaResource>[0],
+          {
+          visibility: 'private',
+          url: signed?.url ?? null,
+          downloadUrl: signed?.url ?? null,
+          expiresAt: signed?.expiresAt ?? null,
+        },
+        )
+      : null;
+    const mediaKind = mediaAsset == null
+      ? null
+      : mediaAsset.mimeType.startsWith('video/')
+        ? 'video'
+        : 'image';
+
+    return {
+      id: story.id,
+      eventId: story.eventId,
+      authorId: story.authorId,
+      authorName: story.author.displayName,
+      avatarUrl: story.author.profile?.avatarUrl ?? null,
+      caption: story.caption,
+      emoji: story.emoji,
+      createdAt: story.createdAt.toISOString(),
+      media,
+      mediaKind,
+      previewHash: null,
+      durationMs: mediaAsset?.durationMs ?? null,
+    };
   }
 }

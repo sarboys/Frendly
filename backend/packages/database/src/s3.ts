@@ -15,6 +15,8 @@ export interface PresignedUploadInput {
   contentType: string;
 }
 
+export const PRESIGNED_DOWNLOAD_TTL_SECONDS = 300;
+
 export function getS3Config(): S3Config {
   return {
     endpoint: process.env.S3_ENDPOINT ?? 'http://minio:9000',
@@ -82,7 +84,12 @@ export async function createPresignedDownload(objectKey: string) {
     Key: objectKey,
   });
 
-  return getSignedUrl(client, command, { expiresIn: 300 });
+  return {
+    url: await getSignedUrl(client, command, {
+      expiresIn: PRESIGNED_DOWNLOAD_TTL_SECONDS,
+    }),
+    expiresAt: new Date(Date.now() + PRESIGNED_DOWNLOAD_TTL_SECONDS * 1000),
+  };
 }
 
 export function buildPublicAssetUrl(objectKey: string): string {

@@ -2,7 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
-import { buildDirectChatKey } from '@big-break/database';
+import { buildDirectChatKey, buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
 
@@ -176,6 +176,15 @@ describe('dating api flows', () => {
     expect(
       response.body.items.some((item: { userId: string }) => item.userId === 'user-mark'),
     ).toBe(false);
+    expect(response.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: 'user-sonya',
+          primaryPhoto: expect.any(Object),
+          photos: expect.any(Array),
+        }),
+      ]),
+    );
   });
 
   it('returns incoming likes for premium user', async () => {
@@ -255,7 +264,11 @@ describe('dating api flows', () => {
     expect(response.body.matched).toBe(true);
     expect(response.body.chatId).toEqual(expect.any(String));
     expect(response.body.peer).toEqual(
-      expect.objectContaining({ userId: 'user-oleg' }),
+      expect.objectContaining({
+        userId: 'user-oleg',
+        primaryPhoto: expect.any(Object),
+        photos: expect.any(Array),
+      }),
     );
 
     const directChat = await prisma.chat.findUnique({
@@ -265,6 +278,116 @@ describe('dating api flows', () => {
     });
 
     expect(directChat?.id).toBe(response.body.chatId);
+  });
+
+  it('returns shared photo payload for discover and likes surfaces', async () => {
+    const objectKey = `avatars/user-sonya/dating-photo-${Date.now()}.png`;
+
+    const asset = await prisma.mediaAsset.create({
+      data: {
+        ownerId: 'user-sonya',
+        kind: 'avatar',
+        status: 'ready',
+        bucket: process.env.S3_BUCKET ?? 'big-break',
+        objectKey,
+        mimeType: 'image/png',
+        byteSize: 1024,
+        originalFileName: 'dating-photo.png',
+        publicUrl: buildPublicAssetUrl(objectKey),
+      } as any,
+    });
+
+    const photo = await prisma.profilePhoto.create({
+      data: {
+        profileUserId: 'user-sonya',
+        mediaAssetId: asset.id,
+        sortOrder: 0,
+      },
+    });
+
+    try {
+      await prisma.userSubscription.createMany({
+        data: [
+          {
+            id: 'dating-media-sub-me',
+            userId: 'user-me',
+            plan: 'year',
+            status: 'active',
+            startedAt: new Date('2026-04-18T08:00:00.000Z'),
+            renewsAt: new Date('2027-04-18T08:00:00.000Z'),
+          },
+          {
+            id: 'dating-media-sub-sonya',
+            userId: 'user-sonya',
+            plan: 'month',
+            status: 'active',
+            startedAt: new Date('2026-04-18T08:00:00.000Z'),
+            renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+          },
+        ],
+      });
+
+      const discoverResponse = await request(app.getHttpServer())
+        .get('/dating/discover')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      const sonyaProfile = discoverResponse.body.items.find(
+        (item: { userId: string }) => item.userId === 'user-sonya',
+      );
+
+      expect(sonyaProfile).toMatchObject({
+        userId: 'user-sonya',
+        avatarUrl: expect.any(String),
+        primaryPhoto: expect.objectContaining({
+          url: expect.any(String),
+          media: expect.objectContaining({
+            visibility: 'public',
+            url: expect.any(String),
+          }),
+        }),
+      });
+      expect(sonyaProfile.photos).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: photo.id,
+            media: expect.objectContaining({
+              visibility: 'public',
+            }),
+          }),
+        ]),
+      );
+
+      await request(app.getHttpServer())
+        .post('/dating/actions')
+        .set('authorization', `Bearer ${sonyaAccessToken}`)
+        .send({ targetUserId: 'user-me', action: 'like' })
+        .expect(201);
+
+      const likesResponse = await request(app.getHttpServer())
+        .get('/dating/likes')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      const sonyaLike = likesResponse.body.items.find(
+        (item: { userId: string }) => item.userId === 'user-sonya',
+      );
+      expect(sonyaLike?.primaryPhoto?.media?.visibility).toBe('public');
+    } finally {
+      await prisma.profilePhoto.deleteMany({
+        where: { id: photo.id },
+      });
+      await prisma.mediaAsset.deleteMany({
+        where: { id: asset.id },
+      });
+      await prisma.userSubscription.deleteMany({
+        where: {
+          id: {
+            in: ['dating-media-sub-me', 'dating-media-sub-sonya'],
+          },
+        },
+      });
+    }
   });
 
   it('blocks dating mode event creation without frendly+', async () => {

@@ -2,7 +2,6 @@ import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
-  buildMediaProxyPath,
   buildPublicAssetUrl,
   createPresignedUpload,
   createS3Client,
@@ -10,6 +9,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
+import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
 const ALLOWED_AVATAR_MIME_TYPES = new Set([
@@ -77,6 +77,15 @@ export class ProfileService {
     return createPresignedUpload({ objectKey, contentType });
   }
 
+  async createProfilePhotoUpload(userId: string, body: Record<string, unknown>) {
+    const fileName = typeof body.fileName === 'string' ? body.fileName : 'photo.jpg';
+    const contentType =
+      typeof body.contentType === 'string' ? body.contentType : 'image/jpeg';
+    this.assertAvatarMime(contentType);
+    const objectKey = `avatars/${userId}/${randomUUID()}-${fileName}`;
+    return createPresignedUpload({ objectKey, contentType });
+  }
+
   async completeAvatarUpload(userId: string, body: Record<string, unknown>) {
     const objectKey = typeof body.objectKey === 'string' ? body.objectKey : undefined;
     const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'image/jpeg';
@@ -114,7 +123,7 @@ export class ProfileService {
       where: { userId },
       data: {
         avatarAssetId: asset.id,
-        avatarUrl: buildMediaProxyPath(asset.id),
+        avatarUrl: asset.publicUrl,
       },
     });
 
@@ -190,7 +199,7 @@ export class ProfileService {
         where: { userId },
         data: {
           avatarAssetId: asset.id,
-          avatarUrl: buildMediaProxyPath(asset.id),
+          avatarUrl: asset.publicUrl,
         },
       });
 
@@ -200,7 +209,12 @@ export class ProfileService {
     return {
       assetId: result.asset.id,
       status: result.asset.status,
-      url: buildMediaProxyPath(result.asset.id),
+      url: result.asset.publicUrl,
+      media: mapMediaResource(result.asset, {
+        visibility: 'public',
+        url: result.asset.publicUrl,
+        downloadUrl: result.asset.publicUrl,
+      }),
       photo: mapProfilePhoto(result.photo),
     };
   }
@@ -228,44 +242,55 @@ export class ProfileService {
       ? this.buildInlineMediaDataUrl(file)
       : buildPublicAssetUrl(objectKey);
 
-    const next = await this.prismaService.client.$transaction(async (tx) => {
-      const asset = await tx.mediaAsset.create({
-        data: {
-          ownerId: userId,
-          kind: 'avatar',
-          status: 'ready',
-          bucket: BYPASS_S3_UPLOAD
-            ? INLINE_MEDIA_BUCKET
-            : process.env.S3_BUCKET ?? 'big-break',
-          objectKey: BYPASS_S3_UPLOAD
-            ? `inline-avatar/${userId}/${randomUUID()}-${file.originalname}`
-            : objectKey,
-          mimeType: file.mimetype,
-          byteSize: file.size,
-          originalFileName: file.originalname,
-          publicUrl: inlinePublicUrl,
-        },
-      });
+    const next = await this._storeProfilePhotoAsset(userId, {
+      bucket: BYPASS_S3_UPLOAD
+          ? INLINE_MEDIA_BUCKET
+          : process.env.S3_BUCKET ?? 'big-break',
+      objectKey: BYPASS_S3_UPLOAD
+          ? `inline-avatar/${userId}/${randomUUID()}-${file.originalname}`
+          : objectKey,
+      mimeType: file.mimetype,
+      byteSize: file.size,
+      originalFileName: file.originalname,
+      publicUrl: inlinePublicUrl,
+    });
 
-      const lastPhoto = await tx.profilePhoto.findFirst({
-        where: { profileUserId: userId },
-        orderBy: { sortOrder: 'desc' },
-        select: { sortOrder: true },
-      });
+    return {
+      assetId: next.asset.id,
+      status: next.asset.status,
+      url: next.asset.publicUrl,
+      photo: mapProfilePhoto(next.photo),
+    };
+  }
 
-      const photo = await tx.profilePhoto.create({
-        data: {
-          profileUserId: userId,
-          mediaAssetId: asset.id,
-          sortOrder: (lastPhoto?.sortOrder ?? -1) + 1,
-        },
-        include: {
-          mediaAsset: true,
-        },
-      });
+  async completeProfilePhotoUpload(userId: string, body: Record<string, unknown>) {
+    const objectKey = typeof body.objectKey === 'string' ? body.objectKey : undefined;
+    const mimeType =
+      typeof body.mimeType === 'string' ? body.mimeType : 'image/jpeg';
+    const byteSize = typeof body.byteSize === 'number' ? body.byteSize : 0;
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName : 'photo.jpg';
 
-      await this._syncPrimaryPhoto(tx, userId);
-      return { asset, photo };
+    if (!objectKey) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
+    }
+
+    this.assertAvatarObjectKey(userId, objectKey);
+    const verified = await this.resolveVerifiedAvatarMetadata(
+      objectKey,
+      mimeType,
+      byteSize,
+    );
+    this.assertAvatarMime(verified.mimeType);
+    this.assertAvatarSize(verified.byteSize);
+
+    const next = await this._storeProfilePhotoAsset(userId, {
+      bucket: process.env.S3_BUCKET ?? 'big-break',
+      objectKey,
+      mimeType: verified.mimeType,
+      byteSize: verified.byteSize,
+      originalFileName: fileName,
+      publicUrl: buildPublicAssetUrl(objectKey),
     });
 
     return {
@@ -494,9 +519,57 @@ export class ProfileService {
       data: {
         avatarAssetId: firstPhoto?.mediaAssetId ?? null,
         avatarUrl: firstPhoto != null
-            ? buildMediaProxyPath(firstPhoto.mediaAssetId)
+            ? firstPhoto.mediaAsset.publicUrl ?? null
             : null,
       },
+    });
+  }
+
+  private async _storeProfilePhotoAsset(
+    userId: string,
+    input: {
+      bucket: string;
+      objectKey: string;
+      mimeType: string;
+      byteSize: number;
+      originalFileName: string;
+      publicUrl: string;
+    },
+  ) {
+    return this.prismaService.client.$transaction(async (tx) => {
+      const asset = await tx.mediaAsset.create({
+        data: {
+          ownerId: userId,
+          kind: 'avatar',
+          status: 'ready',
+          bucket: input.bucket,
+          objectKey: input.objectKey,
+          mimeType: input.mimeType,
+          byteSize: input.byteSize,
+          originalFileName: input.originalFileName,
+          publicUrl: input.publicUrl,
+        },
+      });
+
+      const lastPhoto = await tx.profilePhoto.findFirst({
+        where: { profileUserId: userId },
+        orderBy: { sortOrder: 'desc' },
+        select: { sortOrder: true },
+      });
+
+      const photo = await tx.profilePhoto.create({
+        data: {
+          profileUserId: userId,
+          mediaAssetId: asset.id,
+          sortOrder: (lastPhoto?.sortOrder ?? -1) + 1,
+        },
+        include: {
+          mediaAsset: true,
+        },
+      });
+
+      await this._syncPrimaryPhoto(tx, userId);
+      return { asset, photo };
     });
   }
 }

@@ -7,6 +7,7 @@ import {
 } from '@big-break/database';
 import { Readable } from 'node:stream';
 import { ApiError } from '../common/api-error';
+import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -95,6 +96,9 @@ export class MediaService {
         chatId: true,
         objectKey: true,
         publicUrl: true,
+        mimeType: true,
+        byteSize: true,
+        durationMs: true,
       },
     });
 
@@ -102,52 +106,67 @@ export class MediaService {
       throw new ApiError(404, 'media_not_found', 'Media asset not found');
     }
 
-    if (asset.kind !== 'avatar' && asset.ownerId !== userId) {
-      if (asset.chatId == null) {
-        throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
-      }
+    const access = await this.resolveAssetAccess(asset, userId);
 
-      const membership = await this.prismaService.client.chatMember.findUnique({
-        where: {
-          chatId_userId: {
-            chatId: asset.chatId,
-            userId,
-          },
-        },
-        select: { id: true },
-      });
-
-      if (!membership) {
-        throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
-      }
-    }
-
-    if (asset.kind === 'avatar' && asset.publicUrl != null) {
-      return {
+    if (access.visibility === 'public' && asset.publicUrl != null) {
+      return mapMediaResource(asset, {
+        visibility: 'public',
         url: asset.publicUrl,
-      };
+        downloadUrl: asset.publicUrl,
+      });
     }
 
-    return {
-      url: await createPresignedDownload(asset.objectKey),
-    };
+    const signed = await createPresignedDownload(asset.objectKey);
+
+    return mapMediaResource(asset, {
+      visibility: 'private',
+      url: signed.url,
+      downloadUrl: signed.url,
+      expiresAt: signed.expiresAt,
+    });
   }
 
   private async resolveCachePolicy(
     asset: {
+      id: string;
       ownerId: string;
       kind: string;
       chatId: string | null;
     },
     authorizationHeader?: string,
   ) {
-    if (asset.kind === 'avatar') {
+    if (this.isPublicKind(asset.kind)) {
       return 'public, max-age=31536000, immutable';
     }
 
     const userId = await this.requireAuthenticatedUserId(authorizationHeader);
-    if (asset.ownerId === userId) {
+    const access = await this.resolveAssetAccess(asset, userId);
+    if (access.visibility === 'private') {
       return 'private, max-age=300';
+    }
+
+    throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+  }
+
+  private isPublicKind(kind: string) {
+    return kind === 'avatar' || kind === 'poster_cover';
+  }
+
+  private async resolveAssetAccess(
+    asset: {
+      id: string;
+      ownerId: string;
+      kind: string;
+      chatId: string | null;
+    },
+    userId: string,
+  ): Promise<{ visibility: 'public' | 'private' }> {
+    if (this.isPublicKind(asset.kind)) {
+      return { visibility: 'public' };
+    }
+
+    if (asset.ownerId === userId) {
+      return { visibility: 'private' };
     }
 
     if (asset.chatId != null) {
@@ -162,7 +181,31 @@ export class MediaService {
       });
 
       if (membership) {
-        return 'private, max-age=300';
+        return { visibility: 'private' };
+      }
+    }
+
+    if (asset.kind === 'story_media') {
+      const story = await this.prismaService.client.eventStory.findFirst({
+        where: { mediaAssetId: asset.id },
+        select: { eventId: true },
+      });
+
+      if (story) {
+        const participant =
+          await this.prismaService.client.eventParticipant.findUnique({
+            where: {
+              eventId_userId: {
+                eventId: story.eventId,
+                userId,
+              },
+            },
+            select: { id: true },
+          });
+
+        if (participant) {
+          return { visibility: 'private' };
+        }
       }
     }
 

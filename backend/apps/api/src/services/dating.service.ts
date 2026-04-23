@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatingActionKind, Prisma, User } from '@prisma/client';
 import { decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
+import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 import { PeopleService } from './people.service';
 import { SubscriptionService } from './subscription.service';
@@ -77,7 +78,14 @@ export class DatingService {
         },
       },
       include: {
-        profile: true,
+        profile: {
+          include: {
+            photos: {
+              include: { mediaAsset: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
         onboarding: true,
         settings: true,
       },
@@ -160,7 +168,14 @@ export class DatingService {
       include: {
         actorUser: {
           include: {
-            profile: true,
+            profile: {
+              include: {
+                photos: {
+                  include: { mediaAsset: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
+            },
             onboarding: true,
             settings: true,
           },
@@ -220,7 +235,14 @@ export class DatingService {
           },
         },
         include: {
-          profile: true,
+          profile: {
+            include: {
+              photos: {
+                include: { mediaAsset: true },
+                orderBy: { sortOrder: 'asc' },
+              },
+            },
+          },
           onboarding: true,
           settings: true,
         },
@@ -326,6 +348,18 @@ export class DatingService {
         bio: string | null;
         vibe: string | null;
         avatarUrl: string | null;
+        photos: Array<{
+          id: string;
+          sortOrder: number;
+          mediaAsset: {
+            id: string;
+            kind: string;
+            mimeType: string;
+            byteSize: number;
+            durationMs: number | null;
+            publicUrl: string | null;
+          };
+        }>;
       } | null;
       onboarding: {
         interests: unknown;
@@ -337,6 +371,13 @@ export class DatingService {
     const interests = this.extractInterests(user.onboarding?.interests);
     const common = interests.filter((item) => selfInterests.includes(item));
     const tags = (common.length > 0 ? common : interests).slice(0, 3);
+    const photos = (user.profile?.photos ?? [])
+      .filter((photo) => photo.mediaAsset.publicUrl != null)
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((photo) =>
+        mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),
+      );
+    const primaryPhoto = photos.length == 0 ? null : photos[0]!;
 
     return {
       userId: user.id,
@@ -347,7 +388,9 @@ export class DatingService {
       tags,
       prompt: _datingPromptByUserId[user.id] ?? 'Позови на свидание, если хочешь увидеться без долгих свайпов.',
       photoEmoji: _datingEmojiByUserId[user.id] ?? '💘',
-      avatarUrl: user.profile?.avatarUrl ?? null,
+      avatarUrl: primaryPhoto?.url ?? user.profile?.avatarUrl ?? null,
+      primaryPhoto,
+      photos,
       likedYou: options.likedYou,
       premium: true,
       vibe: user.profile?.vibe ?? null,

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Poster, PosterCategory, Prisma } from '@prisma/client';
 import { decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
+import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -46,6 +47,9 @@ export class PostersService {
           : {
               AND: [where, cursorWhere],
             },
+      include: {
+        coverAsset: true,
+      },
       orderBy: [{ isFeatured: 'desc' }, { startsAt: 'asc' }, { id: 'asc' }],
       take: take + 1,
     });
@@ -65,6 +69,9 @@ export class PostersService {
   async getPosterDetail(posterId: string) {
     const poster = await this.prismaService.client.poster.findUnique({
       where: { id: posterId },
+      include: {
+        coverAsset: true,
+      },
     });
 
     if (!poster) {
@@ -180,7 +187,29 @@ export class PostersService {
     };
   }
 
-  private mapPoster(poster: Poster) {
+  private mapPoster(
+    poster: Poster & {
+      coverAsset?: {
+        id: string;
+        kind: string;
+        mimeType: string;
+        byteSize: number;
+        durationMs: number | null;
+        publicUrl: string | null;
+      } | null;
+    },
+  ) {
+    const cover = poster.coverAsset == null
+      ? null
+      : mapMediaResource(
+          poster.coverAsset as Parameters<typeof mapMediaResource>[0],
+          {
+            visibility: 'public',
+            url: poster.coverAsset.publicUrl,
+            downloadUrl: poster.coverAsset.publicUrl,
+          },
+        );
+
     return {
       id: poster.id,
       category: poster.category,
@@ -199,6 +228,7 @@ export class PostersService {
       tags: this.normalizeTags(poster.tags),
       description: poster.description,
       isFeatured: poster.isFeatured,
+      cover,
     };
   }
 }
