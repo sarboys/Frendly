@@ -420,8 +420,23 @@ export class EventsService {
         where: { eventId, userId },
       });
 
-      await tx.eventAttendance.deleteMany({
-        where: { eventId, userId },
+      await tx.eventAttendance.upsert({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        update: {
+          status: 'left',
+          leftAt: new Date(),
+        },
+        create: {
+          eventId,
+          userId,
+          status: 'left',
+          leftAt: new Date(),
+        },
       });
 
       await tx.chatMember.deleteMany({
@@ -1274,6 +1289,13 @@ export class EventsService {
               },
             },
           },
+          {
+            attendances: {
+              some: {
+                userId,
+              },
+            },
+          },
         ],
       },
     ];
@@ -1642,6 +1664,10 @@ export class EventsService {
       hostId: string;
       visibilityMode: string;
       participants: Array<{ userId: string }>;
+      attendances: Array<{
+        userId: string;
+        status: string;
+      }>;
       joinRequests: Array<{
         userId: string;
         status: string;
@@ -1658,6 +1684,10 @@ export class EventsService {
     }
 
     if (event.participants.some((participant) => participant.userId === userId)) {
+      return true;
+    }
+
+    if (event.attendances.some((attendance) => attendance.userId === userId)) {
       return true;
     }
 

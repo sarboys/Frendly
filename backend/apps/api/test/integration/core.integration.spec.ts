@@ -102,6 +102,28 @@ describe('core api flows', () => {
     expect(response.body.area).toBe('Патрики');
   });
 
+  it('updates profile location from onboarding payload', async () => {
+    await request(app.getHttpServer())
+      .put('/onboarding/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        intent: 'both',
+        city: 'Санкт-Петербург',
+        area: 'Петроградка',
+        interests: ['Кофе', 'Кино'],
+        vibe: 'Спокойно',
+      })
+      .expect(200);
+
+    const profileResponse = await request(app.getHttpServer())
+      .get('/profile/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(profileResponse.body.city).toBe('Санкт-Петербург');
+    expect(profileResponse.body.area).toBe('Петроградка');
+  });
+
   it('updates profile with a consistent roundtrip shape', async () => {
     const updateResponse = await request(app.getHttpServer())
       .patch('/profile/me')
@@ -1448,6 +1470,70 @@ describe('core api flows', () => {
 
     expect(hiddenResponse.status).toBe(404);
     expect(hiddenResponse.body.code).toBe('event_not_found');
+  });
+
+  it('keeps private event visible after approved member leaves it', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Закрытый ужин после выхода',
+        description: 'Приватная встреча по заявкам',
+        emoji: '🍝',
+        vibe: 'Уютно',
+        place: 'Солянка 5',
+        startsAt: futureIso(3, 19),
+        capacity: 4,
+        distanceKm: 0.6,
+        joinMode: 'request',
+        visibilityMode: 'friends',
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/join-request`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .send({ note: 'Хочу присоединиться' })
+      .expect(201);
+
+    const hostEventResponse = await request(app.getHttpServer())
+      .get(`/host/events/${eventId}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/host/requests/${hostEventResponse.body.requests[0].id}/approve`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/events/${eventId}/join`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
+
+    const listResponse = await request(app.getHttpServer())
+      .get('/events')
+      .query({ q: 'Закрытый ужин после выхода' })
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
+
+    const event = listResponse.body.items.find(
+      (item: { id: string }) => item.id === eventId,
+    );
+
+    expect(event).toBeTruthy();
+    expect(event.joined).toBe(false);
+    expect(event.attendanceStatus).toBe('left');
+
+    const detailResponse = await request(app.getHttpServer())
+      .get(`/events/${eventId}`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
+
+    expect(detailResponse.body.joined).toBe(false);
+    expect(detailResponse.body.attendanceStatus).toBe('left');
   });
 
   it('returns reply preview metadata for replied messages', async () => {
