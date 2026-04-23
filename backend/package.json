@@ -11,6 +11,7 @@
     "db:generate": "pnpm --filter @big-break/database prisma:generate",
     "db:migrate": "pnpm --filter @big-break/database db:migrate",
     "db:deploy": "pnpm --filter @big-break/database db:deploy",
+    "db:reset:test-users": "pnpm --filter @big-break/database db:reset:test-users",
     "db:seed": "pnpm --filter @big-break/database db:seed"
   },
   "devDependencies": {
