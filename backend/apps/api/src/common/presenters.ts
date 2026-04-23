@@ -100,6 +100,7 @@ function mapReplyPreview(
 
   return {
     id: message.id,
+    authorId: message.senderId,
     author: message.sender.displayName,
     text: previewText,
     isVoice,
@@ -130,6 +131,7 @@ export function mapBasicProfile(
     verified: user.verified,
     online: user.online,
     age: user.profile?.age ?? null,
+    gender: user.profile?.gender ?? null,
     city: user.profile?.city ?? null,
     area: user.profile?.area ?? null,
     bio: user.profile?.bio ?? null,

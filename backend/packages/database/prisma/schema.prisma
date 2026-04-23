@@ -96,6 +96,11 @@ enum EventGenderMode {
   female
 }
 
+enum UserGender {
+  male
+  female
+}
+
 enum EventVisibilityMode {
   public
   friends
@@ -345,6 +350,7 @@ model Profile {
   userId         String      @id
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   age            Int?
+  gender         UserGender?
   city           String?
   area           String?
   bio            String?
@@ -375,6 +381,7 @@ model OnboardingPreferences {
   userId     String   @id
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   intent     String?
+  gender     UserGender?
   city       String?
   area       String?
   interests  Json

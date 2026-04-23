@@ -18,4 +18,12 @@ export class SettingsController {
   ) {
     return this.settingsService.updateSettings(currentUser.userId, body);
   }
+
+  @Put('me/testing-access')
+  updateTestingAccess(
+    @CurrentUser() currentUser: { userId: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.settingsService.updateTestingAccess(currentUser.userId, body);
+  }
 }

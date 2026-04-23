@@ -225,6 +225,7 @@ describe('chat websocket auth', () => {
         text: 'Отвечаю на первое сообщение',
         replyTo: {
           id: 'p1',
+          authorId: 'user-anya',
           text: 'Привет, классно посидели вчера.',
           isVoice: false,
         },

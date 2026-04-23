@@ -4,6 +4,7 @@ import { PrismaService } from './prisma.service';
 
 function mapOnboarding(onboarding: {
   intent: string | null;
+  gender: 'male' | 'female' | null;
   city: string | null;
   area: string | null;
   interests: unknown;
@@ -11,6 +12,7 @@ function mapOnboarding(onboarding: {
 }) {
   return {
     intent: onboarding.intent,
+    gender: onboarding.gender,
     city: onboarding.city,
     area: onboarding.area,
     interests: Array.isArray(onboarding.interests)
@@ -25,13 +27,14 @@ export class OnboardingService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getOnboarding(userId: string) {
-    const onboarding = await this.prismaService.client.onboardingPreferences.findUnique({
+    const onboarding = await this.prismaService.client.onboardingPreferences.upsert({
       where: { userId },
+      update: {},
+      create: {
+        userId,
+        interests: [],
+      },
     });
-
-    if (!onboarding) {
-      throw new ApiError(404, 'onboarding_not_found', 'Onboarding not found');
-    }
 
     return mapOnboarding(onboarding);
   }
@@ -44,14 +47,26 @@ export class OnboardingService {
     const interests = Array.isArray(body.interests)
       ? body.interests.filter((item): item is string => typeof item === 'string')
       : [];
+    const gender =
+      body.gender === 'male' || body.gender === 'female' ? body.gender : null;
     const city = typeof body.city === 'string' ? body.city : null;
     const area = typeof body.area === 'string' ? body.area : null;
 
     const onboarding = await this.prismaService.client.$transaction(async (tx) => {
-      const updated = await tx.onboardingPreferences.update({
+      const updated = await tx.onboardingPreferences.upsert({
         where: { userId },
-        data: {
+        update: {
           intent: typeof body.intent === 'string' ? body.intent : null,
+          gender,
+          city,
+          area,
+          interests,
+          vibe: typeof body.vibe === 'string' ? body.vibe : null,
+        },
+        create: {
+          userId,
+          intent: typeof body.intent === 'string' ? body.intent : null,
+          gender,
           city,
           area,
           interests,
@@ -62,11 +77,13 @@ export class OnboardingService {
       await tx.profile.upsert({
         where: { userId },
         update: {
+          gender,
           city,
           area,
         },
         create: {
           userId,
+          gender,
           city,
           area,
         },

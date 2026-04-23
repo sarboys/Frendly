@@ -311,6 +311,7 @@ export class AuthService {
       displayName: string;
       phoneNumber?: string;
       profile?: {
+        gender?: 'male' | 'female';
         city?: string;
         area?: string;
         bio?: string;
@@ -318,6 +319,7 @@ export class AuthService {
       };
       onboarding?: {
         intent?: string;
+        gender?: 'male' | 'female';
         city?: string;
         area?: string;
         interests?: string[];
@@ -355,6 +357,7 @@ export class AuthService {
     }
 
     const profilePreset = {
+      gender: params.profile?.gender,
       city: params.profile?.city,
       area: params.profile?.area,
       bio: params.profile?.bio,
@@ -363,6 +366,7 @@ export class AuthService {
 
     const onboardingPreset = {
       intent: params.onboarding?.intent,
+      gender: params.onboarding?.gender ?? profilePreset.gender,
       city: params.onboarding?.city ?? profilePreset.city,
       area: params.onboarding?.area ?? profilePreset.area,
       interests: params.onboarding?.interests ?? [],
@@ -376,6 +380,7 @@ export class AuthService {
         phoneNumber: params.phoneNumber,
         profile: {
           create: {
+            gender: profilePreset.gender,
             city: profilePreset.city,
             area: profilePreset.area,
             bio: profilePreset.bio,
@@ -385,6 +390,7 @@ export class AuthService {
         onboarding: {
           create: {
             intent: onboardingPreset.intent,
+            gender: onboardingPreset.gender,
             city: onboardingPreset.city,
             area: onboardingPreset.area,
             interests: onboardingPreset.interests,

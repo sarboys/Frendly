@@ -160,6 +160,7 @@ async function main() {
         profile: {
           create: {
             age: user.age,
+            gender: user.gender,
             city: user.city,
             area: user.area,
             bio: user.bio,
@@ -172,6 +173,7 @@ async function main() {
         onboarding: {
           create: {
             intent: user.intent,
+            gender: user.gender,
             city: user.city,
             area: user.area,
             interests: user.interests,

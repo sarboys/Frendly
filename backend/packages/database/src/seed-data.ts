@@ -4,6 +4,7 @@ export const seededUsers: Array<{
   verified: boolean;
   online: boolean;
   age: number;
+  gender: 'male' | 'female';
   city: string;
   area: string;
   bio: string;
@@ -21,6 +22,7 @@ export const seededUsers: Array<{
     verified: true,
     online: true,
     age: 28,
+    gender: 'male',
     city: 'Москва',
     area: 'Чистые пруды',
     bio: 'Дизайнер. Люблю долгие прогулки и тихие бары. Ищу людей, с которыми можно собраться без долгого планирования.',
@@ -42,6 +44,7 @@ export const seededUsers: Array<{
     verified: true,
     online: true,
     age: 27,
+    gender: 'female',
     city: 'Москва',
     area: 'Чистые пруды',
     bio: 'Архитектор. Люблю тихие бары и долгие разговоры. Часто хожу на выставки и в книжный.',
@@ -63,6 +66,7 @@ export const seededUsers: Array<{
     verified: true,
     online: true,
     age: 30,
+    gender: 'male',
     city: 'Москва',
     area: 'Патрики',
     bio: 'Люблю бары, кино и быстрые планы без долгой переписки.',
@@ -83,6 +87,7 @@ export const seededUsers: Array<{
     verified: true,
     online: false,
     age: 25,
+    gender: 'female',
     city: 'Москва',
     area: 'Хамовники',
     bio: 'Люблю йогу, книги и спокойные встречи без шума.',
@@ -103,6 +108,7 @@ export const seededUsers: Array<{
     verified: false,
     online: false,
     age: 29,
+    gender: 'male',
     city: 'Москва',
     area: 'Сокол',
     bio: 'Бег, велик и встречи, где можно сразу перейти к делу.',
@@ -123,6 +129,7 @@ export const seededUsers: Array<{
     verified: true,
     online: true,
     age: 26,
+    gender: 'female',
     city: 'Москва',
     area: 'Замоскворечье',
     bio: 'Люблю театр, готовку и спокойные встречи в центре.',
@@ -143,6 +150,7 @@ export const seededUsers: Array<{
     verified: true,
     online: false,
     age: 31,
+    gender: 'male',
     city: 'Москва',
     area: 'Центр',
     bio: 'Музыка, бары и спонтанные вечера после работы.',

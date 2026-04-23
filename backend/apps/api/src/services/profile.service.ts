@@ -59,6 +59,12 @@ export class ProfileService {
         where: { userId },
         data: {
           age: body.age == null ? null : typeof body.age === 'number' ? body.age : undefined,
+          gender:
+              body.gender === 'male' || body.gender === 'female'
+                  ? body.gender
+                  : body.gender == null
+                      ? null
+                      : undefined,
           city: body.city == null ? null : typeof body.city === 'string' ? body.city : undefined,
           area: body.area == null ? null : typeof body.area === 'string' ? body.area : undefined,
           bio: body.bio == null ? null : typeof body.bio === 'string' ? body.bio : undefined,
@@ -461,6 +467,15 @@ export class ProfileService {
       if (!Number.isInteger(body.age) || (body.age as number) < 18 || (body.age as number) > 100) {
         throw new ApiError(400, 'invalid_profile_payload', 'age must be an integer from 18 to 100');
       }
+    }
+
+    if (
+      body.gender !== undefined &&
+      body.gender !== null &&
+      body.gender !== 'male' &&
+      body.gender !== 'female'
+    ) {
+      throw new ApiError(400, 'invalid_profile_payload', 'gender must be male or female');
     }
 
     for (const field of ['bio', 'city', 'area', 'vibe'] as const) {

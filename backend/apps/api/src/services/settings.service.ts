@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
 function mapSettings(settings: {
@@ -31,35 +30,119 @@ export class SettingsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getSettings(userId: string) {
-    const settings = await this.prismaService.client.userSettings.findUnique({
+    const settings = await this.prismaService.client.userSettings.upsert({
       where: { userId },
+      update: {},
+      create: {
+        userId,
+      },
     });
-
-    if (!settings) {
-      throw new ApiError(404, 'settings_not_found', 'Settings not found');
-    }
 
     return mapSettings(settings);
   }
 
   async updateSettings(userId: string, body: Record<string, unknown>) {
-    const settings = await this.prismaService.client.userSettings.update({
+    const settings = await this.prismaService.client.userSettings.upsert({
       where: { userId },
-      data: {
-        allowLocation: typeof body.allowLocation === 'boolean' ? body.allowLocation : undefined,
+      update: {
+        allowLocation:
+            typeof body.allowLocation === 'boolean' ? body.allowLocation : undefined,
         allowPush: typeof body.allowPush === 'boolean' ? body.allowPush : undefined,
-        allowContacts: typeof body.allowContacts === 'boolean' ? body.allowContacts : undefined,
+        allowContacts:
+            typeof body.allowContacts === 'boolean' ? body.allowContacts : undefined,
         autoSharePlans:
-            typeof body.autoSharePlans === 'boolean' ? body.autoSharePlans : undefined,
+            typeof body.autoSharePlans === 'boolean'
+                ? body.autoSharePlans
+                : undefined,
         hideExactLocation:
-            typeof body.hideExactLocation === 'boolean' ? body.hideExactLocation : undefined,
-        quietHours: typeof body.quietHours === 'boolean' ? body.quietHours : undefined,
+            typeof body.hideExactLocation === 'boolean'
+                ? body.hideExactLocation
+                : undefined,
+        quietHours:
+            typeof body.quietHours === 'boolean' ? body.quietHours : undefined,
         showAge: typeof body.showAge === 'boolean' ? body.showAge : undefined,
-        discoverable: typeof body.discoverable === 'boolean' ? body.discoverable : undefined,
+        discoverable:
+            typeof body.discoverable === 'boolean' ? body.discoverable : undefined,
         darkMode: typeof body.darkMode === 'boolean' ? body.darkMode : undefined,
+      },
+      create: {
+        userId,
+        allowLocation:
+            typeof body.allowLocation === 'boolean' ? body.allowLocation : false,
+        allowPush: typeof body.allowPush === 'boolean' ? body.allowPush : false,
+        allowContacts:
+            typeof body.allowContacts === 'boolean' ? body.allowContacts : false,
+        autoSharePlans:
+            typeof body.autoSharePlans === 'boolean'
+                ? body.autoSharePlans
+                : false,
+        hideExactLocation:
+            typeof body.hideExactLocation === 'boolean'
+                ? body.hideExactLocation
+                : false,
+        quietHours:
+            typeof body.quietHours === 'boolean' ? body.quietHours : false,
+        showAge: typeof body.showAge === 'boolean' ? body.showAge : true,
+        discoverable:
+            typeof body.discoverable === 'boolean' ? body.discoverable : true,
+        darkMode: typeof body.darkMode === 'boolean' ? body.darkMode : false,
       },
     });
 
     return mapSettings(settings);
+  }
+
+  async updateTestingAccess(userId: string, body: Record<string, unknown>) {
+    let frendlyPlusEnabled = body.frendlyPlusEnabled === true;
+    const afterDarkEnabled = body.afterDarkEnabled === true;
+
+    if (afterDarkEnabled) {
+      frendlyPlusEnabled = true;
+    }
+
+    const now = new Date();
+    const expiredAt = new Date(now.getTime() - 1000);
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.userSubscription.updateMany({
+        where: { userId },
+        data: {
+          status: 'inactive',
+          trialEndsAt: null,
+          renewsAt: expiredAt,
+        },
+      });
+
+      if (frendlyPlusEnabled) {
+        await tx.userSubscription.create({
+          data: {
+            userId,
+            plan: 'month',
+            status: 'active',
+            startedAt: now,
+            renewsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+            trialEndsAt: null,
+          },
+        });
+      }
+
+      await tx.userSettings.upsert({
+        where: { userId },
+        update: {
+          afterDarkAgeConfirmedAt: afterDarkEnabled ? now : null,
+          afterDarkCodeAcceptedAt: afterDarkEnabled ? now : null,
+        },
+        create: {
+          userId,
+          afterDarkAgeConfirmedAt: afterDarkEnabled ? now : null,
+          afterDarkCodeAcceptedAt: afterDarkEnabled ? now : null,
+        },
+      });
+    });
+
+    return {
+      frendlyPlusEnabled,
+      afterDarkEnabled,
+    };
   }
 }

@@ -92,6 +92,7 @@ describe('core api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         intent: 'both',
+        gender: 'male',
         city: 'Москва',
         area: 'Патрики',
         interests: ['Кофе', 'Кино'],
@@ -102,12 +103,42 @@ describe('core api flows', () => {
     expect(response.body.area).toBe('Патрики');
   });
 
+  it('upserts onboarding when user onboarding row is missing', async () => {
+    await prisma.onboardingPreferences.delete({
+      where: { userId: 'user-me' },
+    });
+
+    const response = await request(app.getHttpServer())
+      .put('/onboarding/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        intent: 'both',
+        gender: 'male',
+        city: 'Санкт-Петербург',
+        area: 'Петроградка',
+        interests: ['Кофе', 'Кино'],
+        vibe: 'Спокойно',
+      })
+      .expect(200);
+
+    expect(response.body.gender).toBe('male');
+    expect(response.body.city).toBe('Санкт-Петербург');
+
+    const savedOnboarding = await prisma.onboardingPreferences.findUnique({
+      where: { userId: 'user-me' },
+    });
+
+    expect(savedOnboarding?.gender).toBe('male');
+    expect(savedOnboarding?.city).toBe('Санкт-Петербург');
+  });
+
   it('updates profile location from onboarding payload', async () => {
     await request(app.getHttpServer())
       .put('/onboarding/me')
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         intent: 'both',
+        gender: 'male',
         city: 'Санкт-Петербург',
         area: 'Петроградка',
         interests: ['Кофе', 'Кино'],
@@ -122,6 +153,7 @@ describe('core api flows', () => {
 
     expect(profileResponse.body.city).toBe('Санкт-Петербург');
     expect(profileResponse.body.area).toBe('Петроградка');
+    expect(profileResponse.body.gender).toBe('male');
   });
 
   it('updates profile with a consistent roundtrip shape', async () => {
@@ -178,6 +210,7 @@ describe('core api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         intent: 'both',
+        gender: 'male',
         city: 'Москва',
         area: 'Якиманка',
         interests: ['Кофе', 'Кино', 'Йога'],
@@ -190,6 +223,7 @@ describe('core api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         intent: 'friendship',
+        gender: 'female',
         city: null,
         area: null,
         interests: ['Прогулки'],
@@ -198,6 +232,7 @@ describe('core api flows', () => {
       .expect(200);
 
     expect(overwriteResponse.body.intent).toBe('friendship');
+    expect(overwriteResponse.body.gender).toBe('female');
     expect(overwriteResponse.body.city).toBeNull();
     expect(overwriteResponse.body.area).toBeNull();
     expect(overwriteResponse.body.interests).toEqual(['Прогулки']);
@@ -209,6 +244,7 @@ describe('core api flows', () => {
       .expect(200);
 
     expect(readResponse.body.intent).toBe('friendship');
+    expect(readResponse.body.gender).toBe('female');
     expect(readResponse.body.city).toBeNull();
     expect(readResponse.body.area).toBeNull();
     expect(readResponse.body.interests).toEqual(['Прогулки']);
@@ -216,6 +252,10 @@ describe('core api flows', () => {
   });
 
   it('persists settings including dark mode', async () => {
+    await prisma.userSettings.delete({
+      where: { userId: 'user-me' },
+    });
+
     const updateResponse = await request(app.getHttpServer())
       .put('/settings/me')
       .set('authorization', `Bearer ${accessToken}`)
@@ -250,6 +290,76 @@ describe('core api flows', () => {
       .expect(200);
 
     expect(readResponse.body).toEqual(updateResponse.body);
+  });
+
+  it('updates testing access toggles through settings endpoint', async () => {
+    await prisma.userSubscription.deleteMany({
+      where: { userId: 'user-me' },
+    });
+
+    await prisma.userSettings.update({
+      where: { userId: 'user-me' },
+      data: {
+        afterDarkAgeConfirmedAt: null,
+        afterDarkCodeAcceptedAt: null,
+      },
+    });
+
+    const enabledResponse = await request(app.getHttpServer())
+      .put('/settings/me/testing-access')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        frendlyPlusEnabled: true,
+        afterDarkEnabled: true,
+      })
+      .expect(200);
+
+    expect(enabledResponse.body).toEqual({
+      frendlyPlusEnabled: true,
+      afterDarkEnabled: true,
+    });
+
+    const subscriptionResponse = await request(app.getHttpServer())
+      .get('/subscription/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(subscriptionResponse.body.status).toBe('active');
+
+    const afterDarkAccessResponse = await request(app.getHttpServer())
+      .get('/after-dark/access')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(afterDarkAccessResponse.body.unlocked).toBe(true);
+
+    const disabledResponse = await request(app.getHttpServer())
+      .put('/settings/me/testing-access')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        frendlyPlusEnabled: false,
+        afterDarkEnabled: false,
+      })
+      .expect(200);
+
+    expect(disabledResponse.body).toEqual({
+      frendlyPlusEnabled: false,
+      afterDarkEnabled: false,
+    });
+
+    const subscriptionAfterDisable = await request(app.getHttpServer())
+      .get('/subscription/me')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(subscriptionAfterDisable.body.status).toBe('inactive');
+
+    const afterDarkAccessAfterDisable = await request(app.getHttpServer())
+      .get('/after-dark/access')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(afterDarkAccessAfterDisable.body.unlocked).toBe(false);
   });
 
   it('uploads avatar file, saves ready asset for the owner and rejects bad mime', async () => {
@@ -1590,6 +1700,7 @@ describe('core api flows', () => {
 
       expect(replyMessage.replyTo).toMatchObject({
         id: `${chatId}-1`,
+        authorId: 'user-sonya',
         text: 'Исходное сообщение',
         isVoice: false,
       });

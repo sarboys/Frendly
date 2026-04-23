@@ -744,6 +744,7 @@ export class ChatServerService implements OnModuleDestroy {
     sender: { displayName: string };
     replyTo?: {
       id: string;
+      senderId: string;
       text: string;
       sender: { displayName: string };
       attachments: Array<{
@@ -779,6 +780,7 @@ export class ChatServerService implements OnModuleDestroy {
       replyTo: message.replyTo
           ? {
               id: message.replyTo.id,
+              authorId: message.replyTo.senderId,
               author: message.replyTo.sender.displayName,
               text: buildMessagePreview({
                 text: message.replyTo.text,
