@@ -51,7 +51,11 @@ services:
     command: >
       /bin/sh -c "
       pnpm --filter @big-break/database db:deploy &&
-      pnpm --filter @big-break/database db:seed
+      if [ \"$${RUN_DB_SEED:-false}\" = \"true\" ]; then
+        pnpm --filter @big-break/database db:seed;
+      else
+        echo 'Skipping production seed';
+      fi
       "
 
   api:
