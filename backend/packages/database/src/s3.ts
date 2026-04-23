@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export interface S3Config {
@@ -72,6 +72,17 @@ export async function createPresignedUpload(input: PresignedUploadInput) {
       'content-type': input.contentType,
     },
   };
+}
+
+export async function createPresignedDownload(objectKey: string) {
+  const config = getS3Config();
+  const client = createPublicS3Client();
+  const command = new GetObjectCommand({
+    Bucket: config.bucket,
+    Key: objectKey,
+  });
+
+  return getSignedUrl(client, command, { expiresIn: 300 });
 }
 
 export function buildPublicAssetUrl(objectKey: string): string {

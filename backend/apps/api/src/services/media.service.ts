@@ -1,6 +1,10 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
-import { createS3Client, verifyAccessToken } from '@big-break/database';
+import {
+  createPresignedDownload,
+  createS3Client,
+  verifyAccessToken,
+} from '@big-break/database';
 import { Readable } from 'node:stream';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
@@ -77,6 +81,55 @@ export class MediaService {
           requestedRange == null
               ? null
               : `bytes ${start}-${end}/${asset.byteSize}`,
+    };
+  }
+
+  async getDownloadUrl(userId: string, assetId: string) {
+    const asset = await this.prismaService.client.mediaAsset.findUnique({
+      where: { id: assetId },
+      select: {
+        id: true,
+        status: true,
+        ownerId: true,
+        kind: true,
+        chatId: true,
+        objectKey: true,
+        publicUrl: true,
+      },
+    });
+
+    if (!asset || asset.status !== 'ready') {
+      throw new ApiError(404, 'media_not_found', 'Media asset not found');
+    }
+
+    if (asset.kind !== 'avatar' && asset.ownerId !== userId) {
+      if (asset.chatId == null) {
+        throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+      }
+
+      const membership = await this.prismaService.client.chatMember.findUnique({
+        where: {
+          chatId_userId: {
+            chatId: asset.chatId,
+            userId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!membership) {
+        throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+      }
+    }
+
+    if (asset.kind === 'avatar' && asset.publicUrl != null) {
+      return {
+        url: asset.publicUrl,
+      };
+    }
+
+    return {
+      url: await createPresignedDownload(asset.objectKey),
     };
   }
 

@@ -1142,6 +1142,83 @@ describe('core api flows', () => {
     }
   });
 
+  it('returns signed playback url for private voice media to chat member only', async () => {
+    const assetId = `voice-signed-${Date.now()}`;
+    const objectKey = `chat-attachments/user-me/${assetId}-voice.webm`;
+    const payload = Buffer.from('voice-signed-payload');
+    const privateChatId = `private-media-signed-${Date.now()}`;
+
+    try {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Key: objectKey,
+          ContentType: 'audio/webm',
+          Body: payload,
+        }),
+      );
+
+      await prisma.chat.create({
+        data: {
+          id: privateChatId,
+          kind: 'direct',
+          origin: 'people',
+          directKey: `user-me:user-mark:${privateChatId}`,
+          members: {
+            createMany: {
+              data: [{ userId: 'user-me' }, { userId: 'user-mark' }],
+            },
+          },
+        },
+      });
+
+      await prisma.mediaAsset.create({
+        data: {
+          id: assetId,
+          ownerId: 'user-me',
+          kind: 'chat_voice',
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey,
+          mimeType: 'audio/webm',
+          byteSize: payload.length,
+          durationMs: 5000,
+          waveform: [0.11, 0.22, 0.44, 0.88],
+          originalFileName: 'voice.webm',
+          publicUrl: buildPublicAssetUrl(objectKey),
+          chatId: privateChatId,
+        } as any,
+      });
+
+      const forbiddenResponse = await request(app.getHttpServer())
+        .get(`/media/${assetId}/download-url`)
+        .set('authorization', `Bearer ${peerAccessToken}`);
+      expect(forbiddenResponse.status).toBe(403);
+      expect(forbiddenResponse.body.code).toBe('media_forbidden');
+
+      const response = await request(app.getHttpServer())
+        .get(`/media/${assetId}/download-url`)
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.url).toEqual(
+        expect.stringContaining('X-Amz-Signature='),
+      );
+      expect(response.body.url).toEqual(expect.stringContaining(objectKey));
+    } finally {
+      await prisma.mediaAsset.deleteMany({
+        where: {
+          id: assetId,
+        },
+      });
+      await prisma.chat.deleteMany({
+        where: {
+          id: privateChatId,
+        },
+      });
+    }
+  });
+
   it('hides private event details from non-members', async () => {
     const createResponse = await request(app.getHttpServer())
       .post('/events')

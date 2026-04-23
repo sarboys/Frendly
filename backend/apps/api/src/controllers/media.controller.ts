@@ -1,11 +1,20 @@
 import { Controller, Get, Headers, Param, Res, StreamableFile } from '@nestjs/common';
 import { Response } from 'express';
+import { CurrentUser } from '../common/current-user.decorator';
 import { Public } from '../common/public.decorator';
 import { MediaService } from '../services/media.service';
 
 @Controller('media')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
+
+  @Get(':assetId/download-url')
+  getDownloadUrl(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('assetId') assetId: string,
+  ) {
+    return this.mediaService.getDownloadUrl(currentUser.userId, assetId);
+  }
 
   @Public()
   @Get(':assetId')
