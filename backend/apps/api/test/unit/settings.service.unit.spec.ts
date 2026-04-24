@@ -1,11 +1,9 @@
 import { SettingsService } from '../../src/services/settings.service';
 
 describe('SettingsService unit', () => {
-  const originalNodeEnv = process.env.NODE_ENV;
   const originalTestingAccess = process.env.ENABLE_TESTING_ACCESS;
 
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
     if (originalTestingAccess == null) {
       delete process.env.ENABLE_TESTING_ACCESS;
     } else {
@@ -13,9 +11,22 @@ describe('SettingsService unit', () => {
     }
   });
 
-  it('allows testing access in non-production without an env flag', async () => {
-    process.env.NODE_ENV = 'test';
+  it('rejects testing access without an explicit env flag', async () => {
     delete process.env.ENABLE_TESTING_ACCESS;
+    const service = new SettingsService({ client: {} } as any);
+
+    await expect(
+      service.updateTestingAccess('user-me', {
+        frendlyPlusEnabled: true,
+        afterDarkEnabled: false,
+      }),
+    ).rejects.toMatchObject({
+      code: 'testing_access_disabled',
+    });
+  });
+
+  it('allows testing access with an explicit env flag', async () => {
+    process.env.ENABLE_TESTING_ACCESS = 'true';
 
     const client = {
       $transaction: jest.fn(async (callback: any) =>

@@ -94,10 +94,7 @@ export class SettingsService {
   }
 
   async updateTestingAccess(userId: string, body: Record<string, unknown>) {
-    const testingAccessEnabled =
-      process.env.ENABLE_TESTING_ACCESS === 'true' ||
-      process.env.NODE_ENV !== 'production';
-    if (!testingAccessEnabled) {
+    if (process.env.ENABLE_TESTING_ACCESS !== 'true') {
       throw new ApiError(404, 'testing_access_disabled', 'Testing access is disabled');
     }
 
