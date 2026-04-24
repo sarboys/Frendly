@@ -892,13 +892,61 @@ describe('core api flows', () => {
   });
 
   it('returns event feed with cursor pagination', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/events?filter=nearby&limit=2')
-      .set('authorization', `Bearer ${accessToken}`)
-      .expect(200);
+    const eventIds = ['cursor-nearby-1', 'cursor-nearby-2', 'cursor-nearby-3'];
 
-    expect(response.body.items).toHaveLength(2);
-    expect(response.body.nextCursor).toEqual(expect.any(String));
+    await prisma.event.deleteMany({
+      where: {
+        id: {
+          in: eventIds,
+        },
+      },
+    });
+
+    await prisma.event.createMany({
+      data: eventIds.map((id, index) => ({
+        id,
+        title: `Cursor event ${index + 1}`,
+        emoji: '📍',
+        startsAt: new Date(futureIso(1, 18, index)),
+        place: 'Cursor test place',
+        distanceKm: index + 0.1,
+        vibe: 'Спокойно',
+        description: 'Cursor pagination test event',
+        capacity: 4,
+        hostId: 'user-anya',
+      })),
+    });
+
+    try {
+      const response = await request(app.getHttpServer())
+        .get('/events?filter=nearby&limit=2')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.items).toHaveLength(2);
+      expect(response.body.nextCursor).toEqual(expect.any(String));
+
+      const nextResponse = await request(app.getHttpServer())
+        .get(
+          `/events?filter=nearby&limit=2&cursor=${encodeURIComponent(
+            response.body.nextCursor,
+          )}`,
+        )
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(
+        nextResponse.body.items.map((item: { id: string }) => item.id),
+      ).toContain('cursor-nearby-3');
+    } finally {
+      await prisma.event.deleteMany({
+        where: {
+          id: {
+            in: eventIds,
+          },
+        },
+      });
+    }
   });
 
   it('returns stable event cards for feed filters', async () => {
