@@ -38,6 +38,20 @@ jobs:
             export TARGET_SHA="${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}"
             export ENV_FILE="${APP_DIR}/.env.production"
 
+            echo "Disk usage before deploy pre-clean:"
+            df -h / /tmp || true
+            docker system df || true
+            if [ -f "${APP_DIR}/compose.prod.yml" ] && [ -f "$ENV_FILE" ]; then
+              docker compose --env-file "$ENV_FILE" -f "${APP_DIR}/compose.prod.yml" rm -sf migrate || true
+            fi
+            docker container prune -f || true
+            docker image prune -af || true
+            docker builder prune -af || true
+            rm -f /tmp/.tmp-compose-build-metadataFile-* || true
+            echo "Disk usage after deploy pre-clean:"
+            df -h / /tmp || true
+            docker system df || true
+
             mkdir -p "$APP_DIR"
 
             if [ ! -d "$APP_DIR/.git" ]; then
