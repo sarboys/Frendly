@@ -114,6 +114,8 @@ describe('communities api flows', () => {
       id: 'c1',
       name: 'City Rituals',
       chatId: expect.any(String),
+      joined: true,
+      isOwner: false,
       sharedMediaLabel: '68 фото и видео',
       nextMeetup: {
         id: 'cm1',
@@ -198,6 +200,8 @@ describe('communities api flows', () => {
       avatar: '🎨',
       privacy: 'private',
       chatId: expect.any(String),
+      joined: true,
+      isOwner: true,
       members: 1,
       memberNames: [expect.any(String)],
     });

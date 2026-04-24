@@ -81,7 +81,9 @@ export class CommunitiesService {
     );
 
     return {
-      items: page.map((community) => this.mapCommunity(community, counters)),
+      items: page.map((community) =>
+        this.mapCommunity(community, counters, userId),
+      ),
       nextCursor:
         hasMore && page.length > 0
           ? encodeCursor({ value: page[page.length - 1]!.id })
@@ -106,7 +108,7 @@ export class CommunitiesService {
     const counters = await this.loadCounters(userId, [
       { communityId: community.id, chatId: community.chatId },
     ]);
-    return this.mapCommunity(community, counters);
+    return this.mapCommunity(community, counters, userId);
   }
 
   async listCommunityMedia(
@@ -328,13 +330,14 @@ export class CommunitiesService {
       return {
         onlineByCommunityId: new Map<string, number>(),
         unreadByChatId: new Map<string, number>(),
+        membershipByCommunityId: new Map<string, { role: string }>(),
       };
     }
 
     const communityIds = communities.map((item) => item.communityId);
     const chatIds = communities.map((item) => item.chatId);
 
-    const [onlineGroups, unreadGroups] = await Promise.all([
+    const [onlineGroups, unreadGroups, memberships] = await Promise.all([
       this.prismaService.client.communityMember.groupBy({
         by: ['communityId'],
         where: {
@@ -357,6 +360,16 @@ export class CommunitiesService {
           _all: true,
         },
       }),
+      this.prismaService.client.communityMember.findMany({
+        where: {
+          communityId: { in: communityIds },
+          userId,
+        },
+        select: {
+          communityId: true,
+          role: true,
+        },
+      }),
     ]);
 
     const onlineByCommunityId = new Map(
@@ -368,10 +381,17 @@ export class CommunitiesService {
         .filter((item) => item.chatId != null)
         .map((item) => [item.chatId!, item._count._all]),
     );
+    const membershipByCommunityId = new Map(
+      memberships.map((membership) => [
+        membership.communityId,
+        { role: membership.role },
+      ]),
+    );
 
     return {
       onlineByCommunityId,
       unreadByChatId,
+      membershipByCommunityId,
     };
   }
 
@@ -380,7 +400,9 @@ export class CommunitiesService {
     counters: {
       onlineByCommunityId: Map<string, number>;
       unreadByChatId: Map<string, number>;
+      membershipByCommunityId: Map<string, { role: string }>;
     },
+    currentUserId: string,
   ) {
     const meetups = community.meetups.map((meetup: any) => ({
       id: meetup.id,
@@ -391,6 +413,9 @@ export class CommunitiesService {
       format: meetup.format,
       going: meetup.going,
     }));
+    const membership = counters.membershipByCommunityId.get(community.id);
+    const isOwner =
+      community.createdById === currentUserId || membership?.role === 'owner';
 
     return {
       id: community.id,
@@ -403,6 +428,8 @@ export class CommunitiesService {
       online: counters.onlineByCommunityId.get(community.id) ?? 0,
       tags: this.stringArrayFromJson(community.tags),
       joinRule: community.joinRule,
+      joined: membership != null || community.createdById === currentUserId,
+      isOwner,
       premiumOnly: community.premiumOnly,
       unread: counters.unreadByChatId.get(community.chatId) ?? 0,
       mood: community.mood,
