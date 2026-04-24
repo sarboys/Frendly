@@ -8,12 +8,15 @@ import {
   publishBusEvent,
 } from '@big-break/database';
 import Redis from 'ioredis';
+import { randomUUID } from 'node:crypto';
 import { ApnsPushProvider, FakePushProvider, FcmPushProvider, PushProvider } from './push.providers';
 import { PrismaService } from './prisma.service';
 
 const PROCESSING_STALE_AFTER_MS = 60_000;
 const DEFAULT_MAX_EVENTS_PER_RUN = 25;
 const DEFAULT_PUSH_CONCURRENCY = 5;
+const DEFAULT_BUS_PUBLISH_CONCURRENCY = 25;
+const DEFAULT_MESSAGE_NOTIFICATION_BATCH_SIZE = 500;
 
 @Injectable()
 export class WorkerService implements OnModuleDestroy {
@@ -26,6 +29,14 @@ export class WorkerService implements OnModuleDestroy {
   private readonly pushConcurrency = this.resolvePositiveInteger(
     process.env.WORKER_PUSH_CONCURRENCY,
     DEFAULT_PUSH_CONCURRENCY,
+  );
+  private readonly busPublishConcurrency = this.resolvePositiveInteger(
+    process.env.WORKER_BUS_PUBLISH_CONCURRENCY,
+    DEFAULT_BUS_PUBLISH_CONCURRENCY,
+  );
+  private readonly messageNotificationBatchSize = this.resolvePositiveInteger(
+    process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE,
+    DEFAULT_MESSAGE_NOTIFICATION_BATCH_SIZE,
   );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
@@ -88,6 +99,24 @@ export class WorkerService implements OnModuleDestroy {
           break;
         case OUTBOX_EVENT_TYPES.unreadFanout:
           await this.handleUnreadFanout(event.payload as { chatId: string; userIds: string[] });
+          break;
+        case OUTBOX_EVENT_TYPES.messageNotificationFanout:
+          await this.handleMessageNotificationFanout(event.payload as {
+            chatId?: string;
+            actorUserId?: string;
+            messageId?: string;
+            body?: string;
+            cursor?: string;
+          });
+          break;
+        case OUTBOX_EVENT_TYPES.notificationCreate:
+          await this.handleNotificationCreate(event.payload as { notificationId?: string });
+          break;
+        case OUTBOX_EVENT_TYPES.realtimePublish:
+          await this.handleRealtimePublish(event.payload as {
+            type?: string;
+            payload?: unknown;
+          });
           break;
         default:
           console.log('[worker-skip-event]', event.type);
@@ -243,6 +272,18 @@ export class WorkerService implements OnModuleDestroy {
       return;
     }
 
+    const settings = await this.prismaService.client.userSettings.findUnique({
+      where: { userId: payload.userId },
+      select: {
+        allowPush: true,
+        quietHours: true,
+      },
+    });
+
+    if (settings?.allowPush === false || settings?.quietHours === true) {
+      return;
+    }
+
     const tokens = await this.prismaService.client.pushToken.findMany({
       where: {
         userId: payload.userId,
@@ -263,6 +304,45 @@ export class WorkerService implements OnModuleDestroy {
     });
   }
 
+  private async handleNotificationCreate(payload: { notificationId?: string }) {
+    if (typeof payload.notificationId !== 'string') {
+      return;
+    }
+
+    const notification = await this.prismaService.client.notification.findUnique({
+      where: { id: payload.notificationId },
+    });
+
+    if (!notification) {
+      return;
+    }
+
+    await publishBusEvent(this.redis, {
+      type: 'notification.created',
+      payload: {
+        userId: notification.userId,
+        notificationId: notification.id,
+        kind: notification.kind,
+        title: notification.title,
+        body: notification.body,
+        payload: notification.payload,
+        createdAt: notification.createdAt.toISOString(),
+        readAt: notification.readAt?.toISOString() ?? null,
+      },
+    });
+  }
+
+  private async handleRealtimePublish(payload: { type?: string; payload?: unknown }) {
+    if (typeof payload.type !== 'string') {
+      return;
+    }
+
+    await publishBusEvent(this.redis, {
+      type: payload.type,
+      payload: payload.payload,
+    });
+  }
+
   private async handleUnreadFanout(payload: { chatId: string; userIds: string[] }) {
     if (!payload.chatId || !Array.isArray(payload.userIds) || payload.userIds.length === 0) {
       return;
@@ -276,10 +356,138 @@ export class WorkerService implements OnModuleDestroy {
       return;
     }
 
+    await this.publishUnreadCounts(payload.chatId, userIds);
+  }
+
+  private async handleMessageNotificationFanout(payload: {
+    chatId?: string;
+    actorUserId?: string;
+    messageId?: string;
+    body?: string;
+    cursor?: string;
+  }) {
+    if (
+      typeof payload.chatId !== 'string' ||
+      typeof payload.actorUserId !== 'string' ||
+      typeof payload.messageId !== 'string' ||
+      typeof payload.body !== 'string'
+    ) {
+      return;
+    }
+
+    const members = await this.prismaService.client.chatMember.findMany({
+      where: {
+        chatId: payload.chatId,
+        userId: {
+          not: payload.actorUserId,
+        },
+        ...(typeof payload.cursor === 'string'
+          ? {
+              id: {
+                gt: payload.cursor,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+      orderBy: { id: 'asc' },
+      take: this.messageNotificationBatchSize + 1,
+    });
+    const hasMore = members.length > this.messageNotificationBatchSize;
+    const page = hasMore
+      ? members.slice(0, this.messageNotificationBatchSize)
+      : members;
+
+    if (page.length === 0) {
+      return;
+    }
+
+    const now = new Date();
+    const createdAt = now.toISOString();
+    const notifications = page.map((member) => {
+      const id = randomUUID();
+
+      return {
+        id,
+        userId: member.userId,
+        actorUserId: payload.actorUserId!,
+        kind: 'message' as const,
+        title: 'Новое сообщение',
+        body: payload.body!,
+        chatId: payload.chatId!,
+        messageId: payload.messageId!,
+        payload: {
+          chatId: payload.chatId!,
+          messageId: payload.messageId!,
+        },
+        readAt: null,
+        createdAt: now,
+      };
+    });
+
+    await this.prismaService.client.notification.createMany({
+      data: notifications,
+    });
+
+    await this.prismaService.client.outboxEvent.createMany({
+      data: notifications.map((notification) => ({
+        type: OUTBOX_EVENT_TYPES.pushDispatch,
+        payload: {
+          userId: notification.userId,
+          notificationId: notification.id,
+        },
+      })),
+    });
+
+    if (hasMore) {
+      await this.prismaService.client.outboxEvent.create({
+        data: {
+          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
+          payload: {
+            chatId: payload.chatId,
+            actorUserId: payload.actorUserId,
+            messageId: payload.messageId,
+            body: payload.body,
+            cursor: page[page.length - 1]!.id,
+          },
+        },
+      });
+    }
+
+    await this.runWithConcurrency(
+      notifications,
+      this.busPublishConcurrency,
+      async (notification) => {
+        await publishBusEvent(this.redis, {
+          type: 'notification.created',
+          payload: {
+            userId: notification.userId,
+            notificationId: notification.id,
+            kind: notification.kind,
+            title: notification.title,
+            body: notification.body,
+            payload: notification.payload,
+            createdAt,
+            readAt: null,
+          },
+        });
+      },
+    );
+
+    await this.publishUnreadCounts(
+      payload.chatId,
+      notifications.map((notification) => notification.userId),
+    );
+  }
+
+  private async publishUnreadCounts(chatId: string, userIds: string[]) {
     const grouped = await this.prismaService.client.notification.groupBy({
       by: ['userId'],
       where: {
-        chatId: payload.chatId,
+        chatId,
         kind: 'message',
         readAt: null,
         userId: {
@@ -294,17 +502,19 @@ export class WorkerService implements OnModuleDestroy {
       grouped.map((item) => [item.userId, item._count._all]),
     );
 
-    await Promise.all(
-      userIds.map((userId) =>
-        publishBusEvent(this.redis, {
+    await this.runWithConcurrency(
+      userIds,
+      this.busPublishConcurrency,
+      async (userId) => {
+        await publishBusEvent(this.redis, {
           type: 'unread.updated',
           payload: {
             userId,
-            chatId: payload.chatId,
+            chatId,
             unreadCount: unreadByUserId.get(userId) ?? 0,
           },
-        }),
-      ),
+        });
+      },
     );
   }
 

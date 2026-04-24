@@ -137,6 +137,12 @@ async function main() {
   await prisma.notification.deleteMany();
   await prisma.messageAttachment.deleteMany();
   await prisma.message.deleteMany();
+  await prisma.communitySocialLink.deleteMany();
+  await prisma.communityMediaItem.deleteMany();
+  await prisma.communityMeetupItem.deleteMany();
+  await prisma.communityNewsItem.deleteMany();
+  await prisma.communityMember.deleteMany();
+  await prisma.community.deleteMany();
   await prisma.chatMember.deleteMany();
   await prisma.chat.deleteMany();
   await prisma.eventParticipant.deleteMany();
@@ -359,6 +365,9 @@ async function main() {
       { id: 'p1', kind: 'direct', origin: 'meetup', directKey: 'user-anya:user-me', sourceEventId: 'e1' },
       { id: 'p2', kind: 'direct', origin: 'meetup', directKey: 'user-mark:user-me', sourceEventId: 'e1' },
       { id: 'p3', kind: 'direct', origin: 'meetup', directKey: 'user-me:user-sonya', sourceEventId: 'e2' },
+      { id: 'community-c1-chat', kind: 'community', origin: 'community', title: 'City Rituals', emoji: '🌿' },
+      { id: 'community-c2-chat', kind: 'community', origin: 'community', title: 'Private Table', emoji: '🍸' },
+      { id: 'community-c3-chat', kind: 'community', origin: 'community', title: 'Night Moves', emoji: '🪩' },
     ],
   });
 
@@ -393,6 +402,135 @@ async function main() {
       { id: 'cm19', chatId: 'p2', userId: 'user-me', lastReadMessageId: 'p7' },
       { id: 'cm20', chatId: 'p3', userId: 'user-sonya', lastReadMessageId: 'p8' },
       { id: 'cm21', chatId: 'p3', userId: 'user-me', lastReadMessageId: 'p8-prev' },
+      { id: 'community-c1-chat-me', chatId: 'community-c1-chat', userId: 'user-me', lastReadMessageId: 'cc2' },
+      { id: 'community-c1-chat-liza', chatId: 'community-c1-chat', userId: 'user-liza', lastReadMessageId: 'cc3' },
+      { id: 'community-c1-chat-sonya', chatId: 'community-c1-chat', userId: 'user-sonya', lastReadMessageId: 'cc3' },
+      { id: 'community-c1-chat-anya', chatId: 'community-c1-chat', userId: 'user-anya', lastReadMessageId: 'cc3' },
+      { id: 'community-c1-chat-mark', chatId: 'community-c1-chat', userId: 'user-mark', lastReadMessageId: 'cc3' },
+      { id: 'community-c2-chat-me', chatId: 'community-c2-chat', userId: 'user-me', lastReadMessageId: 'cc5' },
+      { id: 'community-c2-chat-oleg', chatId: 'community-c2-chat', userId: 'user-oleg', lastReadMessageId: 'cc5' },
+      { id: 'community-c2-chat-liza', chatId: 'community-c2-chat', userId: 'user-liza', lastReadMessageId: 'cc5' },
+      { id: 'community-c3-chat-me', chatId: 'community-c3-chat', userId: 'user-me', lastReadMessageId: 'cc7' },
+      { id: 'community-c3-chat-oleg', chatId: 'community-c3-chat', userId: 'user-oleg', lastReadMessageId: 'cc7' },
+      { id: 'community-c3-chat-sonya', chatId: 'community-c3-chat', userId: 'user-sonya', lastReadMessageId: 'cc7' },
+    ],
+  });
+
+  await prisma.community.createMany({
+    data: [
+      {
+        id: 'c1',
+        name: 'City Rituals',
+        avatar: '🌿',
+        description:
+          'Небольшое сообщество про ужины, прогулки и wellness-встречи без шума. Внутри — свои новости, архив фото и камерные ивенты.',
+        privacy: 'public',
+        tags: ['ужины', 'wellness', 'центр'],
+        joinRule: 'Открытое вступление',
+        premiumOnly: true,
+        mood: 'Камерный городской клуб',
+        sharedMediaLabel: '68 фото и видео',
+        createdById: 'user-liza',
+        chatId: 'community-c1-chat',
+      },
+      {
+        id: 'c2',
+        name: 'Private Table',
+        avatar: '🍸',
+        description:
+          'Закрытое гастро-сообщество. Попасть можно по заявке, внутри — афиша ужинов, личный чат и медиахранилище с рекомендациями.',
+        privacy: 'private',
+        tags: ['fine dining', 'дегустации', 'закрытое'],
+        joinRule: 'Ручное одобрение',
+        premiumOnly: true,
+        mood: 'Приватные dinner-сеты',
+        sharedMediaLabel: '24 файла',
+        createdById: 'user-oleg',
+        chatId: 'community-c2-chat',
+      },
+      {
+        id: 'c3',
+        name: 'Night Moves',
+        avatar: '🪩',
+        description:
+          'Ночное комьюнити для концертов, afters и закрытых вылазок. Внутри — быстрый чат, новости от хоста и ближайшие ночные встречи.',
+        privacy: 'public',
+        tags: ['афиша', 'nightlife', 'после полуночи'],
+        joinRule: 'Открыто, но постить могут модераторы',
+        premiumOnly: true,
+        mood: 'Ночная программа города',
+        sharedMediaLabel: '102 медиа',
+        createdById: 'user-sonya',
+        chatId: 'community-c3-chat',
+      },
+    ],
+  });
+
+  await prisma.communityMember.createMany({
+    data: [
+      { id: 'community-c1-me', communityId: 'c1', userId: 'user-me', role: 'member' },
+      { id: 'community-c1-liza', communityId: 'c1', userId: 'user-liza', role: 'owner' },
+      { id: 'community-c1-sonya', communityId: 'c1', userId: 'user-sonya', role: 'member' },
+      { id: 'community-c1-anya', communityId: 'c1', userId: 'user-anya', role: 'member' },
+      { id: 'community-c1-mark', communityId: 'c1', userId: 'user-mark', role: 'member' },
+      { id: 'community-c2-me', communityId: 'c2', userId: 'user-me', role: 'member' },
+      { id: 'community-c2-oleg', communityId: 'c2', userId: 'user-oleg', role: 'owner' },
+      { id: 'community-c2-liza', communityId: 'c2', userId: 'user-liza', role: 'member' },
+      { id: 'community-c3-me', communityId: 'c3', userId: 'user-me', role: 'member' },
+      { id: 'community-c3-oleg', communityId: 'c3', userId: 'user-oleg', role: 'member' },
+      { id: 'community-c3-sonya', communityId: 'c3', userId: 'user-sonya', role: 'owner' },
+    ],
+  });
+
+  await prisma.communityNewsItem.createMany({
+    data: [
+      { id: 'cn1', communityId: 'c1', title: 'Майский календарь', blurb: 'Выложили расписание бранчей и сауны на май.', timeLabel: '2 ч назад', sortOrder: 0 },
+      { id: 'cn2', communityId: 'c1', title: 'Новый медиапак', blurb: 'Добавили фотоальбом с rooftop dinner и чек-лист для хостов.', timeLabel: 'вчера', sortOrder: 1 },
+      { id: 'cn3', communityId: 'c2', title: 'Новый шеф-ужин', blurb: 'Открыли запись на шестисетовый dinner в пятницу.', timeLabel: '1 ч назад', sortOrder: 0 },
+      { id: 'cn4', communityId: 'c2', title: 'Обновили правила', blurb: 'Добавили политику no-photo за столом и quiet seating.', timeLabel: '3 дня назад', sortOrder: 1 },
+      { id: 'cn5', communityId: 'c3', title: 'Tonight drop', blurb: 'Опубликовали три новые ночные точки и время входа без очереди.', timeLabel: '30 мин назад', sortOrder: 0 },
+    ],
+  });
+
+  await prisma.communityMeetupItem.createMany({
+    data: [
+      { id: 'cm1', communityId: 'c1', title: 'Late brunch club', emoji: '🥐', timeLabel: 'Сб · 12:00', place: 'Friends Bistro, Чистые пруды', format: 'Открытая встреча', going: 16, sortOrder: 0 },
+      { id: 'cm2', communityId: 'c1', title: 'Spa evening circle', emoji: '♨️', timeLabel: 'Вс · 19:30', place: 'Sense Spa, Остоженка', format: 'По заявке', going: 8, sortOrder: 1 },
+      { id: 'cm3', communityId: 'c2', title: 'Chef’s table №9', emoji: '🍽️', timeLabel: 'Пт · 20:00', place: 'Atelier Kitchen, Патрики', format: 'Только для участников', going: 10, sortOrder: 0 },
+      { id: 'cm4', communityId: 'c2', title: 'Wine briefing', emoji: '🍷', timeLabel: 'Вс · 17:00', place: 'Private Loft, Тверская', format: 'Мини-группа', going: 6, sortOrder: 1 },
+      { id: 'cm5', communityId: 'c3', title: 'After set на Курской', emoji: '🎧', timeLabel: 'Сегодня · 01:30', place: 'Secret spot, Курская', format: 'Открытая встреча', going: 28, sortOrder: 0 },
+      { id: 'cm6', communityId: 'c3', title: 'Rooftop sunrise', emoji: '🌅', timeLabel: 'Сб · 05:10', place: 'Roof 19, Бауманская', format: 'Кто в теме', going: 12, sortOrder: 1 },
+    ],
+  });
+
+  await prisma.communityMediaItem.createMany({
+    data: [
+      { id: 'community-media-1', communityId: 'c1', emoji: '📸', label: 'Roof dinner', kind: 'photo', sortOrder: 0 },
+      { id: 'community-media-2', communityId: 'c1', emoji: '🎞️', label: 'Reel с прогулки', kind: 'video', sortOrder: 1 },
+      { id: 'community-media-3', communityId: 'c1', emoji: '🗂️', label: 'Гид по локациям', kind: 'doc', sortOrder: 2 },
+      { id: 'community-media-4', communityId: 'c1', emoji: '📷', label: 'Brunch set', kind: 'photo', sortOrder: 3 },
+      { id: 'community-media-5', communityId: 'c2', emoji: '📷', label: 'Меню недели', kind: 'photo', sortOrder: 0 },
+      { id: 'community-media-6', communityId: 'c2', emoji: '🗃️', label: 'Винная карта', kind: 'doc', sortOrder: 1 },
+      { id: 'community-media-7', communityId: 'c2', emoji: '🎥', label: 'Chef teaser', kind: 'video', sortOrder: 2 },
+      { id: 'community-media-8', communityId: 'c2', emoji: '📸', label: 'Table archive', kind: 'photo', sortOrder: 3 },
+      { id: 'community-media-9', communityId: 'c3', emoji: '📀', label: 'Set list', kind: 'doc', sortOrder: 0 },
+      { id: 'community-media-10', communityId: 'c3', emoji: '🎬', label: 'Aftermovie', kind: 'video', sortOrder: 1 },
+      { id: 'community-media-11', communityId: 'c3', emoji: '📸', label: 'Backstage', kind: 'photo', sortOrder: 2 },
+      { id: 'community-media-12', communityId: 'c3', emoji: '📷', label: 'Crowd shots', kind: 'photo', sortOrder: 3 },
+    ],
+  });
+
+  await prisma.communitySocialLink.createMany({
+    data: [
+      { id: 's1', communityId: 'c1', label: 'Telegram', handle: '@sagecircle', sortOrder: 0 },
+      { id: 's2', communityId: 'c1', label: 'Instagram', handle: '@sage.circle', sortOrder: 1 },
+      { id: 's3', communityId: 'c1', label: 'TikTok', handle: '@sage.after', sortOrder: 2 },
+      { id: 's4', communityId: 'c2', label: 'Telegram', handle: '@privatetableclub', sortOrder: 0 },
+      { id: 's5', communityId: 'c2', label: 'Instagram', handle: '@private.table', sortOrder: 1 },
+      { id: 's6', communityId: 'c2', label: 'TikTok', handle: '@table.afterhours', sortOrder: 2 },
+      { id: 's7', communityId: 'c3', label: 'Telegram', handle: '@nightmovesmoscow', sortOrder: 0 },
+      { id: 's8', communityId: 'c3', label: 'Instagram', handle: '@night.moves', sortOrder: 1 },
+      { id: 's9', communityId: 'c3', label: 'TikTok', handle: '@night.moves.live', sortOrder: 2 },
     ],
   });
 
@@ -415,6 +553,13 @@ async function main() {
       { id: 'p7', chatId: 'p2', senderId: 'user-me', text: 'Спасибо за вечер.', clientMessageId: 'client-p7', createdAt: new Date('2026-04-19T20:42:00.000Z') },
       { id: 'p8-prev', chatId: 'p3', senderId: 'user-me', text: 'Если что, я буду возле метро.', clientMessageId: 'client-p8-prev', createdAt: new Date('2026-04-20T17:50:00.000Z') },
       { id: 'p8', chatId: 'p3', senderId: 'user-sonya', text: 'Можем встретиться раньше.', clientMessageId: 'client-p8', createdAt: new Date('2026-04-20T18:10:00.000Z') },
+      { id: 'cc1', chatId: 'community-c1-chat', senderId: 'user-liza', text: 'Я беру стол у окна на brunch, кто будет к 12:00?', clientMessageId: 'client-cc1', createdAt: new Date('2026-04-24T08:24:00.000Z') },
+      { id: 'cc2', chatId: 'community-c1-chat', senderId: 'user-sonya', text: 'Я буду точно, после brunch могу показать новую spa-локацию для воскресенья.', clientMessageId: 'client-cc2', createdAt: new Date('2026-04-24T08:31:00.000Z') },
+      { id: 'cc3', chatId: 'community-c1-chat', senderId: 'user-me', text: 'Я подтянусь к 12:10. Если будет очередь, напишите прямо сюда.', clientMessageId: 'client-cc3', createdAt: new Date('2026-04-24T08:36:00.000Z') },
+      { id: 'cc4', chatId: 'community-c2-chat', senderId: 'user-oleg', text: 'Шеф просит подтвердить аллергию до 18:00.', clientMessageId: 'client-cc4', createdAt: new Date('2026-04-24T13:10:00.000Z') },
+      { id: 'cc5', chatId: 'community-c2-chat', senderId: 'user-me', text: 'У меня всё ок, но я бы сел ближе к открытому кухонному столу.', clientMessageId: 'client-cc5', createdAt: new Date('2026-04-24T13:17:00.000Z') },
+      { id: 'cc6', chatId: 'community-c3-chat', senderId: 'user-sonya', text: 'Адрес дропну за 45 минут до старта, следите за чатом.', clientMessageId: 'client-cc6', createdAt: new Date('2026-04-24T21:12:00.000Z') },
+      { id: 'cc7', chatId: 'community-c3-chat', senderId: 'user-me', text: 'Ок, я уже рядом с Курской, готов подхватить тех, кто впервые.', clientMessageId: 'client-cc7', createdAt: new Date('2026-04-24T21:18:00.000Z') },
     ],
   });
 

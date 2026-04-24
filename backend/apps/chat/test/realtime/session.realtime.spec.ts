@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { PrismaClient } from '@prisma/client';
 import WebSocket, { RawData } from 'ws';
 import { randomUUID } from 'node:crypto';
-import { buildPublicAssetUrl, signAccessToken } from '@big-break/database';
+import { OUTBOX_EVENT_TYPES, buildPublicAssetUrl, signAccessToken } from '@big-break/database';
 import { ChatAppModule } from '../../src/app.module';
 import { ChatServerService } from '../../src/chat-server.service';
 
@@ -580,38 +580,19 @@ describe('chat websocket auth', () => {
     ).resolves.toEqual(expect.any(String));
   });
 
-  it('publishes rich notification.created payload to recipient user', async () => {
+  it('queues notification fanout after message send', async () => {
     const senderToken = await createSessionToken('user-me');
-    const recipientToken = await createSessionToken('user-anya');
     const clientMessageId = `notification-${Date.now()}`;
+    let createdMessageId: string | null = null;
+    let outboxEventId: string | null = null;
 
-    await expect(
-      new Promise((resolve, reject) => {
-        const senderSocket = new WebSocket(wsUrl);
-        const recipientSocket = new WebSocket(wsUrl);
-        let senderReady = false;
-        let recipientReady = false;
+    try {
+      createdMessageId = await new Promise<string>((resolve, reject) => {
+        const socket = new WebSocket(wsUrl);
         let sent = false;
 
-        const maybeSend = () => {
-          if (!senderReady || !recipientReady || sent) {
-            return;
-          }
-          sent = true;
-          senderSocket.send(
-            JSON.stringify({
-              type: 'message.send',
-              payload: {
-                chatId: 'p1',
-                text: 'notification payload check',
-                clientMessageId,
-              },
-            }),
-          );
-        };
-
-        senderSocket.once('open', () => {
-          senderSocket.send(
+        socket.once('open', () => {
+          socket.send(
             JSON.stringify({
               type: 'session.authenticate',
               payload: { accessToken: senderToken },
@@ -619,63 +600,66 @@ describe('chat websocket auth', () => {
           );
         });
 
-        recipientSocket.once('open', () => {
-          recipientSocket.send(
-            JSON.stringify({
-              type: 'session.authenticate',
-              payload: { accessToken: recipientToken },
-            }),
-          );
-        });
-
-        senderSocket.on('message', (data: RawData) => {
+        socket.on('message', (data: RawData) => {
           const event = JSON.parse(data.toString()) as { type: string; payload: any };
 
           if (event.type === 'session.authenticated') {
-            senderSocket.send(JSON.stringify({ type: 'chat.subscribe', payload: { chatId: 'p1' } }));
+            socket.send(JSON.stringify({ type: 'chat.subscribe', payload: { chatId: 'p1' } }));
             return;
           }
 
-          if (event.type === 'chat.updated') {
-            senderReady = true;
-            maybeSend();
-          }
-        });
-
-        recipientSocket.on('message', (data: RawData) => {
-          const event = JSON.parse(data.toString()) as { type: string; payload: any };
-
-          if (event.type === 'session.authenticated') {
-            recipientReady = true;
-            maybeSend();
+          if (event.type === 'chat.updated' && !sent) {
+            sent = true;
+            socket.send(
+              JSON.stringify({
+                type: 'message.send',
+                payload: {
+                  chatId: 'p1',
+                  text: 'notification payload check',
+                  clientMessageId,
+                },
+              }),
+            );
             return;
           }
 
-          if (event.type === 'notification.created') {
-            resolve(event);
-            senderSocket.close();
-            recipientSocket.close();
+          if (event.type === 'message.created' && event.payload.clientMessageId === clientMessageId) {
+            resolve(event.payload.id as string);
+            socket.close();
           }
         });
 
-        senderSocket.once('error', reject);
-        recipientSocket.once('error', reject);
-      }),
-    ).resolves.toMatchObject({
-      type: 'notification.created',
-      payload: {
-        userId: 'user-anya',
-        kind: 'message',
-        title: 'Новое сообщение',
-        body: 'notification payload check',
-        payload: {
-          chatId: 'p1',
-          messageId: expect.any(String),
+        socket.once('error', reject);
+      });
+
+      const outboxEvent = await prisma.outboxEvent.findFirst({
+        where: {
+          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
         },
-        createdAt: expect.any(String),
-        readAt: null,
-      },
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      outboxEventId = outboxEvent?.id ?? null;
+
+      expect(outboxEvent?.payload).toMatchObject({
+        chatId: 'p1',
+        actorUserId: 'user-me',
+        messageId: createdMessageId,
+        body: 'notification payload check',
+      });
+    } finally {
+      if (outboxEventId != null) {
+        await prisma.outboxEvent.deleteMany({
+          where: { id: outboxEventId },
+        });
+      }
+      if (createdMessageId != null) {
+        await prisma.message.deleteMany({
+          where: { id: createdMessageId },
+        });
+      }
+    }
   });
 
   it('does not emit duplicate message.created to the subscribed sender', async () => {

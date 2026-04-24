@@ -179,11 +179,22 @@ export function mapEventSummary(params: {
     user: Pick<User, 'displayName'>;
   }>;
   currentUserId: string;
+  participantCount?: number;
+  joined?: boolean;
   joinRequest?: Pick<EventJoinRequest, 'status'> | null;
   attendance?: Pick<EventAttendance, 'status'> | null;
   liveState?: Pick<EventLiveState, 'status'> | null;
 }) {
-  const { event, participants, currentUserId, joinRequest, attendance, liveState } = params;
+  const {
+    event,
+    participants,
+    currentUserId,
+    participantCount,
+    joined,
+    joinRequest,
+    attendance,
+    liveState,
+  } = params;
   const attendeePreview = participants.filter((participant) => participant.userId !== currentUserId);
 
   return {
@@ -197,7 +208,7 @@ export function mapEventSummary(params: {
     latitude: event.latitude ?? null,
     longitude: event.longitude ?? null,
     attendees: attendeePreview.slice(0, 5).map((participant) => participant.user.displayName),
-    going: participants.length,
+    going: participantCount ?? participants.length,
     capacity: event.capacity,
     vibe: event.vibe,
     tone: event.tone,
@@ -209,7 +220,7 @@ export function mapEventSummary(params: {
     accessMode: event.accessMode,
     genderMode: event.genderMode,
     visibilityMode: event.visibilityMode,
-    joined: participants.some((participant) => participant.userId === currentUserId),
+    joined: joined ?? participants.some((participant) => participant.userId === currentUserId),
     joinMode: event.joinMode,
     joinRequestStatus: mapJoinRequestStatus(joinRequest),
     attendanceStatus: mapAttendanceStatus(attendance),

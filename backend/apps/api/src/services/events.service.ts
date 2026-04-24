@@ -8,15 +8,18 @@ import {
 } from '@big-break/contracts';
 import { Prisma } from '@prisma/client';
 import { createHmac, randomUUID } from 'node:crypto';
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import { OUTBOX_EVENT_TYPES, decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import {
   formatEventTime,
   mapAttendanceStatus,
   mapEventSummary,
   mapLiveStatus,
+  mapMessage,
   mapUserPreview,
 } from '../common/presenters';
+import { normalizeSearchQuery } from '../common/search-query';
+import { assertEventCapacityAvailable } from './event-capacity';
 import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
 
@@ -75,6 +78,7 @@ export class EventsService {
             },
           },
           orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+          take: 6,
         },
         joinRequests: {
           where: { userId },
@@ -96,12 +100,51 @@ export class EventsService {
 
     const hasMore = events.length > take;
     const page = hasMore ? events.slice(0, take) : events;
+    const pageEventIds = page.map((event) => event.id);
+    const [participantCounts, currentParticipations] =
+      pageEventIds.length === 0
+        ? [[], []]
+        : await Promise.all([
+            this.prismaService.client.eventParticipant.groupBy({
+              by: ['eventId'],
+              where: {
+                eventId: {
+                  in: pageEventIds,
+                },
+                userId: {
+                  notIn: [...blockedUserIds],
+                },
+              },
+              _count: {
+                _all: true,
+              },
+            }),
+            this.prismaService.client.eventParticipant.findMany({
+              where: {
+                eventId: {
+                  in: pageEventIds,
+                },
+                userId,
+              },
+              select: {
+                eventId: true,
+              },
+            }),
+          ]);
+    const participantCountByEventId = new Map(
+      participantCounts.map((item) => [item.eventId, item._count._all]),
+    );
+    const joinedEventIds = new Set(
+      currentParticipations.map((item) => item.eventId),
+    );
 
     const mapped = page.map((event) =>
       mapEventSummary({
         event,
         participants: event.participants,
         currentUserId: userId,
+        participantCount: participantCountByEventId.get(event.id),
+        joined: joinedEventIds.has(event.id),
         joinRequest: event.joinRequests[0],
         attendance: event.attendances[0],
         liveState: event.liveState,
@@ -222,7 +265,7 @@ export class EventsService {
     const chatId = event.chat.id;
 
     await this.prismaService.client.$transaction(async (tx) => {
-      await this.assertCapacityAvailable(tx, eventId);
+      await assertEventCapacityAvailable(tx, eventId);
 
       await tx.eventParticipant.upsert({
         where: {
@@ -267,6 +310,11 @@ export class EventsService {
           chatId,
           userId,
         },
+      });
+
+      await tx.chat.update({
+        where: { id: chatId },
+        data: { updatedAt: new Date() },
       });
     });
 
@@ -668,123 +716,164 @@ export class EventsService {
       throw new ApiError(404, 'user_not_found', 'Invitee user not found');
     }
 
-    const created = await this.prismaService.client.$transaction(async (tx) => {
-      const event = await tx.event.create({
-        data: {
-          id: `ev-${randomUUID()}`,
-          title,
-          emoji,
-          startsAt,
-          place,
-          distanceKm,
-          vibe,
-          tone:
-            vibe === 'Активно'
-              ? 'sage'
-              : vibe === 'Свидание'
-                ? 'evening'
-                : 'warm',
-          joinMode,
-          lifestyle,
-          priceMode,
-          priceAmountFrom,
-          priceAmountTo,
-          accessMode,
-          genderMode,
-          visibilityMode,
-          description,
-          idempotencyKey,
-          sourcePosterId: poster?.id,
-          capacity: normalizedCapacity,
-          hostId: userId,
-          isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
-          isNewcomers: true,
-          isDate: isDatingMode || vibe === 'Свидание',
-          isAfterDark: isAfterDarkMode,
-          afterDarkCategory,
-          afterDarkGlow,
-          dressCode: isAfterDarkMode ? dressCode : null,
-          ageRange: isAfterDarkMode ? ageRange : null,
-          ratioLabel: isAfterDarkMode ? ratioLabel : null,
-          consentRequired,
-          rules: isAfterDarkMode ? (rules ?? Prisma.JsonNull) : Prisma.JsonNull,
-        },
-      });
-
-      const chat = await tx.chat.create({
-        data: {
-          kind: 'meetup',
-          origin: 'meetup',
-          title,
-          emoji,
-          eventId: event.id,
-        },
-      });
-
-      await tx.eventParticipant.create({
-        data: {
-          eventId: event.id,
-          userId,
-        },
-      });
-
-      await tx.eventAttendance.create({
-        data: {
-          eventId: event.id,
-          userId,
-          status: 'not_checked_in',
-        },
-      });
-
-      await tx.eventLiveState.create({
-        data: {
-          eventId: event.id,
-          status: 'idle',
-        },
-      });
-
-      await tx.chatMember.create({
-        data: {
-          chatId: chat.id,
-          userId,
-        },
-      });
-
-      if (inviteeUser != null) {
-        const inviteRequest = await tx.eventJoinRequest.create({
+    let created: { id: string };
+    try {
+      created = await this.prismaService.client.$transaction(async (tx) => {
+        const event = await tx.event.create({
           data: {
-            eventId: event.id,
-            userId: inviteeUser.id,
-            note: null,
-            status: 'pending',
-            compatibilityScore: 0,
-            reviewedById: userId,
+            id: `ev-${randomUUID()}`,
+            title,
+            emoji,
+            startsAt,
+            place,
+            distanceKm,
+            vibe,
+            tone:
+              vibe === 'Активно'
+                ? 'sage'
+                : vibe === 'Свидание'
+                  ? 'evening'
+                  : 'warm',
+            joinMode,
+            lifestyle,
+            priceMode,
+            priceAmountFrom,
+            priceAmountTo,
+            accessMode,
+            genderMode,
+            visibilityMode,
+            description,
+            idempotencyKey,
+            sourcePosterId: poster?.id,
+            capacity: normalizedCapacity,
+            hostId: userId,
+            isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
+            isNewcomers: true,
+            isDate: isDatingMode || vibe === 'Свидание',
+            isAfterDark: isAfterDarkMode,
+            afterDarkCategory,
+            afterDarkGlow,
+            dressCode: isAfterDarkMode ? dressCode : null,
+            ageRange: isAfterDarkMode ? ageRange : null,
+            ratioLabel: isAfterDarkMode ? ratioLabel : null,
+            consentRequired,
+            rules: isAfterDarkMode ? (rules ?? Prisma.JsonNull) : Prisma.JsonNull,
           },
         });
 
-        await tx.notification.create({
+        const chat = await tx.chat.create({
           data: {
-            userId: inviteeUser.id,
-            actorUserId: userId,
-            kind: 'event_joined',
-            title: 'Приглашение на встречу',
-            body: `приглашает тебя на встречу «${event.title}»`,
+            kind: 'meetup',
+            origin: 'meetup',
+            title,
+            emoji,
             eventId: event.id,
-            requestId: inviteRequest.id,
-            payload: {
+          },
+        });
+
+        await tx.eventParticipant.create({
+          data: {
+            eventId: event.id,
+            userId,
+          },
+        });
+
+        await tx.eventAttendance.create({
+          data: {
+            eventId: event.id,
+            userId,
+            status: 'not_checked_in',
+          },
+        });
+
+        await tx.eventLiveState.create({
+          data: {
+            eventId: event.id,
+            status: 'idle',
+          },
+        });
+
+        await tx.chatMember.create({
+          data: {
+            chatId: chat.id,
+            userId,
+          },
+        });
+
+        if (inviteeUser != null) {
+          const inviteRequest = await tx.eventJoinRequest.create({
+            data: {
+              eventId: event.id,
+              userId: inviteeUser.id,
+              note: null,
+              status: 'pending',
+              compatibilityScore: 0,
+              reviewedById: userId,
+            },
+          });
+
+          const notification = await tx.notification.create({
+            data: {
+              userId: inviteeUser.id,
+              actorUserId: userId,
+              kind: 'event_joined',
+              title: 'Приглашение на встречу',
+              body: `приглашает тебя на встречу «${event.title}»`,
               eventId: event.id,
               requestId: inviteRequest.id,
-              invite: true,
-              userId,
-              userName: hostUser.displayName,
-              eventTitle: event.title,
+              payload: {
+                eventId: event.id,
+                requestId: inviteRequest.id,
+                invite: true,
+                userId,
+                userName: hostUser.displayName,
+                eventTitle: event.title,
+              },
             },
+          });
+
+          await tx.outboxEvent.createMany({
+            data: [
+              {
+                type: OUTBOX_EVENT_TYPES.pushDispatch,
+                payload: {
+                  userId: inviteeUser.id,
+                  notificationId: notification.id,
+                },
+              },
+              {
+                type: OUTBOX_EVENT_TYPES.notificationCreate,
+                payload: {
+                  notificationId: notification.id,
+                },
+              },
+            ],
+          });
+        }
+
+        return event;
+      });
+    } catch (error) {
+      if (
+        idempotencyKey != null &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const existing = await this.prismaService.client.event.findFirst({
+          where: {
+            hostId: userId,
+            idempotencyKey,
           },
+          select: { id: true },
         });
+
+        if (existing) {
+          return this.getEventDetail(userId, existing.id);
+        }
       }
 
-      return event;
-    });
+      throw error;
+    }
 
     return this.getEventDetail(userId, created.id);
   }
@@ -816,7 +905,7 @@ export class EventsService {
     }
 
     await this.prismaService.client.$transaction(async (tx) => {
-      await this.assertCapacityAvailable(tx, eventId);
+      await assertEventCapacityAvailable(tx, eventId);
 
       await tx.eventJoinRequest.update({
         where: { id: invite.id },
@@ -922,6 +1011,14 @@ export class EventsService {
             text: `${invite.user.displayName} не присоединится к встрече.`,
             clientMessageId: `invite-decline-${requestId}`,
           },
+          include: {
+            sender: true,
+            attachments: {
+              include: {
+                mediaAsset: true,
+              },
+            },
+          },
         });
 
         await tx.chat.update({
@@ -929,13 +1026,23 @@ export class EventsService {
           data: { updatedAt: new Date() },
         });
 
-        await tx.realtimeEvent.create({
+        const realtimeEvent = await tx.realtimeEvent.create({
           data: {
             chatId: invite.event.chat.id,
-            eventType: 'chat.updated',
+            eventType: 'message.created',
+            payload: mapMessage(message),
+          },
+        });
+
+        await tx.outboxEvent.create({
+          data: {
+            type: OUTBOX_EVENT_TYPES.realtimePublish,
             payload: {
-              chatId: invite.event.chat.id,
-              messageId: message.id,
+              type: 'message.created',
+              payload: {
+                ...mapMessage(message),
+                eventId: realtimeEvent.id.toString(),
+              },
             },
           },
         });
@@ -959,14 +1066,22 @@ export class EventsService {
         },
       });
 
-      await tx.outboxEvent.create({
-        data: {
-          type: 'push.dispatch',
-          payload: {
-            userId: invite.event.hostId,
-            notificationId: notification.id,
+      await tx.outboxEvent.createMany({
+        data: [
+          {
+            type: OUTBOX_EVENT_TYPES.pushDispatch,
+            payload: {
+              userId: invite.event.hostId,
+              notificationId: notification.id,
+            },
           },
-        },
+          {
+            type: OUTBOX_EVENT_TYPES.notificationCreate,
+            payload: {
+              notificationId: notification.id,
+            },
+          },
+        ],
       });
     });
 
@@ -1334,7 +1449,7 @@ export class EventsService {
         break;
     }
 
-    const query = params.q?.trim();
+    const query = normalizeSearchQuery(params.q);
     if (query) {
       conditions.push({
         OR: [
@@ -1726,23 +1841,4 @@ export class EventsService {
     return value;
   }
 
-  private async assertCapacityAvailable(tx: Prisma.TransactionClient, eventId: string) {
-    const [event, participantsCount] = await Promise.all([
-      tx.event.findUnique({
-        where: { id: eventId },
-        select: { capacity: true },
-      }),
-      tx.eventParticipant.count({
-        where: { eventId },
-      }),
-    ]);
-
-    if (!event) {
-      throw new ApiError(404, 'event_not_found', 'Event not found');
-    }
-
-    if (participantsCount >= event.capacity) {
-      throw new ApiError(409, 'event_full', 'Event capacity is full');
-    }
-  }
 }

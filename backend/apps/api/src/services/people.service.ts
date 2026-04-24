@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { buildDirectChatKey, decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
+import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -20,7 +21,7 @@ export class PeopleService {
     ]);
 
     const take = this.normalizeListLimit(params.limit);
-    const query = params.q?.trim();
+    const query = normalizeSearchQuery(params.q);
     const cursorUser = await this.resolveCursorUser(params.cursor);
 
     const people = await this.prismaService.client.user.findMany({
@@ -83,17 +84,47 @@ export class PeopleService {
                 ],
               }),
       },
-      include: {
+      select: {
+        id: true,
+        displayName: true,
+        online: true,
+        verified: true,
         profile: {
-          include: {
+          select: {
+            age: true,
+            area: true,
+            vibe: true,
+            avatarUrl: true,
             photos: {
-              include: { mediaAsset: true },
+              select: {
+                id: true,
+                sortOrder: true,
+                mediaAsset: {
+                  select: {
+                    id: true,
+                    kind: true,
+                    mimeType: true,
+                    byteSize: true,
+                    durationMs: true,
+                    publicUrl: true,
+                  },
+                },
+              },
               orderBy: { sortOrder: 'asc' },
+              take: 1,
             },
           },
         },
-        onboarding: true,
-        settings: true,
+        onboarding: {
+          select: {
+            interests: true,
+          },
+        },
+        settings: {
+          select: {
+            showAge: true,
+          },
+        },
       },
       orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
       take: take + 1,

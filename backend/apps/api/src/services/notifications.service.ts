@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { decodeCursor, encodeCursor } from '@big-break/database';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -66,31 +67,41 @@ export class NotificationsService {
       return { unreadCount };
     }
 
-    const notifications = await this.prismaService.client.notification.findMany({
-      where: {
-        userId,
-        readAt: null,
-        ...this.buildActorVisibilityWhere(blockedUserIds),
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        actorUserId: true,
-        chatId: true,
-        messageId: true,
-        eventId: true,
-        requestId: true,
-        readAt: true,
-        createdAt: true,
-      },
-    });
-    const visibleNotifications = await this.filterVisibleNotifications(
-      userId,
-      notifications,
-      blockedUserIds,
-    );
+    const blockedIds = [...blockedUserIds];
+    const blockedList = Prisma.join(blockedIds);
+    const rows = await this.prismaService.client.$queryRaw<Array<{ unread_count: bigint | number }>>`
+      SELECT COUNT(*) AS unread_count
+      FROM "Notification" n
+      LEFT JOIN "Event" e ON e."id" = n."eventId"
+      LEFT JOIN "Message" m ON m."id" = n."messageId"
+      LEFT JOIN "EventJoinRequest" r ON r."id" = n."requestId"
+      WHERE n."userId" = ${userId}
+        AND n."readAt" IS NULL
+        AND (
+          (
+            n."actorUserId" IS NOT NULL
+            AND n."actorUserId" NOT IN (${blockedList})
+          )
+          OR (
+            n."actorUserId" IS NULL
+            AND (n."eventId" IS NULL OR e."hostId" IS NULL OR e."hostId" NOT IN (${blockedList}))
+            AND (n."messageId" IS NULL OR m."senderId" IS NULL OR m."senderId" NOT IN (${blockedList}))
+            AND (n."requestId" IS NULL OR r."userId" IS NULL OR r."userId" NOT IN (${blockedList}))
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "Chat" c
+              JOIN "ChatMember" cm ON cm."chatId" = c."id"
+              WHERE c."id" = n."chatId"
+                AND c."kind" = 'direct'::"ChatKind"
+                AND cm."userId" <> ${userId}
+                AND cm."userId" IN (${blockedList})
+            )
+          )
+        )
+    `;
+    const unreadCount = Number(rows[0]?.unread_count ?? 0);
 
-    return { unreadCount: visibleNotifications.length };
+    return { unreadCount };
   }
 
   async markRead(userId: string, notificationId: string) {

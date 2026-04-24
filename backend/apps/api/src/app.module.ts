@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthController } from './controllers/auth.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { ChatsController } from './controllers/chats.controller';
+import { CommunitiesController } from './controllers/communities.controller';
 import { DatingController } from './controllers/dating.controller';
 import { EventsController } from './controllers/events.controller';
 import { HealthController } from './controllers/health.controller';
@@ -27,6 +28,7 @@ import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
 import { AfterDarkService } from './services/after-dark.service';
 import { ChatsService } from './services/chats.service';
+import { CommunitiesService } from './services/communities.service';
 import { DatingService } from './services/dating.service';
 import { EventsService } from './services/events.service';
 import { HostService } from './services/host.service';
@@ -51,6 +53,7 @@ import { VerificationService } from './services/verification.service';
     AfterDarkController,
     AuthController,
     ChatsController,
+    CommunitiesController,
     DatingController,
     EventsController,
     HealthController,
@@ -74,6 +77,7 @@ import { VerificationService } from './services/verification.service';
     AfterDarkService,
     AuthService,
     ChatsService,
+    CommunitiesService,
     DatingService,
     EventsService,
     HostService,

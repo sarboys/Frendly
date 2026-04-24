@@ -191,34 +191,45 @@ describe('auth flows', () => {
       async () => {
     process.env.ENABLE_DEV_AUTH = 'false';
 
-    await prisma.user.delete({
-      where: { id: 'user-dima' },
-    });
-
-    const response = await request(app.getHttpServer())
-      .post('/auth/phone/test-login')
-      .send({ phoneNumber: '+7 666 666 66 66' })
-      .expect(201);
-
-    expect(response.body.userId).toEqual(expect.any(String));
-    expect(response.body.userId).not.toBe('user-dima');
-    expect(response.body.isNewUser).toBe(true);
-    expect(response.body.accessToken).toEqual(expect.any(String));
-    expect(response.body.refreshToken).toEqual(expect.any(String));
-
-    const recreatedUser = await prisma.user.findUnique({
-      where: { phoneNumber: '+76666666666' },
-      include: {
-        onboarding: true,
-        profile: true,
-        settings: true,
+    await prisma.user.deleteMany({
+      where: {
+        OR: [
+          { id: 'user-dima' },
+          { phoneNumber: '+76666666666' },
+        ],
       },
     });
 
-    expect(recreatedUser?.id).toBe(response.body.userId);
-    expect(recreatedUser?.onboarding?.interests).toEqual([]);
-    expect(recreatedUser?.profile?.city).toBeNull();
-    expect(recreatedUser?.settings?.allowLocation).toBe(false);
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/auth/phone/test-login')
+        .send({ phoneNumber: '+7 666 666 66 66' })
+        .expect(201);
+
+      expect(response.body.userId).toEqual(expect.any(String));
+      expect(response.body.userId).not.toBe('user-dima');
+      expect(response.body.isNewUser).toBe(true);
+      expect(response.body.accessToken).toEqual(expect.any(String));
+      expect(response.body.refreshToken).toEqual(expect.any(String));
+
+      const recreatedUser = await prisma.user.findUnique({
+        where: { phoneNumber: '+76666666666' },
+        include: {
+          onboarding: true,
+          profile: true,
+          settings: true,
+        },
+      });
+
+      expect(recreatedUser?.id).toBe(response.body.userId);
+      expect(recreatedUser?.onboarding?.interests).toEqual([]);
+      expect(recreatedUser?.profile?.city).toBeNull();
+      expect(recreatedUser?.settings?.allowLocation).toBe(false);
+    } finally {
+      await prisma.user.deleteMany({
+        where: { phoneNumber: '+76666666666' },
+      });
+    }
   });
 
   it('requests phone otp with local code hint only in dev otp mode', async () => {

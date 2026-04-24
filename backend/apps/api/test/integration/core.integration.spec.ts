@@ -15,6 +15,7 @@ describe('core api flows', () => {
   const s3 = createS3Client();
   let accessToken = '';
   let peerAccessToken = '';
+  let thirdAccessToken = '';
   const expectDirectPublicUrl = (value: string) => {
     expect(value).toMatch(/^(https?:\/\/|data:)/);
     expect(value).not.toMatch(/^\/media\//);
@@ -49,6 +50,13 @@ describe('core api flows', () => {
       .expect(201);
 
     peerAccessToken = peerLoginResponse.body.accessToken;
+
+    const thirdLoginResponse = await request(app.getHttpServer())
+      .post('/auth/dev/login')
+      .send({ userId: 'user-anya' })
+      .expect(201);
+
+    thirdAccessToken = thirdLoginResponse.body.accessToken;
   });
 
   beforeEach(async () => {
@@ -292,74 +300,108 @@ describe('core api flows', () => {
     expect(readResponse.body).toEqual(updateResponse.body);
   });
 
+  it('rejects testing access toggles unless explicitly enabled', async () => {
+    const previous = process.env.ENABLE_TESTING_ACCESS;
+    delete process.env.ENABLE_TESTING_ACCESS;
+
+    try {
+      const response = await request(app.getHttpServer())
+        .put('/settings/me/testing-access')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({
+          frendlyPlusEnabled: true,
+          afterDarkEnabled: true,
+        })
+        .expect(404);
+
+      expect(response.body.code).toBe('testing_access_disabled');
+    } finally {
+      if (previous == null) {
+        delete process.env.ENABLE_TESTING_ACCESS;
+      } else {
+        process.env.ENABLE_TESTING_ACCESS = previous;
+      }
+    }
+  });
+
   it('updates testing access toggles through settings endpoint', async () => {
+    const previous = process.env.ENABLE_TESTING_ACCESS;
+    process.env.ENABLE_TESTING_ACCESS = 'true';
     await prisma.userSubscription.deleteMany({
       where: { userId: 'user-me' },
     });
 
-    await prisma.userSettings.update({
-      where: { userId: 'user-me' },
-      data: {
-        afterDarkAgeConfirmedAt: null,
-        afterDarkCodeAcceptedAt: null,
-      },
-    });
+    try {
+      await prisma.userSettings.update({
+        where: { userId: 'user-me' },
+        data: {
+          afterDarkAgeConfirmedAt: null,
+          afterDarkCodeAcceptedAt: null,
+        },
+      });
 
-    const enabledResponse = await request(app.getHttpServer())
-      .put('/settings/me/testing-access')
-      .set('authorization', `Bearer ${accessToken}`)
-      .send({
+      const enabledResponse = await request(app.getHttpServer())
+        .put('/settings/me/testing-access')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({
+          frendlyPlusEnabled: true,
+          afterDarkEnabled: true,
+        })
+        .expect(200);
+
+      expect(enabledResponse.body).toEqual({
         frendlyPlusEnabled: true,
         afterDarkEnabled: true,
-      })
-      .expect(200);
+      });
 
-    expect(enabledResponse.body).toEqual({
-      frendlyPlusEnabled: true,
-      afterDarkEnabled: true,
-    });
+      const subscriptionResponse = await request(app.getHttpServer())
+        .get('/subscription/me')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
 
-    const subscriptionResponse = await request(app.getHttpServer())
-      .get('/subscription/me')
-      .set('authorization', `Bearer ${accessToken}`)
-      .expect(200);
+      expect(subscriptionResponse.body.status).toBe('active');
 
-    expect(subscriptionResponse.body.status).toBe('active');
+      const afterDarkAccessResponse = await request(app.getHttpServer())
+        .get('/after-dark/access')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
 
-    const afterDarkAccessResponse = await request(app.getHttpServer())
-      .get('/after-dark/access')
-      .set('authorization', `Bearer ${accessToken}`)
-      .expect(200);
+      expect(afterDarkAccessResponse.body.unlocked).toBe(true);
 
-    expect(afterDarkAccessResponse.body.unlocked).toBe(true);
+      const disabledResponse = await request(app.getHttpServer())
+        .put('/settings/me/testing-access')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({
+          frendlyPlusEnabled: false,
+          afterDarkEnabled: false,
+        })
+        .expect(200);
 
-    const disabledResponse = await request(app.getHttpServer())
-      .put('/settings/me/testing-access')
-      .set('authorization', `Bearer ${accessToken}`)
-      .send({
+      expect(disabledResponse.body).toEqual({
         frendlyPlusEnabled: false,
         afterDarkEnabled: false,
-      })
-      .expect(200);
+      });
 
-    expect(disabledResponse.body).toEqual({
-      frendlyPlusEnabled: false,
-      afterDarkEnabled: false,
-    });
+      const subscriptionAfterDisable = await request(app.getHttpServer())
+        .get('/subscription/me')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
 
-    const subscriptionAfterDisable = await request(app.getHttpServer())
-      .get('/subscription/me')
-      .set('authorization', `Bearer ${accessToken}`)
-      .expect(200);
+      expect(subscriptionAfterDisable.body.status).toBe('inactive');
 
-    expect(subscriptionAfterDisable.body.status).toBe('inactive');
+      const afterDarkAccessAfterDisable = await request(app.getHttpServer())
+        .get('/after-dark/access')
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
 
-    const afterDarkAccessAfterDisable = await request(app.getHttpServer())
-      .get('/after-dark/access')
-      .set('authorization', `Bearer ${accessToken}`)
-      .expect(200);
-
-    expect(afterDarkAccessAfterDisable.body.unlocked).toBe(false);
+      expect(afterDarkAccessAfterDisable.body.unlocked).toBe(false);
+    } finally {
+      if (previous == null) {
+        delete process.env.ENABLE_TESTING_ACCESS;
+      } else {
+        process.env.ENABLE_TESTING_ACCESS = previous;
+      }
+    }
   });
 
   it('uploads avatar file, saves ready asset for the owner and rejects bad mime', async () => {
@@ -919,7 +961,7 @@ describe('core api flows', () => {
 
     try {
       const response = await request(app.getHttpServer())
-        .get('/events?filter=nearby&limit=2')
+        .get('/events?filter=nearby&limit=2&q=Cursor%20pagination%20test%20event')
         .set('authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -928,7 +970,7 @@ describe('core api flows', () => {
 
       const nextResponse = await request(app.getHttpServer())
         .get(
-          `/events?filter=nearby&limit=2&cursor=${encodeURIComponent(
+          `/events?filter=nearby&limit=2&q=Cursor%20pagination%20test%20event&cursor=${encodeURIComponent(
             response.body.nextCursor,
           )}`,
         )
@@ -2132,6 +2174,30 @@ describe('core api flows', () => {
 
     expect(inviteNotification).toBeDefined();
 
+    const invitePush = await prisma.outboxEvent.findFirst({
+      where: {
+        type: 'push.dispatch',
+        payload: {
+          path: ['notificationId'],
+          equals: inviteNotification.id,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const inviteRealtime = await prisma.outboxEvent.findFirst({
+      where: {
+        type: 'notification.create',
+        payload: {
+          path: ['notificationId'],
+          equals: inviteNotification.id,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(invitePush).not.toBeNull();
+    expect(inviteRealtime).not.toBeNull();
+
     const acceptResponse = await request(app.getHttpServer())
       .post(`/events/${eventId}/invites/${inviteNotification.payload.requestId}/accept`)
       .set('authorization', `Bearer ${peerAccessToken}`)
@@ -2231,6 +2297,42 @@ describe('core api flows', () => {
     });
 
     expect(declinePush).not.toBeNull();
+
+    const declineRealtimeNotification = await prisma.outboxEvent.findFirst({
+      where: {
+        type: 'notification.create',
+        payload: {
+          path: ['notificationId'],
+          equals: declineNotification?.id,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(declineRealtimeNotification).not.toBeNull();
+
+    const declineRealtimeEvent = await prisma.realtimeEvent.findFirst({
+      where: {
+        chatId: hostEventResponse.body.chatId,
+        eventType: 'message.created',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(declineRealtimeEvent).not.toBeNull();
+
+    const declineRealtimePublish = await prisma.outboxEvent.findFirst({
+      where: {
+        type: 'realtime.publish',
+        payload: {
+          path: ['type'],
+          equals: 'message.created',
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(declineRealtimePublish).not.toBeNull();
   });
 
   it('does not allow reopening a canceled join request immediately', async () => {
@@ -2350,6 +2452,73 @@ describe('core api flows', () => {
 
     expect(detailResponse.body.joinRequestStatus).toBe('approved');
     expect(detailResponse.body.joined).toBe(true);
+  });
+
+  it('does not allow approving a join request when the event is full', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: `Ужин с лимитом ${Date.now()}`,
+        description: 'Проверяем лимит мест при апруве заявок',
+        emoji: '🍽️',
+        vibe: 'Уютно',
+        place: 'Чистые пруды 9',
+        startsAt: futureIso(1, 19, 30),
+        capacity: 2,
+        distanceKm: 0.8,
+        joinMode: 'request',
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/join-request`)
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .send({ note: 'Хочу прийти первым' })
+      .expect(201);
+
+    let hostEventResponse = await request(app.getHttpServer())
+      .get(`/host/events/${eventId}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const firstRequestId = hostEventResponse.body.requests.find(
+      (item: { userId: string }) => item.userId === 'user-sonya',
+    ).id as string;
+
+    await request(app.getHttpServer())
+      .post(`/host/requests/${firstRequestId}/approve`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/join-request`)
+      .set('authorization', `Bearer ${thirdAccessToken}`)
+      .send({ note: 'Хочу прийти вторым' })
+      .expect(201);
+
+    hostEventResponse = await request(app.getHttpServer())
+      .get(`/host/events/${eventId}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const fullRequestId = hostEventResponse.body.requests.find(
+      (item: { userId: string }) => item.userId === 'user-anya',
+    ).id as string;
+
+    const approveResponse = await request(app.getHttpServer())
+      .post(`/host/requests/${fullRequestId}/approve`)
+      .set('authorization', `Bearer ${accessToken}`);
+
+    expect(approveResponse.status).toBe(409);
+    expect(approveResponse.body.code).toBe('event_full');
+
+    const participantsCount = await prisma.eventParticipant.count({
+      where: { eventId },
+    });
+    expect(participantsCount).toBe(2);
   });
 
   it('does not allow rejecting a join request after approval', async () => {

@@ -11,11 +11,30 @@ datasource db {
 enum ChatKind {
   meetup
   direct
+  community
 }
 
 enum ChatOrigin {
   meetup
   people
+  community
+}
+
+enum CommunityPrivacy {
+  public
+  private
+}
+
+enum CommunityMemberRole {
+  owner
+  moderator
+  member
+}
+
+enum CommunityMediaKind {
+  photo
+  video
+  doc
 }
 
 enum MediaAssetKind {
@@ -235,6 +254,8 @@ model User {
   stories           EventStory[]
   subscriptions     UserSubscription[]
   chatMembers       ChatMember[]
+  createdCommunities Community[]             @relation("CommunityCreator")
+  communityMemberships CommunityMember[]
   messages          Message[]
   mediaAssets       MediaAsset[]
   telegramAccount   TelegramAccount?
@@ -454,6 +475,15 @@ model Event {
 
   @@index([sourcePosterId])
   @@index([isAfterDark, startsAt])
+  @@index([isAfterDark, startsAt, id])
+  @@index([isAfterDark, distanceKm, id])
+  @@index([isAfterDark, isCalm, startsAt, id])
+  @@index([isAfterDark, isNewcomers, startsAt, id])
+  @@index([isAfterDark, isDate, startsAt, id])
+  @@index([isAfterDark, lifestyle, startsAt, id])
+  @@index([isAfterDark, priceMode, startsAt, id])
+  @@index([isAfterDark, accessMode, startsAt, id])
+  @@index([isAfterDark, genderMode, startsAt, id])
   @@unique([hostId, idempotencyKey])
 }
 
@@ -496,6 +526,7 @@ model EventParticipant {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
+  @@index([eventId, joinedAt, id])
 }
 
 model EventJoinRequest {
@@ -573,6 +604,8 @@ model EventFavorite {
   targetUser     User     @relation("EventFavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, sourceUserId, targetUserId])
+  @@index([sourceUserId, targetUserId])
+  @@index([targetUserId, sourceUserId])
 }
 
 model TrustedContact {
@@ -659,6 +692,102 @@ model DatingAction {
   @@index([actorUserId, action, createdAt])
 }
 
+model Community {
+  id               String                 @id @default(cuid())
+  name             String
+  avatar           String
+  description      String
+  privacy          CommunityPrivacy       @default(public)
+  tags             Json
+  joinRule         String
+  premiumOnly      Boolean                @default(true)
+  mood             String
+  sharedMediaLabel String
+  createdById      String
+  chatId           String                 @unique
+  idempotencyKey   String?
+  createdBy        User                   @relation("CommunityCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  chat             Chat                   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  members          CommunityMember[]
+  news             CommunityNewsItem[]
+  meetups          CommunityMeetupItem[]
+  media            CommunityMediaItem[]
+  socialLinks      CommunitySocialLink[]
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@index([createdAt, id])
+  @@index([privacy, createdAt, id])
+  @@unique([createdById, idempotencyKey])
+}
+
+model CommunityMember {
+  id          String              @id @default(cuid())
+  communityId String
+  userId      String
+  role        CommunityMemberRole @default(member)
+  joinedAt    DateTime            @default(now())
+  community   Community           @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([userId, joinedAt])
+  @@index([communityId, joinedAt, id])
+}
+
+model CommunityNewsItem {
+  id          String    @id @default(cuid())
+  communityId String
+  title       String
+  blurb       String
+  timeLabel   String
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, sortOrder, id])
+}
+
+model CommunityMeetupItem {
+  id          String    @id @default(cuid())
+  communityId String
+  title       String
+  emoji       String
+  timeLabel   String
+  place       String
+  format      String
+  going       Int       @default(0)
+  sortOrder   Int       @default(0)
+  startsAt    DateTime?
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, sortOrder, id])
+}
+
+model CommunityMediaItem {
+  id          String             @id @default(cuid())
+  communityId String
+  emoji       String
+  label       String
+  kind        CommunityMediaKind
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  community   Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, sortOrder, id])
+}
+
+model CommunitySocialLink {
+  id          String    @id @default(cuid())
+  communityId String
+  label       String
+  handle      String
+  sortOrder   Int       @default(0)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, sortOrder, id])
+}
+
 model Chat {
   id             String          @id @default(cuid())
   kind           ChatKind
@@ -674,6 +803,7 @@ model Chat {
   updatedAt      DateTime        @updatedAt
   messages       Message[]
   members        ChatMember[]
+  community      Community?
   realtimeEvents RealtimeEvent[]
 
   @@index([kind, updatedAt, id])
@@ -690,6 +820,7 @@ model ChatMember {
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([chatId, userId])
+  @@index([chatId, id])
   @@index([userId])
 }
 
@@ -772,6 +903,7 @@ model Notification {
   @@index([userId, kind, readAt, chatId])
   @@index([userId, kind, readAt, actorUserId])
   @@index([userId, readAt, eventId, requestId])
+  @@index([userId, createdAt, id])
 }
 
 model PushToken {

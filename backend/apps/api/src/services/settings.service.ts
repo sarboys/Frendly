@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
 function mapSettings(settings: {
@@ -93,6 +94,10 @@ export class SettingsService {
   }
 
   async updateTestingAccess(userId: string, body: Record<string, unknown>) {
+    if (process.env.ENABLE_TESTING_ACCESS !== 'true') {
+      throw new ApiError(404, 'testing_access_disabled', 'Testing access is disabled');
+    }
+
     let frendlyPlusEnabled = body.frendlyPlusEnabled === true;
     const afterDarkEnabled = body.afterDarkEnabled === true;
 

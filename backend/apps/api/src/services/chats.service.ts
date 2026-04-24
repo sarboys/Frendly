@@ -135,8 +135,10 @@ export class ChatsService {
             typing: false,
             isAfterDark:
               chat.event?.isAfterDark ?? chat.sourceEvent?.isAfterDark ?? false,
-            afterDarkGlow:
+            afterDarkGlow: this.resolveAfterDarkGlow(
+              chat.event?.isAfterDark ?? chat.sourceEvent?.isAfterDark ?? false,
               chat.event?.afterDarkGlow ?? chat.sourceEvent?.afterDarkGlow ?? null,
+            ),
           };
         }
 
@@ -439,6 +441,14 @@ export class ChatsService {
         throw new ApiError(403, 'chat_forbidden', 'You are not a member of this chat');
       }
     }
+  }
+
+  private resolveAfterDarkGlow(isAfterDark: boolean, glow: string | null) {
+    if (!isAfterDark) {
+      return glow;
+    }
+
+    return glow ?? 'magenta';
   }
 
   private async getBlockedUserIds(userId: string) {

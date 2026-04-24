@@ -12,7 +12,6 @@ import {
 import Redis from 'ioredis';
 import { Server as HttpServer } from 'node:http';
 import { RawData, WebSocket, WebSocketServer } from 'ws';
-import { buildMessageNotificationBatch } from './chat-notification-batch';
 import { PrismaService } from './prisma.service';
 
 interface SocketState {
@@ -357,42 +356,14 @@ export class ChatServerService implements OnModuleDestroy {
         },
       });
 
-      const members = await tx.chatMember.findMany({
-        where: { chatId },
-        select: {
-          userId: true,
-          lastReadMessageId: true,
-          lastReadAt: true,
-        },
-      });
-
-      const notificationBatch = buildMessageNotificationBatch({
-        recipientUserIds: members
-            .filter((member) => member.userId !== state.userId)
-            .map((member) => member.userId),
-        actorUserId: state.userId!,
-        chatId,
-        messageId: created.id,
-        body: previewText,
-        now,
-      });
-
-      if (notificationBatch.notifications.length > 0) {
-        await tx.notification.createMany({
-          data: notificationBatch.notifications,
-        });
-
-        await tx.outboxEvent.createMany({
-          data: notificationBatch.outboxEvents,
-        });
-      }
-
       await tx.outboxEvent.create({
         data: {
-          type: OUTBOX_EVENT_TYPES.unreadFanout,
+          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
           payload: {
             chatId,
-            userIds: members.map((member) => member.userId),
+            actorUserId: state.userId!,
+            messageId: created.id,
+            body: previewText,
           },
         },
       });
@@ -400,18 +371,8 @@ export class ChatServerService implements OnModuleDestroy {
       return {
         created,
         realtimeEventId: realtimeEvent.id.toString(),
-        notificationEvents: notificationBatch.realtimeEvents,
       };
     });
-
-    await Promise.all(
-      message.notificationEvents.map((notificationEvent) =>
-        publishBusEvent(this.publisher, {
-          type: 'notification.created',
-          payload: notificationEvent,
-        }),
-      ),
-    );
 
     await publishBusEvent(this.publisher, {
       type: 'message.created',

@@ -256,6 +256,99 @@ describe('ChatServerService unit', () => {
     expect(mockRedisPublish).toHaveBeenCalledTimes(1);
   });
 
+  it('queues message notification fanout outside the websocket send transaction',
+    async () => {
+      const socket = createOpenSocket();
+      const txOutboxCreate = jest.fn().mockResolvedValue({});
+      const txOutboxCreateMany = jest.fn().mockResolvedValue({});
+      const txNotificationCreateMany = jest.fn().mockResolvedValue({});
+      const txChatMemberFindMany = jest.fn().mockResolvedValue(
+        Array.from({ length: 50 }, (_, index) => ({
+          userId: `user-${index}`,
+        })),
+      );
+      const service = new ChatServerService({
+        client: {
+          chatMember: {
+            findFirst: jest.fn().mockResolvedValue({
+              chat: {
+                kind: 'community',
+                members: [],
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          message: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          mediaAsset: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn(async (callback) =>
+            callback({
+              message: {
+                create: jest.fn().mockResolvedValue({
+                  id: 'message-1',
+                  chatId: 'community-chat',
+                  senderId: 'user-me',
+                  text: 'hello',
+                  clientMessageId: 'client-1',
+                  createdAt: new Date('2026-04-24T00:00:00.000Z'),
+                  sender: { displayName: 'Никита' },
+                  replyTo: null,
+                  attachments: [],
+                }),
+              },
+              chat: {
+                update: jest.fn().mockResolvedValue({}),
+              },
+              realtimeEvent: {
+                create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
+              },
+              chatMember: {
+                findMany: txChatMemberFindMany,
+              },
+              notification: {
+                createMany: txNotificationCreateMany,
+              },
+              outboxEvent: {
+                create: txOutboxCreate,
+                createMany: txOutboxCreateMany,
+              },
+            }),
+          ),
+        },
+      } as any);
+
+      (service as any).stateBySocket.set(socket, {
+        userId: 'user-me',
+        subscriptions: new Set(['community-chat']),
+      });
+
+      await (service as any).sendMessage(socket, {
+        chatId: 'community-chat',
+        text: 'hello',
+        clientMessageId: 'client-1',
+      });
+
+      expect(txChatMemberFindMany).not.toHaveBeenCalled();
+      expect(txNotificationCreateMany).not.toHaveBeenCalled();
+      expect(txOutboxCreateMany).not.toHaveBeenCalled();
+      expect(txOutboxCreate).toHaveBeenCalledWith({
+        data: {
+          type: 'message.notification_fanout',
+          payload: {
+            chatId: 'community-chat',
+            actorUserId: 'user-me',
+            messageId: 'message-1',
+            body: 'hello',
+          },
+        },
+      });
+    });
+
   it('adds direct download resolver path to mapped attachments', () => {
     const service = createChatServiceForBroadcast();
     const mapped = (service as any).mapMessage({

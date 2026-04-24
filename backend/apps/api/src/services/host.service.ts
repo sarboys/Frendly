@@ -1,4 +1,4 @@
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import { OUTBOX_EVENT_TYPES, decodeCursor, encodeCursor } from '@big-break/database';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import {
@@ -7,6 +7,7 @@ import {
   mapLiveStatus,
   mapUserPreview,
 } from '../common/presenters';
+import { assertEventCapacityAvailable } from './event-capacity';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -258,13 +259,30 @@ export class HostService {
     }
 
     const approved = await this.prismaService.client.$transaction(async (tx) => {
-      const next = await tx.eventJoinRequest.update({
-        where: { id: request.id },
+      const reviewed = await tx.eventJoinRequest.updateMany({
+        where: {
+          id: request.id,
+          status: 'pending',
+        },
         data: {
           status: 'approved',
           reviewedById: userId,
           reviewedAt: new Date(),
         },
+      });
+
+      if (reviewed.count === 0) {
+        throw new ApiError(
+          409,
+          'join_request_already_reviewed',
+          'Join request is already reviewed',
+        );
+      }
+
+      await assertEventCapacityAvailable(tx, request.eventId);
+
+      const next = await tx.eventJoinRequest.findUnique({
+        where: { id: request.id },
         include: {
           event: true,
           user: {
@@ -272,6 +290,10 @@ export class HostService {
           },
         },
       });
+
+      if (next == null) {
+        throw new ApiError(404, 'join_request_not_found', 'Join request not found');
+      }
 
       await tx.eventParticipant.upsert({
         where: {
@@ -338,14 +360,22 @@ export class HostService {
         },
       });
 
-      await tx.outboxEvent.create({
-        data: {
-          type: 'push.dispatch',
-          payload: {
-            userId: request.userId,
-            notificationId: notification.id,
+      await tx.outboxEvent.createMany({
+        data: [
+          {
+            type: OUTBOX_EVENT_TYPES.pushDispatch,
+            payload: {
+              userId: request.userId,
+              notificationId: notification.id,
+            },
           },
-        },
+          {
+            type: OUTBOX_EVENT_TYPES.notificationCreate,
+            payload: {
+              notificationId: notification.id,
+            },
+          },
+        ],
       });
 
       return next;
@@ -416,14 +446,22 @@ export class HostService {
         },
       });
 
-      await tx.outboxEvent.create({
-        data: {
-          type: 'push.dispatch',
-          payload: {
-            userId: request.userId,
-            notificationId: notification.id,
+      await tx.outboxEvent.createMany({
+        data: [
+          {
+            type: OUTBOX_EVENT_TYPES.pushDispatch,
+            payload: {
+              userId: request.userId,
+              notificationId: notification.id,
+            },
           },
-        },
+          {
+            type: OUTBOX_EVENT_TYPES.notificationCreate,
+            payload: {
+              notificationId: notification.id,
+            },
+          },
+        ],
       });
 
       return next;
