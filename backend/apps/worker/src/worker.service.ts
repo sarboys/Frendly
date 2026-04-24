@@ -12,11 +12,21 @@ import { ApnsPushProvider, FakePushProvider, FcmPushProvider, PushProvider } fro
 import { PrismaService } from './prisma.service';
 
 const PROCESSING_STALE_AFTER_MS = 60_000;
+const DEFAULT_MAX_EVENTS_PER_RUN = 25;
+const DEFAULT_PUSH_CONCURRENCY = 5;
 
 @Injectable()
 export class WorkerService implements OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
+  private readonly maxEventsPerRun = this.resolvePositiveInteger(
+    process.env.WORKER_MAX_EVENTS_PER_RUN,
+    DEFAULT_MAX_EVENTS_PER_RUN,
+  );
+  private readonly pushConcurrency = this.resolvePositiveInteger(
+    process.env.WORKER_PUSH_CONCURRENCY,
+    DEFAULT_PUSH_CONCURRENCY,
+  );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
   private readonly fakePushProvider = new FakePushProvider();
@@ -47,27 +57,37 @@ export class WorkerService implements OnModuleDestroy {
     }
 
     this.running = true;
-    let event:
-      | {
-          id: string;
-          type: string;
-          payload: unknown;
-          attempts: number;
-        }
-      | null = null;
 
     try {
-      event = await this.claimNextEvent();
-      if (!event) {
-        return;
-      }
+      for (let index = 0; index < this.maxEventsPerRun; index += 1) {
+        const event = await this.claimNextEvent();
+        if (!event) {
+          return;
+        }
 
+        await this.processEvent(event);
+      }
+    } finally {
+      this.running = false;
+    }
+  }
+
+  private async processEvent(event: {
+    id: string;
+    type: string;
+    payload: unknown;
+    attempts: number;
+  }) {
+    try {
       switch (event.type) {
         case OUTBOX_EVENT_TYPES.mediaFinalize:
           await this.handleMediaFinalize(event.payload as { assetId: string; chatId?: string });
           break;
         case OUTBOX_EVENT_TYPES.pushDispatch:
           await this.handlePushDispatch(event.payload as { userId: string; notificationId: string });
+          break;
+        case OUTBOX_EVENT_TYPES.unreadFanout:
+          await this.handleUnreadFanout(event.payload as { chatId: string; userIds: string[] });
           break;
         default:
           console.log('[worker-skip-event]', event.type);
@@ -82,11 +102,7 @@ export class WorkerService implements OnModuleDestroy {
         },
       });
     } catch (error) {
-      if (event) {
-        await this.handleFailure(event.id, event.attempts, error);
-      }
-    } finally {
-      this.running = false;
+      await this.handleFailure(event.id, event.attempts, error);
     }
   }
 
@@ -234,7 +250,7 @@ export class WorkerService implements OnModuleDestroy {
       },
     });
 
-    for (const token of tokens) {
+    await this.runWithConcurrency(tokens, this.pushConcurrency, async (token) => {
       const provider = this.resolveProvider(token.provider);
       await provider.send({
         token: token.token,
@@ -244,7 +260,52 @@ export class WorkerService implements OnModuleDestroy {
           notificationId: notification.id,
         },
       });
+    });
+  }
+
+  private async handleUnreadFanout(payload: { chatId: string; userIds: string[] }) {
+    if (!payload.chatId || !Array.isArray(payload.userIds) || payload.userIds.length === 0) {
+      return;
     }
+
+    const userIds = [...new Set(
+      payload.userIds.filter((userId): userId is string => typeof userId === 'string'),
+    )];
+
+    if (userIds.length === 0) {
+      return;
+    }
+
+    const grouped = await this.prismaService.client.notification.groupBy({
+      by: ['userId'],
+      where: {
+        chatId: payload.chatId,
+        kind: 'message',
+        readAt: null,
+        userId: {
+          in: userIds,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+    const unreadByUserId = new Map(
+      grouped.map((item) => [item.userId, item._count._all]),
+    );
+
+    await Promise.all(
+      userIds.map((userId) =>
+        publishBusEvent(this.redis, {
+          type: 'unread.updated',
+          payload: {
+            userId,
+            chatId: payload.chatId,
+            unreadCount: unreadByUserId.get(userId) ?? 0,
+          },
+        }),
+      ),
+    );
   }
 
   private resolveProvider(providerName: 'fcm' | 'apns'): PushProvider {
@@ -253,5 +314,33 @@ export class WorkerService implements OnModuleDestroy {
     }
 
     return providerName === 'apns' ? this.apnsPushProvider : this.fcmPushProvider;
+  }
+
+  private resolvePositiveInteger(raw: string | undefined, fallback: number) {
+    const parsed = raw == null ? fallback : Number(raw);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+
+    return Math.max(1, Math.trunc(parsed));
+  }
+
+  private async runWithConcurrency<T>(
+    items: T[],
+    concurrency: number,
+    task: (item: T) => Promise<void>,
+  ) {
+    let nextIndex = 0;
+    const workerCount = Math.min(concurrency, items.length);
+
+    await Promise.all(
+      Array.from({ length: workerCount }, async () => {
+        while (nextIndex < items.length) {
+          const currentIndex = nextIndex;
+          nextIndex += 1;
+          await task(items[currentIndex]!);
+        }
+      }),
+    );
   }
 }

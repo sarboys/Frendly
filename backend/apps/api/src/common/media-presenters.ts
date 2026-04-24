@@ -54,6 +54,10 @@ export function mapMediaResource(
     byteSize: asset.byteSize,
     url,
     downloadUrl,
+    downloadUrlPath:
+      visibility === 'private'
+        ? `${buildMediaProxyPath(asset.id)}/download-url`
+        : null,
     variants: {},
     durationMs: asset.durationMs ?? null,
     previewHash: null,

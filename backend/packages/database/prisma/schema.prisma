@@ -609,6 +609,7 @@ model UserBlock {
   blockedUser   User     @relation("BlockedByUsers", fields: [blockedUserId], references: [id], onDelete: Cascade)
 
   @@unique([userId, blockedUserId])
+  @@index([blockedUserId, userId])
 }
 
 model EventStory {
@@ -639,6 +640,8 @@ model UserSubscription {
   updatedAt    DateTime           @updatedAt
 
   @@index([userId, createdAt])
+  @@index([userId, status, renewsAt])
+  @@index([userId, status, trialEndsAt])
 }
 
 model DatingAction {
@@ -672,6 +675,8 @@ model Chat {
   messages       Message[]
   members        ChatMember[]
   realtimeEvents RealtimeEvent[]
+
+  @@index([kind, updatedAt, id])
 }
 
 model ChatMember {
@@ -716,6 +721,7 @@ model MessageAttachment {
   mediaAsset    MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, mediaAssetId])
+  @@index([mediaAssetId])
 }
 
 model MediaAsset {
@@ -743,6 +749,7 @@ model MediaAsset {
   messageLinks     MessageAttachment[]
 
   @@index([ownerId, status, chatId])
+  @@index([chatId, kind, status])
 }
 
 model Notification {
@@ -778,6 +785,8 @@ model PushToken {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, disabledAt])
 }
 
 model OutboxEvent {
@@ -791,6 +800,9 @@ model OutboxEvent {
   processedAt DateTime?
   lastError   String?
   createdAt   DateTime     @default(now())
+
+  @@index([status, availableAt, createdAt])
+  @@index([status, lockedAt])
 }
 
 model RealtimeEvent {

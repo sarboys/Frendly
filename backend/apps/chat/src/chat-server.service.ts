@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   PUBSUB_CHANNEL,
+  OUTBOX_EVENT_TYPES,
   buildMediaProxyPath,
   buildMessagePreview,
   createRedisPublisher,
@@ -34,10 +35,28 @@ class ChatServerError extends Error {
   }
 }
 
+const DEFAULT_SYNC_EVENT_LIMIT = 100;
+const MAX_SYNC_EVENT_LIMIT = 500;
+const DEFAULT_TYPING_THROTTLE_MS = 1500;
+const DEFAULT_MEMBERSHIP_CACHE_TTL_MS = 5000;
+
 @Injectable()
 export class ChatServerService implements OnModuleDestroy {
   private wss?: WebSocketServer;
   private readonly stateBySocket = new Map<WebSocket, SocketState>();
+  private readonly socketsByUserId = new Map<string, Set<WebSocket>>();
+  private readonly socketsByChatId = new Map<string, Set<WebSocket>>();
+  private readonly maxBufferedBytes = Number(process.env.CHAT_WS_MAX_BUFFERED_BYTES ?? 1_048_576);
+  private readonly typingThrottleMs = this.resolveDurationMs(
+    process.env.CHAT_TYPING_THROTTLE_MS,
+    DEFAULT_TYPING_THROTTLE_MS,
+  );
+  private readonly membershipCacheTtlMs = this.resolveDurationMs(
+    process.env.CHAT_MEMBERSHIP_CACHE_TTL_MS,
+    DEFAULT_MEMBERSHIP_CACHE_TTL_MS,
+  );
+  private readonly lastTypingSentAtBySocket = new Map<WebSocket, Map<string, number>>();
+  private readonly membershipCache = new Map<string, number>();
   private readonly publisher: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly subscriber: Redis = createRedisSubscriber(process.env.REDIS_URL ?? 'redis://localhost:6379');
 
@@ -80,7 +99,7 @@ export class ChatServerService implements OnModuleDestroy {
     });
 
     socket.on('close', () => {
-      this.stateBySocket.delete(socket);
+      this.cleanupSocket(socket);
     });
   }
 
@@ -147,8 +166,12 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     const state = this.getState(socket);
+    if (state.userId != null && state.userId !== payload.userId) {
+      this.removeIndexedSocket(this.socketsByUserId, state.userId, socket);
+    }
     state.userId = payload.userId;
     state.sessionId = payload.sessionId;
+    this.addIndexedSocket(this.socketsByUserId, payload.userId, socket);
 
     this.send(socket, {
       type: 'session.authenticated',
@@ -166,6 +189,7 @@ export class ChatServerService implements OnModuleDestroy {
 
     await this.assertMembership(state.userId!, chatId);
     state.subscriptions.add(chatId);
+    this.addIndexedSocket(this.socketsByChatId, chatId, socket);
     this.send(socket, {
       type: 'chat.updated',
       payload: { chatId },
@@ -178,6 +202,7 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     this.getState(socket).subscriptions.delete(chatId);
+    this.removeIndexedSocket(this.socketsByChatId, chatId, socket);
   }
 
   private async sendMessage(socket: WebSocket, payload: any) {
@@ -362,14 +387,19 @@ export class ChatServerService implements OnModuleDestroy {
         });
       }
 
+      await tx.outboxEvent.create({
+        data: {
+          type: OUTBOX_EVENT_TYPES.unreadFanout,
+          payload: {
+            chatId,
+            userIds: members.map((member) => member.userId),
+          },
+        },
+      });
+
       return {
         created,
         realtimeEventId: realtimeEvent.id.toString(),
-        members: members.map((member) => ({
-          userId: member.userId,
-          lastReadMessageId: member.lastReadMessageId ?? undefined,
-          lastReadAt: member.lastReadAt ?? undefined,
-        })),
         notificationEvents: notificationBatch.realtimeEvents,
       };
     });
@@ -390,28 +420,6 @@ export class ChatServerService implements OnModuleDestroy {
         message.realtimeEventId,
       ),
     });
-
-    const unreadCounts = await this.getUnreadCountsByUser(
-      chatId,
-      message.members.map((member) => member.userId),
-    );
-    const unreadUpdates = message.members.map((member) => ({
-      userId: member.userId,
-      unreadCount: unreadCounts.get(member.userId) ?? 0,
-    }));
-
-    await Promise.all(
-      unreadUpdates.map((update) =>
-        publishBusEvent(this.publisher, {
-          type: 'unread.updated',
-          payload: {
-            userId: update.userId,
-            chatId,
-            unreadCount: update.unreadCount,
-          },
-        }),
-      ),
-    );
 
     if (!state.subscriptions.has(chatId)) {
       this.send(socket, {
@@ -506,6 +514,10 @@ export class ChatServerService implements OnModuleDestroy {
       throw new Error('chatId is required');
     }
 
+    if (this.isTypingThrottled(socket, chatId, Boolean(isTyping))) {
+      return;
+    }
+
     await this.assertMembership(state.userId!, chatId);
     await publishBusEvent(this.publisher, {
       type: 'typing.changed',
@@ -521,6 +533,7 @@ export class ChatServerService implements OnModuleDestroy {
     const state = this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
     const sinceEventId = payload?.sinceEventId as string | undefined;
+    const take = this.normalizeSyncEventLimit(payload?.limit);
 
     if (!chatId) {
       throw new Error('chatId is required');
@@ -541,8 +554,11 @@ export class ChatServerService implements OnModuleDestroy {
           : {}),
       },
       orderBy: { id: 'asc' },
+      take: take + 1,
     });
-    const visibleEvents = events.filter((event) => {
+    const hasMore = events.length > take;
+    const page = hasMore ? events.slice(0, take) : events;
+    const visibleEvents = page.filter((event) => {
       const actorUserId = this.getActorUserId({
         type: event.eventType,
         payload: event.payload,
@@ -556,6 +572,11 @@ export class ChatServerService implements OnModuleDestroy {
       payload: {
         chatId,
         sinceEventId,
+        hasMore,
+        nextEventId:
+          hasMore && page.length > 0
+            ? page[page.length - 1]!.id.toString()
+            : null,
         events: visibleEvents.map((event) => ({
           id: event.id.toString(),
           type: event.eventType,
@@ -566,36 +587,62 @@ export class ChatServerService implements OnModuleDestroy {
     });
   }
 
+  private normalizeSyncEventLimit(limit: unknown) {
+    const numericLimit =
+      typeof limit === 'number'
+        ? limit
+        : typeof limit === 'string'
+          ? Number(limit)
+          : DEFAULT_SYNC_EVENT_LIMIT;
+
+    if (!Number.isFinite(numericLimit)) {
+      return DEFAULT_SYNC_EVENT_LIMIT;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(numericLimit), MAX_SYNC_EVENT_LIMIT));
+  }
+
   private async broadcastEvent(event: Envelope) {
+    if (event.type === 'notification.created' || event.type === 'unread.updated') {
+      const userId = event.payload?.userId as string | undefined;
+      if (!userId) {
+        return;
+      }
+
+      for (const socket of this.socketsByUserId.get(userId) ?? []) {
+        const state = this.stateBySocket.get(socket);
+        if (state?.userId === userId) {
+          this.send(socket, event);
+        }
+      }
+      return;
+    }
+
+    const chatId = event.payload?.chatId as string | undefined;
+    if (!chatId) {
+      return;
+    }
+
     const actorUserId = this.getActorUserId(event);
     const blockedUserIds =
       actorUserId != null ? await this.getBlockedUserIds(actorUserId) : null;
 
-    for (const [socket, state] of this.stateBySocket.entries()) {
-      if (socket.readyState !== WebSocket.OPEN) {
+    for (const socket of this.socketsByChatId.get(chatId) ?? []) {
+      const state = this.stateBySocket.get(socket);
+      if (state == null || !state.subscriptions.has(chatId)) {
         continue;
       }
 
-      if (event.type === 'notification.created' || event.type === 'unread.updated') {
-        if (state.userId === event.payload.userId) {
-          this.send(socket, event);
-        }
+      if (
+        blockedUserIds != null &&
+        state.userId != null &&
+        actorUserId !== state.userId &&
+        blockedUserIds.has(state.userId)
+      ) {
         continue;
       }
 
-      const chatId = event.payload?.chatId as string | undefined;
-      if (chatId && state.subscriptions.has(chatId)) {
-        if (
-          blockedUserIds != null &&
-          state.userId != null &&
-          actorUserId !== state.userId &&
-          blockedUserIds.has(state.userId)
-        ) {
-          continue;
-        }
-
-        this.send(socket, event);
-      }
+      this.send(socket, event);
     }
   }
 
@@ -616,12 +663,71 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private send(socket: WebSocket, event: Envelope) {
-    if (socket.readyState === WebSocket.OPEN) {
+    const bufferedAmount =
+      typeof socket.bufferedAmount === 'number' ? socket.bufferedAmount : 0;
+    if (
+      socket.readyState === WebSocket.OPEN &&
+      bufferedAmount <= this.maxBufferedBytes
+    ) {
       socket.send(JSON.stringify(event));
     }
   }
 
+  private cleanupSocket(socket: WebSocket) {
+    const state = this.stateBySocket.get(socket);
+    if (!state) {
+      return;
+    }
+
+    if (state.userId != null) {
+      this.removeIndexedSocket(this.socketsByUserId, state.userId, socket);
+    }
+
+    for (const chatId of state.subscriptions) {
+      this.removeIndexedSocket(this.socketsByChatId, chatId, socket);
+    }
+
+    this.stateBySocket.delete(socket);
+    this.lastTypingSentAtBySocket.delete(socket);
+  }
+
+  private addIndexedSocket(
+    index: Map<string, Set<WebSocket>>,
+    key: string,
+    socket: WebSocket,
+  ) {
+    const sockets = index.get(key);
+    if (sockets) {
+      sockets.add(socket);
+      return;
+    }
+
+    index.set(key, new Set([socket]));
+  }
+
+  private removeIndexedSocket(
+    index: Map<string, Set<WebSocket>>,
+    key: string,
+    socket: WebSocket,
+  ) {
+    const sockets = index.get(key);
+    if (!sockets) {
+      return;
+    }
+
+    sockets.delete(socket);
+    if (sockets.size === 0) {
+      index.delete(key);
+    }
+  }
+
   private async assertMembership(userId: string, chatId: string) {
+    const membershipCacheKey = this.buildMembershipCacheKey(userId, chatId);
+    const cachedUntil = this.membershipCache.get(membershipCacheKey);
+    if (cachedUntil != null && cachedUntil > Date.now()) {
+      return;
+    }
+
     const membership = await this.prismaService.client.chatMember.findFirst({
       where: {
         chatId,
@@ -665,29 +771,52 @@ export class ChatServerService implements OnModuleDestroy {
         throw new ChatServerError('chat_forbidden', 'Not a chat member');
       }
     }
+
+    if (this.membershipCacheTtlMs > 0) {
+      this.membershipCache.set(
+        membershipCacheKey,
+        Date.now() + this.membershipCacheTtlMs,
+      );
+    }
   }
 
-  private async getUnreadCountsByUser(chatId: string, userIds: string[]) {
-    if (userIds.length === 0) {
-      return new Map<string, number>();
+  private isTypingThrottled(
+    socket: WebSocket,
+    chatId: string,
+    isTyping: boolean,
+  ) {
+    if (this.typingThrottleMs <= 0) {
+      return false;
     }
 
-    const grouped = await this.prismaService.client.notification.groupBy({
-      by: ['userId'],
-      where: {
-        chatId,
-        kind: 'message',
-        readAt: null,
-        userId: {
-          in: userIds,
-        },
-      },
-      _count: {
-        _all: true,
-      },
-    });
+    const now = Date.now();
+    const key = `${chatId}:${isTyping ? '1' : '0'}`;
+    const lastByKey = this.lastTypingSentAtBySocket.get(socket);
+    const lastSentAt = lastByKey?.get(key);
+    if (lastSentAt != null && now - lastSentAt < this.typingThrottleMs) {
+      return true;
+    }
 
-    return new Map(grouped.map((item) => [item.userId, item._count._all]));
+    if (lastByKey) {
+      lastByKey.set(key, now);
+    } else {
+      this.lastTypingSentAtBySocket.set(socket, new Map([[key, now]]));
+    }
+
+    return false;
+  }
+
+  private buildMembershipCacheKey(userId: string, chatId: string) {
+    return `${userId}:${chatId}`;
+  }
+
+  private resolveDurationMs(raw: string | undefined, fallback: number) {
+    const parsed = raw == null ? fallback : Number(raw);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+
+    return Math.max(0, Math.trunc(parsed));
   }
 
   private async getBlockedUserIds(userId: string) {
@@ -798,6 +927,7 @@ export class ChatServerService implements OnModuleDestroy {
         kind: entry.mediaAsset.kind,
         status: entry.mediaAsset.status,
         url: buildMediaProxyPath(entry.mediaAsset.id),
+        downloadUrlPath: `${buildMediaProxyPath(entry.mediaAsset.id)}/download-url`,
         mimeType: entry.mediaAsset.mimeType,
         byteSize: entry.mediaAsset.byteSize,
         fileName: entry.mediaAsset.originalFileName,

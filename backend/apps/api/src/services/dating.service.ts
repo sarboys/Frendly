@@ -41,16 +41,12 @@ export class DatingService {
   ) {
     await this.assertDatingUnlocked(userId);
 
-    const [self, blockedUserIds, actedTargets] = await Promise.all([
+    const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
         include: { onboarding: true },
       }),
       this.getBlockedUserIds(userId),
-      this.prismaService.client.datingAction.findMany({
-        where: { actorUserId: userId },
-        select: { targetUserId: true },
-      }),
     ]);
 
     const take = this.normalizeListLimit(params.limit);
@@ -58,7 +54,6 @@ export class DatingService {
     const excludedUserIds = new Set<string>([
       userId,
       ...blockedUserIds,
-      ...actedTargets.map((item) => item.targetUserId),
     ]);
     const selfInterests = this.extractInterests(self?.onboarding?.interests);
 
@@ -75,6 +70,11 @@ export class DatingService {
         },
         subscriptions: {
           some: this.premiumSubscriptionWhere(),
+        },
+        datingActionsReceived: {
+          none: {
+            actorUserId: userId,
+          },
         },
       },
       include: {
