@@ -107,6 +107,7 @@ services:
       TELEGRAM_BOT_USERNAME: ""
       TELEGRAM_POLL_INTERVAL_MS: 1500
       PUSH_PROVIDER: fake
+      ENABLE_TESTING_ACCESS: "true"
       PORT: 3000
     depends_on:
       migrate:
