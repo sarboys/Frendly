@@ -41,7 +41,12 @@ describe('CommunitiesService unit', () => {
           _count: { _all: 120 },
         },
       ]);
-      const onlineFindMany = jest.fn();
+      const membershipFindMany = jest.fn().mockResolvedValue([
+        {
+          communityId: 'community-1',
+          role: 'member',
+        },
+      ]);
       const service = new CommunitiesService(
         {
           client: {
@@ -51,7 +56,7 @@ describe('CommunitiesService unit', () => {
             },
             communityMember: {
               groupBy: onlineGroupBy,
-              findMany: onlineFindMany,
+              findMany: membershipFindMany,
             },
             notification: {
               groupBy: jest.fn().mockResolvedValue([]),
@@ -76,7 +81,16 @@ describe('CommunitiesService unit', () => {
           },
         }),
       );
-      expect(onlineFindMany).not.toHaveBeenCalled();
+      expect(membershipFindMany).toHaveBeenCalledWith({
+        where: {
+          communityId: { in: ['community-1'] },
+          userId: 'user-me',
+        },
+        select: {
+          communityId: true,
+          role: true,
+        },
+      });
     });
 
   it('returns the existing community when a retry hits the same idempotency key',
@@ -171,6 +185,7 @@ describe('CommunitiesService unit', () => {
           },
           communityMember: {
             groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
           },
           notification: {
             groupBy: jest.fn().mockResolvedValue([]),
