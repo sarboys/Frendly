@@ -575,13 +575,8 @@ export class CommunitiesService {
 
   private parseCreateNewsInput(body: Record<string, unknown>) {
     return {
-      title: this.requiredTrimmedStringInRange(body.title, 'title', 3, 80),
-      body: this.requiredTrimmedStringInRange(
-        body.body ?? body.blurb,
-        'body',
-        10,
-        600,
-      ),
+      title: this.trimString(body.title),
+      body: this.trimString(body.body ?? body.blurb),
       pin: body.pin !== false,
     };
   }
@@ -640,24 +635,6 @@ export class CommunitiesService {
     return value;
   }
 
-  private requiredTrimmedStringInRange(
-    raw: unknown,
-    field: string,
-    minLength: number,
-    maxLength: number,
-  ) {
-    const value = typeof raw === 'string' ? raw.trim() : '';
-    if (value.length < minLength || value.length > maxLength) {
-      throw new ApiError(
-        400,
-        'invalid_community_news_payload',
-        `${field} is invalid`,
-      );
-    }
-
-    return value;
-  }
-
   private optionalTrimmedString(raw: unknown, maxLength: number) {
     const value = typeof raw === 'string' ? raw.trim() : '';
     if (value.length === 0) {
@@ -665,6 +642,10 @@ export class CommunitiesService {
     }
 
     return value.slice(0, maxLength);
+  }
+
+  private trimString(raw: unknown) {
+    return typeof raw === 'string' ? raw.trim() : '';
   }
 
   private stringArrayFromJson(raw: unknown) {

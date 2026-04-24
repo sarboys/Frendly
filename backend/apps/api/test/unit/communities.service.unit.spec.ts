@@ -332,6 +332,54 @@ describe('CommunitiesService unit', () => {
     expect(getCommunity).toHaveBeenCalledWith('user-me', 'community-1');
   });
 
+  it(
+    'accepts community news without title and body length validation',
+    async () => {
+      const create = jest.fn().mockResolvedValue({ id: 'news-new' });
+      const client = {
+        community: {
+          findFirst: jest.fn().mockResolvedValue({
+            id: 'community-1',
+            createdById: 'user-me',
+            members: [],
+          }),
+        },
+        communityNewsItem: {
+          updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          create,
+        },
+        $transaction: jest.fn((callback) => callback({
+          communityNewsItem: {
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            create,
+          },
+        })),
+      };
+      const service = new CommunitiesService(
+        { client } as any,
+        {} as any,
+      );
+      jest
+        .spyOn(service, 'getCommunity')
+        .mockResolvedValue({ id: 'community-1', news: [] } as any);
+
+      await service.createCommunityNews('user-me', 'community-1', {
+        title: 'Я',
+        body: 'Ок',
+        pin: true,
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Я',
+            blurb: 'Ок',
+          }),
+        }),
+      );
+    },
+  );
+
   it('rejects community news creation for a non-owner', async () => {
     const service = new CommunitiesService(
       {
