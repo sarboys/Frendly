@@ -130,6 +130,12 @@ export interface WsClientEventMap {
     attachmentIds?: string[];
     replyToMessageId?: string;
   };
+  'message.edit': {
+    chatId: string;
+    messageId: string;
+    text: string;
+  };
+  'message.delete': { chatId: string; messageId: string };
   'message.read': { chatId: string; messageId: string };
   'typing.start': { chatId: string };
   'typing.stop': { chatId: string };
@@ -139,6 +145,13 @@ export interface WsClientEventMap {
 export interface WsServerEventMap {
   'session.authenticated': { userId: string };
   'message.created': ChatMessageDto;
+  'message.updated': ChatMessageDto;
+  'message.deleted': {
+    chatId: string;
+    messageId: string;
+    senderId: string;
+    clientMessageId: string;
+  };
   'message.attachment_ready': { chatId: string; assetId: string };
   'message.read': { chatId: string; userId: string; messageId: string; readAt: string };
   'typing.changed': { chatId: string; userId: string; isTyping: boolean };

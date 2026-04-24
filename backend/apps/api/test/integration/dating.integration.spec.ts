@@ -84,6 +84,41 @@ describe('dating api flows', () => {
       },
     });
 
+    await Promise.all([
+      prisma.profile.update({
+        where: { userId: 'user-me' },
+        data: { gender: 'male' },
+      }),
+      prisma.profile.update({
+        where: { userId: 'user-sonya' },
+        data: { gender: 'female' },
+      }),
+      prisma.profile.update({
+        where: { userId: 'user-oleg' },
+        data: { gender: 'male' },
+      }),
+      prisma.profile.update({
+        where: { userId: 'user-mark' },
+        data: { gender: 'male' },
+      }),
+      prisma.onboardingPreferences.update({
+        where: { userId: 'user-me' },
+        data: { gender: 'male' },
+      }),
+      prisma.onboardingPreferences.update({
+        where: { userId: 'user-sonya' },
+        data: { gender: 'female' },
+      }),
+      prisma.onboardingPreferences.update({
+        where: { userId: 'user-oleg' },
+        data: { gender: 'male' },
+      }),
+      prisma.onboardingPreferences.update({
+        where: { userId: 'user-mark' },
+        data: { gender: 'male' },
+      }),
+    ]);
+
     await prisma.datingAction.deleteMany({
       where: {
         OR: [
@@ -170,9 +205,11 @@ describe('dating api flows', () => {
     expect(response.body.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ userId: 'user-sonya' }),
-        expect.objectContaining({ userId: 'user-oleg' }),
       ]),
     );
+    expect(
+      response.body.items.some((item: { userId: string }) => item.userId === 'user-oleg'),
+    ).toBe(false);
     expect(
       response.body.items.some((item: { userId: string }) => item.userId === 'user-mark'),
     ).toBe(false);
@@ -239,8 +276,8 @@ describe('dating api flows', () => {
           renewsAt: new Date('2027-04-18T08:00:00.000Z'),
         },
         {
-          id: 'dating-sub-oleg',
-          userId: 'user-oleg',
+          id: 'dating-sub-sonya',
+          userId: 'user-sonya',
           plan: 'month',
           status: 'active',
           startedAt: new Date('2026-04-18T08:00:00.000Z'),
@@ -251,21 +288,21 @@ describe('dating api flows', () => {
 
     await request(app.getHttpServer())
       .post('/dating/actions')
-      .set('authorization', `Bearer ${olegAccessToken}`)
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
       .send({ targetUserId: 'user-me', action: 'like' })
       .expect(201);
 
     const response = await request(app.getHttpServer())
       .post('/dating/actions')
       .set('authorization', `Bearer ${accessToken}`)
-      .send({ targetUserId: 'user-oleg', action: 'super_like' })
+      .send({ targetUserId: 'user-sonya', action: 'super_like' })
       .expect(201);
 
     expect(response.body.matched).toBe(true);
     expect(response.body.chatId).toEqual(expect.any(String));
     expect(response.body.peer).toEqual(
       expect.objectContaining({
-        userId: 'user-oleg',
+        userId: 'user-sonya',
         primaryPhoto: expect.any(Object),
         photos: expect.any(Array),
       }),
@@ -273,7 +310,7 @@ describe('dating api flows', () => {
 
     const directChat = await prisma.chat.findUnique({
       where: {
-        directKey: buildDirectChatKey('user-me', 'user-oleg'),
+        directKey: buildDirectChatKey('user-me', 'user-sonya'),
       },
     });
 

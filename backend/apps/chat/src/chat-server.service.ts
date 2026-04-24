@@ -116,6 +116,12 @@ export class ChatServerService implements OnModuleDestroy {
       case 'message.send':
         await this.sendMessage(socket, envelope.payload);
         return;
+      case 'message.edit':
+        await this.editMessage(socket, envelope.payload);
+        return;
+      case 'message.delete':
+        await this.deleteMessage(socket, envelope.payload);
+        return;
       case 'message.read':
         await this.markRead(socket, envelope.payload);
         return;
@@ -389,6 +395,181 @@ export class ChatServerService implements OnModuleDestroy {
           message.created,
           message.realtimeEventId,
         ),
+      });
+    }
+  }
+
+  private async editMessage(socket: WebSocket, payload: any) {
+    const state = this.requireAuthenticated(socket);
+    const chatId = payload?.chatId as string | undefined;
+    const messageId = payload?.messageId as string | undefined;
+    const text =
+      typeof payload?.text === 'string' ? payload.text.trim() : '';
+
+    if (!chatId || !messageId) {
+      throw new Error('chatId and messageId are required');
+    }
+
+    if (text.length === 0) {
+      throw new ChatServerError(
+        'message_payload_empty',
+        'text is required',
+      );
+    }
+
+    await this.assertMembership(state.userId!, chatId);
+
+    const result = await this.prismaService.client.$transaction(async (tx) => {
+      const existing = await tx.message.findFirst({
+        where: {
+          id: messageId,
+          chatId,
+          senderId: state.userId!,
+        },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        throw new ChatServerError(
+          'message_not_found',
+          'Message was not found',
+        );
+      }
+
+      const updated = await tx.message.update({
+        where: { id: messageId },
+        data: { text },
+        include: {
+          sender: true,
+          replyTo: {
+            include: {
+              sender: true,
+              attachments: {
+                include: {
+                  mediaAsset: true,
+                },
+              },
+            },
+          },
+          attachments: {
+            include: {
+              mediaAsset: true,
+            },
+          },
+        },
+      });
+
+      await tx.chat.update({
+        where: { id: chatId },
+        data: { updatedAt: new Date() },
+      });
+
+      const realtimeEvent = await tx.realtimeEvent.create({
+        data: {
+          chatId,
+          eventType: 'message.updated',
+          payload: this.mapMessage(updated),
+        },
+      });
+
+      return {
+        updated,
+        realtimeEventId: realtimeEvent.id.toString(),
+      };
+    });
+
+    const eventPayload = this.mapMessage(
+      result.updated,
+      result.realtimeEventId,
+    );
+
+    await publishBusEvent(this.publisher, {
+      type: 'message.updated',
+      payload: eventPayload,
+    });
+
+    if (!state.subscriptions.has(chatId)) {
+      this.send(socket, {
+        type: 'message.updated',
+        payload: eventPayload,
+      });
+    }
+  }
+
+  private async deleteMessage(socket: WebSocket, payload: any) {
+    const state = this.requireAuthenticated(socket);
+    const chatId = payload?.chatId as string | undefined;
+    const messageId = payload?.messageId as string | undefined;
+
+    if (!chatId || !messageId) {
+      throw new Error('chatId and messageId are required');
+    }
+
+    await this.assertMembership(state.userId!, chatId);
+
+    const result = await this.prismaService.client.$transaction(async (tx) => {
+      const existing = await tx.message.findFirst({
+        where: {
+          id: messageId,
+          chatId,
+          senderId: state.userId!,
+        },
+        select: {
+          id: true,
+          chatId: true,
+          senderId: true,
+          clientMessageId: true,
+        },
+      });
+
+      if (!existing) {
+        throw new ChatServerError(
+          'message_not_found',
+          'Message was not found',
+        );
+      }
+
+      await tx.message.delete({
+        where: { id: messageId },
+      });
+
+      await tx.chat.update({
+        where: { id: chatId },
+        data: { updatedAt: new Date() },
+      });
+
+      const payloadRecord = {
+        chatId: existing.chatId,
+        messageId: existing.id,
+        senderId: existing.senderId,
+        clientMessageId: existing.clientMessageId,
+      };
+
+      const realtimeEvent = await tx.realtimeEvent.create({
+        data: {
+          chatId,
+          eventType: 'message.deleted',
+          payload: payloadRecord,
+        },
+      });
+
+      return {
+        payloadRecord: {
+          ...payloadRecord,
+          eventId: realtimeEvent.id.toString(),
+        },
+      };
+    });
+
+    await publishBusEvent(this.publisher, {
+      type: 'message.deleted',
+      payload: result.payloadRecord,
+    });
+
+    if (!state.subscriptions.has(chatId)) {
+      this.send(socket, {
+        type: 'message.deleted',
+        payload: result.payloadRecord,
       });
     }
   }

@@ -8,6 +8,7 @@ import { PeopleService } from './people.service';
 import { SubscriptionService } from './subscription.service';
 
 const _positiveDatingActions = new Set<DatingActionKind>(['like', 'super_like']);
+type DatingGender = 'male' | 'female';
 
 const _datingPromptByUserId: Record<string, string> = {
   'user-anya': 'Идеальный первый date, выставка плюс долгий ужин без спешки.',
@@ -44,7 +45,7 @@ export class DatingService {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
-        include: { onboarding: true },
+        include: { onboarding: true, profile: { select: { gender: true } } },
       }),
       this.getBlockedUserIds(userId),
     ]);
@@ -56,9 +57,11 @@ export class DatingService {
       ...blockedUserIds,
     ]);
     const selfInterests = this.extractInterests(self?.onboarding?.interests);
+    const targetGender = this.oppositeGenderForSelf(self);
 
     const users = await this.prismaService.client.user.findMany({
       where: {
+        ...this.oppositeGenderWhere(targetGender),
         id: {
           notIn: [...excludedUserIds],
           ...(cursorId == null ? {} : { gt: cursorId }),
@@ -135,7 +138,7 @@ export class DatingService {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
-        include: { onboarding: true },
+        include: { onboarding: true, profile: { select: { gender: true } } },
       }),
       this.getBlockedUserIds(userId),
     ]);
@@ -143,6 +146,7 @@ export class DatingService {
     const take = this.normalizeListLimit(params.limit);
     const cursorId = this.decodeCursor(params.cursor);
     const selfInterests = this.extractInterests(self?.onboarding?.interests);
+    const targetGender = this.oppositeGenderForSelf(self);
 
     const likes = await this.prismaService.client.datingAction.findMany({
       where: {
@@ -155,6 +159,7 @@ export class DatingService {
           ...(cursorId == null ? {} : { gt: cursorId }),
         },
         actorUser: {
+          ...this.oppositeGenderWhere(targetGender),
           settings: {
             is: {
               discoverable: true,
@@ -217,37 +222,37 @@ export class DatingService {
       throw new ApiError(404, 'dating_user_not_found', 'Dating user not found');
     }
 
-    const [self, targetUser] = await Promise.all([
-      this.prismaService.client.user.findUnique({
-        where: { id: userId },
-        include: { onboarding: true },
-      }),
-      this.prismaService.client.user.findFirst({
-        where: {
-          id: targetUserId,
-          settings: {
-            is: {
-              discoverable: true,
-            },
-          },
-          subscriptions: {
-            some: this.premiumSubscriptionWhere(),
+    const self = await this.prismaService.client.user.findUnique({
+      where: { id: userId },
+      include: { onboarding: true, profile: { select: { gender: true } } },
+    });
+    const targetGender = this.oppositeGenderForSelf(self);
+    const targetUser = await this.prismaService.client.user.findFirst({
+      where: {
+        id: targetUserId,
+        ...this.oppositeGenderWhere(targetGender),
+        settings: {
+          is: {
+            discoverable: true,
           },
         },
-        include: {
-          profile: {
-            include: {
-              photos: {
-                include: { mediaAsset: true },
-                orderBy: { sortOrder: 'asc' },
-              },
+        subscriptions: {
+          some: this.premiumSubscriptionWhere(),
+        },
+      },
+      include: {
+        profile: {
+          include: {
+            photos: {
+              include: { mediaAsset: true },
+              orderBy: { sortOrder: 'asc' },
             },
           },
-          onboarding: true,
-          settings: true,
         },
-      }),
-    ]);
+        onboarding: true,
+        settings: true,
+      },
+    });
 
     if (!targetUser) {
       throw new ApiError(404, 'dating_user_not_found', 'Dating user not found');
@@ -411,6 +416,47 @@ export class DatingService {
     return Array.isArray(raw)
       ? raw.filter((item): item is string => typeof item === 'string')
       : [];
+  }
+
+  private oppositeGenderForSelf(
+    user: {
+      profile?: { gender: DatingGender | null } | null;
+      onboarding?: { gender: DatingGender | null; interests?: unknown } | null;
+    } | null,
+  ): DatingGender | null {
+    const gender = user?.profile?.gender ?? user?.onboarding?.gender ?? null;
+    switch (gender) {
+      case 'male':
+        return 'female';
+      case 'female':
+        return 'male';
+      default:
+        return null;
+    }
+  }
+
+  private oppositeGenderWhere(
+    gender: DatingGender | null,
+  ): Prisma.UserWhereInput {
+    if (gender == null) {
+      return {
+        AND: [{ id: '__dating_gender_missing__' }],
+      };
+    }
+
+    return {
+      OR: [
+        { profile: { is: { gender } } },
+        {
+          profile: { is: { gender: null } },
+          onboarding: { is: { gender } },
+        },
+        {
+          profile: { is: null },
+          onboarding: { is: { gender } },
+        },
+      ],
+    };
   }
 
   private normalizeListLimit(limit?: number) {
