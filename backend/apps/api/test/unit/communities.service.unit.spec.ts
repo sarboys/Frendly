@@ -274,4 +274,92 @@ describe('CommunitiesService unit', () => {
       }),
     );
   });
+
+  it('creates a pinned community news item for the owner', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const create = jest.fn().mockResolvedValue({ id: 'news-new' });
+    const client = {
+      community: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'community-1',
+          createdById: 'user-me',
+          members: [],
+        }),
+      },
+      communityNewsItem: {
+        updateMany,
+        create,
+      },
+      $transaction: jest.fn((callback) => callback({
+        communityNewsItem: {
+          updateMany,
+          create,
+        },
+      })),
+    };
+    const service = new CommunitiesService(
+      { client } as any,
+      {} as any,
+    );
+    const getCommunity = jest
+      .spyOn(service, 'getCommunity')
+      .mockResolvedValue({ id: 'community-1', news: [] } as any);
+
+    await service.createCommunityNews(
+      'user-me',
+      'community-1',
+      {
+        title: 'Новая встреча',
+        body: 'Открыли запись на воскресный brunch.',
+        pin: true,
+      },
+    );
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { communityId: 'community-1' },
+      data: { sortOrder: { increment: 1 } },
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        communityId: 'community-1',
+        title: 'Новая встреча',
+        blurb: 'Открыли запись на воскресный brunch.',
+        timeLabel: 'сейчас',
+        sortOrder: 0,
+      },
+      select: { id: true },
+    });
+    expect(getCommunity).toHaveBeenCalledWith('user-me', 'community-1');
+  });
+
+  it('rejects community news creation for a non-owner', async () => {
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'community-1',
+              createdById: 'user-host',
+              members: [{ role: 'member' }],
+            }),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.createCommunityNews(
+        'user-me',
+        'community-1',
+        {
+          title: 'Новая встреча',
+          body: 'Открыли запись на воскресный brunch.',
+        },
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'community_owner_required',
+    });
+  });
 });

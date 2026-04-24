@@ -43,6 +43,19 @@ export class CommunitiesController {
     return this.communitiesService.getCommunity(currentUser.userId, communityId);
   }
 
+  @Post(':communityId/news')
+  createCommunityNews(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('communityId') communityId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.communitiesService.createCommunityNews(
+      currentUser.userId,
+      communityId,
+      body,
+    );
+  }
+
   @Post()
   createCommunity(
     @CurrentUser() currentUser: { userId: string },

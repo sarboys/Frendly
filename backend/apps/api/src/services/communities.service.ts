@@ -165,6 +165,75 @@ export class CommunitiesService {
     };
   }
 
+  async createCommunityNews(
+    userId: string,
+    communityId: string,
+    body: Record<string, unknown>,
+  ) {
+    const community = await this.prismaService.client.community.findFirst({
+      where: {
+        id: communityId,
+        OR: [
+          { createdById: userId },
+          { privacy: CommunityPrivacy.public },
+          { members: { some: { userId } } },
+        ],
+      },
+      select: {
+        id: true,
+        createdById: true,
+        members: {
+          where: { userId },
+          select: { role: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!community) {
+      throw new ApiError(404, 'community_not_found', 'Community not found');
+    }
+
+    const isOwner =
+      community.createdById === userId ||
+      community.members.some((member) => member.role === 'owner');
+    if (!isOwner) {
+      throw new ApiError(
+        403,
+        'community_owner_required',
+        'Only community owner can publish news',
+      );
+    }
+
+    const input = this.parseCreateNewsInput(body);
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      const sortOrder = input.pin
+        ? 0
+        : await this.nextCommunityNewsSortOrder(tx, communityId);
+
+      if (input.pin) {
+        await tx.communityNewsItem.updateMany({
+          where: { communityId },
+          data: { sortOrder: { increment: 1 } },
+        });
+      }
+
+      await tx.communityNewsItem.create({
+        data: {
+          communityId,
+          title: input.title,
+          blurb: input.body,
+          timeLabel: 'сейчас',
+          sortOrder,
+        },
+        select: { id: true },
+      });
+    });
+
+    return this.getCommunity(userId, communityId);
+  }
+
   async createCommunity(
     userId: string,
     body: Record<string, unknown>,
@@ -504,6 +573,19 @@ export class CommunitiesService {
     };
   }
 
+  private parseCreateNewsInput(body: Record<string, unknown>) {
+    return {
+      title: this.requiredTrimmedStringInRange(body.title, 'title', 3, 80),
+      body: this.requiredTrimmedStringInRange(
+        body.body ?? body.blurb,
+        'body',
+        10,
+        600,
+      ),
+      pin: body.pin !== false,
+    };
+  }
+
   private withDefaultSocialLinks(
     links: Array<{ id: string; label: string; handle: string }>,
   ) {
@@ -551,6 +633,24 @@ export class CommunitiesService {
       throw new ApiError(
         400,
         'invalid_community_payload',
+        `${field} is invalid`,
+      );
+    }
+
+    return value;
+  }
+
+  private requiredTrimmedStringInRange(
+    raw: unknown,
+    field: string,
+    minLength: number,
+    maxLength: number,
+  ) {
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    if (value.length < minLength || value.length > maxLength) {
+      throw new ApiError(
+        400,
+        'invalid_community_news_payload',
         `${field} is invalid`,
       );
     }
@@ -647,6 +747,19 @@ export class CommunitiesService {
     }
 
     return media;
+  }
+
+  private async nextCommunityNewsSortOrder(
+    tx: Prisma.TransactionClient,
+    communityId: string,
+  ) {
+    const lastNews = await tx.communityNewsItem.findFirst({
+      where: { communityId },
+      orderBy: [{ sortOrder: 'desc' }, { id: 'desc' }],
+      select: { sortOrder: true },
+    });
+
+    return (lastNews?.sortOrder ?? -1) + 1;
   }
 
   private decodeCursor(cursor?: string) {

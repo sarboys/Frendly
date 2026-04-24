@@ -211,4 +211,63 @@ describe('communities api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
   });
+
+  it('lets the owner publish a community news item', async () => {
+    const name = `API Club ${Date.now()}`;
+    const created = await request(app.getHttpServer())
+      .post('/communities')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        name,
+        avatar: '📣',
+        description: 'Клуб для проверки публикаций.',
+        privacy: 'public',
+        purpose: 'Городской клуб',
+      })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .post(`/communities/${created.body.id}/news`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Новая программа',
+        body: 'Открыли запись на воскресную встречу сообщества.',
+        category: 'news',
+        audience: 'all',
+        pin: true,
+        push: false,
+      })
+      .expect(201);
+
+    expect(response.body.news[0]).toMatchObject({
+      title: 'Новая программа',
+      blurb: 'Открыли запись на воскресную встречу сообщества.',
+      time: 'сейчас',
+    });
+
+    const saved = await prisma.communityNewsItem.findFirst({
+      where: {
+        communityId: created.body.id,
+        title: 'Новая программа',
+      },
+    });
+
+    expect(saved).toMatchObject({
+      blurb: 'Открыли запись на воскресную встречу сообщества.',
+      sortOrder: 0,
+    });
+  });
+
+  it('rejects community news publishing for a non-owner', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/communities/c1/news')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Чужая новость',
+        body: 'Пользователь не владелец этого сообщества.',
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.code).toBe('community_owner_required');
+  });
 });
