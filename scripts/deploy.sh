@@ -41,6 +41,17 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
+echo "Disk usage before Docker cleanup:"
+df -h / /tmp || true
+docker system df || true
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
+docker container prune -f || true
+docker image prune -af || true
+docker builder prune -af || true
+echo "Disk usage after Docker cleanup:"
+df -h / /tmp || true
+docker system df || true
+
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build postgres redis
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up --build migrate
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
