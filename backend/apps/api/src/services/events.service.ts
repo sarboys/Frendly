@@ -43,16 +43,25 @@ export class EventsService {
       limit?: number;
     },
   ) {
-    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const [blockedUserIds, userGender] = await Promise.all([
+      this.getBlockedUserIds(userId),
+      this.getUserGender(userId),
+    ]);
     const take = this.normalizeListLimit(params.limit);
     const filter = params.filter as EventFilter | undefined;
-    const where = this.buildListWhere(userId, blockedUserIds, filter, {
-      q: params.q,
-      lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
-      price: params.price as EventPriceFilter | undefined,
-      gender: params.gender as EventGenderFilter | undefined,
-      access: params.access as EventAccessFilter | undefined,
-    });
+    const where = this.buildListWhere(
+      userId,
+      blockedUserIds,
+      userGender,
+      filter,
+      {
+        q: params.q,
+        lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
+        price: params.price as EventPriceFilter | undefined,
+        gender: params.gender as EventGenderFilter | undefined,
+        access: params.access as EventAccessFilter | undefined,
+      },
+    );
     const cursorEvent = await this.resolveListCursor(params.cursor, filter);
     const cursorWhere = this.buildListCursorWhere(cursorEvent, filter);
 
@@ -161,36 +170,39 @@ export class EventsService {
   }
 
   async getEventDetail(userId: string, eventId: string) {
-    const blockedUserIds = await this.getBlockedUserIds(userId);
-    const event = await this.prismaService.client.event.findUnique({
-      where: { id: eventId },
-      include: {
-        host: {
-          include: {
-            profile: true,
+    const [blockedUserIds, userGender, event] = await Promise.all([
+      this.getBlockedUserIds(userId),
+      this.getUserGender(userId),
+      this.prismaService.client.event.findUnique({
+        where: { id: eventId },
+        include: {
+          host: {
+            include: {
+              profile: true,
+            },
           },
-        },
-        participants: {
-          include: {
-            user: {
-              include: {
-                profile: true,
+          participants: {
+            include: {
+              user: {
+                include: {
+                  profile: true,
+                },
               },
             },
           },
+          joinRequests: {
+            where: { userId },
+            take: 1,
+          },
+          attendances: {
+            where: { userId },
+            take: 1,
+          },
+          liveState: true,
+          chat: true,
         },
-        joinRequests: {
-          where: { userId },
-          take: 1,
-        },
-        attendances: {
-          where: { userId },
-          take: 1,
-        },
-        liveState: true,
-        chat: true,
-      },
-    });
+      }),
+    ]);
 
     if (!event) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
@@ -200,7 +212,7 @@ export class EventsService {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
-    if (!this.canViewEvent(userId, event)) {
+    if (!this.canViewEvent(userId, userGender, event)) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
@@ -244,17 +256,24 @@ export class EventsService {
   }
 
   async joinEvent(userId: string, eventId: string) {
-    const blockedUserIds = await this.getBlockedUserIds(userId);
-    const event = await this.prismaService.client.event.findUnique({
-      where: { id: eventId },
-      include: { chat: true },
-    });
+    const [blockedUserIds, userGender, event] = await Promise.all([
+      this.getBlockedUserIds(userId),
+      this.getUserGender(userId),
+      this.prismaService.client.event.findUnique({
+        where: { id: eventId },
+        include: { chat: true },
+      }),
+    ]);
 
     if (!event?.chat) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
     if (blockedUserIds.has(event.hostId)) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
+    if (!this.canAccessGenderRestrictedEvent(userId, userGender, event)) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
@@ -322,27 +341,34 @@ export class EventsService {
   }
 
   async createJoinRequest(userId: string, eventId: string, body: Record<string, unknown>) {
-    const blockedUserIds = await this.getBlockedUserIds(userId);
-    const event = await this.prismaService.client.event.findUnique({
-      where: { id: eventId },
-      include: {
-        participants: {
-          include: {
-            user: {
-              include: {
-                onboarding: true,
+    const [blockedUserIds, userGender, event] = await Promise.all([
+      this.getBlockedUserIds(userId),
+      this.getUserGender(userId),
+      this.prismaService.client.event.findUnique({
+        where: { id: eventId },
+        include: {
+          participants: {
+            include: {
+              user: {
+                include: {
+                  onboarding: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     if (!event) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
     if (blockedUserIds.has(event.hostId)) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
+    if (!this.canAccessGenderRestrictedEvent(userId, userGender, event)) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
@@ -384,27 +410,67 @@ export class EventsService {
     }
     const compatibilityScore = await this.calculateCompatibilityScore(userId, event);
 
-    const request = await this.prismaService.client.eventJoinRequest.upsert({
-      where: {
-        eventId_userId: {
+    const request = await this.prismaService.client.$transaction(async (tx) => {
+      const next = await tx.eventJoinRequest.upsert({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        update: {
+          note,
+          status: 'pending',
+          compatibilityScore,
+          reviewedAt: null,
+          reviewedById: null,
+        },
+        create: {
           eventId,
           userId,
+          note,
+          status: 'pending',
+          compatibilityScore,
         },
-      },
-      update: {
-        note,
-        status: 'pending',
-        compatibilityScore,
-        reviewedAt: null,
-        reviewedById: null,
-      },
-      create: {
-        eventId,
-        userId,
-        note,
-        status: 'pending',
-        compatibilityScore,
-      },
+      });
+
+      const notification = await tx.notification.create({
+        data: {
+          userId: event.hostId,
+          actorUserId: userId,
+          kind: 'event_joined',
+          title: 'Новая заявка',
+          body: `Новая заявка на встречу «${event.title}»`,
+          eventId,
+          requestId: next.id,
+          payload: {
+            eventId,
+            requestId: next.id,
+            status: 'pending',
+            userId,
+          },
+        },
+      });
+
+      await tx.outboxEvent.createMany({
+        data: [
+          {
+            type: OUTBOX_EVENT_TYPES.pushDispatch,
+            payload: {
+              userId: event.hostId,
+              notificationId: notification.id,
+            },
+          },
+          {
+            type: OUTBOX_EVENT_TYPES.notificationCreate,
+            payload: {
+              notificationId: notification.id,
+            },
+          },
+        ],
+      });
+
+      return next;
     });
 
     return {
@@ -1380,6 +1446,7 @@ export class EventsService {
   private buildListWhere(
     userId: string,
     blockedUserIds: Set<string>,
+    userGender: 'male' | 'female' | null,
     filter: EventFilter | undefined,
     params: {
       q?: string;
@@ -1414,6 +1481,27 @@ export class EventsService {
         ],
       },
     ];
+    conditions.push({
+      OR: [
+        { genderMode: 'all' },
+        ...(userGender == null ? [] : [{ genderMode: userGender }]),
+        { hostId: userId },
+        {
+          participants: {
+            some: {
+              userId,
+            },
+          },
+        },
+        {
+          attendances: {
+            some: {
+              userId,
+            },
+          },
+        },
+      ],
+    });
     const where: Prisma.EventWhereInput = {
       hostId: {
         notIn: [...blockedUserIds],
@@ -1773,10 +1861,21 @@ export class EventsService {
     return blockedUserIds;
   }
 
+  private async getUserGender(userId: string) {
+    const profile = await this.prismaService.client.profile.findUnique({
+      where: { userId },
+      select: { gender: true },
+    });
+
+    return profile?.gender ?? null;
+  }
+
   private canViewEvent(
     userId: string,
+    userGender: 'male' | 'female' | null,
     event: {
       hostId: string;
+      genderMode: string;
       visibilityMode: string;
       participants: Array<{ userId: string }>;
       attendances: Array<{
@@ -1790,6 +1889,10 @@ export class EventsService {
       }>;
     },
   ) {
+    if (!this.canAccessGenderRestrictedEvent(userId, userGender, event)) {
+      return false;
+    }
+
     if (event.visibilityMode !== 'friends') {
       return true;
     }
@@ -1812,6 +1915,37 @@ export class EventsService {
         request.reviewedById === event.hostId &&
         (request.status === 'pending' || request.status === 'approved'),
     );
+  }
+
+  private canAccessGenderRestrictedEvent(
+    userId: string,
+    userGender: 'male' | 'female' | null,
+    event: {
+      hostId: string;
+      genderMode: string;
+      participants?: Array<{ userId: string }>;
+      attendances?: Array<{ userId: string }>;
+    },
+  ) {
+    if (event.genderMode === 'all') {
+      return true;
+    }
+
+    if (event.hostId === userId) {
+      return true;
+    }
+
+    if (
+      event.participants?.some((participant) => participant.userId === userId)
+    ) {
+      return true;
+    }
+
+    if (event.attendances?.some((attendance) => attendance.userId === userId)) {
+      return true;
+    }
+
+    return event.genderMode === userGender;
   }
 
   private buildCheckInCode(eventId: string, userId: string) {

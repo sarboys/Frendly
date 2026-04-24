@@ -371,6 +371,7 @@ model Profile {
   userId         String      @id
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   age            Int?
+  birthDate      DateTime?   @db.Date
   gender         UserGender?
   city           String?
   area           String?
@@ -403,6 +404,7 @@ model OnboardingPreferences {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   intent     String?
   gender     UserGender?
+  birthDate  DateTime? @db.Date
   city       String?
   area       String?
   interests  Json

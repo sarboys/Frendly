@@ -7,6 +7,9 @@ describe('EventsService unit', () => {
     const service = new EventsService(
       {
         client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
           event: {
             findMany: eventFindMany,
             findUnique: jest.fn(),
@@ -70,6 +73,9 @@ describe('EventsService unit', () => {
     const service = new EventsService(
       {
         client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
           event: {
             findMany: eventFindMany,
             findUnique: jest.fn(),
@@ -100,6 +106,133 @@ describe('EventsService unit', () => {
             take: 6,
           }),
         }),
+      }),
+    );
+  });
+
+  it('hides gender-specific events from users with the opposite gender', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'female' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-female', { filter: 'nearby' });
+
+    const where = eventFindMany.mock.calls[0][0].where as any;
+    expect(where.AND).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          OR: expect.arrayContaining([
+            { genderMode: 'all' },
+            { genderMode: 'female' },
+          ]),
+        }),
+      ]),
+    );
+  });
+
+  it('creates notification for host when a join request is submitted', async () => {
+    const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-host' });
+    const outboxCreateMany = jest.fn().mockResolvedValue({});
+    const requestUpsert = jest.fn().mockResolvedValue({
+      id: 'req-1',
+      eventId: 'event-1',
+      userId: 'guest-1',
+      status: 'pending',
+      note: 'Хочу прийти',
+      compatibilityScore: 61,
+      createdAt: new Date('2026-04-24T12:00:00.000Z'),
+    });
+    const tx = {
+      eventJoinRequest: {
+        upsert: requestUpsert,
+      },
+      notification: {
+        create: notificationCreate,
+      },
+      outboxEvent: {
+        createMany: outboxCreateMany,
+      },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'event-1',
+              title: 'Закрытый ужин',
+              hostId: 'host-1',
+              genderMode: 'all',
+              joinMode: 'request',
+              participants: [],
+            }),
+          },
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            upsert: requestUpsert,
+          },
+          user: {
+            findUnique: jest
+              .fn()
+              .mockResolvedValue({ id: 'guest-1', displayName: 'Гость' }),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.createJoinRequest('guest-1', 'event-1', {
+      note: 'Хочу прийти',
+    });
+
+    expect(notificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'host-1',
+          actorUserId: 'guest-1',
+          title: 'Новая заявка',
+          eventId: 'event-1',
+          requestId: 'req-1',
+        }),
+      }),
+    );
+    expect(outboxCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            payload: {
+              userId: 'host-1',
+              notificationId: 'notif-host',
+            },
+          }),
+          expect.objectContaining({
+            payload: {
+              notificationId: 'notif-host',
+            },
+          }),
+        ]),
       }),
     );
   });

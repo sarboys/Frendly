@@ -124,13 +124,16 @@ export function mapBasicProfile(
     .filter((photo) => photo.mediaAsset.publicUrl)
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((photo) => mapProfilePhoto(photo));
+  const birthDateAge = user.profile?.birthDate
+    ? calculateAge(user.profile.birthDate)
+    : null;
 
   return {
     id: user.id,
     displayName: user.displayName,
     verified: user.verified,
     online: user.online,
-    age: user.profile?.age ?? null,
+    age: birthDateAge ?? user.profile?.age ?? null,
     gender: user.profile?.gender ?? null,
     city: user.profile?.city ?? null,
     area: user.profile?.area ?? null,
@@ -141,6 +144,19 @@ export function mapBasicProfile(
     avatarUrl: photos[0]?.url ?? user.profile?.avatarUrl ?? null,
     photos,
   };
+}
+
+function calculateAge(birthDate: Date) {
+  const now = new Date();
+  let age = now.getUTCFullYear() - birthDate.getUTCFullYear();
+  const monthDiff = now.getUTCMonth() - birthDate.getUTCMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && now.getUTCDate() < birthDate.getUTCDate())
+  ) {
+    age -= 1;
+  }
+  return age;
 }
 
 export function mapUserPreview(user: User & { profile: Profile | null }) {
