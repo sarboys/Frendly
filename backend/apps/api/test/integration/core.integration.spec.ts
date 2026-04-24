@@ -2012,14 +2012,35 @@ describe('core api flows', () => {
 
     expect(requestResponse.body.status).toBe('pending');
 
-    const hostDashboardResponse = await request(app.getHttpServer())
+    let hostDashboardResponse = await request(app.getHttpServer())
       .get('/host/dashboard')
       .query({ eventsLimit: 50 })
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
+    let hostDashboardEvents = hostDashboardResponse.body.events as Array<{ id: string }>;
+    let nextEventsCursor = hostDashboardResponse.body.nextEventsCursor as string | null;
+
+    for (
+      let page = 0;
+      !hostDashboardEvents.some((item) => item.id === eventId) &&
+      nextEventsCursor != null &&
+      page < 20;
+      page += 1
+    ) {
+      hostDashboardResponse = await request(app.getHttpServer())
+        .get('/host/dashboard')
+        .query({ eventsLimit: 50, eventsCursor: nextEventsCursor })
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      hostDashboardEvents = [
+        ...hostDashboardEvents,
+        ...(hostDashboardResponse.body.events as Array<{ id: string }>),
+      ];
+      nextEventsCursor = hostDashboardResponse.body.nextEventsCursor as string | null;
+    }
 
     expect(hostDashboardResponse.body.pendingRequestsCount).toBeGreaterThanOrEqual(1);
-    expect(hostDashboardResponse.body.events.some((item: { id: string }) => item.id === eventId)).toBe(true);
+    expect(hostDashboardEvents.some((item) => item.id === eventId)).toBe(true);
 
     const hostEventResponse = await request(app.getHttpServer())
       .get(`/host/events/${eventId}`)

@@ -239,21 +239,8 @@ describe('chat websocket auth', () => {
     const attachmentId = `asset-${randomUUID()}`;
     const objectKey = `chat-attachments/user-me/${attachmentId}-voice.webm`;
     const waveform = [0.12, 0.34, 0.58, 0.81];
-    const recipientUserId =
-      (
-        await prisma.chatMember.findFirst({
-          where: {
-            chatId: 'p1',
-            userId: {
-              not: 'user-me',
-            },
-          },
-          select: {
-            userId: true,
-          },
-        })
-      )?.userId ?? 'user-sonya';
     let createdMessageId: string | null = null;
+    let outboxEventId: string | null = null;
 
     await prisma.mediaAsset.create({
       data: {
@@ -322,54 +309,33 @@ describe('chat websocket auth', () => {
         socket.once('error', reject);
       });
 
-      const notifications = await prisma.notification.findMany({
+      const outboxEvent = await prisma.outboxEvent.findFirst({
         where: {
-          userId: recipientUserId,
-          kind: 'message',
+          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
+          payload: {
+            path: ['messageId'],
+            equals: createdMessageId,
+          },
         },
         orderBy: {
           createdAt: 'desc',
         },
-        take: 10,
       });
+      outboxEventId = outboxEvent?.id ?? null;
 
-      const notification = notifications.find((item) => {
-        const payload = item.payload as Record<string, unknown> | null;
-        return payload?.messageId === createdMessageId;
+      expect(outboxEvent?.payload).toMatchObject({
+        chatId: 'p1',
+        actorUserId: 'user-me',
+        messageId: createdMessageId,
+        body: 'Голосовое сообщение',
       });
-
-      expect(notification?.body).toBe('Голосовое сообщение');
-      expect(notification?.chatId).toBe('p1');
-      expect(notification?.messageId).toBe(createdMessageId);
     } finally {
-      if (createdMessageId != null) {
-        const notifications = await prisma.notification.findMany({
-          where: {
-            userId: recipientUserId,
-            kind: 'message',
-          },
-          select: {
-            id: true,
-            payload: true,
-          },
+      if (outboxEventId != null) {
+        await prisma.outboxEvent.deleteMany({
+          where: { id: outboxEventId },
         });
-
-        const notificationIds = notifications
-          .filter((item) => {
-            const payload = item.payload as Record<string, unknown> | null;
-            return payload?.messageId === createdMessageId;
-          })
-          .map((item) => item.id);
-
-        if (notificationIds.length > 0) {
-          await prisma.notification.deleteMany({
-            where: {
-              id: {
-                in: notificationIds,
-              },
-            },
-          });
-        }
+      }
+      if (createdMessageId != null) {
         await prisma.message.delete({ where: { id: createdMessageId } });
       }
 
