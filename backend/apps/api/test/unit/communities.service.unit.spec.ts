@@ -201,8 +201,48 @@ describe('CommunitiesService unit', () => {
       expect.objectContaining({
         include: expect.objectContaining({
           news: expect.objectContaining({ take: 3 }),
-          meetups: expect.objectContaining({ take: 10 }),
+          meetups: expect.objectContaining({
+            take: 10,
+            where: {
+              OR: [
+                { startsAt: null },
+                { startsAt: { gte: expect.any(Date) } },
+              ],
+            },
+          }),
           media: expect.objectContaining({ take: 12 }),
+        }),
+      }),
+    );
+  });
+
+  it('loads community list with only upcoming meetup previews', async () => {
+    const communityFindMany = jest.fn().mockResolvedValue([]);
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findMany: communityFindMany,
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listCommunities('user-me', { limit: 20 });
+
+    expect(communityFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          meetups: expect.objectContaining({
+            take: 2,
+            where: {
+              OR: [
+                { startsAt: null },
+                { startsAt: { gte: expect.any(Date) } },
+              ],
+            },
+          }),
         }),
       }),
     );

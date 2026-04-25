@@ -369,6 +369,7 @@ describe('EventsService unit', () => {
     expect(communityMeetupCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          id: 'event-created',
           communityId: 'community-1',
           title: 'Бранч клуба',
           emoji: '🥐',
