@@ -7,8 +7,8 @@ import {
   createS3Client,
   publishBusEvent,
 } from '@big-break/database';
+import { Prisma } from '@prisma/client';
 import Redis from 'ioredis';
-import { randomUUID } from 'node:crypto';
 import { ApnsPushProvider, FakePushProvider, FcmPushProvider, PushProvider } from './push.providers';
 import { PrismaService } from './prisma.service';
 
@@ -17,11 +17,17 @@ const DEFAULT_MAX_EVENTS_PER_RUN = 25;
 const DEFAULT_PUSH_CONCURRENCY = 5;
 const DEFAULT_BUS_PUBLISH_CONCURRENCY = 25;
 const DEFAULT_MESSAGE_NOTIFICATION_BATCH_SIZE = 500;
+const DEFAULT_SYSTEM_NOTIFICATION_INTERVAL_MS = 60_000;
+const DEFAULT_SYSTEM_NOTIFICATION_BATCH_SIZE = 500;
+const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
+const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class WorkerService implements OnModuleDestroy {
   private timer?: NodeJS.Timeout;
+  private systemNotificationTimer?: NodeJS.Timeout;
   private running = false;
+  private systemNotificationRunning = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
     process.env.WORKER_MAX_EVENTS_PER_RUN,
     DEFAULT_MAX_EVENTS_PER_RUN,
@@ -38,6 +44,14 @@ export class WorkerService implements OnModuleDestroy {
     process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE,
     DEFAULT_MESSAGE_NOTIFICATION_BATCH_SIZE,
   );
+  private readonly systemNotificationIntervalMs = this.resolvePositiveInteger(
+    process.env.WORKER_SYSTEM_NOTIFICATION_INTERVAL_MS,
+    DEFAULT_SYSTEM_NOTIFICATION_INTERVAL_MS,
+  );
+  private readonly systemNotificationBatchSize = this.resolvePositiveInteger(
+    process.env.WORKER_SYSTEM_NOTIFICATION_BATCH_SIZE,
+    DEFAULT_SYSTEM_NOTIFICATION_BATCH_SIZE,
+  );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
   private readonly fakePushProvider = new FakePushProvider();
@@ -50,13 +64,20 @@ export class WorkerService implements OnModuleDestroy {
     this.timer = setInterval(() => {
       void this.runOnce();
     }, 1500);
+    this.systemNotificationTimer = setInterval(() => {
+      void this.runSystemNotificationScan();
+    }, this.systemNotificationIntervalMs);
 
     void this.runOnce();
+    void this.runSystemNotificationScan();
   }
 
   async onModuleDestroy() {
     if (this.timer) {
       clearInterval(this.timer);
+    }
+    if (this.systemNotificationTimer) {
+      clearInterval(this.systemNotificationTimer);
     }
 
     await this.redis.quit();
@@ -100,12 +121,17 @@ export class WorkerService implements OnModuleDestroy {
         case OUTBOX_EVENT_TYPES.unreadFanout:
           await this.handleUnreadFanout(event.payload as { chatId: string; userIds: string[] });
           break;
-        case OUTBOX_EVENT_TYPES.messageNotificationFanout:
-          await this.handleMessageNotificationFanout(event.payload as {
+        case OUTBOX_EVENT_TYPES.chatUnreadFanout:
+          await this.handleChatUnreadFanout(event.payload as {
             chatId?: string;
             actorUserId?: string;
-            messageId?: string;
-            body?: string;
+            cursor?: string;
+          });
+          break;
+        case OUTBOX_EVENT_TYPES.messageNotificationFanout:
+          await this.handleChatUnreadFanout(event.payload as {
+            chatId?: string;
+            actorUserId?: string;
             cursor?: string;
           });
           break;
@@ -272,8 +298,9 @@ export class WorkerService implements OnModuleDestroy {
       return;
     }
 
+    const userId = notification.userId;
     const settings = await this.prismaService.client.userSettings.findUnique({
-      where: { userId: payload.userId },
+      where: { userId },
       select: {
         allowPush: true,
         quietHours: true,
@@ -286,7 +313,7 @@ export class WorkerService implements OnModuleDestroy {
 
     const tokens = await this.prismaService.client.pushToken.findMany({
       where: {
-        userId: payload.userId,
+        userId,
         disabledAt: null,
       },
     });
@@ -359,18 +386,14 @@ export class WorkerService implements OnModuleDestroy {
     await this.publishUnreadCounts(payload.chatId, userIds);
   }
 
-  private async handleMessageNotificationFanout(payload: {
+  private async handleChatUnreadFanout(payload: {
     chatId?: string;
     actorUserId?: string;
-    messageId?: string;
-    body?: string;
     cursor?: string;
   }) {
     if (
       typeof payload.chatId !== 'string' ||
-      typeof payload.actorUserId !== 'string' ||
-      typeof payload.messageId !== 'string' ||
-      typeof payload.body !== 'string'
+      typeof payload.actorUserId !== 'string'
     ) {
       return;
     }
@@ -405,105 +428,57 @@ export class WorkerService implements OnModuleDestroy {
       return;
     }
 
-    const now = new Date();
-    const createdAt = now.toISOString();
-    const notifications = page.map((member) => {
-      const id = randomUUID();
-
-      return {
-        id,
-        userId: member.userId,
-        actorUserId: payload.actorUserId!,
-        kind: 'message' as const,
-        title: 'Новое сообщение',
-        body: payload.body!,
-        chatId: payload.chatId!,
-        messageId: payload.messageId!,
-        payload: {
-          chatId: payload.chatId!,
-          messageId: payload.messageId!,
-        },
-        readAt: null,
-        createdAt: now,
-      };
-    });
-
-    await this.prismaService.client.notification.createMany({
-      data: notifications,
-    });
-
-    await this.prismaService.client.outboxEvent.createMany({
-      data: notifications.map((notification) => ({
-        type: OUTBOX_EVENT_TYPES.pushDispatch,
-        payload: {
-          userId: notification.userId,
-          notificationId: notification.id,
-        },
-      })),
-    });
-
     if (hasMore) {
       await this.prismaService.client.outboxEvent.create({
         data: {
-          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
+          type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
           payload: {
             chatId: payload.chatId,
             actorUserId: payload.actorUserId,
-            messageId: payload.messageId,
-            body: payload.body,
             cursor: page[page.length - 1]!.id,
           },
         },
       });
     }
 
-    await this.runWithConcurrency(
-      notifications,
-      this.busPublishConcurrency,
-      async (notification) => {
-        await publishBusEvent(this.redis, {
-          type: 'notification.created',
-          payload: {
-            userId: notification.userId,
-            notificationId: notification.id,
-            kind: notification.kind,
-            title: notification.title,
-            body: notification.body,
-            payload: notification.payload,
-            createdAt,
-            readAt: null,
-          },
-        });
-      },
-    );
-
     await this.publishUnreadCounts(
       payload.chatId,
-      notifications.map((notification) => notification.userId),
+      page.map((member) => member.userId),
     );
   }
 
   private async publishUnreadCounts(chatId: string, userIds: string[]) {
-    const grouped = await this.prismaService.client.notification.groupBy({
-      by: ['userId'],
-      where: {
-        chatId,
-        kind: 'message',
-        readAt: null,
-        userId: {
-          in: userIds,
-        },
-      },
-      _count: {
-        _all: true,
-      },
-    });
+    if (userIds.length === 0) {
+      return;
+    }
+
+    const uniqueUserIds = [...new Set(userIds)];
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      user_id: string;
+      unread_count: bigint | number;
+    }>>`
+      SELECT cm."userId" AS user_id, COUNT(m."id") AS unread_count
+      FROM "ChatMember" cm
+      LEFT JOIN "Message" last_read
+        ON last_read."chatId" = cm."chatId"
+        AND last_read."id" = cm."lastReadMessageId"
+      LEFT JOIN "Message" m
+        ON m."chatId" = cm."chatId"
+        AND m."senderId" <> cm."userId"
+        AND (
+          COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
+          OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
+        )
+      WHERE cm."chatId" = ${chatId}
+        AND cm."userId" IN (${Prisma.join(uniqueUserIds)})
+      GROUP BY cm."userId"
+    `;
     const unreadByUserId = new Map(
-      grouped.map((item) => [item.userId, item._count._all]),
+      rows.map((item) => [item.user_id, Number(item.unread_count)]),
     );
 
     await this.runWithConcurrency(
-      userIds,
+      uniqueUserIds,
       this.busPublishConcurrency,
       async (userId) => {
         await publishBusEvent(this.redis, {
@@ -516,6 +491,178 @@ export class WorkerService implements OnModuleDestroy {
         });
       },
     );
+  }
+
+  private async runSystemNotificationScan() {
+    if (this.systemNotificationRunning) {
+      return;
+    }
+
+    this.systemNotificationRunning = true;
+
+    try {
+      await this.enqueueEventStartingNotifications();
+      await this.enqueueSubscriptionExpiringNotifications();
+    } finally {
+      this.systemNotificationRunning = false;
+    }
+  }
+
+  private async enqueueEventStartingNotifications() {
+    const now = new Date();
+    const windowEnd = new Date(now.getTime() + EVENT_STARTING_WINDOW_MS);
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      user_id: string;
+      event_id: string;
+      event_title: string;
+      starts_at: Date;
+      dedupe_key: string;
+    }>>`
+      SELECT
+        ep."userId" AS user_id,
+        e."id" AS event_id,
+        e."title" AS event_title,
+        e."startsAt" AS starts_at,
+        CONCAT('event_starting:', e."id", ':', ep."userId", ':30m') AS dedupe_key
+      FROM "EventParticipant" ep
+      JOIN "Event" e ON e."id" = ep."eventId"
+      WHERE e."startsAt" > ${now}
+        AND e."startsAt" <= ${windowEnd}
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "Notification" n
+          WHERE n."dedupeKey" = CONCAT('event_starting:', e."id", ':', ep."userId", ':30m')
+        )
+      ORDER BY e."startsAt" ASC, e."id" ASC, ep."userId" ASC
+      LIMIT ${this.systemNotificationBatchSize}
+    `;
+
+    for (const row of rows) {
+      await this.createSystemNotification({
+        userId: row.user_id,
+        kind: 'event_starting',
+        title: 'Встреча скоро начнется',
+        body: `«${row.event_title}» скоро начнется`,
+        eventId: row.event_id,
+        dedupeKey: row.dedupe_key,
+        payload: {
+          eventId: row.event_id,
+          eventTitle: row.event_title,
+          startsAt: row.starts_at.toISOString(),
+          reminder: '30m',
+        },
+      });
+    }
+  }
+
+  private async enqueueSubscriptionExpiringNotifications() {
+    const now = new Date();
+    const windowEnd = new Date(now.getTime() + SUBSCRIPTION_EXPIRING_WINDOW_MS);
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      user_id: string;
+      subscription_id: string;
+      plan: string;
+      status: string;
+      ends_at: Date;
+      dedupe_key: string;
+    }>>`
+      SELECT
+        us."userId" AS user_id,
+        us."id" AS subscription_id,
+        us."plan"::text AS plan,
+        us."status"::text AS status,
+        COALESCE(us."trialEndsAt", us."renewsAt") AS ends_at,
+        CONCAT('subscription_expiring:', us."id", ':3d') AS dedupe_key
+      FROM "UserSubscription" us
+      WHERE (
+        (
+          us."status" = 'trial'::"SubscriptionStatus"
+          AND us."trialEndsAt" > ${now}
+          AND us."trialEndsAt" <= ${windowEnd}
+        )
+        OR (
+          us."status" IN ('active'::"SubscriptionStatus", 'canceled'::"SubscriptionStatus")
+          AND us."renewsAt" > ${now}
+          AND us."renewsAt" <= ${windowEnd}
+        )
+      )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "Notification" n
+          WHERE n."dedupeKey" = CONCAT('subscription_expiring:', us."id", ':3d')
+        )
+      ORDER BY ends_at ASC, us."id" ASC
+      LIMIT ${this.systemNotificationBatchSize}
+    `;
+
+    for (const row of rows) {
+      await this.createSystemNotification({
+        userId: row.user_id,
+        kind: 'subscription_expiring',
+        title: 'Подписка скоро закончится',
+        body: row.status === 'trial'
+          ? 'Пробный период скоро закончится'
+          : 'У вас скоро заканчивается подписка',
+        dedupeKey: row.dedupe_key,
+        payload: {
+          subscriptionId: row.subscription_id,
+          plan: row.plan,
+          status: row.status,
+          endsAt: row.ends_at.toISOString(),
+        },
+      });
+    }
+  }
+
+  private async createSystemNotification(params: {
+    userId: string;
+    kind: 'event_starting' | 'subscription_expiring';
+    title: string;
+    body: string;
+    dedupeKey: string;
+    payload: Record<string, unknown>;
+    eventId?: string;
+  }) {
+    try {
+      const notification = await this.prismaService.client.notification.create({
+        data: {
+          userId: params.userId,
+          kind: params.kind,
+          title: params.title,
+          body: params.body,
+          eventId: params.eventId,
+          dedupeKey: params.dedupeKey,
+          payload: params.payload as Prisma.InputJsonValue,
+        },
+      });
+
+      await this.prismaService.client.outboxEvent.createMany({
+        data: [
+          {
+            type: OUTBOX_EVENT_TYPES.pushDispatch,
+            payload: {
+              userId: params.userId,
+              notificationId: notification.id,
+            },
+          },
+          {
+            type: OUTBOX_EVENT_TYPES.notificationCreate,
+            payload: {
+              notificationId: notification.id,
+            },
+          },
+        ],
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return;
+      }
+
+      throw error;
+    }
   }
 
   private resolveProvider(providerName: 'fcm' | 'apns'): PushProvider {

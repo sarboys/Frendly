@@ -2,6 +2,7 @@ export const OUTBOX_EVENT_TYPES = {
   mediaFinalize: 'media.finalize',
   pushDispatch: 'push.dispatch',
   unreadFanout: 'unread.fanout',
+  chatUnreadFanout: 'chat.unread_fanout',
   messageNotificationFanout: 'message.notification_fanout',
   notificationCreate: 'notification.create',
   realtimePublish: 'realtime.publish',

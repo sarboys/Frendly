@@ -1,5 +1,5 @@
 import { buildMessagePreview, decodeCursor, encodeCursor } from '@big-break/database';
-import { ChatKind } from '@prisma/client';
+import { ChatKind, Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { formatEventTime, formatRelativeTime, mapMessage } from '../common/presenters';
@@ -363,37 +363,33 @@ export class ChatsService {
       return new Map<string, number>();
     }
 
-    const grouped = await this.prismaService.client.notification.groupBy({
-      by: ['chatId'],
-      where: {
-        userId,
-        kind: 'message',
-        readAt: null,
-        chatId: {
-          in: chatIds,
-        },
-        ...(blockedUserIds.size === 0
-          ? {}
-          : {
-              OR: [
-                { actorUserId: null },
-                {
-                  actorUserId: {
-                    notIn: [...blockedUserIds],
-                  },
-                },
-              ],
-            }),
-      },
-      _count: {
-        _all: true,
-      },
-    });
+    const blockedSenderFilter = blockedUserIds.size === 0
+      ? Prisma.empty
+      : Prisma.sql`AND m."senderId" NOT IN (${Prisma.join([...blockedUserIds])})`;
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      chat_id: string;
+      unread_count: bigint | number;
+    }>>`
+      SELECT cm."chatId" AS chat_id, COUNT(m."id") AS unread_count
+      FROM "ChatMember" cm
+      LEFT JOIN "Message" last_read
+        ON last_read."chatId" = cm."chatId"
+        AND last_read."id" = cm."lastReadMessageId"
+      LEFT JOIN "Message" m
+        ON m."chatId" = cm."chatId"
+        AND m."senderId" <> cm."userId"
+        AND (
+          COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
+          OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
+        )
+        ${blockedSenderFilter}
+      WHERE cm."userId" = ${userId}
+        AND cm."chatId" IN (${Prisma.join(chatIds)})
+      GROUP BY cm."chatId"
+    `;
 
     return new Map(
-      grouped
-        .filter((item) => item.chatId != null)
-        .map((item) => [item.chatId!, item._count._all]),
+      rows.map((item) => [item.chat_id, Number(item.unread_count)]),
     );
   }
 

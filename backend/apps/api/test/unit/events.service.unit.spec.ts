@@ -2,6 +2,35 @@ import { Prisma } from '@prisma/client';
 import { EventsService } from '../../src/services/events.service';
 
 describe('EventsService unit', () => {
+  const eventFixture = (overrides: Record<string, unknown> = {}) => ({
+    id: 'event-1',
+    title: 'Встреча',
+    emoji: '☕',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000),
+    place: 'Кафе',
+    distanceKm: 1,
+    latitude: null,
+    longitude: null,
+    vibe: 'Спокойно',
+    tone: 'warm',
+    hostNote: null,
+    lifestyle: 'neutral',
+    priceMode: 'free',
+    priceAmountFrom: null,
+    priceAmountTo: null,
+    accessMode: 'open',
+    genderMode: 'all',
+    visibilityMode: 'public',
+    joinMode: 'open',
+    capacity: 8,
+    hostId: 'host-1',
+    participants: [],
+    joinRequests: [],
+    attendances: [],
+    liveState: null,
+    ...overrides,
+  });
+
   it('caps event search query before building contains filters', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(
@@ -145,8 +174,78 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('orders nearby events by real coordinates when user point is provided', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([
+      eventFixture({
+        id: 'event-far',
+        title: 'Дальняя встреча',
+        distanceKm: 0.2,
+        latitude: 55.82,
+        longitude: 37.75,
+      }),
+      eventFixture({
+        id: 'event-near',
+        title: 'Ближняя встреча',
+        distanceKm: 20,
+        latitude: 55.751,
+        longitude: 37.611,
+      }),
+    ]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          eventParticipant: {
+            findMany: jest.fn().mockResolvedValue([]),
+            groupBy: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 55.75,
+      longitude: 37.61,
+      radiusKm: 25,
+      limit: 2,
+    } as any);
+
+    const where = eventFindMany.mock.calls[0][0].where as any;
+    expect(where.AND).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          latitude: expect.objectContaining({
+            gte: expect.any(Number),
+            lte: expect.any(Number),
+          }),
+          longitude: expect.objectContaining({
+            gte: expect.any(Number),
+            lte: expect.any(Number),
+          }),
+        }),
+      ]),
+    );
+    expect(result.items.map((item: any) => item.id)).toEqual([
+      'event-near',
+      'event-far',
+    ]);
+    expect(result.items[0]!.distance).toBe('0.1 км');
+  });
+
   it('creates notification for host when a join request is submitted', async () => {
     const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-host' });
+    const notificationFindUnique = jest.fn().mockResolvedValue(null);
     const outboxCreateMany = jest.fn().mockResolvedValue({});
     const requestUpsert = jest.fn().mockResolvedValue({
       id: 'req-1',
@@ -163,6 +262,7 @@ describe('EventsService unit', () => {
       },
       notification: {
         create: notificationCreate,
+        findUnique: notificationFindUnique,
       },
       outboxEvent: {
         createMany: outboxCreateMany,
@@ -215,6 +315,7 @@ describe('EventsService unit', () => {
           title: 'Новая заявка',
           eventId: 'event-1',
           requestId: 'req-1',
+          dedupeKey: 'event_join_request:event-1:guest-1',
         }),
       }),
     );
@@ -378,5 +479,91 @@ describe('EventsService unit', () => {
         }),
       }),
     );
+  });
+
+  it('persists coordinates and distance when event is created from a resolved place', async () => {
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 'event-created',
+      title: 'Кофе на Тверской',
+      emoji: '☕',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000),
+      place: 'Кофемания, Тверская 10',
+    });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+      title: 'Кофе на Тверской',
+    } as any);
+
+    await service.createEvent('user-me', {
+      title: 'Кофе на Тверской',
+      description: 'Короткая встреча после работы',
+      emoji: '☕',
+      place: 'Кофемания, Тверская 10',
+      vibe: 'Спокойно',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      capacity: 6,
+      distanceKm: 1.7,
+      latitude: 55.765,
+      longitude: 37.605,
+    });
+
+    expect(eventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          distanceKm: 1.7,
+          latitude: 55.765,
+          longitude: 37.605,
+        }),
+      }),
+    );
+  });
+
+  it('rejects partial event coordinates', async () => {
+    const service = new EventsService(
+      {
+        client: {},
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.createEvent('user-me', {
+        title: 'Кофе на Тверской',
+        description: 'Короткая встреча после работы',
+        place: 'Кофемания, Тверская 10',
+        startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        capacity: 6,
+        distanceKm: 1.7,
+        latitude: 55.765,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'invalid_event_payload',
+    });
   });
 });

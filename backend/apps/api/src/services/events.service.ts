@@ -23,6 +23,25 @@ import { assertEventCapacityAvailable } from './event-capacity';
 import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
 
+type EventGeoPoint = {
+  latitude: number;
+  longitude: number;
+};
+
+type EventGeoBounds = {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+};
+
+type EventGeoQuery = {
+  center?: EventGeoPoint;
+  bounds?: EventGeoBounds;
+};
+
+const EARTH_RADIUS_KM = 6371;
+
 @Injectable()
 export class EventsService {
   constructor(
@@ -41,6 +60,13 @@ export class EventsService {
       access?: string;
       cursor?: string;
       limit?: number;
+      latitude?: number;
+      longitude?: number;
+      radiusKm?: number;
+      southWestLatitude?: number;
+      southWestLongitude?: number;
+      northEastLatitude?: number;
+      northEastLongitude?: number;
     },
   ) {
     const [blockedUserIds, userGender] = await Promise.all([
@@ -49,6 +75,7 @@ export class EventsService {
     ]);
     const take = this.normalizeListLimit(params.limit);
     const filter = params.filter as EventFilter | undefined;
+    const geoQuery = this.normalizeEventGeoQuery(params);
     const where = this.buildListWhere(
       userId,
       blockedUserIds,
@@ -61,6 +88,7 @@ export class EventsService {
         gender: params.gender as EventGenderFilter | undefined,
         access: params.access as EventAccessFilter | undefined,
       },
+      geoQuery?.bounds,
     );
     const cursorEvent = await this.resolveListCursor(params.cursor, filter);
     const cursorWhere = this.buildListCursorWhere(cursorEvent, filter);
@@ -103,12 +131,13 @@ export class EventsService {
           select: { status: true },
         },
       },
-      orderBy: this.listOrderBy(filter),
-      take: take + 1,
+      orderBy: this.listOrderBy(filter, geoQuery),
+      take: this.listTake(take, geoQuery),
     });
 
-    const hasMore = events.length > take;
-    const page = hasMore ? events.slice(0, take) : events;
+    const orderedEvents = this.orderEventsByGeo(events, geoQuery);
+    const hasMore = orderedEvents.length > take;
+    const page = hasMore ? orderedEvents.slice(0, take) : orderedEvents;
     const pageEventIds = page.map((event) => event.id);
     const [participantCounts, currentParticipations] =
       pageEventIds.length === 0
@@ -149,7 +178,7 @@ export class EventsService {
 
     const mapped = page.map((event) =>
       mapEventSummary({
-        event,
+        event: this.eventWithGeoDistance(event, geoQuery),
         participants: event.participants,
         currentUserId: userId,
         participantCount: participantCountByEventId.get(event.id),
@@ -434,6 +463,16 @@ export class EventsService {
         },
       });
 
+      const notificationDedupeKey = `event_join_request:${eventId}:${userId}`;
+      const existingNotification = await tx.notification.findUnique({
+        where: { dedupeKey: notificationDedupeKey },
+        select: { id: true },
+      });
+
+      if (existingNotification != null) {
+        return next;
+      }
+
       const notification = await tx.notification.create({
         data: {
           userId: event.hostId,
@@ -443,6 +482,7 @@ export class EventsService {
           body: `Новая заявка на встречу «${event.title}»`,
           eventId,
           requestId: next.id,
+          dedupeKey: notificationDedupeKey,
           payload: {
             eventId,
             requestId: next.id,
@@ -635,7 +675,12 @@ export class EventsService {
       typeof body.distanceKm === 'number'
         ? body.distanceKm
         : poster?.distanceKm ?? 1.0;
-    const capacity = typeof body.capacity === 'number' ? Math.trunc(body.capacity) : 8;
+    const latitude =
+      typeof body.latitude === 'number' ? body.latitude : null;
+    const longitude =
+      typeof body.longitude === 'number' ? body.longitude : null;
+    const capacity =
+      typeof body.capacity === 'number' ? Math.trunc(body.capacity) : 8;
     const startsAtRaw =
       typeof body.startsAt === 'string' ? body.startsAt : undefined;
     const startsAt =
@@ -752,6 +797,28 @@ export class EventsService {
       throw new ApiError(400, 'invalid_event_payload', 'distanceKm is invalid');
     }
 
+    if ((latitude == null) !== (longitude == null)) {
+      throw new ApiError(
+        400,
+        'invalid_event_payload',
+        'latitude and longitude must be provided together',
+      );
+    }
+
+    if (
+      latitude != null &&
+      (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)
+    ) {
+      throw new ApiError(400, 'invalid_event_payload', 'latitude is invalid');
+    }
+
+    if (
+      longitude != null &&
+      (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)
+    ) {
+      throw new ApiError(400, 'invalid_event_payload', 'longitude is invalid');
+    }
+
     if (!Number.isFinite(normalizedCapacity) || normalizedCapacity < 2 || normalizedCapacity > 100) {
       throw new ApiError(400, 'invalid_event_payload', 'capacity is invalid');
     }
@@ -815,6 +882,8 @@ export class EventsService {
             startsAt,
             place,
             distanceKm,
+            latitude,
+            longitude,
             vibe,
             tone:
               vibe === 'Активно'
@@ -920,11 +989,12 @@ export class EventsService {
             data: {
               userId: inviteeUser.id,
               actorUserId: userId,
-              kind: 'event_joined',
-              title: 'Приглашение на встречу',
+              kind: 'event_invite',
+              title: 'Вас пригласили на встречу',
               body: `приглашает тебя на встречу «${event.title}»`,
               eventId: event.id,
               requestId: inviteRequest.id,
+              dedupeKey: `event_invite:${event.id}:${inviteeUser.id}`,
               payload: {
                 eventId: event.id,
                 requestId: inviteRequest.id,
@@ -1493,6 +1563,7 @@ export class EventsService {
       gender?: EventGenderFilter;
       access?: EventAccessFilter;
     },
+    geoBounds?: EventGeoBounds,
   ): Prisma.EventWhereInput {
     const conditions: Prisma.EventWhereInput[] = [
       {
@@ -1605,6 +1676,19 @@ export class EventsService {
       conditions.push(priceWhere);
     }
 
+    if (geoBounds != null) {
+      conditions.push({
+        latitude: {
+          gte: geoBounds.south,
+          lte: geoBounds.north,
+        },
+        longitude: {
+          gte: geoBounds.west,
+          lte: geoBounds.east,
+        },
+      });
+    }
+
     return where;
   }
 
@@ -1643,12 +1727,216 @@ export class EventsService {
     }
   }
 
-  private listOrderBy(filter?: EventFilter): Prisma.EventOrderByWithRelationInput[] {
+  private listOrderBy(
+    filter?: EventFilter,
+    geoQuery?: EventGeoQuery,
+  ): Prisma.EventOrderByWithRelationInput[] {
+    if (geoQuery?.center != null) {
+      return [{ startsAt: 'asc' }, { id: 'asc' }];
+    }
+
     if (filter === 'nearby' || !filter) {
       return [{ distanceKm: 'asc' }, { id: 'asc' }];
     }
 
     return [{ startsAt: 'asc' }, { id: 'asc' }];
+  }
+
+  private listTake(take: number, geoQuery?: EventGeoQuery) {
+    if (geoQuery?.center == null) {
+      return take + 1;
+    }
+
+    return Math.max(take + 1, Math.min(take * 6, 300));
+  }
+
+  private normalizeEventGeoQuery(params: {
+    latitude?: number;
+    longitude?: number;
+    radiusKm?: number;
+    southWestLatitude?: number;
+    southWestLongitude?: number;
+    northEastLatitude?: number;
+    northEastLongitude?: number;
+  }): EventGeoQuery | undefined {
+    const center = this.normalizeGeoPoint(params.latitude, params.longitude);
+    const explicitBounds = this.normalizeGeoBounds(
+      params.southWestLatitude,
+      params.southWestLongitude,
+      params.northEastLatitude,
+      params.northEastLongitude,
+    );
+
+    if (explicitBounds != null) {
+      return {
+        center: center ?? undefined,
+        bounds: explicitBounds,
+      };
+    }
+
+    if (center == null) {
+      return undefined;
+    }
+
+    const radiusKm =
+      params.radiusKm == null || !Number.isFinite(params.radiusKm)
+        ? 20
+        : Math.max(0.2, Math.min(params.radiusKm, 100));
+
+    return {
+      center,
+      bounds: this.boundsFromCenter(center, radiusKm),
+    };
+  }
+
+  private normalizeGeoPoint(
+    latitude?: number,
+    longitude?: number,
+  ): EventGeoPoint | null {
+    if (latitude == null && longitude == null) {
+      return null;
+    }
+
+    if (
+      latitude == null ||
+      longitude == null ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      throw new ApiError(400, 'invalid_geo_query', 'Geo point is invalid');
+    }
+
+    return { latitude, longitude };
+  }
+
+  private normalizeGeoBounds(
+    south?: number,
+    west?: number,
+    north?: number,
+    east?: number,
+  ): EventGeoBounds | null {
+    if (south == null && west == null && north == null && east == null) {
+      return null;
+    }
+
+    if (
+      south == null ||
+      west == null ||
+      north == null ||
+      east == null ||
+      !Number.isFinite(south) ||
+      !Number.isFinite(west) ||
+      !Number.isFinite(north) ||
+      !Number.isFinite(east) ||
+      south < -90 ||
+      north > 90 ||
+      west < -180 ||
+      east > 180 ||
+      south > north ||
+      west > east
+    ) {
+      throw new ApiError(400, 'invalid_geo_query', 'Geo bounds are invalid');
+    }
+
+    return { south, west, north, east };
+  }
+
+  private boundsFromCenter(
+    center: EventGeoPoint,
+    radiusKm: number,
+  ): EventGeoBounds {
+    const latitudeDelta = radiusKm / 111.32;
+    const longitudeScale = Math.max(
+      Math.cos((center.latitude * Math.PI) / 180),
+      0.2,
+    );
+    const longitudeDelta = radiusKm / (111.32 * longitudeScale);
+
+    return {
+      south: Math.max(-90, center.latitude - latitudeDelta),
+      west: Math.max(-180, center.longitude - longitudeDelta),
+      north: Math.min(90, center.latitude + latitudeDelta),
+      east: Math.min(180, center.longitude + longitudeDelta),
+    };
+  }
+
+  private orderEventsByGeo<
+    T extends { latitude?: number | null; longitude?: number | null },
+  >(events: T[], geoQuery?: EventGeoQuery) {
+    const center = geoQuery?.center;
+    if (center == null) {
+      return events;
+    }
+
+    return [...events].sort((left, right) => {
+      const leftDistance = this.eventDistanceKm(left, center);
+      const rightDistance = this.eventDistanceKm(right, center);
+      if (leftDistance !== rightDistance) {
+        return leftDistance - rightDistance;
+      }
+      return 0;
+    });
+  }
+
+  private eventWithGeoDistance<
+    T extends {
+      distanceKm: number;
+      latitude?: number | null;
+      longitude?: number | null;
+    },
+  >(event: T, geoQuery?: EventGeoQuery): T {
+    const center = geoQuery?.center;
+    if (center == null || event.latitude == null || event.longitude == null) {
+      return event;
+    }
+
+    return {
+      ...event,
+      distanceKm: this.geoDistanceKm(
+        center.latitude,
+        center.longitude,
+        event.latitude,
+        event.longitude,
+      ),
+    };
+  }
+
+  private eventDistanceKm(
+    event: { latitude?: number | null; longitude?: number | null },
+    center: EventGeoPoint,
+  ) {
+    if (event.latitude == null || event.longitude == null) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    return this.geoDistanceKm(
+      center.latitude,
+      center.longitude,
+      event.latitude,
+      event.longitude,
+    );
+  }
+
+  private geoDistanceKm(
+    fromLatitude: number,
+    fromLongitude: number,
+    toLatitude: number,
+    toLongitude: number,
+  ) {
+    const latitudeDelta = ((toLatitude - fromLatitude) * Math.PI) / 180;
+    const longitudeDelta = ((toLongitude - fromLongitude) * Math.PI) / 180;
+    const fromRad = (fromLatitude * Math.PI) / 180;
+    const toRad = (toLatitude * Math.PI) / 180;
+    const a =
+      Math.sin(latitudeDelta / 2) ** 2 +
+      Math.cos(fromRad) *
+        Math.cos(toRad) *
+        Math.sin(longitudeDelta / 2) ** 2;
+    return 2 * EARTH_RADIUS_KM * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   private normalizeListLimit(limit?: number) {

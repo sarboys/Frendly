@@ -305,13 +305,6 @@ export class ChatServerService implements OnModuleDestroy {
       }
     }
 
-    const previewText = buildMessagePreview({
-      text,
-      attachments: readyAssets.map((asset) => ({
-        kind: asset.kind,
-      })),
-    });
-
     const message = await this.prismaService.client.$transaction(async (tx) => {
       const now = new Date();
       const created = await tx.message.create({
@@ -364,12 +357,10 @@ export class ChatServerService implements OnModuleDestroy {
 
       await tx.outboxEvent.create({
         data: {
-          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
+          type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
           payload: {
             chatId,
             actorUserId: state.userId!,
-            messageId: created.id,
-            body: previewText,
           },
         },
       });

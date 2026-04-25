@@ -17,6 +17,9 @@ export class NotificationsService {
           where: {
             id: cursorId,
             userId,
+            kind: {
+              not: 'message',
+            },
           },
           select: {
             id: true,
@@ -61,6 +64,9 @@ export class NotificationsService {
         where: {
           userId,
           readAt: null,
+          kind: {
+            not: 'message',
+          },
         },
       });
 
@@ -77,6 +83,7 @@ export class NotificationsService {
       LEFT JOIN "EventJoinRequest" r ON r."id" = n."requestId"
       WHERE n."userId" = ${userId}
         AND n."readAt" IS NULL
+        AND n."kind" <> 'message'::"NotificationKind"
         AND (
           (
             n."actorUserId" IS NOT NULL
@@ -200,6 +207,21 @@ export class NotificationsService {
     return { ok: true };
   }
 
+  async deletePushTokenByDeviceId(userId: string, deviceId: string) {
+    if (deviceId.trim().length === 0) {
+      throw new ApiError(400, 'invalid_push_device', 'deviceId is required');
+    }
+
+    const result = await this.prismaService.client.pushToken.deleteMany({
+      where: {
+        userId,
+        deviceId,
+      },
+    });
+
+    return { ok: true, deletedCount: result.count };
+  }
+
   private async collectVisibleNotificationsPage(
     userId: string,
     blockedUserIds: Set<string>,
@@ -232,6 +254,9 @@ export class NotificationsService {
       const notifications = await this.prismaService.client.notification.findMany({
         where: {
           userId,
+          kind: {
+            not: 'message',
+          },
           ...this.buildActorVisibilityWhere(blockedUserIds),
           ...(boundary
             ? {

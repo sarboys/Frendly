@@ -41,6 +41,14 @@ export class NotificationsController {
     return this.notificationsService.registerPushToken(currentUser.userId, body);
   }
 
+  @Delete('push-tokens/device/:deviceId')
+  deletePushTokenByDeviceId(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('deviceId') deviceId: string,
+  ) {
+    return this.notificationsService.deletePushTokenByDeviceId(currentUser.userId, deviceId);
+  }
+
   @Delete('push-tokens/:tokenId')
   deletePushToken(@CurrentUser() currentUser: { userId: string }, @Param('tokenId') tokenId: string) {
     return this.notificationsService.deletePushToken(currentUser.userId, tokenId);

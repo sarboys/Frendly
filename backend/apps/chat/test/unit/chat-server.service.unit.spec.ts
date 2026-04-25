@@ -256,7 +256,7 @@ describe('ChatServerService unit', () => {
     expect(mockRedisPublish).toHaveBeenCalledTimes(1);
   });
 
-  it('queues message notification fanout outside the websocket send transaction',
+  it('queues chat unread fanout outside the websocket send transaction',
     async () => {
       const socket = createOpenSocket();
       const txOutboxCreate = jest.fn().mockResolvedValue({});
@@ -338,12 +338,10 @@ describe('ChatServerService unit', () => {
       expect(txOutboxCreateMany).not.toHaveBeenCalled();
       expect(txOutboxCreate).toHaveBeenCalledWith({
         data: {
-          type: 'message.notification_fanout',
+          type: 'chat.unread_fanout',
           payload: {
             chatId: 'community-chat',
             actorUserId: 'user-me',
-            messageId: 'message-1',
-            body: 'hello',
           },
         },
       });

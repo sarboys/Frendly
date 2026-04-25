@@ -311,11 +311,7 @@ describe('chat websocket auth', () => {
 
       const outboxEvent = await prisma.outboxEvent.findFirst({
         where: {
-          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
-          payload: {
-            path: ['messageId'],
-            equals: createdMessageId,
-          },
+          type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
         },
         orderBy: {
           createdAt: 'desc',
@@ -326,9 +322,9 @@ describe('chat websocket auth', () => {
       expect(outboxEvent?.payload).toMatchObject({
         chatId: 'p1',
         actorUserId: 'user-me',
-        messageId: createdMessageId,
-        body: 'Голосовое сообщение',
       });
+      expect(outboxEvent?.payload).not.toHaveProperty('messageId');
+      expect(outboxEvent?.payload).not.toHaveProperty('body');
     } finally {
       if (outboxEventId != null) {
         await prisma.outboxEvent.deleteMany({
@@ -546,7 +542,7 @@ describe('chat websocket auth', () => {
     ).resolves.toEqual(expect.any(String));
   });
 
-  it('queues notification fanout after message send', async () => {
+  it('queues unread fanout after message send', async () => {
     const senderToken = await createSessionToken('user-me');
     const clientMessageId = `notification-${Date.now()}`;
     let createdMessageId: string | null = null;
@@ -600,7 +596,7 @@ describe('chat websocket auth', () => {
 
       const outboxEvent = await prisma.outboxEvent.findFirst({
         where: {
-          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
+          type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
         },
         orderBy: {
           createdAt: 'desc',
@@ -611,9 +607,9 @@ describe('chat websocket auth', () => {
       expect(outboxEvent?.payload).toMatchObject({
         chatId: 'p1',
         actorUserId: 'user-me',
-        messageId: createdMessageId,
-        body: 'notification payload check',
       });
+      expect(outboxEvent?.payload).not.toHaveProperty('messageId');
+      expect(outboxEvent?.payload).not.toHaveProperty('body');
     } finally {
       if (outboxEventId != null) {
         await prisma.outboxEvent.deleteMany({

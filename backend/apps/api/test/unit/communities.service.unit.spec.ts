@@ -2,6 +2,43 @@ import { Prisma } from '@prisma/client';
 import { CommunitiesService } from '../../src/services/communities.service';
 
 describe('CommunitiesService unit', () => {
+  it('counts community chat unread messages from chat member read state, not notifications', async () => {
+    const queryRaw = jest.fn().mockResolvedValue([
+      {
+        chat_id: 'chat-1',
+        unread_count: BigInt(2),
+      },
+    ]);
+    const service = new CommunitiesService(
+      {
+        client: {
+          communityMember: {
+            groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          notification: {
+            groupBy: jest.fn(),
+          },
+          $queryRaw: queryRaw,
+        },
+      } as any,
+      {} as any,
+    );
+
+    const counters = await (service as any).loadCounters('user-me', [
+      {
+        communityId: 'community-1',
+        chatId: 'chat-1',
+      },
+    ]);
+
+    expect(counters.unreadByChatId).toEqual(new Map([['chat-1', 2]]));
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(
+      (service as any).prismaService.client.notification.groupBy,
+    ).not.toHaveBeenCalled();
+  });
+
   it('loads online counters with groupBy instead of all online member rows',
     async () => {
       const communityFindMany = jest.fn().mockResolvedValue([
@@ -61,6 +98,7 @@ describe('CommunitiesService unit', () => {
             notification: {
               groupBy: jest.fn().mockResolvedValue([]),
             },
+            $queryRaw: jest.fn().mockResolvedValue([]),
           },
         } as any,
         {} as any,
@@ -187,11 +225,12 @@ describe('CommunitiesService unit', () => {
             groupBy: jest.fn().mockResolvedValue([]),
             findMany: jest.fn().mockResolvedValue([]),
           },
-          notification: {
-            groupBy: jest.fn().mockResolvedValue([]),
+            notification: {
+              groupBy: jest.fn().mockResolvedValue([]),
+            },
+            $queryRaw: jest.fn().mockResolvedValue([]),
           },
-        },
-      } as any,
+        } as any,
       {} as any,
     );
 

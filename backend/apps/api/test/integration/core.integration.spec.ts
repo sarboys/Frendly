@@ -1866,7 +1866,7 @@ describe('core api flows', () => {
     }
   });
 
-  it('keeps notification unread count in sync with chat mark read', async () => {
+  it('keeps chat message notifications out of central unread count', async () => {
     await prisma.notification.updateMany({
       where: {
         userId: 'user-me',
@@ -1892,7 +1892,7 @@ describe('core api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(afterResponse.body.unreadCount).toBe(beforeResponse.body.unreadCount - 1);
+    expect(afterResponse.body.unreadCount).toBe(beforeResponse.body.unreadCount);
 
     const messageNotification = await prisma.notification.findUnique({
       where: { id: 'n1' },
@@ -2253,6 +2253,7 @@ describe('core api flows', () => {
     );
 
     expect(inviteNotification).toBeDefined();
+    expect(inviteNotification.kind).toBe('event_invite');
 
     const invitePush = await prisma.outboxEvent.findFirst({
       where: {

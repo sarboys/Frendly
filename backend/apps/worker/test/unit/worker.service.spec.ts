@@ -1,10 +1,11 @@
 jest.mock('@big-break/database', () => ({
-  OUTBOX_EVENT_TYPES: {
-    mediaFinalize: 'media.finalize',
-    pushDispatch: 'push.dispatch',
-    unreadFanout: 'unread.fanout',
-    messageNotificationFanout: 'message.notification_fanout',
-    notificationCreate: 'notification.create',
+	  OUTBOX_EVENT_TYPES: {
+	    mediaFinalize: 'media.finalize',
+	    pushDispatch: 'push.dispatch',
+	    unreadFanout: 'unread.fanout',
+	    chatUnreadFanout: 'chat.unread_fanout',
+	    messageNotificationFanout: 'message.notification_fanout',
+	    notificationCreate: 'notification.create',
     realtimePublish: 'realtime.publish',
     attachmentReady: 'attachment.ready',
   },
@@ -190,12 +191,10 @@ describe('worker outbox recovery', () => {
       .mockResolvedValueOnce(null);
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const update = jest.fn().mockResolvedValue({});
-    const groupBy = jest.fn().mockResolvedValue([
+    const queryRaw = jest.fn().mockResolvedValue([
       {
-        userId: 'user-2',
-        _count: {
-          _all: 3,
-        },
+        user_id: 'user-2',
+        unread_count: BigInt(3),
       },
     ]);
 
@@ -207,9 +206,9 @@ describe('worker outbox recovery', () => {
           update,
         },
         notification: {
-          groupBy,
           findUnique: jest.fn(),
         },
+        $queryRaw: queryRaw,
         pushToken: {
           findMany: jest.fn(),
         },
@@ -222,20 +221,7 @@ describe('worker outbox recovery', () => {
 
     await service.runOnce();
 
-    expect(groupBy).toHaveBeenCalledWith({
-      by: ['userId'],
-      where: {
-        chatId: 'chat-1',
-        kind: 'message',
-        readAt: null,
-        userId: {
-          in: ['user-1', 'user-2'],
-        },
-      },
-      _count: {
-        _all: true,
-      },
-    });
+    expect(queryRaw).toHaveBeenCalledTimes(1);
     expect(publishBusEvent).toHaveBeenCalledWith(
       expect.anything(),
       {
@@ -281,7 +267,7 @@ describe('worker outbox recovery', () => {
       .mockResolvedValueOnce(null);
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const update = jest.fn().mockResolvedValue({});
-    const groupBy = jest.fn().mockResolvedValue([]);
+    const queryRaw = jest.fn().mockResolvedValue([]);
 
     const prismaService = {
       client: {
@@ -291,9 +277,9 @@ describe('worker outbox recovery', () => {
           update,
         },
         notification: {
-          groupBy,
           findUnique: jest.fn(),
         },
+        $queryRaw: queryRaw,
         pushToken: {
           findMany: jest.fn(),
         },
@@ -446,18 +432,16 @@ describe('worker outbox recovery', () => {
     );
   });
 
-  it('processes message notification fanout in bounded batches', async () => {
+  it('processes chat unread fanout in bounded batches without message notifications', async () => {
     const previousBatchSize = process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE;
     process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE = '2';
     const now = Date.now();
     const event = {
       id: 'evt-message-fanout',
-      type: 'message.notification_fanout',
+      type: 'chat.unread_fanout',
       payload: {
         chatId: 'chat-1',
         actorUserId: 'user-me',
-        messageId: 'message-1',
-        body: 'hello',
       },
       attempts: 0,
       status: 'pending',
@@ -474,15 +458,11 @@ describe('worker outbox recovery', () => {
       { id: 'member-2', userId: 'user-2' },
       { id: 'member-3', userId: 'user-3' },
     ]);
-    const notificationCreateMany = jest.fn().mockResolvedValue({});
-    const outboxCreateMany = jest.fn().mockResolvedValue({});
     const outboxCreate = jest.fn().mockResolvedValue({});
-    const notificationGroupBy = jest.fn().mockResolvedValue([
+    const queryRaw = jest.fn().mockResolvedValue([
       {
-        userId: 'user-1',
-        _count: {
-          _all: 2,
-        },
+        user_id: 'user-1',
+        unread_count: BigInt(2),
       },
     ]);
 
@@ -493,16 +473,14 @@ describe('worker outbox recovery', () => {
           updateMany,
           update,
           create: outboxCreate,
-          createMany: outboxCreateMany,
         },
         chatMember: {
           findMany,
         },
         notification: {
-          createMany: notificationCreateMany,
-          groupBy: notificationGroupBy,
           findUnique: jest.fn(),
         },
+        $queryRaw: queryRaw,
         pushToken: {
           findMany: jest.fn(),
         },
@@ -536,33 +514,16 @@ describe('worker outbox recovery', () => {
       orderBy: { id: 'asc' },
       take: 3,
     });
-    expect(notificationCreateMany.mock.calls[0][0].data).toHaveLength(2);
-    expect(outboxCreateMany.mock.calls[0][0].data).toHaveLength(2);
     expect(outboxCreate).toHaveBeenCalledWith({
       data: {
-        type: 'message.notification_fanout',
+        type: 'chat.unread_fanout',
         payload: {
           chatId: 'chat-1',
           actorUserId: 'user-me',
-          messageId: 'message-1',
-          body: 'hello',
           cursor: 'member-2',
         },
       },
     });
-    expect(publishBusEvent).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        type: 'notification.created',
-        payload: expect.objectContaining({
-          userId: 'user-1',
-          payload: {
-            chatId: 'chat-1',
-            messageId: 'message-1',
-          },
-        }),
-      }),
-    );
     expect(publishBusEvent).toHaveBeenCalledWith(
       expect.anything(),
       {
@@ -574,6 +535,7 @@ describe('worker outbox recovery', () => {
         },
       },
     );
+    expect(queryRaw).toHaveBeenCalledTimes(1);
   });
 
   it('sends push notifications with bounded parallelism', async () => {
@@ -599,6 +561,7 @@ describe('worker outbox recovery', () => {
     const update = jest.fn().mockResolvedValue({});
     const findNotification = jest.fn().mockResolvedValue({
       id: 'n-1',
+      userId: 'user-me',
       title: 'Title',
       body: 'Body',
     });
@@ -656,6 +619,82 @@ describe('worker outbox recovery', () => {
     expect(maxActiveSends).toBe(2);
   });
 
+  it('uses notification owner for push dispatch instead of payload user id', async () => {
+    const now = Date.now();
+    const event = {
+      id: 'evt-push-owner',
+      type: 'push.dispatch',
+      payload: {
+        userId: 'wrong-user',
+        notificationId: 'n-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(now - 60_000),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const update = jest.fn().mockResolvedValue({});
+    const findNotification = jest.fn().mockResolvedValue({
+      id: 'n-1',
+      userId: 'owner-user',
+      title: 'Title',
+      body: 'Body',
+    });
+    const findPushTokens = jest.fn().mockResolvedValue([
+      {
+        provider: 'fcm',
+        token: 'token-1',
+      },
+    ]);
+    const findSettings = jest.fn().mockResolvedValue({
+      allowPush: true,
+      quietHours: false,
+    });
+    const send = jest.fn();
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany,
+          update,
+        },
+        notification: {
+          findUnique: findNotification,
+        },
+        pushToken: {
+          findMany: findPushTokens,
+        },
+        userSettings: {
+          findUnique: findSettings,
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+    (service as any).resolveProvider = () => ({ send });
+
+    await service.runOnce();
+
+    expect(findSettings).toHaveBeenCalledWith({
+      where: { userId: 'owner-user' },
+      select: {
+        allowPush: true,
+        quietHours: true,
+      },
+    });
+    expect(findPushTokens).toHaveBeenCalledWith({
+      where: {
+        userId: 'owner-user',
+        disabledAt: null,
+      },
+    });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
   it('skips push dispatch when user disabled push or quiet hours are on', async () => {
     const now = Date.now();
     const event = {
@@ -677,6 +716,7 @@ describe('worker outbox recovery', () => {
     const update = jest.fn().mockResolvedValue({});
     const findNotification = jest.fn().mockResolvedValue({
       id: 'n-1',
+      userId: 'user-me',
       title: 'Title',
       body: 'Body',
     });
@@ -724,5 +764,127 @@ describe('worker outbox recovery', () => {
     });
     expect(findPushTokens).not.toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('creates event starting system notifications with push and realtime outbox', async () => {
+    const startsAt = new Date('2026-04-25T18:00:00.000Z');
+    const queryRaw = jest.fn()
+      .mockResolvedValueOnce([
+        {
+          user_id: 'user-1',
+          event_id: 'event-1',
+          event_title: 'Ужин на Патриках',
+          starts_at: startsAt,
+          dedupe_key: 'event_starting:event-1:user-1:30m',
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    const notificationCreate = jest.fn().mockResolvedValue({
+      id: 'notification-event',
+      userId: 'user-1',
+    });
+    const outboxCreateMany = jest.fn().mockResolvedValue({});
+    const prismaService = {
+      client: {
+        $queryRaw: queryRaw,
+        notification: {
+          create: notificationCreate,
+        },
+        outboxEvent: {
+          createMany: outboxCreateMany,
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+
+    await (service as any).runSystemNotificationScan();
+
+    expect(notificationCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        kind: 'event_starting',
+        title: 'Встреча скоро начнется',
+        eventId: 'event-1',
+        dedupeKey: 'event_starting:event-1:user-1:30m',
+      }),
+    });
+    expect(outboxCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          type: 'push.dispatch',
+          payload: {
+            userId: 'user-1',
+            notificationId: 'notification-event',
+          },
+        },
+        {
+          type: 'notification.create',
+          payload: {
+            notificationId: 'notification-event',
+          },
+        },
+      ],
+    });
+  });
+
+  it('creates subscription expiring system notifications with push and realtime outbox', async () => {
+    const endsAt = new Date('2026-04-27T18:00:00.000Z');
+    const queryRaw = jest.fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          user_id: 'user-1',
+          subscription_id: 'subscription-1',
+          plan: 'month',
+          status: 'active',
+          ends_at: endsAt,
+          dedupe_key: 'subscription_expiring:subscription-1:3d',
+        },
+      ]);
+    const notificationCreate = jest.fn().mockResolvedValue({
+      id: 'notification-subscription',
+      userId: 'user-1',
+    });
+    const outboxCreateMany = jest.fn().mockResolvedValue({});
+    const prismaService = {
+      client: {
+        $queryRaw: queryRaw,
+        notification: {
+          create: notificationCreate,
+        },
+        outboxEvent: {
+          createMany: outboxCreateMany,
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+
+    await (service as any).runSystemNotificationScan();
+
+    expect(notificationCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        kind: 'subscription_expiring',
+        title: 'Подписка скоро закончится',
+        dedupeKey: 'subscription_expiring:subscription-1:3d',
+      }),
+    });
+    expect(outboxCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          type: 'push.dispatch',
+          payload: {
+            userId: 'user-1',
+            notificationId: 'notification-subscription',
+          },
+        },
+        {
+          type: 'notification.create',
+          payload: {
+            notificationId: 'notification-subscription',
+          },
+        },
+      ],
+    });
   });
 });

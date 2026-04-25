@@ -17,6 +17,13 @@ export class EventsController {
     @Query('access') access?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('latitude') latitude?: string,
+    @Query('longitude') longitude?: string,
+    @Query('radiusKm') radiusKm?: string,
+    @Query('southWestLatitude') southWestLatitude?: string,
+    @Query('southWestLongitude') southWestLongitude?: string,
+    @Query('northEastLatitude') northEastLatitude?: string,
+    @Query('northEastLongitude') northEastLongitude?: string,
   ) {
     return this.eventsService.listEvents(currentUser.userId, {
       filter,
@@ -27,6 +34,13 @@ export class EventsController {
       access,
       cursor,
       limit: limit ? Number(limit) : undefined,
+      latitude: latitude ? Number(latitude) : undefined,
+      longitude: longitude ? Number(longitude) : undefined,
+      radiusKm: radiusKm ? Number(radiusKm) : undefined,
+      southWestLatitude: southWestLatitude ? Number(southWestLatitude) : undefined,
+      southWestLongitude: southWestLongitude ? Number(southWestLongitude) : undefined,
+      northEastLatitude: northEastLatitude ? Number(northEastLatitude) : undefined,
+      northEastLongitude: northEastLongitude ? Number(northEastLongitude) : undefined,
     });
   }
 

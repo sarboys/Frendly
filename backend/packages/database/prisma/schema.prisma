@@ -55,7 +55,10 @@ enum NotificationKind {
   message
   attachment_ready
   event_joined
+  event_invite
+  event_starting
   like
+  subscription_expiring
 }
 
 enum PushProvider {
@@ -897,6 +900,7 @@ model Notification {
   eventId     String?
   requestId   String?
   actorUserId String?
+  dedupeKey   String?
   payload     Json
   readAt      DateTime?
   createdAt   DateTime          @default(now())
@@ -907,6 +911,7 @@ model Notification {
   @@index([userId, kind, readAt, actorUserId])
   @@index([userId, readAt, eventId, requestId])
   @@index([userId, createdAt, id])
+  @@unique([dedupeKey])
 }
 
 model PushToken {

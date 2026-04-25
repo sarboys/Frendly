@@ -411,7 +411,7 @@ export class CommunitiesService {
     const communityIds = communities.map((item) => item.communityId);
     const chatIds = communities.map((item) => item.chatId);
 
-    const [onlineGroups, unreadGroups, memberships] = await Promise.all([
+    const [onlineGroups, unreadRows, memberships] = await Promise.all([
       this.prismaService.client.communityMember.groupBy({
         by: ['communityId'],
         where: {
@@ -422,18 +422,26 @@ export class CommunitiesService {
           _all: true,
         },
       }),
-      this.prismaService.client.notification.groupBy({
-        by: ['chatId'],
-        where: {
-          userId,
-          kind: 'message',
-          readAt: null,
-          chatId: { in: chatIds },
-        },
-        _count: {
-          _all: true,
-        },
-      }),
+      this.prismaService.client.$queryRaw<Array<{
+        chat_id: string;
+        unread_count: bigint | number;
+      }>>`
+        SELECT cm."chatId" AS chat_id, COUNT(m."id") AS unread_count
+        FROM "ChatMember" cm
+        LEFT JOIN "Message" last_read
+          ON last_read."chatId" = cm."chatId"
+          AND last_read."id" = cm."lastReadMessageId"
+        LEFT JOIN "Message" m
+          ON m."chatId" = cm."chatId"
+          AND m."senderId" <> cm."userId"
+          AND (
+            COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
+            OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
+          )
+        WHERE cm."userId" = ${userId}
+          AND cm."chatId" IN (${Prisma.join(chatIds)})
+        GROUP BY cm."chatId"
+      `,
       this.prismaService.client.communityMember.findMany({
         where: {
           communityId: { in: communityIds },
@@ -451,9 +459,7 @@ export class CommunitiesService {
     );
 
     const unreadByChatId = new Map(
-      unreadGroups
-        .filter((item) => item.chatId != null)
-        .map((item) => [item.chatId!, item._count._all]),
+      unreadRows.map((item) => [item.chat_id, Number(item.unread_count)]),
     );
     const membershipByCommunityId = new Map(
       memberships.map((membership) => [
