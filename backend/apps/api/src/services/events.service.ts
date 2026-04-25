@@ -700,6 +700,10 @@ export class EventsService {
         ? 'request'
         : 'open';
     const inviteeUserId = typeof body.inviteeUserId === 'string' ? body.inviteeUserId : undefined;
+    const communityId =
+      typeof body.communityId === 'string' && body.communityId.trim().length > 0
+        ? body.communityId.trim()
+        : undefined;
     const normalizedCapacity = isDatingMode ? 2 : capacity;
     const afterDarkCategory =
       isAfterDarkMode &&
@@ -780,6 +784,24 @@ export class EventsService {
 
     if (inviteeUserId != null && !inviteeUser) {
       throw new ApiError(404, 'user_not_found', 'Invitee user not found');
+    }
+
+    const community =
+      communityId == null
+        ? null
+        : await this.prismaService.client.community.findFirst({
+            where: {
+              id: communityId,
+              OR: [
+                { createdById: userId },
+                { members: { some: { userId } } },
+              ],
+            },
+            select: { id: true },
+          });
+
+    if (communityId != null && !community) {
+      throw new ApiError(404, 'community_not_found', 'Community not found');
     }
 
     let created: { id: string };
@@ -865,6 +887,21 @@ export class EventsService {
             userId,
           },
         });
+
+        if (community != null) {
+          await tx.communityMeetupItem.create({
+            data: {
+              communityId: community.id,
+              title,
+              emoji,
+              timeLabel: formatEventTime(startsAt),
+              place,
+              format: joinMode === 'request' ? 'По заявке' : 'Открытая встреча',
+              going: 1,
+              startsAt,
+            },
+          });
+        }
 
         if (inviteeUser != null) {
           const inviteRequest = await tx.eventJoinRequest.create({

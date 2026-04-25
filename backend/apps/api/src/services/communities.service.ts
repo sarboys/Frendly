@@ -34,33 +34,24 @@ export class CommunitiesService {
     const cursorCommunity = await this.resolveCursor(params.cursor);
 
     const communities = await this.prismaService.client.community.findMany({
-      where: {
-        AND: [
-          {
-            OR: [
-              { privacy: CommunityPrivacy.public },
-              { members: { some: { userId } } },
-            ],
-          },
-          cursorCommunity == null
-            ? {}
-            : {
-                OR: [
-                  {
-                    createdAt: {
-                      gt: cursorCommunity.createdAt,
-                    },
+      where:
+        cursorCommunity == null
+          ? {}
+          : {
+              OR: [
+                {
+                  createdAt: {
+                    gt: cursorCommunity.createdAt,
                   },
-                  {
-                    createdAt: cursorCommunity.createdAt,
-                    id: {
-                      gt: cursorCommunity.id,
-                    },
+                },
+                {
+                  createdAt: cursorCommunity.createdAt,
+                  id: {
+                    gt: cursorCommunity.id,
                   },
-                ],
-              },
-        ],
-      },
+                },
+              ],
+            },
       include: this.communityInclude({
         news: LIST_NEWS_LIMIT,
         meetups: LIST_MEETUP_LIMIT,
@@ -672,13 +663,9 @@ export class CommunitiesService {
     return Math.max(1, Math.min(Math.trunc(limit), MAX_COMMUNITY_MEDIA_LIMIT));
   }
 
-  private visibleCommunityWhere(userId: string, communityId: string) {
+  private visibleCommunityWhere(_userId: string, communityId: string) {
     return {
       id: communityId,
-      OR: [
-        { privacy: CommunityPrivacy.public },
-        { members: { some: { userId } } },
-      ],
     };
   }
 

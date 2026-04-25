@@ -295,4 +295,87 @@ describe('EventsService unit', () => {
     );
     expect(getEventDetail).toHaveBeenCalledWith('user-me', 'event-existing');
   });
+
+  it('creates a community meetup preview when event has community id', async () => {
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 'event-created',
+      title: 'Бранч клуба',
+      emoji: '🥐',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000),
+      place: 'Friends Bistro',
+    });
+    const chatCreate = jest.fn().mockResolvedValue({ id: 'event-created-chat' });
+    const communityMeetupCreate = jest.fn().mockResolvedValue({ id: 'cm-created' });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: chatCreate },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+      communityMeetupItem: { create: communityMeetupCreate },
+    };
+    const client = {
+      event: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      community: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'community-1',
+          createdById: 'user-me',
+          members: [{ role: 'owner' }],
+        }),
+      },
+      $transaction: jest.fn((callback) => callback(tx)),
+    };
+    const service = new EventsService(
+      { client } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+      title: 'Бранч клуба',
+    } as any);
+
+    await service.createEvent('user-me', {
+      title: 'Бранч клуба',
+      description: 'Клубная встреча',
+      emoji: '🥐',
+      place: 'Friends Bistro',
+      vibe: 'Спокойно',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      capacity: 8,
+      distanceKm: 1,
+      communityId: 'community-1',
+    });
+
+    expect(client.community.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'community-1',
+          OR: [
+            { createdById: 'user-me' },
+            { members: { some: { userId: 'user-me' } } },
+          ],
+        },
+      }),
+    );
+    expect(communityMeetupCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          communityId: 'community-1',
+          title: 'Бранч клуба',
+          emoji: '🥐',
+          place: 'Friends Bistro',
+          going: 1,
+        }),
+      }),
+    );
+  });
 });

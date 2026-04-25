@@ -212,6 +212,50 @@ describe('communities api flows', () => {
       .expect(200);
   });
 
+  it('shows private communities to non-members while keeping request-only access', async () => {
+    const name = `API Club Private ${Date.now()}`;
+    const created = await request(app.getHttpServer())
+      .post('/communities')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        name,
+        avatar: '🍸',
+        description: 'Закрытый клуб виден всем, вступление только по заявке.',
+        privacy: 'private',
+        purpose: 'Private dining',
+        socialLinks: [],
+      })
+      .expect(201);
+
+    const listResponse = await request(app.getHttpServer())
+      .get('/communities')
+      .set('authorization', `Bearer ${freeAccessToken}`)
+      .expect(200);
+
+    expect(listResponse.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: created.body.id,
+          name,
+          privacy: 'private',
+          joined: false,
+        }),
+      ]),
+    );
+
+    const detailResponse = await request(app.getHttpServer())
+      .get(`/communities/${created.body.id}`)
+      .set('authorization', `Bearer ${freeAccessToken}`)
+      .expect(200);
+
+    expect(detailResponse.body).toMatchObject({
+      id: created.body.id,
+      name,
+      privacy: 'private',
+      joined: false,
+    });
+  });
+
   it('lets the owner publish a community news item', async () => {
     const name = `API Club ${Date.now()}`;
     const created = await request(app.getHttpServer())
