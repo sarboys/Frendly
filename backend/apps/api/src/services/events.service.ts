@@ -891,6 +891,7 @@ export class EventsService {
         if (community != null) {
           await tx.communityMeetupItem.create({
             data: {
+              id: event.id,
               communityId: community.id,
               title,
               emoji,

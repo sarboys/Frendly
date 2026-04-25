@@ -354,6 +354,7 @@ export class CommunitiesService {
         ...(limits?.news == null ? {} : { take: limits.news }),
       },
       meetups: {
+        where: this.upcomingCommunityMeetupWhere(),
         orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
         ...(limits?.meetups == null ? {} : { take: limits.meetups }),
       },
@@ -379,6 +380,19 @@ export class CommunitiesService {
           },
         },
       },
+    };
+  }
+
+  private upcomingCommunityMeetupWhere(): Prisma.CommunityMeetupItemWhereInput {
+    return {
+      OR: [
+        { startsAt: null },
+        {
+          startsAt: {
+            gte: new Date(),
+          },
+        },
+      ],
     };
   }
 
