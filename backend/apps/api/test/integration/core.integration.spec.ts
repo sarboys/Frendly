@@ -992,47 +992,106 @@ describe('core api flows', () => {
   });
 
   it('returns stable event cards for feed filters', async () => {
-    const calmResponse = await request(app.getHttpServer())
-      .get('/events?filter=calm')
-      .set('authorization', `Bearer ${accessToken}`)
-      .expect(200);
+    const eventIds = ['stable-filter-calm', 'stable-filter-date'];
+    const query = 'Stable filter test event';
 
-    expect(calmResponse.body.items.length).toBeGreaterThan(0);
-    expect(calmResponse.body.items[0]).toEqual(
-      expect.objectContaining({
-        id: expect.any(String),
-        title: expect.any(String),
-        emoji: expect.any(String),
-        time: expect.any(String),
-        place: expect.any(String),
-        distance: expect.any(String),
-        vibe: expect.any(String),
-        tone: expect.any(String),
-        going: expect.any(Number),
-        capacity: expect.any(Number),
-        joined: expect.any(Boolean),
-        joinMode: expect.any(String),
-        lifestyle: expect.any(String),
-        priceMode: expect.any(String),
-        accessMode: expect.any(String),
-        genderMode: expect.any(String),
-        visibilityMode: expect.any(String),
-        attendanceStatus: expect.any(String),
-        liveStatus: expect.any(String),
-        isHost: expect.any(Boolean),
-      }),
-    );
-    expect(Array.isArray(calmResponse.body.items[0].attendees)).toBe(true);
-    expect(calmResponse.body.items[0]).toHaveProperty('joinRequestStatus');
+    await prisma.event.deleteMany({
+      where: {
+        id: {
+          in: eventIds,
+        },
+      },
+    });
 
-    const dateResponse = await request(app.getHttpServer())
-      .get('/events?filter=date')
-      .set('authorization', `Bearer ${accessToken}`)
-      .expect(200);
+    await prisma.event.createMany({
+      data: [
+        {
+          id: eventIds[0],
+          title: 'Stable calm filter event',
+          emoji: '🫖',
+          startsAt: new Date(futureIso(1, 18, 0)),
+          place: 'Stable test cafe',
+          distanceKm: 0.7,
+          vibe: 'Спокойно',
+          tone: 'warm',
+          description: query,
+          capacity: 6,
+          isCalm: true,
+          isNewcomers: false,
+          isDate: false,
+          hostId: 'user-anya',
+        },
+        {
+          id: eventIds[1],
+          title: 'Stable date filter event',
+          emoji: '🌙',
+          startsAt: new Date(futureIso(1, 21, 0)),
+          place: 'Stable test bar',
+          distanceKm: 1.1,
+          vibe: 'Свидание',
+          tone: 'evening',
+          description: query,
+          capacity: 2,
+          isCalm: false,
+          isNewcomers: false,
+          isDate: true,
+          hostId: 'user-anya',
+        },
+      ],
+    });
 
-    expect(
-      dateResponse.body.items.every((item: { tone: string }) => item.tone === 'evening'),
-    ).toBe(true);
+    try {
+      const calmResponse = await request(app.getHttpServer())
+        .get(`/events?filter=calm&q=${encodeURIComponent(query)}`)
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(calmResponse.body.items.length).toBeGreaterThan(0);
+      expect(calmResponse.body.items[0]).toEqual(
+        expect.objectContaining({
+          id: expect.any(String),
+          title: expect.any(String),
+          emoji: expect.any(String),
+          time: expect.any(String),
+          place: expect.any(String),
+          distance: expect.any(String),
+          vibe: expect.any(String),
+          tone: expect.any(String),
+          going: expect.any(Number),
+          capacity: expect.any(Number),
+          joined: expect.any(Boolean),
+          joinMode: expect.any(String),
+          lifestyle: expect.any(String),
+          priceMode: expect.any(String),
+          accessMode: expect.any(String),
+          genderMode: expect.any(String),
+          visibilityMode: expect.any(String),
+          attendanceStatus: expect.any(String),
+          liveStatus: expect.any(String),
+          isHost: expect.any(Boolean),
+        }),
+      );
+      expect(Array.isArray(calmResponse.body.items[0].attendees)).toBe(true);
+      expect(calmResponse.body.items[0]).toHaveProperty('joinRequestStatus');
+
+      const dateResponse = await request(app.getHttpServer())
+        .get(`/events?filter=date&q=${encodeURIComponent(query)}`)
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(dateResponse.body.items.length).toBeGreaterThan(0);
+      expect(
+        dateResponse.body.items.every((item: { tone: string }) => item.tone === 'evening'),
+      ).toBe(true);
+    } finally {
+      await prisma.event.deleteMany({
+        where: {
+          id: {
+            in: eventIds,
+          },
+        },
+      });
+    }
   });
 
   it('returns coordinates in check-in payload when event has them', async () => {
