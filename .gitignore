@@ -6,6 +6,7 @@ AGENTS.md
 .vscode/
 front/
 mobile/
+admin/
 docs/
 *.html
 backend/node_modules/
