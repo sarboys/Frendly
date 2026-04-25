@@ -239,4 +239,97 @@ describe('DatingService unit', () => {
       }),
     );
   });
+
+  it('creates a central notification when a user receives a dating like', async () => {
+    const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-like' });
+    const outboxCreateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              displayName: 'Никита',
+              profile: {
+                gender: 'male',
+              },
+              onboarding: {
+                gender: 'male',
+                interests: [],
+              },
+            }),
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'user-sonya',
+              displayName: 'Соня',
+              verified: true,
+              online: true,
+              profile: {
+                age: 26,
+                area: 'Замоскворечье',
+                bio: 'Люблю тихие ужины.',
+                vibe: 'Спокойно',
+                avatarUrl: null,
+                photos: [],
+              },
+              onboarding: {
+                interests: [],
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            upsert: jest.fn().mockResolvedValue({}),
+          },
+          notification: {
+            create: notificationCreate,
+          },
+          outboxEvent: {
+            createMany: outboxCreateMany,
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+    );
+
+    await service.recordAction('user-me', {
+      targetUserId: 'user-sonya',
+      action: 'like',
+    });
+
+    expect(notificationCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-sonya',
+        actorUserId: 'user-me',
+        kind: 'like',
+        title: 'Новый лайк',
+        payload: expect.objectContaining({
+          userId: 'user-me',
+          userName: 'Никита',
+        }),
+      }),
+    });
+    expect(outboxCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          type: 'push.dispatch',
+          payload: {
+            userId: 'user-sonya',
+            notificationId: 'notif-like',
+          },
+        },
+        {
+          type: 'notification.create',
+          payload: {
+            notificationId: 'notif-like',
+          },
+        },
+      ],
+    });
+  });
 });

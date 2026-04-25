@@ -55,6 +55,7 @@ enum NotificationKind {
   message
   attachment_ready
   event_joined
+  like
 }
 
 enum PushProvider {

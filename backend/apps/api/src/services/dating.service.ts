@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DatingActionKind, Prisma, User } from '@prisma/client';
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  OUTBOX_EVENT_TYPES,
+  decodeCursor,
+  encodeCursor,
+} from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
@@ -258,6 +262,17 @@ export class DatingService {
       throw new ApiError(404, 'dating_user_not_found', 'Dating user not found');
     }
 
+    const previousAction =
+      await this.prismaService.client.datingAction.findUnique({
+        where: {
+          actorUserId_targetUserId: {
+            actorUserId: userId,
+            targetUserId,
+          },
+        },
+        select: { action: true },
+      });
+
     await this.prismaService.client.datingAction.upsert({
       where: {
         actorUserId_targetUserId: {
@@ -274,6 +289,18 @@ export class DatingService {
         action,
       },
     });
+
+    if (
+      _positiveDatingActions.has(action) &&
+      (previousAction == null ||
+        !_positiveDatingActions.has(previousAction.action))
+    ) {
+      await this.createDatingLikeNotification({
+        userId,
+        userName: self?.displayName ?? '',
+        targetUserId,
+      });
+    }
 
     const reciprocal = await this.prismaService.client.datingAction.findUnique({
       where: {
@@ -416,6 +443,45 @@ export class DatingService {
     return Array.isArray(raw)
       ? raw.filter((item): item is string => typeof item === 'string')
       : [];
+  }
+
+  private async createDatingLikeNotification(params: {
+    userId: string;
+    userName: string;
+    targetUserId: string;
+  }) {
+    const notification = await this.prismaService.client.notification.create({
+      data: {
+        userId: params.targetUserId,
+        actorUserId: params.userId,
+        kind: 'like',
+        title: 'Новый лайк',
+        body: 'лайкнул тебя в дейтинге',
+        payload: {
+          userId: params.userId,
+          userName: params.userName,
+          source: 'dating',
+        },
+      },
+    });
+
+    await this.prismaService.client.outboxEvent.createMany({
+      data: [
+        {
+          type: OUTBOX_EVENT_TYPES.pushDispatch,
+          payload: {
+            userId: params.targetUserId,
+            notificationId: notification.id,
+          },
+        },
+        {
+          type: OUTBOX_EVENT_TYPES.notificationCreate,
+          payload: {
+            notificationId: notification.id,
+          },
+        },
+      ],
+    });
   }
 
   private oppositeGenderForSelf(
