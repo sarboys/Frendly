@@ -61,6 +61,102 @@ export interface UploadCompleteResponse {
   status: 'pending' | 'ready' | 'failed';
 }
 
+export interface EveningOptionDto {
+  key: string;
+  label: string;
+  emoji?: string;
+  blurb?: string;
+  range?: string;
+}
+
+export interface EveningOptionsDto {
+  goals: EveningOptionDto[];
+  moods: EveningOptionDto[];
+  budgets: EveningOptionDto[];
+  formats: EveningOptionDto[];
+  areas: EveningOptionDto[];
+}
+
+export interface EveningStepStateDto {
+  perkUsed: boolean;
+  ticketBought: boolean;
+  sentToChat: boolean;
+  chatMessageId: string | null;
+}
+
+export interface EveningRouteStepDto {
+  id: string;
+  time: string;
+  endTime: string | null;
+  kind: string;
+  title: string;
+  venue: string;
+  address: string;
+  emoji: string;
+  distance: string;
+  walkMin: number | null;
+  perk: string | null;
+  perkShort: string | null;
+  ticketPrice: number | null;
+  ticketCommission: number | null;
+  sponsored: boolean;
+  premium: boolean;
+  partnerId: string | null;
+  description: string | null;
+  vibeTag: string | null;
+  lat: number;
+  lng: number;
+  hasShareable: boolean;
+  state: EveningStepStateDto;
+}
+
+export interface EveningRouteDto {
+  id: string;
+  title: string;
+  vibe: string;
+  blurb: string;
+  totalPriceFrom: number;
+  totalSavings: number;
+  durationLabel: string;
+  area: string;
+  goal: string;
+  mood: string;
+  budget: string;
+  format: string | null;
+  premium: boolean;
+  locked: boolean;
+  recommendedFor: string | null;
+  hostsCount: number;
+  chatId: string | null;
+  steps: EveningRouteStepDto[];
+  userState: {
+    usedPerkStepIds: string[];
+    boughtTicketStepIds: string[];
+    sentToChatStepIds: string[];
+  };
+}
+
+export interface EveningStepActionDto {
+  stepId: string;
+  perkUsed: boolean;
+  perkUsedAt: string | null;
+  ticketBought: boolean;
+  ticketBoughtAt: string | null;
+  sentToChat: boolean;
+  sentToChatAt: string | null;
+  chatMessageId: string | null;
+}
+
+export interface EveningShareToChatDto {
+  stepId: string;
+  sentToChat: boolean;
+  sentToChatAt: string;
+  chatId: string;
+  messageId: string;
+  previewText: string;
+  alreadySent: boolean;
+}
+
 export interface ChatMessageDto {
   id: string;
   chatId: string;

@@ -266,6 +266,7 @@ model User {
   authAuditEvents   AuthAuditEvent[]
   datingActionsSent DatingAction[]          @relation("DatingActionActor")
   datingActionsReceived DatingAction[]       @relation("DatingActionTarget")
+  eveningStepActions UserEveningStepAction[]
 
   @@index([displayName, id])
 }
@@ -527,6 +528,85 @@ model Poster {
   @@index([city, startsAt])
   @@index([city, category, startsAt])
   @@index([city, isFeatured, startsAt])
+}
+
+model EveningRoute {
+  id             String                  @id
+  title          String
+  vibe           String
+  blurb          String
+  totalPriceFrom Int
+  totalSavings   Int
+  durationLabel  String
+  area           String
+  goal           String
+  mood           String
+  budget         String
+  format         String?
+  premium        Boolean                 @default(false)
+  recommendedFor String?
+  hostsCount     Int                     @default(0)
+  chatId         String?                 @unique
+  chat           Chat?                   @relation("EveningRouteChat", fields: [chatId], references: [id], onDelete: SetNull)
+  steps          EveningRouteStep[]
+  stepActions    UserEveningStepAction[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([goal, mood, budget, id])
+  @@index([premium, id])
+}
+
+model EveningRouteStep {
+  id               String                  @id
+  routeId          String
+  route            EveningRoute            @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  sortOrder        Int
+  timeLabel        String
+  endTimeLabel     String?
+  kind             String
+  title            String
+  venue            String
+  address          String
+  emoji            String
+  distanceLabel    String
+  walkMin          Int?
+  perk             String?
+  perkShort        String?
+  ticketPrice      Int?
+  ticketCommission Int?
+  sponsored        Boolean                 @default(false)
+  premium          Boolean                 @default(false)
+  partnerId        String?
+  description      String?
+  vibeTag          String?
+  lat              Float
+  lng              Float
+  actions          UserEveningStepAction[]
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([routeId, sortOrder, id])
+}
+
+model UserEveningStepAction {
+  id              String           @id @default(cuid())
+  userId          String
+  routeId         String
+  stepId          String
+  perkUsedAt      DateTime?
+  ticketBoughtAt  DateTime?
+  sentToChatAt    DateTime?
+  chatMessageId   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route           EveningRoute     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  step            EveningRouteStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stepId])
+  @@index([userId, routeId])
+  @@index([routeId, stepId])
 }
 
 model EventParticipant {
@@ -826,6 +906,7 @@ model Chat {
   messages       Message[]
   members        ChatMember[]
   community      Community?
+  eveningRoute   EveningRoute?  @relation("EveningRouteChat")
   realtimeEvents RealtimeEvent[]
 
   @@index([kind, updatedAt, id])

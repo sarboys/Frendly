@@ -1,6 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 
-const { seededEvents, seededPosters, seededUsers }: typeof import('../src/seed-data') = require('../src/seed-data.ts');
+const {
+  seededEveningRoutes,
+  seededEvents,
+  seededPosters,
+  seededUsers,
+}: typeof import('../src/seed-data') = require('../src/seed-data.ts');
 
 const prisma = new PrismaClient();
 
@@ -129,6 +134,9 @@ async function main() {
   await prisma.phoneOtpChallenge.deleteMany();
   await prisma.userVerification.deleteMany();
   await prisma.userSettings.deleteMany();
+  await prisma.userEveningStepAction.deleteMany();
+  await prisma.eveningRouteStep.deleteMany();
+  await prisma.eveningRoute.deleteMany();
   await prisma.eventFavorite.deleteMany();
   await prisma.eventFeedback.deleteMany();
   await prisma.eventLiveState.deleteMany();
@@ -362,6 +370,11 @@ async function main() {
       { id: 'mc-ad6', kind: 'meetup', origin: 'meetup', title: 'Naked Yoga · Female only', emoji: '🧘‍♀️', eventId: 'ad6' },
       { id: 'mc-ad7', kind: 'meetup', origin: 'meetup', title: 'Munch · Знакомство сообщества', emoji: '🖤', eventId: 'ad7' },
       { id: 'mc-ad8', kind: 'meetup', origin: 'meetup', title: 'Dress Code Night · Fetish Friendly', emoji: '🦋', eventId: 'ad8' },
+      { id: 'evening-chat-r-cozy-circle', kind: 'meetup', origin: 'meetup', title: 'Теплый круг на Покровке', emoji: '🍇' },
+      { id: 'evening-chat-r-date-noir', kind: 'meetup', origin: 'meetup', title: 'Свидание Noir', emoji: '🎬' },
+      { id: 'evening-chat-r-wild-night', kind: 'meetup', origin: 'meetup', title: 'Большой вечер в центре', emoji: '🪩' },
+      { id: 'evening-chat-r-quiet-soul', kind: 'meetup', origin: 'meetup', title: 'Тихий вечер для себя', emoji: '💆' },
+      { id: 'evening-chat-r-afterdark', kind: 'meetup', origin: 'meetup', title: 'After Dark', emoji: '🕯️' },
       { id: 'p1', kind: 'direct', origin: 'meetup', directKey: 'user-anya:user-me', sourceEventId: 'e1' },
       { id: 'p2', kind: 'direct', origin: 'meetup', directKey: 'user-mark:user-me', sourceEventId: 'e1' },
       { id: 'p3', kind: 'direct', origin: 'meetup', directKey: 'user-me:user-sonya', sourceEventId: 'e2' },
@@ -370,6 +383,55 @@ async function main() {
       { id: 'community-c3-chat', kind: 'community', origin: 'community', title: 'Night Moves', emoji: '🪩' },
     ],
   });
+
+  for (const route of seededEveningRoutes) {
+    await prisma.eveningRoute.create({
+      data: {
+        id: route.id,
+        title: route.title,
+        vibe: route.vibe,
+        blurb: route.blurb,
+        totalPriceFrom: route.totalPriceFrom,
+        totalSavings: route.totalSavings,
+        durationLabel: route.durationLabel,
+        area: route.area,
+        goal: route.goal,
+        mood: route.mood,
+        budget: route.budget,
+        format: route.format,
+        premium: route.premium ?? false,
+        recommendedFor: route.recommendedFor ?? null,
+        hostsCount: route.hostsCount,
+        chatId: route.chatId,
+        steps: {
+          create: route.steps.map((step, index) => ({
+            id: step.id,
+            sortOrder: index,
+            timeLabel: step.timeLabel,
+            endTimeLabel: step.endTimeLabel ?? null,
+            kind: step.kind,
+            title: step.title,
+            venue: step.venue,
+            address: step.address,
+            emoji: step.emoji,
+            distanceLabel: step.distanceLabel,
+            walkMin: step.walkMin ?? null,
+            perk: step.perk ?? null,
+            perkShort: step.perkShort ?? null,
+            ticketPrice: step.ticketPrice ?? null,
+            ticketCommission: step.ticketCommission ?? null,
+            sponsored: step.sponsored ?? false,
+            premium: step.premium ?? false,
+            partnerId: step.partnerId ?? null,
+            description: step.description ?? null,
+            vibeTag: step.vibeTag ?? null,
+            lat: step.lat,
+            lng: step.lng,
+          })),
+        },
+      },
+    });
+  }
 
   await prisma.chatMember.createMany({
     data: [
@@ -396,6 +458,16 @@ async function main() {
       { id: 'cm-ad6-host', chatId: 'mc-ad6', userId: 'user-liza' },
       { id: 'cm-ad7-host', chatId: 'mc-ad7', userId: 'user-oleg' },
       { id: 'cm-ad8-host', chatId: 'mc-ad8', userId: 'user-sonya' },
+      { id: 'evening-chat-r-cozy-circle-me', chatId: 'evening-chat-r-cozy-circle', userId: 'user-me' },
+      { id: 'evening-chat-r-cozy-circle-anya', chatId: 'evening-chat-r-cozy-circle', userId: 'user-anya' },
+      { id: 'evening-chat-r-date-noir-me', chatId: 'evening-chat-r-date-noir', userId: 'user-me' },
+      { id: 'evening-chat-r-date-noir-anya', chatId: 'evening-chat-r-date-noir', userId: 'user-anya' },
+      { id: 'evening-chat-r-wild-night-me', chatId: 'evening-chat-r-wild-night', userId: 'user-me' },
+      { id: 'evening-chat-r-wild-night-mark', chatId: 'evening-chat-r-wild-night', userId: 'user-mark' },
+      { id: 'evening-chat-r-quiet-soul-me', chatId: 'evening-chat-r-quiet-soul', userId: 'user-me' },
+      { id: 'evening-chat-r-quiet-soul-liza', chatId: 'evening-chat-r-quiet-soul', userId: 'user-liza' },
+      { id: 'evening-chat-r-afterdark-liza', chatId: 'evening-chat-r-afterdark', userId: 'user-liza' },
+      { id: 'evening-chat-r-afterdark-oleg', chatId: 'evening-chat-r-afterdark', userId: 'user-oleg' },
       { id: 'cm16', chatId: 'p1', userId: 'user-anya', lastReadMessageId: 'p6' },
       { id: 'cm17', chatId: 'p1', userId: 'user-me', lastReadMessageId: 'p3' },
       { id: 'cm18', chatId: 'p2', userId: 'user-mark', lastReadMessageId: 'p7' },
