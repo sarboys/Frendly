@@ -358,6 +358,9 @@ describe('ChatServerService unit', () => {
       createdAt: new Date('2026-04-24T00:00:00.000Z'),
       sender: {
         displayName: 'User',
+        profile: {
+          avatarUrl: 'https://cdn.example.com/user.jpg',
+        },
       },
       replyTo: null,
       attachments: [
@@ -378,6 +381,7 @@ describe('ChatServerService unit', () => {
       ],
     });
 
+    expect(mapped.senderAvatarUrl).toBe('https://cdn.example.com/user.jpg');
     expect(mapped.attachments[0]).toMatchObject({
       id: 'asset-1',
       url: '/media/asset-1',

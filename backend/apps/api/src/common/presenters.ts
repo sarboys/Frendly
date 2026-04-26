@@ -55,7 +55,7 @@ export function formatEventTime(startDate: Date): string {
 
 export function mapMessage(
   message: Message & {
-    sender: User;
+    sender: User & { profile?: Pick<Profile, 'avatarUrl'> | null };
     replyTo?: (Message & {
       sender: User;
       attachments: Array<{
@@ -72,6 +72,7 @@ export function mapMessage(
     chatId: message.chatId,
     senderId: message.senderId,
     senderName: message.sender.displayName,
+    senderAvatarUrl: message.sender.profile?.avatarUrl ?? null,
     text: message.text,
     clientMessageId: message.clientMessageId,
     createdAt: message.createdAt.toISOString(),

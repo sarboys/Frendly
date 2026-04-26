@@ -1186,7 +1186,15 @@ export class EventsService {
             clientMessageId: `invite-decline-${requestId}`,
           },
           include: {
-            sender: true,
+            sender: {
+              include: {
+                profile: {
+                  select: {
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
             attachments: {
               include: {
                 mediaAsset: true,

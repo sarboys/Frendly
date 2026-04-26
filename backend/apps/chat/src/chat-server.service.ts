@@ -240,7 +240,15 @@ export class ChatServerService implements OnModuleDestroy {
         clientMessageId,
       },
       include: {
-        sender: true,
+        sender: {
+          include: {
+            profile: {
+              select: {
+                avatarUrl: true,
+              },
+            },
+          },
+        },
         replyTo: {
           include: {
             sender: true,
@@ -323,7 +331,15 @@ export class ChatServerService implements OnModuleDestroy {
           },
         },
         include: {
-          sender: true,
+          sender: {
+            include: {
+              profile: {
+                select: {
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
           replyTo: {
             include: {
               sender: true,
@@ -431,7 +447,15 @@ export class ChatServerService implements OnModuleDestroy {
         where: { id: messageId },
         data: { text },
         include: {
-          sender: true,
+          sender: {
+            include: {
+              profile: {
+                select: {
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
           replyTo: {
             include: {
               sender: true,
@@ -1003,7 +1027,10 @@ export class ChatServerService implements OnModuleDestroy {
     text: string;
     clientMessageId: string;
     createdAt: Date;
-    sender: { displayName: string };
+    sender: {
+      displayName: string;
+      profile?: { avatarUrl: string | null } | null;
+    };
     replyTo?: {
       id: string;
       senderId: string;
@@ -1035,6 +1062,7 @@ export class ChatServerService implements OnModuleDestroy {
       chatId: message.chatId,
       senderId: message.senderId,
       senderName: message.sender.displayName,
+      senderAvatarUrl: message.sender.profile?.avatarUrl ?? null,
       text: message.text,
       clientMessageId: message.clientMessageId,
       createdAt: message.createdAt.toISOString(),

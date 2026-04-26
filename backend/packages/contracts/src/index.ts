@@ -66,6 +66,7 @@ export interface ChatMessageDto {
   chatId: string;
   senderId: string;
   senderName: string;
+  senderAvatarUrl?: string | null;
   text: string;
   clientMessageId: string;
   createdAt: string;

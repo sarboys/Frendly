@@ -220,7 +220,15 @@ export class ChatsService {
           : {}),
       },
       include: {
-        sender: true,
+        sender: {
+          include: {
+            profile: {
+              select: {
+                avatarUrl: true,
+              },
+            },
+          },
+        },
         replyTo: {
           include: {
             sender: true,
