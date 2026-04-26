@@ -2,6 +2,10 @@ import { Prisma } from '@prisma/client';
 import { EventsService } from '../../src/services/events.service';
 
 describe('EventsService unit', () => {
+  afterEach(() => {
+    delete process.env.ENABLE_POSTGIS_EVENT_FEED;
+  });
+
   const eventFixture = (overrides: Record<string, unknown> = {}) => ({
     id: 'event-1',
     title: 'Встреча',
@@ -235,6 +239,89 @@ describe('EventsService unit', () => {
           }),
         }),
       ]),
+    );
+    expect(result.items.map((item: any) => item.id)).toEqual([
+      'event-near',
+      'event-far',
+    ]);
+    expect(result.items[0]!.distance).toBe('0.1 км');
+  });
+
+  it('uses PostGIS candidate scan for first geo page when enabled', async () => {
+    process.env.ENABLE_POSTGIS_EVENT_FEED = 'true';
+    const queryRaw = jest.fn().mockResolvedValue([
+      {
+        event_id: 'event-near',
+        distance_km: 0.12,
+      },
+      {
+        event_id: 'event-far',
+        distance_km: 3.5,
+      },
+    ]);
+    const eventFindMany = jest.fn().mockResolvedValue([
+      eventFixture({
+        id: 'event-far',
+        title: 'Дальняя встреча',
+        distanceKm: 20,
+      }),
+      eventFixture({
+        id: 'event-near',
+        title: 'Ближняя встреча',
+        distanceKm: 5,
+      }),
+    ]);
+    const service = new EventsService(
+      {
+        client: {
+          $queryRaw: queryRaw,
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          eventParticipant: {
+            findMany: jest.fn().mockResolvedValue([]),
+            groupBy: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 55.75,
+      longitude: 37.61,
+      radiusKm: 25,
+      limit: 2,
+    } as any);
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    const postgisQuery = queryRaw.mock.calls[0][0] as any;
+    const postgisSql = Array.isArray(postgisQuery)
+      ? postgisQuery.join(' ')
+      : postgisQuery.strings.join(' ');
+    expect(postgisSql).toContain('ST_DWithin');
+    expect(postgisSql).toContain('e."isAfterDark" = false');
+    expect(postgisSql).toContain('e."startsAt" >=');
+    expect(eventFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              id: {
+                in: ['event-near', 'event-far'],
+              },
+            }),
+          ]),
+        }),
+      }),
     );
     expect(result.items.map((item: any) => item.id)).toEqual([
       'event-near',

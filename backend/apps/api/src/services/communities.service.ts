@@ -411,7 +411,12 @@ export class CommunitiesService {
     const communityIds = communities.map((item) => item.communityId);
     const chatIds = communities.map((item) => item.chatId);
 
-    const [onlineGroups, unreadRows, memberships] = await Promise.all([
+    const unreadCountsPromise =
+      process.env.CHAT_UNREAD_COUNTER_READS === 'true'
+        ? this.loadUnreadCounters(userId, chatIds)
+        : this.countUnreadMessages(userId, chatIds);
+
+    const [onlineGroups, unreadByChatId, memberships] = await Promise.all([
       this.prismaService.client.communityMember.groupBy({
         by: ['communityId'],
         where: {
@@ -422,26 +427,7 @@ export class CommunitiesService {
           _all: true,
         },
       }),
-      this.prismaService.client.$queryRaw<Array<{
-        chat_id: string;
-        unread_count: bigint | number;
-      }>>`
-        SELECT cm."chatId" AS chat_id, COUNT(m."id") AS unread_count
-        FROM "ChatMember" cm
-        LEFT JOIN "Message" last_read
-          ON last_read."chatId" = cm."chatId"
-          AND last_read."id" = cm."lastReadMessageId"
-        LEFT JOIN "Message" m
-          ON m."chatId" = cm."chatId"
-          AND m."senderId" <> cm."userId"
-          AND (
-            COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
-            OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
-          )
-        WHERE cm."userId" = ${userId}
-          AND cm."chatId" IN (${Prisma.join(chatIds)})
-        GROUP BY cm."chatId"
-      `,
+      unreadCountsPromise,
       this.prismaService.client.communityMember.findMany({
         where: {
           communityId: { in: communityIds },
@@ -458,9 +444,6 @@ export class CommunitiesService {
       onlineGroups.map((item) => [item.communityId, item._count._all]),
     );
 
-    const unreadByChatId = new Map(
-      unreadRows.map((item) => [item.chat_id, Number(item.unread_count)]),
-    );
     const membershipByCommunityId = new Map(
       memberships.map((membership) => [
         membership.communityId,
@@ -473,6 +456,52 @@ export class CommunitiesService {
       unreadByChatId,
       membershipByCommunityId,
     };
+  }
+
+  private async loadUnreadCounters(userId: string, chatIds: string[]) {
+    const rows = await this.prismaService.client.chatMember.findMany({
+      where: {
+        userId,
+        chatId: {
+          in: chatIds,
+        },
+      },
+      select: {
+        chatId: true,
+        unreadCount: true,
+      },
+    });
+
+    return new Map(
+      rows.map((item) => [item.chatId, item.unreadCount]),
+    );
+  }
+
+  private async countUnreadMessages(userId: string, chatIds: string[]) {
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      chat_id: string;
+      unread_count: bigint | number;
+    }>>`
+      SELECT cm."chatId" AS chat_id, COUNT(m."id") AS unread_count
+      FROM "ChatMember" cm
+      LEFT JOIN "Message" last_read
+        ON last_read."chatId" = cm."chatId"
+        AND last_read."id" = cm."lastReadMessageId"
+      LEFT JOIN "Message" m
+        ON m."chatId" = cm."chatId"
+        AND m."senderId" <> cm."userId"
+        AND (
+          COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
+          OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
+        )
+      WHERE cm."userId" = ${userId}
+        AND cm."chatId" IN (${Prisma.join(chatIds)})
+      GROUP BY cm."chatId"
+    `;
+
+    return new Map(
+      rows.map((item) => [item.chat_id, Number(item.unread_count)]),
+    );
   }
 
   private mapCommunity(

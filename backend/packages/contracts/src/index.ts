@@ -168,5 +168,12 @@ export interface WsServerEventMap {
     readAt: string | null;
     createdAt: string;
   };
-  'sync.snapshot': { chatId: string; sinceEventId?: string; events: Array<{ id: string; type: string; payload: unknown; createdAt: string }> };
+  'sync.snapshot': {
+    chatId: string;
+    sinceEventId?: string;
+    reset?: boolean;
+    hasMore?: boolean;
+    nextEventId?: string | null;
+    events: Array<{ id: string; type: string; payload: unknown; createdAt: string }>;
+  };
 }

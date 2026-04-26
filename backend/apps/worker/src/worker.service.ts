@@ -6,6 +6,7 @@ import {
   createRedisPublisher,
   createS3Client,
   publishBusEvent,
+  runRetentionCleanup,
 } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import Redis from 'ioredis';
@@ -19,6 +20,8 @@ const DEFAULT_BUS_PUBLISH_CONCURRENCY = 25;
 const DEFAULT_MESSAGE_NOTIFICATION_BATCH_SIZE = 500;
 const DEFAULT_SYSTEM_NOTIFICATION_INTERVAL_MS = 60_000;
 const DEFAULT_SYSTEM_NOTIFICATION_BATCH_SIZE = 500;
+const DEFAULT_RETENTION_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_RETENTION_BATCH_SIZE = 500;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -26,11 +29,17 @@ const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 export class WorkerService implements OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private systemNotificationTimer?: NodeJS.Timeout;
+  private retentionCleanupTimer?: NodeJS.Timeout;
   private running = false;
   private systemNotificationRunning = false;
+  private retentionCleanupRunning = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
     process.env.WORKER_MAX_EVENTS_PER_RUN,
     DEFAULT_MAX_EVENTS_PER_RUN,
+  );
+  private readonly outboxProcessingConcurrency = this.resolvePositiveInteger(
+    process.env.WORKER_OUTBOX_PROCESSING_CONCURRENCY,
+    1,
   );
   private readonly pushConcurrency = this.resolvePositiveInteger(
     process.env.WORKER_PUSH_CONCURRENCY,
@@ -52,6 +61,16 @@ export class WorkerService implements OnModuleDestroy {
     process.env.WORKER_SYSTEM_NOTIFICATION_BATCH_SIZE,
     DEFAULT_SYSTEM_NOTIFICATION_BATCH_SIZE,
   );
+  private readonly retentionCleanupEnabled =
+    process.env.WORKER_RETENTION_CLEANUP_ENABLED === 'true';
+  private readonly retentionCleanupIntervalMs = this.resolvePositiveInteger(
+    process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS,
+    DEFAULT_RETENTION_CLEANUP_INTERVAL_MS,
+  );
+  private readonly retentionBatchSize = this.resolvePositiveInteger(
+    process.env.RETENTION_BATCH_SIZE,
+    DEFAULT_RETENTION_BATCH_SIZE,
+  );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
   private readonly fakePushProvider = new FakePushProvider();
@@ -67,9 +86,17 @@ export class WorkerService implements OnModuleDestroy {
     this.systemNotificationTimer = setInterval(() => {
       void this.runSystemNotificationScan();
     }, this.systemNotificationIntervalMs);
+    if (this.retentionCleanupEnabled) {
+      this.retentionCleanupTimer = setInterval(() => {
+        void this.runRetentionCleanup();
+      }, this.retentionCleanupIntervalMs);
+    }
 
     void this.runOnce();
     void this.runSystemNotificationScan();
+    if (this.retentionCleanupEnabled) {
+      void this.runRetentionCleanup();
+    }
   }
 
   async onModuleDestroy() {
@@ -78,6 +105,9 @@ export class WorkerService implements OnModuleDestroy {
     }
     if (this.systemNotificationTimer) {
       clearInterval(this.systemNotificationTimer);
+    }
+    if (this.retentionCleanupTimer) {
+      clearInterval(this.retentionCleanupTimer);
     }
 
     await this.redis.quit();
@@ -91,6 +121,18 @@ export class WorkerService implements OnModuleDestroy {
     this.running = true;
 
     try {
+      if (process.env.WORKER_OUTBOX_BATCH_CLAIM === 'true') {
+        const events = await this.claimNextEvents();
+        await this.runWithConcurrency(
+          events,
+          this.outboxProcessingConcurrency,
+          async (event) => {
+            await this.processEvent(event);
+          },
+        );
+        return;
+      }
+
       for (let index = 0; index < this.maxEventsPerRun; index += 1) {
         const event = await this.claimNextEvent();
         if (!event) {
@@ -159,6 +201,46 @@ export class WorkerService implements OnModuleDestroy {
     } catch (error) {
       await this.handleFailure(event.id, event.attempts, error);
     }
+  }
+
+  private async claimNextEvents() {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - PROCESSING_STALE_AFTER_MS);
+
+    return this.prismaService.client.$queryRaw<Array<{
+      id: string;
+      type: string;
+      payload: unknown;
+      attempts: number;
+    }>>`
+      WITH next_events AS (
+        SELECT "id"
+        FROM "OutboxEvent"
+        WHERE (
+          "status" = 'pending'::"OutboxStatus"
+          AND "availableAt" <= ${now}
+        )
+        OR (
+          "status" = 'processing'::"OutboxStatus"
+          AND "lockedAt" <= ${staleBefore}
+        )
+        ORDER BY "createdAt" ASC, "id" ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT ${this.maxEventsPerRun}
+      )
+      UPDATE "OutboxEvent" AS event
+      SET
+        "status" = 'processing'::"OutboxStatus",
+        "lockedAt" = ${now},
+        "attempts" = event."attempts" + 1
+      FROM next_events
+      WHERE event."id" = next_events."id"
+      RETURNING
+        event."id",
+        event."type",
+        event."payload",
+        event."attempts"
+    `;
   }
 
   private async claimNextEvent() {
@@ -477,6 +559,8 @@ export class WorkerService implements OnModuleDestroy {
       rows.map((item) => [item.user_id, Number(item.unread_count)]),
     );
 
+    await this.persistUnreadCounts(chatId, uniqueUserIds, unreadByUserId);
+
     await this.runWithConcurrency(
       uniqueUserIds,
       this.busPublishConcurrency,
@@ -493,6 +577,28 @@ export class WorkerService implements OnModuleDestroy {
     );
   }
 
+  private async persistUnreadCounts(
+    chatId: string,
+    userIds: string[],
+    unreadByUserId: Map<string, number>,
+  ) {
+    if (typeof this.prismaService.client.$executeRaw !== 'function') {
+      return;
+    }
+
+    const values = userIds.map((userId) =>
+      Prisma.sql`(${userId}, ${unreadByUserId.get(userId) ?? 0})`,
+    );
+
+    await this.prismaService.client.$executeRaw`
+      UPDATE "ChatMember" cm
+      SET "unreadCount" = data."unreadCount"
+      FROM (VALUES ${Prisma.join(values)}) AS data("userId", "unreadCount")
+      WHERE cm."chatId" = ${chatId}
+        AND cm."userId" = data."userId"
+    `;
+  }
+
   private async runSystemNotificationScan() {
     if (this.systemNotificationRunning) {
       return;
@@ -505,6 +611,29 @@ export class WorkerService implements OnModuleDestroy {
       await this.enqueueSubscriptionExpiringNotifications();
     } finally {
       this.systemNotificationRunning = false;
+    }
+  }
+
+  private async runRetentionCleanup() {
+    if (this.retentionCleanupRunning) {
+      return;
+    }
+
+    this.retentionCleanupRunning = true;
+
+    try {
+      const report = await runRetentionCleanup(this.prismaService.client, {
+        batchSize: this.retentionBatchSize,
+        onProgress: ({ label, deleted, total }) => {
+          console.log(`[retention] ${label} deleted=${deleted} total=${total}`);
+        },
+      });
+
+      for (const [label, total] of report.deletedByTask) {
+        console.log(`[retention] ${label} done total=${total}`);
+      }
+    } finally {
+      this.retentionCleanupRunning = false;
     }
   }
 

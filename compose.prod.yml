@@ -4,6 +4,20 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements",
+        "-c",
+        "pg_stat_statements.track=all",
+        "-c",
+        "log_min_duration_statement=${POSTGRES_LOG_MIN_DURATION_STATEMENT:-500}",
+        "-c",
+        "statement_timeout=${POSTGRES_STATEMENT_TIMEOUT:-15s}",
+        "-c",
+        "idle_in_transaction_session_timeout=${POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT:-30s}",
+      ]
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -12,6 +26,33 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  pgbouncer:
+    image: bitnami/pgbouncer:1.24.1
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: ${POSTGRES_USER}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_DATABASE: ${POSTGRES_DB}
+      PGBOUNCER_DATABASE: ${POSTGRES_DB}
+      PGBOUNCER_PORT: 6432
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-500}
+      PGBOUNCER_DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-25}
+      PGBOUNCER_RESERVE_POOL_SIZE: ${PGBOUNCER_RESERVE_POOL_SIZE:-10}
+      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: extra_float_digits
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "6432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -35,7 +76,8 @@ services:
     env_file:
       - .env.production
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_DIRECT_URL: ${DATABASE_DIRECT_URL}
+      DATABASE_URL: ${DATABASE_DIRECT_URL}
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_REGION: ${S3_REGION}
@@ -51,6 +93,7 @@ services:
     command: >
       /bin/sh -c "
       pnpm --filter @big-break/database db:deploy &&
+      pnpm --filter @big-break/database db:indexes:hot-path &&
       if [ \"$${RUN_DB_SEED:-false}\" = \"true\" ]; then
         pnpm --filter @big-break/database db:seed;
       else
@@ -66,7 +109,11 @@ services:
     env_file:
       - .env.production
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_DIRECT_URL: ${DATABASE_DIRECT_URL}
+      DATABASE_POOL_URL: ${DATABASE_POOL_URL}
+      DATABASE_URL: ${DATABASE_POOL_URL}
+      CHAT_UNREAD_COUNTER_READS: ${CHAT_UNREAD_COUNTER_READS:-false}
+      ENABLE_POSTGIS_EVENT_FEED: ${ENABLE_POSTGIS_EVENT_FEED:-false}
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_REGION: ${S3_REGION}
@@ -78,6 +125,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
     expose:
       - "3000"
     healthcheck:
@@ -101,7 +150,19 @@ services:
     env_file:
       - .env.production
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_DIRECT_URL: ${DATABASE_DIRECT_URL}
+      DATABASE_POOL_URL: ${DATABASE_POOL_URL}
+      DATABASE_URL: ${DATABASE_POOL_URL}
+      WORKER_OUTBOX_BATCH_CLAIM: ${WORKER_OUTBOX_BATCH_CLAIM:-false}
+      WORKER_OUTBOX_PROCESSING_CONCURRENCY: ${WORKER_OUTBOX_PROCESSING_CONCURRENCY:-1}
+      WORKER_RETENTION_CLEANUP_ENABLED: ${WORKER_RETENTION_CLEANUP_ENABLED:-false}
+      WORKER_RETENTION_CLEANUP_INTERVAL_MS: ${WORKER_RETENTION_CLEANUP_INTERVAL_MS:-21600000}
+      RETENTION_BATCH_SIZE: ${RETENTION_BATCH_SIZE:-500}
+      OUTBOX_DONE_RETENTION_DAYS: ${OUTBOX_DONE_RETENTION_DAYS:-14}
+      OUTBOX_FAILED_RETENTION_DAYS: ${OUTBOX_FAILED_RETENTION_DAYS:-30}
+      AUTH_AUDIT_RETENTION_DAYS: ${AUTH_AUDIT_RETENTION_DAYS:-180}
+      OTP_RETENTION_DAYS: ${OTP_RETENTION_DAYS:-7}
+      NOTIFICATION_READ_RETENTION_DAYS: ${NOTIFICATION_READ_RETENTION_DAYS:-365}
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_REGION: ${S3_REGION}
@@ -113,6 +174,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
     expose:
       - "3001"
     healthcheck:
@@ -136,7 +199,9 @@ services:
     env_file:
       - .env.production
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_DIRECT_URL: ${DATABASE_DIRECT_URL}
+      DATABASE_POOL_URL: ${DATABASE_POOL_URL}
+      DATABASE_URL: ${DATABASE_POOL_URL}
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_REGION: ${S3_REGION}
@@ -148,6 +213,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
     expose:
       - "3002"
     healthcheck:

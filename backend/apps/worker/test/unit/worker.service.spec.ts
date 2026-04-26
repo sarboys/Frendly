@@ -17,6 +17,10 @@ jest.mock('@big-break/database', () => ({
     send: jest.fn(),
   })),
   publishBusEvent: jest.fn(),
+  runRetentionCleanup: jest.fn().mockResolvedValue({
+    deletedByTask: new Map(),
+    skippedRealtimeEvents: true,
+  }),
 }));
 
 import { WorkerService } from '../../src/worker.service';
@@ -24,6 +28,39 @@ import { WorkerService } from '../../src/worker.service';
 describe('worker outbox recovery', () => {
   beforeEach(() => {
     jest.requireMock('@big-break/database').publishBusEvent.mockClear();
+  });
+
+  afterEach(() => {
+    delete process.env.WORKER_OUTBOX_BATCH_CLAIM;
+    delete process.env.WORKER_OUTBOX_PROCESSING_CONCURRENCY;
+    delete process.env.WORKER_RETENTION_CLEANUP_ENABLED;
+    delete process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS;
+  });
+
+  it('starts retention cleanup timer only when enabled', async () => {
+    process.env.WORKER_RETENTION_CLEANUP_ENABLED = 'true';
+    process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS = '1000';
+    const runRetentionCleanup = jest.requireMock('@big-break/database')
+      .runRetentionCleanup as jest.Mock;
+    runRetentionCleanup.mockClear();
+
+    const service = new WorkerService({
+      client: {},
+    } as any);
+    (service as any).runOnce = jest.fn();
+    (service as any).runSystemNotificationScan = jest.fn();
+
+    service.start();
+    await Promise.resolve();
+
+    expect(runRetentionCleanup).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        batchSize: 500,
+      }),
+    );
+
+    await service.onModuleDestroy();
   });
 
   it('reclaims stale processing events and marks them done', async () => {
@@ -172,6 +209,98 @@ describe('worker outbox recovery', () => {
     });
   });
 
+  it('claims available outbox events in a batch with skip locked SQL', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'true';
+    const events = [
+      {
+        id: 'evt-1',
+        type: 'push.dispatch',
+        payload: {
+          userId: 'user-me',
+          notificationId: 'n-1',
+        },
+        attempts: 1,
+      },
+      {
+        id: 'evt-2',
+        type: 'push.dispatch',
+        payload: {
+          userId: 'user-me',
+          notificationId: 'n-2',
+        },
+        attempts: 1,
+      },
+    ];
+    const queryRaw = jest.fn().mockResolvedValue(events);
+    const update = jest.fn().mockResolvedValue({});
+    const findNotification = jest.fn().mockResolvedValue(null);
+
+    const prismaService = {
+      client: {
+        $queryRaw: queryRaw,
+        outboxEvent: {
+          update,
+        },
+        notification: {
+          findUnique: findNotification,
+        },
+        pushToken: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any;
+
+    const service = new WorkerService(prismaService);
+
+    await service.runOnce();
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(String(queryRaw.mock.calls[0][0])).toContain('SKIP LOCKED');
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update).toHaveBeenNthCalledWith(1, {
+      where: { id: 'evt-1' },
+      data: expect.objectContaining({
+        status: 'done',
+      }),
+    });
+    expect(update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'evt-2' },
+      data: expect.objectContaining({
+        status: 'done',
+      }),
+    });
+  });
+
+  it('processes claimed outbox batch with bounded concurrency when enabled', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'true';
+    process.env.WORKER_OUTBOX_PROCESSING_CONCURRENCY = '2';
+    const queryRaw = jest.fn().mockResolvedValue([
+      { id: 'evt-1', type: 'push.dispatch', payload: {}, attempts: 1 },
+      { id: 'evt-2', type: 'push.dispatch', payload: {}, attempts: 1 },
+      { id: 'evt-3', type: 'push.dispatch', payload: {}, attempts: 1 },
+    ]);
+
+    const service = new WorkerService({
+      client: {
+        $queryRaw: queryRaw,
+      },
+    } as any);
+
+    let active = 0;
+    let maxActive = 0;
+    (service as any).processEvent = jest.fn().mockImplementation(async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      active -= 1;
+    });
+
+    await service.runOnce();
+
+    expect((service as any).processEvent).toHaveBeenCalledTimes(3);
+    expect(maxActive).toBe(2);
+  });
+
   it('publishes unread fanout events from outbox payload', async () => {
     const now = Date.now();
     const event = {
@@ -197,6 +326,7 @@ describe('worker outbox recovery', () => {
         unread_count: BigInt(3),
       },
     ]);
+    const executeRaw = jest.fn().mockResolvedValue(2);
 
     const prismaService = {
       client: {
@@ -209,6 +339,7 @@ describe('worker outbox recovery', () => {
           findUnique: jest.fn(),
         },
         $queryRaw: queryRaw,
+        $executeRaw: executeRaw,
         pushToken: {
           findMany: jest.fn(),
         },
@@ -222,6 +353,7 @@ describe('worker outbox recovery', () => {
     await service.runOnce();
 
     expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(executeRaw).toHaveBeenCalledTimes(1);
     expect(publishBusEvent).toHaveBeenCalledWith(
       expect.anything(),
       {

@@ -266,6 +266,8 @@ model User {
   authAuditEvents   AuthAuditEvent[]
   datingActionsSent DatingAction[]          @relation("DatingActionActor")
   datingActionsReceived DatingAction[]       @relation("DatingActionTarget")
+
+  @@index([displayName, id])
 }
 
 model UserSettings {
@@ -283,6 +285,8 @@ model UserSettings {
   afterDarkAgeConfirmedAt DateTime?
   afterDarkCodeAcceptedAt DateTime?
   updatedAt           DateTime @updatedAt
+
+  @@index([discoverable, userId])
 }
 
 model UserVerification {
@@ -490,6 +494,8 @@ model Event {
   @@index([isAfterDark, priceMode, startsAt, id])
   @@index([isAfterDark, accessMode, startsAt, id])
   @@index([isAfterDark, genderMode, startsAt, id])
+  @@index([startsAt, id])
+  @@index([hostId, startsAt, id])
   @@unique([hostId, idempotencyKey])
 }
 
@@ -552,6 +558,8 @@ model EventJoinRequest {
 
   @@unique([eventId, userId])
   @@index([eventId, status])
+  @@index([status, reviewedById, createdAt, id])
+  @@index([eventId, status, reviewedById, createdAt, id])
 }
 
 model EventAttendance {
@@ -623,6 +631,9 @@ model TrustedContact {
   mode         TrustedContactMode @default(all_plans)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+
+  @@index([userId, createdAt, id])
+  @@index([userId, phoneNumber])
 }
 
 model UserReport {
@@ -637,6 +648,9 @@ model UserReport {
   updatedAt      DateTime     @updatedAt
   reporter       User         @relation("UserReportsSent", fields: [reporterId], references: [id], onDelete: Cascade)
   targetUser     User         @relation("UserReportsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId, status, createdAt, id])
+  @@index([targetUserId, status, createdAt, id])
 }
 
 model UserBlock {
@@ -681,6 +695,8 @@ model UserSubscription {
   @@index([userId, createdAt])
   @@index([userId, status, renewsAt])
   @@index([userId, status, trialEndsAt])
+  @@index([status, renewsAt, id])
+  @@index([status, trialEndsAt, id])
 }
 
 model DatingAction {
@@ -822,12 +838,14 @@ model ChatMember {
   joinedAt          DateTime  @default(now())
   lastReadMessageId String?
   lastReadAt        DateTime?
+  unreadCount       Int       @default(0)
   chat              Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([chatId, userId])
   @@index([chatId, id])
   @@index([userId])
+  @@index([userId, chatId])
 }
 
 model Message {
@@ -846,6 +864,7 @@ model Message {
 
   @@unique([chatId, clientMessageId])
   @@index([chatId, createdAt, id])
+  @@index([chatId, createdAt, senderId])
   @@index([chatId, replyToMessageId])
 }
 
@@ -927,6 +946,7 @@ model PushToken {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, disabledAt])
+  @@index([userId, deviceId])
 }
 
 model OutboxEvent {

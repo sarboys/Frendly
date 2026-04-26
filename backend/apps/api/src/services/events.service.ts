@@ -40,6 +40,11 @@ type EventGeoQuery = {
   bounds?: EventGeoBounds;
 };
 
+type PostgisEventCandidate = {
+  eventId: string;
+  distanceKm: number;
+};
+
 const EARTH_RADIUS_KM = 6371;
 
 @Injectable()
@@ -98,6 +103,32 @@ export class EventsService {
       where.AND = [...conditions, cursorWhere];
     }
 
+    const postgisCandidates = await this.loadPostgisEventCandidates({
+      geoQuery,
+      cursor: params.cursor,
+      take,
+      radiusKm: params.radiusKm,
+    });
+    const postgisDistanceByEventId = new Map(
+      (postgisCandidates ?? []).map((candidate) => [
+        candidate.eventId,
+        candidate.distanceKm,
+      ]),
+    );
+
+    if (postgisCandidates != null) {
+      const conditions = (where.AND as Prisma.EventWhereInput[] | undefined) ?? [];
+      const candidateIds = postgisCandidates.map((candidate) => candidate.eventId);
+      where.AND = [
+        ...conditions,
+        {
+          id: {
+            in: candidateIds,
+          },
+        },
+      ];
+    }
+
     const events = await this.prismaService.client.event.findMany({
       where,
       include: {
@@ -131,11 +162,15 @@ export class EventsService {
           select: { status: true },
         },
       },
-      orderBy: this.listOrderBy(filter, geoQuery),
-      take: this.listTake(take, geoQuery),
+      orderBy: this.listOrderBy(filter, postgisCandidates == null ? geoQuery : undefined),
+      take: postgisCandidates == null
+        ? this.listTake(take, geoQuery)
+        : postgisCandidates.length,
     });
 
-    const orderedEvents = this.orderEventsByGeo(events, geoQuery);
+    const orderedEvents = postgisCandidates == null
+      ? this.orderEventsByGeo(events, geoQuery)
+      : this.orderEventsByPostgisCandidates(events, postgisCandidates);
     const hasMore = orderedEvents.length > take;
     const page = hasMore ? orderedEvents.slice(0, take) : orderedEvents;
     const pageEventIds = page.map((event) => event.id);
@@ -178,7 +213,11 @@ export class EventsService {
 
     const mapped = page.map((event) =>
       mapEventSummary({
-        event: this.eventWithGeoDistance(event, geoQuery),
+        event: this.eventWithGeoDistance(
+          event,
+          geoQuery,
+          postgisDistanceByEventId.get(event.id),
+        ),
         participants: event.participants,
         currentUserId: userId,
         participantCount: participantCountByEventId.get(event.id),
@@ -1758,6 +1797,57 @@ export class EventsService {
     return Math.max(take + 1, Math.min(take * 6, 300));
   }
 
+  private async loadPostgisEventCandidates(params: {
+    geoQuery?: EventGeoQuery;
+    cursor?: string;
+    take: number;
+    radiusKm?: number;
+  }): Promise<PostgisEventCandidate[] | null> {
+    const center = params.geoQuery?.center;
+    if (
+      process.env.ENABLE_POSTGIS_EVENT_FEED !== 'true' ||
+      center == null ||
+      params.cursor != null
+    ) {
+      return null;
+    }
+
+    const radiusKm =
+      params.radiusKm == null || !Number.isFinite(params.radiusKm)
+        ? 20
+        : Math.max(0.2, Math.min(params.radiusKm, 100));
+    const radiusMeters = radiusKm * 1000;
+    const candidateLimit = this.listTake(params.take, params.geoQuery);
+    const now = new Date();
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      event_id: string;
+      distance_km: bigint | number | string;
+    }>>`
+      SELECT
+        e."id" AS event_id,
+        ST_Distance(
+          e."geo",
+          ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography
+        ) / 1000 AS distance_km
+      FROM "Event" e
+      WHERE e."geo" IS NOT NULL
+        AND e."isAfterDark" = false
+        AND e."startsAt" >= ${now}
+        AND ST_DWithin(
+          e."geo",
+          ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography,
+          ${radiusMeters}
+        )
+      ORDER BY distance_km ASC, e."id" ASC
+      LIMIT ${candidateLimit}
+    `;
+
+    return rows.map((row) => ({
+      eventId: row.event_id,
+      distanceKm: Number(row.distance_km),
+    }));
+  }
+
   private normalizeEventGeoQuery(params: {
     latitude?: number;
     longitude?: number;
@@ -1890,13 +1980,31 @@ export class EventsService {
     });
   }
 
+  private orderEventsByPostgisCandidates<T extends { id: string }>(
+    events: T[],
+    candidates: PostgisEventCandidate[],
+  ) {
+    const eventById = new Map(events.map((event) => [event.id, event]));
+
+    return candidates
+      .map((candidate) => eventById.get(candidate.eventId))
+      .filter((event): event is T => event != null);
+  }
+
   private eventWithGeoDistance<
     T extends {
       distanceKm: number;
       latitude?: number | null;
       longitude?: number | null;
     },
-  >(event: T, geoQuery?: EventGeoQuery): T {
+  >(event: T, geoQuery?: EventGeoQuery, distanceKm?: number): T {
+    if (distanceKm != null && Number.isFinite(distanceKm)) {
+      return {
+        ...event,
+        distanceKm,
+      };
+    }
+
     const center = geoQuery?.center;
     if (center == null || event.latitude == null || event.longitude == null) {
       return event;

@@ -299,6 +299,7 @@ export class ChatsService {
         data: {
           lastReadMessageId: messageId,
           lastReadAt: now,
+          unreadCount: 0,
         },
       });
 
@@ -369,6 +370,28 @@ export class ChatsService {
   ) {
     if (chatIds.length === 0) {
       return new Map<string, number>();
+    }
+
+    if (
+      process.env.CHAT_UNREAD_COUNTER_READS === 'true' &&
+      blockedUserIds.size === 0
+    ) {
+      const rows = await this.prismaService.client.chatMember.findMany({
+        where: {
+          userId,
+          chatId: {
+            in: chatIds,
+          },
+        },
+        select: {
+          chatId: true,
+          unreadCount: true,
+        },
+      });
+
+      return new Map(
+        rows.map((item) => [item.chatId, item.unreadCount]),
+      );
     }
 
     const blockedSenderFilter = blockedUserIds.size === 0

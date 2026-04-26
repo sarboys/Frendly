@@ -1,4 +1,5 @@
 import { OUTBOX_EVENT_TYPES, decodeCursor, encodeCursor } from '@big-break/database';
+import { Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import {
@@ -26,27 +27,12 @@ export class HostService {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const eventsTake = this.normalizeLimit(params.eventsLimit);
     const requestsTake = this.normalizeLimit(params.requestsLimit);
-    const [host, statsEvents, pendingRequestsCount, eventsCursor, requestsCursor] = await Promise.all([
+    const [host, dashboardStats, pendingRequestsCount, eventsCursor, requestsCursor] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
         include: { profile: true },
       }),
-      this.prismaService.client.event.findMany({
-        where: { hostId: userId },
-        select: {
-          id: true,
-          capacity: true,
-          participants: {
-            where: {
-              userId: {
-                notIn: [...blockedUserIds],
-              },
-            },
-            select: { id: true },
-          },
-        },
-        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
-      }),
+      this.loadDashboardStats(userId, blockedUserIds),
       this.prismaService.client.eventJoinRequest.count({
         where: {
           event: {
@@ -107,19 +93,6 @@ export class HostService {
       }),
     ]);
 
-    const averageFillRate =
-      statsEvents.length === 0
-        ? 0
-        : Math.round(
-            (statsEvents.reduce(
-              (acc, event) =>
-                acc + event.participants.length / Math.max(event.capacity, 1),
-              0,
-            ) /
-              statsEvents.length) *
-              100,
-          );
-
     const hasMoreRequests = requestsPage.length > requestsTake;
     const requestPage = hasMoreRequests ? requestsPage.slice(0, requestsTake) : requestsPage;
     const requestItems = requestPage
@@ -140,9 +113,9 @@ export class HostService {
 
     return {
       stats: {
-        meetupsCount: statsEvents.length,
+        meetupsCount: dashboardStats.meetupsCount,
         rating: host?.profile?.rating ?? 0,
-        fillRate: averageFillRate,
+        fillRate: dashboardStats.fillRate,
       },
       pendingRequestsCount,
       requests: requestItems,
@@ -155,6 +128,44 @@ export class HostService {
           hasMoreEvents && eventPage.length > 0
               ? encodeCursor({ value: eventPage[eventPage.length - 1]!.id })
               : null,
+    };
+  }
+
+  private async loadDashboardStats(userId: string, blockedUserIds: Set<string>) {
+    const blockedParticipantFilter = blockedUserIds.size === 0
+      ? Prisma.empty
+      : Prisma.sql`AND ep."userId" NOT IN (${Prisma.join([...blockedUserIds])})`;
+
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      meetups_count: bigint | number;
+      fill_rate: bigint | number | string | null;
+    }>>`
+      SELECT
+        COUNT(e."id") AS meetups_count,
+        COALESCE(
+          ROUND(
+            AVG(
+              COALESCE(participants."participantCount", 0)::numeric
+              / GREATEST(e."capacity", 1)
+            ) * 100
+          ),
+          0
+        ) AS fill_rate
+      FROM "Event" e
+      LEFT JOIN LATERAL (
+        SELECT COUNT(ep."id") AS "participantCount"
+        FROM "EventParticipant" ep
+        WHERE ep."eventId" = e."id"
+          ${blockedParticipantFilter}
+      ) participants ON true
+      WHERE e."hostId" = ${userId}
+    `;
+
+    const row = rows[0];
+
+    return {
+      meetupsCount: Number(row?.meetups_count ?? 0),
+      fillRate: Number(row?.fill_rate ?? 0),
     };
   }
 

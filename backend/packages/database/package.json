@@ -11,6 +11,12 @@
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
+    "db:indexes:hot-path": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/create-hot-path-indexes.ts",
+    "db:backfill:chat-unread": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/backfill-chat-unread-counts.ts",
+    "db:verify:chat-unread": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/verify-chat-unread-counts.ts",
+    "db:cleanup:retention": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/cleanup-retention.ts",
+    "db:postgis:event-geo": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/enable-postgis-event-geo.ts",
+    "db:perf:hot-queries": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/explain-hot-queries.ts",
     "db:reset:test-users": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/reset-test-users.ts",
     "predb:seed": "pnpm prisma:generate",
     "db:seed": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/seed.ts"

@@ -613,6 +613,7 @@ export class ChatServerService implements OnModuleDestroy {
         data: {
           lastReadMessageId: messageId,
           lastReadAt: now,
+          unreadCount: 0,
         },
       });
 
@@ -698,14 +699,48 @@ export class ChatServerService implements OnModuleDestroy {
 
     await this.assertMembership(state.userId!, chatId);
     const blockedUserIds = await this.getBlockedUserIds(state.userId!);
+    const parsedSinceEventId = this.parseSyncEventId(sinceEventId);
+
+    if (sinceEventId != null && parsedSinceEventId == null) {
+      this.send(socket, {
+        type: 'sync.snapshot',
+        payload: {
+          chatId,
+          sinceEventId,
+          reset: true,
+          hasMore: false,
+          nextEventId: null,
+          events: [],
+        },
+      });
+      return;
+    }
+
+    if (
+      parsedSinceEventId != null &&
+      (await this.isSyncCursorOlderThanRetainedEvents(chatId, parsedSinceEventId))
+    ) {
+      this.send(socket, {
+        type: 'sync.snapshot',
+        payload: {
+          chatId,
+          sinceEventId,
+          reset: true,
+          hasMore: false,
+          nextEventId: null,
+          events: [],
+        },
+      });
+      return;
+    }
 
     const events = await this.prismaService.client.realtimeEvent.findMany({
       where: {
         chatId,
-        ...(sinceEventId
+        ...(parsedSinceEventId != null
           ? {
               id: {
-                gt: BigInt(sinceEventId),
+                gt: parsedSinceEventId,
               },
             }
           : {}),
@@ -742,6 +777,35 @@ export class ChatServerService implements OnModuleDestroy {
         })),
       },
     });
+  }
+
+  private async isSyncCursorOlderThanRetainedEvents(
+    chatId: string,
+    sinceEventId: bigint,
+  ) {
+    const firstEvent = await this.prismaService.client.realtimeEvent.findFirst({
+      where: { chatId },
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    if (firstEvent == null) {
+      return false;
+    }
+
+    return firstEvent.id > sinceEventId + BigInt(1);
+  }
+
+  private parseSyncEventId(eventId?: string) {
+    if (eventId == null) {
+      return null;
+    }
+
+    try {
+      return BigInt(eventId);
+    } catch {
+      return null;
+    }
   }
 
   private normalizeSyncEventLimit(limit: unknown) {

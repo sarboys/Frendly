@@ -92,6 +92,57 @@ describe('ChatServerService unit', () => {
     expect(sent.payload.events).toHaveLength(100);
   });
 
+  it('returns reset snapshot when sync cursor is older than retained events', async () => {
+    const socket = {
+      readyState: WebSocket.OPEN,
+      send: jest.fn(),
+    };
+    const findMany = jest.fn();
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findFirst: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'direct',
+              members: [{ userId: 'user-me' }, { userId: 'user-peer' }],
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        realtimeEvent: {
+          findFirst: jest.fn().mockResolvedValue({ id: BigInt(15) }),
+          findMany,
+        },
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(socket, {
+      userId: 'user-me',
+      subscriptions: new Set(['chat-1']),
+    });
+
+    await (service as any).sync(socket, {
+      chatId: 'chat-1',
+      sinceEventId: '10',
+    });
+
+    const sent = JSON.parse(socket.send.mock.calls[0][0]);
+    expect(sent).toMatchObject({
+      type: 'sync.snapshot',
+      payload: {
+        chatId: 'chat-1',
+        sinceEventId: '10',
+        reset: true,
+        hasMore: false,
+        nextEventId: null,
+        events: [],
+      },
+    });
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
   it('broadcasts message event with one blocked-user lookup per actor', async () => {
     const findMany = jest.fn().mockResolvedValue([
       {

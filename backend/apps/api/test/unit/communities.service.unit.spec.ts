@@ -2,6 +2,10 @@ import { Prisma } from '@prisma/client';
 import { CommunitiesService } from '../../src/services/communities.service';
 
 describe('CommunitiesService unit', () => {
+  afterEach(() => {
+    delete process.env.CHAT_UNREAD_COUNTER_READS;
+  });
+
   it('counts community chat unread messages from chat member read state, not notifications', async () => {
     const queryRaw = jest.fn().mockResolvedValue([
       {
@@ -37,6 +41,54 @@ describe('CommunitiesService unit', () => {
     expect(
       (service as any).prismaService.client.notification.groupBy,
     ).not.toHaveBeenCalled();
+  });
+
+  it('reads community chat unread counters from ChatMember when enabled', async () => {
+    process.env.CHAT_UNREAD_COUNTER_READS = 'true';
+    const queryRaw = jest.fn();
+    const chatMemberFindMany = jest.fn().mockResolvedValue([
+      {
+        chatId: 'chat-1',
+        unreadCount: 5,
+      },
+    ]);
+    const service = new CommunitiesService(
+      {
+        client: {
+          communityMember: {
+            groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          chatMember: {
+            findMany: chatMemberFindMany,
+          },
+          $queryRaw: queryRaw,
+        },
+      } as any,
+      {} as any,
+    );
+
+    const counters = await (service as any).loadCounters('user-me', [
+      {
+        communityId: 'community-1',
+        chatId: 'chat-1',
+      },
+    ]);
+
+    expect(counters.unreadByChatId).toEqual(new Map([['chat-1', 5]]));
+    expect(chatMemberFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-me',
+        chatId: {
+          in: ['chat-1'],
+        },
+      },
+      select: {
+        chatId: true,
+        unreadCount: true,
+      },
+    });
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 
   it('loads online counters with groupBy instead of all online member rows',
