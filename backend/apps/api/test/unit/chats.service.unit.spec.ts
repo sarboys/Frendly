@@ -72,4 +72,33 @@ describe('ChatsService unit', () => {
     });
     expect(queryRaw).not.toHaveBeenCalled();
   });
+
+  it('maps evening meetup chat phase metadata for the chat list', () => {
+    const service = new ChatsService({ client: {} } as any);
+    const phase = (service as any).mapEveningChatPhase({
+      meetupPhase: 'live',
+      meetupMode: 'hybrid',
+      currentStep: 2,
+      meetupStartsAt: new Date('2026-04-26T16:00:00.000Z'),
+      meetupEndsAt: new Date('2026-04-26T18:00:00.000Z'),
+      eveningRoute: {
+        id: 'r-cozy-circle',
+        steps: [
+          { sortOrder: 0, venue: 'Brix Wine', endTimeLabel: '20:15' },
+          { sortOrder: 1, venue: 'Standup Store', endTimeLabel: '22:00' },
+        ],
+      },
+    });
+
+    expect(phase).toEqual({
+      phase: 'live',
+      currentStep: 2,
+      totalSteps: 2,
+      currentPlace: 'Standup Store',
+      endTime: '22:00',
+      startsInLabel: null,
+      routeId: 'r-cozy-circle',
+      mode: 'hybrid',
+    });
+  });
 });

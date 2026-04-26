@@ -901,6 +901,11 @@ model Chat {
   sourceEventId  String?
   sourceEvent    Event?          @relation("ChatSourceEvent", fields: [sourceEventId], references: [id], onDelete: SetNull)
   directKey      String?         @unique
+  meetupPhase    String          @default("upcoming")
+  meetupMode     String          @default("hybrid")
+  currentStep    Int?
+  meetupStartsAt DateTime?
+  meetupEndsAt   DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   messages       Message[]
@@ -910,6 +915,7 @@ model Chat {
   realtimeEvents RealtimeEvent[]
 
   @@index([kind, updatedAt, id])
+  @@index([kind, meetupPhase, updatedAt, id])
 }
 
 model ChatMember {

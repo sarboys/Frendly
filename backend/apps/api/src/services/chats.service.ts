@@ -48,6 +48,11 @@ export class ChatsService {
             startsAt: true,
             isAfterDark: true,
             afterDarkGlow: true,
+            liveState: {
+              select: {
+                status: true,
+              },
+            },
           },
         },
         sourceEvent: {
@@ -80,6 +85,19 @@ export class ChatsService {
           },
           orderBy: { createdAt: 'desc' },
           take: 1,
+        },
+        eveningRoute: {
+          select: {
+            id: true,
+            steps: {
+              select: {
+                sortOrder: true,
+                venue: true,
+                endTimeLabel: true,
+              },
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+            },
+          },
         },
       },
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
@@ -139,6 +157,7 @@ export class ChatsService {
               chat.event?.isAfterDark ?? chat.sourceEvent?.isAfterDark ?? false,
               chat.event?.afterDarkGlow ?? chat.sourceEvent?.afterDarkGlow ?? null,
             ),
+            ...this.mapEveningChatPhase(chat),
           };
         }
 
@@ -172,6 +191,117 @@ export class ChatsService {
               ? encodeCursor({ value: page[page.length - 1]!.id })
               : null,
     };
+  }
+
+  private mapEveningChatPhase(chat: {
+    meetupPhase?: string | null;
+    meetupMode?: string | null;
+    currentStep?: number | null;
+    meetupStartsAt?: Date | null;
+    meetupEndsAt?: Date | null;
+    event?: { liveState?: { status: string } | null; startsAt?: Date | null } | null;
+    eveningRoute?: {
+      id: string;
+      steps: Array<{
+        sortOrder: number;
+        venue: string;
+        endTimeLabel: string | null;
+      }>;
+    } | null;
+  }) {
+    const route = chat.eveningRoute ?? null;
+    const steps = route?.steps ?? [];
+    const totalSteps = steps.length || null;
+    const phase = this.normalizeMeetupPhase(
+      route ? chat.meetupPhase : this.phaseFromEvent(chat.event ?? null),
+    );
+    const mode = this.normalizeEveningMode(chat.meetupMode);
+    const currentStep =
+      phase === 'live'
+        ? this.normalizeCurrentStep(chat.currentStep, totalSteps)
+        : null;
+    const current =
+      currentStep == null ? null : steps[Math.max(0, currentStep - 1)] ?? null;
+
+    return {
+      phase,
+      currentStep,
+      totalSteps,
+      currentPlace: current?.venue ?? null,
+      endTime: current?.endTimeLabel ?? this.formatClock(chat.meetupEndsAt),
+      startsInLabel:
+        phase === 'soon' ? this.formatStartsIn(chat.meetupStartsAt) : null,
+      routeId: route?.id ?? null,
+      mode,
+    };
+  }
+
+  private phaseFromEvent(event: { liveState?: { status: string } | null; startsAt?: Date | null } | null) {
+    if (event?.liveState?.status === 'live') {
+      return 'live';
+    }
+    if (!event?.startsAt) {
+      return 'upcoming';
+    }
+
+    const msUntilStart = event.startsAt.getTime() - Date.now();
+    if (msUntilStart > 0 && msUntilStart <= 2 * 60 * 60 * 1000) {
+      return 'soon';
+    }
+
+    return 'upcoming';
+  }
+
+  private normalizeMeetupPhase(value: string | null | undefined) {
+    return value === 'live' || value === 'soon' || value === 'done'
+      ? value
+      : 'upcoming';
+  }
+
+  private normalizeEveningMode(value: string | null | undefined) {
+    return value === 'auto' || value === 'manual' || value === 'hybrid'
+      ? value
+      : 'hybrid';
+  }
+
+  private normalizeCurrentStep(value: number | null | undefined, totalSteps: number | null) {
+    if (totalSteps == null || totalSteps <= 0) {
+      return null;
+    }
+    if (value == null || value < 1) {
+      return 1;
+    }
+    return Math.min(value, totalSteps);
+  }
+
+  private formatStartsIn(value: Date | null | undefined) {
+    if (!value) {
+      return null;
+    }
+
+    const diffMinutes = Math.max(
+      1,
+      Math.round((value.getTime() - Date.now()) / 60000),
+    );
+    if (diffMinutes >= 60) {
+      const hours = Math.floor(diffMinutes / 60);
+      const minutes = diffMinutes % 60;
+      return minutes > 0 ? `Через ${hours} ч ${minutes} мин` : `Через ${hours} ч`;
+    }
+    return `Через ${diffMinutes} мин`;
+  }
+
+  private formatClock(value: Date | null | undefined) {
+    if (!value) {
+      return null;
+    }
+
+    return new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Europe/Moscow',
+    }).format(value);
   }
 
   async getMessages(userId: string, chatId: string, params: { cursor?: string; limit?: number }) {

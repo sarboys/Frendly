@@ -260,4 +260,137 @@ describe('EveningService unit', () => {
       ]),
     });
   });
+
+  it('launches an evening route by updating the linked chat phase', async () => {
+    const findUnique = jest.fn().mockResolvedValue(routeFixture());
+    const chatMemberUpsert = jest.fn().mockResolvedValue({});
+    const chatUpdate = jest.fn().mockResolvedValue({
+      id: 'evening-chat-r-cozy-circle',
+      meetupPhase: 'live',
+      meetupMode: 'manual',
+      currentStep: 1,
+    });
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findUnique,
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              chatMember: {
+                upsert: chatMemberUpsert,
+              },
+              chat: {
+                update: chatUpdate,
+              },
+            }),
+          ),
+        },
+      } as any,
+    );
+
+    const result = await service.launchRoute('user-me', 'r-cozy-circle', {
+      mode: 'manual',
+      startDelayMin: 15,
+    });
+
+    expect(chatMemberUpsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'evening-chat-r-cozy-circle',
+          userId: 'user-me',
+        },
+      },
+      create: {
+        chatId: 'evening-chat-r-cozy-circle',
+        userId: 'user-me',
+      },
+      update: {},
+    });
+    expect(chatUpdate).toHaveBeenCalledWith({
+      where: { id: 'evening-chat-r-cozy-circle' },
+      data: expect.objectContaining({
+        meetupPhase: 'live',
+        meetupMode: 'manual',
+        currentStep: 1,
+      }),
+    });
+    expect(result.phase).toBe('live');
+    expect(result.chatId).toBe('evening-chat-r-cozy-circle');
+    expect(result.mode).toBe('manual');
+  });
+
+  it('launches an evening route by creating a meetup chat when missing', async () => {
+    const findUnique = jest
+      .fn()
+      .mockResolvedValue(routeFixture({ chatId: null }));
+    const chatCreate = jest.fn().mockResolvedValue({
+      id: 'evening-chat-new',
+    });
+    const eveningRouteUpdate = jest.fn().mockResolvedValue({});
+    const chatMemberUpsert = jest.fn().mockResolvedValue({});
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findUnique,
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              chat: {
+                create: chatCreate,
+              },
+              eveningRoute: {
+                update: eveningRouteUpdate,
+              },
+              chatMember: {
+                upsert: chatMemberUpsert,
+              },
+            }),
+          ),
+        },
+      } as any,
+    );
+
+    const result = await service.launchRoute('user-me', 'r-cozy-circle', {
+      mode: 'hybrid',
+    });
+
+    expect(chatCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        kind: 'meetup',
+        origin: 'meetup',
+        title: 'Теплый круг на Покровке',
+        meetupPhase: 'live',
+        meetupMode: 'hybrid',
+        currentStep: 1,
+      }),
+    });
+    expect(eveningRouteUpdate).toHaveBeenCalledWith({
+      where: { id: 'r-cozy-circle' },
+      data: { chatId: 'evening-chat-new' },
+    });
+    expect(chatMemberUpsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'evening-chat-new',
+          userId: 'user-me',
+        },
+      },
+      create: {
+        chatId: 'evening-chat-new',
+        userId: 'user-me',
+      },
+      update: {},
+    });
+    expect(result.chatId).toBe('evening-chat-new');
+    expect(result.phase).toBe('live');
+  });
 });

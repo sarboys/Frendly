@@ -345,6 +345,134 @@ export class EveningService {
     };
   }
 
+  async launchRoute(
+    userId: string,
+    routeId: string,
+    body: Record<string, unknown> = {},
+  ) {
+    const route = await this.prismaService.client.eveningRoute.findUnique({
+      where: { id: routeId },
+      include: {
+        steps: {
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
+    });
+
+    if (!route) {
+      throw new ApiError(404, 'evening_route_not_found', 'Evening route not found');
+    }
+
+    await this.assertRouteUnlocked(userId, route);
+
+    const mode = this.parseLaunchMode(body.mode);
+    const startDelayMin = this.parseStartDelay(body.startDelayMin);
+    const startsAt = new Date(Date.now() + startDelayMin * 60000);
+
+    const chatId = await this.prismaService.client.$transaction(async (tx) => {
+      let activeChatId = route.chatId;
+
+      if (!activeChatId) {
+        const chat = await tx.chat.create({
+          data: {
+            kind: 'meetup',
+            origin: 'meetup',
+            title: route.title,
+            emoji: '✨',
+            meetupPhase: 'live',
+            meetupMode: mode,
+            currentStep: 1,
+            meetupStartsAt: startsAt,
+            meetupEndsAt: null,
+          },
+        });
+
+        await tx.eveningRoute.update({
+          where: { id: route.id },
+          data: { chatId: chat.id },
+        });
+
+        activeChatId = chat.id;
+      } else {
+        await tx.chat.update({
+          where: { id: activeChatId },
+          data: {
+            meetupPhase: 'live',
+            meetupMode: mode,
+            currentStep: 1,
+            meetupStartsAt: startsAt,
+            meetupEndsAt: null,
+          },
+        });
+      }
+
+      await tx.chatMember.upsert({
+        where: {
+          chatId_userId: {
+            chatId: activeChatId,
+            userId,
+          },
+        },
+        create: {
+          chatId: activeChatId,
+          userId,
+        },
+        update: {},
+      });
+
+      return activeChatId;
+    });
+
+    return {
+      routeId: route.id,
+      chatId,
+      phase: 'live',
+      mode,
+      currentStep: 1,
+      totalSteps: route.steps.length,
+      currentPlace: route.steps[0]?.venue ?? null,
+      startsAt: startsAt.toISOString(),
+      endsAt: null,
+    };
+  }
+
+  async finishRoute(userId: string, routeId: string) {
+    const route = await this.prismaService.client.eveningRoute.findUnique({
+      where: { id: routeId },
+      select: {
+        id: true,
+        premium: true,
+        chatId: true,
+      },
+    });
+
+    if (!route) {
+      throw new ApiError(404, 'evening_route_not_found', 'Evening route not found');
+    }
+    if (!route.chatId) {
+      throw new ApiError(409, 'evening_route_chat_missing', 'Evening route chat is missing');
+    }
+
+    await this.assertRouteUnlocked(userId, route);
+
+    const finishedAt = new Date();
+    await this.prismaService.client.chat.update({
+      where: { id: route.chatId },
+      data: {
+        meetupPhase: 'done',
+        currentStep: null,
+        meetupEndsAt: finishedAt,
+      },
+    });
+
+    return {
+      routeId: route.id,
+      chatId: route.chatId,
+      phase: 'done',
+      finishedAt: finishedAt.toISOString(),
+    };
+  }
+
   private async findRouteCandidates(params: {
     goal: string | null;
     mood: string | null;
@@ -608,6 +736,23 @@ export class EveningService {
     if (!hasPremium) {
       throw new ApiError(403, 'evening_plus_required', 'Frendly Plus is required for this evening route');
     }
+  }
+
+  private parseLaunchMode(value: unknown) {
+    if (value === 'auto' || value === 'manual' || value === 'hybrid') {
+      return value;
+    }
+    return 'hybrid';
+  }
+
+  private parseStartDelay(value: unknown) {
+    if (value === 15 || value === '15') {
+      return 15;
+    }
+    if (value === 30 || value === '30') {
+      return 30;
+    }
+    return 0;
   }
 
   private async hasPremiumAccess(userId: string) {

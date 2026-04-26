@@ -157,6 +157,21 @@ export interface EveningShareToChatDto {
   alreadySent: boolean;
 }
 
+export type MeetupPhase = 'live' | 'soon' | 'upcoming' | 'done';
+export type EveningLaunchMode = 'auto' | 'manual' | 'hybrid';
+
+export interface EveningLaunchResponseDto {
+  routeId: string;
+  chatId: string;
+  phase: MeetupPhase;
+  mode: EveningLaunchMode;
+  currentStep: number;
+  totalSteps: number;
+  currentPlace: string | null;
+  startsAt: string;
+  endsAt: string | null;
+}
+
 export interface ChatMessageDto {
   id: string;
   chatId: string;
