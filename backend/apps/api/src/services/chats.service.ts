@@ -46,6 +46,7 @@ export class ChatsService {
             id: true,
             hostId: true,
             startsAt: true,
+            durationMinutes: true,
             isAfterDark: true,
             afterDarkGlow: true,
             liveState: {
@@ -199,7 +200,11 @@ export class ChatsService {
     currentStep?: number | null;
     meetupStartsAt?: Date | null;
     meetupEndsAt?: Date | null;
-    event?: { liveState?: { status: string } | null; startsAt?: Date | null } | null;
+    event?: {
+      liveState?: { status: string } | null;
+      startsAt?: Date | null;
+      durationMinutes?: number | null;
+    } | null;
     eveningRoute?: {
       id: string;
       steps: Array<{
@@ -236,15 +241,32 @@ export class ChatsService {
     };
   }
 
-  private phaseFromEvent(event: { liveState?: { status: string } | null; startsAt?: Date | null } | null) {
+  private phaseFromEvent(
+    event: {
+      liveState?: { status: string } | null;
+      startsAt?: Date | null;
+      durationMinutes?: number | null;
+    } | null,
+  ) {
     if (event?.liveState?.status === 'live') {
       return 'live';
+    }
+    if (event?.liveState?.status === 'finished') {
+      return 'done';
     }
     if (!event?.startsAt) {
       return 'upcoming';
     }
 
     const msUntilStart = event.startsAt.getTime() - Date.now();
+    const durationMinutes =
+      event.durationMinutes && event.durationMinutes > 0
+        ? event.durationMinutes
+        : 120;
+    const msUntilEnd = msUntilStart + durationMinutes * 60 * 1000;
+    if (msUntilEnd <= 0) {
+      return 'done';
+    }
     if (msUntilStart > 0 && msUntilStart <= 2 * 60 * 60 * 1000) {
       return 'soon';
     }

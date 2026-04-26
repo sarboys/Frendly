@@ -3,6 +3,7 @@ import { ChatsService } from '../../src/services/chats.service';
 describe('ChatsService unit', () => {
   afterEach(() => {
     delete process.env.CHAT_UNREAD_COUNTER_READS;
+    jest.restoreAllMocks();
   });
 
   it('counts chat unread messages from chat member read state, not notifications', async () => {
@@ -100,5 +101,27 @@ describe('ChatsService unit', () => {
       routeId: 'r-cozy-circle',
       mode: 'hybrid',
     });
+  });
+
+  it('maps finished or past event meetup chats to done phase', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(
+      new Date('2026-04-26T18:00:00.000Z').getTime(),
+    );
+    const service = new ChatsService({ client: {} } as any);
+
+    expect(
+      (service as any).phaseFromEvent({
+        startsAt: new Date('2026-04-26T08:33:00.000Z'),
+        durationMinutes: 120,
+        liveState: { status: 'idle' },
+      }),
+    ).toBe('done');
+    expect(
+      (service as any).phaseFromEvent({
+        startsAt: new Date('2026-04-26T17:00:00.000Z'),
+        durationMinutes: 120,
+        liveState: { status: 'finished' },
+      }),
+    ).toBe('done');
   });
 });
