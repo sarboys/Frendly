@@ -52,11 +52,9 @@ echo "Disk usage after Docker cleanup:"
 df -h / /tmp || true
 docker system df || true
 
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build postgres redis
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans postgres redis
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up --build migrate
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --no-deps api chat worker
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps --force-recreate nginx
-docker rm -f frendly-backend-minio-1 frendly-backend-minio-init-1 >/dev/null 2>&1 || true
-docker volume rm frendly-backend_minio_data >/dev/null 2>&1 || true
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps

@@ -292,7 +292,7 @@ export class MediaService {
       contentRange:
           requestedRange == null
               ? null
-              : 'bytes $start-$end/${payload.length}',
+              : `bytes ${start}-${end}/${payload.length}`,
     };
   }
 }

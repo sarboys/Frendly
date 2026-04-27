@@ -51,29 +51,16 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd="curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-        command: server /data
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/big_break
       REDIS_URL: redis://localhost:6379
-      S3_ENDPOINT: http://localhost:9000
-      S3_REGION: us-east-1
-      S3_ACCESS_KEY: minioadmin
-      S3_SECRET_KEY: minioadmin
-      S3_BUCKET: big-break
-      S3_PUBLIC_ENDPOINT: http://localhost:9000
+      S3_ENDPOINT: https://s3.cloud.ru
+      S3_REGION: ru-central-1
+      S3_ACCESS_KEY: test-tenant:test-key
+      S3_SECRET_KEY: test-secret
+      S3_BUCKET: frendly-test
+      S3_PUBLIC_ENDPOINT: https://global.s3.cloud.ru
       JWT_ACCESS_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
       ENABLE_DEV_AUTH: true
@@ -94,41 +81,6 @@ jobs:
       - name: Install backend deps
         working-directory: backend
         run: pnpm install --frozen-lockfile
-
-      - name: Ensure S3 bucket
-        working-directory: backend/packages/database
-        run: |
-          node <<'NODE'
-          const { S3Client, CreateBucketCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
-
-          const client = new S3Client({
-            region: process.env.S3_REGION,
-            endpoint: process.env.S3_ENDPOINT,
-            forcePathStyle: true,
-            credentials: {
-              accessKeyId: process.env.S3_ACCESS_KEY,
-              secretAccessKey: process.env.S3_SECRET_KEY,
-            },
-          });
-
-          (async () => {
-            try {
-              await client.send(new HeadBucketCommand({ Bucket: process.env.S3_BUCKET }));
-            } catch (error) {
-              const code = error?.name ?? error?.Code;
-              if (code !== 'NotFound' && code !== 'NoSuchBucket') {
-                console.error(error);
-              }
-              await client.send(new CreateBucketCommand({ Bucket: process.env.S3_BUCKET }));
-            }
-          })().catch((error) => {
-            if (error?.name === 'BucketAlreadyOwnedByYou') {
-              process.exit(0);
-            }
-            console.error(error);
-            process.exit(1);
-          });
-          NODE
 
       - name: Apply database migrations
         working-directory: backend

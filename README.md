@@ -40,7 +40,8 @@ open Runner.xcworkspace
 
 В production файлы лежат в Cloud.ru Object Storage.
 Для Cloud.ru S3 ключ доступа задается в формате `<tenant_id>:<key_id>`.
-Локальный `compose.yaml` все еще использует MinIO для разработки.
+Локальный `compose.yaml` тоже использует Cloud.ru Object Storage.
+Перед локальным запуском передай `S3_ACCESS_KEY` и `S3_SECRET_KEY` через shell или `--env-file`.
 
 ## Первый запуск на сервере
 
@@ -50,6 +51,24 @@ open Runner.xcworkspace
 4. Для тестового стенда поставить `ENABLE_TESTING_ACCESS=true`, для боевого оставить `false`
 5. Выполнить `sudo bash scripts/bootstrap-server.sh`
 6. Выполнить `bash scripts/deploy.sh`
+
+## Локальный запуск
+
+```bash
+docker compose --env-file .env.production.local up --build --remove-orphans
+```
+
+Минимально нужны S3 переменные:
+
+- `S3_ACCESS_KEY`
+- `S3_SECRET_KEY`
+
+Остальные S3 значения по умолчанию смотрят на Cloud.ru:
+
+- `S3_ENDPOINT=https://s3.cloud.ru`
+- `S3_REGION=ru-central-1`
+- `S3_BUCKET=frendly`
+- `S3_PUBLIC_ENDPOINT=https://global.s3.cloud.ru`
 
 ## GitHub Actions secrets
 

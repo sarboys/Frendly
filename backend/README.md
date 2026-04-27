@@ -7,11 +7,11 @@ Backend v1 для Big Break.
 - Prisma
 - PostgreSQL
 - Redis
-- MinIO
+- Cloud.ru Object Storage
 - raw WebSocket
 
 Локальный запуск:
 
 ```bash
-docker compose up --build
+docker compose --env-file ../.env.production.local up --build --remove-orphans
 ```

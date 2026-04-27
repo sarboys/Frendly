@@ -2,8 +2,7 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ChatKind, ChatOrigin, PrismaClient } from '@prisma/client';
-import { buildPublicAssetUrl, createS3Client } from '@big-break/database';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
 
@@ -12,7 +11,6 @@ jest.setTimeout(30000);
 describe('core api flows', () => {
   let app: INestApplication;
   let prisma: PrismaClient;
-  const s3 = createS3Client();
   let accessToken = '';
   let peerAccessToken = '';
   let thirdAccessToken = '';
@@ -20,6 +18,8 @@ describe('core api flows', () => {
     expect(value).toMatch(/^(https?:\/\/|data:)/);
     expect(value).not.toMatch(/^\/media\//);
   };
+  const toDataUrl = (mimeType: string, payload: Buffer) =>
+    `data:${mimeType};base64,${payload.toString('base64')}`;
 
   const futureIso = (daysFromNow: number, hourUtc: number, minute = 0) => {
     const date = new Date();
@@ -1516,23 +1516,6 @@ describe('core api flows', () => {
     const privateChatId = `private-media-${Date.now()}`;
 
     try {
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET ?? 'big-break',
-          Key: avatarObjectKey,
-          ContentType: 'image/png',
-          Body: avatarPayload,
-        }),
-      );
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET ?? 'big-break',
-          Key: objectKey,
-          ContentType: 'audio/webm',
-          Body: payload,
-        }),
-      );
-
       await prisma.chat.create({
         data: {
           id: privateChatId,
@@ -1558,7 +1541,7 @@ describe('core api flows', () => {
           mimeType: 'image/png',
           byteSize: avatarPayload.length,
           originalFileName: 'avatar.png',
-          publicUrl: buildPublicAssetUrl(avatarObjectKey),
+          publicUrl: toDataUrl('image/png', avatarPayload),
         } as any,
       });
       await prisma.mediaAsset.create({
@@ -1574,7 +1557,7 @@ describe('core api flows', () => {
           durationMs: 5000,
           waveform: [0.11, 0.22, 0.44, 0.88],
           originalFileName: 'voice.webm',
-          publicUrl: buildPublicAssetUrl(objectKey),
+          publicUrl: toDataUrl('audio/webm', payload),
           chatId: privateChatId,
         } as any,
       });
@@ -1635,15 +1618,6 @@ describe('core api flows', () => {
     const privateChatId = `private-media-signed-${Date.now()}`;
 
     try {
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET ?? 'big-break',
-          Key: objectKey,
-          ContentType: 'audio/webm',
-          Body: payload,
-        }),
-      );
-
       await prisma.chat.create({
         data: {
           id: privateChatId,
@@ -1671,7 +1645,7 @@ describe('core api flows', () => {
           durationMs: 5000,
           waveform: [0.11, 0.22, 0.44, 0.88],
           originalFileName: 'voice.webm',
-          publicUrl: buildPublicAssetUrl(objectKey),
+          publicUrl: toDataUrl('audio/webm', payload),
           chatId: privateChatId,
         } as any,
       });
