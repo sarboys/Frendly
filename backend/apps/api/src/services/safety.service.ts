@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
@@ -96,14 +97,21 @@ export class SafetyService {
       throw new ApiError(409, 'trusted_contact_duplicate', 'Trusted contact already exists');
     }
 
-    return this.prismaService.client.trustedContact.create({
-      data: {
-        userId,
-        name,
-        phoneNumber,
-        mode,
-      },
-    });
+    try {
+      return await this.prismaService.client.trustedContact.create({
+        data: {
+          userId,
+          name,
+          phoneNumber,
+          mode,
+        },
+      });
+    } catch (error) {
+      if (this.isTrustedContactDuplicateError(error)) {
+        throw new ApiError(409, 'trusted_contact_duplicate', 'Trusted contact already exists');
+      }
+      throw error;
+    }
   }
 
   async listReports(userId: string) {
@@ -174,6 +182,26 @@ export class SafetyService {
     }
 
     const report = await this.prismaService.client.$transaction(async (tx) => {
+      const reportLockKey = this.buildReportLockKey(userId, targetUserId);
+      await tx.$executeRaw`
+        SELECT pg_advisory_xact_lock(${reportLockKey}::bigint)
+      `;
+
+      const activeReport = await tx.userReport.findFirst({
+        where: {
+          reporterId: userId,
+          targetUserId,
+          status: {
+            in: ['open', 'in_review'],
+          },
+        },
+        select: { id: true },
+      });
+
+      if (activeReport) {
+        throw new ApiError(409, 'duplicate_report', 'Report already exists');
+      }
+
       const created = await tx.userReport.create({
         data: {
           reporterId: userId,
@@ -322,5 +350,46 @@ export class SafetyService {
     score += Math.max(0, Math.min(10, params.contactsCount * 4));
     score -= Math.max(0, Math.min(12, params.reportsCount * 3));
     return Math.max(0, Math.min(100, score));
+  }
+
+  private isTrustedContactDuplicateError(error: unknown) {
+    if (error == null || typeof error !== 'object') {
+      return false;
+    }
+
+    const maybeError = error as {
+      code?: unknown;
+      meta?: { target?: unknown };
+    };
+
+    if (maybeError.code !== 'P2002') {
+      return false;
+    }
+
+    const target = maybeError.meta?.target;
+    if (target == null) {
+      return true;
+    }
+    if (Array.isArray(target)) {
+      return target.includes('userId') && target.includes('phoneNumber');
+    }
+    return (
+      typeof target === 'string' &&
+      target.includes('userId') &&
+      target.includes('phoneNumber')
+    );
+  }
+
+  private buildReportLockKey(userId: string, targetUserId: string) {
+    const digest = createHash('sha256')
+      .update(userId)
+      .update('\0')
+      .update(targetUserId)
+      .digest();
+    let value = 0;
+    for (let index = 0; index < 6; index += 1) {
+      value = value * 256 + digest[index]!;
+    }
+    return value;
   }
 }

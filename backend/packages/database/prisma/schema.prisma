@@ -206,6 +206,7 @@ enum TelegramLoginSessionStatus {
 enum AuthProvider {
   dev
   phone_otp
+  session
   telegram
 }
 
@@ -309,16 +310,24 @@ model UserVerification {
 }
 
 model PhoneOtpChallenge {
-  id           String    @id @default(cuid())
-  userId       String?
-  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  phoneNumber  String
-  code         String
-  expiresAt    DateTime
-  consumedAt   DateTime?
-  createdAt    DateTime  @default(now())
+  id             String    @id @default(cuid())
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  phoneNumber    String
+  codeHash       String
+  codeSalt       String
+  requestKeyHash String?
+  attemptCount   Int       @default(0)
+  lastAttemptAt  DateTime?
+  lastIssuedAt   DateTime?
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([phoneNumber, createdAt])
+  @@index([phoneNumber, consumedAt, expiresAt])
+  @@index([requestKeyHash, createdAt])
 }
 
 model TelegramAccount {
@@ -858,7 +867,7 @@ model TrustedContact {
   updatedAt    DateTime           @updatedAt
 
   @@index([userId, createdAt, id])
-  @@index([userId, phoneNumber])
+  @@unique([userId, phoneNumber])
 }
 
 model UserReport {

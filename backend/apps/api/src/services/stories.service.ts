@@ -3,7 +3,9 @@ import {
   createPresignedDownload,
   decodeCursor,
   encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
@@ -17,8 +19,8 @@ export class StoriesService {
     eventId: string,
     params: { cursor?: string; limit?: number },
   ) {
-    await this.assertParticipant(userId, eventId);
     const blockedUserIds = await this.getBlockedUserIds(userId);
+    await this.assertParticipant(userId, eventId, blockedUserIds);
     const take = this.normalizeLimit(params.limit);
     const cursorId = this.decodeStoryCursor(params.cursor);
     const cursorStory = cursorId
@@ -37,6 +39,13 @@ export class StoriesService {
     const stories = await this.prismaService.client.eventStory.findMany({
       where: {
         eventId,
+        ...(blockedUserIds.size > 0
+          ? {
+              authorId: {
+                notIn: [...blockedUserIds],
+              },
+            }
+          : {}),
         ...(cursorStory
           ? {
               OR: [
@@ -69,9 +78,7 @@ export class StoriesService {
     });
 
     const visibleStories = await Promise.all(
-      stories
-        .filter((story) => !blockedUserIds.has(story.authorId))
-        .map((story) => this.mapStory(story)),
+      stories.map((story) => this.mapStory(story)),
     );
     const hasMore = visibleStories.length > take;
     const page = hasMore
@@ -107,6 +114,17 @@ export class StoriesService {
       throw new ApiError(400, 'invalid_story_caption', 'caption is too long');
     }
 
+    if (mediaAssetId != null) {
+      const existing = await this.findExistingStoryMediaRetry(
+        eventId,
+        userId,
+        mediaAssetId,
+      );
+      if (existing != null) {
+        return this.mapStory(existing);
+      }
+    }
+
     const recentCount = await this.prismaService.client.eventStory.count({
       where: {
         eventId,
@@ -140,20 +158,12 @@ export class StoriesService {
       );
     }
 
-    const story = await this.prismaService.client.eventStory.create({
-      data: {
-        eventId,
-        authorId: userId,
-        caption,
-        emoji,
-        mediaAssetId,
-      },
-      include: {
-        author: {
-          include: { profile: true },
-        },
-        mediaAsset: true,
-      },
+    const story = await this.createStoryRecordSafely({
+      eventId,
+      userId,
+      caption,
+      emoji,
+      mediaAssetId,
     });
 
     return this.mapStory(story);
@@ -183,8 +193,12 @@ export class StoriesService {
     }
   }
 
-  private async assertParticipant(userId: string, eventId: string) {
-    const [participant, event, blockedUserIds] = await Promise.all([
+  private async assertParticipant(
+    userId: string,
+    eventId: string,
+    blockedUserIds?: Set<string>,
+  ) {
+    const [participant, event, resolvedBlockedUserIds] = await Promise.all([
       this.prismaService.client.eventParticipant.findUnique({
         where: {
           eventId_userId: {
@@ -197,10 +211,12 @@ export class StoriesService {
         where: { id: eventId },
         select: { hostId: true },
       }),
-      this.getBlockedUserIds(userId),
+      blockedUserIds
+        ? Promise.resolve(blockedUserIds)
+        : this.getBlockedUserIds(userId),
     ]);
 
-    if (!event || blockedUserIds.has(event.hostId)) {
+    if (!event || resolvedBlockedUserIds.has(event.hostId)) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
@@ -210,30 +226,109 @@ export class StoriesService {
   }
 
   private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
+    return loadBlockedUserIds(this.prismaService.client, userId);
+  }
+
+  private async createStoryRecordSafely(input: {
+    eventId: string;
+    userId: string;
+    caption: string;
+    emoji: string;
+    mediaAssetId: string | null;
+  }) {
+    try {
+      return await this.prismaService.client.eventStory.create({
+        data: {
+          eventId: input.eventId,
+          authorId: input.userId,
+          caption: input.caption,
+          emoji: input.emoji,
+          mediaAssetId: input.mediaAssetId,
+        },
+        include: {
+          author: {
+            include: { profile: true },
+          },
+          mediaAsset: true,
+        },
+      });
+    } catch (error) {
+      if (
+        input.mediaAssetId == null ||
+        !this.isMediaAssetUniqueConflict(error)
+      ) {
+        throw error;
+      }
+
+      const existing = await this.prismaService.client.eventStory.findFirst({
+        where: {
+          mediaAssetId: input.mediaAssetId,
+        },
+        include: {
+          author: {
+            include: { profile: true },
+          },
+          mediaAsset: true,
+        },
+      });
+
+      if (
+        existing != null &&
+        existing.eventId === input.eventId &&
+        existing.authorId === input.userId
+      ) {
+        return existing;
+      }
+
+      throw new ApiError(
+        409,
+        'story_media_already_used',
+        'Story media asset is already used',
+      );
+    }
+  }
+
+  private async findExistingStoryMediaRetry(
+    eventId: string,
+    userId: string,
+    mediaAssetId: string,
+  ) {
+    return this.prismaService.client.eventStory.findFirst({
       where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
+        mediaAssetId,
+        eventId,
+        authorId: userId,
       },
-      select: {
-        userId: true,
-        blockedUserId: true,
+      include: {
+        author: {
+          include: { profile: true },
+        },
+        mediaAsset: true,
       },
     });
+  }
 
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
+  private isMediaAssetUniqueConflict(error: unknown) {
+    const isPrismaUnique =
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002';
+    const maybeError = error as {
+      code?: unknown;
+      meta?: { target?: unknown };
+    };
+
+    if (!isPrismaUnique && maybeError?.code !== 'P2002') {
+      return false;
     }
 
-    return blockedUserIds;
+    const target = maybeError.meta?.target;
+    if (target == null) {
+      return true;
+    }
+    if (Array.isArray(target)) {
+      return target.includes('mediaAssetId');
+    }
+    return typeof target === 'string' && target.includes('mediaAssetId');
   }
 
   private async mapStory(

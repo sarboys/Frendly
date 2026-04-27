@@ -18,6 +18,7 @@ jest.mock('@big-break/database', () => {
 });
 
 import { WebSocket } from 'ws';
+import { Prisma } from '@prisma/client';
 import { ChatServerService } from '../../src/chat-server.service';
 
 function createChatServiceForBroadcast() {
@@ -35,6 +36,16 @@ function createOpenSocket(options: { bufferedAmount?: number } = {}) {
     readyState: WebSocket.OPEN,
     bufferedAmount: options.bufferedAmount ?? 0,
     send: jest.fn(),
+  };
+}
+
+function authenticatedState(userId: string, subscriptions: string[] = []) {
+  return {
+    userId,
+    sessionId: `session-${userId}`,
+    tokenExpiresAtMs: Date.now() + 60_000,
+    authCheckedAtMs: Date.now(),
+    subscriptions: new Set(subscriptions),
   };
 }
 
@@ -57,12 +68,13 @@ describe('ChatServerService unit', () => {
     const service = new ChatServerService({
       client: {
         chatMember: {
-          findFirst: jest.fn().mockResolvedValue({
+          findUnique: jest.fn().mockResolvedValue({
             chat: {
               kind: 'direct',
-              members: [{ userId: 'user-me' }, { userId: 'user-peer' }],
+              event: null,
             },
           }),
+          findFirst: jest.fn().mockResolvedValue({ userId: 'user-peer' }),
         },
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
@@ -73,10 +85,7 @@ describe('ChatServerService unit', () => {
       },
     } as any);
 
-    (service as any).stateBySocket.set(socket, {
-      userId: 'user-me',
-      subscriptions: new Set(['chat-1']),
-    });
+    (service as any).stateBySocket.set(socket, authenticatedState('user-me', ['chat-1']));
 
     await (service as any).sync(socket, { chatId: 'chat-1' });
 
@@ -92,6 +101,55 @@ describe('ChatServerService unit', () => {
     expect(sent.payload.events).toHaveLength(100);
   });
 
+  it('removes blocked reply previews from sync snapshots', async () => {
+    const socket = createOpenSocket();
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'direct',
+              event: null,
+            },
+          }),
+          findFirst: jest.fn().mockResolvedValue({ userId: 'user-peer' }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-me',
+              blockedUserId: 'blocked-user',
+            },
+          ]),
+        },
+        realtimeEvent: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: BigInt(1),
+              eventType: 'message.created',
+              payload: {
+                chatId: 'chat-1',
+                senderId: 'user-peer',
+                replyTo: {
+                  authorId: 'blocked-user',
+                  text: 'Hidden text',
+                },
+              },
+              createdAt: new Date('2026-04-24T00:00:00.000Z'),
+            },
+          ]),
+        },
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(socket, authenticatedState('user-me', ['chat-1']));
+
+    await (service as any).sync(socket, { chatId: 'chat-1' });
+
+    const sent = JSON.parse(socket.send.mock.calls[0][0]);
+    expect(sent.payload.events[0].payload.replyTo).toBeNull();
+  });
+
   it('returns reset snapshot when sync cursor is older than retained events', async () => {
     const socket = {
       readyState: WebSocket.OPEN,
@@ -101,12 +159,13 @@ describe('ChatServerService unit', () => {
     const service = new ChatServerService({
       client: {
         chatMember: {
-          findFirst: jest.fn().mockResolvedValue({
+          findUnique: jest.fn().mockResolvedValue({
             chat: {
               kind: 'direct',
-              members: [{ userId: 'user-me' }, { userId: 'user-peer' }],
+              event: null,
             },
           }),
+          findFirst: jest.fn().mockResolvedValue({ userId: 'user-peer' }),
         },
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
@@ -118,10 +177,7 @@ describe('ChatServerService unit', () => {
       },
     } as any);
 
-    (service as any).stateBySocket.set(socket, {
-      userId: 'user-me',
-      subscriptions: new Set(['chat-1']),
-    });
+    (service as any).stateBySocket.set(socket, authenticatedState('user-me', ['chat-1']));
 
     await (service as any).sync(socket, {
       chatId: 'chat-1',
@@ -141,6 +197,145 @@ describe('ChatServerService unit', () => {
       },
     });
     expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects websocket commands when the stored session was revoked after auth', async () => {
+    const socket = {
+      readyState: WebSocket.OPEN,
+      send: jest.fn(),
+    };
+    const sessionFindUnique = jest.fn().mockResolvedValue({
+      userId: 'user-me',
+      revokedAt: new Date('2026-04-24T00:00:00.000Z'),
+    });
+    const service = new ChatServerService({
+      client: {
+        session: {
+          findUnique: sessionFindUnique,
+        },
+        chatMember: {
+          findFirst: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'community',
+              members: [],
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        realtimeEvent: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(socket, {
+      userId: 'user-me',
+      sessionId: 'session-1',
+      subscriptions: new Set(['chat-1']),
+    });
+
+    await expect(
+      (service as any).sync(socket, { chatId: 'chat-1' }),
+    ).rejects.toMatchObject({
+      code: 'stale_access_token',
+    });
+    expect(sessionFindUnique).toHaveBeenCalledWith({
+      where: { id: 'session-1' },
+      select: {
+        userId: true,
+        revokedAt: true,
+      },
+    });
+  });
+
+  it('rejects oversized message text before any membership or database write', async () => {
+    const socket = createOpenSocket();
+    const chatMemberFindFirst = jest.fn();
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findFirst: chatMemberFindFirst,
+        },
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(socket, {
+      userId: 'user-me',
+      sessionId: 'session-1',
+      tokenExpiresAtMs: Date.now() + 60_000,
+      authCheckedAtMs: Date.now(),
+      subscriptions: new Set(['chat-1']),
+    });
+
+    await expect(
+      (service as any).sendMessage(socket, {
+        chatId: 'chat-1',
+        text: 'a'.repeat(4001),
+        clientMessageId: 'client-1',
+      }),
+    ).rejects.toMatchObject({
+      code: 'message_text_too_long',
+    });
+    expect(chatMemberFindFirst).not.toHaveBeenCalled();
+  });
+
+  it('checks direct chat membership without loading the full member list', async () => {
+    const findUnique = jest.fn().mockResolvedValue({
+      chat: {
+        kind: 'direct',
+        event: null,
+      },
+    });
+    const findFirst = jest.fn().mockResolvedValue({
+      userId: 'user-peer',
+    });
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique,
+          findFirst,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await (service as any).assertMembership('user-me', 'chat-1');
+
+    expect(findUnique).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'chat-1',
+          userId: 'user-me',
+        },
+      },
+      select: {
+        chat: {
+          select: {
+            kind: true,
+            event: {
+              select: {
+                hostId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        chatId: 'chat-1',
+        userId: {
+          not: 'user-me',
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
   });
 
   it('broadcasts message event with one blocked-user lookup per actor', async () => {
@@ -201,6 +396,50 @@ describe('ChatServerService unit', () => {
     expect(openSocket.send).toHaveBeenCalledTimes(1);
     expect(blockedSocket.send).not.toHaveBeenCalled();
     expect(unsubscribedSocket.send).not.toHaveBeenCalled();
+  });
+
+  it('removes blocked reply previews from realtime broadcasts per recipient', async () => {
+    const findMany = jest.fn(async (args: any) => {
+      const userId = args.where.OR[0].userId;
+      if (userId === 'user-recipient') {
+        return [
+          {
+            userId: 'user-recipient',
+            blockedUserId: 'blocked-user',
+          },
+        ];
+      }
+      return [];
+    });
+    const service = new ChatServerService({
+      client: {
+        userBlock: {
+          findMany,
+        },
+      },
+    } as any);
+    const recipientSocket = createOpenSocket();
+
+    (service as any).stateBySocket.set(recipientSocket, {
+      userId: 'user-recipient',
+      subscriptions: new Set(['chat-1']),
+    });
+    (service as any).socketsByChatId.set('chat-1', new Set([recipientSocket]));
+
+    await (service as any).broadcastEvent({
+      type: 'message.created',
+      payload: {
+        chatId: 'chat-1',
+        senderId: 'user-actor',
+        replyTo: {
+          authorId: 'blocked-user',
+          text: 'Hidden text',
+        },
+      },
+    });
+
+    const sent = JSON.parse(recipientSocket.send.mock.calls[0][0]);
+    expect(sent.payload.replyTo).toBeNull();
   });
 
   it('broadcasts chat events only to sockets indexed by chat id', async () => {
@@ -277,15 +516,19 @@ describe('ChatServerService unit', () => {
   });
 
   it('throttles repeated typing events before another membership lookup', async () => {
-    const findFirst = jest.fn().mockResolvedValue({
+    const findUnique = jest.fn().mockResolvedValue({
       chat: {
         kind: 'direct',
-        members: [{ userId: 'user-me' }, { userId: 'user-peer' }],
+        event: null,
       },
+    });
+    const findFirst = jest.fn().mockResolvedValue({
+      userId: 'user-peer',
     });
     const service = new ChatServerService({
       client: {
         chatMember: {
+          findUnique,
           findFirst,
         },
         userBlock: {
@@ -295,10 +538,7 @@ describe('ChatServerService unit', () => {
     } as any);
     const socket = createOpenSocket();
 
-    (service as any).stateBySocket.set(socket, {
-      userId: 'user-me',
-      subscriptions: new Set(['chat-1']),
-    });
+    (service as any).stateBySocket.set(socket, authenticatedState('user-me', ['chat-1']));
 
     await (service as any).publishTyping(socket, 'chat-1', true);
     await (service as any).publishTyping(socket, 'chat-1', true);
@@ -321,10 +561,10 @@ describe('ChatServerService unit', () => {
       const service = new ChatServerService({
         client: {
           chatMember: {
-            findFirst: jest.fn().mockResolvedValue({
+            findUnique: jest.fn().mockResolvedValue({
               chat: {
                 kind: 'community',
-                members: [],
+                event: null,
               },
             }),
           },
@@ -373,10 +613,10 @@ describe('ChatServerService unit', () => {
         },
       } as any);
 
-      (service as any).stateBySocket.set(socket, {
-        userId: 'user-me',
-        subscriptions: new Set(['community-chat']),
-      });
+      (service as any).stateBySocket.set(
+        socket,
+        authenticatedState('user-me', ['community-chat']),
+      );
 
       await (service as any).sendMessage(socket, {
         chatId: 'community-chat',
@@ -397,6 +637,227 @@ describe('ChatServerService unit', () => {
         },
       });
     });
+
+  it('does not treat another sender message with the same client id as a retry', async () => {
+    const socket = createOpenSocket();
+    const messageFindFirst = jest.fn().mockResolvedValue(null);
+    const uniqueError = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed on the fields: (`chatId`,`clientMessageId`)',
+      {
+        code: 'P2002',
+        clientVersion: 'test',
+      },
+    );
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'community',
+              event: null,
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findFirst: messageFindFirst,
+        },
+        mediaAsset: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        $transaction: jest.fn().mockRejectedValue(uniqueError),
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(
+      socket,
+      authenticatedState('user-me', ['chat-1']),
+    );
+
+    await expect(
+      (service as any).sendMessage(socket, {
+        chatId: 'chat-1',
+        text: 'hello',
+        clientMessageId: 'client-1',
+      }),
+    ).rejects.toMatchObject({
+      code: 'client_message_id_conflict',
+    });
+
+    expect(messageFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          chatId: 'chat-1',
+          senderId: 'user-me',
+          clientMessageId: 'client-1',
+        },
+      }),
+    );
+    expect(socket.send).not.toHaveBeenCalled();
+  });
+
+  it('rejects websocket read markers for missing chat messages', async () => {
+    const socket = createOpenSocket();
+    const transaction = jest.fn();
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'community',
+              event: null,
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        $transaction: transaction,
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(
+      socket,
+      authenticatedState('user-me', ['chat-1']),
+    );
+
+    await expect(
+      (service as any).markRead(socket, {
+        chatId: 'chat-1',
+        messageId: 'missing-message',
+      }),
+    ).rejects.toMatchObject({
+      code: 'message_not_found',
+    });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects websocket read markers for messages from blocked senders', async () => {
+    const socket = createOpenSocket();
+    const transaction = jest.fn((callback: any) =>
+      callback({
+        chatMember: {
+          update: jest.fn(),
+        },
+        notification: {
+          updateMany: jest.fn(),
+        },
+        realtimeEvent: {
+          create: jest.fn(),
+        },
+      }),
+    );
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'community',
+              event: null,
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-me',
+              blockedUserId: 'blocked-user',
+            },
+          ]),
+        },
+        message: {
+          findFirst: jest.fn((args) =>
+            args.where.senderId?.notIn?.includes('blocked-user')
+              ? Promise.resolve(null)
+              : Promise.resolve({
+                  id: 'message-blocked',
+                  senderId: 'blocked-user',
+                }),
+          ),
+        },
+        $transaction: transaction,
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(
+      socket,
+      authenticatedState('user-me', ['chat-1']),
+    );
+
+    await expect(
+      (service as any).markRead(socket, {
+        chatId: 'chat-1',
+        messageId: 'message-blocked',
+      }),
+    ).rejects.toMatchObject({
+      code: 'message_not_found',
+    });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects replies to messages from blocked senders before writing', async () => {
+    const socket = createOpenSocket();
+    const transaction = jest.fn(async () => {
+      throw new Error('write should not happen');
+    });
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'meetup',
+              event: {
+                hostId: 'user-host',
+              },
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-me',
+              blockedUserId: 'blocked-user',
+            },
+          ]),
+        },
+        message: {
+          findFirst: jest
+            .fn()
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce({
+              id: 'blocked-message',
+              senderId: 'blocked-user',
+            }),
+        },
+        mediaAsset: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        $transaction: transaction,
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(
+      socket,
+      authenticatedState('user-me', ['chat-1']),
+    );
+
+    await expect(
+      (service as any).sendMessage(socket, {
+        chatId: 'chat-1',
+        text: 'reply',
+        clientMessageId: 'client-1',
+        replyToMessageId: 'blocked-message',
+      }),
+    ).rejects.toMatchObject({
+      code: 'reply_message_not_found',
+    });
+    expect(transaction).not.toHaveBeenCalled();
+  });
 
   it('adds direct download resolver path to mapped attachments', () => {
     const service = createChatServiceForBroadcast();

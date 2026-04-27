@@ -46,6 +46,7 @@ import { SafetyService } from './services/safety.service';
 import { SettingsService } from './services/settings.service';
 import { StoriesService } from './services/stories.service';
 import { TelegramAuthService } from './services/telegram-auth.service';
+import { PhoneOtpService } from './services/phone-otp.service';
 import { SubscriptionService } from './services/subscription.service';
 import { UploadsService } from './services/uploads.service';
 import { VerificationService } from './services/verification.service';
@@ -90,6 +91,7 @@ import { VerificationService } from './services/verification.service';
     NotificationsService,
     OnboardingService,
     PeopleService,
+    PhoneOtpService,
     PostersService,
     PrismaService,
     ProfileService,

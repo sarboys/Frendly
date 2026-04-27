@@ -1,7 +1,13 @@
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  decodeCursor,
+  encodeCursor,
+  getBlockedUserIds,
+} from '@big-break/database';
 import { Injectable } from '@nestjs/common';
 import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
+
+const MATCH_PHOTO_PREVIEW_LIMIT = 1;
 
 @Injectable()
 export class MatchesService {
@@ -12,28 +18,10 @@ export class MatchesService {
     params: { cursor?: string; limit?: number } = {},
   ) {
     const take = this.normalizeLimit(params.limit);
-    const blockedPairs = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
-
-    const blockedUserIds = new Set<string>();
-    for (const block of blockedPairs) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
-    }
+    const blockedUserIds = await getBlockedUserIds(
+      this.prismaService.client,
+      userId,
+    );
 
     const items: Array<{
       userId: string;
@@ -50,6 +38,9 @@ export class MatchesService {
     }> = [];
     let cursorTargetUserId = this.decodeCursor(params.cursor);
     const batchSize = Math.max(take + 1, 20);
+    let currentUserPromise: Promise<{
+      onboarding: { interests: unknown } | null;
+    } | null> | null = null;
 
     while (items.length < take + 1) {
       const targetPage = await this.prismaService.client.eventFavorite.findMany({
@@ -85,6 +76,10 @@ export class MatchesService {
 
       cursorTargetUserId = targetPage[targetPage.length - 1]!.targetUserId;
       const targetUserIds = targetPage.map((item) => item.targetUserId);
+      currentUserPromise ??= this.prismaService.client.user.findUnique({
+        where: { id: userId },
+        include: { onboarding: true },
+      });
 
       const [sourceFavorites, reverseFavorites, users, currentUser] = await Promise.all([
         this.prismaService.client.eventFavorite.findMany({
@@ -120,6 +115,7 @@ export class MatchesService {
                 photos: {
                   include: { mediaAsset: true },
                   orderBy: { sortOrder: 'asc' },
+                  take: MATCH_PHOTO_PREVIEW_LIMIT,
                 },
               },
             },
@@ -127,10 +123,7 @@ export class MatchesService {
             settings: true,
           },
         }),
-        this.prismaService.client.user.findUnique({
-          where: { id: userId },
-          include: { onboarding: true },
-        }),
+        currentUserPromise,
       ]);
 
       const reverseKeys = new Set(
@@ -164,6 +157,7 @@ export class MatchesService {
         const photos = (user.profile?.photos ?? [])
           .filter((photo) => photo.mediaAsset.publicUrl != null)
           .sort((left, right) => left.sortOrder - right.sortOrder)
+          .slice(0, MATCH_PHOTO_PREVIEW_LIMIT)
           .map((photo) =>
             mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),
           );

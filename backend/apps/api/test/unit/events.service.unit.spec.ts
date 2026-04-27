@@ -143,6 +143,178 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('bounds event detail attendees without losing access for joined viewers outside the preview', async () => {
+    const participants = Array.from({ length: 24 }, (_, index) => ({
+      userId: `guest-${index}`,
+      user: {
+        id: `guest-${index}`,
+        displayName: `Guest ${index}`,
+        profile: { avatarUrl: null },
+      },
+    }));
+    const eventFindUnique = jest.fn().mockResolvedValue(
+      eventFixture({
+        id: 'event-private',
+        title: 'Большая встреча',
+        capacity: 100,
+        genderMode: 'male',
+        visibilityMode: 'friends',
+        description: 'Закрытая встреча для участников',
+        partnerName: null,
+        partnerOffer: null,
+        participants,
+        host: {
+          id: 'host-1',
+          displayName: 'Host',
+          verified: true,
+          profile: {
+            rating: 4.8,
+            meetupCount: 12,
+            avatarUrl: 'https://cdn.test/host.jpg',
+          },
+        },
+        chat: { id: 'chat-1' },
+      }),
+    );
+    const participantFindUnique = jest.fn().mockResolvedValue({ id: 'ep-viewer' });
+    const participantCount = jest.fn().mockResolvedValue(42);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'female' }),
+          },
+          event: {
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findUnique: participantFindUnique,
+            count: participantCount,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.getEventDetail('user-me', 'event-private');
+
+    expect(eventFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          participants: expect.objectContaining({
+            take: 25,
+            orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+          }),
+        }),
+      }),
+    );
+    expect(participantFindUnique).toHaveBeenCalledWith({
+      where: {
+        eventId_userId: {
+          eventId: 'event-private',
+          userId: 'user-me',
+        },
+      },
+      select: { id: true },
+    });
+    expect(participantCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          eventId: 'event-private',
+        }),
+      }),
+    );
+    expect(result.going).toBe(42);
+    expect(result.joined).toBe(true);
+    expect(result.chatId).toBe('chat-1');
+    expect(result.attendees).toHaveLength(24);
+  });
+
+  it('counts live meetup stories without loading every story row', async () => {
+    const eventFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ hostId: 'host-1' })
+      .mockResolvedValueOnce({
+        id: 'event-1',
+        title: 'Живая встреча',
+        place: 'Крыша',
+        participants: [
+          {
+            userId: 'user-me',
+            user: {
+              id: 'user-me',
+              displayName: 'Me',
+              verified: true,
+              online: true,
+              profile: { avatarUrl: null },
+            },
+          },
+        ],
+        attendances: [],
+        liveState: {
+          status: 'live',
+          startedAt: new Date(Date.now() - 5 * 60 * 1000),
+        },
+        chat: { id: 'chat-1' },
+      });
+    const storyCount = jest.fn().mockResolvedValue(3);
+    const userBlockFindMany = jest.fn().mockResolvedValue([
+      {
+        userId: 'user-me',
+        blockedUserId: 'blocked-author',
+      },
+    ]);
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'participant-1' }),
+          },
+          eventStory: {
+            count: storyCount,
+          },
+          userBlock: {
+            findMany: userBlockFindMany,
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.getLiveMeetup('user-me', 'event-1');
+    const liveEventQuery = eventFindUnique.mock.calls[1][0];
+
+    expect(liveEventQuery.include.stories).toBeUndefined();
+    expect(liveEventQuery.include.participants.where).toEqual({
+      userId: {
+        notIn: ['blocked-author'],
+      },
+    });
+    expect(liveEventQuery.include.attendances).toEqual({
+      where: {
+        userId: {
+          notIn: ['blocked-author'],
+        },
+      },
+    });
+    expect(storyCount).toHaveBeenCalledWith({
+      where: {
+        eventId: 'event-1',
+        authorId: {
+          notIn: ['blocked-author'],
+        },
+      },
+    });
+    expect(userBlockFindMany).toHaveBeenCalledTimes(1);
+    expect(result.storiesCount).toBe(3);
+  });
+
   it('hides gender-specific events from users with the opposite gender', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(
@@ -210,7 +382,12 @@ describe('EventsService unit', () => {
             groupBy: jest.fn().mockResolvedValue([]),
           },
           userBlock: {
-            findMany: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([
+              {
+                userId: 'user-me',
+                blockedUserId: 'blocked-host',
+              },
+            ]),
           },
         },
       } as any,
@@ -287,7 +464,12 @@ describe('EventsService unit', () => {
             groupBy: jest.fn().mockResolvedValue([]),
           },
           userBlock: {
-            findMany: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([
+              {
+                userId: 'user-me',
+                blockedUserId: 'blocked-host',
+              },
+            ]),
           },
         },
       } as any,
@@ -303,13 +485,21 @@ describe('EventsService unit', () => {
     } as any);
 
     expect(queryRaw).toHaveBeenCalledTimes(1);
-    const postgisQuery = queryRaw.mock.calls[0][0] as any;
+    const postgisCall = queryRaw.mock.calls[0] as any[];
+    const postgisQuery = postgisCall[0] as any;
     const postgisSql = Array.isArray(postgisQuery)
       ? postgisQuery.join(' ')
-      : postgisQuery.strings.join(' ');
+      : [
+          postgisQuery.strings.join(' '),
+          ...postgisCall
+            .slice(1)
+            .filter((part) => Array.isArray(part?.strings))
+            .map((part) => part.strings.join(' ')),
+        ].join(' ');
     expect(postgisSql).toContain('ST_DWithin');
     expect(postgisSql).toContain('e."isAfterDark" = false');
     expect(postgisSql).toContain('e."startsAt" >=');
+    expect(postgisSql).toContain('e."hostId" NOT IN');
     expect(eventFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -423,6 +613,289 @@ describe('EventsService unit', () => {
         ]),
       }),
     );
+  });
+
+  it('does not reopen a join request that was reviewed during request refresh', async () => {
+    const requestUpsert = jest.fn().mockResolvedValue({
+      id: 'req-1',
+      eventId: 'event-1',
+      userId: 'guest-1',
+      status: 'approved',
+      note: 'Хочу прийти',
+      compatibilityScore: 61,
+      createdAt: new Date('2026-04-24T12:00:00.000Z'),
+    });
+    const tx = {
+      eventJoinRequest: {
+        upsert: requestUpsert,
+      },
+      notification: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
+      },
+      outboxEvent: {
+        createMany: jest.fn(),
+      },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'event-1',
+              title: 'Закрытый ужин',
+              hostId: 'host-1',
+              genderMode: 'all',
+              joinMode: 'request',
+              participants: [],
+            }),
+          },
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'req-1',
+              eventId: 'event-1',
+              userId: 'guest-1',
+              status: 'pending',
+            }),
+          },
+          user: {
+            findUnique: jest
+              .fn()
+              .mockResolvedValue({ id: 'guest-1', displayName: 'Гость' }),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.createJoinRequest('guest-1', 'event-1', {
+        note: 'Хочу прийти',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'join_request_already_reviewed',
+    });
+    expect(requestUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.not.objectContaining({
+          status: 'pending',
+          reviewedAt: null,
+          reviewedById: null,
+        }),
+      }),
+    );
+  });
+
+  it('lets an existing event participant reopen a full event', async () => {
+    const participantFindUnique = jest.fn().mockResolvedValue({
+      eventId: 'event-1',
+      userId: 'guest-1',
+    });
+    const capacityLock = jest.fn().mockResolvedValue([{ capacity: 1 }]);
+    const participantCount = jest.fn().mockResolvedValue(1);
+    const participantUpsert = jest.fn().mockResolvedValue({});
+    const attendanceUpsert = jest.fn().mockResolvedValue({});
+    const chatMemberUpsert = jest.fn().mockResolvedValue({});
+    const detail = { id: 'event-1', joined: true };
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'event-1',
+              hostId: 'host-1',
+              genderMode: 'all',
+              joinMode: 'open',
+              chat: { id: 'chat-1' },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) =>
+            callback({
+              $queryRaw: capacityLock,
+              eventParticipant: {
+                findUnique: participantFindUnique,
+                count: participantCount,
+                upsert: participantUpsert,
+              },
+              eventAttendance: {
+                upsert: attendanceUpsert,
+              },
+              chatMember: {
+                upsert: chatMemberUpsert,
+              },
+              chat: {
+                update: jest.fn(),
+              },
+            }),
+          ),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue(detail as any);
+
+    await expect(service.joinEvent('guest-1', 'event-1')).resolves.toBe(detail);
+    expect(capacityLock).not.toHaveBeenCalled();
+    expect(participantCount).not.toHaveBeenCalled();
+    expect(participantUpsert).toHaveBeenCalled();
+    expect(attendanceUpsert).toHaveBeenCalled();
+    expect(chatMemberUpsert).toHaveBeenCalled();
+  });
+
+  it('rejects stale invite accept when the invite was already reviewed', async () => {
+    const inviteUpdateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const service = new EventsService(
+      {
+        client: {
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'invite-1',
+              eventId: 'event-1',
+              userId: 'guest-1',
+              status: 'pending',
+              reviewedById: 'host-1',
+              event: {
+                id: 'event-1',
+                hostId: 'host-1',
+                chat: { id: 'chat-1' },
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) =>
+            callback({
+              $queryRaw: jest.fn().mockResolvedValue([{ capacity: 4 }]),
+              eventParticipant: {
+                count: jest.fn().mockResolvedValue(1),
+                upsert: jest.fn(),
+              },
+              eventAttendance: {
+                upsert: jest.fn(),
+              },
+              eventJoinRequest: {
+                updateMany: inviteUpdateMany,
+              },
+              chatMember: {
+                upsert: jest.fn(),
+              },
+              notification: {
+                updateMany: jest.fn(),
+              },
+            }),
+          ),
+        },
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.acceptInvite('guest-1', 'event-1', 'invite-1'),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'invite_already_reviewed',
+    });
+    expect(inviteUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invite-1',
+        eventId: 'event-1',
+        userId: 'guest-1',
+        status: 'pending',
+        reviewedById: 'host-1',
+      },
+      data: expect.objectContaining({
+        status: 'approved',
+      }),
+    });
+  });
+
+  it('rejects stale invite decline when the invite was already reviewed', async () => {
+    const inviteUpdateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const service = new EventsService(
+      {
+        client: {
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'invite-1',
+              eventId: 'event-1',
+              userId: 'guest-1',
+              status: 'pending',
+              reviewedById: 'host-1',
+              user: { displayName: 'Гость' },
+              event: {
+                id: 'event-1',
+                hostId: 'host-1',
+                title: 'Встреча',
+                chat: { id: 'chat-1' },
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) =>
+            callback({
+              eventJoinRequest: {
+                updateMany: inviteUpdateMany,
+              },
+              notification: {
+                updateMany: jest.fn(),
+                create: jest.fn(),
+              },
+              message: {
+                create: jest.fn(),
+              },
+              chat: {
+                update: jest.fn(),
+              },
+              realtimeEvent: {
+                create: jest.fn(),
+              },
+              outboxEvent: {
+                create: jest.fn(),
+                createMany: jest.fn(),
+              },
+            }),
+          ),
+        },
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.declineInvite('guest-1', 'event-1', 'invite-1'),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'invite_already_reviewed',
+    });
+    expect(inviteUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invite-1',
+        eventId: 'event-1',
+        userId: 'guest-1',
+        status: 'pending',
+        reviewedById: 'host-1',
+      },
+      data: expect.objectContaining({
+        status: 'rejected',
+      }),
+    });
   });
 
   it('returns the existing event when a concurrent create hits the same idempotency key', async () => {
@@ -652,5 +1125,82 @@ describe('EventsService unit', () => {
       statusCode: 400,
       code: 'invalid_event_payload',
     });
+  });
+
+  it('deduplicates after-party favorite users before saving feedback', async () => {
+    const favoriteCreateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const participantFindMany = jest.fn().mockResolvedValue([
+      { userId: 'user-peer' },
+    ]);
+    const eventFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ hostId: 'host-1' })
+      .mockResolvedValueOnce({
+        id: 'event-1',
+        startsAt: new Date(Date.now() - 60_000),
+        participants: [
+          { userId: 'user-me' },
+          { userId: 'user-peer' },
+        ],
+        liveState: { status: 'finished' },
+      });
+    const service = new EventsService(
+      {
+        client: {
+          eventParticipant: {
+            findUnique: jest.fn().mockResolvedValue({
+              eventId: 'event-1',
+              userId: 'user-me',
+            }),
+            findMany: participantFindMany,
+          },
+          event: {
+            findUnique: eventFindUnique,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) =>
+            callback({
+              eventFeedback: {
+                upsert: jest.fn(),
+              },
+              eventFavorite: {
+                deleteMany: jest.fn(),
+                createMany: favoriteCreateMany,
+              },
+            }),
+          ),
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.saveFeedback('user-me', 'event-1', {
+      favoriteUserIds: ['user-peer', 'user-peer'],
+    });
+    const feedbackEventQuery = eventFindUnique.mock.calls[1][0];
+
+    expect(feedbackEventQuery.include.participants).toBeUndefined();
+    expect(participantFindMany).toHaveBeenCalledWith({
+      where: {
+        eventId: 'event-1',
+        userId: {
+          in: ['user-peer'],
+        },
+      },
+      select: { userId: true },
+    });
+    expect(favoriteCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          eventId: 'event-1',
+          sourceUserId: 'user-me',
+          targetUserId: 'user-peer',
+        },
+      ],
+      skipDuplicates: true,
+    });
+    expect(result.favoritesCount).toBe(1);
   });
 });

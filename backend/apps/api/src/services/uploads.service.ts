@@ -1,6 +1,7 @@
 import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import { buildPublicAssetUrl, createPresignedUpload, createS3Client } from '@big-break/database';
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { ProfileService } from './profile.service';
@@ -128,6 +129,17 @@ export class UploadsService {
     }
 
     this.assertChatUploadObjectKey(userId, objectKey);
+    const existing = await this.prismaService.client.mediaAsset.findUnique({
+      where: { objectKey },
+    });
+    if (existing) {
+      this.assertExistingChatUploadAsset(existing, userId, uploadMeta);
+      return {
+        assetId: existing.id,
+        status: existing.status,
+      };
+    }
+
     const verified = await this.resolveVerifiedChatUploadMetadata(
       objectKey,
       mimeType,
@@ -137,21 +149,13 @@ export class UploadsService {
     this.assertChatUploadMime(uploadMeta.kind, verified.mimeType);
     this.assertChatUploadSize(uploadMeta.kind, verified.byteSize);
 
-    const asset = await this.prismaService.client.mediaAsset.create({
-      data: {
-        ownerId: userId,
-        kind: uploadMeta.kind,
-        status: 'ready',
-        bucket: process.env.S3_BUCKET ?? 'big-break',
-        objectKey,
-        mimeType: verified.mimeType,
-        byteSize: verified.byteSize,
-        durationMs: uploadMeta.durationMs,
-        waveform: uploadMeta.waveform,
-        originalFileName: fileName,
-        chatId: uploadMeta.chatId,
-        publicUrl: buildPublicAssetUrl(objectKey),
-      },
+    const asset = await this.createChatUploadAsset({
+      userId,
+      uploadMeta,
+      objectKey,
+      mimeType: verified.mimeType,
+      byteSize: verified.byteSize,
+      fileName,
     });
 
     return {
@@ -163,22 +167,23 @@ export class UploadsService {
   async uploadChatAttachmentFile(
     userId: string,
     body: Record<string, unknown>,
-    file: Express.Multer.File,
+    file?: Express.Multer.File,
   ) {
+    const uploadFile = this.requireMediaFile(file);
     const uploadMeta = await this.resolveChatUploadMeta(userId, body);
     const objectKey =
-      `chat-attachments/${userId}/${randomUUID()}-${file.originalname}`;
+      `chat-attachments/${userId}/${randomUUID()}-${uploadFile.originalname}`;
 
-    this.assertChatUploadMime(uploadMeta.kind, file.mimetype);
-    this.assertChatUploadSize(uploadMeta.kind, file.size);
+    this.assertChatUploadMime(uploadMeta.kind, uploadFile.mimetype);
+    this.assertChatUploadSize(uploadMeta.kind, uploadFile.size);
 
     if (!BYPASS_S3_UPLOAD) {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: process.env.S3_BUCKET ?? 'big-break',
           Key: objectKey,
-          ContentType: file.mimetype,
-          Body: file.buffer,
+          ContentType: uploadFile.mimetype,
+          Body: uploadFile.buffer,
         }),
       );
     }
@@ -190,11 +195,11 @@ export class UploadsService {
         status: 'ready',
         bucket: process.env.S3_BUCKET ?? 'big-break',
         objectKey,
-        mimeType: file.mimetype,
-        byteSize: file.size,
+        mimeType: uploadFile.mimetype,
+        byteSize: uploadFile.size,
         durationMs: uploadMeta.durationMs,
         waveform: uploadMeta.waveform,
-        originalFileName: file.originalname,
+        originalFileName: uploadFile.originalname,
         chatId: uploadMeta.chatId,
         publicUrl: buildPublicAssetUrl(objectKey),
       },
@@ -244,6 +249,18 @@ export class UploadsService {
     }
 
     this.assertStoryMediaObjectKey(userId, objectKey);
+    const existing = await this.prismaService.client.mediaAsset.findUnique({
+      where: { objectKey },
+    });
+    if (existing) {
+      await this.assertExistingStoryUploadAsset(existing, userId, eventId);
+      return {
+        assetId: existing.id,
+        status: existing.status,
+        eventId,
+      };
+    }
+
     const verified = await this.resolveVerifiedStoryUploadMetadata(
       objectKey,
       mimeType,
@@ -252,22 +269,14 @@ export class UploadsService {
     this.assertStoryMediaMime(verified.mimeType);
     this.assertStoryMediaSize(verified.byteSize);
 
-    const asset = await this.prismaService.client.mediaAsset.create({
-      data: {
-        ownerId: userId,
-        kind: 'story_media',
-        status: 'ready',
-        bucket: process.env.S3_BUCKET ?? 'big-break',
-        objectKey,
-        mimeType: verified.mimeType,
-        byteSize: verified.byteSize,
-        durationMs:
-          durationMs == null || !Number.isFinite(durationMs)
-            ? null
-            : Math.max(0, Math.trunc(durationMs)),
-        originalFileName: fileName,
-        publicUrl: buildPublicAssetUrl(objectKey),
-      },
+    const asset = await this.createStoryUploadAsset({
+      userId,
+      objectKey,
+      mimeType: verified.mimeType,
+      byteSize: verified.byteSize,
+      durationMs,
+      fileName,
+      eventId,
     });
 
     return {
@@ -280,20 +289,21 @@ export class UploadsService {
   async uploadStoryMediaFile(
     userId: string,
     body: Record<string, unknown>,
-    file: Express.Multer.File,
+    file?: Express.Multer.File,
   ) {
+    const uploadFile = this.requireMediaFile(file);
     const eventId = await this.requireStoryEventId(userId, body);
-    this.assertStoryMediaMime(file.mimetype);
-    this.assertStoryMediaSize(file.size);
+    this.assertStoryMediaMime(uploadFile.mimetype);
+    this.assertStoryMediaSize(uploadFile.size);
 
-    const objectKey = `stories/${userId}/${randomUUID()}-${file.originalname}`;
+    const objectKey = `stories/${userId}/${randomUUID()}-${uploadFile.originalname}`;
     if (!BYPASS_S3_UPLOAD) {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: process.env.S3_BUCKET ?? 'big-break',
           Key: objectKey,
-          ContentType: file.mimetype,
-          Body: file.buffer,
+          ContentType: uploadFile.mimetype,
+          Body: uploadFile.buffer,
         }),
       );
     }
@@ -305,9 +315,9 @@ export class UploadsService {
         status: 'ready',
         bucket: process.env.S3_BUCKET ?? 'big-break',
         objectKey,
-        mimeType: file.mimetype,
-        byteSize: file.size,
-        originalFileName: file.originalname,
+        mimeType: uploadFile.mimetype,
+        byteSize: uploadFile.size,
+        originalFileName: uploadFile.originalname,
         publicUrl: buildPublicAssetUrl(objectKey),
       },
     });
@@ -332,6 +342,14 @@ export class UploadsService {
     }
 
     return scope;
+  }
+
+  private requireMediaFile(file?: Express.Multer.File) {
+    if (!file) {
+      throw new ApiError(400, 'media_file_required', 'Media file is required');
+    }
+
+    return file;
   }
 
   private async resolveChatUploadMeta(
@@ -403,6 +421,18 @@ export class UploadsService {
   }
 
   private assertChatUploadSize(kind: ChatUploadKind, byteSize: number) {
+    if (!Number.isSafeInteger(byteSize) || byteSize <= 0) {
+      throw new ApiError(
+        400,
+        kind === 'chat_voice'
+          ? 'invalid_chat_voice_size'
+          : 'invalid_chat_attachment_size',
+        kind === 'chat_voice'
+          ? 'Voice attachment size is invalid'
+          : 'Attachment size is invalid',
+      );
+    }
+
     if (kind === 'chat_attachment' && byteSize > MAX_CHAT_ATTACHMENT_UPLOAD_BYTES) {
       throw new ApiError(
         400,
@@ -481,6 +511,71 @@ export class UploadsService {
     }
   }
 
+  private async createChatUploadAsset(input: {
+    userId: string;
+    uploadMeta: ChatUploadMeta;
+    objectKey: string;
+    mimeType: string;
+    byteSize: number;
+    fileName: string;
+  }) {
+    try {
+      return await this.prismaService.client.mediaAsset.create({
+        data: {
+          ownerId: input.userId,
+          kind: input.uploadMeta.kind,
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey: input.objectKey,
+          mimeType: input.mimeType,
+          byteSize: input.byteSize,
+          durationMs: input.uploadMeta.durationMs,
+          waveform: input.uploadMeta.waveform,
+          originalFileName: input.fileName,
+          chatId: input.uploadMeta.chatId,
+          publicUrl: buildPublicAssetUrl(input.objectKey),
+        },
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      const existing = await this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey: input.objectKey },
+      });
+      if (!existing) {
+        throw error;
+      }
+      this.assertExistingChatUploadAsset(existing, input.userId, input.uploadMeta);
+      return existing;
+    }
+  }
+
+  private assertExistingChatUploadAsset(
+    asset: {
+      ownerId: string;
+      kind: string;
+      status: string;
+      chatId: string | null;
+    },
+    userId: string,
+    uploadMeta: ChatUploadMeta,
+  ) {
+    if (
+      asset.ownerId !== userId ||
+      asset.kind !== uploadMeta.kind ||
+      asset.status !== 'ready' ||
+      asset.chatId !== uploadMeta.chatId
+    ) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+  }
+
   private async resolveVerifiedChatUploadMetadata(
     objectKey: string,
     mimeType: string,
@@ -556,6 +651,14 @@ export class UploadsService {
   }
 
   private assertStoryMediaSize(byteSize: number) {
+    if (!Number.isSafeInteger(byteSize) || byteSize <= 0) {
+      throw new ApiError(
+        400,
+        'invalid_story_media_size',
+        'Story media size is invalid',
+      );
+    }
+
     if (byteSize > MAX_STORY_MEDIA_UPLOAD_BYTES) {
       throw new ApiError(
         400,
@@ -569,6 +672,95 @@ export class UploadsService {
     if (!objectKey.startsWith(`stories/${userId}/`)) {
       throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
     }
+  }
+
+  private async createStoryUploadAsset(input: {
+    userId: string;
+    objectKey: string;
+    mimeType: string;
+    byteSize: number;
+    durationMs: number | null;
+    fileName: string;
+    eventId: string;
+  }) {
+    try {
+      return await this.prismaService.client.mediaAsset.create({
+        data: {
+          ownerId: input.userId,
+          kind: 'story_media',
+          status: 'ready',
+          bucket: process.env.S3_BUCKET ?? 'big-break',
+          objectKey: input.objectKey,
+          mimeType: input.mimeType,
+          byteSize: input.byteSize,
+          durationMs:
+            input.durationMs == null || !Number.isFinite(input.durationMs)
+              ? null
+              : Math.max(0, Math.trunc(input.durationMs)),
+          originalFileName: input.fileName,
+          publicUrl: buildPublicAssetUrl(input.objectKey),
+        },
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      const existing = await this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey: input.objectKey },
+      });
+      if (!existing) {
+        throw error;
+      }
+      await this.assertExistingStoryUploadAsset(
+        existing,
+        input.userId,
+        input.eventId,
+      );
+      return existing;
+    }
+  }
+
+  private async assertExistingStoryUploadAsset(
+    asset: {
+      id: string;
+      ownerId: string;
+      kind: string;
+      status: string;
+    },
+    userId: string,
+    eventId: string,
+  ) {
+    if (
+      asset.ownerId !== userId ||
+      asset.kind !== 'story_media' ||
+      asset.status !== 'ready'
+    ) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+
+    const story = await this.prismaService.client.eventStory.findUnique({
+      where: { mediaAssetId: asset.id },
+      select: { eventId: true },
+    });
+    if (story != null && story.eventId !== eventId) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
   }
 
   private async resolveVerifiedStoryUploadMetadata(

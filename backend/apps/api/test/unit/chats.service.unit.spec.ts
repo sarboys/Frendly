@@ -1,4 +1,5 @@
 import { ChatsService } from '../../src/services/chats.service';
+import { ChatKind } from '@prisma/client';
 
 describe('ChatsService unit', () => {
   afterEach(() => {
@@ -179,5 +180,243 @@ describe('ChatsService unit', () => {
         liveState: { status: 'finished' },
       }),
     ).toBe('done');
+  });
+
+  it('bounds chat list member previews and filters blocked members in the query', async () => {
+    const chatFindMany = jest.fn().mockResolvedValue([]);
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: chatFindMany,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-me',
+              blockedUserId: 'blocked-user',
+            },
+          ]),
+        },
+      },
+    } as any);
+
+    await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(chatFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          eveningSession: expect.objectContaining({
+            select: expect.not.objectContaining({
+              participants: expect.anything(),
+            }),
+          }),
+          members: expect.objectContaining({
+            where: {
+              userId: {
+                notIn: ['blocked-user'],
+              },
+            },
+            orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+            take: 8,
+          }),
+          messages: expect.objectContaining({
+            where: {
+              senderId: {
+                notIn: ['blocked-user'],
+              },
+            },
+            take: 1,
+          }),
+        }),
+      }),
+    );
+    expect(chatFindMany.mock.calls[0]?.[0].include.eveningSession.select._count)
+      .toEqual({
+        select: {
+          participants: {
+            where: {
+              status: 'joined',
+            },
+          },
+        },
+      });
+  });
+
+  it('does not expose blocked sender content through reply previews', async () => {
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: ChatKind.meetup,
+              event: {
+                hostId: 'user-host',
+              },
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-me',
+              blockedUserId: 'blocked-user',
+            },
+          ]),
+        },
+        message: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'message-1',
+              chatId: 'chat-1',
+              senderId: 'user-peer',
+              sender: {
+                id: 'user-peer',
+                displayName: 'Peer',
+                profile: {
+                  avatarUrl: null,
+                },
+              },
+              text: 'Visible reply',
+              clientMessageId: 'client-1',
+              createdAt: new Date('2026-04-24T10:00:00.000Z'),
+              attachments: [],
+              replyTo: {
+                id: 'blocked-message',
+                chatId: 'chat-1',
+                senderId: 'blocked-user',
+                sender: {
+                  id: 'blocked-user',
+                  displayName: 'Blocked',
+                },
+                text: 'Hidden text',
+                clientMessageId: 'client-blocked',
+                createdAt: new Date('2026-04-24T09:00:00.000Z'),
+                attachments: [],
+              },
+            },
+          ]),
+        },
+        realtimeEvent: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.getMessages('user-me', 'chat-1', { limit: 20 }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          id: 'message-1',
+          text: 'Visible reply',
+          replyTo: null,
+        },
+      ],
+    });
+  });
+
+  it('checks meetup membership without loading the full member list', async () => {
+    const findUnique = jest.fn().mockResolvedValue({
+      chat: {
+        kind: ChatKind.meetup,
+        event: {
+          hostId: 'user-host',
+        },
+      },
+    });
+    const findFirst = jest.fn();
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique,
+          findFirst,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await (service as any).assertMembership('user-me', 'chat-1');
+
+    expect(findUnique).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'chat-1',
+          userId: 'user-me',
+        },
+      },
+      select: {
+        chat: {
+          select: {
+            kind: true,
+            event: {
+              select: {
+                hostId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(findFirst).not.toHaveBeenCalled();
+  });
+
+  it('does not advance read markers to messages from blocked senders', async () => {
+    const memberUpdate = jest.fn();
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: ChatKind.meetup,
+              event: {
+                hostId: 'user-host',
+              },
+            },
+          }),
+          update: memberUpdate,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-me',
+              blockedUserId: 'blocked-user',
+            },
+          ]),
+        },
+        message: {
+          findFirst: jest.fn((args) =>
+            args.where.senderId?.notIn?.includes('blocked-user')
+              ? Promise.resolve(null)
+              : Promise.resolve({
+                  id: 'message-blocked',
+                  senderId: 'blocked-user',
+                }),
+          ),
+        },
+        notification: {
+          updateMany: jest.fn(),
+        },
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            chatMember: {
+              update: memberUpdate,
+            },
+            notification: {
+              updateMany: jest.fn(),
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    await expect(
+      service.markRead('user-me', 'chat-1', 'message-blocked'),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'message_not_found',
+    });
+    expect(memberUpdate).not.toHaveBeenCalled();
   });
 });

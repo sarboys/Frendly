@@ -6,17 +6,21 @@ import {
   buildMessagePreview,
   createRedisPublisher,
   createRedisSubscriber,
+  getBlockedUserIds as loadBlockedUserIds,
   publishBusEvent,
   verifyAccessToken,
 } from '@big-break/database';
 import Redis from 'ioredis';
 import { Server as HttpServer } from 'node:http';
+import { Prisma } from '@prisma/client';
 import { RawData, WebSocket, WebSocketServer } from 'ws';
 import { PrismaService } from './prisma.service';
 
 interface SocketState {
   userId?: string;
   sessionId?: string;
+  tokenExpiresAtMs?: number;
+  authCheckedAtMs?: number;
   subscriptions: Set<string>;
 }
 
@@ -38,6 +42,11 @@ const DEFAULT_SYNC_EVENT_LIMIT = 100;
 const MAX_SYNC_EVENT_LIMIT = 500;
 const DEFAULT_TYPING_THROTTLE_MS = 1500;
 const DEFAULT_MEMBERSHIP_CACHE_TTL_MS = 5000;
+const DEFAULT_MEMBERSHIP_CACHE_MAX_ENTRIES = 10_000;
+const DEFAULT_AUTH_RECHECK_MS = 30_000;
+const DEFAULT_MAX_PAYLOAD_BYTES = 64 * 1024;
+const DEFAULT_MAX_MESSAGE_TEXT_LENGTH = 4000;
+const DEFAULT_MAX_ATTACHMENT_COUNT = 10;
 
 @Injectable()
 export class ChatServerService implements OnModuleDestroy {
@@ -50,9 +59,29 @@ export class ChatServerService implements OnModuleDestroy {
     process.env.CHAT_TYPING_THROTTLE_MS,
     DEFAULT_TYPING_THROTTLE_MS,
   );
+  private readonly authRecheckMs = this.resolveDurationMs(
+    process.env.CHAT_AUTH_RECHECK_MS,
+    DEFAULT_AUTH_RECHECK_MS,
+  );
+  private readonly maxPayloadBytes = this.resolvePositiveInteger(
+    process.env.CHAT_WS_MAX_PAYLOAD_BYTES,
+    DEFAULT_MAX_PAYLOAD_BYTES,
+  );
+  private readonly maxMessageTextLength = this.resolvePositiveInteger(
+    process.env.CHAT_MESSAGE_TEXT_MAX_LENGTH,
+    DEFAULT_MAX_MESSAGE_TEXT_LENGTH,
+  );
+  private readonly maxAttachmentCount = this.resolvePositiveInteger(
+    process.env.CHAT_MESSAGE_ATTACHMENT_MAX_COUNT,
+    DEFAULT_MAX_ATTACHMENT_COUNT,
+  );
   private readonly membershipCacheTtlMs = this.resolveDurationMs(
     process.env.CHAT_MEMBERSHIP_CACHE_TTL_MS,
     DEFAULT_MEMBERSHIP_CACHE_TTL_MS,
+  );
+  private readonly membershipCacheMaxEntries = this.resolvePositiveInteger(
+    process.env.CHAT_MEMBERSHIP_CACHE_MAX_ENTRIES,
+    DEFAULT_MEMBERSHIP_CACHE_MAX_ENTRIES,
   );
   private readonly lastTypingSentAtBySocket = new Map<WebSocket, Map<string, number>>();
   private readonly membershipCache = new Map<string, number>();
@@ -62,7 +91,10 @@ export class ChatServerService implements OnModuleDestroy {
   constructor(private readonly prismaService: PrismaService) {}
 
   attach(server: HttpServer) {
-    this.wss = new WebSocketServer({ server });
+    this.wss = new WebSocketServer({
+      server,
+      maxPayload: this.maxPayloadBytes,
+    });
     this.wss.on('connection', (socket: WebSocket) => this.handleConnection(socket));
 
     this.subscriber.subscribe(PUBSUB_CHANNEL).then(() => {
@@ -84,7 +116,11 @@ export class ChatServerService implements OnModuleDestroy {
 
     socket.on('message', async (raw: RawData) => {
       try {
-        const envelope = JSON.parse(raw.toString()) as Envelope;
+        if (this.rawDataByteLength(raw) > this.maxPayloadBytes) {
+          throw new ChatServerError('payload_too_large', 'Payload is too large');
+        }
+
+        const envelope = JSON.parse(this.rawDataToString(raw)) as Envelope;
         await this.handleEnvelope(socket, envelope);
       } catch (error) {
         this.send(socket, {
@@ -170,12 +206,21 @@ export class ChatServerService implements OnModuleDestroy {
       throw new ChatServerError('stale_access_token', 'Access token is stale');
     }
 
+    const tokenExpiresAtMs =
+      typeof payload.exp === 'number' ? payload.exp * 1000 : undefined;
+    const now = Date.now();
+    if (tokenExpiresAtMs != null && tokenExpiresAtMs <= now) {
+      throw new ChatServerError('stale_access_token', 'Access token is stale');
+    }
+
     const state = this.getState(socket);
     if (state.userId != null && state.userId !== payload.userId) {
-      this.removeIndexedSocket(this.socketsByUserId, state.userId, socket);
+      this.clearAuthenticatedState(socket, state);
     }
     state.userId = payload.userId;
     state.sessionId = payload.sessionId;
+    state.tokenExpiresAtMs = tokenExpiresAtMs;
+    state.authCheckedAtMs = now;
     this.addIndexedSocket(this.socketsByUserId, payload.userId, socket);
 
     this.send(socket, {
@@ -187,7 +232,7 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async subscribe(socket: WebSocket, chatId?: string) {
-    const state = this.requireAuthenticated(socket);
+    const state = await this.requireAuthenticated(socket);
     if (!chatId) {
       throw new Error('chatId is required');
     }
@@ -211,7 +256,7 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async sendMessage(socket: WebSocket, payload: any) {
-    const state = this.requireAuthenticated(socket);
+    const state = await this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
     const text =
       typeof payload?.text === 'string' ? payload.text.trim() : '';
@@ -232,11 +277,26 @@ export class ChatServerService implements OnModuleDestroy {
       );
     }
 
+    if (text.length > this.maxMessageTextLength) {
+      throw new ChatServerError(
+        'message_text_too_long',
+        'Message text is too long',
+      );
+    }
+
+    if (attachmentIds.length > this.maxAttachmentCount) {
+      throw new ChatServerError(
+        'message_attachment_limit_exceeded',
+        'Too many attachments',
+      );
+    }
+
     await this.assertMembership(state.userId!, chatId);
 
     const existing = await this.prismaService.client.message.findFirst({
       where: {
         chatId,
+        senderId: state.userId!,
         clientMessageId,
       },
       include: {
@@ -270,7 +330,7 @@ export class ChatServerService implements OnModuleDestroy {
     if (existing) {
       this.send(socket, {
         type: 'message.created',
-        payload: this.mapMessage(existing),
+        payload: await this.mapMessageForUser(existing, undefined, state.userId!),
       });
       return;
     }
@@ -302,10 +362,13 @@ export class ChatServerService implements OnModuleDestroy {
           id: replyToMessageId,
           chatId,
         },
-        select: { id: true },
+        select: {
+          id: true,
+          senderId: true,
+        },
       });
 
-      if (!replyTarget) {
+      if (!replyTarget || (await this.isUserBlocked(state.userId!, replyTarget.senderId))) {
         throw new ChatServerError(
           'reply_message_not_found',
           'Reply target was not found in chat',
@@ -313,79 +376,93 @@ export class ChatServerService implements OnModuleDestroy {
       }
     }
 
-    const message = await this.prismaService.client.$transaction(async (tx) => {
-      const now = new Date();
-      const created = await tx.message.create({
-        data: {
-          chatId,
-          senderId: state.userId!,
-          text,
-          clientMessageId,
-          replyToMessageId,
-          attachments: {
-            createMany: {
-              data: readyAssets.map((asset) => ({
-                mediaAssetId: asset.id,
-              })),
-            },
-          },
-        },
-        include: {
-          sender: {
-            include: {
-              profile: {
-                select: {
-                  avatarUrl: true,
-                },
-              },
-            },
-          },
-          replyTo: {
-            include: {
-              sender: true,
-              attachments: {
-                include: {
-                  mediaAsset: true,
-                },
-              },
-            },
-          },
-          attachments: {
-            include: {
-              mediaAsset: true,
-            },
-          },
-        },
-      });
-
-      await tx.chat.update({
-        where: { id: chatId },
-        data: { updatedAt: now },
-      });
-
-      const realtimeEvent = await tx.realtimeEvent.create({
-        data: {
-          chatId,
-          eventType: 'message.created',
-          payload: this.mapMessage(created),
-        },
-      });
-
-      await tx.outboxEvent.create({
-        data: {
-          type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
-          payload: {
+    let message: {
+      created: Parameters<ChatServerService['mapMessage']>[0];
+      realtimeEventId: string;
+    };
+    try {
+      message = await this.prismaService.client.$transaction(async (tx) => {
+        const now = new Date();
+        const created = await tx.message.create({
+          data: {
             chatId,
-            actorUserId: state.userId!,
+            senderId: state.userId!,
+            text,
+            clientMessageId,
+            replyToMessageId,
+            attachments: {
+              createMany: {
+                data: readyAssets.map((asset) => ({
+                  mediaAssetId: asset.id,
+                })),
+              },
+            },
           },
-        },
-      });
+          include: {
+            sender: {
+              include: {
+                profile: {
+                  select: {
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
+            replyTo: {
+              include: {
+                sender: true,
+                attachments: {
+                  include: {
+                    mediaAsset: true,
+                  },
+                },
+              },
+            },
+            attachments: {
+              include: {
+                mediaAsset: true,
+              },
+            },
+          },
+        });
 
-      return {
-        created,
-        realtimeEventId: realtimeEvent.id.toString(),
-      };
-    });
+        await tx.chat.update({
+          where: { id: chatId },
+          data: { updatedAt: now },
+        });
+
+        const realtimeEvent = await tx.realtimeEvent.create({
+          data: {
+            chatId,
+            eventType: 'message.created',
+            payload: this.mapMessage(created),
+          },
+        });
+
+        await tx.outboxEvent.create({
+          data: {
+            type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
+            payload: {
+              chatId,
+              actorUserId: state.userId!,
+            },
+          },
+        });
+
+        return {
+          created,
+          realtimeEventId: realtimeEvent.id.toString(),
+        };
+      });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ChatServerError(
+          'client_message_id_conflict',
+          'clientMessageId already exists in this chat',
+        );
+      }
+      throw error;
+    }
 
     await publishBusEvent(this.publisher, {
       type: 'message.created',
@@ -398,16 +475,24 @@ export class ChatServerService implements OnModuleDestroy {
     if (!state.subscriptions.has(chatId)) {
       this.send(socket, {
         type: 'message.created',
-        payload: this.mapMessage(
+        payload: await this.mapMessageForUser(
           message.created,
           message.realtimeEventId,
+          state.userId!,
         ),
       });
     }
   }
 
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
+  }
+
   private async editMessage(socket: WebSocket, payload: any) {
-    const state = this.requireAuthenticated(socket);
+    const state = await this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
     const messageId = payload?.messageId as string | undefined;
     const text =
@@ -421,6 +506,13 @@ export class ChatServerService implements OnModuleDestroy {
       throw new ChatServerError(
         'message_payload_empty',
         'text is required',
+      );
+    }
+
+    if (text.length > this.maxMessageTextLength) {
+      throw new ChatServerError(
+        'message_text_too_long',
+        'Message text is too long',
       );
     }
 
@@ -506,13 +598,17 @@ export class ChatServerService implements OnModuleDestroy {
     if (!state.subscriptions.has(chatId)) {
       this.send(socket, {
         type: 'message.updated',
-        payload: eventPayload,
+        payload: await this.mapMessageForUser(
+          result.updated,
+          result.realtimeEventId,
+          state.userId!,
+        ),
       });
     }
   }
 
   private async deleteMessage(socket: WebSocket, payload: any) {
-    const state = this.requireAuthenticated(socket);
+    const state = await this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
     const messageId = payload?.messageId as string | undefined;
 
@@ -590,7 +686,7 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async markRead(socket: WebSocket, payload: any) {
-    const state = this.requireAuthenticated(socket);
+    const state = await this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
     const messageId = payload?.messageId as string | undefined;
 
@@ -599,6 +695,24 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     await this.assertMembership(state.userId!, chatId);
+    const blockedUserIds = await this.getBlockedUserIds(state.userId!);
+    const message = await this.prismaService.client.message.findFirst({
+      where: {
+        id: messageId,
+        chatId,
+        senderId: {
+          notIn: [...blockedUserIds],
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!message) {
+      throw new ChatServerError(
+        'message_not_found',
+        'Message was not found',
+      );
+    }
 
     const result = await this.prismaService.client.$transaction(async (tx) => {
       const now = new Date();
@@ -666,7 +780,7 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async publishTyping(socket: WebSocket, chatId?: string, isTyping?: boolean) {
-    const state = this.requireAuthenticated(socket);
+    const state = await this.requireAuthenticated(socket);
 
     if (!chatId) {
       throw new Error('chatId is required');
@@ -688,7 +802,7 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async sync(socket: WebSocket, payload: any) {
-    const state = this.requireAuthenticated(socket);
+    const state = await this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
     const sinceEventId = payload?.sinceEventId as string | undefined;
     const take = this.normalizeSyncEventLimit(payload?.limit);
@@ -772,7 +886,10 @@ export class ChatServerService implements OnModuleDestroy {
         events: visibleEvents.map((event) => ({
           id: event.id.toString(),
           type: event.eventType,
-          payload: event.payload,
+          payload: this.sanitizeEventPayloadForBlockedUsers(
+            event.payload,
+            blockedUserIds,
+          ),
           createdAt: event.createdAt.toISOString(),
         })),
       },
@@ -847,6 +964,8 @@ export class ChatServerService implements OnModuleDestroy {
     const actorUserId = this.getActorUserId(event);
     const blockedUserIds =
       actorUserId != null ? await this.getBlockedUserIds(actorUserId) : null;
+    const replyAuthorId = this.getReplyAuthorId(event.payload);
+    const recipientBlockedUserIds = new Map<string, Set<string>>();
 
     for (const socket of this.socketsByChatId.get(chatId) ?? []) {
       const state = this.stateBySocket.get(socket);
@@ -863,15 +982,61 @@ export class ChatServerService implements OnModuleDestroy {
         continue;
       }
 
+      if (replyAuthorId != null && state.userId != null) {
+        let blockedForRecipient = recipientBlockedUserIds.get(state.userId);
+        if (!blockedForRecipient) {
+          blockedForRecipient = await this.getBlockedUserIds(state.userId);
+          recipientBlockedUserIds.set(state.userId, blockedForRecipient);
+        }
+
+        this.send(socket, {
+          ...event,
+          payload: this.sanitizeEventPayloadForBlockedUsers(
+            event.payload,
+            blockedForRecipient,
+          ),
+        });
+        continue;
+      }
+
       this.send(socket, event);
     }
   }
 
-  private requireAuthenticated(socket: WebSocket) {
+  private async requireAuthenticated(socket: WebSocket) {
     const state = this.getState(socket);
-    if (!state.userId) {
+    if (!state.userId || !state.sessionId) {
       throw new Error('Not authenticated');
     }
+
+    const now = Date.now();
+    if (state.tokenExpiresAtMs != null && state.tokenExpiresAtMs <= now) {
+      this.clearAuthenticatedState(socket, state);
+      throw new ChatServerError('stale_access_token', 'Access token is stale');
+    }
+
+    if (
+      this.authRecheckMs > 0 &&
+      state.authCheckedAtMs != null &&
+      now - state.authCheckedAtMs < this.authRecheckMs
+    ) {
+      return state;
+    }
+
+    const session = await this.prismaService.client.session.findUnique({
+      where: { id: state.sessionId },
+      select: {
+        userId: true,
+        revokedAt: true,
+      },
+    });
+
+    if (!session || session.userId !== state.userId || session.revokedAt != null) {
+      this.clearAuthenticatedState(socket, state);
+      throw new ChatServerError('stale_access_token', 'Access token is stale');
+    }
+
+    state.authCheckedAtMs = now;
     return state;
   }
 
@@ -894,12 +1059,38 @@ export class ChatServerService implements OnModuleDestroy {
     }
   }
 
+  private rawDataByteLength(raw: RawData) {
+    if (Array.isArray(raw)) {
+      return raw.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+    }
+
+    return raw.byteLength;
+  }
+
+  private rawDataToString(raw: RawData) {
+    if (Array.isArray(raw)) {
+      return Buffer.concat(raw).toString();
+    }
+
+    if (Buffer.isBuffer(raw)) {
+      return raw.toString();
+    }
+
+    return Buffer.from(raw).toString();
+  }
+
   private cleanupSocket(socket: WebSocket) {
     const state = this.stateBySocket.get(socket);
     if (!state) {
       return;
     }
 
+    this.clearAuthenticatedState(socket, state);
+    this.stateBySocket.delete(socket);
+    this.lastTypingSentAtBySocket.delete(socket);
+  }
+
+  private clearAuthenticatedState(socket: WebSocket, state: SocketState) {
     if (state.userId != null) {
       this.removeIndexedSocket(this.socketsByUserId, state.userId, socket);
     }
@@ -908,7 +1099,11 @@ export class ChatServerService implements OnModuleDestroy {
       this.removeIndexedSocket(this.socketsByChatId, chatId, socket);
     }
 
-    this.stateBySocket.delete(socket);
+    state.subscriptions.clear();
+    state.userId = undefined;
+    state.sessionId = undefined;
+    state.tokenExpiresAtMs = undefined;
+    state.authCheckedAtMs = undefined;
     this.lastTypingSentAtBySocket.delete(socket);
   }
 
@@ -944,27 +1139,29 @@ export class ChatServerService implements OnModuleDestroy {
 
   private async assertMembership(userId: string, chatId: string) {
     const membershipCacheKey = this.buildMembershipCacheKey(userId, chatId);
+    const now = Date.now();
     const cachedUntil = this.membershipCache.get(membershipCacheKey);
-    if (cachedUntil != null && cachedUntil > Date.now()) {
+    if (cachedUntil != null && cachedUntil > now) {
       return;
     }
+    if (cachedUntil != null) {
+      this.membershipCache.delete(membershipCacheKey);
+    }
 
-    const membership = await this.prismaService.client.chatMember.findFirst({
+    const membership = await this.prismaService.client.chatMember.findUnique({
       where: {
-        chatId,
-        userId,
+        chatId_userId: {
+          chatId,
+          userId,
+        },
       },
-      include: {
+      select: {
         chat: {
-          include: {
+          select: {
+            kind: true,
             event: {
               select: {
                 hostId: true,
-              },
-            },
-            members: {
-              select: {
-                userId: true,
               },
             },
           },
@@ -977,10 +1174,20 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     if (membership.chat.kind === 'direct') {
-      const peerUserId = membership.chat.members.find((entry) => entry.userId !== userId)?.userId;
-      if (peerUserId != null) {
+      const peer = await this.prismaService.client.chatMember.findFirst({
+        where: {
+          chatId,
+          userId: {
+            not: userId,
+          },
+        },
+        select: {
+          userId: true,
+        },
+      });
+      if (peer?.userId != null) {
         const blockedUserIds = await this.getBlockedUserIds(userId);
-        if (blockedUserIds.has(peerUserId)) {
+        if (blockedUserIds.has(peer.userId)) {
           throw new ChatServerError('chat_forbidden', 'Not a chat member');
         }
       }
@@ -994,9 +1201,9 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     if (this.membershipCacheTtlMs > 0) {
-      this.membershipCache.set(
+      this.setMembershipCache(
         membershipCacheKey,
-        Date.now() + this.membershipCacheTtlMs,
+        now + this.membershipCacheTtlMs,
       );
     }
   }
@@ -1031,6 +1238,30 @@ export class ChatServerService implements OnModuleDestroy {
     return `${userId}:${chatId}`;
   }
 
+  private setMembershipCache(key: string, expiresAt: number) {
+    this.membershipCache.set(key, expiresAt);
+    if (this.membershipCache.size <= this.membershipCacheMaxEntries) {
+      return;
+    }
+
+    this.pruneExpiredMembershipCacheEntries(Date.now());
+    while (this.membershipCache.size > this.membershipCacheMaxEntries) {
+      const oldestKey = this.membershipCache.keys().next().value as string | undefined;
+      if (oldestKey == null) {
+        break;
+      }
+      this.membershipCache.delete(oldestKey);
+    }
+  }
+
+  private pruneExpiredMembershipCacheEntries(now: number) {
+    for (const [key, expiresAt] of this.membershipCache) {
+      if (expiresAt <= now) {
+        this.membershipCache.delete(key);
+      }
+    }
+  }
+
   private resolveDurationMs(raw: string | undefined, fallback: number) {
     const parsed = raw == null ? fallback : Number(raw);
     if (!Number.isFinite(parsed)) {
@@ -1040,31 +1271,22 @@ export class ChatServerService implements OnModuleDestroy {
     return Math.max(0, Math.trunc(parsed));
   }
 
-  private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
-
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
+  private resolvePositiveInteger(raw: string | undefined, fallback: number) {
+    const parsed = raw == null ? fallback : Number(raw);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
     }
 
-    return blockedUserIds;
+    return Math.max(1, Math.trunc(parsed));
+  }
+
+  private async getBlockedUserIds(userId: string) {
+    return loadBlockedUserIds(this.prismaService.client, userId);
+  }
+
+  private async isUserBlocked(userId: string, targetUserId: string) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    return blockedUserIds.has(targetUserId);
   }
 
   private getActorUserId(event: Envelope) {
@@ -1082,6 +1304,51 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     return undefined;
+  }
+
+  private getReplyAuthorId(payload: unknown) {
+    if (payload == null || typeof payload !== 'object') {
+      return undefined;
+    }
+
+    const replyTo = (payload as { replyTo?: unknown }).replyTo;
+    if (replyTo == null || typeof replyTo !== 'object') {
+      return undefined;
+    }
+
+    const authorId = (replyTo as { authorId?: unknown }).authorId;
+    return typeof authorId === 'string' ? authorId : undefined;
+  }
+
+  private sanitizeEventPayloadForBlockedUsers(
+    payload: unknown,
+    blockedUserIds: Set<string>,
+  ) {
+    const replyAuthorId = this.getReplyAuthorId(payload);
+    if (replyAuthorId == null || !blockedUserIds.has(replyAuthorId)) {
+      return payload;
+    }
+
+    return {
+      ...(payload as Record<string, unknown>),
+      replyTo: null,
+    };
+  }
+
+  private async mapMessageForUser(
+    message: Parameters<ChatServerService['mapMessage']>[0],
+    eventId: string | undefined,
+    userId: string,
+  ) {
+    const payload = this.mapMessage(message, eventId);
+    if (this.getReplyAuthorId(payload) == null) {
+      return payload;
+    }
+
+    return this.sanitizeEventPayloadForBlockedUsers(
+      payload,
+      await this.getBlockedUserIds(userId),
+    );
   }
 
   private mapMessage(message: {

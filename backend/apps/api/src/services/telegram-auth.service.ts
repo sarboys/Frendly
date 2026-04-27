@@ -141,6 +141,7 @@ export class TelegramAuthService {
   }
 
   async verify(
+    loginSessionId: string,
     code: string,
     meta: AuthRequestMeta,
   ): Promise<{
@@ -152,54 +153,34 @@ export class TelegramAuthService {
     this.getRequiredConfig();
     const prisma = this.prismaService.client;
     const now = new Date();
-    const codeLookup = hashTelegramCodeLookup(code);
-    const sessions = await prisma.telegramLoginSession.findMany({
-      where: {
-        codeLookup,
-        status: 'code_issued',
-        consumedAt: null,
-        expiresAt: {
-          gt: now,
-        },
-      },
+    const session = await prisma.telegramLoginSession.findUnique({
+      where: { loginSessionId },
     });
 
-    if (sessions.length === 0) {
+    if (
+      !session ||
+      session.status !== 'code_issued' ||
+      session.consumedAt != null ||
+      session.expiresAt.getTime() <= now.getTime()
+    ) {
       await this.writeAuditEvent(prisma, {
         provider: 'telegram',
         kind: 'verify',
         result: 'rejected',
         requestId: meta.requestId,
-        ip: meta.ip,
-        userAgent: meta.userAgent,
-      });
-      throw new ApiError(
-        400,
-        'invalid_telegram_code',
-        'Telegram code is invalid',
-      );
-    }
-
-    if (sessions.length > 1) {
-      await this.writeAuditEvent(prisma, {
-        provider: 'telegram',
-        kind: 'verify',
-        result: 'conflict',
-        requestId: meta.requestId,
+        loginSessionId,
         ip: meta.ip,
         userAgent: meta.userAgent,
         metadata: {
-          duplicateCodeLookup: true,
+          reason: 'invalid_login_session',
         },
       });
       throw new ApiError(
-        409,
-        'telegram_auth_conflict',
-        'Telegram auth resolves to different users',
+        400,
+        'invalid_telegram_login_session',
+        'Telegram login session is invalid',
       );
     }
-
-    const session = sessions[0]!;
 
     if (
       !session.telegramUserId ||
@@ -227,19 +208,68 @@ export class TelegramAuthService {
       );
     }
 
+    if (session.attemptCount >= TELEGRAM_AUTH_MAX_ATTEMPTS) {
+      await prisma.telegramLoginSession.updateMany({
+        where: {
+          id: session.id,
+          consumedAt: null,
+        },
+        data: {
+          consumedAt: now,
+          status: 'failed',
+        },
+      });
+      await this.writeAuditEvent(prisma, {
+        provider: 'telegram',
+        kind: 'verify',
+        result: 'rate_limited',
+        requestId: meta.requestId,
+        loginSessionId: session.loginSessionId,
+        telegramUserId: session.telegramUserId,
+        maskedPhone: maskPhoneNumber(session.phoneNumber),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        metadata: {
+          reason: 'max_attempts',
+        },
+      });
+      throw new ApiError(
+        429,
+        'telegram_auth_rate_limited',
+        'Telegram auth is rate limited',
+      );
+    }
+
     const expectedHash = hashTelegramCode(code, session.codeSalt);
     if (expectedHash !== session.codeHash) {
       const nextAttemptCount = session.attemptCount + 1;
       const limited = nextAttemptCount >= TELEGRAM_AUTH_MAX_ATTEMPTS;
 
-      await prisma.telegramLoginSession.update({
-        where: { id: session.id },
+      const attemptUpdate = await prisma.telegramLoginSession.updateMany({
+        where: {
+          id: session.id,
+          status: 'code_issued',
+          consumedAt: null,
+        },
         data: {
-          attemptCount: nextAttemptCount,
-          consumedAt: limited ? now : undefined,
-          status: limited ? 'failed' : undefined,
+          attemptCount: {
+            increment: 1,
+          },
+          ...(limited
+            ? {
+                consumedAt: now,
+                status: 'failed' as const,
+              }
+            : {}),
         },
       });
+      if (attemptUpdate.count === 0) {
+        throw new ApiError(
+          400,
+          'invalid_telegram_login_session',
+          'Telegram login session is invalid',
+        );
+      }
 
       await this.writeAuditEvent(prisma, {
         provider: 'telegram',
@@ -251,6 +281,10 @@ export class TelegramAuthService {
         maskedPhone: maskPhoneNumber(session.phoneNumber),
         ip: meta.ip,
         userAgent: meta.userAgent,
+        metadata: {
+          reason: limited ? 'max_attempts' : 'invalid_code',
+          attemptCount: nextAttemptCount,
+        },
       });
 
       throw new ApiError(

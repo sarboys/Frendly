@@ -14,6 +14,10 @@ export function getJwtConfig(): JwtConfig {
     throw new Error('JWT secrets must be configured in production');
   }
 
+  if (isProduction && accessSecret === refreshSecret) {
+    throw new Error('JWT access and refresh secrets must be different in production');
+  }
+
   return {
     accessSecret: accessSecret ?? 'dev-access-secret',
     refreshSecret: refreshSecret ?? 'dev-refresh-secret',

@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { verifyAccessToken } from '@big-break/database';
 import { ApiError } from './api-error';
@@ -9,6 +9,8 @@ export const IS_PUBLIC_ROUTE = 'isPublicRoute';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(
     private readonly reflector: Reflector,
     private readonly prismaService: PrismaService,
@@ -36,7 +38,10 @@ export class AuthGuard implements CanActivate {
 
     try {
       payload = verifyAccessToken(token);
-    } catch {
+    } catch (error) {
+      this.logger.warn(
+        `Rejected access token: requestId=${request.context.requestId} reason=invalid_payload`,
+      );
       throw new ApiError(401, 'invalid_access_token', 'Access token is invalid');
     }
 
@@ -49,6 +54,9 @@ export class AuthGuard implements CanActivate {
     });
 
     if (!session || session.userId !== payload.userId || session.revokedAt != null) {
+      this.logger.warn(
+        `Rejected access token: requestId=${request.context.requestId} userId=${payload.userId} sessionId=${payload.sessionId} reason=stale_session`,
+      );
       throw new ApiError(401, 'stale_access_token', 'Access token is stale');
     }
 

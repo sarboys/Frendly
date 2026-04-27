@@ -46,6 +46,7 @@ export class ProfileService {
     this.validateProfilePayload(body);
 
     const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : undefined;
+    const profileUpdate = this.buildProfileUpdate(body);
 
     await this.prismaService.client.$transaction(async (tx) => {
       if (displayName) {
@@ -55,22 +56,12 @@ export class ProfileService {
         });
       }
 
-      await tx.profile.update({
-        where: { userId },
-        data: {
-          age: body.age == null ? null : typeof body.age === 'number' ? body.age : undefined,
-          gender:
-              body.gender === 'male' || body.gender === 'female'
-                  ? body.gender
-                  : body.gender == null
-                      ? null
-                      : undefined,
-          city: body.city == null ? null : typeof body.city === 'string' ? body.city : undefined,
-          area: body.area == null ? null : typeof body.area === 'string' ? body.area : undefined,
-          bio: body.bio == null ? null : typeof body.bio === 'string' ? body.bio : undefined,
-          vibe: body.vibe == null ? null : typeof body.vibe === 'string' ? body.vibe : undefined,
-        },
-      });
+      if (Object.keys(profileUpdate).length > 0) {
+        await tx.profile.update({
+          where: { userId },
+          data: profileUpdate,
+        });
+      }
     });
 
     return this.getProfile(userId);
@@ -79,6 +70,7 @@ export class ProfileService {
   async getAvatarUploadUrl(userId: string, body: Record<string, unknown>) {
     const fileName = typeof body.fileName === 'string' ? body.fileName : 'avatar.jpg';
     const contentType = typeof body.contentType === 'string' ? body.contentType : 'image/jpeg';
+    this.assertAvatarMime(contentType);
     const objectKey = `avatars/${userId}/${randomUUID()}-${fileName}`;
     return createPresignedUpload({ objectKey, contentType });
   }
@@ -103,6 +95,18 @@ export class ProfileService {
     }
 
     this.assertAvatarObjectKey(userId, objectKey);
+    const existing = await this.prismaService.client.mediaAsset.findUnique({
+      where: { objectKey },
+    });
+    if (existing) {
+      this.assertExistingAvatarAsset(existing, userId);
+      await this.setProfileAvatar(userId, existing);
+      return {
+        assetId: existing.id,
+        status: existing.status,
+      };
+    }
+
     const verified = await this.resolveVerifiedAvatarMetadata(
       objectKey,
       mimeType,
@@ -111,27 +115,16 @@ export class ProfileService {
     this.assertAvatarMime(verified.mimeType);
     this.assertAvatarSize(verified.byteSize);
 
-    const asset = await this.prismaService.client.mediaAsset.create({
-      data: {
-        ownerId: userId,
-        kind: 'avatar',
-        status: 'ready',
-        bucket: process.env.S3_BUCKET ?? 'big-break',
-        objectKey,
-        mimeType: verified.mimeType,
-        byteSize: verified.byteSize,
-        originalFileName: fileName,
-        publicUrl: buildPublicAssetUrl(objectKey),
-      },
+    const asset = await this.createAvatarUploadAsset(userId, {
+      bucket: process.env.S3_BUCKET ?? 'big-break',
+      objectKey,
+      mimeType: verified.mimeType,
+      byteSize: verified.byteSize,
+      originalFileName: fileName,
+      publicUrl: buildPublicAssetUrl(objectKey),
     });
 
-    await this.prismaService.client.profile.update({
-      where: { userId },
-      data: {
-        avatarAssetId: asset.id,
-        avatarUrl: asset.publicUrl,
-      },
-    });
+    await this.setProfileAvatar(userId, asset);
 
     return {
       assetId: asset.id,
@@ -163,6 +156,8 @@ export class ProfileService {
       : buildPublicAssetUrl(objectKey);
 
     const result = await this.prismaService.client.$transaction(async (tx) => {
+      await this.lockProfilePhotoOrder(tx, userId);
+
       await tx.profilePhoto.updateMany({
         where: { profileUserId: userId },
         data: {
@@ -282,6 +277,13 @@ export class ProfileService {
     }
 
     this.assertAvatarObjectKey(userId, objectKey);
+    const existing = await this.prismaService.client.mediaAsset.findUnique({
+      where: { objectKey },
+    });
+    if (existing) {
+      return this.returnExistingProfilePhoto(userId, existing);
+    }
+
     const verified = await this.resolveVerifiedAvatarMetadata(
       objectKey,
       mimeType,
@@ -290,7 +292,7 @@ export class ProfileService {
     this.assertAvatarMime(verified.mimeType);
     this.assertAvatarSize(verified.byteSize);
 
-    const next = await this._storeProfilePhotoAsset(userId, {
+    const next = await this.storeProfilePhotoAssetSafely(userId, {
       bucket: process.env.S3_BUCKET ?? 'big-break',
       objectKey,
       mimeType: verified.mimeType,
@@ -385,6 +387,9 @@ export class ProfileService {
     if (photoIds == null || photoIds.length === 0) {
       throw new ApiError(400, 'invalid_profile_photo_order', 'photoIds must be a non-empty string array');
     }
+    if (new Set(photoIds).size !== photoIds.length) {
+      throw new ApiError(400, 'invalid_profile_photo_order', 'photoIds must be unique');
+    }
 
     await this.prismaService.client.$transaction(async (tx) => {
       const photos = await tx.profilePhoto.findMany({
@@ -451,6 +456,10 @@ export class ProfileService {
   }
 
   private assertAvatarSize(byteSize: number) {
+    if (!Number.isSafeInteger(byteSize) || byteSize <= 0) {
+      throw new ApiError(400, 'invalid_avatar_size', 'Avatar file size is invalid');
+    }
+
     if (byteSize > MAX_PROFILE_ASSET_UPLOAD_BYTES) {
       throw new ApiError(400, 'avatar_too_large', 'Avatar file is too large');
     }
@@ -463,7 +472,7 @@ export class ProfileService {
       }
     }
 
-    if (body.age !== undefined) {
+    if (body.age !== undefined && body.age !== null) {
       if (!Number.isInteger(body.age) || (body.age as number) < 18 || (body.age as number) > 100) {
         throw new ApiError(400, 'invalid_profile_payload', 'age must be an integer from 18 to 100');
       }
@@ -480,10 +489,31 @@ export class ProfileService {
 
     for (const field of ['bio', 'city', 'area', 'vibe'] as const) {
       const value = body[field];
-      if (value !== undefined && typeof value !== 'string') {
+      if (value !== undefined && value !== null && typeof value !== 'string') {
         throw new ApiError(400, 'invalid_profile_payload', `${field} must be a string`);
       }
     }
+  }
+
+  private buildProfileUpdate(body: Record<string, unknown>): Prisma.ProfileUpdateInput {
+    const data: Prisma.ProfileUpdateInput = {};
+
+    if (Object.prototype.hasOwnProperty.call(body, 'age')) {
+      data.age = body.age == null ? null : (body.age as number);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'gender')) {
+      data.gender =
+        body.gender === 'male' || body.gender === 'female'
+          ? body.gender
+          : null;
+    }
+    for (const field of ['city', 'area', 'bio', 'vibe'] as const) {
+      if (Object.prototype.hasOwnProperty.call(body, field)) {
+        data[field] = body[field] == null ? null : (body[field] as string);
+      }
+    }
+
+    return data;
   }
 
   private async _loadProfileUser(
@@ -540,6 +570,162 @@ export class ProfileService {
     });
   }
 
+  private async setProfileAvatar(
+    userId: string,
+    asset: { id: string; publicUrl: string | null },
+  ) {
+    await this.prismaService.client.profile.update({
+      where: { userId },
+      data: {
+        avatarAssetId: asset.id,
+        avatarUrl: asset.publicUrl,
+      },
+    });
+  }
+
+  private async createAvatarUploadAsset(
+    userId: string,
+    input: {
+      bucket: string;
+      objectKey: string;
+      mimeType: string;
+      byteSize: number;
+      originalFileName: string;
+      publicUrl: string;
+    },
+  ) {
+    try {
+      return await this.prismaService.client.mediaAsset.create({
+        data: {
+          ownerId: userId,
+          kind: 'avatar',
+          status: 'ready',
+          bucket: input.bucket,
+          objectKey: input.objectKey,
+          mimeType: input.mimeType,
+          byteSize: input.byteSize,
+          originalFileName: input.originalFileName,
+          publicUrl: input.publicUrl,
+        },
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      const existing = await this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey: input.objectKey },
+      });
+      if (!existing) {
+        throw error;
+      }
+      this.assertExistingAvatarAsset(existing, userId);
+      return existing;
+    }
+  }
+
+  private async storeProfilePhotoAssetSafely(
+    userId: string,
+    input: {
+      bucket: string;
+      objectKey: string;
+      mimeType: string;
+      byteSize: number;
+      originalFileName: string;
+      publicUrl: string;
+    },
+  ) {
+    try {
+      return await this._storeProfilePhotoAsset(userId, input);
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      const existing = await this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey: input.objectKey },
+      });
+      if (!existing) {
+        throw error;
+      }
+      return this.loadExistingProfilePhoto(userId, existing);
+    }
+  }
+
+  private async returnExistingProfilePhoto(
+    userId: string,
+    asset: {
+      id: string;
+      ownerId: string;
+      kind: string;
+      status: string;
+      publicUrl: string | null;
+    },
+  ) {
+    const next = await this.loadExistingProfilePhoto(userId, asset);
+    return {
+      assetId: next.asset.id,
+      status: next.asset.status,
+      url: next.asset.publicUrl,
+      photo: mapProfilePhoto(next.photo),
+    };
+  }
+
+  private async loadExistingProfilePhoto(
+    userId: string,
+    asset: {
+      id: string;
+      ownerId: string;
+      kind: string;
+      status: string;
+      publicUrl: string | null;
+    },
+  ) {
+    this.assertExistingAvatarAsset(asset, userId);
+    const photo = await this.prismaService.client.profilePhoto.findUnique({
+      where: { mediaAssetId: asset.id },
+      include: { mediaAsset: true },
+    });
+
+    if (!photo || photo.profileUserId !== userId) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+
+    return { asset, photo };
+  }
+
+  private assertExistingAvatarAsset(
+    asset: {
+      ownerId: string;
+      kind: string;
+      status: string;
+    },
+    userId: string,
+  ) {
+    if (
+      asset.ownerId !== userId ||
+      asset.kind !== 'avatar' ||
+      asset.status !== 'ready'
+    ) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
+  }
+
   private async _storeProfilePhotoAsset(
     userId: string,
     input: {
@@ -566,6 +752,8 @@ export class ProfileService {
         },
       });
 
+      await this.lockProfilePhotoOrder(tx, userId);
+
       const lastPhoto = await tx.profilePhoto.findFirst({
         where: { profileUserId: userId },
         orderBy: { sortOrder: 'desc' },
@@ -586,5 +774,14 @@ export class ProfileService {
       await this._syncPrimaryPhoto(tx, userId);
       return { asset, photo };
     });
+  }
+
+  private async lockProfilePhotoOrder(tx: Prisma.TransactionClient, userId: string) {
+    await tx.$executeRaw`
+      SELECT 1
+      FROM "Profile"
+      WHERE "userId" = ${userId}
+      FOR UPDATE
+    `;
   }
 }

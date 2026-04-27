@@ -1,4 +1,8 @@
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  decodeCursor,
+  encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
+} from '@big-break/database';
 import { ChatKind, ChatOrigin, CommunityPrivacy, Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
@@ -108,7 +112,7 @@ export class CommunitiesService {
     params: { cursor?: string; limit?: number },
   ) {
     const community = await this.prismaService.client.community.findFirst({
-      where: this.visibleCommunityWhere(userId, communityId),
+      where: this.communityContentWhere(userId, communityId),
       select: { id: true },
     });
 
@@ -411,8 +415,13 @@ export class CommunitiesService {
     const communityIds = communities.map((item) => item.communityId);
     const chatIds = communities.map((item) => item.chatId);
 
-    const unreadCountsPromise =
+    const blockedUserIds =
       process.env.CHAT_UNREAD_COUNTER_READS === 'true'
+        ? await this.getBlockedUserIds(userId)
+        : new Set<string>();
+    const unreadCountsPromise =
+      process.env.CHAT_UNREAD_COUNTER_READS === 'true' &&
+      blockedUserIds.size === 0
         ? this.loadUnreadCounters(userId, chatIds)
         : this.countUnreadMessages(userId, chatIds);
 
@@ -490,6 +499,18 @@ export class CommunitiesService {
       LEFT JOIN "Message" m
         ON m."chatId" = cm."chatId"
         AND m."senderId" <> cm."userId"
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "UserBlock" ub
+          WHERE (
+            ub."userId" = cm."userId"
+            AND ub."blockedUserId" = m."senderId"
+          )
+          OR (
+            ub."userId" = m."senderId"
+            AND ub."blockedUserId" = cm."userId"
+          )
+        )
         AND (
           COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
           OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
@@ -502,6 +523,10 @@ export class CommunitiesService {
     return new Map(
       rows.map((item) => [item.chat_id, Number(item.unread_count)]),
     );
+  }
+
+  private async getBlockedUserIds(userId: string) {
+    return loadBlockedUserIds(this.prismaService.client, userId);
   }
 
   private mapCommunity(
@@ -525,6 +550,9 @@ export class CommunitiesService {
     const membership = counters.membershipByCommunityId.get(community.id);
     const isOwner =
       community.createdById === currentUserId || membership?.role === 'owner';
+    const joined = membership != null || community.createdById === currentUserId;
+    const canViewPrivateContent =
+      community.privacy !== CommunityPrivacy.private || joined;
 
     return {
       id: community.id,
@@ -537,7 +565,7 @@ export class CommunitiesService {
       online: counters.onlineByCommunityId.get(community.id) ?? 0,
       tags: this.stringArrayFromJson(community.tags),
       joinRule: community.joinRule,
-      joined: membership != null || community.createdById === currentUserId,
+      joined,
       isOwner,
       premiumOnly: community.premiumOnly,
       unread: counters.unreadByChatId.get(community.chatId) ?? 0,
@@ -551,14 +579,18 @@ export class CommunitiesService {
         time: item.timeLabel,
       })),
       meetups,
-      media: community.media.map((item: any) => this.mapMediaItem(item)),
-      chatPreview: [...community.chat.messages]
-        .reverse()
-        .map((message: any) => ({
-          author: message.sender.displayName,
-          text: message.text,
-          time: formatRelativeTime(message.createdAt),
-        })),
+      media: canViewPrivateContent
+        ? community.media.map((item: any) => this.mapMediaItem(item))
+        : [],
+      chatPreview: canViewPrivateContent
+        ? [...community.chat.messages]
+            .reverse()
+            .map((message: any) => ({
+              author: message.sender.displayName,
+              text: message.text,
+              time: formatRelativeTime(message.createdAt),
+            }))
+        : [],
       chatMessages: [],
       socialLinks: this.withDefaultSocialLinks(
         community.socialLinks.map((link: any) => ({
@@ -715,6 +747,17 @@ export class CommunitiesService {
   private visibleCommunityWhere(_userId: string, communityId: string) {
     return {
       id: communityId,
+    };
+  }
+
+  private communityContentWhere(userId: string, communityId: string) {
+    return {
+      id: communityId,
+      OR: [
+        { privacy: CommunityPrivacy.public },
+        { createdById: userId },
+        { members: { some: { userId } } },
+      ],
     };
   }
 

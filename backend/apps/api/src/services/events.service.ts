@@ -8,7 +8,12 @@ import {
 } from '@big-break/contracts';
 import { Prisma } from '@prisma/client';
 import { createHmac, randomUUID } from 'node:crypto';
-import { OUTBOX_EVENT_TYPES, decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  OUTBOX_EVENT_TYPES,
+  decodeCursor,
+  encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
+} from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import {
   formatEventTime,
@@ -40,12 +45,18 @@ type EventGeoQuery = {
   bounds?: EventGeoBounds;
 };
 
+type EventViewerState = {
+  isParticipant?: boolean;
+  hasAttendance?: boolean;
+};
+
 type PostgisEventCandidate = {
   eventId: string;
   distanceKm: number;
 };
 
 const EARTH_RADIUS_KM = 6371;
+const EVENT_DETAIL_ATTENDEE_LIMIT = 24;
 
 @Injectable()
 export class EventsService {
@@ -108,6 +119,7 @@ export class EventsService {
       cursor: params.cursor,
       take,
       radiusKm: params.radiusKm,
+      blockedUserIds,
     });
     const postgisDistanceByEventId = new Map(
       (postgisCandidates ?? []).map((candidate) => [
@@ -238,9 +250,12 @@ export class EventsService {
   }
 
   async getEventDetail(userId: string, eventId: string) {
-    const [blockedUserIds, userGender, event] = await Promise.all([
+    const [blockedUserIds, userGender] = await Promise.all([
       this.getBlockedUserIds(userId),
       this.getUserGender(userId),
+    ]);
+    const visibleParticipantWhere = this.buildVisibleParticipantWhere(blockedUserIds);
+    const [event, participantCount, viewerParticipant] = await Promise.all([
       this.prismaService.client.event.findUnique({
         where: { id: eventId },
         include: {
@@ -250,6 +265,7 @@ export class EventsService {
             },
           },
           participants: {
+            where: visibleParticipantWhere,
             include: {
               user: {
                 include: {
@@ -257,6 +273,8 @@ export class EventsService {
                 },
               },
             },
+            orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+            take: EVENT_DETAIL_ATTENDEE_LIMIT + 1,
           },
           joinRequests: {
             where: { userId },
@@ -270,6 +288,21 @@ export class EventsService {
           chat: true,
         },
       }),
+      this.prismaService.client.eventParticipant.count({
+        where: {
+          eventId,
+          ...visibleParticipantWhere,
+        },
+      }),
+      this.prismaService.client.eventParticipant.findUnique({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        select: { id: true },
+      }),
     ]);
 
     if (!event) {
@@ -280,25 +313,32 @@ export class EventsService {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
-    if (!this.canViewEvent(userId, userGender, event)) {
+    const viewerState = {
+      isParticipant: viewerParticipant != null,
+      hasAttendance: event.attendances.length > 0,
+    };
+
+    if (!this.canViewEvent(userId, userGender, event, viewerState)) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
     const visibleParticipants = event.participants.filter(
       (participant) => !blockedUserIds.has(participant.userId),
     );
-    const attendeePreview = visibleParticipants.filter(
-      (participant) => participant.userId !== userId,
-    );
+    const attendeePreview = visibleParticipants
+      .filter((participant) => participant.userId !== userId)
+      .slice(0, EVENT_DETAIL_ATTENDEE_LIMIT);
     const hasChatAccess =
       event.hostId === userId ||
-      event.participants.some((participant) => participant.userId === userId);
+      viewerState.isParticipant;
 
     return {
       ...mapEventSummary({
         event,
         participants: visibleParticipants,
         currentUserId: userId,
+        participantCount,
+        joined: viewerState.isParticipant,
         joinRequest: event.joinRequests[0],
         attendance: event.attendances[0],
         liveState: event.liveState,
@@ -352,7 +392,19 @@ export class EventsService {
     const chatId = event.chat.id;
 
     await this.prismaService.client.$transaction(async (tx) => {
-      await assertEventCapacityAvailable(tx, eventId);
+      const existingParticipant = await tx.eventParticipant.findUnique({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!existingParticipant) {
+        await assertEventCapacityAvailable(tx, eventId);
+      }
 
       await tx.eventParticipant.upsert({
         where: {
@@ -416,12 +468,8 @@ export class EventsService {
         where: { id: eventId },
         include: {
           participants: {
-            include: {
-              user: {
-                include: {
-                  onboarding: true,
-                },
-              },
+            select: {
+              userId: true,
             },
           },
         },
@@ -488,10 +536,7 @@ export class EventsService {
         },
         update: {
           note,
-          status: 'pending',
           compatibilityScore,
-          reviewedAt: null,
-          reviewedById: null,
         },
         create: {
           eventId,
@@ -501,6 +546,14 @@ export class EventsService {
           compatibilityScore,
         },
       });
+
+      if (next.status !== 'pending') {
+        throw new ApiError(
+          409,
+          'join_request_already_reviewed',
+          'Join request is already reviewed',
+        );
+      }
 
       const notificationDedupeKey = `event_join_request:${eventId}:${userId}`;
       const existingNotification = await tx.notification.findUnique({
@@ -1120,13 +1173,26 @@ export class EventsService {
     await this.prismaService.client.$transaction(async (tx) => {
       await assertEventCapacityAvailable(tx, eventId);
 
-      await tx.eventJoinRequest.update({
-        where: { id: invite.id },
+      const reviewed = await tx.eventJoinRequest.updateMany({
+        where: {
+          id: invite.id,
+          eventId,
+          userId,
+          status: 'pending',
+          reviewedById: invite.event.hostId,
+        },
         data: {
           status: 'approved',
           reviewedAt: new Date(),
         },
       });
+      if (reviewed.count === 0) {
+        throw new ApiError(
+          409,
+          'invite_already_reviewed',
+          'Invite is already reviewed',
+        );
+      }
 
       await tx.eventParticipant.upsert({
         where: {
@@ -1205,14 +1271,32 @@ export class EventsService {
       throw new ApiError(404, 'invite_not_found', 'Invite not found');
     }
 
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    if (blockedUserIds.has(invite.event.hostId)) {
+      throw new ApiError(404, 'invite_not_found', 'Invite not found');
+    }
+
     await this.prismaService.client.$transaction(async (tx) => {
-      await tx.eventJoinRequest.update({
-        where: { id: invite.id },
+      const reviewed = await tx.eventJoinRequest.updateMany({
+        where: {
+          id: invite.id,
+          eventId,
+          userId,
+          status: 'pending',
+          reviewedById: invite.event.hostId,
+        },
         data: {
           status: 'rejected',
           reviewedAt: new Date(),
         },
       });
+      if (reviewed.count === 0) {
+        throw new ApiError(
+          409,
+          'invite_already_reviewed',
+          'Invite is already reviewed',
+        );
+      }
 
       await this.markInviteNotificationsRead(tx, userId, eventId, requestId);
 
@@ -1315,20 +1399,22 @@ export class EventsService {
   }
 
   async getCheckIn(userId: string, eventId: string) {
-    await this.assertParticipant(userId, eventId);
-    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const { blockedUserIds } = await this.assertParticipant(userId, eventId);
 
     const event = await this.prismaService.client.event.findUnique({
       where: { id: eventId },
       include: {
         participants: {
+          where: this.buildVisibleParticipantWhere(blockedUserIds),
           include: {
             user: {
               include: { profile: true },
             },
           },
         },
-        attendances: true,
+        attendances: {
+          where: this.buildVisibleParticipantWhere(blockedUserIds),
+        },
       },
     });
 
@@ -1403,29 +1489,40 @@ export class EventsService {
   }
 
   async getLiveMeetup(userId: string, eventId: string) {
-    await this.assertParticipant(userId, eventId);
-    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const { blockedUserIds } = await this.assertParticipant(userId, eventId);
+    const visibleStoryWhere: Prisma.EventStoryWhereInput =
+      blockedUserIds.size === 0
+        ? { eventId }
+        : {
+            eventId,
+            authorId: {
+              notIn: [...blockedUserIds],
+            },
+          };
 
-    const event = await this.prismaService.client.event.findUnique({
-      where: { id: eventId },
-      include: {
-        participants: {
-          include: {
-            user: {
-              include: { profile: true },
+    const [event, storiesCount] = await Promise.all([
+      this.prismaService.client.event.findUnique({
+        where: { id: eventId },
+        include: {
+          participants: {
+            where: this.buildVisibleParticipantWhere(blockedUserIds),
+            include: {
+              user: {
+                include: { profile: true },
+              },
             },
           },
-        },
-        attendances: true,
-        liveState: true,
-        chat: true,
-        stories: {
-          select: {
-            authorId: true,
+          attendances: {
+            where: this.buildVisibleParticipantWhere(blockedUserIds),
           },
+          liveState: true,
+          chat: true,
         },
-      },
-    });
+      }),
+      this.prismaService.client.eventStory.count({
+        where: visibleStoryWhere,
+      }),
+    ]);
 
     if (!event) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
@@ -1452,18 +1549,18 @@ export class EventsService {
         ...mapUserPreview(participant.user),
         attendanceStatus: mapAttendanceStatus(attendanceByUserId.get(participant.userId)),
       })),
-      storiesCount: event.stories.filter((story) => !blockedUserIds.has(story.authorId)).length,
+      storiesCount,
     };
   }
 
   async getAfterParty(userId: string, eventId: string) {
-    await this.assertParticipant(userId, eventId);
-    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const { blockedUserIds } = await this.assertParticipant(userId, eventId);
 
     const event = await this.prismaService.client.event.findUnique({
       where: { id: eventId },
       include: {
         participants: {
+          where: this.buildVisibleParticipantWhere(blockedUserIds),
           include: {
             user: {
               include: { profile: true },
@@ -1475,7 +1572,16 @@ export class EventsService {
           take: 1,
         },
         favorites: {
-          where: { sourceUserId: userId },
+          where: {
+            sourceUserId: userId,
+            ...(blockedUserIds.size === 0
+              ? {}
+              : {
+                  targetUserId: {
+                    notIn: [...blockedUserIds],
+                  },
+                }),
+          },
         },
       },
     });
@@ -1509,14 +1615,19 @@ export class EventsService {
   }
 
   async saveFeedback(userId: string, eventId: string, body: Record<string, unknown>) {
-    await this.assertParticipant(userId, eventId);
-    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const { blockedUserIds } = await this.assertParticipant(userId, eventId);
+    const requestedFavoriteUserIds = Array.isArray(body.favoriteUserIds)
+      ? body.favoriteUserIds
+          .filter((item): item is string => typeof item === 'string')
+          .filter((targetUserId) => targetUserId !== userId)
+          .filter((targetUserId) => !blockedUserIds.has(targetUserId))
+          .filter((targetUserId, index, values) =>
+            values.indexOf(targetUserId) === index,
+          )
+      : [];
     const event = await this.prismaService.client.event.findUnique({
       where: { id: eventId },
       include: {
-        participants: {
-          select: { userId: true },
-        },
         liveState: {
           select: { status: true },
         },
@@ -1535,21 +1646,30 @@ export class EventsService {
       throw new ApiError(409, 'event_feedback_not_open', 'Feedback is not open yet');
     }
 
+    const favoriteParticipants =
+      requestedFavoriteUserIds.length === 0
+        ? []
+        : await this.prismaService.client.eventParticipant.findMany({
+            where: {
+              eventId,
+              userId: {
+                in: requestedFavoriteUserIds,
+              },
+            },
+            select: { userId: true },
+          });
+    const participantUserIds = new Set(
+      favoriteParticipants.map((participant) => participant.userId),
+    );
     const vibe = typeof body.vibe === 'string' ? body.vibe : 'ok';
     const hostRating =
       typeof body.hostRating === 'number'
         ? Math.max(1, Math.min(5, Math.round(body.hostRating)))
         : 5;
     const note = typeof body.note === 'string' ? body.note.trim() : '';
-    const favoriteUserIds = Array.isArray(body.favoriteUserIds)
-      ? body.favoriteUserIds
-          .filter((item): item is string => typeof item === 'string')
-          .filter((targetUserId) => targetUserId !== userId)
-          .filter((targetUserId) => !blockedUserIds.has(targetUserId))
-          .filter((targetUserId) =>
-            event.participants.some((participant) => participant.userId === targetUserId),
-          )
-      : [];
+    const favoriteUserIds = requestedFavoriteUserIds.filter((targetUserId) =>
+      participantUserIds.has(targetUserId),
+    );
 
     await this.prismaService.client.$transaction(async (tx) => {
       await tx.eventFeedback.upsert({
@@ -1802,6 +1922,7 @@ export class EventsService {
     cursor?: string;
     take: number;
     radiusKm?: number;
+    blockedUserIds: Set<string>;
   }): Promise<PostgisEventCandidate[] | null> {
     const center = params.geoQuery?.center;
     if (
@@ -1819,10 +1940,14 @@ export class EventsService {
     const radiusMeters = radiusKm * 1000;
     const candidateLimit = this.listTake(params.take, params.geoQuery);
     const now = new Date();
+    const blockedHostFilter =
+      params.blockedUserIds.size === 0
+        ? Prisma.empty
+        : Prisma.sql`AND e."hostId" NOT IN (${Prisma.join([...params.blockedUserIds])})`;
     const rows = await this.prismaService.client.$queryRaw<Array<{
       event_id: string;
       distance_km: bigint | number | string;
-    }>>`
+    }>>(Prisma.sql`
       SELECT
         e."id" AS event_id,
         ST_Distance(
@@ -1833,6 +1958,7 @@ export class EventsService {
       WHERE e."geo" IS NOT NULL
         AND e."isAfterDark" = false
         AND e."startsAt" >= ${now}
+        ${blockedHostFilter}
         AND ST_DWithin(
           e."geo",
           ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography,
@@ -1840,7 +1966,7 @@ export class EventsService {
         )
       ORDER BY distance_km ASC, e."id" ASC
       LIMIT ${candidateLimit}
-    `;
+    `);
 
     return rows.map((row) => ({
       eventId: row.event_id,
@@ -2157,7 +2283,10 @@ export class EventsService {
       throw new ApiError(403, 'event_forbidden', 'You are not a participant of this event');
     }
 
-    return participant;
+    return {
+      participant,
+      blockedUserIds,
+    };
   }
 
   private async calculateCompatibilityScore(
@@ -2166,11 +2295,6 @@ export class EventsService {
       hostId: string;
       participants: Array<{
         userId: string;
-        user: {
-          onboarding: {
-            interests: unknown;
-          } | null;
-        };
       }>;
     },
   ) {
@@ -2277,30 +2401,7 @@ export class EventsService {
   }
 
   private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
-
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
-    }
-
-    return blockedUserIds;
+    return loadBlockedUserIds(this.prismaService.client, userId);
   }
 
   private async getUserGender(userId: string) {
@@ -2310,6 +2411,16 @@ export class EventsService {
     });
 
     return profile?.gender ?? null;
+  }
+
+  private buildVisibleParticipantWhere(blockedUserIds: Set<string>) {
+    return blockedUserIds.size === 0
+      ? {}
+      : {
+          userId: {
+            notIn: [...blockedUserIds],
+          },
+        };
   }
 
   private canViewEvent(
@@ -2330,8 +2441,9 @@ export class EventsService {
         reviewedById: string | null;
       }>;
     },
+    viewerState?: EventViewerState,
   ) {
-    if (!this.canAccessGenderRestrictedEvent(userId, userGender, event)) {
+    if (!this.canAccessGenderRestrictedEvent(userId, userGender, event, viewerState)) {
       return false;
     }
 
@@ -2343,11 +2455,17 @@ export class EventsService {
       return true;
     }
 
-    if (event.participants.some((participant) => participant.userId === userId)) {
+    const isParticipant =
+      viewerState?.isParticipant ??
+      event.participants.some((participant) => participant.userId === userId);
+    if (isParticipant) {
       return true;
     }
 
-    if (event.attendances.some((attendance) => attendance.userId === userId)) {
+    const hasAttendance =
+      viewerState?.hasAttendance ??
+      event.attendances.some((attendance) => attendance.userId === userId);
+    if (hasAttendance) {
       return true;
     }
 
@@ -2368,6 +2486,7 @@ export class EventsService {
       participants?: Array<{ userId: string }>;
       attendances?: Array<{ userId: string }>;
     },
+    viewerState?: EventViewerState,
   ) {
     if (event.genderMode === 'all') {
       return true;
@@ -2377,13 +2496,19 @@ export class EventsService {
       return true;
     }
 
-    if (
-      event.participants?.some((participant) => participant.userId === userId)
-    ) {
+    const isParticipant =
+      viewerState?.isParticipant ??
+      event.participants?.some((participant) => participant.userId === userId) ??
+      false;
+    if (isParticipant) {
       return true;
     }
 
-    if (event.attendances?.some((attendance) => attendance.userId === userId)) {
+    const hasAttendance =
+      viewerState?.hasAttendance ??
+      event.attendances?.some((attendance) => attendance.userId === userId) ??
+      false;
+    if (hasAttendance) {
       return true;
     }
 

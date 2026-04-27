@@ -93,25 +93,43 @@ export class WorkerService implements OnModuleDestroy {
 
   start() {
     this.timer = setInterval(() => {
-      void this.runOnce();
+      void this.runScheduledTask('outbox', () => this.runOnce());
     }, 1500);
     this.systemNotificationTimer = setInterval(() => {
-      void this.runSystemNotificationScan();
+      void this.runScheduledTask(
+        'system-notifications',
+        () => this.runSystemNotificationScan(),
+      );
     }, this.systemNotificationIntervalMs);
     this.eveningAutoAdvanceTimer = setInterval(() => {
-      void this.runEveningAutoAdvanceScan();
+      void this.runScheduledTask(
+        'evening-auto-advance',
+        () => this.runEveningAutoAdvanceScan(),
+      );
     }, this.eveningAutoAdvanceIntervalMs);
     if (this.retentionCleanupEnabled) {
       this.retentionCleanupTimer = setInterval(() => {
-        void this.runRetentionCleanup();
+        void this.runScheduledTask(
+          'retention-cleanup',
+          () => this.runRetentionCleanup(),
+        );
       }, this.retentionCleanupIntervalMs);
     }
 
-    void this.runOnce();
-    void this.runSystemNotificationScan();
-    void this.runEveningAutoAdvanceScan();
+    void this.runScheduledTask('outbox', () => this.runOnce());
+    void this.runScheduledTask(
+      'system-notifications',
+      () => this.runSystemNotificationScan(),
+    );
+    void this.runScheduledTask(
+      'evening-auto-advance',
+      () => this.runEveningAutoAdvanceScan(),
+    );
     if (this.retentionCleanupEnabled) {
-      void this.runRetentionCleanup();
+      void this.runScheduledTask(
+        'retention-cleanup',
+        () => this.runRetentionCleanup(),
+      );
     }
   }
 
@@ -130,6 +148,17 @@ export class WorkerService implements OnModuleDestroy {
     }
 
     await this.redis.quit();
+  }
+
+  private async runScheduledTask(
+    label: string,
+    task: () => Promise<void>,
+  ) {
+    try {
+      await task();
+    } catch (error) {
+      console.error(`[worker] scheduled task failed: ${label}`, error);
+    }
   }
 
   async runOnce() {
@@ -400,6 +429,14 @@ export class WorkerService implements OnModuleDestroy {
     }
 
     const userId = notification.userId;
+    if (
+      typeof notification.actorUserId === 'string' &&
+      notification.actorUserId.length > 0 &&
+      (await this.isUserHidden(userId, notification.actorUserId))
+    ) {
+      return;
+    }
+
     const settings = await this.prismaService.client.userSettings.findUnique({
       where: { userId },
       select: {
@@ -432,6 +469,28 @@ export class WorkerService implements OnModuleDestroy {
     });
   }
 
+  private async isUserHidden(userId: string, targetUserId: string) {
+    const block = await this.prismaService.client.userBlock.findFirst({
+      where: {
+        OR: [
+          {
+            userId,
+            blockedUserId: targetUserId,
+          },
+          {
+            userId: targetUserId,
+            blockedUserId: userId,
+          },
+        ],
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return block != null;
+  }
+
   private async handleNotificationCreate(payload: { notificationId?: string }) {
     if (typeof payload.notificationId !== 'string') {
       return;
@@ -442,6 +501,14 @@ export class WorkerService implements OnModuleDestroy {
     });
 
     if (!notification) {
+      return;
+    }
+
+    if (
+      typeof notification.actorUserId === 'string' &&
+      notification.actorUserId.length > 0 &&
+      (await this.isUserHidden(notification.userId, notification.actorUserId))
+    ) {
       return;
     }
 
@@ -973,6 +1040,18 @@ export class WorkerService implements OnModuleDestroy {
       LEFT JOIN "Message" m
         ON m."chatId" = cm."chatId"
         AND m."senderId" <> cm."userId"
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "UserBlock" ub
+          WHERE (
+            ub."userId" = cm."userId"
+            AND ub."blockedUserId" = m."senderId"
+          )
+          OR (
+            ub."userId" = m."senderId"
+            AND ub."blockedUserId" = cm."userId"
+          )
+        )
         AND (
           COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
           OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")

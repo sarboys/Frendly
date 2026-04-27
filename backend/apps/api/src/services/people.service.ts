@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { buildDirectChatKey, decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  buildDirectChatKey,
+  decodeCursor,
+  encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
+} from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
 import { normalizeSearchQuery } from '../common/search-query';
@@ -183,9 +188,17 @@ export class PeopleService {
 
     const peer = await this.prismaService.client.user.findUnique({
       where: { id: peerUserId },
+      select: {
+        id: true,
+        settings: {
+          select: {
+            discoverable: true,
+          },
+        },
+      },
     });
 
-    if (!peer) {
+    if (!peer || peer.settings?.discoverable === false) {
       throw new ApiError(404, 'user_not_found', 'Peer user not found');
     }
 
@@ -211,7 +224,11 @@ export class PeopleService {
           },
         },
       });
-    } catch {
+    } catch (error) {
+      if (!this.isDirectChatDuplicateError(error)) {
+        throw error;
+      }
+
       const duplicate = await this.prismaService.client.chat.findUnique({
         where: { directKey },
       });
@@ -272,30 +289,31 @@ export class PeopleService {
   }
 
   private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
+    return loadBlockedUserIds(this.prismaService.client, userId);
+  }
 
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
+  private isDirectChatDuplicateError(error: unknown) {
+    if (error == null || typeof error !== 'object') {
+      return false;
     }
 
-    return blockedUserIds;
+    const maybeError = error as {
+      code?: unknown;
+      meta?: { target?: unknown };
+    };
+
+    if (maybeError.code !== 'P2002') {
+      return false;
+    }
+
+    const target = maybeError.meta?.target;
+    if (target == null) {
+      return true;
+    }
+    if (Array.isArray(target)) {
+      return target.includes('directKey');
+    }
+    return typeof target === 'string' && target.includes('directKey');
   }
 
   private normalizeListLimit(limit?: number) {

@@ -14,6 +14,7 @@ process.env.JWT_REFRESH_TTL ??= '30d';
 process.env.PUSH_PROVIDER ??= 'fake';
 process.env.ENABLE_DEV_AUTH ??= 'true';
 process.env.ENABLE_DEV_OTP ??= 'true';
+process.env.ENABLE_TEST_PHONE_SHORTCUTS ??= 'true';
 process.env.TELEGRAM_AUTH_ENABLED ??= 'true';
 process.env.TELEGRAM_BOT_TOKEN ??= 'test-telegram-bot-token';
 process.env.TELEGRAM_BOT_USERNAME ??= 'frendly_auth_test_bot';

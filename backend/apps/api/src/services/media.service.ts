@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import {
   createPresignedDownload,
   createS3Client,
+  getBlockedUserIds,
   verifyAccessToken,
 } from '@big-break/database';
 import { Readable } from 'node:stream';
@@ -177,10 +178,26 @@ export class MediaService {
             userId,
           },
         },
-        select: { id: true },
+        select: {
+          chat: {
+            select: {
+              kind: true,
+              event: {
+                select: {
+                  hostId: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       if (membership) {
+        await this.assertChatMediaBlockAccess(
+          userId,
+          asset.ownerId,
+          membership.chat,
+        );
         return { visibility: 'private' };
       }
     }
@@ -188,7 +205,14 @@ export class MediaService {
     if (asset.kind === 'story_media') {
       const story = await this.prismaService.client.eventStory.findFirst({
         where: { mediaAssetId: asset.id },
-        select: { eventId: true },
+        select: {
+          eventId: true,
+          event: {
+            select: {
+              hostId: true,
+            },
+          },
+        },
       });
 
       if (story) {
@@ -204,12 +228,65 @@ export class MediaService {
           });
 
         if (participant) {
+          await this.assertStoryMediaBlockAccess(userId, asset.ownerId, story);
           return { visibility: 'private' };
         }
       }
     }
 
     throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+  }
+
+  private async assertChatMediaBlockAccess(
+    userId: string,
+    ownerId: string,
+    chat: {
+      kind: string;
+      event: {
+        hostId: string;
+      } | null;
+    },
+  ) {
+    const blockedUserIds = await getBlockedUserIds(
+      this.prismaService.client,
+      userId,
+    );
+
+    if (blockedUserIds.has(ownerId)) {
+      throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+    }
+
+    if (
+      chat.kind === 'meetup' &&
+      chat.event?.hostId != null &&
+      chat.event.hostId !== userId &&
+      blockedUserIds.has(chat.event.hostId)
+    ) {
+      throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+    }
+  }
+
+  private async assertStoryMediaBlockAccess(
+    userId: string,
+    ownerId: string,
+    story: {
+      event: {
+        hostId: string;
+      };
+    },
+  ) {
+    const blockedUserIds = await getBlockedUserIds(
+      this.prismaService.client,
+      userId,
+    );
+
+    if (blockedUserIds.has(ownerId)) {
+      throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+    }
+
+    if (story.event.hostId !== userId && blockedUserIds.has(story.event.hostId)) {
+      throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
+    }
   }
 
   private async requireAuthenticatedUserId(authorizationHeader?: string) {
@@ -249,14 +326,38 @@ export class MediaService {
       return null;
     }
 
-    const [startRaw, endRaw] = rangeHeader.replace('bytes=', '').split('-', 2);
-    const start = Number(startRaw);
-    const end = endRaw ? Number(endRaw) : byteSize - 1;
+    const match = /^(\d*)-(\d*)$/.exec(
+      rangeHeader.slice('bytes='.length).trim(),
+    );
+    if (match == null) {
+      throw new ApiError(416, 'invalid_media_range', 'Media range is invalid');
+    }
+
+    const startRaw = match[1]!;
+    const endRaw = match[2]!;
+    const isSuffixRange = startRaw.length === 0;
+    if (isSuffixRange && endRaw.length === 0) {
+      throw new ApiError(416, 'invalid_media_range', 'Media range is invalid');
+    }
+
+    const suffixLength = isSuffixRange ? Number(endRaw) : null;
+    const start = isSuffixRange
+      ? Math.max(byteSize - (suffixLength ?? 0), 0)
+      : Number(startRaw);
+    const requestedEnd = isSuffixRange
+      ? byteSize - 1
+      : endRaw.length > 0
+        ? Number(endRaw)
+        : byteSize - 1;
+    const end = Math.min(requestedEnd, byteSize - 1);
 
     if (
-      !Number.isInteger(start) ||
-      !Number.isInteger(end) ||
+      !Number.isSafeInteger(start) ||
+      !Number.isSafeInteger(requestedEnd) ||
+      (suffixLength != null &&
+        (!Number.isSafeInteger(suffixLength) || suffixLength <= 0)) ||
       start < 0 ||
+      start >= byteSize ||
       end < start ||
       end >= byteSize
     ) {

@@ -4,6 +4,7 @@ import {
   OUTBOX_EVENT_TYPES,
   decodeCursor,
   encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { mapProfilePhoto } from '../common/presenters';
@@ -13,6 +14,7 @@ import { SubscriptionService } from './subscription.service';
 
 const _positiveDatingActions = new Set<DatingActionKind>(['like', 'super_like']);
 type DatingGender = 'male' | 'female';
+const DATING_PROFILE_PHOTO_LIMIT = 6;
 
 const _datingPromptByUserId: Record<string, string> = {
   'user-anya': 'Идеальный первый date, выставка плюс долгий ужин без спешки.',
@@ -90,6 +92,7 @@ export class DatingService {
             photos: {
               include: { mediaAsset: true },
               orderBy: { sortOrder: 'asc' },
+              take: DATING_PROFILE_PHOTO_LIMIT,
             },
           },
         },
@@ -182,6 +185,7 @@ export class DatingService {
                 photos: {
                   include: { mediaAsset: true },
                   orderBy: { sortOrder: 'asc' },
+                  take: DATING_PROFILE_PHOTO_LIMIT,
                 },
               },
             },
@@ -250,6 +254,7 @@ export class DatingService {
             photos: {
               include: { mediaAsset: true },
               orderBy: { sortOrder: 'asc' },
+              take: DATING_PROFILE_PHOTO_LIMIT,
             },
           },
         },
@@ -450,38 +455,74 @@ export class DatingService {
     userName: string;
     targetUserId: string;
   }) {
-    const notification = await this.prismaService.client.notification.create({
-      data: {
-        userId: params.targetUserId,
-        actorUserId: params.userId,
-        kind: 'like',
-        title: 'Новый лайк',
-        body: 'лайкнул тебя в дейтинге',
-        payload: {
-          userId: params.userId,
-          userName: params.userName,
-          source: 'dating',
-        },
-      },
-    });
+    const dedupeKey = `dating_like:${params.targetUserId}:${params.userId}`;
 
-    await this.prismaService.client.outboxEvent.createMany({
-      data: [
-        {
-          type: OUTBOX_EVENT_TYPES.pushDispatch,
-          payload: {
+    try {
+      await this.prismaService.client.$transaction(async (tx) => {
+        const notification = await tx.notification.create({
+          data: {
             userId: params.targetUserId,
-            notificationId: notification.id,
+            actorUserId: params.userId,
+            kind: 'like',
+            title: 'Новый лайк',
+            body: 'лайкнул тебя в дейтинге',
+            dedupeKey,
+            payload: {
+              userId: params.userId,
+              userName: params.userName,
+              source: 'dating',
+            },
           },
-        },
-        {
-          type: OUTBOX_EVENT_TYPES.notificationCreate,
-          payload: {
-            notificationId: notification.id,
-          },
-        },
-      ],
-    });
+        });
+
+        await tx.outboxEvent.createMany({
+          data: [
+            {
+              type: OUTBOX_EVENT_TYPES.pushDispatch,
+              payload: {
+                userId: params.targetUserId,
+                notificationId: notification.id,
+              },
+            },
+            {
+              type: OUTBOX_EVENT_TYPES.notificationCreate,
+              payload: {
+                notificationId: notification.id,
+              },
+            },
+          ],
+        });
+      });
+    } catch (error) {
+      if (this.isDedupeKeyUniqueError(error)) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private isDedupeKeyUniqueError(error: unknown) {
+    if (error == null || typeof error !== 'object') {
+      return false;
+    }
+
+    const maybeError = error as {
+      code?: unknown;
+      meta?: { target?: unknown };
+    };
+
+    if (maybeError.code !== 'P2002') {
+      return false;
+    }
+
+    const target = maybeError.meta?.target;
+    if (target == null) {
+      return true;
+    }
+    if (Array.isArray(target)) {
+      return target.includes('dedupeKey');
+    }
+    return typeof target === 'string' && target.includes('dedupeKey');
   }
 
   private oppositeGenderForSelf(
@@ -554,26 +595,6 @@ export class DatingService {
   }
 
   private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [{ userId }, { blockedUserId: userId }],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
-
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
-    }
-
-    return blockedUserIds;
+    return loadBlockedUserIds(this.prismaService.client, userId);
   }
 }

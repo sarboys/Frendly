@@ -589,6 +589,7 @@ describe('dating api flows', () => {
 
     const afterDarkFeed = await request(app.getHttpServer())
       .get('/after-dark/events')
+      .query({ limit: 50 })
       .set('authorization', `Bearer ${sonyaAccessToken}`)
       .expect(200);
 

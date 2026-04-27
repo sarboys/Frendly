@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post, Req } from '@nestjs/common';
+import { Body, Controller, Headers, Logger, Post, Req } from '@nestjs/common';
 import { TelegramDispatchRequest } from '@big-break/contracts';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 import { Public } from '../common/public.decorator';
@@ -44,6 +44,8 @@ class InternalTelegramDispatchRequest implements TelegramDispatchRequest {
 
 @Controller('internal/telegram')
 export class InternalTelegramController {
+  private readonly logger = new Logger(InternalTelegramController.name);
+
   constructor(private readonly telegramAuthService: TelegramAuthService) {}
 
   @Public()
@@ -54,6 +56,9 @@ export class InternalTelegramController {
     @Req() request: RequestWithContext,
   ) {
     if (!this.isValidSecret(secret)) {
+      this.logger.warn(
+        `Rejected internal Telegram dispatch: requestId=${request.context.requestId} reason=invalid_secret`,
+      );
       throw new ApiError(401, 'invalid_internal_secret', 'Internal secret is invalid');
     }
 
@@ -65,6 +70,7 @@ export class InternalTelegramController {
   }
 
   private isValidSecret(secret: string | undefined) {
+    const isProduction = process.env.NODE_ENV === 'production';
     const configured = process.env.TELEGRAM_INTERNAL_SECRET?.trim();
     const fallback = process.env.TELEGRAM_BOT_TOKEN?.trim();
 
@@ -72,6 +78,10 @@ export class InternalTelegramController {
       return false;
     }
 
-    return secret === configured || secret === fallback;
+    if (configured) {
+      return secret === configured;
+    }
+
+    return !isProduction && secret === fallback;
   }
 }

@@ -240,16 +240,15 @@ describe('DatingService unit', () => {
     );
   });
 
-  it('creates a central notification when a user receives a dating like', async () => {
-    const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-like' });
-    const outboxCreateMany = jest.fn().mockResolvedValue({ count: 2 });
+  it('bounds profile photos in dating list queries', async () => {
+    const userFindMany = jest.fn().mockResolvedValue([]);
+    const datingActionFindMany = jest.fn().mockResolvedValue([]);
     const service = new DatingService(
       {
         client: {
           user: {
             findUnique: jest.fn().mockResolvedValue({
               id: 'user-me',
-              displayName: 'Никита',
               profile: {
                 gender: 'male',
               },
@@ -258,38 +257,110 @@ describe('DatingService unit', () => {
                 interests: [],
               },
             }),
-            findFirst: jest.fn().mockResolvedValue({
-              id: 'user-sonya',
-              displayName: 'Соня',
-              verified: true,
-              online: true,
-              profile: {
-                age: 26,
-                area: 'Замоскворечье',
-                bio: 'Люблю тихие ужины.',
-                vibe: 'Спокойно',
-                avatarUrl: null,
-                photos: [],
-              },
-              onboarding: {
-                interests: [],
-              },
-            }),
+            findMany: userFindMany,
           },
           userBlock: {
             findMany: jest.fn().mockResolvedValue([]),
           },
           datingAction: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            upsert: jest.fn().mockResolvedValue({}),
-          },
-          notification: {
-            create: notificationCreate,
-          },
-          outboxEvent: {
-            createMany: outboxCreateMany,
+            findMany: datingActionFindMany,
           },
         },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+    );
+
+    await service.listDiscover('user-me');
+    await service.listLikes('user-me');
+
+    expect(userFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          profile: expect.objectContaining({
+            include: expect.objectContaining({
+              photos: expect.objectContaining({
+                take: 6,
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
+    expect(datingActionFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          actorUser: expect.objectContaining({
+            include: expect.objectContaining({
+              profile: expect.objectContaining({
+                include: expect.objectContaining({
+                  photos: expect.objectContaining({
+                    take: 6,
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('creates a central notification when a user receives a dating like', async () => {
+    const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-like' });
+    const outboxCreateMany = jest.fn().mockResolvedValue({ count: 2 });
+    let client: any;
+    client = {
+      $transaction: jest.fn((callback) => callback(client)),
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-me',
+          displayName: 'Никита',
+          profile: {
+            gender: 'male',
+          },
+          onboarding: {
+            gender: 'male',
+            interests: [],
+          },
+        }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'user-sonya',
+          displayName: 'Соня',
+          verified: true,
+          online: true,
+          profile: {
+            age: 26,
+            area: 'Замоскворечье',
+            bio: 'Люблю тихие ужины.',
+            vibe: 'Спокойно',
+            avatarUrl: null,
+            photos: [],
+          },
+          onboarding: {
+            interests: [],
+          },
+        }),
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      datingAction: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      notification: {
+        create: notificationCreate,
+      },
+      outboxEvent: {
+        createMany: outboxCreateMany,
+      },
+    };
+    const service = new DatingService(
+      {
+        client,
       } as any,
       {} as any,
       {
@@ -308,6 +379,7 @@ describe('DatingService unit', () => {
         actorUserId: 'user-me',
         kind: 'like',
         title: 'Новый лайк',
+        dedupeKey: 'dating_like:user-sonya:user-me',
         payload: expect.objectContaining({
           userId: 'user-me',
           userName: 'Никита',
@@ -331,5 +403,86 @@ describe('DatingService unit', () => {
         },
       ],
     });
+  });
+
+  it('treats an existing dating like notification as idempotent', async () => {
+    const notificationCreate = jest.fn().mockRejectedValue({
+      code: 'P2002',
+      meta: { target: ['dedupeKey'] },
+    });
+    const outboxCreateMany = jest.fn();
+    let client: any;
+    client = {
+      $transaction: jest.fn((callback) => callback(client)),
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-me',
+          displayName: 'Никита',
+          profile: {
+            gender: 'male',
+          },
+          onboarding: {
+            gender: 'male',
+            interests: [],
+          },
+        }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'user-sonya',
+          displayName: 'Соня',
+          verified: true,
+          online: true,
+          profile: {
+            age: 26,
+            area: 'Замоскворечье',
+            bio: 'Люблю тихие ужины.',
+            vibe: 'Спокойно',
+            avatarUrl: null,
+            photos: [],
+          },
+          onboarding: {
+            interests: [],
+          },
+        }),
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      datingAction: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      notification: {
+        create: notificationCreate,
+      },
+      outboxEvent: {
+        createMany: outboxCreateMany,
+      },
+    };
+    const service = new DatingService(
+      {
+        client,
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+    );
+
+    await expect(
+      service.recordAction('user-me', {
+        targetUserId: 'user-sonya',
+        action: 'like',
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      action: 'like',
+    });
+
+    expect(notificationCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        dedupeKey: 'dating_like:user-sonya:user-me',
+      }),
+    });
+    expect(outboxCreateMany).not.toHaveBeenCalled();
   });
 });

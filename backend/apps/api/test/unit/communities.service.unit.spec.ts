@@ -38,6 +38,12 @@ describe('CommunitiesService unit', () => {
 
     expect(counters.unreadByChatId).toEqual(new Map([['chat-1', 2]]));
     expect(queryRaw).toHaveBeenCalledTimes(1);
+    const unreadQuery = queryRaw.mock.calls[0][0] as any;
+    const unreadSql = Array.isArray(unreadQuery)
+      ? unreadQuery.join(' ')
+      : unreadQuery.strings.join(' ');
+    expect(unreadSql).toContain('"UserBlock"');
+    expect(unreadSql).toContain('"blockedUserId"');
     expect(
       (service as any).prismaService.client.notification.groupBy,
     ).not.toHaveBeenCalled();
@@ -61,6 +67,9 @@ describe('CommunitiesService unit', () => {
           },
           chatMember: {
             findMany: chatMemberFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
           },
           $queryRaw: queryRaw,
         },
@@ -89,6 +98,51 @@ describe('CommunitiesService unit', () => {
       },
     });
     expect(queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('falls back to raw community unread counts when counter reads would include blocked senders', async () => {
+    process.env.CHAT_UNREAD_COUNTER_READS = 'true';
+    const queryRaw = jest.fn().mockResolvedValue([
+      {
+        chat_id: 'chat-1',
+        unread_count: BigInt(1),
+      },
+    ]);
+    const chatMemberFindMany = jest.fn();
+    const service = new CommunitiesService(
+      {
+        client: {
+          communityMember: {
+            groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          chatMember: {
+            findMany: chatMemberFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                userId: 'user-me',
+                blockedUserId: 'blocked-user',
+              },
+            ]),
+          },
+          $queryRaw: queryRaw,
+        },
+      } as any,
+      {} as any,
+    );
+
+    const counters = await (service as any).loadCounters('user-me', [
+      {
+        communityId: 'community-1',
+        chatId: 'chat-1',
+      },
+    ]);
+
+    expect(counters.unreadByChatId).toEqual(new Map([['chat-1', 1]]));
+    expect(chatMemberFindMany).not.toHaveBeenCalled();
+    expect(queryRaw).toHaveBeenCalledTimes(1);
   });
 
   it('loads online counters with groupBy instead of all online member rows',
@@ -307,6 +361,70 @@ describe('CommunitiesService unit', () => {
     );
   });
 
+  it('does not expose private community chat preview to non-members', async () => {
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'community-private',
+              chatId: 'community-private-chat',
+              name: 'Private table',
+              avatar: '🍸',
+              description: 'Закрытый клуб',
+              privacy: 'private',
+              createdById: 'user-owner',
+              tags: [],
+              joinRule: 'Ручное одобрение',
+              premiumOnly: true,
+              mood: 'Private dining',
+              sharedMediaLabel: '0 медиа',
+              _count: { members: 10 },
+              members: [],
+              news: [],
+              meetups: [],
+              media: [
+                {
+                  id: 'private-media-1',
+                  emoji: '📸',
+                  label: 'Private room',
+                  kind: 'photo',
+                },
+              ],
+              socialLinks: [],
+              chat: {
+                messages: [
+                  {
+                    sender: {
+                      displayName: 'Owner',
+                    },
+                    text: 'Private invite code is 1234',
+                    createdAt: new Date('2026-01-01T10:00:00Z'),
+                  },
+                ],
+              },
+            }),
+          },
+          communityMember: {
+            groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $queryRaw: jest.fn().mockResolvedValue([]),
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.getCommunity(
+      'user-non-member',
+      'community-private',
+    );
+
+    expect(result.joined).toBe(false);
+    expect(result.chatPreview).toEqual([]);
+    expect(result.media).toEqual([]);
+  });
+
   it('loads community list with only upcoming meetup previews', async () => {
     const communityFindMany = jest.fn().mockResolvedValue([]);
     const service = new CommunitiesService(
@@ -404,6 +522,47 @@ describe('CommunitiesService unit', () => {
         take: 3,
       }),
     );
+  });
+
+  it('rejects private community media pages for non-members', async () => {
+    const communityFindFirst = jest.fn().mockResolvedValue(null);
+    const mediaFindMany = jest.fn();
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findFirst: communityFindFirst,
+          },
+          communityMediaItem: {
+            findMany: mediaFindMany,
+            findUnique: jest.fn(),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.listCommunityMedia('user-non-member', 'community-private', {
+        limit: 2,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'community_not_found',
+    });
+
+    expect(mediaFindMany).not.toHaveBeenCalled();
+    expect(communityFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'community-private',
+        OR: [
+          { privacy: 'public' },
+          { createdById: 'user-non-member' },
+          { members: { some: { userId: 'user-non-member' } } },
+        ],
+      },
+      select: { id: true },
+    });
   });
 
   it('creates a pinned community news item for the owner', async () => {

@@ -1,9 +1,16 @@
-import { buildMessagePreview, decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  buildMessagePreview,
+  decodeCursor,
+  encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
+} from '@big-break/database';
 import { ChatKind, Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { formatEventTime, formatRelativeTime, mapMessage } from '../common/presenters';
 import { PrismaService } from './prisma.service';
+
+const CHAT_MEMBER_PREVIEW_LIMIT = 8;
 
 @Injectable()
 export class ChatsService {
@@ -65,6 +72,11 @@ export class ChatsService {
           },
         },
         members: {
+          where: {
+            userId: {
+              notIn: [...blockedUserIds],
+            },
+          },
           include: {
             user: {
               select: {
@@ -74,8 +86,15 @@ export class ChatsService {
               },
             },
           },
+          orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+          take: CHAT_MEMBER_PREVIEW_LIMIT,
         },
         messages: {
+          where: {
+            senderId: {
+              notIn: [...blockedUserIds],
+            },
+          },
           include: {
             sender: true,
             attachments: {
@@ -116,12 +135,11 @@ export class ChatsService {
                 displayName: true,
               },
             },
-            participants: {
+            _count: {
               select: {
-                status: true,
-                user: {
-                  select: {
-                    displayName: true,
+                participants: {
+                  where: {
+                    status: 'joined',
                   },
                 },
               },
@@ -157,10 +175,7 @@ export class ChatsService {
     const items = (
       await Promise.all(
       page.map(async (chat) => {
-        const visibleMessages = chat.messages.filter(
-          (message) => !blockedUserIds.has(message.senderId),
-        );
-        const lastMessage = visibleMessages[0] ?? null;
+        const lastMessage = chat.messages[0] ?? null;
         const lastMessagePreview = lastMessage
           ? buildMessagePreview({
               text: lastMessage.text,
@@ -268,6 +283,9 @@ export class ChatsService {
         id: string;
         displayName: string;
       } | null;
+      _count?: {
+        participants: number;
+      };
       participants?: Array<{
         status: string;
         user?: {
@@ -302,6 +320,8 @@ export class ChatsService {
     const joinedParticipants = (session?.participants ?? []).filter(
       (participant) => participant.status === 'joined',
     );
+    const joinedCount =
+      session?._count?.participants ?? joinedParticipants.length;
 
     return {
       phase,
@@ -315,7 +335,7 @@ export class ChatsService {
       sessionId: session?.id ?? null,
       mode,
       privacy: session?.privacy ?? null,
-      joinedCount: session ? joinedParticipants.length : null,
+      joinedCount: session ? joinedCount : null,
       maxGuests: session?.capacity ?? null,
       hostUserId: session?.host?.id ?? null,
       hostName: session?.host?.displayName ?? null,
@@ -497,7 +517,14 @@ export class ChatsService {
     });
     const hasMore = messages.length > take;
     const page = hasMore ? messages.slice(0, take) : messages;
-    const mapped = [...page]
+    const visiblePage = page.map((message) => ({
+      ...message,
+      replyTo:
+        message.replyTo != null && blockedUserIds.has(message.replyTo.senderId)
+          ? null
+          : message.replyTo,
+    }));
+    const mapped = [...visiblePage]
       .reverse()
       .map((message) => mapMessage(message));
     const latestEvent = await this.prismaService.client.realtimeEvent.findFirst({
@@ -518,10 +545,14 @@ export class ChatsService {
 
   async markRead(userId: string, chatId: string, messageId: string) {
     await this.assertMembership(userId, chatId);
+    const blockedUserIds = await this.getBlockedUserIds(userId);
     const message = await this.prismaService.client.message.findFirst({
       where: {
         id: messageId,
         chatId,
+        senderId: {
+          notIn: [...blockedUserIds],
+        },
       },
       select: { id: true },
     });
@@ -669,22 +700,20 @@ export class ChatsService {
   }
 
   private async assertMembership(userId: string, chatId: string) {
-    const member = await this.prismaService.client.chatMember.findFirst({
+    const member = await this.prismaService.client.chatMember.findUnique({
       where: {
-        chatId,
-        userId,
+        chatId_userId: {
+          chatId,
+          userId,
+        },
       },
-      include: {
+      select: {
         chat: {
-          include: {
+          select: {
+            kind: true,
             event: {
               select: {
                 hostId: true,
-              },
-            },
-            members: {
-              select: {
-                userId: true,
               },
             },
           },
@@ -697,10 +726,20 @@ export class ChatsService {
     }
 
     if (member.chat.kind === ChatKind.direct) {
-      const peerUserId = member.chat.members.find((entry) => entry.userId !== userId)?.userId;
-      if (peerUserId != null) {
+      const peer = await this.prismaService.client.chatMember.findFirst({
+        where: {
+          chatId,
+          userId: {
+            not: userId,
+          },
+        },
+        select: {
+          userId: true,
+        },
+      });
+      if (peer != null) {
         const blockedUserIds = await this.getBlockedUserIds(userId);
-        if (blockedUserIds.has(peerUserId)) {
+        if (blockedUserIds.has(peer.userId)) {
           throw new ApiError(403, 'chat_forbidden', 'You are not a member of this chat');
         }
       }
@@ -723,29 +762,6 @@ export class ChatsService {
   }
 
   private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
-
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
-    }
-
-    return blockedUserIds;
+    return loadBlockedUserIds(this.prismaService.client, userId);
   }
 }

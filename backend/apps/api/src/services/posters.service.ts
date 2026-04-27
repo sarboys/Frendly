@@ -3,6 +3,7 @@ import { Poster, PosterCategory, Prisma } from '@prisma/client';
 import { decodeCursor, encodeCursor } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { mapMediaResource } from '../common/media-presenters';
+import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -19,7 +20,7 @@ export class PostersService {
   }) {
     const city = params.city?.trim() || 'Москва';
     const category = this.parseCategory(params.category);
-    const query = params.q?.trim();
+    const query = normalizeSearchQuery(params.q);
     const featuredOnly = params.featured === 'true';
     const take = this.normalizeLimit(params.limit);
     const cursorPoster = await this.resolveCursor(params.cursor);

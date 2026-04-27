@@ -926,7 +926,11 @@ describe('EveningService unit', () => {
           },
           $transaction: jest.fn((callback) =>
             callback({
-              eveningSessionParticipant: { upsert: participantUpsert },
+              $queryRaw: jest.fn().mockResolvedValue([{ capacity: 10 }]),
+              eveningSessionParticipant: {
+                count: participantCount,
+                upsert: participantUpsert,
+              },
               chatMember: { upsert: chatMemberUpsert },
               message: {
                 findUnique: jest.fn().mockResolvedValue(null),
@@ -988,6 +992,73 @@ describe('EveningService unit', () => {
         }),
       }),
     });
+  });
+
+  it('locks evening capacity inside the join transaction', async () => {
+    const participantUpsert = jest.fn();
+    const outsideJoinedCount = jest.fn().mockResolvedValue(3);
+    const txCapacityLock = jest.fn().mockResolvedValue([{ capacity: 10 }]);
+    const txJoinedCount = jest.fn().mockResolvedValue(10);
+    const service = new EveningService(
+      {
+        client: {
+          eveningSession: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'evening-session-live',
+              routeId: 'r-cozy-circle',
+              chatId: 'evening-chat-live',
+              hostUserId: 'host-user',
+              phase: 'live',
+              privacy: 'open',
+              capacity: 10,
+              currentStep: 2,
+              inviteToken: null,
+              route: routeFixture(),
+            }),
+          },
+          eveningSessionParticipant: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            count: outsideJoinedCount,
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Марк' }),
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              $queryRaw: txCapacityLock,
+              eveningSessionParticipant: {
+                count: txJoinedCount,
+                upsert: participantUpsert,
+              },
+              chatMember: { upsert: jest.fn() },
+              message: {
+                findUnique: jest.fn().mockResolvedValue(null),
+                create: jest.fn(),
+              },
+              realtimeEvent: { create: jest.fn() },
+              outboxEvent: { createMany: jest.fn() },
+              chat: { update: jest.fn() },
+            }),
+          ),
+        },
+      } as any,
+    );
+
+    await expect(
+      service.joinSession('user-guest', 'evening-session-live', {}),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'evening_session_full',
+    });
+    expect(outsideJoinedCount).not.toHaveBeenCalled();
+    expect(txCapacityLock).toHaveBeenCalledTimes(1);
+    expect(txJoinedCount).toHaveBeenCalledWith({
+      where: {
+        sessionId: 'evening-session-live',
+        status: 'joined',
+      },
+    });
+    expect(participantUpsert).not.toHaveBeenCalled();
   });
 
   it('lets an existing joined guest reopen a full session without duplicate join message', async () => {
@@ -1053,7 +1124,8 @@ describe('EveningService unit', () => {
   });
 
   it('creates join request for request-only session', async () => {
-    const requestUpsert = jest.fn().mockResolvedValue({
+    const requestFindUnique = jest.fn().mockResolvedValue(null);
+    const requestCreate = jest.fn().mockResolvedValue({
       id: 'request-1',
       status: 'requested',
     });
@@ -1066,7 +1138,8 @@ describe('EveningService unit', () => {
           $transaction: jest.fn((callback) =>
             callback({
               eveningSessionJoinRequest: {
-                upsert: requestUpsert,
+                findUnique: requestFindUnique,
+                create: requestCreate,
               },
               notification: {
                 create: notificationCreate,
@@ -1100,20 +1173,22 @@ describe('EveningService unit', () => {
       note: 'Хочу присоединиться',
     });
 
-    expect(requestUpsert).toHaveBeenCalledWith({
+    expect(requestFindUnique).toHaveBeenCalledWith({
       where: {
         sessionId_userId: {
           sessionId: 'evening-session-request',
           userId: 'user-guest',
         },
       },
-      create: expect.objectContaining({
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+    expect(requestCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
         sessionId: 'evening-session-request',
         userId: 'user-guest',
-        status: 'requested',
-        note: 'Хочу присоединиться',
-      }),
-      update: expect.objectContaining({
         status: 'requested',
         note: 'Хочу присоединиться',
       }),
@@ -1159,6 +1234,61 @@ describe('EveningService unit', () => {
     });
   });
 
+  it('does not reset a reviewed evening join request back to requested', async () => {
+    const requestUpsert = jest.fn().mockResolvedValue({
+      id: 'request-1',
+      status: 'requested',
+    });
+    const service = new EveningService(
+      {
+        client: {
+          $transaction: jest.fn((callback) =>
+            callback({
+              eveningSessionJoinRequest: {
+                findUnique: jest.fn().mockResolvedValue({
+                  id: 'request-1',
+                  status: 'approved',
+                }),
+                upsert: requestUpsert,
+              },
+              notification: {
+                findUnique: jest.fn().mockResolvedValue(null),
+                create: jest.fn().mockResolvedValue({ id: 'notif-host' }),
+              },
+              outboxEvent: {
+                createMany: jest.fn(),
+              },
+            }),
+          ),
+          eveningSession: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'evening-session-request',
+              chatId: 'evening-chat-request',
+              hostUserId: 'host-user',
+              privacy: 'request',
+              capacity: 10,
+              phase: 'scheduled',
+              route: routeFixture(),
+            }),
+          },
+          eveningSessionParticipant: {
+            findUnique: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+    );
+
+    await expect(
+      service.joinSession('user-guest', 'evening-session-request', {
+        note: 'Повторная заявка',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'evening_join_request_already_reviewed',
+    });
+    expect(requestUpsert).not.toHaveBeenCalled();
+  });
+
   it('requires matching invite token for invite-only session', async () => {
     const service = new EveningService(
       {
@@ -1193,10 +1323,7 @@ describe('EveningService unit', () => {
   });
 
   it('approves evening join request and adds guest to chat', async () => {
-    const requestUpdate = jest.fn().mockResolvedValue({
-      id: 'request-1',
-      status: 'approved',
-    });
+    const requestUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
     const participantUpsert = jest.fn().mockResolvedValue({});
     const chatMemberUpsert = jest.fn().mockResolvedValue({});
     const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-guest' });
@@ -1222,13 +1349,14 @@ describe('EveningService unit', () => {
               user: { displayName: 'Марк' },
             }),
           },
-          eveningSessionParticipant: {
-            count: jest.fn().mockResolvedValue(4),
-          },
           $transaction: jest.fn((callback) =>
             callback({
-              eveningSessionJoinRequest: { update: requestUpdate },
-              eveningSessionParticipant: { upsert: participantUpsert },
+              $queryRaw: jest.fn().mockResolvedValue([{ capacity: 10 }]),
+              eveningSessionJoinRequest: { updateMany: requestUpdateMany },
+              eveningSessionParticipant: {
+                count: jest.fn().mockResolvedValue(4),
+                upsert: participantUpsert,
+              },
               chatMember: { upsert: chatMemberUpsert },
               chat: { update: jest.fn() },
               message: {
@@ -1253,8 +1381,12 @@ describe('EveningService unit', () => {
       'request-1',
     );
 
-    expect(requestUpdate).toHaveBeenCalledWith({
-      where: { id: 'request-1' },
+    expect(requestUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'request-1',
+        sessionId: 'evening-session-request',
+        status: 'requested',
+      },
       data: expect.objectContaining({
         status: 'approved',
         reviewedById: 'host-user',
@@ -1314,11 +1446,82 @@ describe('EveningService unit', () => {
     });
   });
 
-  it('rejects evening join request and notifies guest', async () => {
-    const requestUpdate = jest.fn().mockResolvedValue({
-      id: 'request-1',
-      status: 'rejected',
+  it('rejects stale evening approve when another review wins the race', async () => {
+    const requestUpdateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const service = new EveningService(
+      {
+        client: {
+          eveningSession: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'evening-session-request',
+              chatId: 'evening-chat-request',
+              hostUserId: 'host-user',
+              capacity: 10,
+              route: routeFixture(),
+            }),
+          },
+          eveningSessionJoinRequest: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'request-1',
+              sessionId: 'evening-session-request',
+              userId: 'user-guest',
+              status: 'requested',
+              user: { displayName: 'Марк' },
+            }),
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              $queryRaw: jest.fn().mockResolvedValue([{ capacity: 10 }]),
+              eveningSessionParticipant: {
+                count: jest.fn().mockResolvedValue(4),
+                upsert: jest.fn(),
+              },
+              eveningSessionJoinRequest: {
+                updateMany: requestUpdateMany,
+              },
+              chatMember: { upsert: jest.fn() },
+              chat: { update: jest.fn() },
+              message: {
+                findUnique: jest.fn().mockResolvedValue(null),
+                create: jest.fn(),
+              },
+              notification: {
+                create: jest.fn(),
+                findUnique: jest.fn().mockResolvedValue(null),
+              },
+              realtimeEvent: { create: jest.fn() },
+              outboxEvent: { createMany: jest.fn() },
+            }),
+          ),
+        },
+      } as any,
+    );
+
+    await expect(
+      service.approveJoinRequest(
+        'host-user',
+        'evening-session-request',
+        'request-1',
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'evening_join_request_already_reviewed',
     });
+    expect(requestUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'request-1',
+        sessionId: 'evening-session-request',
+        status: 'requested',
+      },
+      data: expect.objectContaining({
+        status: 'approved',
+        reviewedById: 'host-user',
+      }),
+    });
+  });
+
+  it('rejects evening join request and notifies guest', async () => {
+    const requestUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
     const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-reject' });
     const notificationFindUnique = jest.fn().mockResolvedValue(null);
     const service = new EveningService(
@@ -1345,7 +1548,7 @@ describe('EveningService unit', () => {
           },
           $transaction: jest.fn((callback) =>
             callback({
-              eveningSessionJoinRequest: { update: requestUpdate },
+              eveningSessionJoinRequest: { updateMany: requestUpdateMany },
               notification: {
                 create: notificationCreate,
                 findUnique: notificationFindUnique,
@@ -1363,8 +1566,12 @@ describe('EveningService unit', () => {
       'request-1',
     );
 
-    expect(requestUpdate).toHaveBeenCalledWith({
-      where: { id: 'request-1' },
+    expect(requestUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'request-1',
+        sessionId: 'evening-session-request',
+        status: 'requested',
+      },
       data: expect.objectContaining({
         status: 'rejected',
         reviewedById: 'host-user',

@@ -708,39 +708,51 @@ export class EveningService {
       };
     }
 
-    const joinedCount = await this.prismaService.client.eveningSessionParticipant.count({
-      where: {
-        sessionId: session.id,
-        status: 'joined',
-      },
-    });
-    if (joinedCount >= session.capacity) {
-      throw new ApiError(409, 'evening_session_full', 'Evening session is full');
-    }
-
     if (privacy === 'request') {
       const note = this.optionalText(body.note);
       const request = await this.prismaService.client.$transaction(async (tx) => {
-        const next = await tx.eveningSessionJoinRequest.upsert({
+        const existingRequest = await tx.eveningSessionJoinRequest.findUnique({
           where: {
             sessionId_userId: {
               sessionId: session.id,
               userId,
             },
           },
-          create: {
-            sessionId: session.id,
-            userId,
-            status: 'requested',
-            note,
-          },
-          update: {
-            status: 'requested',
-            note,
-            reviewedById: null,
-            reviewedAt: null,
+          select: {
+            id: true,
+            status: true,
           },
         });
+
+        if (existingRequest && existingRequest.status !== 'requested') {
+          throw new ApiError(
+            409,
+            'evening_join_request_already_reviewed',
+            'Evening join request is already reviewed',
+          );
+        }
+
+        const next = existingRequest
+          ? await tx.eveningSessionJoinRequest.update({
+              where: { id: existingRequest.id },
+              data: { note },
+            })
+          : await tx.eveningSessionJoinRequest.create({
+              data: {
+                sessionId: session.id,
+                userId,
+                status: 'requested',
+                note,
+              },
+            });
+
+        if (next.status !== 'requested') {
+          throw new ApiError(
+            409,
+            'evening_join_request_already_reviewed',
+            'Evening join request is already reviewed',
+          );
+        }
 
         await this.createEveningNotification(tx, {
           userId: session.hostUserId,
@@ -781,6 +793,8 @@ export class EveningService {
       select: { displayName: true },
     });
     await this.prismaService.client.$transaction(async (tx) => {
+      await this.assertSessionCapacityAvailableForUpdate(tx, session.id);
+
       await tx.eveningSessionParticipant.upsert({
         where: {
           sessionId_userId: {
@@ -866,18 +880,29 @@ export class EveningService {
       throw new ApiError(404, 'evening_join_request_not_found', 'Evening join request not found');
     }
 
-    await this.assertSessionCapacity(session.id, session.capacity);
-
     const now = new Date();
     await this.prismaService.client.$transaction(async (tx) => {
-      await tx.eveningSessionJoinRequest.update({
-        where: { id: request.id },
+      await this.assertSessionCapacityAvailableForUpdate(tx, session.id);
+
+      const reviewed = await tx.eveningSessionJoinRequest.updateMany({
+        where: {
+          id: request.id,
+          sessionId: session.id,
+          status: 'requested',
+        },
         data: {
           status: 'approved',
           reviewedById: userId,
           reviewedAt: now,
         },
       });
+      if (reviewed.count === 0) {
+        throw new ApiError(
+          409,
+          'evening_join_request_already_reviewed',
+          'Evening join request is already reviewed',
+        );
+      }
 
       await tx.eveningSessionParticipant.upsert({
         where: {
@@ -993,14 +1018,25 @@ export class EveningService {
     }
 
     await this.prismaService.client.$transaction(async (tx) => {
-      await tx.eveningSessionJoinRequest.update({
-        where: { id: request.id },
+      const reviewed = await tx.eveningSessionJoinRequest.updateMany({
+        where: {
+          id: request.id,
+          sessionId: session.id,
+          status: 'requested',
+        },
         data: {
           status: 'rejected',
           reviewedById: userId,
           reviewedAt: new Date(),
         },
       });
+      if (reviewed.count === 0) {
+        throw new ApiError(
+          409,
+          'evening_join_request_already_reviewed',
+          'Evening join request is already reviewed',
+        );
+      }
 
       await this.createEveningNotification(tx, {
         userId: request.userId,
@@ -1798,8 +1834,26 @@ export class EveningService {
     return session;
   }
 
-  private async assertSessionCapacity(sessionId: string, capacity: number) {
-    const joinedCount = await this.prismaService.client.eveningSessionParticipant.count({
+  private async assertSessionCapacityAvailableForUpdate(
+    tx: Prisma.TransactionClient,
+    sessionId: string,
+  ) {
+    const sessions = await tx.$queryRaw<Array<{ capacity: number | bigint }>>`
+      SELECT "capacity"
+      FROM "EveningSession"
+      WHERE "id" = ${sessionId}
+      FOR UPDATE
+    `;
+    const session = sessions[0];
+    if (!session) {
+      throw new ApiError(404, 'evening_session_not_found', 'Evening session not found');
+    }
+
+    const capacity =
+      typeof session.capacity === 'bigint'
+        ? Number(session.capacity)
+        : session.capacity;
+    const joinedCount = await tx.eveningSessionParticipant.count({
       where: {
         sessionId,
         status: 'joined',

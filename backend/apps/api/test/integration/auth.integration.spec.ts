@@ -13,6 +13,7 @@ describe('auth flows', () => {
   let prisma: PrismaClient;
   let phoneCounter = 0;
   let telegramCounter = 0;
+  let otpRequestCounter = 0;
   const phoneSeed = Number(`${Date.now()}`.slice(-7));
   const telegramSeed = `${Date.now()}`;
 
@@ -40,6 +41,7 @@ describe('auth flows', () => {
   const requestPhoneCode = async (phoneNumber = nextPhoneNumber()) => {
     const response = await request(app.getHttpServer())
       .post('/auth/phone/request')
+      .set('user-agent', `jest-auth-${++otpRequestCounter}`)
       .send({ phoneNumber })
       .expect(201);
 
@@ -145,6 +147,7 @@ describe('auth flows', () => {
 
     process.env.ENABLE_DEV_AUTH = 'true';
     process.env.ENABLE_DEV_OTP = 'true';
+    process.env.ENABLE_TEST_PHONE_SHORTCUTS = 'true';
     process.env.TELEGRAM_AUTH_ENABLED = 'true';
     process.env.TELEGRAM_BOT_TOKEN = 'test-telegram-bot-token';
     process.env.TELEGRAM_BOT_USERNAME = 'frendly_auth_test_bot';
@@ -240,7 +243,8 @@ describe('auth flows', () => {
     expect(firstRequest.body.maskedPhone).toContain('***');
     expect(firstRequest.body.resendAfterSeconds).toBe(42);
     expect(firstRequest.body.localCodeHint).toMatch(/^\d{4}$/);
-    expect(secondRequest.body.challengeId).not.toBe(firstRequest.body.challengeId);
+    expect(secondRequest.body.challengeId).toBe(firstRequest.body.challengeId);
+    expect(secondRequest.body.resendAfterSeconds).toBeGreaterThan(0);
     expect(secondRequest.body.localCodeHint).toMatch(/^\d{4}$/);
   });
 
@@ -249,6 +253,7 @@ describe('auth flows', () => {
 
     const response = await request(app.getHttpServer())
       .post('/auth/phone/request')
+      .set('user-agent', `jest-auth-${++otpRequestCounter}`)
       .send({ phoneNumber: nextPhoneNumber() });
 
     expect(response.status).toBe(503);
@@ -311,7 +316,7 @@ describe('auth flows', () => {
     expect(response.body.code).toBe('invalid_otp_code');
   });
 
-  it('invalidates otp challenge after wrong code attempt', async () => {
+  it('allows otp retry after one wrong code attempt', async () => {
     const challengeResponse = await requestPhoneCode();
 
     const wrongResponse = await verifyPhoneCode(challengeResponse.body.challengeId, '0000');
@@ -322,8 +327,8 @@ describe('auth flows', () => {
       challengeResponse.body.challengeId,
       challengeResponse.body.localCodeHint,
     );
-    expect(retryResponse.status).toBe(400);
-    expect(retryResponse.body.code).toBe('invalid_otp_challenge');
+    expect(retryResponse.status).toBe(201);
+    expect(retryResponse.body.accessToken).toEqual(expect.any(String));
   });
 
   it('rejects expired otp challenge', async () => {
@@ -432,6 +437,8 @@ describe('auth flows', () => {
   });
 
   it('accepts telegram bot token as fallback internal secret', async () => {
+    delete process.env.TELEGRAM_INTERNAL_SECRET;
+
     const response = await request(app.getHttpServer())
       .post('/internal/telegram/dispatch')
       .set('x-telegram-internal-secret', process.env.TELEGRAM_BOT_TOKEN!)
@@ -509,6 +516,7 @@ describe('auth flows', () => {
     const verifyResponse = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: session.loginSessionId,
         code: session.code,
       })
       .expect(201);
@@ -526,19 +534,21 @@ describe('auth flows', () => {
     const verifyResponse = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: startResponse.body.loginSessionId,
         code: '6543',
       });
 
     expect(verifyResponse.status).toBe(400);
-    expect(verifyResponse.body.code).toBe('invalid_telegram_code');
+    expect(verifyResponse.body.code).toBe('invalid_telegram_login_session');
   });
 
   it('rejects telegram code that does not match any active session', async () => {
-    await createTelegramLoginSession();
+    const session = await createTelegramLoginSession();
 
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: session.loginSessionId,
         code: '0000',
       });
 
@@ -554,11 +564,12 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: session.loginSessionId,
         code: session.code,
       });
 
     expect(response.status).toBe(400);
-    expect(response.body.code).toBe('invalid_telegram_code');
+    expect(response.body.code).toBe('invalid_telegram_login_session');
   });
 
   it('logs into existing user by telegram phone and creates telegram link', async () => {
@@ -570,6 +581,7 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: session.loginSessionId,
         code: session.code,
       })
       .expect(201);
@@ -595,6 +607,7 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: session.loginSessionId,
         code: session.code,
       })
       .expect(201);
@@ -634,6 +647,7 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: session.loginSessionId,
         code: session.code,
       });
 
@@ -651,6 +665,7 @@ describe('auth flows', () => {
       .post('/auth/telegram/verify')
       .set('user-agent', 'jest-telegram-auth')
       .send({
+        loginSessionId: session.loginSessionId,
         code: session.code,
       })
       .expect(201);
@@ -677,10 +692,10 @@ describe('auth flows', () => {
     expect(serialized).not.toContain(process.env.TELEGRAM_BOT_TOKEN!);
   });
 
-  it('rejects telegram code when multiple active sessions share the same code lookup', async () => {
+  it('verifies the selected telegram session when another session has the same code', async () => {
     const sharedCode = '1111';
 
-    await createTelegramLoginSession({
+    const selectedSession = await createTelegramLoginSession({
       loginSessionId: `login-${randomUUID()}`,
       telegramUserId: nextTelegramUserId(),
       phoneNumber: nextPhoneNumber(),
@@ -696,11 +711,13 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/verify')
       .send({
+        loginSessionId: selectedSession.loginSessionId,
         code: sharedCode,
-      });
+      })
+      .expect(201);
 
-    expect(response.status).toBe(409);
-    expect(response.body.code).toBe('telegram_auth_conflict');
+    expect(response.body.userId).toEqual(expect.any(String));
+    expect(response.body.accessToken).toEqual(expect.any(String));
   });
 
   it('refreshes session and returns a working access token', async () => {

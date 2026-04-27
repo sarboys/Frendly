@@ -1,4 +1,9 @@
-import { OUTBOX_EVENT_TYPES, decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  OUTBOX_EVENT_TYPES,
+  decodeCursor,
+  encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
+} from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
@@ -10,6 +15,8 @@ import {
 } from '../common/presenters';
 import { assertEventCapacityAvailable } from './event-capacity';
 import { PrismaService } from './prisma.service';
+
+const HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT = 6;
 
 @Injectable()
 export class HostService {
@@ -40,6 +47,9 @@ export class HostService {
           },
           status: 'pending',
           reviewedById: null,
+          userId: {
+            notIn: [...blockedUserIds],
+          },
         },
       }),
       this.resolveEventCursor(params.eventsCursor),
@@ -53,20 +63,28 @@ export class HostService {
         },
         include: {
           participants: {
+            where: {
+              userId: {
+                notIn: [...blockedUserIds],
+              },
+            },
             include: {
               user: {
                 include: { profile: true },
               },
             },
+            take: HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT,
           },
-          joinRequests: {
-            where: { status: 'pending', reviewedById: null },
-            include: {
-              user: {
-                include: { profile: true },
+          _count: {
+            select: {
+              participants: {
+                where: {
+                  userId: {
+                    notIn: [...blockedUserIds],
+                  },
+                },
               },
             },
-            orderBy: { createdAt: 'asc' },
           },
           liveState: true,
         },
@@ -80,6 +98,9 @@ export class HostService {
           },
           status: 'pending',
           reviewedById: null,
+          userId: {
+            notIn: [...blockedUserIds],
+          },
           ...this.buildRequestCursorWhere(requestsCursor),
         },
         include: {
@@ -95,9 +116,7 @@ export class HostService {
 
     const hasMoreRequests = requestsPage.length > requestsTake;
     const requestPage = hasMoreRequests ? requestsPage.slice(0, requestsTake) : requestsPage;
-    const requestItems = requestPage
-      .filter((request) => !blockedUserIds.has(request.user.id))
-      .map((request) => this.mapRequest(request));
+    const requestItems = requestPage.map((request) => this.mapRequest(request));
     const hasMoreEvents = eventsPage.length > eventsTake;
     const eventPage = hasMoreEvents ? eventsPage.slice(0, eventsTake) : eventsPage;
     const eventItems = eventPage.map((event) =>
@@ -107,6 +126,7 @@ export class HostService {
           (participant) => !blockedUserIds.has(participant.userId),
         ),
         currentUserId: userId,
+        participantCount: event._count.participants,
         liveState: event.liveState,
       }),
     );
@@ -175,16 +195,31 @@ export class HostService {
       where: { id: eventId, hostId: userId },
       include: {
         participants: {
+          where: {
+            userId: {
+              notIn: [...blockedUserIds],
+            },
+          },
           include: {
             user: {
               include: { profile: true },
             },
           },
         },
-        attendances: true,
+        attendances: {
+          where: {
+            userId: {
+              notIn: [...blockedUserIds],
+            },
+          },
+        },
         joinRequests: {
           where: {
+            status: 'pending',
             reviewedById: null,
+            userId: {
+              notIn: [...blockedUserIds],
+            },
           },
           include: {
             user: {
@@ -192,6 +227,17 @@ export class HostService {
             },
           },
           orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
+        },
+        _count: {
+          select: {
+            participants: {
+              where: {
+                userId: {
+                  notIn: [...blockedUserIds],
+                },
+              },
+            },
+          },
         },
         liveState: true,
         chat: true,
@@ -213,6 +259,7 @@ export class HostService {
           (participant) => !blockedUserIds.has(participant.userId),
         ),
         currentUserId: userId,
+        participantCount: event._count.participants,
         liveState: event.liveState,
       }),
       chatId: event.chat?.id ?? null,
@@ -424,13 +471,27 @@ export class HostService {
     }
 
     const rejected = await this.prismaService.client.$transaction(async (tx) => {
-      const next = await tx.eventJoinRequest.update({
-        where: { id: requestId },
+      const reviewed = await tx.eventJoinRequest.updateMany({
+        where: {
+          id: requestId,
+          status: 'pending',
+        },
         data: {
           status: 'rejected',
           reviewedById: userId,
           reviewedAt: new Date(),
         },
+      });
+      if (reviewed.count === 0) {
+        throw new ApiError(
+          409,
+          'join_request_already_reviewed',
+          'Join request is already reviewed',
+        );
+      }
+
+      const next = await tx.eventJoinRequest.findUnique({
+        where: { id: requestId },
         include: {
           event: true,
           user: {
@@ -438,6 +499,9 @@ export class HostService {
           },
         },
       });
+      if (!next) {
+        throw new ApiError(404, 'join_request_not_found', 'Join request not found');
+      }
 
       const notification = await tx.notification.create({
         data: {
@@ -624,30 +688,7 @@ export class HostService {
   }
 
   private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
-
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
-    }
-
-    return blockedUserIds;
+    return loadBlockedUserIds(this.prismaService.client, userId);
   }
 
   private normalizeLimit(limit?: number) {

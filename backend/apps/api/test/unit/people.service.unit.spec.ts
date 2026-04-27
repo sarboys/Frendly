@@ -88,4 +88,94 @@ describe('PeopleService unit', () => {
       }),
     );
   });
+
+  it('does not create a direct chat with a hidden peer', async () => {
+    const chatCreate = jest.fn();
+    const service = new PeopleService({
+      client: {
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-hidden',
+            settings: {
+              discoverable: false,
+            },
+          }),
+        },
+        chat: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: chatCreate,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.createOrGetDirectChat('user-me', 'user-hidden'),
+    ).rejects.toMatchObject({
+      code: 'user_not_found',
+    });
+    expect(chatCreate).not.toHaveBeenCalled();
+  });
+
+  it('does not mask unexpected direct chat create failures as conflicts', async () => {
+    const createError = new Error('database unavailable');
+    const service = new PeopleService({
+      client: {
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            settings: {
+              discoverable: true,
+            },
+          }),
+        },
+        chat: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockRejectedValue(createError),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.createOrGetDirectChat('user-me', 'user-peer'),
+    ).rejects.toBe(createError);
+  });
+
+  it('returns the duplicate direct chat when concurrent create hits directKey unique constraint', async () => {
+    const duplicateChat = { id: 'chat-existing', directKey: 'user-me:user-peer' };
+    const service = new PeopleService({
+      client: {
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            settings: {
+              discoverable: true,
+            },
+          }),
+        },
+        chat: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(duplicateChat),
+          create: jest.fn().mockRejectedValue({
+            code: 'P2002',
+            meta: { target: ['directKey'] },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.createOrGetDirectChat('user-me', 'user-peer'),
+    ).resolves.toBe(duplicateChat);
+  });
 });

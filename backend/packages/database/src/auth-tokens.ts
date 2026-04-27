@@ -34,10 +34,43 @@ export function signRefreshToken(userId: string, sessionId: string, refreshToken
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
   const config = getJwtConfig();
-  return jwt.verify(token, config.accessSecret) as AccessTokenPayload;
+  const payload = jwt.verify(token, config.accessSecret);
+  if (!isAccessTokenPayload(payload)) {
+    throw new Error('Invalid access token payload');
+  }
+
+  return payload;
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
   const config = getJwtConfig();
-  return jwt.verify(token, config.refreshSecret) as RefreshTokenPayload;
+  const payload = jwt.verify(token, config.refreshSecret);
+  if (!isRefreshTokenPayload(payload)) {
+    throw new Error('Invalid refresh token payload');
+  }
+
+  return payload;
+}
+
+function isAccessTokenPayload(payload: string | JwtPayload): payload is AccessTokenPayload {
+  return (
+    typeof payload !== 'string' &&
+    payload.kind === 'access' &&
+    isNonEmptyString(payload.userId) &&
+    isNonEmptyString(payload.sessionId)
+  );
+}
+
+function isRefreshTokenPayload(payload: string | JwtPayload): payload is RefreshTokenPayload {
+  return (
+    typeof payload !== 'string' &&
+    payload.kind === 'refresh' &&
+    isNonEmptyString(payload.userId) &&
+    isNonEmptyString(payload.sessionId) &&
+    isNonEmptyString(payload.refreshTokenId)
+  );
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
 }

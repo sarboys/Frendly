@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  decodeCursor,
+  encodeCursor,
+  getBlockedUserIds as loadBlockedUserIds,
+} from '@big-break/database';
 import { formatEventTime } from '../common/presenters';
 import { EventsService } from './events.service';
 import { PrismaService } from './prisma.service';
@@ -106,14 +110,20 @@ export class AfterDarkService {
         },
         participants: {
           where: {
-            userId: {
-              notIn: [...blockedUserIds],
-            },
+            userId,
           },
-          include: {
-            user: {
-              select: {
-                displayName: true,
+          select: {
+            userId: true,
+          },
+          take: 1,
+        },
+        _count: {
+          select: {
+            participants: {
+              where: {
+                userId: {
+                  notIn: [...blockedUserIds],
+                },
               },
             },
           },
@@ -238,14 +248,20 @@ export class AfterDarkService {
         },
         participants: {
           where: {
-            userId: {
-              notIn: [...blockedUserIds],
-            },
+            userId,
           },
-          include: {
-            user: {
-              include: {
-                profile: true,
+          select: {
+            userId: true,
+          },
+          take: 1,
+        },
+        _count: {
+          select: {
+            participants: {
+              where: {
+                userId: {
+                  notIn: [...blockedUserIds],
+                },
               },
             },
           },
@@ -286,6 +302,9 @@ export class AfterDarkService {
       priceAmountFrom: number | null;
       priceAmountTo: number | null;
       participants: Array<{ userId: string }>;
+      _count?: {
+        participants: number;
+      };
       joinRequests: Array<{ status: string }>;
       host: { verified: boolean };
     },
@@ -299,7 +318,7 @@ export class AfterDarkService {
       time: formatEventTime(event.startsAt),
       district: event.place,
       distanceKm: event.distanceKm,
-      going: event.participants.length,
+      going: event._count?.participants ?? event.participants.length,
       capacity: event.capacity,
       ratio: event.ratioLabel ?? 'Mixed',
       ageRange: event.ageRange ?? '18+',
@@ -339,6 +358,9 @@ export class AfterDarkService {
       rules: unknown;
       hostId: string;
       participants: Array<{ userId: string }>;
+      _count?: {
+        participants: number;
+      };
       joinRequests: Array<{ status: string }>;
       chat: { id: string } | null;
       host: {
@@ -396,30 +418,7 @@ export class AfterDarkService {
   }
 
   private async getBlockedUserIds(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
-      where: {
-        OR: [
-          { userId },
-          { blockedUserId: userId },
-        ],
-      },
-      select: {
-        userId: true,
-        blockedUserId: true,
-      },
-    });
-
-    const blockedUserIds = new Set<string>();
-    for (const block of blocks) {
-      if (block.userId === userId) {
-        blockedUserIds.add(block.blockedUserId);
-      }
-      if (block.blockedUserId === userId) {
-        blockedUserIds.add(block.userId);
-      }
-    }
-
-    return blockedUserIds;
+    return loadBlockedUserIds(this.prismaService.client, userId);
   }
 
   private normalizeLimit(limit?: number) {

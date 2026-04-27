@@ -37,6 +37,49 @@ describe('worker outbox recovery', () => {
     delete process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS;
   });
 
+  it('runs startup scans through the safe scheduled runner', async () => {
+    const service = new WorkerService({
+      client: {},
+    } as any);
+    const runScheduledTask = jest
+      .fn((_label: string, task: () => Promise<void>) => {
+        void task();
+      });
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runOnce = jest.fn().mockResolvedValue(undefined);
+    (service as any).runSystemNotificationScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runEveningAutoAdvanceScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    expect(runScheduledTask).toHaveBeenCalledWith('outbox', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('system-notifications', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('evening-auto-advance', expect.any(Function));
+
+    await service.onModuleDestroy();
+  });
+
+  it('logs scheduled task failures without rethrowing', async () => {
+    const service = new WorkerService({
+      client: {},
+    } as any);
+    const error = new Error('scan failed');
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await expect(
+      (service as any).runScheduledTask('outbox', async () => {
+        throw error;
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(consoleError).toHaveBeenCalledWith(
+      '[worker] scheduled task failed: outbox',
+      error,
+    );
+    consoleError.mockRestore();
+    await service.onModuleDestroy();
+  });
+
   it('starts retention cleanup timer only when enabled', async () => {
     process.env.WORKER_RETENTION_CLEANUP_ENABLED = 'true';
     process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS = '1000';
@@ -622,6 +665,12 @@ describe('worker outbox recovery', () => {
     await service.runOnce();
 
     expect(queryRaw).toHaveBeenCalledTimes(1);
+    const unreadQuery = queryRaw.mock.calls[0][0] as any;
+    const unreadSql = Array.isArray(unreadQuery)
+      ? unreadQuery.join(' ')
+      : unreadQuery.strings.join(' ');
+    expect(unreadSql).toContain('"UserBlock"');
+    expect(unreadSql).toContain('"blockedUserId"');
     expect(executeRaw).toHaveBeenCalledTimes(1);
     expect(publishBusEvent).toHaveBeenCalledWith(
       expect.anything(),
@@ -781,6 +830,85 @@ describe('worker outbox recovery', () => {
           readAt: null,
         },
       },
+    );
+  });
+
+  it('skips realtime notification create events from blocked actors', async () => {
+    const createdAt = new Date('2026-04-24T12:00:00.000Z');
+    const event = {
+      id: 'evt-notification-blocked',
+      type: 'notification.create',
+      payload: {
+        notificationId: 'notification-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt,
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const update = jest.fn().mockResolvedValue({});
+    const findNotification = jest.fn().mockResolvedValue({
+      id: 'notification-1',
+      userId: 'user-sonya',
+      actorUserId: 'blocked-actor',
+      kind: 'event_joined',
+      title: 'Приглашение на встречу',
+      body: 'приглашает тебя на встречу',
+      payload: {
+        eventId: 'event-1',
+      },
+      readAt: null,
+      createdAt,
+    });
+    const findBlock = jest.fn().mockResolvedValue({ id: 'block-1' });
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany,
+          update,
+        },
+        notification: {
+          findUnique: findNotification,
+        },
+        userBlock: {
+          findFirst: findBlock,
+        },
+      },
+    } as any;
+    const publishBusEvent = jest.requireMock('@big-break/database')
+      .publishBusEvent as jest.Mock;
+    const service = new WorkerService(prismaService);
+
+    await service.runOnce();
+
+    expect(findBlock).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          {
+            userId: 'user-sonya',
+            blockedUserId: 'blocked-actor',
+          },
+          {
+            userId: 'blocked-actor',
+            blockedUserId: 'user-sonya',
+          },
+        ],
+      },
+      select: {
+        id: true,
+      },
+    });
+    expect(publishBusEvent).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: 'notification.created',
+      }),
     );
   });
 
@@ -1094,6 +1222,92 @@ describe('worker outbox recovery', () => {
       },
     });
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips push dispatch for notifications from blocked actors', async () => {
+    const now = Date.now();
+    const event = {
+      id: 'evt-push-blocked',
+      type: 'push.dispatch',
+      payload: {
+        userId: 'user-me',
+        notificationId: 'n-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(now - 60_000),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const update = jest.fn().mockResolvedValue({});
+    const findNotification = jest.fn().mockResolvedValue({
+      id: 'n-1',
+      userId: 'user-me',
+      actorUserId: 'blocked-actor',
+      title: 'Title',
+      body: 'Body',
+    });
+    const findPushTokens = jest.fn().mockResolvedValue([
+      {
+        provider: 'fcm',
+        token: 'token-1',
+      },
+    ]);
+    const findSettings = jest.fn().mockResolvedValue({
+      allowPush: true,
+      quietHours: false,
+    });
+    const findBlock = jest.fn().mockResolvedValue({ id: 'block-1' });
+    const send = jest.fn();
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany,
+          update,
+        },
+        notification: {
+          findUnique: findNotification,
+        },
+        pushToken: {
+          findMany: findPushTokens,
+        },
+        userSettings: {
+          findUnique: findSettings,
+        },
+        userBlock: {
+          findFirst: findBlock,
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+    (service as any).resolveProvider = () => ({ send });
+
+    await service.runOnce();
+
+    expect(findBlock).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          {
+            userId: 'user-me',
+            blockedUserId: 'blocked-actor',
+          },
+          {
+            userId: 'blocked-actor',
+            blockedUserId: 'user-me',
+          },
+        ],
+      },
+      select: {
+        id: true,
+      },
+    });
+    expect(findPushTokens).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
   });
 
   it('skips push dispatch when user disabled push or quiet hours are on', async () => {
