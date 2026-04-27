@@ -1674,6 +1674,78 @@ describe('EveningService unit', () => {
     expect(result.phase).toBe('scheduled');
   });
 
+  it('creates canonical route template before launch when production seed is missing', async () => {
+    const routeCreate = jest.fn().mockResolvedValue(
+      routeFixture({
+        chatId: null,
+      }),
+    );
+    const chatCreate = jest.fn().mockResolvedValue({
+      id: 'evening-chat-new',
+    });
+    const sessionCreate = jest.fn().mockResolvedValue({
+      id: 'evening-session-new',
+      chatId: 'evening-chat-new',
+      privacy: 'open',
+      capacity: 10,
+      phase: 'scheduled',
+      mode: 'hybrid',
+    });
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            create: routeCreate,
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              chat: { create: chatCreate },
+              eveningSession: { create: sessionCreate },
+              eveningSessionParticipant: { upsert: jest.fn() },
+              eveningSessionStepState: { createMany: jest.fn() },
+              chatMember: { upsert: jest.fn() },
+              message: {
+                findUnique: jest.fn().mockResolvedValue(null),
+                create: jest.fn().mockResolvedValue({ id: 'sys-publish' }),
+              },
+              realtimeEvent: { create: jest.fn().mockResolvedValue({ id: 11 }) },
+              outboxEvent: { createMany: jest.fn() },
+            }),
+          ),
+        },
+      } as any,
+    );
+
+    const result = await service.launchRoute('user-me', 'r-cozy-circle', {
+      privacy: 'open',
+    });
+
+    expect(routeCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: 'r-cozy-circle',
+        chatId: null,
+        steps: expect.objectContaining({
+          create: expect.arrayContaining([
+            expect.objectContaining({
+              id: 's1-1',
+              title: 'Аперитив в Brix Wine',
+            }),
+          ]),
+        }),
+      }),
+      include: expect.any(Object),
+    });
+    expect(result).toMatchObject({
+      sessionId: 'evening-session-new',
+      chatId: 'evening-chat-new',
+      phase: 'scheduled',
+    });
+  });
+
   it('keeps legacy route finish endpoint tied to route chat', async () => {
     const findUnique = jest.fn().mockResolvedValue({
       id: 'r-cozy-circle',
