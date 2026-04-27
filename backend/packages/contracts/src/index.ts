@@ -181,6 +181,8 @@ export interface ChatMessageDto {
   text: string;
   clientMessageId: string;
   createdAt: string;
+  kind?: 'user' | 'system';
+  systemKind?: 'launch' | 'checkin' | 'step' | 'finish';
   eventId?: string;
   replyTo?: ReplyPreviewDto | null;
   attachments: MediaAssetDto[];
@@ -267,7 +269,17 @@ export interface WsServerEventMap {
   'message.attachment_ready': { chatId: string; assetId: string };
   'message.read': { chatId: string; userId: string; messageId: string; readAt: string };
   'typing.changed': { chatId: string; userId: string; isTyping: boolean };
-  'chat.updated': { chatId: string };
+  'chat.updated': {
+    chatId: string;
+    sessionId?: string;
+    routeId?: string;
+    phase?: 'live' | 'soon' | 'upcoming' | 'done';
+    currentStep?: number | null;
+    totalSteps?: number;
+    currentPlace?: string | null;
+    endTime?: string | null;
+    startsInLabel?: string | null;
+  };
   'unread.updated': { chatId: string; unreadCount: number };
   'notification.created': {
     userId: string;

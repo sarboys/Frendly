@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { EveningService } from '../services/evening.service';
 
@@ -34,6 +34,158 @@ export class EveningController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.eveningService.launchRoute(currentUser.userId, routeId, body);
+  }
+
+  @Get('sessions')
+  listSessions(
+    @CurrentUser() currentUser: { userId: string },
+    @Query() query: Record<string, unknown>,
+  ) {
+    return this.eveningService.listSessions(currentUser.userId, query);
+  }
+
+  @Get('sessions/:sessionId')
+  getSession(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.eveningService.getSession(currentUser.userId, sessionId);
+  }
+
+  @Post('sessions/:sessionId/start')
+  startSession(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.eveningService.startSession(currentUser.userId, sessionId);
+  }
+
+  @Post('sessions/:sessionId/join')
+  joinSession(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.eveningService.joinSession(currentUser.userId, sessionId, body);
+  }
+
+  @Post('sessions/:sessionId/join-request')
+  requestJoinSession(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.eveningService.joinSession(currentUser.userId, sessionId, {
+      ...body,
+      privacyAction: 'request',
+    });
+  }
+
+  @Post('sessions/:sessionId/join-requests/:requestId/approve')
+  approveJoinRequest(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.eveningService.approveJoinRequest(
+      currentUser.userId,
+      sessionId,
+      requestId,
+    );
+  }
+
+  @Post('sessions/:sessionId/join-requests/:requestId/reject')
+  rejectJoinRequest(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.eveningService.rejectJoinRequest(
+      currentUser.userId,
+      sessionId,
+      requestId,
+    );
+  }
+
+  @Post('sessions/:sessionId/steps/:stepId/check-in')
+  checkInStep(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Param('stepId') stepId: string,
+  ) {
+    return this.eveningService.checkInStep(
+      currentUser.userId,
+      sessionId,
+      stepId,
+    );
+  }
+
+  @Post('sessions/:sessionId/steps/:stepId/advance')
+  advanceStep(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Param('stepId') stepId: string,
+  ) {
+    return this.eveningService.advanceStep(
+      currentUser.userId,
+      sessionId,
+      stepId,
+    );
+  }
+
+  @Post('sessions/:sessionId/steps/:stepId/skip')
+  skipStep(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Param('stepId') stepId: string,
+  ) {
+    return this.eveningService.skipStep(
+      currentUser.userId,
+      sessionId,
+      stepId,
+    );
+  }
+
+  @Post('sessions/:sessionId/finish')
+  finishSession(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.eveningService.finishSession(currentUser.userId, sessionId);
+  }
+
+  @Get('sessions/:sessionId/after-party')
+  getAfterParty(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.eveningService.getAfterParty(currentUser.userId, sessionId);
+  }
+
+  @Post('sessions/:sessionId/after-party/feedback')
+  saveAfterPartyFeedback(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.eveningService.saveAfterPartyFeedback(
+      currentUser.userId,
+      sessionId,
+      body,
+    );
+  }
+
+  @Post('sessions/:sessionId/after-party/photos')
+  addAfterPartyPhoto(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.eveningService.addAfterPartyPhoto(
+      currentUser.userId,
+      sessionId,
+      body,
+    );
   }
 
   @Post('routes/:routeId/finish')

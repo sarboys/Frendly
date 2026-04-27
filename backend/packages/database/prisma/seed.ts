@@ -134,6 +134,13 @@ async function main() {
   await prisma.phoneOtpChallenge.deleteMany();
   await prisma.userVerification.deleteMany();
   await prisma.userSettings.deleteMany();
+  await prisma.eveningAfterPartyPhoto.deleteMany();
+  await prisma.eveningAfterPartyFeedback.deleteMany();
+  await prisma.eveningStepCheckIn.deleteMany();
+  await prisma.eveningSessionStepState.deleteMany();
+  await prisma.eveningSessionJoinRequest.deleteMany();
+  await prisma.eveningSessionParticipant.deleteMany();
+  await prisma.eveningSession.deleteMany();
   await prisma.userEveningStepAction.deleteMany();
   await prisma.eveningRouteStep.deleteMany();
   await prisma.eveningRoute.deleteMany();
@@ -471,6 +478,116 @@ async function main() {
           })),
         },
       },
+    });
+  }
+
+  const seededEveningSessions = [
+    {
+      id: 'evening-session-r-cozy-circle',
+      routeId: 'r-cozy-circle',
+      hostUserId: 'user-anya',
+      chatId: 'evening-chat-r-cozy-circle',
+      phase: 'live',
+      privacy: 'open',
+      mode: 'hybrid',
+      capacity: 10,
+      startsAt: new Date('2026-04-26T16:00:00.000Z'),
+      startedAt: new Date('2026-04-26T16:00:00.000Z'),
+      currentStep: 2,
+    },
+    {
+      id: 'evening-session-r-date-noir',
+      routeId: 'r-date-noir',
+      hostUserId: 'user-anya',
+      chatId: 'evening-chat-r-date-noir',
+      phase: 'scheduled',
+      privacy: 'request',
+      mode: 'hybrid',
+      capacity: 8,
+      startsAt: new Date('2026-04-26T17:45:00.000Z'),
+      currentStep: null,
+    },
+    {
+      id: 'evening-session-r-wild-night',
+      routeId: 'r-wild-night',
+      hostUserId: 'user-mark',
+      chatId: 'evening-chat-r-wild-night',
+      phase: 'scheduled',
+      privacy: 'open',
+      mode: 'manual',
+      capacity: 12,
+      startsAt: new Date('2026-04-26T19:30:00.000Z'),
+      currentStep: null,
+    },
+    {
+      id: 'evening-session-r-quiet-soul',
+      routeId: 'r-quiet-soul',
+      hostUserId: 'user-liza',
+      chatId: 'evening-chat-r-quiet-soul',
+      phase: 'scheduled',
+      privacy: 'invite',
+      mode: 'manual',
+      capacity: 4,
+      inviteToken: 'seed-quiet-soul',
+      startsAt: new Date('2026-04-26T20:00:00.000Z'),
+      currentStep: null,
+    },
+    {
+      id: 'evening-session-r-afterdark',
+      routeId: 'r-afterdark',
+      hostUserId: 'user-liza',
+      chatId: 'evening-chat-r-afterdark',
+      phase: 'done',
+      privacy: 'invite',
+      mode: 'hybrid',
+      capacity: 6,
+      inviteToken: 'seed-afterdark',
+      startsAt: new Date('2026-04-25T20:00:00.000Z'),
+      startedAt: new Date('2026-04-25T20:00:00.000Z'),
+      endedAt: new Date('2026-04-25T23:30:00.000Z'),
+      currentStep: null,
+    },
+  ];
+
+  await prisma.eveningSession.createMany({
+    data: seededEveningSessions,
+  });
+
+  await prisma.eveningSessionParticipant.createMany({
+    data: [
+      { sessionId: 'evening-session-r-cozy-circle', userId: 'user-anya', role: 'host', status: 'joined', joinedAt: new Date('2026-04-26T16:00:00.000Z') },
+      { sessionId: 'evening-session-r-cozy-circle', userId: 'user-me', role: 'guest', status: 'joined', joinedAt: new Date('2026-04-26T16:02:00.000Z') },
+      { sessionId: 'evening-session-r-cozy-circle', userId: 'user-mark', role: 'guest', status: 'joined', joinedAt: new Date('2026-04-26T16:04:00.000Z') },
+      { sessionId: 'evening-session-r-cozy-circle', userId: 'user-liza', role: 'guest', status: 'joined', joinedAt: new Date('2026-04-26T16:08:00.000Z') },
+      { sessionId: 'evening-session-r-date-noir', userId: 'user-anya', role: 'host', status: 'joined', joinedAt: new Date('2026-04-26T17:00:00.000Z') },
+      { sessionId: 'evening-session-r-date-noir', userId: 'user-me', role: 'guest', status: 'joined', joinedAt: new Date('2026-04-26T17:05:00.000Z') },
+      { sessionId: 'evening-session-r-wild-night', userId: 'user-mark', role: 'host', status: 'joined', joinedAt: new Date('2026-04-26T18:30:00.000Z') },
+      { sessionId: 'evening-session-r-wild-night', userId: 'user-me', role: 'guest', status: 'joined', joinedAt: new Date('2026-04-26T18:40:00.000Z') },
+      { sessionId: 'evening-session-r-quiet-soul', userId: 'user-liza', role: 'host', status: 'joined', joinedAt: new Date('2026-04-26T19:10:00.000Z') },
+      { sessionId: 'evening-session-r-quiet-soul', userId: 'user-me', role: 'guest', status: 'invited' },
+      { sessionId: 'evening-session-r-afterdark', userId: 'user-liza', role: 'host', status: 'joined', joinedAt: new Date('2026-04-25T20:00:00.000Z') },
+      { sessionId: 'evening-session-r-afterdark', userId: 'user-oleg', role: 'guest', status: 'joined', joinedAt: new Date('2026-04-25T20:05:00.000Z') },
+    ],
+  });
+
+  for (const route of seededEveningRoutes) {
+    const sessionId = `evening-session-${route.id}`;
+    await prisma.eveningSessionStepState.createMany({
+      data: route.steps.map((step, index) => ({
+        sessionId,
+        stepId: step.id,
+        status:
+          sessionId === 'evening-session-r-cozy-circle'
+            ? index < 1
+              ? 'done'
+              : index === 1
+                ? 'current'
+                : 'upcoming'
+            : sessionId === 'evening-session-r-afterdark'
+              ? 'done'
+              : 'upcoming',
+      })),
+      skipDuplicates: true,
     });
   }
 

@@ -267,6 +267,13 @@ model User {
   datingActionsSent DatingAction[]          @relation("DatingActionActor")
   datingActionsReceived DatingAction[]       @relation("DatingActionTarget")
   eveningStepActions UserEveningStepAction[]
+  hostedEveningSessions EveningSession[]      @relation("EveningSessionHost")
+  eveningSessionParticipants EveningSessionParticipant[]
+  eveningSessionJoinRequests EveningSessionJoinRequest[]
+  reviewedEveningSessionJoinRequests EveningSessionJoinRequest[] @relation("ReviewedEveningSessionJoinRequests")
+  eveningStepCheckIns EveningStepCheckIn[]
+  eveningAfterPartyFeedbacks EveningAfterPartyFeedback[]
+  eveningAfterPartyPhotos EveningAfterPartyPhoto[]
 
   @@index([displayName, id])
 }
@@ -550,6 +557,7 @@ model EveningRoute {
   chat           Chat?                   @relation("EveningRouteChat", fields: [chatId], references: [id], onDelete: SetNull)
   steps          EveningRouteStep[]
   stepActions    UserEveningStepAction[]
+  sessions       EveningSession[]
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
 
@@ -583,6 +591,8 @@ model EveningRouteStep {
   lat              Float
   lng              Float
   actions          UserEveningStepAction[]
+  sessionStates    EveningSessionStepState[]
+  checkIns         EveningStepCheckIn[]
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
@@ -607,6 +617,141 @@ model UserEveningStepAction {
   @@unique([userId, stepId])
   @@index([userId, routeId])
   @@index([routeId, stepId])
+}
+
+model EveningSession {
+  id           String                      @id @default(cuid())
+  routeId      String
+  hostUserId   String
+  chatId       String                      @unique
+  phase        String                      @default("scheduled")
+  privacy      String                      @default("open")
+  mode         String                      @default("hybrid")
+  capacity     Int                         @default(10)
+  startsAt     DateTime?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  currentStep  Int?
+  inviteToken  String?                     @unique
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  route        EveningRoute                @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  host         User                        @relation("EveningSessionHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  chat         Chat                        @relation("EveningSessionChat", fields: [chatId], references: [id], onDelete: Cascade)
+  participants EveningSessionParticipant[]
+  joinRequests EveningSessionJoinRequest[]
+  stepStates   EveningSessionStepState[]
+  checkIns     EveningStepCheckIn[]
+  afterPartyFeedbacks EveningAfterPartyFeedback[]
+  afterPartyPhotos    EveningAfterPartyPhoto[]
+
+  @@index([phase, startsAt, id])
+  @@index([hostUserId, phase, id])
+  @@index([routeId, createdAt, id])
+  @@index([chatId])
+}
+
+model EveningSessionParticipant {
+  id        String         @id @default(cuid())
+  sessionId String
+  userId    String
+  role      String         @default("guest")
+  status    String         @default("joined")
+  joinedAt  DateTime?
+  leftAt    DateTime?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  session   EveningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId, status, id])
+  @@index([userId, status, id])
+}
+
+model EveningSessionJoinRequest {
+  id           String         @id @default(cuid())
+  sessionId    String
+  userId       String
+  status       String         @default("requested")
+  note         String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  session      EveningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy   User?          @relation("ReviewedEveningSessionJoinRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId, status, id])
+  @@index([userId, status, id])
+}
+
+model EveningSessionStepState {
+  id         String           @id @default(cuid())
+  sessionId  String
+  stepId     String
+  status     String           @default("upcoming")
+  startedAt  DateTime?
+  finishedAt DateTime?
+  skippedAt  DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  session    EveningSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  step       EveningRouteStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, stepId])
+  @@index([sessionId, status, id])
+  @@index([stepId])
+}
+
+model EveningStepCheckIn {
+  id          String           @id @default(cuid())
+  sessionId   String
+  stepId      String
+  userId      String
+  checkedInAt DateTime         @default(now())
+  session     EveningSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  step        EveningRouteStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, stepId, userId])
+  @@index([sessionId, stepId, checkedInAt])
+  @@index([userId, checkedInAt])
+}
+
+model EveningAfterPartyFeedback {
+  id        String         @id @default(cuid())
+  sessionId String
+  userId    String
+  rating    Int
+  reaction  String?
+  comment   String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  session   EveningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId, rating, id])
+  @@index([userId, createdAt])
+}
+
+model EveningAfterPartyPhoto {
+  id           String         @id @default(cuid())
+  sessionId    String
+  userId       String
+  mediaAssetId String
+  createdAt    DateTime       @default(now())
+  session      EveningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset     @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, mediaAssetId])
+  @@index([sessionId, createdAt])
+  @@index([userId, createdAt])
+  @@index([mediaAssetId])
 }
 
 model EventParticipant {
@@ -912,6 +1057,7 @@ model Chat {
   members        ChatMember[]
   community      Community?
   eveningRoute   EveningRoute?  @relation("EveningRouteChat")
+  eveningSession EveningSession? @relation("EveningSessionChat")
   realtimeEvents RealtimeEvent[]
 
   @@index([kind, updatedAt, id])
@@ -990,6 +1136,7 @@ model MediaAsset {
   storyAsset       EventStory?
   posterCover      Poster?
   messageLinks     MessageAttachment[]
+  eveningAfterPartyPhotos EveningAfterPartyPhoto[]
 
   @@index([ownerId, status, chatId])
   @@index([chatId, kind, status])

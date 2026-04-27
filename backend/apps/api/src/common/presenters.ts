@@ -67,18 +67,38 @@ export function mapMessage(
     }>;
   },
 ) {
+  const systemKind = resolveSystemMessageKind(message.clientMessageId);
+  const isSystem = systemKind != null;
   return {
     id: message.id,
     chatId: message.chatId,
     senderId: message.senderId,
-    senderName: message.sender.displayName,
-    senderAvatarUrl: message.sender.profile?.avatarUrl ?? null,
+    senderName: isSystem ? 'Frendly' : message.sender.displayName,
+    senderAvatarUrl: isSystem ? null : message.sender.profile?.avatarUrl ?? null,
     text: message.text,
     clientMessageId: message.clientMessageId,
     createdAt: message.createdAt.toISOString(),
+    kind: isSystem ? 'system' : 'user',
+    ...(systemKind != null ? { systemKind } : {}),
     replyTo: message.replyTo ? mapReplyPreview(message.replyTo) : null,
     attachments: message.attachments.map((entry) => mapMediaAsset(entry.mediaAsset)),
   };
+}
+
+function resolveSystemMessageKind(clientMessageId: string) {
+  if (!clientMessageId.startsWith('evening-session:')) {
+    return null;
+  }
+  if (clientMessageId.includes(':checkin:') || clientMessageId.includes(':join:')) {
+    return 'checkin';
+  }
+  if (clientMessageId.includes(':step:')) {
+    return 'step';
+  }
+  if (clientMessageId.includes(':finish')) {
+    return 'finish';
+  }
+  return 'launch';
 }
 
 function mapReplyPreview(

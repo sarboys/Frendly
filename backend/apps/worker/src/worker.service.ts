@@ -22,6 +22,8 @@ const DEFAULT_SYSTEM_NOTIFICATION_INTERVAL_MS = 60_000;
 const DEFAULT_SYSTEM_NOTIFICATION_BATCH_SIZE = 500;
 const DEFAULT_RETENTION_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_RETENTION_BATCH_SIZE = 500;
+const DEFAULT_EVENING_AUTO_ADVANCE_INTERVAL_MS = 30_000;
+const DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE = 25;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -30,9 +32,11 @@ export class WorkerService implements OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private systemNotificationTimer?: NodeJS.Timeout;
   private retentionCleanupTimer?: NodeJS.Timeout;
+  private eveningAutoAdvanceTimer?: NodeJS.Timeout;
   private running = false;
   private systemNotificationRunning = false;
   private retentionCleanupRunning = false;
+  private eveningAutoAdvanceRunning = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
     process.env.WORKER_MAX_EVENTS_PER_RUN,
     DEFAULT_MAX_EVENTS_PER_RUN,
@@ -71,6 +75,14 @@ export class WorkerService implements OnModuleDestroy {
     process.env.RETENTION_BATCH_SIZE,
     DEFAULT_RETENTION_BATCH_SIZE,
   );
+  private readonly eveningAutoAdvanceIntervalMs = this.resolvePositiveInteger(
+    process.env.WORKER_EVENING_AUTO_ADVANCE_INTERVAL_MS,
+    DEFAULT_EVENING_AUTO_ADVANCE_INTERVAL_MS,
+  );
+  private readonly eveningAutoAdvanceBatchSize = this.resolvePositiveInteger(
+    process.env.WORKER_EVENING_AUTO_ADVANCE_BATCH_SIZE,
+    DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE,
+  );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
   private readonly fakePushProvider = new FakePushProvider();
@@ -86,6 +98,9 @@ export class WorkerService implements OnModuleDestroy {
     this.systemNotificationTimer = setInterval(() => {
       void this.runSystemNotificationScan();
     }, this.systemNotificationIntervalMs);
+    this.eveningAutoAdvanceTimer = setInterval(() => {
+      void this.runEveningAutoAdvanceScan();
+    }, this.eveningAutoAdvanceIntervalMs);
     if (this.retentionCleanupEnabled) {
       this.retentionCleanupTimer = setInterval(() => {
         void this.runRetentionCleanup();
@@ -94,6 +109,7 @@ export class WorkerService implements OnModuleDestroy {
 
     void this.runOnce();
     void this.runSystemNotificationScan();
+    void this.runEveningAutoAdvanceScan();
     if (this.retentionCleanupEnabled) {
       void this.runRetentionCleanup();
     }
@@ -108,6 +124,9 @@ export class WorkerService implements OnModuleDestroy {
     }
     if (this.retentionCleanupTimer) {
       clearInterval(this.retentionCleanupTimer);
+    }
+    if (this.eveningAutoAdvanceTimer) {
+      clearInterval(this.eveningAutoAdvanceTimer);
     }
 
     await this.redis.quit();
@@ -449,6 +468,413 @@ export class WorkerService implements OnModuleDestroy {
     await publishBusEvent(this.redis, {
       type: payload.type,
       payload: payload.payload,
+    });
+  }
+
+  async runEveningAutoAdvanceScan(now = new Date()) {
+    if (this.eveningAutoAdvanceRunning) {
+      return;
+    }
+
+    this.eveningAutoAdvanceRunning = true;
+
+    try {
+      const sessions = await this.prismaService.client.eveningSession.findMany({
+        where: {
+          phase: 'live',
+          mode: 'auto',
+          currentStep: {
+            not: null,
+          },
+          startedAt: {
+            not: null,
+          },
+        },
+        include: {
+          route: {
+            include: {
+              steps: {
+                orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              },
+            },
+          },
+        },
+        orderBy: [{ startedAt: 'asc' }, { id: 'asc' }],
+        take: this.eveningAutoAdvanceBatchSize,
+      });
+
+      for (const session of sessions) {
+        const transition = this.resolveEveningAutoTransition(session, now);
+        if (!transition) {
+          continue;
+        }
+        if (transition.kind === 'finish') {
+          await this.finishAutoEveningSession(session, now);
+        } else {
+          await this.advanceAutoEveningSession(session, transition.stepNumber, now);
+        }
+      }
+    } finally {
+      this.eveningAutoAdvanceRunning = false;
+    }
+  }
+
+  private resolveEveningAutoTransition(session: any, now: Date) {
+    const steps = session.route?.steps ?? [];
+    const startedAt = session.startedAt;
+    if (!(startedAt instanceof Date) || steps.length === 0) {
+      return null;
+    }
+
+    const currentStep = this.normalizeStepNumber(session.currentStep, steps.length);
+    if (currentStep == null) {
+      return null;
+    }
+
+    const firstStepClock = this.parseEveningClockMinutes(steps[0]?.timeLabel);
+    if (firstStepClock == null) {
+      return null;
+    }
+
+    const lastStep = steps[steps.length - 1]!;
+    const lastEndClock = this.parseEveningClockMinutes(
+      lastStep.endTimeLabel ?? lastStep.timeLabel,
+    );
+    if (lastEndClock != null) {
+      const finishAt = new Date(
+        startedAt.getTime() +
+          this.normalizeEveningClockDelta(firstStepClock, lastEndClock),
+      );
+      if (now >= finishAt) {
+        return { kind: 'finish' as const };
+      }
+    }
+
+    let dueStep = currentStep;
+    for (let index = currentStep; index < steps.length; index += 1) {
+      const stepClock = this.parseEveningClockMinutes(steps[index]?.timeLabel);
+      if (stepClock == null) {
+        break;
+      }
+      const stepStartAt = new Date(
+        startedAt.getTime() +
+          this.normalizeEveningClockDelta(firstStepClock, stepClock),
+      );
+      if (now >= stepStartAt) {
+        dueStep = index + 1;
+      } else {
+        break;
+      }
+    }
+
+    if (dueStep > currentStep) {
+      return {
+        kind: 'advance' as const,
+        stepNumber: dueStep,
+      };
+    }
+
+    return null;
+  }
+
+  private async advanceAutoEveningSession(session: any, stepNumber: number, now: Date) {
+    const steps = session.route.steps;
+    const currentStep = this.normalizeStepNumber(session.currentStep, steps.length);
+    if (currentStep == null || stepNumber <= currentStep || stepNumber > steps.length) {
+      return;
+    }
+
+    const nextStep = steps[stepNumber - 1]!;
+    const finishedStepIds = steps
+      .slice(currentStep - 1, stepNumber - 1)
+      .map((step: { id: string }) => step.id);
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      const updated = await tx.eveningSession.updateMany({
+        where: {
+          id: session.id,
+          phase: 'live',
+          mode: 'auto',
+          currentStep,
+        },
+        data: {
+          currentStep: stepNumber,
+        },
+      });
+      if (updated.count === 0) {
+        return;
+      }
+
+      await tx.chat.update({
+        where: { id: session.chatId },
+        data: {
+          currentStep: stepNumber,
+        },
+      });
+
+      await tx.eveningSessionStepState.updateMany({
+        where: {
+          sessionId: session.id,
+          stepId: {
+            in: finishedStepIds,
+          },
+        },
+        data: {
+          status: 'done',
+          finishedAt: now,
+        },
+      });
+
+      await tx.eveningSessionStepState.upsert({
+        where: {
+          sessionId_stepId: {
+            sessionId: session.id,
+            stepId: nextStep.id,
+          },
+        },
+        create: {
+          sessionId: session.id,
+          stepId: nextStep.id,
+          status: 'current',
+          startedAt: now,
+        },
+        update: {
+          status: 'current',
+          startedAt: now,
+          finishedAt: null,
+          skippedAt: null,
+        },
+      });
+
+      await this.createEveningSystemMessage(tx, {
+        chatId: session.chatId,
+        senderId: session.hostUserId,
+        clientMessageId: `evening-session:${session.id}:auto-step:${nextStep.id}`,
+        text: `Авто-шаг · ${stepNumber}/${steps.length} · ${nextStep.venue}`,
+        actorUserId: session.hostUserId,
+      });
+      await this.createEveningChatUpdatedEvent(tx, {
+        chatId: session.chatId,
+        sessionId: session.id,
+        routeId: session.routeId,
+        phase: 'live',
+        currentStep: stepNumber,
+        totalSteps: steps.length,
+        currentPlace: nextStep.venue,
+        endTime: nextStep.endTimeLabel ?? null,
+      });
+    });
+  }
+
+  private async finishAutoEveningSession(session: any, now: Date) {
+    const steps = session.route?.steps ?? [];
+    const currentStep = this.normalizeStepNumber(session.currentStep, steps.length);
+    if (currentStep == null) {
+      return;
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      const updated = await tx.eveningSession.updateMany({
+        where: {
+          id: session.id,
+          phase: 'live',
+          mode: 'auto',
+          currentStep,
+        },
+        data: {
+          phase: 'done',
+          endedAt: now,
+          currentStep: null,
+        },
+      });
+      if (updated.count === 0) {
+        return;
+      }
+
+      await tx.chat.update({
+        where: { id: session.chatId },
+        data: {
+          meetupPhase: 'done',
+          currentStep: null,
+          meetupEndsAt: now,
+        },
+      });
+
+      const unfinishedStepIds = steps
+        .slice(currentStep - 1)
+        .map((step: { id: string }) => step.id);
+      if (unfinishedStepIds.length > 0) {
+        await tx.eveningSessionStepState.updateMany({
+          where: {
+            sessionId: session.id,
+            stepId: {
+              in: unfinishedStepIds,
+            },
+          },
+          data: {
+            status: 'done',
+            finishedAt: now,
+          },
+        });
+      }
+
+      await this.createEveningSystemMessage(tx, {
+        chatId: session.chatId,
+        senderId: session.hostUserId,
+        clientMessageId: `evening-session:${session.id}:auto-finish`,
+        text: 'Вечер завершен автоматически',
+        actorUserId: session.hostUserId,
+      });
+      await this.createEveningChatUpdatedEvent(tx, {
+        chatId: session.chatId,
+        sessionId: session.id,
+        routeId: session.routeId,
+        phase: 'done',
+        currentStep: null,
+        totalSteps: steps.length,
+        currentPlace: null,
+        endTime: now.toISOString(),
+      });
+    });
+  }
+
+  private parseEveningClockMinutes(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const match = value.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) {
+      return null;
+    }
+    const hours = Number.parseInt(match[1]!, 10);
+    const minutes = Number.parseInt(match[2]!, 10);
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return null;
+    }
+    return hours * 60 + minutes;
+  }
+
+  private normalizeEveningClockDelta(firstMinutes: number, targetMinutes: number) {
+    let delta = targetMinutes - firstMinutes;
+    while (delta < 0) {
+      delta += 24 * 60;
+    }
+    return delta * 60_000;
+  }
+
+  private normalizeStepNumber(value: unknown, totalSteps: number) {
+    if (typeof value !== 'number' || !Number.isFinite(value) || totalSteps <= 0) {
+      return null;
+    }
+    return Math.min(totalSteps, Math.max(1, Math.trunc(value)));
+  }
+
+  private async createEveningSystemMessage(
+    tx: any,
+    params: {
+      chatId: string;
+      senderId: string;
+      clientMessageId: string;
+      text: string;
+      actorUserId: string;
+    },
+  ) {
+    const existing = await tx.message.findUnique({
+      where: {
+        chatId_clientMessageId: {
+          chatId: params.chatId,
+          clientMessageId: params.clientMessageId,
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const now = new Date();
+    const message = await tx.message.create({
+      data: {
+        chatId: params.chatId,
+        senderId: params.senderId,
+        text: params.text,
+        clientMessageId: params.clientMessageId,
+      },
+      select: {
+        id: true,
+        createdAt: true,
+      },
+    });
+    const createdAt =
+      message.createdAt instanceof Date ? message.createdAt : now;
+    const payload = {
+      id: message.id,
+      chatId: params.chatId,
+      clientMessageId: params.clientMessageId,
+      senderId: params.senderId,
+      senderName: 'Frendly',
+      senderAvatarUrl: null,
+      text: params.text,
+      createdAt: createdAt.toISOString(),
+      replyTo: null,
+      attachments: [],
+    };
+    const realtimeEvent = await tx.realtimeEvent.create({
+      data: {
+        chatId: params.chatId,
+        eventType: 'message.created',
+        payload,
+      },
+    });
+
+    await tx.outboxEvent.createMany({
+      data: [
+        {
+          type: OUTBOX_EVENT_TYPES.realtimePublish,
+          payload: {
+            type: 'message.created',
+            payload: {
+              ...payload,
+              eventId: realtimeEvent.id.toString(),
+            },
+          },
+        },
+        {
+          type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
+          payload: {
+            chatId: params.chatId,
+            actorUserId: params.actorUserId,
+          },
+        },
+      ],
+    });
+
+    return message;
+  }
+
+  private async createEveningChatUpdatedEvent(
+    tx: any,
+    payload: {
+      chatId: string;
+      sessionId: string;
+      routeId: string;
+      phase: string;
+      currentStep: number | null;
+      totalSteps: number;
+      currentPlace: string | null;
+      endTime: string | null;
+    },
+  ) {
+    await tx.outboxEvent.createMany({
+      data: [
+        {
+          type: OUTBOX_EVENT_TYPES.realtimePublish,
+          payload: {
+            type: 'chat.updated',
+            payload,
+          },
+        },
+      ],
     });
   }
 

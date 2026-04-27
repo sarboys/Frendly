@@ -100,6 +100,48 @@ export class ChatsService {
             },
           },
         },
+        eveningSession: {
+          select: {
+            id: true,
+            phase: true,
+            privacy: true,
+            mode: true,
+            capacity: true,
+            currentStep: true,
+            startsAt: true,
+            endedAt: true,
+            host: {
+              select: {
+                id: true,
+                displayName: true,
+              },
+            },
+            participants: {
+              select: {
+                status: true,
+                user: {
+                  select: {
+                    displayName: true,
+                  },
+                },
+              },
+            },
+            route: {
+              select: {
+                id: true,
+                area: true,
+                steps: {
+                  select: {
+                    sortOrder: true,
+                    venue: true,
+                    endTimeLabel: true,
+                  },
+                  orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       take: take + 1,
@@ -213,32 +255,82 @@ export class ChatsService {
         endTimeLabel: string | null;
       }>;
     } | null;
+    eveningSession?: {
+      id: string;
+      phase: string;
+      privacy: string;
+      mode: string;
+      capacity: number;
+      currentStep?: number | null;
+      startsAt?: Date | null;
+      endedAt?: Date | null;
+      host?: {
+        id: string;
+        displayName: string;
+      } | null;
+      participants?: Array<{
+        status: string;
+        user?: {
+          displayName: string;
+        } | null;
+      }>;
+      route: {
+        id: string;
+        area: string;
+        steps: Array<{
+          sortOrder: number;
+          venue: string;
+          endTimeLabel: string | null;
+        }>;
+      };
+    } | null;
   }) {
-    const route = chat.eveningRoute ?? null;
+    const session = chat.eveningSession ?? null;
+    const route = session?.route ?? chat.eveningRoute ?? null;
     const steps = route?.steps ?? [];
     const totalSteps = steps.length || null;
     const phase = this.normalizeMeetupPhase(
-      route ? chat.meetupPhase : this.phaseFromEvent(chat.event ?? null),
+      session ? this.phaseFromSession(session.phase) : route ? chat.meetupPhase : this.phaseFromEvent(chat.event ?? null),
     );
-    const mode = this.normalizeEveningMode(chat.meetupMode);
+    const mode = this.normalizeEveningMode(session?.mode ?? chat.meetupMode);
     const currentStep =
       phase === 'live'
-        ? this.normalizeCurrentStep(chat.currentStep, totalSteps)
+        ? this.normalizeCurrentStep(session?.currentStep ?? chat.currentStep, totalSteps)
         : null;
     const current =
       currentStep == null ? null : steps[Math.max(0, currentStep - 1)] ?? null;
+    const joinedParticipants = (session?.participants ?? []).filter(
+      (participant) => participant.status === 'joined',
+    );
 
     return {
       phase,
       currentStep,
       totalSteps,
       currentPlace: current?.venue ?? null,
-      endTime: current?.endTimeLabel ?? this.formatClock(chat.meetupEndsAt),
+      endTime: current?.endTimeLabel ?? this.formatClock(session?.endedAt ?? chat.meetupEndsAt),
       startsInLabel:
-        phase === 'soon' ? this.formatStartsIn(chat.meetupStartsAt) : null,
+        phase === 'soon' ? this.formatStartsIn(session?.startsAt ?? chat.meetupStartsAt) : null,
       routeId: route?.id ?? null,
+      sessionId: session?.id ?? null,
       mode,
+      privacy: session?.privacy ?? null,
+      joinedCount: session ? joinedParticipants.length : null,
+      maxGuests: session?.capacity ?? null,
+      hostUserId: session?.host?.id ?? null,
+      hostName: session?.host?.displayName ?? null,
+      area: session?.route.area ?? null,
     };
+  }
+
+  private phaseFromSession(value: string | null | undefined) {
+    if (value === 'live') {
+      return 'live';
+    }
+    if (value === 'done' || value === 'canceled') {
+      return 'done';
+    }
+    return 'soon';
   }
 
   private phaseFromEvent(

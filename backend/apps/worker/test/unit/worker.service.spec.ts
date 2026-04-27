@@ -49,6 +49,7 @@ describe('worker outbox recovery', () => {
     } as any);
     (service as any).runOnce = jest.fn();
     (service as any).runSystemNotificationScan = jest.fn();
+    (service as any).runEveningAutoAdvanceScan = jest.fn();
 
     service.start();
     await Promise.resolve();
@@ -299,6 +300,274 @@ describe('worker outbox recovery', () => {
 
     expect((service as any).processEvent).toHaveBeenCalledTimes(3);
     expect(maxActive).toBe(2);
+  });
+
+  it('auto-advances due Frendly Evening sessions and publishes chat update', async () => {
+    const route = {
+      id: 'r-cozy-circle',
+      steps: [
+        {
+          id: 's1-1',
+          timeLabel: '19:00',
+          endTimeLabel: '20:15',
+          venue: 'Brix Wine',
+        },
+        {
+          id: 's1-2',
+          timeLabel: '20:30',
+          endTimeLabel: '22:00',
+          venue: 'Standup Store',
+        },
+      ],
+    };
+    const session = {
+      id: 'evening-session-auto',
+      routeId: route.id,
+      chatId: 'evening-chat-auto',
+      hostUserId: 'host-user',
+      phase: 'live',
+      mode: 'auto',
+      currentStep: 1,
+      startedAt: new Date('2026-04-26T16:00:00.000Z'),
+      route,
+    };
+    const findMany = jest.fn().mockResolvedValue([session]);
+    const sessionUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const chatUpdate = jest.fn().mockResolvedValue({});
+    const stepUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const stepUpsert = jest.fn().mockResolvedValue({});
+    const outboxCreateMany = jest.fn().mockResolvedValue({ count: 1 });
+
+    const prismaService = {
+      client: {
+        eveningSession: {
+          findMany,
+        },
+        $transaction: jest.fn((callback) =>
+          callback({
+            eveningSession: { updateMany: sessionUpdateMany },
+            chat: { update: chatUpdate },
+            eveningSessionStepState: {
+              updateMany: stepUpdateMany,
+              upsert: stepUpsert,
+            },
+            message: {
+              findUnique: jest.fn().mockResolvedValue(null),
+              create: jest.fn().mockResolvedValue({
+                id: 'sys-auto-step',
+                createdAt: new Date('2026-04-26T17:30:00.000Z'),
+              }),
+            },
+            realtimeEvent: {
+              create: jest.fn().mockResolvedValue({ id: 77 }),
+            },
+            outboxEvent: {
+              createMany: outboxCreateMany,
+            },
+          }),
+        ),
+      },
+    } as any;
+
+    const service = new WorkerService(prismaService);
+    await service.runEveningAutoAdvanceScan(
+      new Date('2026-04-26T17:30:00.000Z'),
+    );
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          phase: 'live',
+          mode: 'auto',
+        }),
+      }),
+    );
+    expect(sessionUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'evening-session-auto',
+        phase: 'live',
+        mode: 'auto',
+        currentStep: 1,
+      },
+      data: {
+        currentStep: 2,
+      },
+    });
+    expect(chatUpdate).toHaveBeenCalledWith({
+      where: { id: 'evening-chat-auto' },
+      data: {
+        currentStep: 2,
+      },
+    });
+    expect(stepUpdateMany).toHaveBeenCalledWith({
+      where: {
+        sessionId: 'evening-session-auto',
+        stepId: {
+          in: ['s1-1'],
+        },
+      },
+      data: {
+        status: 'done',
+        finishedAt: new Date('2026-04-26T17:30:00.000Z'),
+      },
+    });
+    expect(stepUpsert).toHaveBeenCalledWith({
+      where: {
+        sessionId_stepId: {
+          sessionId: 'evening-session-auto',
+          stepId: 's1-2',
+        },
+      },
+      create: {
+        sessionId: 'evening-session-auto',
+        stepId: 's1-2',
+        status: 'current',
+        startedAt: new Date('2026-04-26T17:30:00.000Z'),
+      },
+      update: {
+        status: 'current',
+        startedAt: new Date('2026-04-26T17:30:00.000Z'),
+        finishedAt: null,
+        skippedAt: null,
+      },
+    });
+    expect(outboxCreateMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'realtime.publish',
+          payload: expect.objectContaining({
+            type: 'chat.updated',
+            payload: expect.objectContaining({
+              chatId: 'evening-chat-auto',
+              sessionId: 'evening-session-auto',
+              phase: 'live',
+              currentStep: 2,
+              currentPlace: 'Standup Store',
+            }),
+          }),
+        }),
+      ]),
+    });
+  });
+
+  it('auto-finishes expired Frendly Evening sessions', async () => {
+    const route = {
+      id: 'r-cozy-circle',
+      steps: [
+        {
+          id: 's1-1',
+          timeLabel: '19:00',
+          endTimeLabel: '20:15',
+          venue: 'Brix Wine',
+        },
+        {
+          id: 's1-2',
+          timeLabel: '20:30',
+          endTimeLabel: '22:00',
+          venue: 'Standup Store',
+        },
+      ],
+    };
+    const session = {
+      id: 'evening-session-auto',
+      routeId: route.id,
+      chatId: 'evening-chat-auto',
+      hostUserId: 'host-user',
+      phase: 'live',
+      mode: 'auto',
+      currentStep: 1,
+      startedAt: new Date('2026-04-26T16:00:00.000Z'),
+      route,
+    };
+    const sessionUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const chatUpdate = jest.fn().mockResolvedValue({});
+    const stepUpdateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const outboxCreateMany = jest.fn().mockResolvedValue({ count: 1 });
+
+    const prismaService = {
+      client: {
+        eveningSession: {
+          findMany: jest.fn().mockResolvedValue([session]),
+        },
+        $transaction: jest.fn((callback) =>
+          callback({
+            eveningSession: { updateMany: sessionUpdateMany },
+            chat: { update: chatUpdate },
+            eveningSessionStepState: {
+              updateMany: stepUpdateMany,
+            },
+            message: {
+              findUnique: jest.fn().mockResolvedValue(null),
+              create: jest.fn().mockResolvedValue({
+                id: 'sys-auto-finish',
+                createdAt: new Date('2026-04-26T19:00:00.000Z'),
+              }),
+            },
+            realtimeEvent: {
+              create: jest.fn().mockResolvedValue({ id: 78 }),
+            },
+            outboxEvent: {
+              createMany: outboxCreateMany,
+            },
+          }),
+        ),
+      },
+    } as any;
+
+    const service = new WorkerService(prismaService);
+    await service.runEveningAutoAdvanceScan(
+      new Date('2026-04-26T19:00:00.000Z'),
+    );
+
+    expect(sessionUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'evening-session-auto',
+        phase: 'live',
+        mode: 'auto',
+        currentStep: 1,
+      },
+      data: {
+        phase: 'done',
+        endedAt: new Date('2026-04-26T19:00:00.000Z'),
+        currentStep: null,
+      },
+    });
+    expect(chatUpdate).toHaveBeenCalledWith({
+      where: { id: 'evening-chat-auto' },
+      data: {
+        meetupPhase: 'done',
+        currentStep: null,
+        meetupEndsAt: new Date('2026-04-26T19:00:00.000Z'),
+      },
+    });
+    expect(stepUpdateMany).toHaveBeenCalledWith({
+      where: {
+        sessionId: 'evening-session-auto',
+        stepId: {
+          in: ['s1-1', 's1-2'],
+        },
+      },
+      data: {
+        status: 'done',
+        finishedAt: new Date('2026-04-26T19:00:00.000Z'),
+      },
+    });
+    expect(outboxCreateMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'realtime.publish',
+          payload: expect.objectContaining({
+            type: 'chat.updated',
+            payload: expect.objectContaining({
+              chatId: 'evening-chat-auto',
+              sessionId: 'evening-session-auto',
+              phase: 'done',
+              currentStep: null,
+            }),
+          }),
+        }),
+      ]),
+    });
   });
 
   it('publishes unread fanout events from outbox payload', async () => {

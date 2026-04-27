@@ -99,7 +99,63 @@ describe('ChatsService unit', () => {
       endTime: '22:00',
       startsInLabel: null,
       routeId: 'r-cozy-circle',
+      sessionId: null,
       mode: 'hybrid',
+      privacy: null,
+      joinedCount: null,
+      maxGuests: null,
+      hostUserId: null,
+      hostName: null,
+      area: null,
+    });
+  });
+
+  it('maps evening session discovery metadata for the chat list', () => {
+    const service = new ChatsService({ client: {} } as any);
+    const phase = (service as any).mapEveningChatPhase({
+      meetupPhase: 'soon',
+      meetupMode: 'manual',
+      currentStep: null,
+      eveningSession: {
+        id: 'session-1',
+        phase: 'scheduled',
+        privacy: 'request',
+        capacity: 10,
+        currentStep: null,
+        host: {
+          id: 'user-anya',
+          displayName: 'Аня К',
+        },
+        participants: [
+          { status: 'joined', user: { displayName: 'Аня К' } },
+          { status: 'joined', user: { displayName: 'Марк С' } },
+          { status: 'requested', user: { displayName: 'Ира' } },
+        ],
+        route: {
+          id: 'r-cozy-circle',
+          area: 'Покровка',
+          steps: [
+            { sortOrder: 0, venue: 'Brix Wine', endTimeLabel: '20:15' },
+            { sortOrder: 1, venue: 'Standup Store', endTimeLabel: '22:00' },
+          ],
+        },
+      },
+    });
+
+    expect(phase).toMatchObject({
+      phase: 'soon',
+      currentStep: null,
+      totalSteps: 2,
+      currentPlace: null,
+      routeId: 'r-cozy-circle',
+      sessionId: 'session-1',
+      mode: 'manual',
+      privacy: 'request',
+      joinedCount: 2,
+      maxGuests: 10,
+      hostUserId: 'user-anya',
+      hostName: 'Аня К',
+      area: 'Покровка',
     });
   });
 
