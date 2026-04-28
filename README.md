@@ -36,11 +36,10 @@ open Runner.xcworkspace
 - API: `http://77.233.221.119/`
 - Health: `http://77.233.221.119/health`
 - Chat WebSocket: `ws://77.233.221.119/ws`
-- S3 public endpoint: `https://global.s3.cloud.ru/frendly`
+- S3 public endpoint: `https://s3.twcstorage.ru/frendly-backet`
 
-В production файлы лежат в Cloud.ru Object Storage.
-Для Cloud.ru S3 ключ доступа задается в формате `<tenant_id>:<key_id>`.
-Локальный `compose.yaml` тоже использует Cloud.ru Object Storage.
+В production файлы лежат в Timeweb Cloud Object Storage.
+Локальный `compose.yaml` тоже использует S3-compatible Object Storage.
 Перед локальным запуском передай `S3_ACCESS_KEY` и `S3_SECRET_KEY` через shell или `--env-file`.
 
 ## Первый запуск на сервере
@@ -63,12 +62,12 @@ docker compose --env-file .env.production.local up --build --remove-orphans
 - `S3_ACCESS_KEY`
 - `S3_SECRET_KEY`
 
-Остальные S3 значения по умолчанию смотрят на Cloud.ru:
+Остальные S3 значения по умолчанию смотрят на Timeweb Cloud:
 
-- `S3_ENDPOINT=https://s3.cloud.ru`
-- `S3_REGION=ru-central-1`
-- `S3_BUCKET=frendly`
-- `S3_PUBLIC_ENDPOINT=https://global.s3.cloud.ru`
+- `S3_ENDPOINT=https://s3.twcstorage.ru`
+- `S3_REGION=ru-1`
+- `S3_BUCKET=frendly-backet`
+- `S3_PUBLIC_ENDPOINT=https://s3.twcstorage.ru`
 
 ## GitHub Actions secrets
 
