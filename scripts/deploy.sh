@@ -8,6 +8,8 @@ BRANCH="${BRANCH:-main}"
 TARGET_SHA="${TARGET_SHA:-}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env.production}"
 COMPOSE_FILE="${COMPOSE_FILE:-$APP_DIR/compose.prod.yml}"
+LOCK_FILE="${LOCK_FILE:-/tmp/frendly-deploy.lock}"
+LOCK_TIMEOUT_SECONDS="${LOCK_TIMEOUT_SECONDS:-1800}"
 
 mkdir -p "$APP_DIR"
 
@@ -41,10 +43,21 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
+exec 9>"$LOCK_FILE"
+echo "Waiting for deploy lock: $LOCK_FILE"
+if ! flock -w "$LOCK_TIMEOUT_SECONDS" 9; then
+  echo "Could not acquire deploy lock after ${LOCK_TIMEOUT_SECONDS}s" >&2
+  exit 1
+fi
+echo "Deploy lock acquired"
+
 echo "Disk usage before Docker cleanup:"
 df -h / /tmp || true
 docker system df || true
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
+docker ps -aq \
+  --filter 'name=^[0-9a-f]+_frendly-backend-(api|chat|worker|nginx|migrate|pgbouncer|postgres|redis)-1$' \
+  | xargs -r docker rm -f
 docker container prune -f || true
 docker image prune -f || true
 docker builder prune -af || true
