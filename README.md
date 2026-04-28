@@ -33,9 +33,9 @@ open Runner.xcworkspace
 ## Публичные точки доступа
 
 После деплоя будут такие адреса:
-- API: `http://82.202.157.228/`
-- Health: `http://82.202.157.228/health`
-- Chat WebSocket: `ws://82.202.157.228/ws`
+- API: `http://77.233.221.119/`
+- Health: `http://77.233.221.119/health`
+- Chat WebSocket: `ws://77.233.221.119/ws`
 - S3 public endpoint: `https://global.s3.cloud.ru/frendly`
 
 В production файлы лежат в Cloud.ru Object Storage.
@@ -72,8 +72,7 @@ docker compose --env-file .env.production.local up --build --remove-orphans
 
 ## GitHub Actions secrets
 
-Для автодеплоя нужны секреты репозитория:
-- `DEPLOY_USER`
+Для автодеплоя нужен секрет репозитория:
 - `DEPLOY_SSH_KEY`
 
-Хост `82.202.157.228`, порт `22` и путь `/opt/frendly` уже зашиты в workflow.
+Хост `77.233.221.119`, пользователь `root`, порт `22` и путь `/opt/frendly` уже зашиты в workflow.

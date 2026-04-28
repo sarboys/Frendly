@@ -52,7 +52,7 @@ echo "Disk usage after Docker cleanup:"
 df -h / /tmp || true
 docker system df || true
 
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans postgres redis
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans postgres redis pgbouncer
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up --build migrate
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --no-deps api chat worker

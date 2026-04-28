@@ -20,7 +20,7 @@
 - [x] Убрать предварительную сборку всех message widgets в `ChatThreadScreen`.
 - [x] Научить mobile читать `downloadUrlPath` и сразу брать signed URL без разбора `url`.
 - [x] Научить mobile догружать следующую страницу `sync.snapshot`, если backend вернул `hasMore`.
-- [x] Проверить реальные p50, p95, p99 на VPS `vps1` с Postgres и Redis.
+- [x] Проверить реальные p50, p95, p99 на production VPS с Postgres и Redis.
 
 ## Проверки
 
@@ -44,7 +44,7 @@ pnpm exec node scripts/perf-hotpaths.mjs fanout --ws ws://127.0.0.1:3001 --sende
 
 ## VPS замер 2026-04-24
 
-Сервер: `vps1`, замер внутри Docker network через `nginx`.
+Сервер: старый production VPS, замер внутри Docker network через `nginx`.
 
 ```text
 dating-discover, 100 requests, concurrency 10
