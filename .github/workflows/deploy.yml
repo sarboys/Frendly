@@ -45,7 +45,7 @@ jobs:
               docker compose --env-file "$ENV_FILE" -f "${APP_DIR}/compose.prod.yml" rm -sf migrate || true
             fi
             docker container prune -f || true
-            docker image prune -af || true
+            docker image prune -f || true
             docker builder prune -af || true
             rm -f /tmp/.tmp-compose-build-metadataFile-* || true
             echo "Disk usage after deploy pre-clean:"

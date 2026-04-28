@@ -46,7 +46,7 @@ df -h / /tmp || true
 docker system df || true
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
 docker container prune -f || true
-docker image prune -af || true
+docker image prune -f || true
 docker builder prune -af || true
 echo "Disk usage after Docker cleanup:"
 df -h / /tmp || true
