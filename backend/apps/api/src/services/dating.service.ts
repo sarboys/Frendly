@@ -15,6 +15,91 @@ import { SubscriptionService } from './subscription.service';
 const _positiveDatingActions = new Set<DatingActionKind>(['like', 'super_like']);
 type DatingGender = 'male' | 'female';
 const DATING_PROFILE_PHOTO_LIMIT = 6;
+const DATING_PROFILE_PHOTO_MEDIA_SELECT = {
+  id: true,
+  kind: true,
+  mimeType: true,
+  byteSize: true,
+  durationMs: true,
+  publicUrl: true,
+} satisfies Prisma.MediaAssetSelect;
+const DATING_PROFILE_PHOTO_SELECT = {
+  id: true,
+  sortOrder: true,
+  mediaAsset: {
+    select: DATING_PROFILE_PHOTO_MEDIA_SELECT,
+  },
+} satisfies Prisma.ProfilePhotoSelect;
+const DATING_PROFILE_SELECT = {
+  age: true,
+  area: true,
+  bio: true,
+  vibe: true,
+  avatarUrl: true,
+  photos: {
+    select: DATING_PROFILE_PHOTO_SELECT,
+    orderBy: { sortOrder: 'asc' },
+    take: DATING_PROFILE_PHOTO_LIMIT,
+  },
+} satisfies Prisma.ProfileSelect;
+const DATING_ONBOARDING_INTERESTS_SELECT = {
+  interests: true,
+} satisfies Prisma.OnboardingPreferencesSelect;
+const DATING_SELF_SELECT = {
+  displayName: true,
+  profile: {
+    select: {
+      gender: true,
+    },
+  },
+  onboarding: {
+    select: {
+      gender: true,
+      interests: true,
+    },
+  },
+} satisfies Prisma.UserSelect;
+const DATING_USER_CARD_SELECT = {
+  id: true,
+  displayName: true,
+  verified: true,
+  online: true,
+  profile: {
+    select: DATING_PROFILE_SELECT,
+  },
+  onboarding: {
+    select: DATING_ONBOARDING_INTERESTS_SELECT,
+  },
+} satisfies Prisma.UserSelect;
+
+type DatingProfileUser = {
+  id: string;
+  displayName: string;
+  verified: boolean;
+  online: boolean;
+  profile: {
+    age: number | null;
+    area: string | null;
+    bio: string | null;
+    vibe: string | null;
+    avatarUrl: string | null;
+    photos: Array<{
+      id: string;
+      sortOrder: number;
+      mediaAsset: {
+        id: string;
+        kind: string;
+        mimeType: string;
+        byteSize: number;
+        durationMs: number | null;
+        publicUrl: string | null;
+      };
+    }>;
+  } | null;
+  onboarding: {
+    interests: unknown;
+  } | null;
+};
 
 const _datingPromptByUserId: Record<string, string> = {
   'user-anya': 'Идеальный первый date, выставка плюс долгий ужин без спешки.',
@@ -51,7 +136,7 @@ export class DatingService {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
-        include: { onboarding: true, profile: { select: { gender: true } } },
+        select: DATING_SELF_SELECT,
       }),
       this.getBlockedUserIds(userId),
     ]);
@@ -86,19 +171,7 @@ export class DatingService {
           },
         },
       },
-      include: {
-        profile: {
-          include: {
-            photos: {
-              include: { mediaAsset: true },
-              orderBy: { sortOrder: 'asc' },
-              take: DATING_PROFILE_PHOTO_LIMIT,
-            },
-          },
-        },
-        onboarding: true,
-        settings: true,
-      },
+      select: DATING_USER_CARD_SELECT,
       orderBy: [{ id: 'asc' }],
       take: take + 1,
     });
@@ -145,7 +218,7 @@ export class DatingService {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
-        include: { onboarding: true, profile: { select: { gender: true } } },
+        select: DATING_SELF_SELECT,
       }),
       this.getBlockedUserIds(userId),
     ]);
@@ -177,21 +250,10 @@ export class DatingService {
           },
         },
       },
-      include: {
+      select: {
+        actorUserId: true,
         actorUser: {
-          include: {
-            profile: {
-              include: {
-                photos: {
-                  include: { mediaAsset: true },
-                  orderBy: { sortOrder: 'asc' },
-                  take: DATING_PROFILE_PHOTO_LIMIT,
-                },
-              },
-            },
-            onboarding: true,
-            settings: true,
-          },
+          select: DATING_USER_CARD_SELECT,
         },
       },
       orderBy: [{ actorUserId: 'asc' }],
@@ -232,43 +294,26 @@ export class DatingService {
 
     const self = await this.prismaService.client.user.findUnique({
       where: { id: userId },
-      include: { onboarding: true, profile: { select: { gender: true } } },
+      select: DATING_SELF_SELECT,
     });
     const targetGender = this.oppositeGenderForSelf(self);
-    const targetUser = await this.prismaService.client.user.findFirst({
-      where: {
-        id: targetUserId,
-        ...this.oppositeGenderWhere(targetGender),
-        settings: {
-          is: {
-            discoverable: true,
-          },
-        },
-        subscriptions: {
-          some: this.premiumSubscriptionWhere(),
-        },
-      },
-      include: {
-        profile: {
-          include: {
-            photos: {
-              include: { mediaAsset: true },
-              orderBy: { sortOrder: 'asc' },
-              take: DATING_PROFILE_PHOTO_LIMIT,
+    const [targetUser, previousAction] = await Promise.all([
+      this.prismaService.client.user.findFirst({
+        where: {
+          id: targetUserId,
+          ...this.oppositeGenderWhere(targetGender),
+          settings: {
+            is: {
+              discoverable: true,
             },
           },
+          subscriptions: {
+            some: this.premiumSubscriptionWhere(),
+          },
         },
-        onboarding: true,
-        settings: true,
-      },
-    });
-
-    if (!targetUser) {
-      throw new ApiError(404, 'dating_user_not_found', 'Dating user not found');
-    }
-
-    const previousAction =
-      await this.prismaService.client.datingAction.findUnique({
+        select: DATING_USER_CARD_SELECT,
+      }),
+      this.prismaService.client.datingAction.findUnique({
         where: {
           actorUserId_targetUserId: {
             actorUserId: userId,
@@ -276,7 +321,12 @@ export class DatingService {
           },
         },
         select: { action: true },
-      });
+      }),
+    ]);
+
+    if (!targetUser) {
+      throw new ApiError(404, 'dating_user_not_found', 'Dating user not found');
+    }
 
     await this.prismaService.client.datingAction.upsert({
       where: {
@@ -378,30 +428,7 @@ export class DatingService {
   }
 
   private mapDatingProfile(
-    user: User & {
-      profile: {
-        age: number | null;
-        area: string | null;
-        bio: string | null;
-        vibe: string | null;
-        avatarUrl: string | null;
-        photos: Array<{
-          id: string;
-          sortOrder: number;
-          mediaAsset: {
-            id: string;
-            kind: string;
-            mimeType: string;
-            byteSize: number;
-            durationMs: number | null;
-            publicUrl: string | null;
-          };
-        }>;
-      } | null;
-      onboarding: {
-        interests: unknown;
-      } | null;
-    },
+    user: DatingProfileUser,
     selfInterests: string[],
     options: { likedYou: boolean },
   ) {

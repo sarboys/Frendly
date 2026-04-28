@@ -23,6 +23,17 @@ const MAX_COMMUNITY_MEDIA_LIMIT = 60;
 const MEMBER_NAME_LIMIT = 5;
 const CHAT_PREVIEW_LIMIT = 2;
 
+type CommunityCursor = {
+  id: string;
+  createdAt: Date;
+};
+
+type CommunityMediaCursor = {
+  id: string;
+  communityId: string;
+  sortOrder: number;
+};
+
 @Injectable()
 export class CommunitiesService {
   constructor(
@@ -81,7 +92,7 @@ export class CommunitiesService {
       ),
       nextCursor:
         hasMore && page.length > 0
-          ? encodeCursor({ value: page[page.length - 1]!.id })
+          ? this.encodeCommunityCursor(page[page.length - 1]!)
           : null,
     };
   }
@@ -155,7 +166,7 @@ export class CommunitiesService {
       items: page.map((item) => this.mapMediaItem(item)),
       nextCursor:
         hasMore && page.length > 0
-          ? encodeCursor({ value: page[page.length - 1]!.id })
+          ? this.encodeMediaCursor(page[page.length - 1]!)
           : null,
     };
   }
@@ -423,7 +434,13 @@ export class CommunitiesService {
       process.env.CHAT_UNREAD_COUNTER_READS === 'true' &&
       blockedUserIds.size === 0
         ? this.loadUnreadCounters(userId, chatIds)
-        : this.countUnreadMessages(userId, chatIds);
+        : this.countUnreadMessages(
+            userId,
+            chatIds,
+            process.env.CHAT_UNREAD_COUNTER_READS === 'true'
+              ? blockedUserIds
+              : undefined,
+          );
 
     const [onlineGroups, unreadByChatId, memberships] = await Promise.all([
       this.prismaService.client.communityMember.groupBy({
@@ -486,7 +503,30 @@ export class CommunitiesService {
     );
   }
 
-  private async countUnreadMessages(userId: string, chatIds: string[]) {
+  private async countUnreadMessages(
+    userId: string,
+    chatIds: string[],
+    blockedUserIds?: Set<string>,
+  ) {
+    const blockedSenderFilter =
+      blockedUserIds == null
+        ? Prisma.sql`
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "UserBlock" ub
+              WHERE (
+                ub."userId" = cm."userId"
+                AND ub."blockedUserId" = m."senderId"
+              )
+              OR (
+                ub."userId" = m."senderId"
+                AND ub."blockedUserId" = cm."userId"
+              )
+            )
+          `
+        : blockedUserIds.size === 0
+          ? Prisma.empty
+          : Prisma.sql`AND m."senderId" NOT IN (${Prisma.join([...blockedUserIds])})`;
     const rows = await this.prismaService.client.$queryRaw<Array<{
       chat_id: string;
       unread_count: bigint | number;
@@ -499,18 +539,7 @@ export class CommunitiesService {
       LEFT JOIN "Message" m
         ON m."chatId" = cm."chatId"
         AND m."senderId" <> cm."userId"
-        AND NOT EXISTS (
-          SELECT 1
-          FROM "UserBlock" ub
-          WHERE (
-            ub."userId" = cm."userId"
-            AND ub."blockedUserId" = m."senderId"
-          )
-          OR (
-            ub."userId" = m."senderId"
-            AND ub."blockedUserId" = cm."userId"
-          )
-        )
+        ${blockedSenderFilter}
         AND (
           COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
           OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
@@ -770,10 +799,19 @@ export class CommunitiesService {
     };
   }
 
-  private async resolveCursor(cursor?: string) {
-    const cursorId = this.decodeCursor(cursor);
+  private async resolveCursor(cursor?: string): Promise<CommunityCursor | null> {
+    const decoded = this.decodeCursorPayload(cursor);
+    const cursorId = decoded?.value ?? null;
     if (cursorId == null) {
       return null;
+    }
+
+    const createdAt = this.parseCursorDate(decoded?.createdAt);
+    if (createdAt) {
+      return {
+        id: cursorId,
+        createdAt,
+      };
     }
 
     return this.prismaService.client.community.findUnique({
@@ -785,10 +823,34 @@ export class CommunitiesService {
     });
   }
 
-  private async resolveMediaCursor(communityId: string, cursor?: string) {
-    const cursorId = this.decodeCursor(cursor);
+  private encodeCommunityCursor(community: CommunityCursor) {
+    return encodeCursor({
+      value: community.id,
+      createdAt: community.createdAt.toISOString(),
+    });
+  }
+
+  private async resolveMediaCursor(
+    communityId: string,
+    cursor?: string,
+  ): Promise<CommunityMediaCursor | null> {
+    const decoded = this.decodeCursorPayload(cursor);
+    const cursorId = decoded?.value ?? null;
     if (cursorId == null) {
       return null;
+    }
+
+    const cursorCommunityId =
+      typeof decoded?.communityId === 'string' ? decoded.communityId : null;
+    const sortOrder = this.parseCursorNumber(decoded?.sortOrder);
+    if (cursorCommunityId != null && sortOrder != null) {
+      return cursorCommunityId === communityId
+        ? {
+            id: cursorId,
+            communityId: cursorCommunityId,
+            sortOrder,
+          }
+        : null;
     }
 
     const media = await this.prismaService.client.communityMediaItem.findUnique(
@@ -807,6 +869,14 @@ export class CommunitiesService {
     }
 
     return media;
+  }
+
+  private encodeMediaCursor(media: CommunityMediaCursor) {
+    return encodeCursor({
+      value: media.id,
+      communityId: media.communityId,
+      sortOrder: media.sortOrder,
+    });
   }
 
   private async nextCommunityNewsSortOrder(
@@ -832,6 +902,40 @@ export class CommunitiesService {
     } catch {
       return cursor;
     }
+  }
+
+  private decodeCursorPayload(cursor?: string) {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      const decoded = decodeCursor(cursor);
+      if (decoded?.value) {
+        return decoded;
+      }
+    } catch {
+      return { value: cursor };
+    }
+
+    return null;
+  }
+
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+
+  private parseCursorNumber(value: unknown) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return null;
+    }
+
+    return value;
   }
 
   private normalizeIdempotencyKey(raw: string | undefined) {

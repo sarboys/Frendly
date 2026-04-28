@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 
 export interface CursorInput {
   value: string;
+  [key: string]: unknown;
 }
 
 export function encodeCursor(input: CursorInput): string {

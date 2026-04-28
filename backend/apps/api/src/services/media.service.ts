@@ -171,73 +171,81 @@ export class MediaService {
     }
 
     if (asset.chatId != null) {
-      const membership = await this.prismaService.client.chatMember.findUnique({
-        where: {
-          chatId_userId: {
-            chatId: asset.chatId,
-            userId,
+      const [membership, blockedUserIds] = await Promise.all([
+        this.prismaService.client.chatMember.findUnique({
+          where: {
+            chatId_userId: {
+              chatId: asset.chatId,
+              userId,
+            },
           },
-        },
-        select: {
-          chat: {
-            select: {
-              kind: true,
-              event: {
-                select: {
-                  hostId: true,
+          select: {
+            chat: {
+              select: {
+                kind: true,
+                event: {
+                  select: {
+                    hostId: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
+        }),
+        getBlockedUserIds(this.prismaService.client, userId),
+      ]);
 
       if (membership) {
-        await this.assertChatMediaBlockAccess(
+        this.assertChatMediaBlockAccess(
           userId,
           asset.ownerId,
           membership.chat,
+          blockedUserIds,
         );
         return { visibility: 'private' };
       }
     }
 
     if (asset.kind === 'story_media') {
-      const story = await this.prismaService.client.eventStory.findFirst({
-        where: { mediaAssetId: asset.id },
-        select: {
-          eventId: true,
-          event: {
-            select: {
-              hostId: true,
-            },
-          },
-        },
-      });
-
-      if (story) {
-        const participant =
-          await this.prismaService.client.eventParticipant.findUnique({
-            where: {
-              eventId_userId: {
-                eventId: story.eventId,
-                userId,
+      const [story, blockedUserIds] = await Promise.all([
+        this.prismaService.client.eventStory.findFirst({
+          where: {
+            mediaAssetId: asset.id,
+            event: {
+              participants: {
+                some: {
+                  userId,
+                },
               },
             },
-            select: { id: true },
-          });
+          },
+          select: {
+            eventId: true,
+            event: {
+              select: {
+                hostId: true,
+              },
+            },
+          },
+        }),
+        getBlockedUserIds(this.prismaService.client, userId),
+      ]);
 
-        if (participant) {
-          await this.assertStoryMediaBlockAccess(userId, asset.ownerId, story);
-          return { visibility: 'private' };
-        }
+      if (story) {
+        this.assertStoryMediaBlockAccess(
+          userId,
+          asset.ownerId,
+          story,
+          blockedUserIds,
+        );
+        return { visibility: 'private' };
       }
     }
 
     throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
   }
 
-  private async assertChatMediaBlockAccess(
+  private assertChatMediaBlockAccess(
     userId: string,
     ownerId: string,
     chat: {
@@ -246,12 +254,8 @@ export class MediaService {
         hostId: string;
       } | null;
     },
+    blockedUserIds: Set<string>,
   ) {
-    const blockedUserIds = await getBlockedUserIds(
-      this.prismaService.client,
-      userId,
-    );
-
     if (blockedUserIds.has(ownerId)) {
       throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
     }
@@ -266,7 +270,7 @@ export class MediaService {
     }
   }
 
-  private async assertStoryMediaBlockAccess(
+  private assertStoryMediaBlockAccess(
     userId: string,
     ownerId: string,
     story: {
@@ -274,12 +278,8 @@ export class MediaService {
         hostId: string;
       };
     },
+    blockedUserIds: Set<string>,
   ) {
-    const blockedUserIds = await getBlockedUserIds(
-      this.prismaService.client,
-      userId,
-    );
-
     if (blockedUserIds.has(ownerId)) {
       throw new ApiError(403, 'media_forbidden', 'Media asset is forbidden');
     }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { SafetyService } from '../services/safety.service';
 
@@ -30,6 +30,14 @@ export class SafetyController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.safetyService.createTrustedContact(currentUser.userId, body);
+  }
+
+  @Delete('safety/trusted-contacts/:contactId')
+  deleteTrustedContact(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('contactId') contactId: string,
+  ) {
+    return this.safetyService.deleteTrustedContact(currentUser.userId, contactId);
   }
 
   @Get('reports/me')

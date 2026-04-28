@@ -7,12 +7,24 @@ export class OnboardingController {
   constructor(private readonly onboardingService: OnboardingService) {}
 
   @Get('me')
-  getOnboarding(@CurrentUser() currentUser: { userId: string }) {
-    return this.onboardingService.getOnboarding(currentUser.userId);
+  getOnboarding(
+    @CurrentUser() currentUser: { userId: string; sessionId?: string },
+  ) {
+    return this.onboardingService.getOnboarding(
+      currentUser.userId,
+      currentUser.sessionId,
+    );
   }
 
   @Put('me')
-  updateOnboarding(@CurrentUser() currentUser: { userId: string }, @Body() body: Record<string, unknown>) {
-    return this.onboardingService.updateOnboarding(currentUser.userId, body);
+  updateOnboarding(
+    @CurrentUser() currentUser: { userId: string; sessionId?: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.onboardingService.updateOnboarding(
+      currentUser.userId,
+      currentUser.sessionId,
+      body,
+    );
   }
 }

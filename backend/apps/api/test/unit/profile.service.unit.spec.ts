@@ -1,6 +1,81 @@
 import { ProfileService } from '../../src/services/profile.service';
 
 describe('ProfileService', () => {
+  it('loads only fields needed for the profile response', async () => {
+    const userFindUnique = jest.fn().mockResolvedValue({
+      id: 'user-me',
+      displayName: 'Никита',
+      verified: false,
+      online: true,
+      profile: {
+        age: 29,
+        birthDate: null,
+        gender: 'male',
+        city: 'Москва',
+        area: 'Патрики',
+        bio: 'Люблю прогулки',
+        vibe: 'Спокойно',
+        rating: 0,
+        meetupCount: 0,
+        avatarUrl: null,
+        photos: [],
+      },
+    });
+    const service = new ProfileService({
+      client: {
+        user: {
+          findUnique: userFindUnique,
+        },
+      },
+    } as any);
+
+    await expect(service.getProfile('user-me')).resolves.toMatchObject({
+      id: 'user-me',
+      displayName: 'Никита',
+      photos: [],
+    });
+    expect(userFindUnique).toHaveBeenCalledWith({
+      where: { id: 'user-me' },
+      select: {
+        id: true,
+        displayName: true,
+        verified: true,
+        online: true,
+        profile: {
+          select: {
+            age: true,
+            birthDate: true,
+            gender: true,
+            city: true,
+            area: true,
+            bio: true,
+            vibe: true,
+            rating: true,
+            meetupCount: true,
+            avatarUrl: true,
+            photos: {
+              select: {
+                id: true,
+                sortOrder: true,
+                mediaAsset: {
+                  select: {
+                    id: true,
+                    kind: true,
+                    mimeType: true,
+                    byteSize: true,
+                    durationMs: true,
+                    publicUrl: true,
+                  },
+                },
+              },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
+      },
+    });
+  });
+
   it('does not clear profile fields that are absent from patch payload', async () => {
     const userUpdate = jest.fn().mockResolvedValue({});
     const profileUpdate = jest.fn().mockResolvedValue({});
@@ -170,6 +245,34 @@ describe('ProfileService', () => {
       },
     });
     expect(client.$transaction).not.toHaveBeenCalled();
+    expect(client.mediaAsset.findUnique).toHaveBeenCalledWith({
+      where: { objectKey: 'avatars/user-me/photo.png' },
+      select: {
+        id: true,
+        ownerId: true,
+        kind: true,
+        status: true,
+        publicUrl: true,
+      },
+    });
+    expect(client.profilePhoto.findUnique).toHaveBeenCalledWith({
+      where: { mediaAssetId: 'asset-existing' },
+      select: {
+        profileUserId: true,
+        id: true,
+        sortOrder: true,
+        mediaAsset: {
+          select: {
+            id: true,
+            kind: true,
+            mimeType: true,
+            byteSize: true,
+            durationMs: true,
+            publicUrl: true,
+          },
+        },
+      },
+    });
   });
 
   it('rejects empty avatar direct completes', async () => {
@@ -384,6 +487,192 @@ describe('ProfileService', () => {
     expect(lockProfile.mock.invocationCallOrder[0]!).toBeLessThan(
       profilePhotoUpdateMany.mock.invocationCallOrder[0]!,
     );
+  });
+
+  it('creates avatar file upload records with only response fields', async () => {
+    const asset = {
+      id: 'asset-new',
+      kind: 'avatar',
+      status: 'ready',
+      mimeType: 'image/png',
+      byteSize: 4,
+      durationMs: null,
+      publicUrl: 'data:image/png;base64,dGVzdA==',
+    };
+    const mediaAssetCreate = jest.fn().mockResolvedValue(asset);
+    const profilePhotoCreate = jest.fn().mockResolvedValue({
+      id: 'photo-new',
+      sortOrder: 0,
+      mediaAsset: asset,
+    });
+    const client = {
+      $transaction: jest.fn((callback: any) =>
+        callback({
+          $executeRaw: jest.fn().mockResolvedValue(1),
+          profilePhoto: {
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            create: profilePhotoCreate,
+          },
+          mediaAsset: {
+            create: mediaAssetCreate,
+          },
+          profile: {
+            update: jest.fn().mockResolvedValue({}),
+          },
+        }),
+      ),
+    };
+    const service = new ProfileService({ client } as any);
+
+    await expect(
+      service.uploadAvatarFile('user-me', {
+        mimetype: 'image/png',
+        size: 4,
+        originalname: 'photo.png',
+        buffer: Buffer.from('test'),
+      } as Express.Multer.File),
+    ).resolves.toMatchObject({
+      assetId: 'asset-new',
+      status: 'ready',
+      media: {
+        id: 'asset-new',
+      },
+      photo: {
+        id: 'photo-new',
+      },
+    });
+    expect(mediaAssetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          id: true,
+          kind: true,
+          status: true,
+          mimeType: true,
+          byteSize: true,
+          durationMs: true,
+          publicUrl: true,
+        },
+      }),
+    );
+    expect(profilePhotoCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          id: true,
+          sortOrder: true,
+          mediaAsset: {
+            select: {
+              id: true,
+              kind: true,
+              mimeType: true,
+              byteSize: true,
+              durationMs: true,
+              publicUrl: true,
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  it('creates profile photo file upload records with only response fields', async () => {
+    const mediaAssetCreate = jest.fn().mockResolvedValue({
+      id: 'asset-new',
+      status: 'ready',
+      publicUrl: 'data:image/png;base64,dGVzdA==',
+    });
+    const profilePhotoCreate = jest.fn().mockResolvedValue({
+      id: 'photo-new',
+      sortOrder: 2,
+      mediaAsset: {
+        id: 'asset-new',
+        kind: 'avatar',
+        mimeType: 'image/png',
+        byteSize: 4,
+        durationMs: null,
+        publicUrl: 'data:image/png;base64,dGVzdA==',
+      },
+    });
+    const profilePhotoFindFirst = jest
+      .fn()
+      .mockResolvedValueOnce({ sortOrder: 1 })
+      .mockResolvedValueOnce({
+        mediaAssetId: 'asset-new',
+        mediaAsset: {
+          publicUrl: 'data:image/png;base64,dGVzdA==',
+        },
+      });
+    const client = {
+      $transaction: jest.fn((callback: any) =>
+        callback({
+          $executeRaw: jest.fn().mockResolvedValue(1),
+          mediaAsset: {
+            create: mediaAssetCreate,
+          },
+          profilePhoto: {
+            findFirst: profilePhotoFindFirst,
+            create: profilePhotoCreate,
+          },
+          profile: {
+            update: jest.fn().mockResolvedValue({}),
+          },
+        }),
+      ),
+    };
+    const service = new ProfileService({ client } as any);
+
+    await expect(
+      service.uploadProfilePhotoFile('user-me', {
+        mimetype: 'image/png',
+        size: 4,
+        originalname: 'photo.png',
+        buffer: Buffer.from('test'),
+      } as Express.Multer.File),
+    ).resolves.toMatchObject({
+      assetId: 'asset-new',
+      status: 'ready',
+      photo: {
+        id: 'photo-new',
+      },
+    });
+    expect(mediaAssetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          id: true,
+          status: true,
+          publicUrl: true,
+        },
+      }),
+    );
+    expect(profilePhotoCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          id: true,
+          sortOrder: true,
+          mediaAsset: {
+            select: {
+              id: true,
+              kind: true,
+              mimeType: true,
+              byteSize: true,
+              durationMs: true,
+              publicUrl: true,
+            },
+          },
+        },
+      }),
+    );
+    expect(profilePhotoFindFirst).toHaveBeenLastCalledWith({
+      where: { profileUserId: 'user-me' },
+      select: {
+        mediaAssetId: true,
+        mediaAsset: {
+          select: {
+            publicUrl: true,
+          },
+        },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
   });
 
   it('rejects duplicate ids when reordering profile photos', async () => {

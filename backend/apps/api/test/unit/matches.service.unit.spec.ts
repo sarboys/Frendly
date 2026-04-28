@@ -58,6 +58,9 @@ describe('MatchesService unit', () => {
         settings: { discoverable: true },
       },
     ]);
+    const currentUserFindUnique = jest.fn().mockResolvedValue({
+      onboarding: { interests: ['coffee'] },
+    });
     const service = new MatchesService({
       client: {
         eventFavorite: {
@@ -65,9 +68,7 @@ describe('MatchesService unit', () => {
         },
         user: {
           findMany: userFindMany,
-          findUnique: jest.fn().mockResolvedValue({
-            onboarding: { interests: ['coffee'] },
-          }),
+          findUnique: currentUserFindUnique,
         },
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
@@ -79,15 +80,70 @@ describe('MatchesService unit', () => {
 
     expect(userFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
+          id: true,
+          displayName: true,
           profile: expect.objectContaining({
-            include: expect.objectContaining({
+            select: expect.objectContaining({
+              avatarUrl: true,
+              area: true,
+              vibe: true,
               photos: expect.objectContaining({
                 take: 1,
+                select: expect.objectContaining({
+                  id: true,
+                  sortOrder: true,
+                  mediaAsset: expect.objectContaining({
+                    select: expect.objectContaining({
+                      id: true,
+                      kind: true,
+                      mimeType: true,
+                      byteSize: true,
+                      durationMs: true,
+                      publicUrl: true,
+                    }),
+                  }),
+                }),
               }),
             }),
           }),
+          onboarding: {
+            select: {
+              interests: true,
+            },
+          },
         }),
+      }),
+    );
+    expect(currentUserFindUnique).toHaveBeenCalledWith({
+      where: { id: 'user-me' },
+      select: {
+        onboarding: {
+          select: {
+            interests: true,
+          },
+        },
+      },
+    });
+    expect(favoriteFindMany.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        select: {
+          targetUserId: true,
+          eventId: true,
+          event: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      }),
+    );
+    expect(favoriteFindMany.mock.calls[2][0]).toEqual(
+      expect.objectContaining({
+        select: {
+          sourceUserId: true,
+          eventId: true,
+        },
       }),
     );
     expect(result.items[0]!.avatarUrl).toBe('https://cdn.test/photo-1.jpg');

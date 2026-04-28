@@ -78,7 +78,13 @@ export class MatchesService {
       const targetUserIds = targetPage.map((item) => item.targetUserId);
       currentUserPromise ??= this.prismaService.client.user.findUnique({
         where: { id: userId },
-        include: { onboarding: true },
+        select: {
+          onboarding: {
+            select: {
+              interests: true,
+            },
+          },
+        },
       });
 
       const [sourceFavorites, reverseFavorites, users, currentUser] = await Promise.all([
@@ -89,8 +95,14 @@ export class MatchesService {
               in: targetUserIds,
             },
           },
-          include: {
-            event: true,
+          select: {
+            targetUserId: true,
+            eventId: true,
+            event: {
+              select: {
+                title: true,
+              },
+            },
           },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         }),
@@ -98,6 +110,10 @@ export class MatchesService {
           where: {
             sourceUserId: { in: targetUserIds },
             targetUserId: userId,
+          },
+          select: {
+            sourceUserId: true,
+            eventId: true,
           },
         }),
         this.prismaService.client.user.findMany({
@@ -109,18 +125,39 @@ export class MatchesService {
               },
             },
           },
-          include: {
+          select: {
+            id: true,
+            displayName: true,
             profile: {
-              include: {
+              select: {
+                avatarUrl: true,
+                area: true,
+                vibe: true,
                 photos: {
-                  include: { mediaAsset: true },
+                  select: {
+                    id: true,
+                    sortOrder: true,
+                    mediaAsset: {
+                      select: {
+                        id: true,
+                        kind: true,
+                        mimeType: true,
+                        byteSize: true,
+                        durationMs: true,
+                        publicUrl: true,
+                      },
+                    },
+                  },
                   orderBy: { sortOrder: 'asc' },
                   take: MATCH_PHOTO_PREVIEW_LIMIT,
                 },
               },
             },
-            onboarding: true,
-            settings: true,
+            onboarding: {
+              select: {
+                interests: true,
+              },
+            },
           },
         }),
         currentUserPromise,

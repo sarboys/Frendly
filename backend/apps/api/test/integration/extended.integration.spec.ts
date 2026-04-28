@@ -62,6 +62,11 @@ describe('extended rollout api flows', () => {
         userId: 'user-me',
       },
     });
+    await prisma.safetySosAlert.deleteMany({
+      where: {
+        userId: 'user-me',
+      },
+    });
     await prisma.eventStory.deleteMany({
       where: {
         eventId: 'e1',
@@ -540,20 +545,31 @@ describe('extended rollout api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Маша SOS',
-        phoneNumber: '+79995554433',
+        channel: 'telegram',
+        value: '@masha_sos',
         mode: 'sos_only',
       })
       .expect(201);
 
     expect(contact.body.mode).toBe('sos_only');
+    expect(contact.body.channel).toBe('telegram');
+    expect(contact.body.value).toBe('@masha_sos');
 
     const response = await request(app.getHttpServer())
       .post('/safety/sos')
       .set('authorization', `Bearer ${accessToken}`)
       .send({ eventId: 'e1' })
-      .expect(503);
+      .expect(201);
 
-    expect(response.body.code).toBe('sos_delivery_unavailable');
+    expect(response.body.eventId).toBe('e1');
+    expect(response.body.notifiedContactsCount).toBe(1);
+    expect(response.body.status).toBe('queued');
+
+    const alert = await prisma.safetySosAlert.findUnique({
+      where: { id: response.body.id },
+    });
+
+    expect(alert?.recipientsCount).toBe(1);
   });
 
   it('lists and creates stories', async () => {

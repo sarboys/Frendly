@@ -26,6 +26,18 @@ function mapSettings(settings: {
   };
 }
 
+const settingsResponseSelect = {
+  allowLocation: true,
+  allowPush: true,
+  allowContacts: true,
+  autoSharePlans: true,
+  hideExactLocation: true,
+  quietHours: true,
+  showAge: true,
+  discoverable: true,
+  darkMode: true,
+};
+
 @Injectable()
 export class SettingsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -37,6 +49,7 @@ export class SettingsService {
       create: {
         userId,
       },
+      select: settingsResponseSelect,
     });
 
     return mapSettings(settings);
@@ -88,6 +101,7 @@ export class SettingsService {
             typeof body.discoverable === 'boolean' ? body.discoverable : true,
         darkMode: typeof body.darkMode === 'boolean' ? body.darkMode : false,
       },
+      select: settingsResponseSelect,
     });
 
     return mapSettings(settings);

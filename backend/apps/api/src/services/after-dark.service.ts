@@ -10,6 +10,11 @@ import { EventsService } from './events.service';
 import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
 
+interface AfterDarkEventCursor {
+  id: string;
+  startsAt: Date;
+}
+
 @Injectable()
 export class AfterDarkService {
   constructor(
@@ -65,19 +70,7 @@ export class AfterDarkService {
     await this.assertUnlocked(userId);
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const take = this.normalizeLimit(params.limit);
-    const cursorId = this.decodeCursor(params.cursor);
-    const cursorEvent = cursorId
-      ? await this.prismaService.client.event.findFirst({
-          where: {
-            id: cursorId,
-            isAfterDark: true,
-          },
-          select: {
-            id: true,
-            startsAt: true,
-          },
-        })
-      : null;
+    const cursorEvent = await this.resolveEventCursor(params.cursor);
     const events = await this.prismaService.client.event.findMany({
       where: {
         isAfterDark: true,
@@ -145,7 +138,7 @@ export class AfterDarkService {
       items: page.map((event) => this.mapSummary(event, userId)),
       nextCursor:
         hasMore && page.length > 0
-          ? encodeCursor({ value: page[page.length - 1]!.id })
+          ? this.encodeEventCursor(page[page.length - 1]!)
           : null,
     };
   }
@@ -242,8 +235,17 @@ export class AfterDarkService {
       },
       include: {
         host: {
-          include: {
-            profile: true,
+          select: {
+            id: true,
+            displayName: true,
+            verified: true,
+            profile: {
+              select: {
+                rating: true,
+                meetupCount: true,
+                avatarUrl: true,
+              },
+            },
           },
         },
         participants: {
@@ -271,7 +273,11 @@ export class AfterDarkService {
           take: 1,
           select: { status: true },
         },
-        chat: true,
+        chat: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
 
@@ -429,15 +435,57 @@ export class AfterDarkService {
     return Math.max(1, Math.min(Math.trunc(limit), 50));
   }
 
-  private decodeCursor(cursor?: string) {
+  private async resolveEventCursor(cursor?: string): Promise<AfterDarkEventCursor | null> {
     if (!cursor) {
       return null;
     }
 
+    let decoded: ReturnType<typeof decodeCursor> = null;
+    let cursorId: string | null = null;
     try {
-      return decodeCursor(cursor)?.value ?? null;
+      decoded = decodeCursor(cursor);
+      cursorId = decoded?.value ?? null;
     } catch {
-      return cursor;
+      cursorId = cursor;
     }
+
+    if (!cursorId) {
+      return null;
+    }
+
+    const startsAt = this.parseCursorDate(decoded?.startsAt);
+    if (startsAt) {
+      return {
+        id: cursorId,
+        startsAt,
+      };
+    }
+
+    return this.prismaService.client.event.findFirst({
+      where: {
+        id: cursorId,
+        isAfterDark: true,
+      },
+      select: {
+        id: true,
+        startsAt: true,
+      },
+    });
+  }
+
+  private encodeEventCursor(event: AfterDarkEventCursor) {
+    return encodeCursor({
+      value: event.id,
+      startsAt: event.startsAt.toISOString(),
+    });
+  }
+
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
   }
 }

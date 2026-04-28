@@ -1,9 +1,53 @@
 import { Prisma } from '@prisma/client';
 import { CommunitiesService } from '../../src/services/communities.service';
 
+const flattenSql = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value.map(flattenSql).join(' ');
+  }
+
+  if (value != null && typeof value === 'object') {
+    const sql = value as { strings?: unknown; values?: unknown };
+    const strings = Array.isArray(sql.strings)
+      ? sql.strings.map(String).join(' ')
+      : '';
+    const values = Array.isArray(sql.values)
+      ? sql.values.map(flattenSql).join(' ')
+      : '';
+    return `${strings} ${values}`;
+  }
+
+  return String(value ?? '');
+};
+
 describe('CommunitiesService unit', () => {
   afterEach(() => {
     delete process.env.CHAT_UNREAD_COUNTER_READS;
+  });
+
+  const makeCommunity = (id: string, createdAt: Date) => ({
+    id,
+    chatId: `${id}-chat`,
+    name: `Community ${id}`,
+    avatar: '*',
+    description: 'Community',
+    privacy: 'public',
+    createdById: 'owner-user',
+    tags: [],
+    joinRule: 'Open',
+    premiumOnly: false,
+    mood: 'Calm',
+    sharedMediaLabel: '0 media',
+    createdAt,
+    _count: { members: 10 },
+    members: [],
+    news: [],
+    meetups: [],
+    media: [],
+    socialLinks: [],
+    chat: {
+      messages: [],
+    },
   });
 
   it('counts community chat unread messages from chat member read state, not notifications', async () => {
@@ -38,10 +82,7 @@ describe('CommunitiesService unit', () => {
 
     expect(counters.unreadByChatId).toEqual(new Map([['chat-1', 2]]));
     expect(queryRaw).toHaveBeenCalledTimes(1);
-    const unreadQuery = queryRaw.mock.calls[0][0] as any;
-    const unreadSql = Array.isArray(unreadQuery)
-      ? unreadQuery.join(' ')
-      : unreadQuery.strings.join(' ');
+    const unreadSql = flattenSql(queryRaw.mock.calls[0]);
     expect(unreadSql).toContain('"UserBlock"');
     expect(unreadSql).toContain('"blockedUserId"');
     expect(
@@ -145,8 +186,49 @@ describe('CommunitiesService unit', () => {
     expect(queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('loads online counters with groupBy instead of all online member rows',
-    async () => {
+  it('reuses loaded blocked user ids for community unread fallback when counters are enabled', async () => {
+    process.env.CHAT_UNREAD_COUNTER_READS = 'true';
+    const queryRaw = jest.fn().mockResolvedValue([
+      {
+        chat_id: 'chat-1',
+        unread_count: BigInt(1),
+      },
+    ]);
+    const service = new CommunitiesService(
+      {
+        client: {
+          communityMember: {
+            groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                userId: 'user-me',
+                blockedUserId: 'blocked-user',
+              },
+            ]),
+          },
+          $queryRaw: queryRaw,
+        },
+      } as any,
+      {} as any,
+    );
+
+    await (service as any).loadCounters('user-me', [
+      {
+        communityId: 'community-1',
+        chatId: 'chat-1',
+      },
+    ]);
+
+    const unreadSql = flattenSql(queryRaw.mock.calls[0]);
+    expect(unreadSql).toContain('m."senderId" NOT IN');
+    expect(unreadSql).not.toContain('"UserBlock"');
+  });
+
+	  it('loads online counters with groupBy instead of all online member rows',
+	    async () => {
       const communityFindMany = jest.fn().mockResolvedValue([
         {
           id: 'community-1',
@@ -234,10 +316,70 @@ describe('CommunitiesService unit', () => {
           communityId: true,
           role: true,
         },
-      });
+	      });
+	    });
+
+  it('uses community list cursor payload without reading the cursor community again', async () => {
+    const firstCommunity = makeCommunity(
+      'community-1',
+      new Date('2026-04-24T10:00:00.000Z'),
+    );
+    const secondCommunity = makeCommunity(
+      'community-2',
+      new Date('2026-04-25T10:00:00.000Z'),
+    );
+    const communityFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([firstCommunity, secondCommunity])
+      .mockResolvedValueOnce([]);
+    const communityFindUnique = jest.fn().mockResolvedValue({
+      id: firstCommunity.id,
+      createdAt: firstCommunity.createdAt,
+    });
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findMany: communityFindMany,
+            findUnique: communityFindUnique,
+          },
+          communityMember: {
+            groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $queryRaw: jest.fn().mockResolvedValue([]),
+        },
+      } as any,
+      {} as any,
+    );
+
+    const firstPage = await service.listCommunities('user-me', { limit: 1 });
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    await service.listCommunities('user-me', {
+      cursor: firstPage.nextCursor!,
+      limit: 1,
     });
 
-  it('returns the existing community when a retry hits the same idempotency key',
+    expect(communityFindUnique).not.toHaveBeenCalled();
+    expect(communityFindMany.mock.calls[1][0].where).toEqual({
+      OR: [
+        {
+          createdAt: {
+            gt: firstCommunity.createdAt,
+          },
+        },
+        {
+          createdAt: firstCommunity.createdAt,
+          id: {
+            gt: firstCommunity.id,
+          },
+        },
+      ],
+    });
+  });
+
+	  it('returns the existing community when a retry hits the same idempotency key',
     async () => {
       const duplicateKeyError = new Prisma.PrismaClientKnownRequestError(
         'Unique constraint failed on the fields: (`createdById`,`idempotencyKey`)',
@@ -522,6 +664,82 @@ describe('CommunitiesService unit', () => {
         take: 3,
       }),
     );
+  });
+
+  it('uses community media cursor payload without reading the cursor media row again', async () => {
+    const firstMedia = {
+      id: 'media-1',
+      communityId: 'community-1',
+      emoji: '*',
+      label: 'First',
+      kind: 'photo',
+      sortOrder: 0,
+    };
+    const secondMedia = {
+      id: 'media-2',
+      communityId: 'community-1',
+      emoji: '*',
+      label: 'Second',
+      kind: 'photo',
+      sortOrder: 1,
+    };
+    const thirdMedia = {
+      id: 'media-3',
+      communityId: 'community-1',
+      emoji: '*',
+      label: 'Third',
+      kind: 'photo',
+      sortOrder: 2,
+    };
+    const mediaFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([firstMedia, secondMedia, thirdMedia])
+      .mockResolvedValueOnce([]);
+    const mediaFindUnique = jest.fn().mockResolvedValue({
+      id: secondMedia.id,
+      communityId: 'community-1',
+      sortOrder: secondMedia.sortOrder,
+    });
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findFirst: jest.fn().mockResolvedValue({ id: 'community-1' }),
+          },
+          communityMediaItem: {
+            findMany: mediaFindMany,
+            findUnique: mediaFindUnique,
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const firstPage = await service.listCommunityMedia('user-me', 'community-1', {
+      limit: 2,
+    });
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    await service.listCommunityMedia('user-me', 'community-1', {
+      cursor: firstPage.nextCursor!,
+      limit: 2,
+    });
+
+    expect(mediaFindUnique).not.toHaveBeenCalled();
+    expect(mediaFindMany.mock.calls[1][0].where).toEqual({
+      AND: [
+        { communityId: 'community-1' },
+        {
+          OR: [
+            { sortOrder: { gt: secondMedia.sortOrder } },
+            {
+              sortOrder: secondMedia.sortOrder,
+              id: { gt: secondMedia.id },
+            },
+          ],
+        },
+      ],
+    });
   });
 
   it('rejects private community media pages for non-members', async () => {

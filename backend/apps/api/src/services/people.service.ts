@@ -10,6 +10,11 @@ import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
 import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
 
+type PeopleCursor = {
+  id: string;
+  displayName: string;
+};
+
 @Injectable()
 export class PeopleService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -170,8 +175,8 @@ export class PeopleService {
     return {
       items: mapped,
       nextCursor:
-          hasMore && mapped.length > 0
-              ? encodeCursor({ value: mapped[mapped.length - 1]!.id })
+          hasMore && page.length > 0
+              ? this.encodePeopleCursor(page[page.length - 1]!)
               : null,
     };
   }
@@ -186,26 +191,27 @@ export class PeopleService {
       throw new ApiError(404, 'user_not_found', 'Peer user not found');
     }
 
-    const peer = await this.prismaService.client.user.findUnique({
-      where: { id: peerUserId },
-      select: {
-        id: true,
-        settings: {
-          select: {
-            discoverable: true,
+    const directKey = buildDirectChatKey(currentUserId, peerUserId);
+    const [peer, existing] = await Promise.all([
+      this.prismaService.client.user.findUnique({
+        where: { id: peerUserId },
+        select: {
+          id: true,
+          settings: {
+            select: {
+              discoverable: true,
+            },
           },
         },
-      },
-    });
+      }),
+      this.prismaService.client.chat.findUnique({
+        where: { directKey },
+      }),
+    ]);
 
     if (!peer || peer.settings?.discoverable === false) {
       throw new ApiError(404, 'user_not_found', 'Peer user not found');
     }
-
-    const directKey = buildDirectChatKey(currentUserId, peerUserId);
-    const existing = await this.prismaService.client.chat.findUnique({
-      where: { directKey },
-    });
 
     if (existing) {
       return existing;
@@ -249,17 +255,54 @@ export class PeopleService {
 
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        displayName: true,
+        verified: true,
+        online: true,
         profile: {
-          include: {
+          select: {
+            age: true,
+            birthDate: true,
+            gender: true,
+            city: true,
+            area: true,
+            bio: true,
+            vibe: true,
+            rating: true,
+            meetupCount: true,
+            avatarUrl: true,
             photos: {
-              include: { mediaAsset: true },
+              select: {
+                id: true,
+                sortOrder: true,
+                mediaAsset: {
+                  select: {
+                    id: true,
+                    kind: true,
+                    mimeType: true,
+                    byteSize: true,
+                    durationMs: true,
+                    publicUrl: true,
+                  },
+                },
+              },
               orderBy: { sortOrder: 'asc' },
             },
           },
         },
-        onboarding: true,
-        settings: true,
+        onboarding: {
+          select: {
+            interests: true,
+            intent: true,
+          },
+        },
+        settings: {
+          select: {
+            discoverable: true,
+            showAge: true,
+          },
+        },
       },
     });
 
@@ -324,18 +367,27 @@ export class PeopleService {
     return Math.max(1, Math.min(Math.trunc(limit), 50));
   }
 
-  private async resolveCursorUser(cursor?: string) {
+  private async resolveCursorUser(cursor?: string): Promise<PeopleCursor | null> {
     if (!cursor) {
       return null;
     }
 
-    const cursorId = this.decodeCursor(cursor);
-    if (cursorId == null) {
+    const decoded = this.decodeCursorPayload(cursor);
+    if (decoded == null) {
       return null;
     }
 
+    const displayName =
+      typeof decoded.displayName === 'string' ? decoded.displayName : null;
+    if (displayName != null) {
+      return {
+        id: decoded.value,
+        displayName,
+      };
+    }
+
     return this.prismaService.client.user.findUnique({
-      where: { id: cursorId },
+      where: { id: decoded.value },
       select: {
         id: true,
         displayName: true,
@@ -343,15 +395,27 @@ export class PeopleService {
     });
   }
 
-  private decodeCursor(cursor?: string) {
+  private encodePeopleCursor(person: PeopleCursor) {
+    return encodeCursor({
+      value: person.id,
+      displayName: person.displayName,
+    });
+  }
+
+  private decodeCursorPayload(cursor?: string) {
     if (!cursor) {
       return null;
     }
 
     try {
-      return decodeCursor(cursor)?.value ?? null;
+      const decoded = decodeCursor(cursor);
+      if (decoded?.value) {
+        return decoded;
+      }
     } catch {
-      return cursor;
+      return { value: cursor };
     }
+
+    return null;
   }
 }

@@ -55,6 +55,12 @@ type PostgisEventCandidate = {
   distanceKm: number;
 };
 
+type EventListCursor = {
+  id: string;
+  distanceKm: number;
+  startsAt: Date;
+};
+
 const EARTH_RADIUS_KM = 6371;
 const EVENT_DETAIL_ATTENDEE_LIMIT = 24;
 
@@ -121,6 +127,13 @@ export class EventsService {
       radiusKm: params.radiusKm,
       blockedUserIds,
     });
+    if (postgisCandidates != null && postgisCandidates.length === 0) {
+      return {
+        items: [],
+        nextCursor: null,
+      };
+    }
+
     const postgisDistanceByEventId = new Map(
       (postgisCandidates ?? []).map((candidate) => [
         candidate.eventId,
@@ -244,7 +257,7 @@ export class EventsService {
       items: mapped,
       nextCursor:
         hasMore && page.length > 0
-          ? encodeCursor({ value: page[page.length - 1]!.id })
+          ? this.encodeListCursor(page[page.length - 1]!)
           : null,
     };
   }
@@ -260,16 +273,32 @@ export class EventsService {
         where: { id: eventId },
         include: {
           host: {
-            include: {
-              profile: true,
+            select: {
+              id: true,
+              displayName: true,
+              verified: true,
+              profile: {
+                select: {
+                  rating: true,
+                  meetupCount: true,
+                  avatarUrl: true,
+                },
+              },
             },
           },
           participants: {
             where: visibleParticipantWhere,
-            include: {
+            select: {
+              userId: true,
               user: {
-                include: {
-                  profile: true,
+                select: {
+                  id: true,
+                  displayName: true,
+                  profile: {
+                    select: {
+                      avatarUrl: true,
+                    },
+                  },
                 },
               },
             },
@@ -279,13 +308,26 @@ export class EventsService {
           joinRequests: {
             where: { userId },
             take: 1,
+            select: {
+              userId: true,
+              status: true,
+              reviewedById: true,
+            },
           },
           attendances: {
             where: { userId },
             take: 1,
+            select: {
+              userId: true,
+              status: true,
+            },
           },
-          liveState: true,
-          chat: true,
+          liveState: {
+            select: { status: true },
+          },
+          chat: {
+            select: { id: true },
+          },
         },
       }),
       this.prismaService.client.eventParticipant.count({
@@ -1406,14 +1448,29 @@ export class EventsService {
       include: {
         participants: {
           where: this.buildVisibleParticipantWhere(blockedUserIds),
-          include: {
+          select: {
+            userId: true,
             user: {
-              include: { profile: true },
+              select: {
+                id: true,
+                displayName: true,
+                verified: true,
+                online: true,
+                profile: {
+                  select: {
+                    avatarUrl: true,
+                  },
+                },
+              },
             },
           },
         },
         attendances: {
           where: this.buildVisibleParticipantWhere(blockedUserIds),
+          select: {
+            userId: true,
+            status: true,
+          },
         },
       },
     });
@@ -1506,17 +1563,41 @@ export class EventsService {
         include: {
           participants: {
             where: this.buildVisibleParticipantWhere(blockedUserIds),
-            include: {
+            select: {
+              userId: true,
               user: {
-                include: { profile: true },
+                select: {
+                  id: true,
+                  displayName: true,
+                  verified: true,
+                  online: true,
+                  profile: {
+                    select: {
+                      avatarUrl: true,
+                    },
+                  },
+                },
               },
             },
           },
           attendances: {
             where: this.buildVisibleParticipantWhere(blockedUserIds),
+            select: {
+              userId: true,
+              status: true,
+            },
           },
-          liveState: true,
-          chat: true,
+          liveState: {
+            select: {
+              status: true,
+              startedAt: true,
+            },
+          },
+          chat: {
+            select: {
+              id: true,
+            },
+          },
         },
       }),
       this.prismaService.client.eventStory.count({
@@ -1561,15 +1642,28 @@ export class EventsService {
       include: {
         participants: {
           where: this.buildVisibleParticipantWhere(blockedUserIds),
-          include: {
+          select: {
+            userId: true,
             user: {
-              include: { profile: true },
+              select: {
+                displayName: true,
+                profile: {
+                  select: {
+                    avatarUrl: true,
+                  },
+                },
+              },
             },
           },
         },
         feedbacks: {
           where: { userId },
           take: 1,
+          select: {
+            vibe: true,
+            hostRating: true,
+            note: true,
+          },
         },
         favorites: {
           where: {
@@ -1581,6 +1675,9 @@ export class EventsService {
                     notIn: [...blockedUserIds],
                   },
                 }),
+          },
+          select: {
+            targetUserId: true,
           },
         },
       },
@@ -2189,20 +2286,32 @@ export class EventsService {
     return Math.max(1, Math.min(Math.trunc(limit), 50));
   }
 
-  private async resolveListCursor(cursor?: string, filter?: EventFilter) {
+  private async resolveListCursor(cursor?: string, filter?: EventFilter): Promise<EventListCursor | null> {
     if (!cursor) {
       return null;
     }
 
     let cursorId: string | null = null;
+    let decoded: ReturnType<typeof decodeCursor> = null;
     try {
-      cursorId = decodeCursor(cursor)?.value ?? null;
+      decoded = decodeCursor(cursor);
+      cursorId = decoded?.value ?? null;
     } catch {
       cursorId = cursor;
     }
 
     if (!cursorId) {
       return null;
+    }
+
+    const distanceKm = this.parseCursorNumber(decoded?.distanceKm);
+    const startsAt = this.parseCursorDate(decoded?.startsAt);
+    if (distanceKm != null && startsAt) {
+      return {
+        id: cursorId,
+        distanceKm,
+        startsAt,
+      };
     }
 
     return this.prismaService.client.event.findUnique({
@@ -2215,8 +2324,33 @@ export class EventsService {
     });
   }
 
+  private encodeListCursor(event: EventListCursor) {
+    return encodeCursor({
+      value: event.id,
+      distanceKm: event.distanceKm,
+      startsAt: event.startsAt.toISOString(),
+    });
+  }
+
+  private parseCursorNumber(value: unknown) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+
   private buildListCursorWhere(
-    cursorEvent: { id: string; distanceKm: number; startsAt: Date } | null,
+    cursorEvent: EventListCursor | null,
     filter?: EventFilter,
   ): Prisma.EventWhereInput | null {
     if (!cursorEvent) {

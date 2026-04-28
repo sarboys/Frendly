@@ -234,6 +234,14 @@ export class WorkerService implements OnModuleDestroy {
             payload?: unknown;
           });
           break;
+        case OUTBOX_EVENT_TYPES.safetySosDelivery:
+          await this.handleSafetySosDelivery(event.payload as {
+            sosAlertId?: string;
+            contactId?: string;
+            channel?: string;
+            value?: string;
+          });
+          break;
         default:
           console.log('[worker-skip-event]', event.type);
       }
@@ -249,6 +257,23 @@ export class WorkerService implements OnModuleDestroy {
     } catch (error) {
       await this.handleFailure(event.id, event.attempts, error);
     }
+  }
+
+  private async handleSafetySosDelivery(payload: {
+    sosAlertId?: string;
+    contactId?: string;
+    channel?: string;
+    value?: string;
+  }) {
+    if (!payload.sosAlertId || !payload.contactId) {
+      return;
+    }
+
+    console.log('[safety-sos-delivery-queued]', {
+      sosAlertId: payload.sosAlertId,
+      contactId: payload.contactId,
+      channel: payload.channel,
+    });
   }
 
   private async claimNextEvents() {

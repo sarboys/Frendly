@@ -118,20 +118,43 @@ export class UploadsService {
   }
 
   async completeChatAttachmentUpload(userId: string, body: Record<string, unknown>) {
-    const uploadMeta = await this.resolveChatUploadMeta(userId, body);
+    const chatId = this.parseChatIdForAttachment(body);
+    const membershipPromise = this.assertChatAttachmentMember(userId, chatId);
+    let uploadMeta: ChatUploadMeta;
+    try {
+      uploadMeta = this.parseChatUploadMeta(chatId, body);
+    } catch (error) {
+      await membershipPromise;
+      throw error;
+    }
     const objectKey = typeof body.objectKey === 'string' ? body.objectKey : undefined;
     const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'application/octet-stream';
     const byteSize = typeof body.byteSize === 'number' ? body.byteSize : 0;
     const fileName = typeof body.fileName === 'string' ? body.fileName : 'attachment.bin';
 
     if (!objectKey) {
+      await membershipPromise;
       throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
     }
 
-    this.assertChatUploadObjectKey(userId, objectKey);
-    const existing = await this.prismaService.client.mediaAsset.findUnique({
+    try {
+      this.assertChatUploadObjectKey(userId, objectKey);
+    } catch (error) {
+      await membershipPromise;
+      throw error;
+    }
+    let existingLookupError: unknown;
+    const existingPromise = this.prismaService.client.mediaAsset.findUnique({
       where: { objectKey },
+    }).catch((error) => {
+      existingLookupError = error;
+      return null;
     });
+    await membershipPromise;
+    const existing = await existingPromise;
+    if (existingLookupError) {
+      throw existingLookupError;
+    }
     if (existing) {
       this.assertExistingChatUploadAsset(existing, userId, uploadMeta);
       return {
@@ -203,6 +226,11 @@ export class UploadsService {
         chatId: uploadMeta.chatId,
         publicUrl: buildPublicAssetUrl(objectKey),
       },
+      select: {
+        id: true,
+        status: true,
+        publicUrl: true,
+      },
     });
 
     return {
@@ -230,7 +258,7 @@ export class UploadsService {
   }
 
   async completeStoryMediaUpload(userId: string, body: Record<string, unknown>) {
-    const eventId = await this.requireStoryEventId(userId, body);
+    const eventId = this.parseStoryEventId(body);
     const objectKey = typeof body.objectKey === 'string' ? body.objectKey : undefined;
     const mimeType =
       typeof body.mimeType === 'string' ? body.mimeType : 'application/octet-stream';
@@ -249,9 +277,12 @@ export class UploadsService {
     }
 
     this.assertStoryMediaObjectKey(userId, objectKey);
-    const existing = await this.prismaService.client.mediaAsset.findUnique({
-      where: { objectKey },
-    });
+    const [existing] = await Promise.all([
+      this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey },
+      }),
+      this.storiesService.assertStoryParticipant(userId, eventId),
+    ]);
     if (existing) {
       await this.assertExistingStoryUploadAsset(existing, userId, eventId);
       return {
@@ -320,6 +351,10 @@ export class UploadsService {
         originalFileName: uploadFile.originalname,
         publicUrl: buildPublicAssetUrl(objectKey),
       },
+      select: {
+        id: true,
+        status: true,
+      },
     });
 
     return {
@@ -356,7 +391,15 @@ export class UploadsService {
     userId: string,
     body: Record<string, unknown>,
   ): Promise<ChatUploadMeta> {
-    const chatId = await this.requireChatIdForAttachment(userId, body);
+    const chatId = this.parseChatIdForAttachment(body);
+    await this.assertChatAttachmentMember(userId, chatId);
+    return this.parseChatUploadMeta(chatId, body);
+  }
+
+  private parseChatUploadMeta(
+    chatId: string,
+    body: Record<string, unknown>,
+  ): ChatUploadMeta {
     const rawKind =
       typeof body.kind === 'string' ? body.kind : 'chat_attachment';
 
@@ -535,6 +578,10 @@ export class UploadsService {
           chatId: input.uploadMeta.chatId,
           publicUrl: buildPublicAssetUrl(input.objectKey),
         },
+        select: {
+          id: true,
+          status: true,
+        },
       });
     } catch (error) {
       if (!this.isUniqueConstraintError(error)) {
@@ -598,13 +645,17 @@ export class UploadsService {
     };
   }
 
-  private async requireChatIdForAttachment(userId: string, body: Record<string, unknown>) {
+  private parseChatIdForAttachment(body: Record<string, unknown>) {
     const chatId = typeof body.chatId === 'string' ? body.chatId : undefined;
 
     if (!chatId) {
       throw new ApiError(400, 'chat_id_required', 'chatId is required');
     }
 
+    return chatId;
+  }
+
+  private async assertChatAttachmentMember(userId: string, chatId: string) {
     const membership = await this.prismaService.client.chatMember.findUnique({
       where: {
         chatId_userId: {
@@ -612,13 +663,15 @@ export class UploadsService {
           userId,
         },
       },
+      select: {
+        chatId: true,
+        userId: true,
+      },
     });
 
     if (!membership) {
       throw new ApiError(403, 'chat_attachment_forbidden', 'You are not a member of this chat');
     }
-
-    return chatId;
   }
 
   private async requireStoryEventId(userId: string, body: Record<string, unknown>) {
@@ -629,6 +682,16 @@ export class UploadsService {
     }
 
     await this.storiesService.assertStoryParticipant(userId, eventId);
+    return eventId;
+  }
+
+  private parseStoryEventId(body: Record<string, unknown>) {
+    const eventId = typeof body.eventId === 'string' ? body.eventId : '';
+
+    if (eventId.length === 0) {
+      throw new ApiError(400, 'event_id_required', 'eventId is required');
+    }
+
     return eventId;
   }
 
@@ -699,6 +762,10 @@ export class UploadsService {
               : Math.max(0, Math.trunc(input.durationMs)),
           originalFileName: input.fileName,
           publicUrl: buildPublicAssetUrl(input.objectKey),
+        },
+        select: {
+          id: true,
+          status: true,
         },
       });
     } catch (error) {

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { OUTBOX_EVENT_TYPES } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
+
+type TrustedContactChannel = 'phone' | 'telegram' | 'email';
 
 @Injectable()
 export class SafetyService {
@@ -11,7 +14,18 @@ export class SafetyService {
     const [user, settings, contacts, blocksCount, activeReportsCount, activeReportsAgainstUserCount] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
-        include: { profile: true, verification: true },
+        select: {
+          profile: {
+            select: {
+              meetupCount: true,
+            },
+          },
+          verification: {
+            select: {
+              status: true,
+            },
+          },
+        },
       }),
       this.prismaService.client.userSettings.findUnique({
         where: { userId },
@@ -78,17 +92,19 @@ export class SafetyService {
 
   async createTrustedContact(userId: string, body: Record<string, unknown>) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
-    const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';
+    const channel = this.normalizeContactChannel(body.channel);
+    const value = this.normalizeContactValue(body);
     const mode = body.mode === 'sos_only' ? 'sos_only' : 'all_plans';
 
-    if (name.length === 0 || phoneNumber.length === 0) {
-      throw new ApiError(400, 'invalid_trusted_contact', 'name and phoneNumber are required');
+    if (name.length === 0 || value.length === 0) {
+      throw new ApiError(400, 'invalid_trusted_contact', 'name and value are required');
     }
 
     const existing = await this.prismaService.client.trustedContact.findFirst({
       where: {
         userId,
-        phoneNumber,
+        channel,
+        value,
       },
       select: { id: true },
     });
@@ -102,7 +118,9 @@ export class SafetyService {
         data: {
           userId,
           name,
-          phoneNumber,
+          channel,
+          value,
+          phoneNumber: value,
           mode,
         },
       });
@@ -114,16 +132,39 @@ export class SafetyService {
     }
   }
 
+  async deleteTrustedContact(userId: string, contactId: string) {
+    if (contactId.length === 0) {
+      throw new ApiError(400, 'invalid_trusted_contact', 'contactId is required');
+    }
+
+    const result = await this.prismaService.client.trustedContact.deleteMany({
+      where: {
+        id: contactId,
+        userId,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new ApiError(404, 'trusted_contact_not_found', 'Trusted contact not found');
+    }
+
+    return {
+      id: contactId,
+      deleted: true,
+    };
+  }
+
   async listReports(userId: string) {
     const reports = await this.prismaService.client.userReport.findMany({
       where: { reporterId: userId },
-      include: {
-        targetUser: {
-          select: {
-            id: true,
-            displayName: true,
-          },
-        },
+      select: {
+        id: true,
+        targetUserId: true,
+        reason: true,
+        details: true,
+        status: true,
+        blockRequested: true,
+        createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -157,25 +198,26 @@ export class SafetyService {
       throw new ApiError(400, 'invalid_report_payload', 'details is too long');
     }
 
-    const targetUser = await this.prismaService.client.user.findUnique({
-      where: { id: targetUserId },
-      select: { id: true },
-    });
+    const [targetUser, existing] = await Promise.all([
+      this.prismaService.client.user.findUnique({
+        where: { id: targetUserId },
+        select: { id: true },
+      }),
+      this.prismaService.client.userReport.findFirst({
+        where: {
+          reporterId: userId,
+          targetUserId,
+          status: {
+            in: ['open', 'in_review'],
+          },
+        },
+        select: { id: true },
+      }),
+    ]);
 
     if (!targetUser) {
       throw new ApiError(404, 'user_not_found', 'Target user not found');
     }
-
-    const existing = await this.prismaService.client.userReport.findFirst({
-      where: {
-        reporterId: userId,
-        targetUserId,
-        status: {
-          in: ['open', 'in_review'],
-        },
-      },
-      select: { id: true },
-    });
 
     if (existing) {
       throw new ApiError(409, 'duplicate_report', 'Report already exists');
@@ -241,7 +283,10 @@ export class SafetyService {
   async listBlocks(userId: string) {
     const blocks = await this.prismaService.client.userBlock.findMany({
       where: { userId },
-      include: {
+      select: {
+        id: true,
+        blockedUserId: true,
+        createdAt: true,
         blockedUser: {
           select: {
             id: true,
@@ -307,35 +352,131 @@ export class SafetyService {
 
   async createSos(userId: string, body: Record<string, unknown>) {
     const eventId = typeof body.eventId === 'string' ? body.eventId : null;
+    let eventTitle: string | null = null;
+
     if (eventId != null) {
-      const event = await this.prismaService.client.event.findUnique({
-        where: { id: eventId },
-        select: { id: true },
-      });
+      const [event, participant] = await Promise.all([
+        this.prismaService.client.event.findUnique({
+          where: { id: eventId },
+          select: { id: true, title: true },
+        }),
+        this.prismaService.client.eventParticipant.findUnique({
+          where: {
+            eventId_userId: {
+              eventId,
+              userId,
+            },
+          },
+          select: {
+            eventId: true,
+            userId: true,
+          },
+        }),
+      ]);
 
       if (!event) {
         throw new ApiError(404, 'event_not_found', 'Event not found');
       }
 
-      const participant = await this.prismaService.client.eventParticipant.findUnique({
-        where: {
-          eventId_userId: {
-            eventId,
-            userId,
-          },
-        },
-      });
+      eventTitle = event.title;
 
       if (!participant) {
         throw new ApiError(403, 'event_forbidden', 'You are not a participant of this event');
       }
     }
 
-    throw new ApiError(
-      503,
-      'sos_delivery_unavailable',
-      'SOS delivery is unavailable',
-    );
+    const [user, contacts] = await Promise.all([
+      this.prismaService.client.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          displayName: true,
+          phoneNumber: true,
+        },
+      }),
+      this.prismaService.client.trustedContact.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    if (contacts.length === 0) {
+      throw new ApiError(409, 'sos_contacts_required', 'Trusted contacts are required');
+    }
+
+    const recipients = contacts.map((contact) => {
+      const channel = this.normalizeContactChannel(contact.channel);
+      const value =
+        typeof contact.value === 'string' && contact.value.length > 0
+          ? contact.value
+          : contact.phoneNumber;
+      return {
+        id: contact.id,
+        name: contact.name,
+        channel,
+        value,
+        mode: contact.mode,
+      };
+    });
+    const displayName = user?.displayName ?? 'Frendly';
+    const messagePreview =
+      eventTitle == null
+        ? `SOS от ${displayName}. Нужна помощь.`
+        : `SOS от ${displayName}. Я на встрече «${eventTitle}», нужна помощь.`;
+
+    const alert = await this.prismaService.client.$transaction(async (tx) => {
+      const created = await tx.safetySosAlert.create({
+        data: {
+          userId,
+          eventId,
+          recipients,
+          recipientsCount: recipients.length,
+          messagePreview,
+          status: 'queued',
+        },
+      });
+
+      await tx.outboxEvent.createMany({
+        data: recipients.map((recipient) => ({
+          type: OUTBOX_EVENT_TYPES.safetySosDelivery,
+          payload: {
+            sosAlertId: created.id,
+            userId,
+            eventId,
+            contactId: recipient.id,
+            name: recipient.name,
+            channel: recipient.channel,
+            value: recipient.value,
+            messagePreview,
+          },
+        })),
+      });
+
+      return created;
+    });
+
+    return {
+      id: alert.id,
+      eventId: alert.eventId,
+      notifiedContactsCount: alert.recipientsCount,
+      status: alert.status,
+      createdAt: alert.createdAt.toISOString(),
+    };
+  }
+
+  private normalizeContactChannel(value: unknown): TrustedContactChannel {
+    if (value === 'telegram' || value === 'email') {
+      return value;
+    }
+    return 'phone';
+  }
+
+  private normalizeContactValue(body: Record<string, unknown>) {
+    const value = typeof body.value === 'string' ? body.value.trim() : '';
+    if (value.length > 0) {
+      return value;
+    }
+    return typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';
   }
 
   private calculateTrustScore(params: {
@@ -371,12 +512,16 @@ export class SafetyService {
       return true;
     }
     if (Array.isArray(target)) {
-      return target.includes('userId') && target.includes('phoneNumber');
+      return (
+        (target.includes('userId') && target.includes('phoneNumber')) ||
+        (target.includes('userId') && target.includes('channel') && target.includes('value'))
+      );
     }
     return (
       typeof target === 'string' &&
       target.includes('userId') &&
-      target.includes('phoneNumber')
+      (target.includes('phoneNumber') ||
+        (target.includes('channel') && target.includes('value')))
     );
   }
 

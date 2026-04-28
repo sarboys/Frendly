@@ -168,6 +168,12 @@ enum TrustedContactMode {
   sos_only
 }
 
+enum TrustedContactChannel {
+  phone
+  telegram
+  email
+}
+
 enum VerificationStatus {
   not_started
   selfie_submitted
@@ -208,6 +214,8 @@ enum AuthProvider {
   phone_otp
   session
   telegram
+  google
+  yandex
 }
 
 enum AuthAuditKind {
@@ -230,6 +238,7 @@ model User {
   id                String                  @id @default(cuid())
   displayName       String
   phoneNumber       String?                 @unique
+  email             String?                 @unique
   verified          Boolean                 @default(false)
   online            Boolean                 @default(false)
   createdAt         DateTime                @default(now())
@@ -252,6 +261,7 @@ model User {
   favoriteSources   EventFavorite[]         @relation("EventFavoriteSource")
   favoriteTargets   EventFavorite[]         @relation("EventFavoriteTarget")
   trustedContacts   TrustedContact[]
+  safetySosAlerts   SafetySosAlert[]
   reportsSent       UserReport[]            @relation("UserReportsSent")
   reportsReceived   UserReport[]            @relation("UserReportsReceived")
   blockedUsers      UserBlock[]             @relation("UserBlocks")
@@ -264,6 +274,7 @@ model User {
   messages          Message[]
   mediaAssets       MediaAsset[]
   telegramAccount   TelegramAccount?
+  externalAuthAccounts ExternalAuthAccount[]
   authAuditEvents   AuthAuditEvent[]
   datingActionsSent DatingAction[]          @relation("DatingActionActor")
   datingActionsReceived DatingAction[]       @relation("DatingActionTarget")
@@ -341,6 +352,22 @@ model TelegramAccount {
   lastLoginAt     DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model ExternalAuthAccount {
+  id             String       @id @default(cuid())
+  provider       AuthProvider
+  providerUserId String
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email          String?
+  displayName    String?
+  avatarUrl      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([provider, providerUserId])
+  @@index([userId, provider])
 }
 
 model TelegramLoginSession {
@@ -442,6 +469,7 @@ model Session {
   userId         String
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokenId String    @unique
+  provider       AuthProvider @default(session)
   createdAt      DateTime  @default(now())
   lastUsedAt     DateTime?
   revokedAt      DateTime?
@@ -495,6 +523,7 @@ model Event {
   feedbacks       EventFeedback[]
   favorites       EventFavorite[]
   stories         EventStory[]
+  safetySosAlerts SafetySosAlert[]
   chat            Chat?
   sourceChats     Chat[]             @relation("ChatSourceEvent")
   createdAt       DateTime           @default(now())
@@ -694,6 +723,7 @@ model EveningSessionJoinRequest {
 
   @@unique([sessionId, userId])
   @@index([sessionId, status, id])
+  @@index([sessionId, status, createdAt, id])
   @@index([userId, status, id])
 }
 
@@ -861,13 +891,31 @@ model TrustedContact {
   userId       String
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
+  channel      TrustedContactChannel @default(phone)
+  value        String
   phoneNumber  String
   mode         TrustedContactMode @default(all_plans)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
   @@index([userId, createdAt, id])
-  @@unique([userId, phoneNumber])
+  @@unique([userId, channel, value])
+}
+
+model SafetySosAlert {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId         String?
+  event           Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  recipients      Json
+  recipientsCount Int
+  messagePreview  String
+  status          String   @default("queued")
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt, id])
+  @@index([eventId, createdAt, id])
 }
 
 model UserReport {
@@ -945,6 +993,7 @@ model DatingAction {
 
   @@unique([actorUserId, targetUserId])
   @@index([targetUserId, action, createdAt])
+  @@index([targetUserId, action, actorUserId])
   @@index([actorUserId, action, createdAt])
 }
 

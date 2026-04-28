@@ -128,19 +128,36 @@ function mapReplyPreview(
   };
 }
 
-export function mapBasicProfile(
-  user: User & {
-    profile:
-      | (Profile & {
-          photos?: Array<{
-            id: string;
-            sortOrder: number;
-            mediaAsset: MediaAsset;
-          }>;
-        })
-      | null;
-  },
-) {
+type BasicProfilePhoto = {
+  id: string;
+  sortOrder: number;
+  mediaAsset: Pick<
+    MediaAsset,
+    'id' | 'kind' | 'mimeType' | 'byteSize' | 'durationMs' | 'publicUrl'
+  >;
+};
+
+type BasicProfileUser = Pick<User, 'id' | 'displayName' | 'verified' | 'online'> & {
+  profile:
+    | (Pick<
+        Profile,
+        | 'age'
+        | 'birthDate'
+        | 'gender'
+        | 'city'
+        | 'area'
+        | 'bio'
+        | 'vibe'
+        | 'rating'
+        | 'meetupCount'
+        | 'avatarUrl'
+      > & {
+        photos?: BasicProfilePhoto[];
+      })
+    | null;
+};
+
+export function mapBasicProfile(user: BasicProfileUser) {
   const photos = (user.profile?.photos ?? [])
     .filter((photo) => photo.mediaAsset.publicUrl)
     .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -180,7 +197,11 @@ function calculateAge(birthDate: Date) {
   return age;
 }
 
-export function mapUserPreview(user: User & { profile: Profile | null }) {
+export function mapUserPreview(
+  user: Pick<User, 'id' | 'displayName' | 'verified' | 'online'> & {
+    profile: Pick<Profile, 'avatarUrl'> | null;
+  },
+) {
   return {
     userId: user.id,
     displayName: user.displayName,

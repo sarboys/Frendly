@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
+type CurrentSubscription = {
+  plan: string;
+  status: 'inactive' | 'trial' | 'active' | 'canceled';
+  startedAt: Date | null;
+  renewsAt: Date | null;
+  trialEndsAt: Date | null;
+} | null;
+
 @Injectable()
 export class SubscriptionService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -33,7 +41,18 @@ export class SubscriptionService {
     const subscription = await this.prismaService.client.userSubscription.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      select: {
+        plan: true,
+        status: true,
+        startedAt: true,
+        renewsAt: true,
+        trialEndsAt: true,
+      },
     });
+    return this.mapCurrent(subscription);
+  }
+
+  private mapCurrent(subscription: CurrentSubscription) {
     const status = this.resolveStatus(subscription);
 
     return {
@@ -63,12 +82,12 @@ export class SubscriptionService {
       current.plan === plan &&
       (currentStatus === 'trial' || currentStatus === 'active')
     ) {
-      return this.getCurrent(userId);
+      return this.mapCurrent(current);
     }
 
     const now = new Date();
     const isYear = plan === 'year';
-    await this.prismaService.client.userSubscription.create({
+    const subscription = await this.prismaService.client.userSubscription.create({
       data: {
         userId,
         plan,
@@ -81,9 +100,16 @@ export class SubscriptionService {
           ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
           : null,
       },
+      select: {
+        plan: true,
+        status: true,
+        startedAt: true,
+        renewsAt: true,
+        trialEndsAt: true,
+      },
     });
 
-    return this.getCurrent(userId);
+    return this.mapCurrent(subscription);
   }
 
   async restore(userId: string) {

@@ -385,7 +385,11 @@ export class TelegramAuthService {
         },
       });
 
-      const createdSession = await this.authService.createSessionRecord(user.id, tx);
+      const createdSession = await this.authService.createSessionRecord(
+        user.id,
+        'telegram',
+        tx,
+      );
 
       await this.writeAuditEvent(tx, {
         provider: 'telegram',

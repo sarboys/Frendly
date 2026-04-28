@@ -18,6 +18,16 @@ import { PrismaService } from './prisma.service';
 
 const HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT = 6;
 
+interface HostEventCursor {
+  id: string;
+  startsAt: Date;
+}
+
+interface HostRequestCursor {
+  id: string;
+  createdAt: Date;
+}
+
 @Injectable()
 export class HostService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -37,7 +47,13 @@ export class HostService {
     const [host, dashboardStats, pendingRequestsCount, eventsCursor, requestsCursor] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
-        include: { profile: true },
+        select: {
+          profile: {
+            select: {
+              rating: true,
+            },
+          },
+        },
       }),
       this.loadDashboardStats(userId, blockedUserIds),
       this.prismaService.client.eventJoinRequest.count({
@@ -68,9 +84,12 @@ export class HostService {
                 notIn: [...blockedUserIds],
               },
             },
-            include: {
+            select: {
+              userId: true,
               user: {
-                include: { profile: true },
+                select: {
+                  displayName: true,
+                },
               },
             },
             take: HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT,
@@ -86,7 +105,11 @@ export class HostService {
               },
             },
           },
-          liveState: true,
+          liveState: {
+            select: {
+              status: true,
+            },
+          },
         },
         orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
         take: eventsTake + 1,
@@ -103,10 +126,30 @@ export class HostService {
           },
           ...this.buildRequestCursorWhere(requestsCursor),
         },
-        include: {
-          event: true,
+        select: {
+          id: true,
+          eventId: true,
+          note: true,
+          status: true,
+          compatibilityScore: true,
+          createdAt: true,
+          reviewedAt: true,
+          event: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
           user: {
-            include: { profile: true },
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  avatarUrl: true,
+                },
+              },
+            },
           },
         },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -141,12 +184,12 @@ export class HostService {
       requests: requestItems,
       nextRequestsCursor:
           hasMoreRequests && requestPage.length > 0
-              ? encodeCursor({ value: requestPage[requestPage.length - 1]!.id })
+              ? this.encodeRequestCursor(requestPage[requestPage.length - 1]!)
               : null,
       events: eventItems,
       nextEventsCursor:
           hasMoreEvents && eventPage.length > 0
-              ? encodeCursor({ value: eventPage[eventPage.length - 1]!.id })
+              ? this.encodeEventCursor(eventPage[eventPage.length - 1]!)
               : null,
     };
   }
@@ -200,9 +243,20 @@ export class HostService {
               notIn: [...blockedUserIds],
             },
           },
-          include: {
+          select: {
+            userId: true,
             user: {
-              include: { profile: true },
+              select: {
+                id: true,
+                displayName: true,
+                verified: true,
+                online: true,
+                profile: {
+                  select: {
+                    avatarUrl: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -211,6 +265,11 @@ export class HostService {
             userId: {
               notIn: [...blockedUserIds],
             },
+          },
+          select: {
+            userId: true,
+            status: true,
+            checkedInAt: true,
           },
         },
         joinRequests: {
@@ -221,9 +280,25 @@ export class HostService {
               notIn: [...blockedUserIds],
             },
           },
-          include: {
+          select: {
+            id: true,
+            eventId: true,
+            userId: true,
+            note: true,
+            status: true,
+            compatibilityScore: true,
+            createdAt: true,
+            reviewedAt: true,
             user: {
-              include: { profile: true },
+              select: {
+                id: true,
+                displayName: true,
+                profile: {
+                  select: {
+                    avatarUrl: true,
+                  },
+                },
+              },
             },
           },
           orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
@@ -239,8 +314,16 @@ export class HostService {
             },
           },
         },
-        liveState: true,
-        chat: true,
+        liveState: {
+          select: {
+            status: true,
+          },
+        },
+        chat: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
 
@@ -289,12 +372,21 @@ export class HostService {
   async approveRequest(userId: string, requestId: string) {
     const request = await this.prismaService.client.eventJoinRequest.findUnique({
       where: { id: requestId },
-      include: {
+      select: {
+        id: true,
+        eventId: true,
+        userId: true,
+        status: true,
         event: {
-          include: { chat: true },
-        },
-        user: {
-          include: { profile: true },
+          select: {
+            hostId: true,
+            title: true,
+            chat: {
+              select: {
+                id: true,
+              },
+            },
+          },
         },
       },
     });
@@ -341,10 +433,30 @@ export class HostService {
 
       const next = await tx.eventJoinRequest.findUnique({
         where: { id: request.id },
-        include: {
-          event: true,
+        select: {
+          id: true,
+          eventId: true,
+          note: true,
+          status: true,
+          compatibilityScore: true,
+          createdAt: true,
+          reviewedAt: true,
+          event: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
           user: {
-            include: { profile: true },
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  avatarUrl: true,
+                },
+              },
+            },
           },
         },
       });
@@ -445,10 +557,16 @@ export class HostService {
   async rejectRequest(userId: string, requestId: string) {
     const request = await this.prismaService.client.eventJoinRequest.findUnique({
       where: { id: requestId },
-      include: {
-        event: true,
-        user: {
-          include: { profile: true },
+      select: {
+        id: true,
+        eventId: true,
+        userId: true,
+        status: true,
+        event: {
+          select: {
+            hostId: true,
+            title: true,
+          },
         },
       },
     });
@@ -492,10 +610,30 @@ export class HostService {
 
       const next = await tx.eventJoinRequest.findUnique({
         where: { id: requestId },
-        include: {
-          event: true,
+        select: {
+          id: true,
+          eventId: true,
+          note: true,
+          status: true,
+          compatibilityScore: true,
+          createdAt: true,
+          reviewedAt: true,
+          event: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
           user: {
-            include: { profile: true },
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  avatarUrl: true,
+                },
+              },
+            },
           },
         },
       });
@@ -700,12 +838,7 @@ export class HostService {
   }
 
   private buildEventCursorWhere(
-    cursor:
-      | {
-          id: string;
-          startsAt: Date;
-        }
-      | null,
+    cursor: HostEventCursor | null,
   ) {
     if (cursor == null) {
       return {};
@@ -729,12 +862,7 @@ export class HostService {
   }
 
   private buildRequestCursorWhere(
-    cursor:
-      | {
-          id: string;
-          createdAt: Date;
-        }
-      | null,
+    cursor: HostRequestCursor | null,
   ) {
     if (cursor == null) {
       return {};
@@ -757,26 +885,39 @@ export class HostService {
     };
   }
 
-  private decodeCursor(cursor?: string) {
+  private decodeCursorPayload(cursor?: string) {
     if (!cursor) {
       return null;
     }
 
     try {
-      return decodeCursor(cursor)?.value ?? null;
+      const decoded = decodeCursor(cursor);
+      if (decoded?.value) {
+        return decoded;
+      }
     } catch {
-      return cursor;
+      return { value: cursor };
     }
+
+    return null;
   }
 
-  private async resolveEventCursor(cursor?: string) {
-    const eventId = this.decodeCursor(cursor);
-    if (eventId == null) {
+  private async resolveEventCursor(cursor?: string): Promise<HostEventCursor | null> {
+    const decoded = this.decodeCursorPayload(cursor);
+    if (decoded == null) {
       return null;
     }
 
+    const startsAt = this.parseCursorDate(decoded.startsAt);
+    if (startsAt) {
+      return {
+        id: decoded.value,
+        startsAt,
+      };
+    }
+
     return this.prismaService.client.event.findUnique({
-      where: { id: eventId },
+      where: { id: decoded.value },
       select: {
         id: true,
         startsAt: true,
@@ -784,18 +925,49 @@ export class HostService {
     });
   }
 
-  private async resolveRequestCursor(cursor?: string) {
-    const requestId = this.decodeCursor(cursor);
-    if (requestId == null) {
+  private async resolveRequestCursor(cursor?: string): Promise<HostRequestCursor | null> {
+    const decoded = this.decodeCursorPayload(cursor);
+    if (decoded == null) {
       return null;
     }
 
+    const createdAt = this.parseCursorDate(decoded.createdAt);
+    if (createdAt) {
+      return {
+        id: decoded.value,
+        createdAt,
+      };
+    }
+
     return this.prismaService.client.eventJoinRequest.findUnique({
-      where: { id: requestId },
+      where: { id: decoded.value },
       select: {
         id: true,
         createdAt: true,
       },
     });
+  }
+
+  private encodeEventCursor(event: HostEventCursor) {
+    return encodeCursor({
+      value: event.id,
+      startsAt: event.startsAt.toISOString(),
+    });
+  }
+
+  private encodeRequestCursor(request: HostRequestCursor) {
+    return encodeCursor({
+      value: request.id,
+      createdAt: request.createdAt.toISOString(),
+    });
+  }
+
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
   }
 }

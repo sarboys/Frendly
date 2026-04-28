@@ -44,6 +44,8 @@ import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
 import { SafetyService } from './services/safety.service';
 import { SettingsService } from './services/settings.service';
+import { SocialAuthService } from './services/social-auth.service';
+import { SocialIdentityVerifier } from './services/social-identity-verifier.service';
 import { StoriesService } from './services/stories.service';
 import { TelegramAuthService } from './services/telegram-auth.service';
 import { PhoneOtpService } from './services/phone-otp.service';
@@ -97,6 +99,8 @@ import { VerificationService } from './services/verification.service';
     ProfileService,
     SafetyService,
     SettingsService,
+    SocialAuthService,
+    SocialIdentityVerifier,
     StoriesService,
     TelegramAuthService,
     SubscriptionService,

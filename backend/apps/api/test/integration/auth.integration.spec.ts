@@ -3,14 +3,32 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
+import { signAccessToken } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
+import {
+  SocialIdentityVerifier,
+  VerifiedSocialIdentity,
+} from '../../src/services/social-identity-verifier.service';
 
 jest.setTimeout(30000);
 
 describe('auth flows', () => {
   let app: INestApplication;
   let prisma: PrismaClient;
+  const socialIdentityVerifier = {
+    verifyGoogleIdToken: jest.fn<Promise<VerifiedSocialIdentity>, [string]>(),
+    verifyYandexAuthCode: jest.fn<
+      Promise<VerifiedSocialIdentity>,
+      [
+        {
+          code: string;
+          codeVerifier: string;
+          redirectUri: string;
+        },
+      ]
+    >(),
+  };
   let phoneCounter = 0;
   let telegramCounter = 0;
   let otpRequestCounter = 0;
@@ -20,7 +38,10 @@ describe('auth flows', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ApiAppModule],
-    }).compile();
+    })
+      .overrideProvider(SocialIdentityVerifier)
+      .useValue(socialIdentityVerifier)
+      .compile();
 
     app = moduleRef.createNestApplication();
     await app.init();
@@ -80,6 +101,40 @@ describe('auth flows', () => {
       userId: string;
       accessToken: string;
       refreshToken: string;
+    };
+  };
+
+  const createSocialAccessToken = async (
+    provider: 'google' | 'yandex',
+    email: string,
+  ) => {
+    const userId = `user-social-${randomUUID()}`;
+    const sessionId = randomUUID();
+    const refreshTokenId = randomUUID();
+
+    await (prisma as any).user.create({
+      data: {
+        id: userId,
+        displayName: 'Social User',
+        email,
+        profile: { create: {} },
+        onboarding: { create: { interests: [] } },
+        settings: { create: {} },
+        verification: { create: {} },
+      },
+    });
+    await (prisma as any).session.create({
+      data: {
+        id: sessionId,
+        userId,
+        refreshTokenId,
+        provider,
+      },
+    });
+
+    return {
+      userId,
+      accessToken: signAccessToken(userId, sessionId),
     };
   };
 
@@ -144,6 +199,9 @@ describe('auth flows', () => {
     await (prisma as any).authAuditEvent.deleteMany();
     await (prisma as any).telegramLoginSession.deleteMany();
     await (prisma as any).telegramAccount.deleteMany();
+    await (prisma as any).externalAuthAccount?.deleteMany();
+    socialIdentityVerifier.verifyGoogleIdToken.mockReset();
+    socialIdentityVerifier.verifyYandexAuthCode.mockReset();
 
     process.env.ENABLE_DEV_AUTH = 'true';
     process.env.ENABLE_DEV_OTP = 'true';
@@ -153,6 +211,98 @@ describe('auth flows', () => {
     process.env.TELEGRAM_BOT_USERNAME = 'frendly_auth_test_bot';
     process.env.TELEGRAM_POLL_INTERVAL_MS = '1500';
     process.env.TELEGRAM_INTERNAL_SECRET = 'test-internal-secret';
+  });
+
+  it('exchanges a verified google identity for app tokens and reuses the link', async () => {
+    const providerUserId = `google-${randomUUID()}`;
+    socialIdentityVerifier.verifyGoogleIdToken.mockResolvedValue({
+      provider: 'google',
+      providerUserId,
+      email: `Google.User-${randomUUID()}@Example.COM`,
+      emailVerified: true,
+      displayName: 'Google User',
+      avatarUrl: 'https://lh3.googleusercontent.com/a/test-user',
+    });
+
+    const firstResponse = await request(app.getHttpServer())
+      .post('/auth/google/verify')
+      .send({ idToken: 'google-id-token' })
+      .expect(201);
+
+    expect(firstResponse.body.userId).toEqual(expect.any(String));
+    expect(firstResponse.body.isNewUser).toBe(true);
+    expect(firstResponse.body.accessToken).toEqual(expect.any(String));
+    expect(firstResponse.body.refreshToken).toEqual(expect.any(String));
+
+    const user = await prisma.user.findUnique({
+      where: { id: firstResponse.body.userId },
+      include: { sessions: true },
+    });
+    const account = await (prisma as any).externalAuthAccount.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider: 'google',
+          providerUserId,
+        },
+      },
+    });
+
+    expect(user?.email).toMatch(/^google\.user-[a-f0-9-]+@example\.com$/);
+    expect(user?.sessions.some((session) => session.provider === 'google')).toBe(
+      true,
+    );
+    expect(account.userId).toBe(firstResponse.body.userId);
+
+    const secondResponse = await request(app.getHttpServer())
+      .post('/auth/google/verify')
+      .send({ idToken: 'google-id-token' })
+      .expect(201);
+
+    expect(secondResponse.body.userId).toBe(firstResponse.body.userId);
+    expect(secondResponse.body.isNewUser).toBe(false);
+  });
+
+  it('exchanges a verified yandex auth code for app tokens', async () => {
+    const providerUserId = `yandex-${randomUUID()}`;
+    socialIdentityVerifier.verifyYandexAuthCode.mockResolvedValue({
+      provider: 'yandex',
+      providerUserId,
+      email: `Yandex.User-${randomUUID()}@Example.COM`,
+      displayName: 'Yandex User',
+      avatarUrl: 'https://avatars.yandex.net/get-yapic/test',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/yandex/verify')
+      .send({
+        code: 'yandex-code',
+        codeVerifier: 'verifier',
+        redirectUri: 'frendly://oauth/yandex',
+      })
+      .expect(201);
+
+    expect(response.body.userId).toEqual(expect.any(String));
+    expect(response.body.isNewUser).toBe(true);
+    expect(response.body.accessToken).toEqual(expect.any(String));
+    expect(response.body.refreshToken).toEqual(expect.any(String));
+    expect(socialIdentityVerifier.verifyYandexAuthCode).toHaveBeenCalledWith({
+      code: 'yandex-code',
+      codeVerifier: 'verifier',
+      redirectUri: 'frendly://oauth/yandex',
+    });
+
+    const account = await (prisma as any).externalAuthAccount.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider: 'yandex',
+          providerUserId,
+        },
+      },
+      include: { user: true },
+    });
+
+    expect(account.userId).toBe(response.body.userId);
+    expect(account.user.email).toMatch(/^yandex\.user-[a-f0-9-]+@example\.com$/);
   });
 
   it('returns access and refresh token for dev login when dev auth is enabled', async () => {
@@ -596,6 +746,88 @@ describe('auth flows', () => {
     });
 
     expect(telegramAccount.userId).toBe('user-me');
+  });
+
+  it('requires email in onboarding for phone and telegram sessions', async () => {
+    const session = await loginWithPhone();
+    const baseOnboarding = {
+      intent: 'both',
+      gender: 'male',
+      birthDate: '2000-04-24',
+      city: 'Москва',
+      area: 'Покровка',
+      interests: ['Кофе', 'Кино'],
+      vibe: 'calm',
+    };
+
+    const missingEmailResponse = await request(app.getHttpServer())
+      .put('/onboarding/me')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .send(baseOnboarding);
+
+    expect(missingEmailResponse.status).toBe(400);
+    expect(missingEmailResponse.body.code).toBe('required_email');
+
+    const savedResponse = await request(app.getHttpServer())
+      .put('/onboarding/me')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .send({
+        ...baseOnboarding,
+        email: `Phone.User-${randomUUID()}@Example.COM`,
+      })
+      .expect(200);
+
+    expect(savedResponse.body.requiredContact).toBeNull();
+    expect(savedResponse.body.email).toMatch(
+      /^phone\.user-[a-f0-9-]+@example\.com$/,
+    );
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+    });
+    expect(user?.email).toBe(savedResponse.body.email);
+  });
+
+  it('requires phone in onboarding for google and yandex sessions', async () => {
+    const socialSession = await createSocialAccessToken(
+      'google',
+      `social-${randomUUID()}@example.com`,
+    );
+    const phoneNumber = nextPhoneNumber();
+    const baseOnboarding = {
+      intent: 'both',
+      gender: 'female',
+      birthDate: '2000-04-24',
+      city: 'Москва',
+      area: 'Покровка',
+      interests: ['Кофе', 'Кино'],
+      vibe: 'calm',
+    };
+
+    const missingPhoneResponse = await request(app.getHttpServer())
+      .put('/onboarding/me')
+      .set('authorization', `Bearer ${socialSession.accessToken}`)
+      .send(baseOnboarding);
+
+    expect(missingPhoneResponse.status).toBe(400);
+    expect(missingPhoneResponse.body.code).toBe('required_phone_number');
+
+    const savedResponse = await request(app.getHttpServer())
+      .put('/onboarding/me')
+      .set('authorization', `Bearer ${socialSession.accessToken}`)
+      .send({
+        ...baseOnboarding,
+        phoneNumber,
+      })
+      .expect(200);
+
+    expect(savedResponse.body.requiredContact).toBeNull();
+    expect(savedResponse.body.phoneNumber).toBe(phoneNumber);
+
+    const user = await prisma.user.findUnique({
+      where: { id: socialSession.userId },
+    });
+    expect(user?.phoneNumber).toBe(phoneNumber);
   });
 
   it('creates a new user and telegram account for unknown phone', async () => {

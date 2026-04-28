@@ -2,6 +2,54 @@ import { ChatsService } from '../../src/services/chats.service';
 import { ChatKind } from '@prisma/client';
 
 describe('ChatsService unit', () => {
+  const makeChatListItem = (
+    id: string,
+    updatedAt: Date,
+  ) => ({
+    id,
+    kind: ChatKind.meetup,
+    title: `Chat ${id}`,
+    emoji: '*',
+    updatedAt,
+    event: {
+      id: `event-${id}`,
+      hostId: 'host-user',
+      startsAt: new Date('2026-04-26T17:00:00.000Z'),
+      durationMinutes: 120,
+      isAfterDark: false,
+      afterDarkGlow: null,
+      liveState: {
+        status: 'idle',
+      },
+    },
+    sourceEvent: null,
+    members: [],
+    messages: [],
+    eveningRoute: null,
+    eveningSession: null,
+  });
+
+  const makeMessage = (
+    id: string,
+    createdAt: Date,
+  ) => ({
+    id,
+    chatId: 'chat-1',
+    senderId: 'user-peer',
+    sender: {
+      id: 'user-peer',
+      displayName: 'Peer',
+      profile: {
+        avatarUrl: null,
+      },
+    },
+    text: `Message ${id}`,
+    clientMessageId: `client-${id}`,
+    createdAt,
+    attachments: [],
+    replyTo: null,
+  });
+
   afterEach(() => {
     delete process.env.CHAT_UNREAD_COUNTER_READS;
     jest.restoreAllMocks();
@@ -242,6 +290,60 @@ describe('ChatsService unit', () => {
       });
   });
 
+  it('uses chat list cursor payload without reading the cursor chat again', async () => {
+    const firstChat = makeChatListItem(
+      'chat-2',
+      new Date('2026-04-24T10:00:00.000Z'),
+    );
+    const secondChat = makeChatListItem(
+      'chat-1',
+      new Date('2026-04-23T10:00:00.000Z'),
+    );
+    const chatFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([firstChat, secondChat])
+      .mockResolvedValueOnce([]);
+    const chatFindUnique = jest.fn().mockResolvedValue({
+      id: firstChat.id,
+      updatedAt: firstChat.updatedAt,
+    });
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: chatFindMany,
+          findUnique: chatFindUnique,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        $queryRaw: jest.fn().mockResolvedValue([]),
+      },
+    } as any);
+
+    const firstPage = await service.listChats('user-me', 'meetup', { limit: 1 });
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    await service.listChats('user-me', 'meetup', {
+      cursor: firstPage.nextCursor!,
+      limit: 1,
+    });
+
+    expect(chatFindUnique).not.toHaveBeenCalled();
+    expect(chatFindMany.mock.calls[1][0].where.OR).toEqual([
+      {
+        updatedAt: {
+          lt: firstChat.updatedAt,
+        },
+      },
+      {
+        updatedAt: firstChat.updatedAt,
+        id: {
+          lt: firstChat.id,
+        },
+      },
+    ]);
+  });
+
   it('does not expose blocked sender content through reply previews', async () => {
     const service = new ChatsService({
       client: {
@@ -313,6 +415,121 @@ describe('ChatsService unit', () => {
         },
       ],
     });
+  });
+
+  it('starts latest event lookup while message page is still loading', async () => {
+    let resolveMessages!: (value: any[]) => void;
+    const messageFindMany = jest.fn(
+      () =>
+        new Promise<any[]>((resolve) => {
+          resolveMessages = resolve;
+        }),
+    );
+    const realtimeEventFindFirst = jest.fn().mockResolvedValue({ id: BigInt(7) });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: ChatKind.meetup,
+              event: {
+                hostId: 'user-host',
+              },
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findMany: messageFindMany,
+        },
+        realtimeEvent: {
+          findFirst: realtimeEventFindFirst,
+        },
+      },
+    } as any);
+
+    const resultPromise = service.getMessages('user-me', 'chat-1', { limit: 20 });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(messageFindMany).toHaveBeenCalledTimes(1);
+    expect(realtimeEventFindFirst).toHaveBeenCalledTimes(1);
+
+    resolveMessages([]);
+
+    await expect(resultPromise).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+      lastEventId: '7',
+    });
+  });
+
+  it('uses message cursor payload without reading the cursor message again', async () => {
+    const newerMessage = makeMessage(
+      'message-2',
+      new Date('2026-04-24T10:00:00.000Z'),
+    );
+    const olderMessage = makeMessage(
+      'message-1',
+      new Date('2026-04-24T09:00:00.000Z'),
+    );
+    const messageFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([newerMessage, olderMessage])
+      .mockResolvedValueOnce([]);
+    const messageFindFirst = jest.fn().mockResolvedValue({
+      id: newerMessage.id,
+      createdAt: newerMessage.createdAt,
+    });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: ChatKind.meetup,
+              event: {
+                hostId: 'user-host',
+              },
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findFirst: messageFindFirst,
+          findMany: messageFindMany,
+        },
+        realtimeEvent: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+      },
+    } as any);
+
+    const firstPage = await service.getMessages('user-me', 'chat-1', { limit: 1 });
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    await service.getMessages('user-me', 'chat-1', {
+      cursor: firstPage.nextCursor!,
+      limit: 1,
+    });
+
+    expect(messageFindFirst).not.toHaveBeenCalled();
+    expect(messageFindMany.mock.calls[1][0].where.OR).toEqual([
+      {
+        createdAt: {
+          lt: newerMessage.createdAt,
+        },
+      },
+      {
+        createdAt: newerMessage.createdAt,
+        id: {
+          lt: newerMessage.id,
+        },
+      },
+    ]);
   });
 
   it('checks meetup membership without loading the full member list', async () => {

@@ -278,34 +278,167 @@ describe('DatingService unit', () => {
 
     expect(userFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
+          id: true,
+          displayName: true,
+          verified: true,
+          online: true,
           profile: expect.objectContaining({
-            include: expect.objectContaining({
+            select: expect.objectContaining({
+              age: true,
+              area: true,
+              bio: true,
+              vibe: true,
+              avatarUrl: true,
               photos: expect.objectContaining({
                 take: 6,
+                select: {
+                  id: true,
+                  sortOrder: true,
+                  mediaAsset: {
+                    select: {
+                      id: true,
+                      kind: true,
+                      mimeType: true,
+                      byteSize: true,
+                      durationMs: true,
+                      publicUrl: true,
+                    },
+                  },
+                },
               }),
             }),
           }),
+          onboarding: {
+            select: {
+              interests: true,
+            },
+          },
         }),
       }),
     );
     expect(datingActionFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
+          actorUserId: true,
           actorUser: expect.objectContaining({
-            include: expect.objectContaining({
+            select: expect.objectContaining({
+              id: true,
+              displayName: true,
+              verified: true,
+              online: true,
               profile: expect.objectContaining({
-                include: expect.objectContaining({
+                select: expect.objectContaining({
+                  age: true,
+                  area: true,
+                  bio: true,
+                  vibe: true,
+                  avatarUrl: true,
                   photos: expect.objectContaining({
                     take: 6,
+                    select: {
+                      id: true,
+                      sortOrder: true,
+                      mediaAsset: {
+                        select: {
+                          id: true,
+                          kind: true,
+                          mimeType: true,
+                          byteSize: true,
+                          durationMs: true,
+                          publicUrl: true,
+                        },
+                      },
+                    },
                   }),
                 }),
               }),
+              onboarding: {
+                select: {
+                  interests: true,
+                },
+              },
             }),
           }),
         }),
       }),
     );
+  });
+
+  it('starts previous dating action lookup while target profile is still loading', async () => {
+    let resolveTarget!: (value: any) => void;
+    const userFindFirst = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveTarget = resolve;
+        }),
+    );
+    const datingActionFindUnique = jest.fn().mockResolvedValue(null);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              displayName: 'Никита',
+              profile: {
+                gender: 'male',
+              },
+              onboarding: {
+                gender: 'male',
+                interests: [],
+              },
+            }),
+            findFirst: userFindFirst,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findUnique: datingActionFindUnique,
+            upsert: jest.fn().mockResolvedValue({}),
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+    );
+
+    const resultPromise = service.recordAction('user-me', {
+      targetUserId: 'user-sonya',
+      action: 'pass',
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(userFindFirst).toHaveBeenCalledTimes(1);
+    expect(datingActionFindUnique).toHaveBeenCalledTimes(1);
+
+    resolveTarget({
+      id: 'user-sonya',
+      displayName: 'Соня',
+      verified: true,
+      online: true,
+      profile: {
+        age: 26,
+        area: 'Замоскворечье',
+        bio: 'Люблю тихие ужины.',
+        vibe: 'Спокойно',
+        avatarUrl: null,
+        photos: [],
+      },
+      onboarding: {
+        interests: [],
+      },
+    });
+
+    await expect(resultPromise).resolves.toMatchObject({
+      ok: true,
+      action: 'pass',
+      matched: false,
+    });
   });
 
   it('creates a central notification when a user receives a dating like', async () => {

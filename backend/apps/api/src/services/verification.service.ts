@@ -2,6 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
+const verificationResponseSelect = {
+  status: true,
+  selfieDone: true,
+  documentDone: true,
+  reviewedAt: true,
+};
+
 @Injectable()
 export class VerificationService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -9,6 +16,7 @@ export class VerificationService {
   async getVerification(userId: string) {
     const verification = await this.prismaService.client.userVerification.findUnique({
       where: { userId },
+      select: verificationResponseSelect,
     });
 
     return {
@@ -28,6 +36,7 @@ export class VerificationService {
 
     const current = await this.prismaService.client.userVerification.findUnique({
       where: { userId },
+      select: verificationResponseSelect,
     });
 
     if (current?.status === 'verified') {
@@ -61,6 +70,7 @@ export class VerificationService {
         documentDone: nextDocumentDone,
         status: nextStatus,
       },
+      select: verificationResponseSelect,
     });
 
     return {

@@ -5,6 +5,7 @@ import { CurrentUser } from '../common/current-user.decorator';
 import { Public } from '../common/public.decorator';
 import { RequestWithContext } from '../common/request-context';
 import { AuthService } from '../services/auth.service';
+import { SocialAuthService } from '../services/social-auth.service';
 import { TelegramAuthService } from '../services/telegram-auth.service';
 
 class DevLoginRequestBody implements DevLoginRequest {
@@ -52,10 +53,31 @@ class TelegramStartRequest {
   startToken?: string;
 }
 
+class GoogleVerifyRequest {
+  @IsString()
+  @IsNotEmpty()
+  idToken!: string;
+}
+
+class YandexVerifyRequest {
+  @IsString()
+  @IsNotEmpty()
+  code!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  codeVerifier!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  redirectUri!: string;
+}
+
 @Controller()
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly socialAuthService: SocialAuthService,
     private readonly telegramAuthService: TelegramAuthService,
   ) {}
 
@@ -132,6 +154,39 @@ export class AuthController {
       ip: request.ip,
       userAgent: request.get('user-agent') ?? undefined,
     });
+  }
+
+  @Public()
+  @Post('auth/google/verify')
+  verifyGoogleAuth(
+    @Body() body: GoogleVerifyRequest,
+    @Req() request: RequestWithContext,
+  ) {
+    return this.socialAuthService.verifyGoogleIdToken(body.idToken, {
+      requestId: request.context.requestId,
+      ip: request.ip,
+      userAgent: request.get('user-agent') ?? undefined,
+    });
+  }
+
+  @Public()
+  @Post('auth/yandex/verify')
+  verifyYandexAuth(
+    @Body() body: YandexVerifyRequest,
+    @Req() request: RequestWithContext,
+  ) {
+    return this.socialAuthService.verifyYandexAuthCode(
+      {
+        code: body.code,
+        codeVerifier: body.codeVerifier,
+        redirectUri: body.redirectUri,
+      },
+      {
+        requestId: request.context.requestId,
+        ip: request.ip,
+        userAgent: request.get('user-agent') ?? undefined,
+      },
+    );
   }
 
   @Post('auth/logout')

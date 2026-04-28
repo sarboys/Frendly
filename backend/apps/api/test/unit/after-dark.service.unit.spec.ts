@@ -1,6 +1,37 @@
 import { AfterDarkService } from '../../src/services/after-dark.service';
 
 describe('AfterDarkService', () => {
+  const makeListEvent = (
+    id: string,
+    startsAt: Date,
+  ) => ({
+    id,
+    title: `Event ${id}`,
+    emoji: '*',
+    startsAt,
+    place: 'Center',
+    distanceKm: 1,
+    capacity: 20,
+    vibe: 'Quiet',
+    afterDarkCategory: null,
+    afterDarkGlow: null,
+    dressCode: null,
+    ageRange: null,
+    ratioLabel: null,
+    consentRequired: false,
+    priceMode: 'free',
+    priceAmountFrom: null,
+    priceAmountTo: null,
+    participants: [],
+    _count: {
+      participants: 3,
+    },
+    joinRequests: [],
+    host: {
+      verified: true,
+    },
+  });
+
   it('does not load all event participants for after-dark list summaries', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const client = {
@@ -42,6 +73,11 @@ describe('AfterDarkService', () => {
     expect(eventFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({
+          host: {
+            select: {
+              verified: true,
+            },
+          },
           participants: expect.objectContaining({
             where: {
               userId: 'user-me',
@@ -65,6 +101,77 @@ describe('AfterDarkService', () => {
         }),
       }),
     );
+  });
+
+  it('uses after-dark cursor payload without reading the cursor event again', async () => {
+    const firstEvent = makeListEvent(
+      'event-1',
+      new Date('2026-01-01T20:00:00Z'),
+    );
+    const secondEvent = makeListEvent(
+      'event-2',
+      new Date('2026-01-02T20:00:00Z'),
+    );
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([firstEvent, secondEvent])
+      .mockResolvedValueOnce([]);
+    const eventFindFirst = jest.fn().mockResolvedValue({
+      id: firstEvent.id,
+      startsAt: firstEvent.startsAt,
+    });
+    const client = {
+      userSettings: {
+        findUnique: jest.fn().mockResolvedValue({
+          afterDarkAgeConfirmedAt: new Date('2026-01-01T00:00:00Z'),
+          afterDarkCodeAcceptedAt: new Date('2026-01-01T00:00:00Z'),
+        }),
+      },
+      userVerification: {
+        findUnique: jest.fn().mockResolvedValue({ status: 'verified' }),
+      },
+      event: {
+        count: jest.fn().mockResolvedValue(2),
+        findFirst: eventFindFirst,
+        findMany: eventFindMany,
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+    const service = new AfterDarkService(
+      { client } as any,
+      {
+        getCurrent: jest.fn().mockResolvedValue({
+          status: 'active',
+          plan: 'month',
+        }),
+      } as any,
+      {} as any,
+    );
+
+    const firstPage = await service.listEvents('user-me', { limit: 1 });
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    await service.listEvents('user-me', {
+      cursor: firstPage.nextCursor!,
+      limit: 1,
+    });
+
+    expect(eventFindFirst).not.toHaveBeenCalled();
+    expect(eventFindMany.mock.calls[1][0].where.OR).toEqual([
+      {
+        startsAt: {
+          gt: firstEvent.startsAt,
+        },
+      },
+      {
+        startsAt: firstEvent.startsAt,
+        id: {
+          gt: firstEvent.id,
+        },
+      },
+    ]);
   });
 
   it('does not load all event participants for after-dark detail', async () => {
@@ -141,6 +248,20 @@ describe('AfterDarkService', () => {
     expect(eventFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({
+          host: {
+            select: {
+              id: true,
+              displayName: true,
+              verified: true,
+              profile: {
+                select: {
+                  rating: true,
+                  meetupCount: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
           participants: expect.objectContaining({
             where: {
               userId: 'user-me',
@@ -159,6 +280,11 @@ describe('AfterDarkService', () => {
                   },
                 },
               },
+            },
+          },
+          chat: {
+            select: {
+              id: true,
             },
           },
         }),

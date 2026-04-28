@@ -143,6 +143,82 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('uses event list cursor payload without reading the cursor event again', async () => {
+    const firstEvent = eventFixture({
+      id: 'event-near',
+      distanceKm: 0.4,
+      startsAt: new Date('2026-05-01T18:00:00.000Z'),
+    });
+    const secondEvent = eventFixture({
+      id: 'event-far',
+      distanceKm: 0.8,
+      startsAt: new Date('2026-05-01T19:00:00.000Z'),
+    });
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([firstEvent, secondEvent])
+      .mockResolvedValueOnce([]);
+    const eventFindUnique = jest.fn().mockResolvedValue({
+      id: firstEvent.id,
+      distanceKm: firstEvent.distanceKm,
+      startsAt: firstEvent.startsAt,
+    });
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findMany: jest.fn().mockResolvedValue([]),
+            groupBy: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const firstPage = await service.listEvents('user-me', {
+      filter: 'nearby',
+      limit: 1,
+    });
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+      cursor: firstPage.nextCursor!,
+      limit: 1,
+    });
+
+    expect(eventFindUnique).not.toHaveBeenCalled();
+    expect(eventFindMany.mock.calls[1][0].where.AND).toEqual(
+      expect.arrayContaining([
+        {
+          OR: [
+            {
+              distanceKm: {
+                gt: firstEvent.distanceKm,
+              },
+            },
+            {
+              distanceKm: firstEvent.distanceKm,
+              id: {
+                gt: firstEvent.id,
+              },
+            },
+          ],
+        },
+      ]),
+    );
+  });
+
   it('bounds event detail attendees without losing access for joined viewers outside the preview', async () => {
     const participants = Array.from({ length: 24 }, (_, index) => ({
       userId: `guest-${index}`,
@@ -204,10 +280,61 @@ describe('EventsService unit', () => {
     expect(eventFindUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({
+          host: {
+            select: {
+              id: true,
+              displayName: true,
+              verified: true,
+              profile: {
+                select: {
+                  rating: true,
+                  meetupCount: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
           participants: expect.objectContaining({
             take: 25,
             orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+            select: {
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  profile: {
+                    select: {
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+            },
           }),
+          joinRequests: {
+            where: { userId: 'user-me' },
+            take: 1,
+            select: {
+              userId: true,
+              status: true,
+              reviewedById: true,
+            },
+          },
+          attendances: {
+            where: { userId: 'user-me' },
+            take: 1,
+            select: {
+              userId: true,
+              status: true,
+            },
+          },
+          liveState: {
+            select: { status: true },
+          },
+          chat: {
+            select: { id: true },
+          },
         }),
       }),
     );
@@ -296,11 +423,42 @@ describe('EventsService unit', () => {
         notIn: ['blocked-author'],
       },
     });
+    expect(liveEventQuery.include.participants.select).toEqual({
+      userId: true,
+      user: {
+        select: {
+          id: true,
+          displayName: true,
+          verified: true,
+          online: true,
+          profile: {
+            select: {
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    });
     expect(liveEventQuery.include.attendances).toEqual({
       where: {
         userId: {
           notIn: ['blocked-author'],
         },
+      },
+      select: {
+        userId: true,
+        status: true,
+      },
+    });
+    expect(liveEventQuery.include.liveState).toEqual({
+      select: {
+        status: true,
+        startedAt: true,
+      },
+    });
+    expect(liveEventQuery.include.chat).toEqual({
+      select: {
+        id: true,
       },
     });
     expect(storyCount).toHaveBeenCalledWith({
@@ -313,6 +471,135 @@ describe('EventsService unit', () => {
     });
     expect(userBlockFindMany).toHaveBeenCalledTimes(1);
     expect(result.storiesCount).toBe(3);
+  });
+
+  it('loads check-in attendees with preview fields only', async () => {
+    const eventFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ hostId: 'host-1' })
+      .mockResolvedValueOnce({
+        id: 'event-1',
+        title: 'Check-in',
+        place: 'Cafe',
+        latitude: null,
+        longitude: null,
+        participants: [
+          {
+            userId: 'user-me',
+            user: {
+              id: 'user-me',
+              displayName: 'Me',
+              verified: true,
+              online: true,
+              profile: { avatarUrl: null },
+            },
+          },
+        ],
+        attendances: [{ userId: 'user-me', status: 'checked_in' }],
+      });
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'participant-1' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.getCheckIn('user-me', 'event-1');
+
+    const checkInQuery = eventFindUnique.mock.calls[1][0];
+    expect(checkInQuery.include.participants.select).toEqual({
+      userId: true,
+      user: {
+        select: {
+          id: true,
+          displayName: true,
+          verified: true,
+          online: true,
+          profile: {
+            select: {
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    });
+    expect(checkInQuery.include.attendances.select).toEqual({
+      userId: true,
+      status: true,
+    });
+  });
+
+  it('loads after-party attendees with preview fields only', async () => {
+    const eventFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ hostId: 'host-1' })
+      .mockResolvedValueOnce({
+        id: 'event-1',
+        title: 'After-party',
+        emoji: '*',
+        participants: [
+          {
+            userId: 'user-peer',
+            user: {
+              displayName: 'Peer',
+              profile: { avatarUrl: null },
+            },
+          },
+        ],
+        feedbacks: [],
+        favorites: [],
+      });
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'participant-1' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.getAfterParty('user-me', 'event-1');
+
+    const afterPartyQuery = eventFindUnique.mock.calls[1][0];
+    expect(afterPartyQuery.include.participants.select).toEqual({
+      userId: true,
+      user: {
+        select: {
+          displayName: true,
+          profile: {
+            select: {
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    });
+    expect(afterPartyQuery.include.feedbacks.select).toEqual({
+      vibe: true,
+      hostRating: true,
+      note: true,
+    });
+    expect(afterPartyQuery.include.favorites.select).toEqual({
+      targetUserId: true,
+    });
   });
 
   it('hides gender-specific events from users with the opposite gender', async () => {
@@ -518,6 +805,45 @@ describe('EventsService unit', () => {
       'event-far',
     ]);
     expect(result.items[0]!.distance).toBe('0.1 км');
+  });
+
+  it('skips Prisma event scan when PostGIS finds no candidates', async () => {
+    process.env.ENABLE_POSTGIS_EVENT_FEED = 'true';
+    const queryRaw = jest.fn().mockResolvedValue([]);
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          $queryRaw: queryRaw,
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 55.75,
+      longitude: 37.61,
+      radiusKm: 25,
+      limit: 20,
+    } as any);
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(eventFindMany).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      items: [],
+      nextCursor: null,
+    });
   });
 
   it('creates notification for host when a join request is submitted', async () => {

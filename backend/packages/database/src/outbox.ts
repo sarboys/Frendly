@@ -7,6 +7,7 @@ export const OUTBOX_EVENT_TYPES = {
   notificationCreate: 'notification.create',
   realtimePublish: 'realtime.publish',
   attachmentReady: 'attachment.ready',
+  safetySosDelivery: 'safety.sos_delivery',
 } as const;
 
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[keyof typeof OUTBOX_EVENT_TYPES];

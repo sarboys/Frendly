@@ -21,6 +21,21 @@ const ALLOWED_AVATAR_MIME_TYPES = new Set([
 const BYPASS_S3_UPLOAD = process.env.NODE_ENV !== 'production';
 export const MAX_PROFILE_ASSET_UPLOAD_BYTES = 10 * 1024 * 1024;
 const INLINE_MEDIA_BUCKET = '__inline__';
+const PROFILE_PHOTO_MEDIA_SELECT = {
+  id: true,
+  kind: true,
+  mimeType: true,
+  byteSize: true,
+  durationMs: true,
+  publicUrl: true,
+} satisfies Prisma.MediaAssetSelect;
+const EXISTING_AVATAR_ASSET_SELECT = {
+  id: true,
+  ownerId: true,
+  kind: true,
+  status: true,
+  publicUrl: true,
+} satisfies Prisma.MediaAssetSelect;
 
 @Injectable()
 export class ProfileService {
@@ -97,6 +112,7 @@ export class ProfileService {
     this.assertAvatarObjectKey(userId, objectKey);
     const existing = await this.prismaService.client.mediaAsset.findUnique({
       where: { objectKey },
+      select: EXISTING_AVATAR_ASSET_SELECT,
     });
     if (existing) {
       this.assertExistingAvatarAsset(existing, userId);
@@ -183,6 +199,15 @@ export class ProfileService {
           originalFileName: file.originalname,
           publicUrl: inlinePublicUrl,
         },
+        select: {
+          id: true,
+          kind: true,
+          status: true,
+          mimeType: true,
+          byteSize: true,
+          durationMs: true,
+          publicUrl: true,
+        },
       });
 
       const photo = await tx.profilePhoto.create({
@@ -191,8 +216,19 @@ export class ProfileService {
           mediaAssetId: asset.id,
           sortOrder: 0,
         },
-        include: {
-          mediaAsset: true,
+        select: {
+          id: true,
+          sortOrder: true,
+          mediaAsset: {
+            select: {
+              id: true,
+              kind: true,
+              mimeType: true,
+              byteSize: true,
+              durationMs: true,
+              publicUrl: true,
+            },
+          },
         },
       });
 
@@ -279,6 +315,7 @@ export class ProfileService {
     this.assertAvatarObjectKey(userId, objectKey);
     const existing = await this.prismaService.client.mediaAsset.findUnique({
       where: { objectKey },
+      select: EXISTING_AVATAR_ASSET_SELECT,
     });
     if (existing) {
       return this.returnExistingProfilePhoto(userId, existing);
@@ -522,11 +559,38 @@ export class ProfileService {
   ) {
     return client.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        displayName: true,
+        verified: true,
+        online: true,
         profile: {
-          include: {
+          select: {
+            age: true,
+            birthDate: true,
+            gender: true,
+            city: true,
+            area: true,
+            bio: true,
+            vibe: true,
+            rating: true,
+            meetupCount: true,
+            avatarUrl: true,
             photos: {
-              include: { mediaAsset: true },
+              select: {
+                id: true,
+                sortOrder: true,
+                mediaAsset: {
+                  select: {
+                    id: true,
+                    kind: true,
+                    mimeType: true,
+                    byteSize: true,
+                    durationMs: true,
+                    publicUrl: true,
+                  },
+                },
+              },
               orderBy: { sortOrder: 'asc' },
             },
           },
@@ -555,7 +619,14 @@ export class ProfileService {
   private async _syncPrimaryPhoto(tx: Prisma.TransactionClient, userId: string) {
     const firstPhoto = await tx.profilePhoto.findFirst({
       where: { profileUserId: userId },
-      include: { mediaAsset: true },
+      select: {
+        mediaAssetId: true,
+        mediaAsset: {
+          select: {
+            publicUrl: true,
+          },
+        },
+      },
       orderBy: { sortOrder: 'asc' },
     });
 
@@ -615,6 +686,7 @@ export class ProfileService {
 
       const existing = await this.prismaService.client.mediaAsset.findUnique({
         where: { objectKey: input.objectKey },
+        select: EXISTING_AVATAR_ASSET_SELECT,
       });
       if (!existing) {
         throw error;
@@ -644,6 +716,7 @@ export class ProfileService {
 
       const existing = await this.prismaService.client.mediaAsset.findUnique({
         where: { objectKey: input.objectKey },
+        select: EXISTING_AVATAR_ASSET_SELECT,
       });
       if (!existing) {
         throw error;
@@ -684,7 +757,14 @@ export class ProfileService {
     this.assertExistingAvatarAsset(asset, userId);
     const photo = await this.prismaService.client.profilePhoto.findUnique({
       where: { mediaAssetId: asset.id },
-      include: { mediaAsset: true },
+      select: {
+        profileUserId: true,
+        id: true,
+        sortOrder: true,
+        mediaAsset: {
+          select: PROFILE_PHOTO_MEDIA_SELECT,
+        },
+      },
     });
 
     if (!photo || photo.profileUserId !== userId) {
@@ -750,6 +830,11 @@ export class ProfileService {
           originalFileName: input.originalFileName,
           publicUrl: input.publicUrl,
         },
+        select: {
+          id: true,
+          status: true,
+          publicUrl: true,
+        },
       });
 
       await this.lockProfilePhotoOrder(tx, userId);
@@ -766,8 +851,19 @@ export class ProfileService {
           mediaAssetId: asset.id,
           sortOrder: (lastPhoto?.sortOrder ?? -1) + 1,
         },
-        include: {
-          mediaAsset: true,
+        select: {
+          id: true,
+          sortOrder: true,
+          mediaAsset: {
+            select: {
+              id: true,
+              kind: true,
+              mimeType: true,
+              byteSize: true,
+              durationMs: true,
+              publicUrl: true,
+            },
+          },
         },
       });
 

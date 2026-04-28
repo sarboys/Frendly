@@ -19,6 +19,13 @@ import {
 import { PrismaService } from './prisma.service';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
+type AuthSessionProvider =
+  | 'dev'
+  | 'phone_otp'
+  | 'session'
+  | 'telegram'
+  | 'google'
+  | 'yandex';
 
 interface AuthRequestMeta {
   requestId?: string;
@@ -50,7 +57,7 @@ export class AuthService {
     }
 
     await this.ensureUser(userId, { displayName: 'Dev User' });
-    const session = await this.createSessionRecord(userId);
+    const session = await this.createSessionRecord(userId, 'dev');
     return session.tokens;
   }
 
@@ -146,11 +153,13 @@ export class AuthService {
     }
 
     const payload = this.phoneOtpService.createPayload(now);
-    const delivery = await this.phoneOtpService.deliver(normalized, payload.code, meta);
-    const existingUser = await this.prismaService.client.user.findUnique({
-      where: { phoneNumber: normalized },
-      select: { id: true },
-    });
+    const [delivery, existingUser] = await Promise.all([
+      this.phoneOtpService.deliver(normalized, payload.code, meta),
+      this.prismaService.client.user.findUnique({
+        where: { phoneNumber: normalized },
+        select: { id: true },
+      }),
+    ]);
 
     const challenge = activeChallenge
       ? await this.prismaService.client.phoneOtpChallenge.update({
@@ -349,7 +358,7 @@ export class AuthService {
           where: { id: challenge.id },
           data: { userId: user.id },
         });
-        const session = await this.createSessionRecord(user.id, tx);
+        const session = await this.createSessionRecord(user.id, 'phone_otp', tx);
         this.logger.debug(
           `Verified phone OTP: requestId=${this.requestId(meta)} phone=${maskedPhone} userId=${user.id} sessionId=${session.sessionId}`,
         );
@@ -415,7 +424,7 @@ export class AuthService {
       normalized,
     );
 
-    const session = await this.createSessionRecord(user.id);
+    const session = await this.createSessionRecord(user.id, 'phone_otp');
     this.logger.log(
       `Issued test phone shortcut session: phone=${maskPhoneNumber(normalized)} userId=${user.id} isNewUser=${isNewUser}`,
     );
@@ -605,7 +614,11 @@ export class AuthService {
     return { user, isNewUser };
   }
 
-  async createSessionRecord(userId: string, prisma?: DbClient) {
+  async createSessionRecord(
+    userId: string,
+    provider: AuthSessionProvider = 'session',
+    prisma?: DbClient,
+  ) {
     const sessionId = randomUUID();
     const refreshTokenId = randomUUID();
     const client = prisma ?? this.prismaService.client;
@@ -615,6 +628,7 @@ export class AuthService {
         id: sessionId,
         userId,
         refreshTokenId,
+        provider,
       },
     });
 
@@ -631,7 +645,7 @@ export class AuthService {
   private async writeAuditEvent(
     prisma: DbClient,
     params: {
-      provider: 'dev' | 'phone_otp' | 'session';
+      provider: AuthSessionProvider;
       kind: 'start' | 'verify' | 'refresh' | 'logout';
       result: 'issued' | 'success' | 'rejected' | 'conflict' | 'rate_limited' | 'revoked';
       requestId: string;
@@ -685,8 +699,17 @@ export class AuthService {
   async getMe(userId: string) {
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
-      include: {
-        profile: true,
+      select: {
+        id: true,
+        displayName: true,
+        verified: true,
+        online: true,
+        profile: {
+          select: {
+            area: true,
+            city: true,
+          },
+        },
       },
     });
 

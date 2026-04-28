@@ -101,6 +101,51 @@ describe('MediaService', () => {
     });
   });
 
+  it('starts block lookup while chat media membership is still loading', async () => {
+    let resolveMembership!: (value: any) => void;
+    const chatMemberFindUnique = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveMembership = resolve;
+        }),
+    );
+    const userBlockFindMany = jest.fn().mockResolvedValue([]);
+    const service = new MediaService({
+      client: {
+        chatMember: {
+          findUnique: chatMemberFindUnique,
+        },
+        userBlock: {
+          findMany: userBlockFindMany,
+        },
+      },
+    } as any);
+
+    const resultPromise = (service as any).resolveAssetAccess(
+      {
+        id: 'asset-1',
+        ownerId: 'user-owner',
+        kind: 'chat_attachment',
+        chatId: 'chat-1',
+      },
+      'user-viewer',
+    );
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(chatMemberFindUnique).toHaveBeenCalledTimes(1);
+    expect(userBlockFindMany).toHaveBeenCalledTimes(1);
+
+    resolveMembership({
+      chat: {
+        kind: 'direct',
+        event: null,
+      },
+    });
+
+    await expect(resultPromise).resolves.toEqual({ visibility: 'private' });
+  });
+
   it('denies story media download when the story author is blocked', async () => {
     const client = {
       mediaAsset: {
@@ -119,6 +164,9 @@ describe('MediaService', () => {
       eventStory: {
         findFirst: jest.fn().mockResolvedValue({
           eventId: 'event-1',
+          event: {
+            hostId: 'host-1',
+          },
         }),
       },
       eventParticipant: {
@@ -140,5 +188,56 @@ describe('MediaService', () => {
     ).rejects.toMatchObject({
       code: 'media_forbidden',
     });
+  });
+
+  it('checks story media participation in the story lookup', async () => {
+    const eventStoryFindFirst = jest.fn().mockResolvedValue({
+      eventId: 'event-1',
+      event: {
+        hostId: 'host-1',
+      },
+    });
+    const eventParticipantFindUnique = jest.fn();
+    const service = new MediaService({
+      client: {
+        eventStory: {
+          findFirst: eventStoryFindFirst,
+        },
+        eventParticipant: {
+          findUnique: eventParticipantFindUnique,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await expect(
+      (service as any).resolveAssetAccess(
+        {
+          id: 'asset-1',
+          ownerId: 'user-owner',
+          kind: 'story_media',
+          chatId: null,
+        },
+        'user-viewer',
+      ),
+    ).resolves.toEqual({ visibility: 'private' });
+
+    expect(eventStoryFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          mediaAssetId: 'asset-1',
+          event: {
+            participants: {
+              some: {
+                userId: 'user-viewer',
+              },
+            },
+          },
+        },
+      }),
+    );
+    expect(eventParticipantFindUnique).not.toHaveBeenCalled();
   });
 });

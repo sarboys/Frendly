@@ -8,6 +8,11 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
 
+interface NotificationCursor {
+  id: string;
+  createdAt: Date;
+}
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -15,22 +20,7 @@ export class NotificationsService {
   async listNotifications(userId: string, params: { cursor?: string; limit?: number }) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const take = this.normalizeLimit(params.limit);
-    const cursorId = this.decodeNotificationCursor(params.cursor);
-    const cursorNotification = cursorId
-      ? await this.prismaService.client.notification.findFirst({
-          where: {
-            id: cursorId,
-            userId,
-            kind: {
-              not: 'message',
-            },
-          },
-          select: {
-            id: true,
-            createdAt: true,
-          },
-        })
-      : null;
+    const cursorNotification = await this.resolveNotificationCursor(userId, params.cursor);
     const visibleNotifications = await this.collectVisibleNotificationsPage(
       userId,
       blockedUserIds,
@@ -56,7 +46,7 @@ export class NotificationsService {
       items: mapped,
       nextCursor:
           hasMore && page.length > 0
-              ? encodeCursor({ value: page[page.length - 1]!.id })
+              ? this.encodeNotificationCursor(page[page.length - 1]!)
               : null,
     };
   }
@@ -94,6 +84,28 @@ export class NotificationsService {
   }
 
   async markRead(userId: string, notificationId: string) {
+    const result = await this.prismaService.client.notification.updateMany({
+      where: {
+        id: notificationId,
+        userId,
+        readAt: null,
+        kind: {
+          not: 'message',
+        },
+      },
+      data: {
+        readAt: new Date(),
+      },
+    });
+
+    if (result.count > 0) {
+      return {
+        ok: true,
+        notificationId,
+        alreadyRead: false,
+      };
+    }
+
     const notification = await this.prismaService.client.notification.findUnique({
       where: { id: notificationId },
       select: {
@@ -108,25 +120,10 @@ export class NotificationsService {
       throw new ApiError(404, 'notification_not_found', 'Notification not found');
     }
 
-    if (notification.readAt != null) {
-      return {
-        ok: true,
-        notificationId,
-        alreadyRead: true,
-      };
-    }
-
-    await this.prismaService.client.notification.update({
-      where: { id: notificationId },
-      data: {
-        readAt: new Date(),
-      },
-    });
-
     return {
       ok: true,
       notificationId,
-      alreadyRead: false,
+      alreadyRead: true,
     };
   }
 
@@ -229,12 +226,7 @@ export class NotificationsService {
     userId: string,
     blockedUserIds: Set<string>,
     take: number,
-    cursorNotification:
-      | {
-          id: string;
-          createdAt: Date;
-        }
-      | null,
+    cursorNotification: NotificationCursor | null,
   ) {
     if (blockedUserIds.size > 0) {
       return this.collectVisibleNotificationsPageBySql(
@@ -281,12 +273,7 @@ export class NotificationsService {
     userId: string,
     blockedUserIds: Set<string>,
     take: number,
-    cursorNotification:
-      | {
-          id: string;
-          createdAt: Date;
-        }
-      | null,
+    cursorNotification: NotificationCursor | null,
   ) {
     const cursorFilter = cursorNotification
       ? Prisma.sql`
@@ -382,16 +369,64 @@ export class NotificationsService {
     return Math.max(1, Math.min(Math.trunc(limit), 100));
   }
 
-  private decodeNotificationCursor(cursor?: string) {
+  private async resolveNotificationCursor(
+    userId: string,
+    cursor?: string,
+  ): Promise<NotificationCursor | null> {
     if (!cursor) {
       return null;
     }
 
+    let decoded: ReturnType<typeof decodeCursor> = null;
+    let cursorId: string | null = null;
     try {
-      return decodeCursor(cursor)?.value ?? null;
+      decoded = decodeCursor(cursor);
+      cursorId = decoded?.value ?? null;
     } catch {
-      return cursor;
+      cursorId = cursor;
     }
+
+    if (!cursorId) {
+      return null;
+    }
+
+    const createdAt = this.parseCursorDate(decoded?.createdAt);
+    if (createdAt) {
+      return {
+        id: cursorId,
+        createdAt,
+      };
+    }
+
+    return this.prismaService.client.notification.findFirst({
+      where: {
+        id: cursorId,
+        userId,
+        kind: {
+          not: 'message',
+        },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  private encodeNotificationCursor(notification: NotificationCursor) {
+    return encodeCursor({
+      value: notification.id,
+      createdAt: notification.createdAt.toISOString(),
+    });
+  }
+
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
   }
 
   private optionalTrimmedString(value: unknown) {

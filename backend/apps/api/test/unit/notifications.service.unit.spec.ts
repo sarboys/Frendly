@@ -1,6 +1,24 @@
 import { NotificationsService } from '../../src/services/notifications.service';
 
 describe('NotificationsService unit', () => {
+  const makeNotification = (
+    id: string,
+    createdAt: Date,
+  ) => ({
+    id,
+    actorUserId: null,
+    chatId: null,
+    messageId: null,
+    eventId: null,
+    requestId: null,
+    kind: 'event_invite',
+    title: `Title ${id}`,
+    body: 'Body',
+    payload: {},
+    readAt: null,
+    createdAt,
+  });
+
   it('lists visible notifications with blocked users through one SQL page query', async () => {
     const queryRaw = jest.fn().mockResolvedValue([
       {
@@ -69,6 +87,59 @@ describe('NotificationsService unit', () => {
     expect(client.event.findMany).not.toHaveBeenCalled();
     expect(client.message.findMany).not.toHaveBeenCalled();
     expect(client.eventJoinRequest.findMany).not.toHaveBeenCalled();
+  });
+
+  it('uses notification cursor payload without reading the cursor notification again', async () => {
+    const firstNotification = makeNotification(
+      'notification-2',
+      new Date('2026-04-24T10:00:00.000Z'),
+    );
+    const secondNotification = makeNotification(
+      'notification-1',
+      new Date('2026-04-23T10:00:00.000Z'),
+    );
+    const findMany = jest
+      .fn()
+      .mockResolvedValueOnce([firstNotification, secondNotification])
+      .mockResolvedValueOnce([]);
+    const findFirst = jest.fn().mockResolvedValue({
+      id: firstNotification.id,
+      createdAt: firstNotification.createdAt,
+    });
+    const service = new NotificationsService({
+      client: {
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        notification: {
+          findFirst,
+          findMany,
+        },
+      },
+    } as any);
+
+    const firstPage = await service.listNotifications('user-me', { limit: 1 });
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    await service.listNotifications('user-me', {
+      cursor: firstPage.nextCursor!,
+      limit: 1,
+    });
+
+    expect(findFirst).not.toHaveBeenCalled();
+    expect(findMany.mock.calls[1][0].where.OR).toEqual([
+      {
+        createdAt: {
+          lt: firstNotification.createdAt,
+        },
+      },
+      {
+        createdAt: firstNotification.createdAt,
+        id: {
+          lt: firstNotification.id,
+        },
+      },
+    ]);
   });
 
   it('counts unread notifications with blocked users through one SQL query', async () => {
@@ -255,11 +326,52 @@ describe('NotificationsService unit', () => {
     });
   });
 
-  it('does not mark chat message notifications through the central read endpoint', async () => {
+  it('marks an unread central notification with a single update query', async () => {
+    const findUnique = jest.fn();
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const update = jest.fn();
     const service = new NotificationsService({
       client: {
         notification: {
+          findUnique,
+          updateMany,
+          update,
+        },
+      },
+    } as any);
+
+    await expect(
+      service.markRead('user-me', 'notification-1'),
+    ).resolves.toEqual({
+      ok: true,
+      notificationId: 'notification-1',
+      alreadyRead: false,
+    });
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'notification-1',
+        userId: 'user-me',
+        readAt: null,
+        kind: {
+          not: 'message',
+        },
+      },
+      data: {
+        readAt: expect.any(Date),
+      },
+    });
+    expect(findUnique).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('does not mark chat message notifications through the central read endpoint', async () => {
+    const update = jest.fn();
+    const updateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const service = new NotificationsService({
+      client: {
+        notification: {
+          updateMany,
           findUnique: jest.fn().mockResolvedValue({
             id: 'notification-message',
             userId: 'user-me',
@@ -275,6 +387,19 @@ describe('NotificationsService unit', () => {
       service.markRead('user-me', 'notification-message'),
     ).rejects.toMatchObject({
       code: 'notification_not_found',
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'notification-message',
+        userId: 'user-me',
+        readAt: null,
+        kind: {
+          not: 'message',
+        },
+      },
+      data: {
+        readAt: expect.any(Date),
+      },
     });
     expect(update).not.toHaveBeenCalled();
   });

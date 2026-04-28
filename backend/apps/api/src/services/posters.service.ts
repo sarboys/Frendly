@@ -6,6 +6,12 @@ import { mapMediaResource } from '../common/media-presenters';
 import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
 
+interface PosterCursor {
+  id: string;
+  isFeatured: boolean;
+  startsAt: Date;
+}
+
 @Injectable()
 export class PostersService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -62,7 +68,7 @@ export class PostersService {
       items: mapped,
       nextCursor:
         hasMore && page.length > 0
-            ? encodeCursor({ value: page[page.length - 1]!.id })
+            ? this.encodePosterCursor(page[page.length - 1]!)
             : null,
     };
   }
@@ -109,14 +115,16 @@ export class PostersService {
     return Math.max(1, Math.min(Math.trunc(limit), 50));
   }
 
-  private async resolveCursor(cursor?: string) {
+  private async resolveCursor(cursor?: string): Promise<PosterCursor | null> {
     if (!cursor) {
       return null;
     }
 
     let cursorId: string | null = null;
+    let decoded: ReturnType<typeof decodeCursor> = null;
     try {
-      cursorId = decodeCursor(cursor)?.value ?? null;
+      decoded = decodeCursor(cursor);
+      cursorId = decoded?.value ?? null;
     } catch {
       cursorId = cursor;
     }
@@ -125,24 +133,44 @@ export class PostersService {
       return null;
     }
 
+    const startsAt = this.parseCursorDate(decoded?.startsAt);
+    if (typeof decoded?.isFeatured === 'boolean' && startsAt) {
+      return {
+        id: cursorId,
+        isFeatured: decoded.isFeatured,
+        startsAt,
+      };
+    }
+
     return this.prismaService.client.poster.findUnique({
       where: { id: cursorId },
       select: {
         id: true,
         isFeatured: true,
         startsAt: true,
-      },
+        },
+      });
+  }
+
+  private encodePosterCursor(poster: PosterCursor) {
+    return encodeCursor({
+      value: poster.id,
+      isFeatured: poster.isFeatured,
+      startsAt: poster.startsAt.toISOString(),
     });
   }
 
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+
   private buildCursorWhere(
-    cursorPoster:
-      | {
-          id: string;
-          isFeatured: boolean;
-          startsAt: Date;
-        }
-      | null,
+    cursorPoster: PosterCursor | null,
   ): Prisma.PosterWhereInput | null {
     if (!cursorPoster) {
       return null;

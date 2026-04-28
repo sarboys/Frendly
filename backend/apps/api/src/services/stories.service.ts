@@ -10,6 +10,43 @@ import { ApiError } from '../common/api-error';
 import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
+type StoryCursor = {
+  id: string;
+  createdAt: Date;
+};
+
+const STORY_MEDIA_ASSET_SELECT = {
+  id: true,
+  kind: true,
+  objectKey: true,
+  mimeType: true,
+  byteSize: true,
+  durationMs: true,
+  publicUrl: true,
+} satisfies Prisma.MediaAssetSelect;
+const STORY_AUTHOR_SELECT = {
+  displayName: true,
+  profile: {
+    select: {
+      avatarUrl: true,
+    },
+  },
+} satisfies Prisma.UserSelect;
+const STORY_SELECT = {
+  id: true,
+  eventId: true,
+  authorId: true,
+  caption: true,
+  emoji: true,
+  createdAt: true,
+  author: {
+    select: STORY_AUTHOR_SELECT,
+  },
+  mediaAsset: {
+    select: STORY_MEDIA_ASSET_SELECT,
+  },
+} satisfies Prisma.EventStorySelect;
+
 @Injectable()
 export class StoriesService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -22,19 +59,7 @@ export class StoriesService {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     await this.assertParticipant(userId, eventId, blockedUserIds);
     const take = this.normalizeLimit(params.limit);
-    const cursorId = this.decodeStoryCursor(params.cursor);
-    const cursorStory = cursorId
-      ? await this.prismaService.client.eventStory.findFirst({
-          where: {
-            id: cursorId,
-            eventId,
-          },
-          select: {
-            id: true,
-            createdAt: true,
-          },
-        })
-      : null;
+    const cursorStory = await this.resolveStoryCursor(eventId, params.cursor);
 
     const stories = await this.prismaService.client.eventStory.findMany({
       where: {
@@ -64,12 +89,7 @@ export class StoriesService {
             }
           : {}),
       },
-      include: {
-        author: {
-          include: { profile: true },
-        },
-        mediaAsset: true,
-      },
+      select: STORY_SELECT,
       orderBy: [
         { createdAt: 'desc' },
         { id: 'desc' },
@@ -77,19 +97,17 @@ export class StoriesService {
       take: take + 1,
     });
 
-    const visibleStories = await Promise.all(
-      stories.map((story) => this.mapStory(story)),
+    const hasMore = stories.length > take;
+    const rawPage = hasMore ? stories.slice(0, take) : stories;
+    const page = await Promise.all(
+      rawPage.map((story) => this.mapStory(story)),
     );
-    const hasMore = visibleStories.length > take;
-    const page = hasMore
-      ? visibleStories.slice(0, take)
-      : visibleStories;
 
     return {
       items: [...page].reverse(),
       nextCursor:
-        hasMore && page.length > 0
-          ? encodeCursor({ value: page[page.length - 1]!.id })
+        hasMore && rawPage.length > 0
+          ? this.encodeStoryCursor(rawPage[rawPage.length - 1]!)
           : null,
     };
   }
@@ -125,30 +143,34 @@ export class StoriesService {
       }
     }
 
-    const recentCount = await this.prismaService.client.eventStory.count({
-      where: {
-        eventId,
-        authorId: userId,
-        createdAt: {
-          gte: new Date(Date.now() - 15 * 60 * 1000),
+    const [recentCount, asset] = await Promise.all([
+      this.prismaService.client.eventStory.count({
+        where: {
+          eventId,
+          authorId: userId,
+          createdAt: {
+            gte: new Date(Date.now() - 15 * 60 * 1000),
+          },
         },
-      },
-    });
+      }),
+      mediaAssetId
+        ? this.prismaService.client.mediaAsset.findFirst({
+            where: {
+              id: mediaAssetId,
+              ownerId: userId,
+              kind: 'story_media',
+              status: 'ready',
+            },
+            select: {
+              id: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
 
     if (recentCount >= 10) {
       throw new ApiError(429, 'story_rate_limited', 'Story rate limit exceeded');
     }
-
-    const asset = mediaAssetId
-      ? await this.prismaService.client.mediaAsset.findFirst({
-          where: {
-            id: mediaAssetId,
-            ownerId: userId,
-            kind: 'story_media',
-            status: 'ready',
-          },
-        })
-      : null;
 
     if (mediaAssetId != null && !asset) {
       throw new ApiError(
@@ -181,16 +203,61 @@ export class StoriesService {
     return Math.max(1, Math.min(Math.trunc(limit), 50));
   }
 
-  private decodeStoryCursor(cursor?: string) {
+  private async resolveStoryCursor(
+    eventId: string,
+    cursor?: string,
+  ): Promise<StoryCursor | null> {
     if (!cursor) {
       return null;
     }
 
+    let decoded: ReturnType<typeof decodeCursor> = null;
+    let cursorId: string | null = null;
     try {
-      return decodeCursor(cursor)?.value ?? null;
+      decoded = decodeCursor(cursor);
+      cursorId = decoded?.value ?? null;
     } catch {
-      return cursor;
+      cursorId = cursor;
     }
+
+    if (!cursorId) {
+      return null;
+    }
+
+    const createdAt = this.parseCursorDate(decoded?.createdAt);
+    if (createdAt) {
+      return {
+        id: cursorId,
+        createdAt,
+      };
+    }
+
+    return this.prismaService.client.eventStory.findFirst({
+      where: {
+        id: cursorId,
+        eventId,
+      },
+      select: {
+        id: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  private encodeStoryCursor(story: StoryCursor) {
+    return encodeCursor({
+      value: story.id,
+      createdAt: story.createdAt.toISOString(),
+    });
+  }
+
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
   }
 
   private async assertParticipant(
@@ -205,6 +272,9 @@ export class StoriesService {
             eventId,
             userId,
           },
+        },
+        select: {
+          id: true,
         },
       }),
       this.prismaService.client.event.findUnique({
@@ -245,12 +315,7 @@ export class StoriesService {
           emoji: input.emoji,
           mediaAssetId: input.mediaAssetId,
         },
-        include: {
-          author: {
-            include: { profile: true },
-          },
-          mediaAsset: true,
-        },
+        select: STORY_SELECT,
       });
     } catch (error) {
       if (
@@ -264,12 +329,7 @@ export class StoriesService {
         where: {
           mediaAssetId: input.mediaAssetId,
         },
-        include: {
-          author: {
-            include: { profile: true },
-          },
-          mediaAsset: true,
-        },
+        select: STORY_SELECT,
       });
 
       if (
@@ -299,12 +359,7 @@ export class StoriesService {
         eventId,
         authorId: userId,
       },
-      include: {
-        author: {
-          include: { profile: true },
-        },
-        mediaAsset: true,
-      },
+      select: STORY_SELECT,
     });
   }
 

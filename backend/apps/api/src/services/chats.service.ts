@@ -12,6 +12,16 @@ import { PrismaService } from './prisma.service';
 
 const CHAT_MEMBER_PREVIEW_LIMIT = 8;
 
+interface ChatListCursor {
+  id: string;
+  updatedAt: Date;
+}
+
+interface MessageCursor {
+  id: string;
+  createdAt: Date;
+}
+
 @Injectable()
 export class ChatsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -246,7 +256,7 @@ export class ChatsService {
       items,
       nextCursor:
           hasMore && page.length > 0
-              ? encodeCursor({ value: page[page.length - 1]!.id })
+              ? this.encodeChatListCursor(page[page.length - 1]!)
               : null,
     };
   }
@@ -442,79 +452,75 @@ export class ChatsService {
     await this.assertMembership(userId, chatId);
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const take = this.normalizeMessagesLimit(params.limit);
-    const cursorId = this.decodeMessageCursor(params.cursor);
-    const cursorMessage = cursorId
-      ? await this.prismaService.client.message.findFirst({
-          where: {
-            id: cursorId,
-            chatId,
-            senderId: {
-              notIn: [...blockedUserIds],
-            },
-          },
-          select: {
-            id: true,
-            createdAt: true,
-          },
-        })
-      : null;
+    const cursorMessage = await this.resolveMessageCursor(
+      chatId,
+      params.cursor,
+      blockedUserIds,
+    );
 
-    const messages = await this.prismaService.client.message.findMany({
-      where: {
-        chatId,
-        senderId: {
-          notIn: [...blockedUserIds],
+    const [messages, latestEvent] = await Promise.all([
+      this.prismaService.client.message.findMany({
+        where: {
+          chatId,
+          senderId: {
+            notIn: [...blockedUserIds],
+          },
+          ...(cursorMessage
+            ? {
+                OR: [
+                  {
+                    createdAt: {
+                      lt: cursorMessage.createdAt,
+                    },
+                  },
+                  {
+                    createdAt: cursorMessage.createdAt,
+                    id: {
+                      lt: cursorMessage.id,
+                    },
+                  },
+                ],
+              }
+            : {}),
         },
-        ...(cursorMessage
-          ? {
-              OR: [
-                {
-                  createdAt: {
-                    lt: cursorMessage.createdAt,
-                  },
+        include: {
+          sender: {
+            include: {
+              profile: {
+                select: {
+                  avatarUrl: true,
                 },
-                {
-                  createdAt: cursorMessage.createdAt,
-                  id: {
-                    lt: cursorMessage.id,
-                  },
-                },
-              ],
-            }
-          : {}),
-      },
-      include: {
-        sender: {
-          include: {
-            profile: {
-              select: {
-                avatarUrl: true,
               },
             },
           },
-        },
-        replyTo: {
-          include: {
-            sender: true,
-            attachments: {
-              include: {
-                mediaAsset: true,
+          replyTo: {
+            include: {
+              sender: true,
+              attachments: {
+                include: {
+                  mediaAsset: true,
+                },
               },
             },
           },
-        },
-        attachments: {
-          include: {
-            mediaAsset: true,
+          attachments: {
+            include: {
+              mediaAsset: true,
+            },
           },
         },
-      },
-      orderBy: [
-        { createdAt: 'desc' },
-        { id: 'desc' },
-      ],
-      take: take + 1,
-    });
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        take: take + 1,
+      }),
+      this.prismaService.client.realtimeEvent.findFirst({
+        where: { chatId },
+        orderBy: { id: 'desc' },
+        select: { id: true },
+      }),
+    ]);
     const hasMore = messages.length > take;
     const page = hasMore ? messages.slice(0, take) : messages;
     const visiblePage = page.map((message) => ({
@@ -527,17 +533,11 @@ export class ChatsService {
     const mapped = [...visiblePage]
       .reverse()
       .map((message) => mapMessage(message));
-    const latestEvent = await this.prismaService.client.realtimeEvent.findFirst({
-      where: { chatId },
-      orderBy: { id: 'desc' },
-      select: { id: true },
-    });
-
     return {
       items: mapped,
       nextCursor:
         hasMore && page.length > 0
-          ? encodeCursor({ value: page[page.length - 1]!.id })
+          ? this.encodeMessageCursor(page[page.length - 1]!)
           : null,
       lastEventId: latestEvent?.id.toString() ?? null,
     };
@@ -611,14 +611,22 @@ export class ChatsService {
     return Math.max(1, Math.min(Math.trunc(limit), 50));
   }
 
-  private async resolveChatListCursor(cursor?: string) {
-    const cursorId = this.decodeMessageCursor(cursor);
-    if (cursorId == null) {
+  private async resolveChatListCursor(cursor?: string): Promise<ChatListCursor | null> {
+    const decoded = this.decodeCursorPayload(cursor);
+    if (decoded == null) {
       return null;
     }
 
+    const updatedAt = this.parseCursorDate(decoded.updatedAt);
+    if (updatedAt) {
+      return {
+        id: decoded.value,
+        updatedAt,
+      };
+    }
+
     return this.prismaService.client.chat.findUnique({
-      where: { id: cursorId },
+      where: { id: decoded.value },
       select: {
         id: true,
         updatedAt: true,
@@ -626,16 +634,77 @@ export class ChatsService {
     });
   }
 
-  private decodeMessageCursor(cursor?: string) {
+  private decodeCursorPayload(cursor?: string) {
     if (!cursor) {
       return null;
     }
 
     try {
-      return decodeCursor(cursor)?.value ?? null;
+      const decoded = decodeCursor(cursor);
+      if (decoded?.value) {
+        return decoded;
+      }
     } catch {
-      return cursor;
+      return { value: cursor };
     }
+
+    return null;
+  }
+
+  private encodeChatListCursor(chat: ChatListCursor) {
+    return encodeCursor({
+      value: chat.id,
+      updatedAt: chat.updatedAt.toISOString(),
+    });
+  }
+
+  private async resolveMessageCursor(
+    chatId: string,
+    cursor: string | undefined,
+    blockedUserIds: Set<string>,
+  ): Promise<MessageCursor | null> {
+    const decoded = this.decodeCursorPayload(cursor);
+    if (decoded == null) {
+      return null;
+    }
+
+    const createdAt = this.parseCursorDate(decoded.createdAt);
+    if (createdAt) {
+      return {
+        id: decoded.value,
+        createdAt,
+      };
+    }
+
+    return this.prismaService.client.message.findFirst({
+      where: {
+        id: decoded.value,
+        chatId,
+        senderId: {
+          notIn: [...blockedUserIds],
+        },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  private encodeMessageCursor(message: MessageCursor) {
+    return encodeCursor({
+      value: message.id,
+      createdAt: message.createdAt.toISOString(),
+    });
+  }
+
+  private parseCursorDate(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
   }
 
   private async getUnreadCountsByChat(
