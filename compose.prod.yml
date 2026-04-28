@@ -230,6 +230,19 @@ services:
       retries: 10
     command: ["pnpm", "--filter", "@big-break/worker", "start"]
 
+  landing:
+    build:
+      context: ${LANDING_DIR:-./landing}
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -237,6 +250,8 @@ services:
       api:
         condition: service_healthy
       chat:
+        condition: service_healthy
+      landing:
         condition: service_healthy
     ports:
       - "80:80"
