@@ -33,9 +33,9 @@ open Runner.xcworkspace
 ## Публичные точки доступа
 
 После деплоя будут такие адреса:
-- API: `http://77.233.221.119/`
-- Health: `http://77.233.221.119/health`
-- Chat WebSocket: `ws://77.233.221.119/ws`
+- API: `https://api.frendly.tech/`
+- Health: `https://api.frendly.tech/health`
+- Chat WebSocket: `wss://api.frendly.tech/ws`
 - S3 public endpoint: `https://s3.twcstorage.ru/frendly-backet`
 
 В production файлы лежат в Timeweb Cloud Object Storage.
@@ -74,4 +74,4 @@ docker compose --env-file .env.production.local up --build --remove-orphans
 Для автодеплоя нужен секрет репозитория:
 - `DEPLOY_SSH_KEY`
 
-Хост `77.233.221.119`, пользователь `root`, порт `22` и путь `/opt/frendly` уже зашиты в workflow.
+Хост `api.frendly.tech`, пользователь `root`, порт `22` и путь `/opt/frendly` уже зашиты в workflow.
