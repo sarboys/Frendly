@@ -46,6 +46,7 @@ import { MediaService } from './services/media.service';
 import { NotificationsService } from './services/notifications.service';
 import { OnboardingService } from './services/onboarding.service';
 import { PeopleService } from './services/people.service';
+import { PartnerOfferCodeService } from './services/partner-offer-code.service';
 import { PostersService } from './services/posters.service';
 import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
@@ -108,6 +109,7 @@ import { VerificationService } from './services/verification.service';
     NotificationsService,
     OnboardingService,
     PeopleService,
+    PartnerOfferCodeService,
     PhoneOtpService,
     PostersService,
     PrismaService,

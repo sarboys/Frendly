@@ -1133,17 +1133,17 @@ Performance rule:
 
 **Result after completion:** Backend can issue one personal offer code and calculate exact expiration.
 
-- [ ] Add method `issueCode(userId, sessionId, stepId, offerId)`.
-- [ ] Add method `getCodeStatus(userId, codeId)`.
-- [ ] Add method `activateCode(code, requestMeta)`.
-- [ ] Generate random code with at least 64 bits of entropy.
-- [ ] Show short readable code in URL, for example 10 uppercase base32 chars.
-- [ ] Store only SHA-256 hash with server secret salt.
-- [ ] Return existing issued code if unique key already exists.
-- [ ] Compute `expiresAt` as next local calendar day after `session.startsAt` at `06:00`.
-- [ ] Unit test Moscow expiration for `2026-05-10T19:00:00+03:00` gives `2026-05-11T03:00:00.000Z`.
-- [ ] Unit test repeated issue returns same code row if not activated.
-- [ ] Commit with `git commit -m "feat: выпускать QR коды офферов"`.
+- [x] Add method `issueCode(userId, sessionId, stepId, offerId)`.
+- [x] Add method `getCodeStatus(userId, codeId)`.
+- [x] Add method `activateCode(code, requestMeta)`.
+- [x] Generate random code with at least 64 bits of entropy.
+- [x] Show short readable code in URL, for example 10 uppercase base32 chars.
+- [x] Store only SHA-256 hash with server secret salt.
+- [x] Return existing issued code if unique key already exists.
+- [x] Compute `expiresAt` as next local calendar day after `session.startsAt` at `06:00`.
+- [x] Unit test Moscow expiration for `2026-05-10T19:00:00+03:00` gives `2026-05-11T03:00:00.000Z`.
+- [x] Unit test repeated issue returns same code row if not activated.
+- [x] Commit with `git commit -m "feat: выпускать QR коды офферов"`.
 
 Expiration helper behavior:
 

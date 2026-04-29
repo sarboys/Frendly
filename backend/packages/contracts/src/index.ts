@@ -346,6 +346,33 @@ export interface EveningShareToChatDto {
   alreadySent: boolean;
 }
 
+export type PartnerOfferCodeStatus = 'issued' | 'activated' | 'expired';
+
+export interface PartnerOfferCodeDto {
+  id: string;
+  codeUrl: string;
+  status: PartnerOfferCodeStatus;
+  expiresAt: string;
+  activatedAt: string | null;
+  offerTitle: string;
+  venueName: string;
+  partnerName: string;
+}
+
+export type PublicPartnerOfferCodeActivationStatus =
+  | 'activated'
+  | 'already_activated'
+  | 'expired'
+  | 'not_found';
+
+export interface PublicPartnerOfferCodeActivationDto {
+  status: PublicPartnerOfferCodeActivationStatus;
+  offerTitle: string | null;
+  venueName: string | null;
+  partnerName: string | null;
+  activatedAt: string | null;
+}
+
 export type PublicShareTargetType = 'event' | 'evening_session';
 
 export interface CreatePublicShareDto {
