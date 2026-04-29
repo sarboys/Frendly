@@ -115,7 +115,7 @@ This avoids a large rewrite of live flow, because `EveningSessionStepState`, `Ev
 - [x] Phase 3, admin catalog and route editor
 - [x] Phase 4, mobile route catalog and meeting creation
 - [ ] Phase 5, partner QR redemption
-- [ ] Phase 6, AI Route Studio
+- [x] Phase 6, AI Route Studio
 - [ ] Phase 7, analytics and dashboards
 - [ ] Phase 8, verification, docs and context update
 
@@ -1461,17 +1461,17 @@ Expected AI JSON shape:
 
 **Result after completion:** Admin can generate route ideas, see warnings, select a draft and continue editing manually.
 
-- [ ] Add button `AI маршрут`.
-- [ ] Add brief form with title idea, city, area, audience, format, mood, budget, duration, required venues, excluded venues, partner goal and tone.
-- [ ] Add generate action.
-- [ ] Show loading state with run status.
-- [ ] Show 2 to 4 generated drafts.
-- [ ] Show draft score.
-- [ ] Show validation warnings.
-- [ ] Select draft and convert to route.
-- [ ] After convert, open manual route editor.
-- [ ] Run admin build.
-- [ ] Commit with `git commit -m "feat: добавить AI генерацию в админку"`.
+- [x] Add button `AI маршрут`.
+- [x] Add brief form with title idea, city, area, audience, format, mood, budget, duration, required venues, excluded venues, partner goal and tone.
+- [x] Add generate action.
+- [x] Show loading state with run status.
+- [x] Show 2 to 4 generated drafts.
+- [x] Show draft score.
+- [x] Show validation warnings.
+- [x] Select draft and convert to route.
+- [x] After convert, open manual route editor.
+- [x] Run admin build.
+- [x] Commit with `git commit -m "feat: добавить AI генерацию в админку"`.
 
 ---
 
