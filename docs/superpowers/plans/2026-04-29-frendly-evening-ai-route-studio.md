@@ -113,7 +113,7 @@ This avoids a large rewrite of live flow, because `EveningSessionStepState`, `Ev
 - [x] Phase 1, database foundation
 - [x] Phase 2, backend route templates and venue catalog
 - [x] Phase 3, admin catalog and route editor
-- [ ] Phase 4, mobile route catalog and meeting creation
+- [x] Phase 4, mobile route catalog and meeting creation
 - [ ] Phase 5, partner QR redemption
 - [ ] Phase 6, AI Route Studio
 - [ ] Phase 7, analytics and dashboards
