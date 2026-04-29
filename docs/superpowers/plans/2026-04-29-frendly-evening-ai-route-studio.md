@@ -1530,14 +1530,14 @@ Expected AI JSON shape:
 
 **Result after completion:** Team can inspect partner activation numbers inside admin.
 
-- [ ] Add section `Партнерские офферы`.
-- [ ] Show activations.
-- [ ] Show unique clients.
-- [ ] Show top partners.
-- [ ] Show top routes.
-- [ ] Add date filter.
-- [ ] Run admin build.
-- [ ] Commit with `git commit -m "feat: показать аналитику офферов в админке"`.
+- [x] Add section `Партнерские офферы`.
+- [x] Show activations.
+- [x] Show unique clients.
+- [x] Show top partners.
+- [x] Show top routes.
+- [x] Add date filter.
+- [x] Run admin build.
+- [x] Commit with `git commit -m "feat: показать аналитику офферов в админке"`.
 
 ---
 
