@@ -2,12 +2,14 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { EveningRouteTemplateService } from '../services/evening-route-template.service';
 import { EveningService } from '../services/evening.service';
+import { PartnerOfferCodeService } from '../services/partner-offer-code.service';
 
 @Controller('evening')
 export class EveningController {
   constructor(
     private readonly eveningService: EveningService,
     private readonly routeTemplateService: EveningRouteTemplateService,
+    private readonly partnerOfferCodeService: PartnerOfferCodeService,
   ) {}
 
   @Get('options')
@@ -158,6 +160,32 @@ export class EveningController {
       currentUser.userId,
       sessionId,
       stepId,
+    );
+  }
+
+  @Post('sessions/:sessionId/steps/:stepId/offers/:offerId/code')
+  issuePartnerOfferCode(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('sessionId') sessionId: string,
+    @Param('stepId') stepId: string,
+    @Param('offerId') offerId: string,
+  ) {
+    return this.partnerOfferCodeService.issueCode(
+      currentUser.userId,
+      sessionId,
+      stepId,
+      offerId,
+    );
+  }
+
+  @Get('offer-codes/:codeId')
+  getPartnerOfferCode(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('codeId') codeId: string,
+  ) {
+    return this.partnerOfferCodeService.getCodeStatus(
+      currentUser.userId,
+      codeId,
     );
   }
 

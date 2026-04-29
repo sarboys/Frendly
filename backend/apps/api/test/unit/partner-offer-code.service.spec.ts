@@ -117,4 +117,79 @@ describe('PartnerOfferCodeService unit', () => {
     expect(second.codeUrl).toBe(first.codeUrl);
     expect(second.status).toBe('issued');
   });
+
+  it('requires session membership when issuing a code', async () => {
+    const service = new PartnerOfferCodeService(
+      {
+        client: {
+          eveningSession: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'session-1',
+              routeId: 'route-1',
+              routeTemplateId: null,
+              hostUserId: 'host-1',
+              startsAt: new Date('2026-05-10T16:00:00.000Z'),
+              participants: [],
+              route: { timezone: 'Europe/Moscow' },
+            }),
+          },
+          eveningRouteStep: {
+            findFirst: jest.fn(),
+          },
+          partnerOfferCode: {
+            findUnique: jest.fn(),
+            create: jest.fn(),
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+    );
+
+    await expect(
+      service.issueCode('user-1', 'session-1', 'step-1', 'offer-1'),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'evening_session_membership_required',
+    });
+  });
+
+  it('requires the offer to belong to the route step snapshot', async () => {
+    const service = new PartnerOfferCodeService(
+      {
+        client: {
+          eveningSession: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'session-1',
+              routeId: 'route-1',
+              routeTemplateId: null,
+              hostUserId: 'user-1',
+              startsAt: new Date('2026-05-10T16:00:00.000Z'),
+              participants: [],
+              route: { timezone: 'Europe/Moscow' },
+            }),
+          },
+          eveningRouteStep: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'step-1',
+              routeId: 'route-1',
+              partnerOfferId: 'offer-other',
+              partnerOffer: null,
+            }),
+          },
+          partnerOfferCode: {
+            findUnique: jest.fn(),
+            create: jest.fn(),
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+    );
+
+    await expect(
+      service.issueCode('user-1', 'session-1', 'step-1', 'offer-1'),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'partner_offer_not_found',
+    });
+  });
 });

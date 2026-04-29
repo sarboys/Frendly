@@ -1173,15 +1173,15 @@ Because Moscow `06:00` is UTC `03:00`.
 
 **Result after completion:** App can ask for a QR code and poll its status.
 
-- [ ] Add `POST /evening/sessions/:sessionId/steps/:stepId/offers/:offerId/code`.
-- [ ] Add `GET /evening/offer-codes/:codeId`.
-- [ ] Require session membership.
-- [ ] Require step belongs to session route.
-- [ ] Require offer belongs to the step snapshot.
-- [ ] Return `codeUrl`, `status`, `expiresAt`, `offerTitle`, `venueName`.
-- [ ] Track `partner_offer_code_issued`.
-- [ ] Track `partner_offer_code_viewed` when status endpoint is requested from QR screen if this signal is useful.
-- [ ] Commit with `git commit -m "feat: добавить API QR офферов"`.
+- [x] Add `POST /evening/sessions/:sessionId/steps/:stepId/offers/:offerId/code`.
+- [x] Add `GET /evening/offer-codes/:codeId`.
+- [x] Require session membership.
+- [x] Require step belongs to session route.
+- [x] Require offer belongs to the step snapshot.
+- [x] Return `codeUrl`, `status`, `expiresAt`, `offerTitle`, `venueName`.
+- [x] Track `partner_offer_code_issued`.
+- [x] Track `partner_offer_code_viewed` when status endpoint is requested from QR screen if this signal is useful.
+- [x] Commit with `git commit -m "feat: добавить API QR офферов"`.
 
 Response shape:
 
