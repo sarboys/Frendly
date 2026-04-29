@@ -42,30 +42,17 @@ export class SocialAuthService {
     return this.createAppSession(identity, meta);
   }
 
-  async verifyYandexAuthCode(
-    params: {
-      code: string;
-      codeVerifier: string;
-      redirectUri: string;
-    },
-    meta: AuthRequestMeta = {},
-  ) {
-    const code = params.code.trim();
-    const codeVerifier = params.codeVerifier.trim();
-    const redirectUri = params.redirectUri.trim();
-    if (!code || !codeVerifier || !redirectUri) {
+  async verifyYandexOAuthToken(oauthToken: string, meta: AuthRequestMeta = {}) {
+    const trimmed = oauthToken.trim();
+    if (!trimmed) {
       throw new ApiError(
         400,
-        'invalid_yandex_code',
-        'Yandex auth code is required',
+        'invalid_yandex_token',
+        'Yandex token is required',
       );
     }
 
-    const identity = await this.identityVerifier.verifyYandexAuthCode({
-      code,
-      codeVerifier,
-      redirectUri,
-    });
+    const identity = await this.identityVerifier.verifyYandexOAuthToken(trimmed);
     return this.createAppSession(identity, meta);
   }
 

@@ -62,15 +62,7 @@ class GoogleVerifyRequest {
 class YandexVerifyRequest {
   @IsString()
   @IsNotEmpty()
-  code!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  codeVerifier!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  redirectUri!: string;
+  oauthToken!: string;
 }
 
 @Controller()
@@ -175,12 +167,8 @@ export class AuthController {
     @Body() body: YandexVerifyRequest,
     @Req() request: RequestWithContext,
   ) {
-    return this.socialAuthService.verifyYandexAuthCode(
-      {
-        code: body.code,
-        codeVerifier: body.codeVerifier,
-        redirectUri: body.redirectUri,
-      },
+    return this.socialAuthService.verifyYandexOAuthToken(
+      body.oauthToken,
       {
         requestId: request.context.requestId,
         ip: request.ip,

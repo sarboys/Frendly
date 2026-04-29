@@ -19,6 +19,7 @@ import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { SafetyController } from './controllers/safety.controller';
 import { SettingsController } from './controllers/settings.controller';
+import { SharesController } from './controllers/shares.controller';
 import { StoriesController } from './controllers/stories.controller';
 import { SubscriptionController } from './controllers/subscription.controller';
 import { UploadsController } from './controllers/uploads.controller';
@@ -44,6 +45,7 @@ import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
 import { SafetyService } from './services/safety.service';
 import { SettingsService } from './services/settings.service';
+import { SharesService } from './services/shares.service';
 import { SocialAuthService } from './services/social-auth.service';
 import { SocialIdentityVerifier } from './services/social-identity-verifier.service';
 import { StoriesService } from './services/stories.service';
@@ -74,6 +76,7 @@ import { VerificationService } from './services/verification.service';
     ProfileController,
     SafetyController,
     SettingsController,
+    SharesController,
     StoriesController,
     SubscriptionController,
     UploadsController,
@@ -99,6 +102,7 @@ import { VerificationService } from './services/verification.service';
     ProfileService,
     SafetyService,
     SettingsService,
+    SharesService,
     SocialAuthService,
     SocialIdentityVerifier,
     StoriesService,

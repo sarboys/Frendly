@@ -13,15 +13,6 @@ export interface VerifiedSocialIdentity {
   avatarUrl?: string;
 }
 
-interface YandexTokenResponse {
-  access_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  scope?: string;
-  error?: string;
-  error_description?: string;
-}
-
 interface YandexUserInfoResponse {
   id?: string;
   client_id?: string;
@@ -88,11 +79,9 @@ export class SocialIdentityVerifier {
     }
   }
 
-  async verifyYandexAuthCode(params: {
-    code: string;
-    codeVerifier: string;
-    redirectUri: string;
-  }): Promise<VerifiedSocialIdentity> {
+  async verifyYandexOAuthToken(
+    oauthToken: string,
+  ): Promise<VerifiedSocialIdentity> {
     const clientId = this.yandexClientId();
     if (!clientId) {
       throw new ApiError(
@@ -101,14 +90,8 @@ export class SocialIdentityVerifier {
         'Yandex auth is not configured',
       );
     }
-    this.assertYandexRedirectUri(params.redirectUri);
 
-    const token = await this.exchangeYandexCodeForToken({
-      clientId,
-      code: params.code,
-      codeVerifier: params.codeVerifier,
-    });
-    const info = await this.fetchYandexUserInfo(token.access_token!);
+    const info = await this.fetchYandexUserInfo(oauthToken);
 
     if (!info.id || info.client_id !== clientId) {
       throw new ApiError(
@@ -125,49 +108,6 @@ export class SocialIdentityVerifier {
       displayName: this.pickYandexDisplayName(info),
       avatarUrl: this.yandexAvatarUrl(info.default_avatar_id),
     };
-  }
-
-  private async exchangeYandexCodeForToken(params: {
-    clientId: string;
-    code: string;
-    codeVerifier: string;
-  }): Promise<YandexTokenResponse> {
-    const body = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: params.code,
-      client_id: params.clientId,
-      code_verifier: params.codeVerifier,
-    });
-    const clientSecret = this.yandexClientSecret();
-    if (clientSecret) {
-      body.set('client_secret', clientSecret);
-    }
-
-    const response = await this.fetchWithTimeout(
-      'https://oauth.yandex.com/token',
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-        },
-        body,
-      },
-    );
-    const json = (await response.json()) as YandexTokenResponse;
-
-    if (!response.ok || !json.access_token) {
-      throw new ApiError(
-        401,
-        'invalid_yandex_code',
-        'Yandex auth code is invalid',
-        {
-          providerStatus: response.status,
-          providerError: json.error,
-        },
-      );
-    }
-
-    return json;
   }
 
   private async fetchYandexUserInfo(
@@ -241,33 +181,12 @@ export class SocialIdentityVerifier {
     ).trim();
   }
 
-  private yandexClientSecret() {
-    return (process.env.YANDEX_OAUTH_CLIENT_SECRET ?? '').trim();
-  }
-
   private providerTimeoutMs() {
     const raw = Number(process.env.SOCIAL_AUTH_PROVIDER_TIMEOUT_MS);
     if (Number.isFinite(raw) && raw >= 1000 && raw <= 15000) {
       return raw;
     }
     return 5000;
-  }
-
-  private assertYandexRedirectUri(redirectUri: string) {
-    const configured = (process.env.YANDEX_OAUTH_REDIRECT_URIS ?? '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    if (configured.length === 0 || configured.includes(redirectUri)) {
-      return;
-    }
-
-    throw new ApiError(
-      400,
-      'invalid_yandex_redirect_uri',
-      'Yandex redirect URI is invalid',
-    );
   }
 
   private pickYandexEmail(info: YandexUserInfoResponse) {

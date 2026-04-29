@@ -157,6 +157,76 @@ export interface EveningShareToChatDto {
   alreadySent: boolean;
 }
 
+export type PublicShareTargetType = 'event' | 'evening_session';
+
+export interface CreatePublicShareDto {
+  targetType: PublicShareTargetType;
+  targetId: string;
+}
+
+export interface PublicShareLinkDto {
+  slug: string;
+  targetType: PublicShareTargetType;
+  targetId: string;
+  appPath: string;
+  url: string;
+  deepLink: string;
+}
+
+export interface PublicSharePersonDto {
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface PublicShareRouteStepDto {
+  id: string;
+  time: string;
+  endTime: string | null;
+  title: string;
+  venue: string;
+  address: string;
+  emoji: string;
+  description: string | null;
+  distance: string | null;
+  walkMin: number | null;
+  perk: string | null;
+  lat: number;
+  lng: number;
+}
+
+export interface PublicShareRouteDto {
+  area: string | null;
+  durationLabel: string | null;
+  totalPriceFrom: number | null;
+  totalSavings: number | null;
+  steps: PublicShareRouteStepDto[];
+}
+
+export interface PublicShareDto extends PublicShareLinkDto {
+  kind: PublicShareTargetType;
+  title: string;
+  emoji: string;
+  description: string;
+  startsAt: string | null;
+  durationMinutes: number | null;
+  place: string | null;
+  area: string | null;
+  vibe: string | null;
+  partnerName: string | null;
+  partnerOffer: string | null;
+  capacity: number;
+  host: {
+    name: string;
+    avatarUrl: string | null;
+    verified: boolean;
+  };
+  people: {
+    count: number;
+    preview: PublicSharePersonDto[];
+  };
+  route: PublicShareRouteDto | null;
+}
+
 export type MeetupPhase = 'live' | 'soon' | 'upcoming' | 'done';
 export type EveningLaunchMode = 'auto' | 'manual' | 'hybrid';
 

@@ -18,15 +18,9 @@ describe('auth flows', () => {
   let prisma: PrismaClient;
   const socialIdentityVerifier = {
     verifyGoogleIdToken: jest.fn<Promise<VerifiedSocialIdentity>, [string]>(),
-    verifyYandexAuthCode: jest.fn<
+    verifyYandexOAuthToken: jest.fn<
       Promise<VerifiedSocialIdentity>,
-      [
-        {
-          code: string;
-          codeVerifier: string;
-          redirectUri: string;
-        },
-      ]
+      [string]
     >(),
   };
   let phoneCounter = 0;
@@ -201,7 +195,7 @@ describe('auth flows', () => {
     await (prisma as any).telegramAccount.deleteMany();
     await (prisma as any).externalAuthAccount?.deleteMany();
     socialIdentityVerifier.verifyGoogleIdToken.mockReset();
-    socialIdentityVerifier.verifyYandexAuthCode.mockReset();
+    socialIdentityVerifier.verifyYandexOAuthToken.mockReset();
 
     process.env.ENABLE_DEV_AUTH = 'true';
     process.env.ENABLE_DEV_OTP = 'true';
@@ -263,9 +257,9 @@ describe('auth flows', () => {
     expect(secondResponse.body.isNewUser).toBe(false);
   });
 
-  it('exchanges a verified yandex auth code for app tokens', async () => {
+  it('exchanges a verified yandex oauth token for app tokens', async () => {
     const providerUserId = `yandex-${randomUUID()}`;
-    socialIdentityVerifier.verifyYandexAuthCode.mockResolvedValue({
+    socialIdentityVerifier.verifyYandexOAuthToken.mockResolvedValue({
       provider: 'yandex',
       providerUserId,
       email: `Yandex.User-${randomUUID()}@Example.COM`,
@@ -276,9 +270,7 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/yandex/verify')
       .send({
-        code: 'yandex-code',
-        codeVerifier: 'verifier',
-        redirectUri: 'frendly://oauth/yandex',
+        oauthToken: 'yandex-oauth-token',
       })
       .expect(201);
 
@@ -286,11 +278,9 @@ describe('auth flows', () => {
     expect(response.body.isNewUser).toBe(true);
     expect(response.body.accessToken).toEqual(expect.any(String));
     expect(response.body.refreshToken).toEqual(expect.any(String));
-    expect(socialIdentityVerifier.verifyYandexAuthCode).toHaveBeenCalledWith({
-      code: 'yandex-code',
-      codeVerifier: 'verifier',
-      redirectUri: 'frendly://oauth/yandex',
-    });
+    expect(socialIdentityVerifier.verifyYandexOAuthToken).toHaveBeenCalledWith(
+      'yandex-oauth-token',
+    );
 
     const account = await (prisma as any).externalAuthAccount.findUnique({
       where: {

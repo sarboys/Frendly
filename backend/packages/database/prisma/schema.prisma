@@ -264,6 +264,7 @@ model User {
   safetySosAlerts   SafetySosAlert[]
   reportsSent       UserReport[]            @relation("UserReportsSent")
   reportsReceived   UserReport[]            @relation("UserReportsReceived")
+  createdPublicShares PublicShare[]          @relation("CreatedPublicShares")
   blockedUsers      UserBlock[]             @relation("UserBlocks")
   blockedByUsers    UserBlock[]             @relation("BlockedByUsers")
   stories           EventStory[]
@@ -523,6 +524,7 @@ model Event {
   feedbacks       EventFeedback[]
   favorites       EventFavorite[]
   stories         EventStory[]
+  publicShares    PublicShare[]
   safetySosAlerts SafetySosAlert[]
   chat            Chat?
   sourceChats     Chat[]             @relation("ChatSourceEvent")
@@ -682,11 +684,32 @@ model EveningSession {
   checkIns     EveningStepCheckIn[]
   afterPartyFeedbacks EveningAfterPartyFeedback[]
   afterPartyPhotos    EveningAfterPartyPhoto[]
+  publicShares PublicShare[]
 
   @@index([phase, startsAt, id])
   @@index([hostUserId, phase, id])
   @@index([routeId, createdAt, id])
   @@index([chatId])
+}
+
+model PublicShare {
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  targetType       String
+  targetId         String
+  eventId          String?
+  eveningSessionId String?
+  createdById      String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  event            Event?          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eveningSession   EveningSession? @relation(fields: [eveningSessionId], references: [id], onDelete: Cascade)
+  createdBy        User            @relation("CreatedPublicShares", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([targetType, targetId])
+  @@index([eventId])
+  @@index([eveningSessionId])
+  @@index([createdById, createdAt])
 }
 
 model EveningSessionParticipant {
