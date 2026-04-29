@@ -480,12 +480,21 @@ export class EveningService {
 
   async listSessions(userId: string, params: Record<string, unknown> = {}) {
     const limit = this.normalizeSessionLimit(params.limit);
-    const sessions = await this.prismaService.client.eveningSession.findMany({
-      where: {
-        phase: {
-          in: [...EVENING_SESSION_PUBLIC_PHASES],
-        },
+    const city = this.optionalText(params.city);
+    const where: Prisma.EveningSessionWhereInput = {
+      phase: {
+        in: [...EVENING_SESSION_PUBLIC_PHASES],
       },
+    };
+    if (city) {
+      where.route = {
+        is: {
+          city,
+        },
+      };
+    }
+    const sessions = await this.prismaService.client.eveningSession.findMany({
+      where,
       include: this.sessionInclude(userId, { currentUserRequestOnly: true }),
       orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       take: limit,
@@ -1752,6 +1761,7 @@ export class EveningService {
       id: session.id,
       sessionId: session.id,
       routeId: session.routeId,
+      routeTemplateId: session.routeTemplateId ?? null,
       chatId: session.chatId,
       phase: session.phase,
       chatPhase: this.sessionPhaseToChatPhase(session.phase),
@@ -1761,6 +1771,8 @@ export class EveningService {
       vibe: route?.vibe ?? '',
       emoji: steps[0]?.emoji ?? '✨',
       area: route?.area ?? null,
+      isCurated: route?.isCurated ?? false,
+      badgeLabel: route?.badgeLabel ?? null,
       hostUserId: session.hostUserId,
       hostName: session.host?.displayName ?? null,
       inviteToken:

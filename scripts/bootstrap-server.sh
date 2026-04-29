@@ -8,7 +8,7 @@ OWNER_USER="${SUDO_USER:-${USER:-root}}"
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
-apt-get install -y ca-certificates curl git gnupg
+apt-get install -y ca-certificates certbot curl git gnupg
 
 if ! command -v docker >/dev/null 2>&1; then
   install -m 0755 -d /etc/apt/keyrings
@@ -34,6 +34,7 @@ chown -R "$OWNER_USER:$OWNER_USER" "$APP_DIR"
 if command -v ufw >/dev/null 2>&1; then
   ufw allow OpenSSH || true
   ufw allow 80/tcp || true
+  ufw allow 443/tcp || true
   ufw allow 9000/tcp || true
 fi
 

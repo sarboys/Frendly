@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/frendly}"
-DOMAIN="${API_DOMAIN:-${DOMAIN:-api.frendly.tech}}"
+DOMAINS="${CERT_DOMAINS:-${SSL_DOMAINS:-${API_DOMAIN:-${DOMAIN:-api.frendly.tech admin.frendly.tech partner.frendly.tech}}}}"
 COMPOSE_FILE="${COMPOSE_FILE:-$APP_DIR/compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env.production}"
 NGINX_CONTAINER="${NGINX_CONTAINER:-frendly-backend-nginx-1}"
@@ -49,9 +49,17 @@ chmod +x \
   /etc/letsencrypt/renewal-hooks/post/frendly-start-nginx.sh \
   /etc/letsencrypt/renewal-hooks/deploy/frendly-reload-nginx.sh
 
-if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+docker stop "$NGINX_CONTAINER" >/dev/null 2>&1 || true
+trap 'docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps nginx >/dev/null || true' EXIT
+
+for DOMAIN in $DOMAINS; do
+  if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    echo "Certificate already exists: $DOMAIN"
+    continue
+  fi
+
+  echo "Issuing certificate: $DOMAIN"
   docker stop "$NGINX_CONTAINER" >/dev/null 2>&1 || true
-  trap 'docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps nginx >/dev/null || true' EXIT
 
   certbot certonly \
     --standalone \
@@ -61,8 +69,13 @@ if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     --register-unsafely-without-email \
     --cert-name "$DOMAIN" \
     -d "$DOMAIN"
+done
+
+if ! docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps --force-recreate nginx; then
+  echo "Certificates are ready, but nginx could not be restarted yet." >&2
+  echo "Run scripts/deploy.sh after app services are available, then rerun this script if nginx still needs reload." >&2
+  exit 0
 fi
 
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps --force-recreate nginx
 docker exec "$NGINX_CONTAINER" nginx -t
 docker exec "$NGINX_CONTAINER" nginx -s reload

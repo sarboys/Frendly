@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthController } from './controllers/auth.controller';
+import { AdminEveningController } from './controllers/admin-evening.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { ChatsController } from './controllers/chats.controller';
 import { CommunitiesController } from './controllers/communities.controller';
@@ -26,12 +27,17 @@ import { UploadsController } from './controllers/uploads.controller';
 import { VerificationController } from './controllers/verification.controller';
 import { ApiExceptionFilter } from './common/api-exception.filter';
 import { AuthGuard } from './common/auth.guard';
+import { AdminTokenGuard } from './common/admin-token.guard';
 import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
+import { AdminEveningRouteService } from './services/admin-evening-route.service';
+import { AdminVenueService } from './services/admin-venue.service';
 import { AfterDarkService } from './services/after-dark.service';
 import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
 import { DatingService } from './services/dating.service';
+import { EveningAnalyticsService } from './services/evening-analytics.service';
+import { EveningRouteTemplateService } from './services/evening-route-template.service';
 import { EveningService } from './services/evening.service';
 import { EventsService } from './services/events.service';
 import { HostService } from './services/host.service';
@@ -57,6 +63,7 @@ import { VerificationService } from './services/verification.service';
 
 @Module({
   controllers: [
+    AdminEveningController,
     AfterDarkController,
     AuthController,
     ChatsController,
@@ -83,11 +90,16 @@ import { VerificationService } from './services/verification.service';
     VerificationController,
   ],
   providers: [
+    AdminTokenGuard,
+    AdminEveningRouteService,
+    AdminVenueService,
     AfterDarkService,
     AuthService,
     ChatsService,
     CommunitiesService,
     DatingService,
+    EveningAnalyticsService,
+    EveningRouteTemplateService,
     EveningService,
     EventsService,
     HostService,

@@ -77,6 +77,195 @@ export interface EveningOptionsDto {
   areas: EveningOptionDto[];
 }
 
+export interface PartnerDto {
+  id: string;
+  name: string;
+  city: string;
+  status: string;
+  contact: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VenueDto {
+  id: string;
+  ownerType: string;
+  partnerId: string | null;
+  source: string;
+  externalId: string | null;
+  moderationStatus: string;
+  trustLevel: string;
+  city: string;
+  timezone: string;
+  area: string | null;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  category: string;
+  tags: unknown;
+  averageCheck: number | null;
+  openingHours: unknown | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartnerOfferDto {
+  id: string;
+  partnerId: string;
+  venueId: string;
+  title: string;
+  description: string;
+  terms: string | null;
+  shortLabel: string | null;
+  validFrom: string | null;
+  validTo: string | null;
+  daysOfWeek: unknown | null;
+  timeWindow: unknown | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EveningRouteTemplateStepPreviewDto {
+  title: string;
+  venue: string;
+  emoji: string;
+}
+
+export interface EveningRouteTemplatePartnerOfferPreviewDto {
+  partnerId: string;
+  title: string;
+  shortLabel: string | null;
+}
+
+export interface EveningRouteTemplateSessionDto {
+  sessionId: string;
+  startsAt: string;
+  joinedCount: number;
+  capacity: number;
+}
+
+export interface EveningRouteTemplateSummaryDto {
+  id: string;
+  routeId: string;
+  title: string;
+  blurb: string;
+  city: string;
+  area: string | null;
+  badgeLabel: string | null;
+  coverUrl: string | null;
+  vibe: string;
+  budget: string;
+  durationLabel: string;
+  totalPriceFrom: number;
+  stepsPreview: EveningRouteTemplateStepPreviewDto[];
+  partnerOffersPreview: EveningRouteTemplatePartnerOfferPreviewDto[];
+  nearestSessions: EveningRouteTemplateSessionDto[];
+}
+
+export interface EveningRouteTemplateStepDto extends EveningRouteStepDto {
+  venueId: string | null;
+  partnerOfferId: string | null;
+  offerTitle: string | null;
+  offerDescription: string | null;
+  offerTerms: string | null;
+  offerShortLabel: string | null;
+}
+
+export interface EveningRouteTemplateDetailDto
+  extends EveningRouteTemplateSummaryDto {
+  totalSavings: number;
+  goal: string;
+  mood: string;
+  format: string | null;
+  recommendedFor: string | null;
+  steps: EveningRouteTemplateStepDto[];
+}
+
+export interface AdminEveningRouteTemplateDto {
+  id: string;
+  source: string;
+  status: string;
+  city: string;
+  timezone: string;
+  area: string | null;
+  centerLat: number | null;
+  centerLng: number | null;
+  radiusMeters: number | null;
+  currentRouteId: string | null;
+  scheduledPublishAt: string | null;
+  publishedAt: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  currentRoute: EveningRouteTemplateDetailDto | null;
+  revisionCount: number;
+}
+
+export interface AdminEveningRouteRevisionStepInput {
+  sortOrder: number;
+  timeLabel: string;
+  endTimeLabel?: string | null;
+  kind: string;
+  title: string;
+  venueId?: string | null;
+  partnerOfferId?: string | null;
+  venue?: string | null;
+  address?: string | null;
+  description?: string | null;
+  emoji?: string | null;
+  distanceLabel?: string | null;
+  walkMin?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+}
+
+export interface AdminEveningRouteRevisionInput {
+  title: string;
+  vibe: string;
+  blurb: string;
+  totalPriceFrom: number;
+  totalSavings: number;
+  durationLabel: string;
+  area: string;
+  goal: string;
+  mood: string;
+  budget: string;
+  format: string | null;
+  recommendedFor: string | null;
+  badgeLabel: string | null;
+  steps: AdminEveningRouteRevisionStepInput[];
+}
+
+export interface CreateEveningRouteTemplateSessionRequestDto {
+  startsAt: string;
+  privacy?: 'open' | 'request' | 'invite';
+  capacity?: number;
+  hostNote?: string | null;
+}
+
+export interface CreateEveningRouteTemplateSessionResponseDto {
+  sessionId: string;
+  routeId: string;
+  routeTemplateId: string;
+  chatId: string;
+  phase: string;
+  chatPhase: string;
+  privacy: 'open' | 'request' | 'invite';
+  inviteToken: string | null;
+  mode: EveningLaunchMode;
+  currentStep: number | null;
+  totalSteps: number;
+  currentPlace: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  joinedCount: number;
+  maxGuests: number;
+}
+
 export interface EveningStepStateDto {
   perkUsed: boolean;
   ticketBought: boolean;
@@ -240,6 +429,27 @@ export interface EveningLaunchResponseDto {
   currentPlace: string | null;
   startsAt: string;
   endsAt: string | null;
+}
+
+export interface EveningSessionSummaryDto {
+  id: string;
+  sessionId: string;
+  routeId: string;
+  routeTemplateId: string | null;
+  chatId: string;
+  phase: string;
+  chatPhase: MeetupPhase;
+  privacy: 'open' | 'request' | 'invite';
+  mode: EveningLaunchMode;
+  title: string;
+  vibe: string;
+  emoji: string;
+  area: string | null;
+  isCurated: boolean;
+  badgeLabel: string | null;
+  startsAt: string | null;
+  joinedCount: number;
+  maxGuests: number;
 }
 
 export interface ChatMessageDto {
