@@ -46,6 +46,7 @@ import { MatchesService } from './services/matches.service';
 import { MediaService } from './services/media.service';
 import { NotificationsService } from './services/notifications.service';
 import { OnboardingService } from './services/onboarding.service';
+import { OpenRouterService } from './services/openrouter.service';
 import { PeopleService } from './services/people.service';
 import { PartnerOfferCodeService } from './services/partner-offer-code.service';
 import { PostersService } from './services/posters.service';
@@ -110,6 +111,7 @@ import { VerificationService } from './services/verification.service';
     MediaService,
     NotificationsService,
     OnboardingService,
+    OpenRouterService,
     PeopleService,
     PartnerOfferCodeService,
     PhoneOtpService,

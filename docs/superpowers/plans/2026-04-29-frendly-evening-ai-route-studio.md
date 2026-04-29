@@ -1339,18 +1339,18 @@ Performance rule:
 
 **Result after completion:** Backend can call OpenRouter through one isolated service.
 
-- [ ] Read `OPENROUTER_API_KEY`.
-- [ ] Read `OPENROUTER_MODEL`.
-- [ ] Default base URL to `https://openrouter.ai/api/v1`.
-- [ ] Add timeout.
-- [ ] Add method `generateJson`.
-- [ ] Return raw response and parsed JSON separately.
-- [ ] Throw controlled `openrouter_unavailable` on network failure.
-- [ ] Throw controlled `openrouter_invalid_json` on invalid JSON.
-- [ ] Unit test parser with valid JSON.
-- [ ] Unit test parser with fenced JSON.
-- [ ] Unit test invalid JSON.
-- [ ] Commit with `git commit -m "feat: добавить клиент OpenRouter"`.
+- [x] Read `OPENROUTER_API_KEY`.
+- [x] Read `OPENROUTER_MODEL`.
+- [x] Default base URL to `https://openrouter.ai/api/v1`.
+- [x] Add timeout.
+- [x] Add method `generateJson`.
+- [x] Return raw response and parsed JSON separately.
+- [x] Throw controlled `openrouter_unavailable` on network failure.
+- [x] Throw controlled `openrouter_invalid_json` on invalid JSON.
+- [x] Unit test parser with valid JSON.
+- [x] Unit test parser with fenced JSON.
+- [x] Unit test invalid JSON.
+- [x] Commit with `git commit -m "feat: добавить клиент OpenRouter"`.
 
 Prompt rule:
 
