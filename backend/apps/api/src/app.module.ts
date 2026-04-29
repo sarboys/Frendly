@@ -18,6 +18,7 @@ import { OnboardingController } from './controllers/onboarding.controller';
 import { PeopleController } from './controllers/people.controller';
 import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
+import { PublicCodeController } from './controllers/public-code.controller';
 import { SafetyController } from './controllers/safety.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { SharesController } from './controllers/shares.controller';
@@ -82,6 +83,7 @@ import { VerificationService } from './services/verification.service';
     PeopleController,
     PostersController,
     ProfileController,
+    PublicCodeController,
     SafetyController,
     SettingsController,
     SharesController,

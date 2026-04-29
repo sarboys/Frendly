@@ -1210,16 +1210,16 @@ Response shape:
 
 **Result after completion:** Landing can activate a scanned code without auth and without exposing user personal data.
 
-- [ ] Add public endpoint `POST /public/offer-codes/:code/activate`.
-- [ ] Endpoint is marked `@Public()`.
-- [ ] If code is valid, activate it and return status `activated`.
-- [ ] If code was already activated, return status `already_activated`.
-- [ ] If code expired, return status `expired`.
-- [ ] If code does not exist, return status `not_found`.
-- [ ] Do not return user id or profile data.
-- [ ] Store `activatedIpHash` and `activatedUserAgent`.
-- [ ] Track `partner_offer_activated`.
-- [ ] Commit with `git commit -m "feat: активировать оффер по публичному коду"`.
+- [x] Add public endpoint `POST /public/offer-codes/:code/activate`.
+- [x] Endpoint is marked `@Public()`.
+- [x] If code is valid, activate it and return status `activated`.
+- [x] If code was already activated, return status `already_activated`.
+- [x] If code expired, return status `expired`.
+- [x] If code does not exist, return status `not_found`.
+- [x] Do not return user id or profile data.
+- [x] Store `activatedIpHash` and `activatedUserAgent`.
+- [x] Track `partner_offer_activated`.
+- [x] Commit with `git commit -m "feat: активировать оффер по публичному коду"`.
 
 Public response shape:
 

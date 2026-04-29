@@ -192,4 +192,160 @@ describe('PartnerOfferCodeService unit', () => {
       code: 'partner_offer_not_found',
     });
   });
+
+  it('activates a valid public code without exposing user data', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new PartnerOfferCodeService(
+      {
+        client: {
+          partnerOfferCode: {
+            findUnique: jest.fn().mockResolvedValue(
+              codeRecord({
+                status: 'issued',
+                expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+              }),
+            ),
+            updateMany,
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+    );
+
+    const result = await service.activateCode('VALIDCODE12345', {
+      ip: '203.0.113.10',
+      userAgent: 'Frendly Partner Scanner',
+    });
+
+    expect(result).toEqual({
+      status: 'activated',
+      offerTitle: 'Бокал в подарок',
+      venueName: 'Brix Wine',
+      partnerName: 'Brix',
+      activatedAt: expect.any(String),
+    });
+    expect(result).not.toHaveProperty('userId');
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'code-1',
+        status: 'issued',
+        activatedAt: null,
+      },
+      data: {
+        status: 'activated',
+        activatedAt: expect.any(Date),
+        activatedIpHash: expect.any(String),
+        activatedUserAgent: 'Frendly Partner Scanner',
+      },
+    });
+  });
+
+  it('returns already activated for a used public code', async () => {
+    const activatedAt = new Date('2026-05-10T18:00:00.000Z');
+    const service = new PartnerOfferCodeService(
+      {
+        client: {
+          partnerOfferCode: {
+            findUnique: jest.fn().mockResolvedValue(
+              codeRecord({
+                status: 'activated',
+                activatedAt,
+              }),
+            ),
+            updateMany: jest.fn(),
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+    );
+
+    await expect(service.activateCode('VALIDCODE12345')).resolves.toMatchObject({
+      status: 'already_activated',
+      activatedAt: activatedAt.toISOString(),
+      offerTitle: 'Бокал в подарок',
+    });
+  });
+
+  it('returns expired for an expired public code', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new PartnerOfferCodeService(
+      {
+        client: {
+          partnerOfferCode: {
+            findUnique: jest.fn().mockResolvedValue(
+              codeRecord({
+                status: 'issued',
+                expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+              }),
+            ),
+            updateMany,
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+    );
+
+    await expect(service.activateCode('VALIDCODE12345')).resolves.toMatchObject({
+      status: 'expired',
+      offerTitle: 'Бокал в подарок',
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'code-1',
+        status: 'issued',
+        activatedAt: null,
+      },
+      data: {
+        status: 'expired',
+      },
+    });
+  });
+
+  it('returns not found for an unknown public code', async () => {
+    const service = new PartnerOfferCodeService(
+      {
+        client: {
+          partnerOfferCode: {
+            findUnique: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+    );
+
+    await expect(service.activateCode('UNKNOWN123456')).resolves.toEqual({
+      status: 'not_found',
+      offerTitle: null,
+      venueName: null,
+      partnerName: null,
+      activatedAt: null,
+    });
+  });
 });
+
+function codeRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'code-1',
+    codeHash: 'hash-1',
+    userId: 'user-1',
+    sessionId: 'session-1',
+    routeId: 'route-1',
+    routeTemplateId: 'template-1',
+    stepId: 'step-1',
+    partnerId: 'partner-1',
+    venueId: 'venue-1',
+    offerId: 'offer-1',
+    status: 'issued',
+    issuedAt: new Date('2026-05-10T16:00:00.000Z'),
+    activatedAt: null,
+    expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+    offer: { title: 'Бокал в подарок' },
+    venue: { name: 'Brix Wine' },
+    partner: { name: 'Brix' },
+    step: {
+      offerTitleSnapshot: 'Бокал в подарок',
+      venueNameSnapshot: 'Brix Wine',
+    },
+    ...overrides,
+  };
+}
