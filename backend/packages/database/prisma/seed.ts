@@ -8,6 +8,7 @@ const {
 }: typeof import('../src/seed-data') = require('../src/seed-data.ts');
 
 const prisma = new PrismaClient();
+const testRoutePublishedAt = new Date('2026-04-29T09:00:00.000Z');
 
 const seededPhoneNumbers: Record<string, string> = {
   'user-me': '+71111111111',
@@ -122,6 +123,12 @@ async function main() {
   await prisma.realtimeEvent.deleteMany();
   await prisma.outboxEvent.deleteMany();
   await prisma.authAuditEvent.deleteMany();
+  await prisma.partnerOfferCode.deleteMany();
+  await prisma.eveningAnalyticsEvent.deleteMany();
+  await prisma.aiEveningDraftStep.deleteMany();
+  await prisma.aiEveningDraft.deleteMany();
+  await prisma.aiEveningGenerationRun.deleteMany();
+  await prisma.aiEveningBrief.deleteMany();
   await prisma.telegramLoginSession.deleteMany();
   await prisma.telegramAccount.deleteMany();
   await prisma.telegramBotState.deleteMany();
@@ -143,7 +150,11 @@ async function main() {
   await prisma.eveningSession.deleteMany();
   await prisma.userEveningStepAction.deleteMany();
   await prisma.eveningRouteStep.deleteMany();
+  await prisma.eveningRouteTemplate.deleteMany();
   await prisma.eveningRoute.deleteMany();
+  await prisma.partnerOffer.deleteMany();
+  await prisma.venue.deleteMany();
+  await prisma.partner.deleteMany();
   await prisma.eventFavorite.deleteMany();
   await prisma.eventFeedback.deleteMany();
   await prisma.eventLiveState.deleteMany();
@@ -480,6 +491,196 @@ async function main() {
       },
     });
   }
+
+  const testPartner = await prisma.partner.create({
+    data: {
+      id: 'partner-frendly-test',
+      name: 'Frendly Test Partner',
+      city: 'Москва',
+      status: 'active',
+      contact: 'test@frendly.tech',
+      notes: 'Local seed partner for curated route testing.',
+    },
+  });
+
+  const testVenueCafe = await prisma.venue.create({
+    data: {
+      id: 'venue-frendly-test-cafe',
+      ownerType: 'partner',
+      partnerId: testPartner.id,
+      source: 'manual',
+      externalId: 'frendly-test-cafe',
+      moderationStatus: 'approved',
+      trustLevel: 'verified',
+      city: 'Москва',
+      timezone: 'Europe/Moscow',
+      area: 'Чистые пруды',
+      name: 'Frendly Test Cafe',
+      address: 'Москва, Покровка, 12',
+      lat: 55.7616,
+      lng: 37.6417,
+      category: 'cafe',
+      tags: ['coffee', 'dessert', 'quiet'],
+      averageCheck: 900,
+      openingHours: { monSun: '10:00-23:00' },
+      status: 'open',
+      lastVerifiedAt: testRoutePublishedAt,
+    },
+  });
+
+  const testVenueGallery = await prisma.venue.create({
+    data: {
+      id: 'venue-frendly-test-gallery',
+      ownerType: 'partner',
+      partnerId: testPartner.id,
+      source: 'manual',
+      externalId: 'frendly-test-gallery',
+      moderationStatus: 'approved',
+      trustLevel: 'verified',
+      city: 'Москва',
+      timezone: 'Europe/Moscow',
+      area: 'Чистые пруды',
+      name: 'Frendly Test Gallery',
+      address: 'Москва, Хохловский пер., 7',
+      lat: 55.7537,
+      lng: 37.6452,
+      category: 'gallery',
+      tags: ['art', 'walk', 'evening'],
+      averageCheck: 1200,
+      openingHours: { monSun: '12:00-22:00' },
+      status: 'open',
+      lastVerifiedAt: testRoutePublishedAt,
+    },
+  });
+
+  const testOffer = await prisma.partnerOffer.create({
+    data: {
+      id: 'offer-frendly-test-dessert',
+      partnerId: testPartner.id,
+      venueId: testVenueCafe.id,
+      title: 'Десерт к кофе',
+      description: 'Десерт для гостя Frendly при заказе кофе.',
+      terms: 'Покажите QR официанту до оплаты.',
+      shortLabel: 'Десерт',
+      validFrom: testRoutePublishedAt,
+      daysOfWeek: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+      timeWindow: { from: '18:00', to: '23:00' },
+      status: 'active',
+    },
+  });
+
+  await prisma.eveningRouteTemplate.create({
+    data: {
+      id: 'route-template-frendly-test-evening',
+      source: 'team',
+      status: 'published',
+      city: 'Москва',
+      timezone: 'Europe/Moscow',
+      area: 'Чистые пруды',
+      centerLat: 55.7579,
+      centerLng: 37.6434,
+      radiusMeters: 1200,
+      publishedAt: testRoutePublishedAt,
+    },
+  });
+
+  await prisma.eveningRoute.create({
+    data: {
+      id: 'route-frendly-test-evening-v1',
+      templateId: 'route-template-frendly-test-evening',
+      title: 'Тестовый вечер на Чистых',
+      vibe: 'Кофе, прогулка и спокойный финал',
+      blurb: 'Короткий маршрут для проверки каталога и офферов',
+      totalPriceFrom: 1200,
+      totalSavings: 500,
+      durationLabel: '19:00 - 21:30',
+      area: 'Чистые пруды',
+      goal: 'newfriends',
+      mood: 'chill',
+      budget: 'mid',
+      format: 'mixed',
+      premium: false,
+      recommendedFor: 'Для локального теста маршрутов',
+      hostsCount: 0,
+      version: 1,
+      source: 'team',
+      status: 'published',
+      city: 'Москва',
+      timezone: 'Europe/Moscow',
+      centerLat: 55.7579,
+      centerLng: 37.6434,
+      radiusMeters: 1200,
+      isCurated: true,
+      badgeLabel: 'Тест',
+      publishedAt: testRoutePublishedAt,
+      steps: {
+        create: [
+          {
+            id: 'route-step-frendly-test-cafe',
+            venueId: testVenueCafe.id,
+            partnerOfferId: testOffer.id,
+            sortOrder: 0,
+            timeLabel: '19:00',
+            endTimeLabel: '20:00',
+            kind: 'cafe',
+            title: 'Кофе в Frendly Test Cafe',
+            venue: testVenueCafe.name,
+            address: testVenueCafe.address,
+            emoji: '☕',
+            distanceLabel: '0.4 км',
+            walkMin: 5,
+            perk: testOffer.description,
+            perkShort: testOffer.shortLabel,
+            sponsored: true,
+            partnerId: testPartner.id,
+            description: 'Старт маршрута с кофе и простым знакомством.',
+            vibeTag: 'Спокойно',
+            lat: testVenueCafe.lat,
+            lng: testVenueCafe.lng,
+            offerTitleSnapshot: testOffer.title,
+            offerDescriptionSnapshot: testOffer.description,
+            offerTermsSnapshot: testOffer.terms,
+            offerShortLabelSnapshot: testOffer.shortLabel,
+            offerValidFromSnapshot: testOffer.validFrom,
+            offerValidToSnapshot: testOffer.validTo,
+            venueNameSnapshot: testVenueCafe.name,
+            venueAddressSnapshot: testVenueCafe.address,
+            venueLatSnapshot: testVenueCafe.lat,
+            venueLngSnapshot: testVenueCafe.lng,
+          },
+          {
+            id: 'route-step-frendly-test-gallery',
+            venueId: testVenueGallery.id,
+            sortOrder: 1,
+            timeLabel: '20:15',
+            endTimeLabel: '21:30',
+            kind: 'walk',
+            title: 'Прогулка к Frendly Test Gallery',
+            venue: testVenueGallery.name,
+            address: testVenueGallery.address,
+            emoji: '🖼️',
+            distanceLabel: '0.8 км',
+            walkMin: 10,
+            sponsored: false,
+            partnerId: testPartner.id,
+            description: 'Финальная точка для разговора после кофе.',
+            vibeTag: 'Легко',
+            lat: testVenueGallery.lat,
+            lng: testVenueGallery.lng,
+            venueNameSnapshot: testVenueGallery.name,
+            venueAddressSnapshot: testVenueGallery.address,
+            venueLatSnapshot: testVenueGallery.lat,
+            venueLngSnapshot: testVenueGallery.lng,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.eveningRouteTemplate.update({
+    where: { id: 'route-template-frendly-test-evening' },
+    data: { currentRouteId: 'route-frendly-test-evening-v1' },
+  });
 
   const seededEveningSessions = [
     {

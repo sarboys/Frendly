@@ -1551,15 +1551,15 @@ Expected AI JSON shape:
 
 **Result after completion:** Local environment has one partner, two venues, one offer, one curated route template and one current route revision.
 
-- [ ] Seed partner `Frendly Test Partner`.
-- [ ] Seed two Moscow venues.
-- [ ] Seed one active partner offer.
-- [ ] Seed one route template with `status=published`.
-- [ ] Seed one current route revision.
-- [ ] Seed two route steps.
-- [ ] Ensure seed is idempotent.
-- [ ] Run seed.
-- [ ] Commit with `git commit -m "chore: добавить seed маршрутов Frendly"`.
+- [x] Seed partner `Frendly Test Partner`.
+- [x] Seed two Moscow venues.
+- [x] Seed one active partner offer.
+- [x] Seed one route template with `status=published`.
+- [x] Seed one current route revision.
+- [x] Seed two route steps.
+- [x] Ensure seed is idempotent.
+- [x] Run seed.
+- [x] Commit with `git commit -m "chore: добавить seed маршрутов Frendly"`.
 
 Validation command:
 
