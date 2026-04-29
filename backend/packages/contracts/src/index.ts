@@ -205,6 +205,44 @@ export interface AdminEveningRouteTemplateDto {
   revisionCount: number;
 }
 
+export interface AdminPartnerOfferAnalyticsFiltersDto {
+  from: string | null;
+  to: string | null;
+  partnerId: string | null;
+  venueId: string | null;
+}
+
+export interface AdminPartnerOfferAnalyticsPartnerDto {
+  partnerId: string;
+  partnerName: string;
+  city: string | null;
+  activations: number;
+  uniqueUsers: number;
+}
+
+export interface AdminPartnerOfferAnalyticsRouteDto {
+  routeTemplateId: string;
+  routeTitle: string;
+  city: string | null;
+  activations: number;
+  uniqueUsers: number;
+}
+
+export interface AdminPartnerOfferAnalyticsDailyDto {
+  date: string;
+  activations: number;
+  uniqueUsers: number;
+}
+
+export interface AdminPartnerOfferAnalyticsDto {
+  filters: AdminPartnerOfferAnalyticsFiltersDto;
+  activations: number;
+  uniqueUsers: number;
+  topPartners: AdminPartnerOfferAnalyticsPartnerDto[];
+  topRoutes: AdminPartnerOfferAnalyticsRouteDto[];
+  daily: AdminPartnerOfferAnalyticsDailyDto[];
+}
+
 export interface AdminEveningRouteRevisionStepInput {
   sortOrder: number;
   timeLabel: string;

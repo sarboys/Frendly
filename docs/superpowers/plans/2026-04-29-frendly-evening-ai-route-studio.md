@@ -1510,14 +1510,14 @@ Expected AI JSON shape:
 
 **Result after completion:** Admin can see how many users activated partner offers.
 
-- [ ] Add `GET /admin/evening/analytics/partners`.
-- [ ] Add filters `from`, `to`, `partnerId`, `venueId`.
-- [ ] Return activations count.
-- [ ] Return unique users count.
-- [ ] Return route templates that brought activations.
-- [ ] Return daily breakdown.
-- [ ] Do not expose personal data.
-- [ ] Commit with `git commit -m "feat: добавить аналитику партнерских офферов"`.
+- [x] Add `GET /admin/evening/analytics/partners`.
+- [x] Add filters `from`, `to`, `partnerId`, `venueId`.
+- [x] Return activations count.
+- [x] Return unique users count.
+- [x] Return route templates that brought activations.
+- [x] Return daily breakdown.
+- [x] Do not expose personal data.
+- [x] Commit with `git commit -m "feat: добавить аналитику партнерских офферов"`.
 
 ### Task 7.3: Add admin analytics UI
 

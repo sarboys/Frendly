@@ -31,6 +31,7 @@ import { AuthGuard } from './common/auth.guard';
 import { AdminTokenGuard } from './common/admin-token.guard';
 import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
+import { AdminEveningAnalyticsService } from './services/admin-evening-analytics.service';
 import { AdminEveningAiService } from './services/admin-evening-ai.service';
 import { AdminEveningRouteService } from './services/admin-evening-route.service';
 import { AdminVenueService } from './services/admin-venue.service';
@@ -98,6 +99,7 @@ import { VerificationService } from './services/verification.service';
   ],
   providers: [
     AdminTokenGuard,
+    AdminEveningAnalyticsService,
     AdminEveningAiService,
     AdminEveningRouteService,
     AdminVenueService,

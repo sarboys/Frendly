@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Admin } from '../common/admin.decorator';
+import { AdminEveningAnalyticsService } from '../services/admin-evening-analytics.service';
 import { AdminEveningAiService } from '../services/admin-evening-ai.service';
 import { AdminEveningRouteService } from '../services/admin-evening-route.service';
 import { AdminVenueService } from '../services/admin-venue.service';
@@ -11,7 +12,13 @@ export class AdminEveningController {
     private readonly adminVenueService: AdminVenueService,
     private readonly adminRouteService: AdminEveningRouteService,
     private readonly adminAiService: AdminEveningAiService,
+    private readonly adminAnalyticsService: AdminEveningAnalyticsService,
   ) {}
+
+  @Get('analytics/partners')
+  getPartnerOfferAnalytics(@Query() query: Record<string, unknown>) {
+    return this.adminAnalyticsService.getPartnerOfferAnalytics(query);
+  }
 
   @Post('ai/briefs')
   createAiBrief(@Body() body: Record<string, unknown>) {
