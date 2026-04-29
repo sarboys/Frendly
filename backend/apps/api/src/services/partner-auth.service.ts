@@ -42,6 +42,7 @@ export class PartnerAuthService {
 
   async register(body: Record<string, unknown>) {
     const input = this.parseRegistrationInput(body);
+    const { password, ...accountInput } = input;
     const existing = await this.prismaService.client.partnerAccount.findUnique({
       where: { email: input.email },
       select: { id: true },
@@ -53,9 +54,9 @@ export class PartnerAuthService {
 
     const account = await this.prismaService.client.partnerAccount.create({
       data: {
-        ...input,
+        ...accountInput,
         status: 'pending',
-        passwordHash: await hashPassword(input.password),
+        passwordHash: await hashPassword(password),
       },
     });
 

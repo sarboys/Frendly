@@ -45,6 +45,7 @@ describe('PartnerAuthService unit', () => {
       }),
     });
     expect(create.mock.calls[0][0].data.passwordHash).not.toBe('strong-password');
+    expect(create.mock.calls[0][0].data).not.toHaveProperty('password');
     expect(result).toMatchObject({
       account: {
         id: 'account-1',
