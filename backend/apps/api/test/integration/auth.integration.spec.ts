@@ -206,6 +206,7 @@ describe('auth flows', () => {
     process.env.ENABLE_DEV_AUTH = 'true';
     process.env.ENABLE_DEV_OTP = 'true';
     process.env.ENABLE_TEST_PHONE_SHORTCUTS = 'true';
+    process.env.NODE_ENV = 'test';
     process.env.TELEGRAM_AUTH_ENABLED = 'true';
     process.env.TELEGRAM_BOT_TOKEN = 'test-telegram-bot-token';
     process.env.TELEGRAM_BOT_USERNAME = 'frendly_auth_test_bot';
@@ -338,6 +339,31 @@ describe('auth flows', () => {
     expect(response.body.isNewUser).toBe(false);
     expect(response.body.accessToken).toEqual(expect.any(String));
     expect(response.body.refreshToken).toEqual(expect.any(String));
+  });
+
+  it('logs into seeded shortcut phone when explicitly enabled in production', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.ENABLE_TEST_PHONE_SHORTCUTS = 'true';
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/phone/test-login')
+      .send({ phoneNumber: '+7 111 111 11 11' })
+      .expect(201);
+
+    expect(response.body.userId).toBe('user-me');
+    expect(response.body.isNewUser).toBe(false);
+    expect(response.body.accessToken).toEqual(expect.any(String));
+    expect(response.body.refreshToken).toEqual(expect.any(String));
+  });
+
+  it('logs into seeded oleg test phone through shortcut', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/phone/test-login')
+      .send({ phoneNumber: '+7 777 777 77 77' })
+      .expect(201);
+
+    expect(response.body.userId).toBe('user-oleg');
+    expect(response.body.isNewUser).toBe(false);
   });
 
   it('recreates missing test shortcut user and returns onboarding flow signal',

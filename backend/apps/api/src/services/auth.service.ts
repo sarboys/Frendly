@@ -49,6 +49,7 @@ export class AuthService {
     '+74444444444',
     '+75555555555',
     '+76666666666',
+    '+77777777777',
   ]);
 
   async createDevSession(userId = 'user-me'): Promise<TokenPair> {
@@ -856,10 +857,7 @@ export class AuthService {
   }
 
   private isTestPhoneShortcutEnabled() {
-    return (
-      process.env.NODE_ENV !== 'production' &&
-      process.env.ENABLE_TEST_PHONE_SHORTCUTS === 'true'
-    );
+    return process.env.ENABLE_TEST_PHONE_SHORTCUTS === 'true';
   }
 
   private buildRegistrationPreset(phoneNumber: string) {

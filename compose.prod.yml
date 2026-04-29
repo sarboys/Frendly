@@ -121,6 +121,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET}
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
+      ENABLE_TEST_PHONE_SHORTCUTS: ${ENABLE_TEST_PHONE_SHORTCUTS:-true}
       PORT: 3000
     depends_on:
       migrate:
