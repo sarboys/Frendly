@@ -116,7 +116,7 @@ This avoids a large rewrite of live flow, because `EveningSessionStepState`, `Ev
 - [x] Phase 4, mobile route catalog and meeting creation
 - [ ] Phase 5, partner QR redemption
 - [x] Phase 6, AI Route Studio
-- [ ] Phase 7, analytics and dashboards
+- [x] Phase 7, analytics and dashboards
 - [ ] Phase 8, verification, docs and context update
 
 ---
