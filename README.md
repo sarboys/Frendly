@@ -4,6 +4,7 @@
 
 Внутри:
 - `backend/` с NestJS, Prisma, PostgreSQL, Redis
+- `admin/` как локальная копия отдельного repo `sarboys/Frendly-admin`
 - `compose.yaml` для локального запуска
 - `compose.prod.yml` для production
 - `deploy/nginx/frendly.conf` для публичных маршрутов
@@ -34,6 +35,8 @@ open Runner.xcworkspace
 
 После деплоя будут такие адреса:
 - API: `https://api.frendly.tech/`
+- Admin: `https://admin.frendly.tech/`
+- Partner admin: `https://partner.frendly.tech/`
 - Health: `https://api.frendly.tech/health`
 - Chat WebSocket: `wss://api.frendly.tech/ws`
 - S3 public endpoint: `https://s3.twcstorage.ru/frendly-backet`
@@ -49,7 +52,8 @@ open Runner.xcworkspace
 3. Оставить `RUN_DB_SEED=false`, если это не одноразовый пустой стенд
 4. Для тестового стенда поставить `ENABLE_TESTING_ACCESS=true`, для боевого оставить `false`
 5. Выполнить `sudo bash scripts/bootstrap-server.sh`
-6. Выполнить `bash scripts/deploy.sh`
+6. Выполнить `sudo bash scripts/setup-api-ssl.sh`, если сертификаты для `api`, `admin` или `partner` еще не выпущены
+7. Выполнить `bash scripts/deploy.sh`
 
 ## Локальный запуск
 

@@ -244,6 +244,38 @@ services:
       timeout: 5s
       retries: 10
 
+  admin_internal:
+    build:
+      context: ${ADMIN_DIR:-./admin}
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${ADMIN_API_BASE_URL:-https://api.frendly.tech}
+        VITE_ADMIN_PORTAL: internal
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  admin_partner:
+    build:
+      context: ${ADMIN_DIR:-./admin}
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${ADMIN_API_BASE_URL:-https://api.frendly.tech}
+        VITE_ADMIN_PORTAL: partner
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -253,6 +285,10 @@ services:
       chat:
         condition: service_healthy
       landing:
+        condition: service_healthy
+      admin_internal:
+        condition: service_healthy
+      admin_partner:
         condition: service_healthy
     ports:
       - "80:80"
