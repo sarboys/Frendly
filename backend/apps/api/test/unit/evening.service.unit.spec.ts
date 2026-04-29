@@ -2036,4 +2036,78 @@ describe('EveningService unit', () => {
 
     expect(result.mode).toBe('manual');
   });
+
+  it('filters session feed by city and maps curated route fields', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'evening-session-curated',
+        routeId: 'route-curated',
+        routeTemplateId: 'template-1',
+        chatId: 'evening-chat-curated',
+        phase: 'scheduled',
+        privacy: 'open',
+        mode: 'hybrid',
+        capacity: 8,
+        startsAt: new Date('2026-04-30T16:00:00.000Z'),
+        startedAt: null,
+        endedAt: null,
+        currentStep: null,
+        inviteToken: null,
+        hostUserId: 'host-user',
+        host: {
+          id: 'host-user',
+          displayName: 'Аня К',
+        },
+        route: routeFixture({
+          id: 'route-curated',
+          city: 'Москва',
+          isCurated: true,
+          badgeLabel: 'Маршрут от команды Frendly',
+        }),
+        participants: [
+          {
+            userId: 'host-user',
+            role: 'host',
+            status: 'joined',
+            user: {
+              id: 'host-user',
+              displayName: 'Аня К',
+            },
+          },
+        ],
+        stepStates: [],
+        checkIns: [],
+        joinRequests: [],
+      },
+    ]);
+    const service = new EveningService({
+      client: {
+        eveningSession: {
+          findMany,
+        },
+      },
+    } as any);
+
+    const result = await service.listSessions('user-guest', {
+      city: 'Москва',
+    });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          route: {
+            is: {
+              city: 'Москва',
+            },
+          },
+        }),
+      }),
+    );
+    expect(result.items[0]).toMatchObject({
+      id: 'evening-session-curated',
+      routeTemplateId: 'template-1',
+      isCurated: true,
+      badgeLabel: 'Маршрут от команды Frendly',
+    });
+  });
 });

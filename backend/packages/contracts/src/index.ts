@@ -431,6 +431,27 @@ export interface EveningLaunchResponseDto {
   endsAt: string | null;
 }
 
+export interface EveningSessionSummaryDto {
+  id: string;
+  sessionId: string;
+  routeId: string;
+  routeTemplateId: string | null;
+  chatId: string;
+  phase: string;
+  chatPhase: MeetupPhase;
+  privacy: 'open' | 'request' | 'invite';
+  mode: EveningLaunchMode;
+  title: string;
+  vibe: string;
+  emoji: string;
+  area: string | null;
+  isCurated: boolean;
+  badgeLabel: string | null;
+  startsAt: string | null;
+  joinedCount: number;
+  maxGuests: number;
+}
+
 export interface ChatMessageDto {
   id: string;
   chatId: string;
