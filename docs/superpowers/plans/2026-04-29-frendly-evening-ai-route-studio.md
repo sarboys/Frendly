@@ -1041,16 +1041,16 @@ Expected result: no analyzer errors.
 
 **Result after completion:** User sees route template cards separate from general feed.
 
-- [ ] Show city header.
-- [ ] Show filters as small chips: `Свидание`, `Друзья`, `Недорого`, `Центр`, `Сегодня`.
-- [ ] Show route cards with cover, title, area, budget, duration and badge.
-- [ ] Show partner offer preview in card when present.
-- [ ] Show nearest sessions count when present.
-- [ ] Empty state says routes are not available for this city yet.
-- [ ] Loading state uses skeleton or simple progress without layout jump.
-- [ ] Cards do not fetch route details until opened.
-- [ ] Run Flutter analyze.
-- [ ] Commit with `git commit -m "feat: показать каталог маршрутов"`.
+- [x] Show city header.
+- [x] Show filters as small chips: `Свидание`, `Друзья`, `Недорого`, `Центр`, `Сегодня`.
+- [x] Show route cards with cover, title, area, budget, duration and badge.
+- [x] Show partner offer preview in card when present.
+- [x] Show nearest sessions count when present.
+- [x] Empty state says routes are not available for this city yet.
+- [x] Loading state uses skeleton or simple progress without layout jump.
+- [x] Cards do not fetch route details until opened.
+- [x] Run Flutter analyze.
+- [x] Commit with `git commit -m "feat: показать каталог маршрутов"`.
 
 Performance rule:
 
