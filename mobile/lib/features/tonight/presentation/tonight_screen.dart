@@ -540,6 +540,10 @@ class _TonightEveningCard extends StatelessWidget {
                     live: live,
                     sessionId: session.id,
                   ),
+                  if (session.isCurated) ...[
+                    const SizedBox(width: 6),
+                    const _CuratedEveningBadge(),
+                  ],
                   const Spacer(),
                   Text(
                     live
@@ -622,6 +626,29 @@ class _TonightEveningCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CuratedEveningBadge extends StatelessWidget {
+  const _CuratedEveningBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: colors.primarySoft,
+        borderRadius: AppRadii.pillBorder,
+      ),
+      child: Text(
+        'Frendly',
+        style: AppTextStyles.caption.copyWith(
+          color: colors.primary,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

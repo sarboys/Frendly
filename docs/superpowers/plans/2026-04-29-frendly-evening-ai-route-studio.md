@@ -1111,13 +1111,13 @@ Performance rule:
 
 **Result after completion:** Meetings created from team routes are recognizable in feed and preview.
 
-- [ ] Parse `isCurated`, `badgeLabel`, `routeTemplateId`.
-- [ ] Show badge on session cards.
-- [ ] In preview, show both route source and host.
-- [ ] Text rule: `Маршрут от команды Frendly`, `Хост: <name>`.
-- [ ] Do not imply Frendly verifies host behavior.
-- [ ] Run Flutter analyze.
-- [ ] Commit with `git commit -m "feat: показать бейдж маршрута Frendly"`.
+- [x] Parse `isCurated`, `badgeLabel`, `routeTemplateId`.
+- [x] Show badge on session cards.
+- [x] In preview, show both route source and host.
+- [x] Text rule: `Маршрут от команды Frendly`, `Хост: <name>`.
+- [x] Do not imply Frendly verifies host behavior.
+- [x] Run Flutter analyze.
+- [x] Commit with `git commit -m "feat: показать бейдж маршрута Frendly"`.
 
 ---
 
