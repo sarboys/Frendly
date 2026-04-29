@@ -1243,17 +1243,17 @@ Public response shape:
 
 **Result after completion:** QR opens `frendly.tech/code/<code>`, activates the offer, and shows a simple result page.
 
-- [ ] Add route `/code/:code` before `/:slug`.
-- [ ] On page load, call `POST https://api.frendly.tech/public/offer-codes/:code/activate`.
-- [ ] Show loading state.
-- [ ] Show success state `Предложение активировано`.
-- [ ] Show already activated state.
-- [ ] Show expired state.
-- [ ] Show not found state.
-- [ ] Show offer title, venue or partner and activation time.
-- [ ] Do not show personal data.
-- [ ] Run landing build.
-- [ ] Commit with `git commit -m "feat: добавить страницу активации оффера"`.
+- [x] Add route `/code/:code` before `/:slug`.
+- [x] On page load, call `POST https://api.frendly.tech/public/offer-codes/:code/activate`.
+- [x] Show loading state.
+- [x] Show success state `Предложение активировано`.
+- [x] Show already activated state.
+- [x] Show expired state.
+- [x] Show not found state.
+- [x] Show offer title, venue or partner and activation time.
+- [x] Do not show personal data.
+- [x] Run landing build.
+- [x] Commit with `git commit -m "feat: добавить страницу активации оффера"`.
 
 Validation command:
 
