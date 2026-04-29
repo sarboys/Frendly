@@ -240,6 +240,32 @@ export interface AdminEveningRouteRevisionInput {
   steps: AdminEveningRouteRevisionStepInput[];
 }
 
+export interface CreateEveningRouteTemplateSessionRequestDto {
+  startsAt: string;
+  privacy?: 'open' | 'request' | 'invite';
+  capacity?: number;
+  hostNote?: string | null;
+}
+
+export interface CreateEveningRouteTemplateSessionResponseDto {
+  sessionId: string;
+  routeId: string;
+  routeTemplateId: string;
+  chatId: string;
+  phase: string;
+  chatPhase: string;
+  privacy: 'open' | 'request' | 'invite';
+  inviteToken: string | null;
+  mode: EveningLaunchMode;
+  currentStep: number | null;
+  totalSteps: number;
+  currentPlace: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  joinedCount: number;
+  maxGuests: number;
+}
+
 export interface EveningStepStateDto {
   perkUsed: boolean;
   ticketBought: boolean;

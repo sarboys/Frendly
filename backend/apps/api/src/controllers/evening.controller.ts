@@ -39,6 +39,19 @@ export class EveningController {
     return this.routeTemplateService.listTemplateSessions(templateId, query);
   }
 
+  @Post('route-templates/:templateId/sessions')
+  createRouteTemplateSession(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('templateId') templateId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.routeTemplateService.createSessionFromTemplate(
+      currentUser.userId,
+      templateId,
+      body,
+    );
+  }
+
   @Post('routes/resolve')
   resolveRoute(
     @CurrentUser() currentUser: { userId: string },
