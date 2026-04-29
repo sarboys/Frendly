@@ -63,6 +63,30 @@ CREATE TABLE "PartnerOffer" (
 );
 
 -- CreateTable
+CREATE TABLE "PartnerOfferCode" (
+    "id" TEXT NOT NULL,
+    "codeHash" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "sessionId" TEXT NOT NULL,
+    "routeId" TEXT NOT NULL,
+    "routeTemplateId" TEXT,
+    "stepId" TEXT NOT NULL,
+    "partnerId" TEXT NOT NULL,
+    "venueId" TEXT NOT NULL,
+    "offerId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'issued',
+    "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "activatedAt" TIMESTAMP(3),
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "activatedIpHash" TEXT,
+    "activatedUserAgent" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PartnerOfferCode_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "EveningRouteTemplate" (
     "id" TEXT NOT NULL,
     "source" TEXT NOT NULL DEFAULT 'team',
@@ -143,6 +167,27 @@ CREATE INDEX "PartnerOffer_partnerId_status_id_idx" ON "PartnerOffer"("partnerId
 CREATE INDEX "PartnerOffer_venueId_status_id_idx" ON "PartnerOffer"("venueId", "status", "id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PartnerOfferCode_codeHash_key" ON "PartnerOfferCode"("codeHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PartnerOfferCode_userId_sessionId_partnerId_stepId_offerId_key" ON "PartnerOfferCode"("userId", "sessionId", "partnerId", "stepId", "offerId");
+
+-- CreateIndex
+CREATE INDEX "PartnerOfferCode_sessionId_userId_status_idx" ON "PartnerOfferCode"("sessionId", "userId", "status");
+
+-- CreateIndex
+CREATE INDEX "PartnerOfferCode_partnerId_activatedAt_id_idx" ON "PartnerOfferCode"("partnerId", "activatedAt", "id");
+
+-- CreateIndex
+CREATE INDEX "PartnerOfferCode_venueId_activatedAt_id_idx" ON "PartnerOfferCode"("venueId", "activatedAt", "id");
+
+-- CreateIndex
+CREATE INDEX "PartnerOfferCode_offerId_activatedAt_id_idx" ON "PartnerOfferCode"("offerId", "activatedAt", "id");
+
+-- CreateIndex
+CREATE INDEX "PartnerOfferCode_routeTemplateId_activatedAt_id_idx" ON "PartnerOfferCode"("routeTemplateId", "activatedAt", "id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "EveningRouteTemplate_currentRouteId_key" ON "EveningRouteTemplate"("currentRouteId");
 
 -- CreateIndex
@@ -177,6 +222,27 @@ ALTER TABLE "PartnerOffer" ADD CONSTRAINT "PartnerOffer_partnerId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "PartnerOffer" ADD CONSTRAINT "PartnerOffer_venueId_fkey" FOREIGN KEY ("venueId") REFERENCES "Venue"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "EveningSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_routeId_fkey" FOREIGN KEY ("routeId") REFERENCES "EveningRoute"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_stepId_fkey" FOREIGN KEY ("stepId") REFERENCES "EveningRouteStep"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_venueId_fkey" FOREIGN KEY ("venueId") REFERENCES "Venue"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_offerId_fkey" FOREIGN KEY ("offerId") REFERENCES "PartnerOffer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "EveningRouteTemplate" ADD CONSTRAINT "EveningRouteTemplate_currentRouteId_fkey" FOREIGN KEY ("currentRouteId") REFERENCES "EveningRoute"("id") ON DELETE SET NULL ON UPDATE CASCADE;
