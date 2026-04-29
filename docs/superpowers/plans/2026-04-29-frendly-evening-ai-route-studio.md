@@ -1488,16 +1488,16 @@ Expected AI JSON shape:
 
 **Result after completion:** Backend writes the first useful funnel events.
 
-- [ ] Track `route_template_list_viewed`.
-- [ ] Track `route_template_viewed`.
-- [ ] Track `route_session_created`.
-- [ ] Track `route_session_joined`.
-- [ ] Track `partner_offer_code_issued`.
-- [ ] Track `partner_offer_activated`.
-- [ ] Track `ai_route_generated`.
-- [ ] Track `ai_route_converted`.
-- [ ] Keep event writes no-throw.
-- [ ] Commit with `git commit -m "feat: записывать события маршрутов"`.
+- [x] Track `route_template_list_viewed`.
+- [x] Track `route_template_viewed`.
+- [x] Track `route_session_created`.
+- [x] Track `route_session_joined`.
+- [x] Track `partner_offer_code_issued`.
+- [x] Track `partner_offer_activated`.
+- [x] Track `ai_route_generated`.
+- [x] Track `ai_route_converted`.
+- [x] Keep event writes no-throw.
+- [x] Commit with `git commit -m "feat: записывать события маршрутов"`.
 
 ### Task 7.2: Add admin analytics endpoint for partners
 

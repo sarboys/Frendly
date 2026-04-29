@@ -4,6 +4,7 @@ import { OUTBOX_EVENT_TYPES, seededEveningRoutes } from '@big-break/database';
 import { randomBytes } from 'crypto';
 import { ApiError } from '../common/api-error';
 import { mapMessage } from '../common/presenters';
+import { EveningAnalyticsService } from './evening-analytics.service';
 import { PrismaService } from './prisma.service';
 
 const EVENING_GOALS = [
@@ -79,7 +80,10 @@ type StepActionRecord = {
 
 @Injectable()
 export class EveningService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly analytics?: EveningAnalyticsService,
+  ) {}
 
   getOptions() {
     return {
@@ -855,6 +859,16 @@ export class EveningService {
       }
     });
 
+    await this.analytics?.track({
+      name: 'route_session_joined',
+      userId,
+      routeTemplateId: session.routeTemplateId ?? null,
+      routeId: session.routeId,
+      sessionId: session.id,
+      city: session.route.city ?? null,
+      metadata: { privacy },
+    });
+
     return {
       status: 'joined',
       sessionId: session.id,
@@ -978,6 +992,19 @@ export class EveningService {
           status: 'approved',
         },
       });
+    });
+
+    await this.analytics?.track({
+      name: 'route_session_joined',
+      userId: request.userId,
+      routeTemplateId: session.routeTemplateId ?? null,
+      routeId: session.routeId,
+      sessionId: session.id,
+      city: session.route.city ?? null,
+      metadata: {
+        privacy: 'request',
+        approvedByUserId: userId,
+      },
     });
 
     return {

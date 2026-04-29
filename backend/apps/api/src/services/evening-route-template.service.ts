@@ -21,7 +21,10 @@ export class EveningRouteTemplateService {
     private readonly analytics: EveningAnalyticsService,
   ) {}
 
-  async listRouteTemplates(params: Record<string, unknown> = {}) {
+  async listRouteTemplates(
+    params: Record<string, unknown> = {},
+    userId?: string | null,
+  ) {
     const city = this.optionalText(params.city) ?? 'Москва';
     const templates =
       await this.prismaService.client.eveningRouteTemplate.findMany({
@@ -35,11 +38,23 @@ export class EveningRouteTemplateService {
         take: this.parseLimit(params.limit),
       });
 
+    const items = templates
+      .filter((template: any) => template.status === 'published')
+      .filter((template: any) => template.currentRoute != null)
+      .map((template: any) => this.mapTemplateSummary(template));
+
+    await this.analytics.track({
+      name: 'route_template_list_viewed',
+      userId: userId ?? null,
+      city,
+      metadata: {
+        surface: 'route_template_list',
+        resultCount: items.length,
+      },
+    });
+
     return {
-      items: templates
-        .filter((template: any) => template.status === 'published')
-        .filter((template: any) => template.currentRoute != null)
-        .map((template: any) => this.mapTemplateSummary(template)),
+      items,
     };
   }
 

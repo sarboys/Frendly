@@ -18,6 +18,7 @@ import {
   EveningRouteAiValidationResult,
 } from './evening-route-ai-validator.service';
 import { OpenRouterService } from './openrouter.service';
+import { EveningAnalyticsService } from './evening-analytics.service';
 import { PrismaService } from './prisma.service';
 
 type GeneratedAiRoute = {
@@ -59,6 +60,7 @@ export class AdminEveningAiService {
     private readonly validatorService: EveningRouteAiValidatorService,
     private readonly openRouterService: OpenRouterService,
     private readonly routeService: AdminEveningRouteService,
+    private readonly analytics?: EveningAnalyticsService,
   ) {}
 
   async createBrief(
@@ -149,6 +151,16 @@ export class AdminEveningAiService {
         routes: Array.isArray(response.parsedJson.routes)
           ? response.parsedJson.routes.slice(0, MAX_GENERATED_DRAFTS)
           : [],
+      });
+
+      await this.analytics?.track({
+        name: 'ai_route_generated',
+        city: brief.city,
+        metadata: {
+          briefId: brief.id,
+          runId: run.id,
+          draftCount: drafts.length,
+        },
       });
 
       return {
@@ -253,6 +265,18 @@ export class AdminEveningAiService {
       data: {
         selectedAt: new Date(),
         createdRouteId: revision.currentRouteId,
+      },
+    });
+
+    await this.analytics?.track({
+      name: 'ai_route_converted',
+      routeTemplateId: revision.id,
+      routeId: revision.currentRouteId ?? null,
+      city: draft.city,
+      metadata: {
+        briefId: draft.briefId,
+        draftId: draft.id,
+        runId: draft.runId,
       },
     });
 

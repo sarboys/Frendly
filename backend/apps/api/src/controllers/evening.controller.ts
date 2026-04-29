@@ -18,8 +18,14 @@ export class EveningController {
   }
 
   @Get('route-templates')
-  listRouteTemplates(@Query() query: Record<string, unknown>) {
-    return this.routeTemplateService.listRouteTemplates(query);
+  listRouteTemplates(
+    @CurrentUser() currentUser: { userId: string },
+    @Query() query: Record<string, unknown>,
+  ) {
+    return this.routeTemplateService.listRouteTemplates(
+      query,
+      currentUser.userId,
+    );
   }
 
   @Get('route-templates/:templateId')
