@@ -1,11 +1,56 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Admin } from '../common/admin.decorator';
+import { AdminEveningRouteService } from '../services/admin-evening-route.service';
 import { AdminVenueService } from '../services/admin-venue.service';
 
 @Admin()
 @Controller('admin/evening')
 export class AdminEveningController {
-  constructor(private readonly adminVenueService: AdminVenueService) {}
+  constructor(
+    private readonly adminVenueService: AdminVenueService,
+    private readonly adminRouteService: AdminEveningRouteService,
+  ) {}
+
+  @Get('route-templates')
+  listRouteTemplates(@Query() query: Record<string, unknown>) {
+    return this.adminRouteService.listTemplates(query);
+  }
+
+  @Post('route-templates')
+  createRouteTemplate(@Body() body: Record<string, unknown>) {
+    return this.adminRouteService.createTemplate(body);
+  }
+
+  @Get('route-templates/:templateId')
+  getRouteTemplate(@Param('templateId') templateId: string) {
+    return this.adminRouteService.getTemplate(templateId);
+  }
+
+  @Patch('route-templates/:templateId')
+  updateRouteTemplate(
+    @Param('templateId') templateId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.adminRouteService.updateTemplate(templateId, body);
+  }
+
+  @Post('route-templates/:templateId/publish')
+  publishRouteTemplate(@Param('templateId') templateId: string) {
+    return this.adminRouteService.publishTemplate(templateId);
+  }
+
+  @Post('route-templates/:templateId/archive')
+  archiveRouteTemplate(@Param('templateId') templateId: string) {
+    return this.adminRouteService.archiveTemplate(templateId);
+  }
+
+  @Post('route-templates/:templateId/revisions')
+  createRouteRevision(
+    @Param('templateId') templateId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.adminRouteService.createRevision(templateId, body);
+  }
 
   @Get('partners')
   listPartners(@Query() query: Record<string, unknown>) {

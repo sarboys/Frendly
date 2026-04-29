@@ -185,6 +185,61 @@ export interface EveningRouteTemplateDetailDto
   steps: EveningRouteTemplateStepDto[];
 }
 
+export interface AdminEveningRouteTemplateDto {
+  id: string;
+  source: string;
+  status: string;
+  city: string;
+  timezone: string;
+  area: string | null;
+  centerLat: number | null;
+  centerLng: number | null;
+  radiusMeters: number | null;
+  currentRouteId: string | null;
+  scheduledPublishAt: string | null;
+  publishedAt: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  currentRoute: EveningRouteTemplateDetailDto | null;
+  revisionCount: number;
+}
+
+export interface AdminEveningRouteRevisionStepInput {
+  sortOrder: number;
+  timeLabel: string;
+  endTimeLabel?: string | null;
+  kind: string;
+  title: string;
+  venueId?: string | null;
+  partnerOfferId?: string | null;
+  venue?: string | null;
+  address?: string | null;
+  description?: string | null;
+  emoji?: string | null;
+  distanceLabel?: string | null;
+  walkMin?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+}
+
+export interface AdminEveningRouteRevisionInput {
+  title: string;
+  vibe: string;
+  blurb: string;
+  totalPriceFrom: number;
+  totalSavings: number;
+  durationLabel: string;
+  area: string;
+  goal: string;
+  mood: string;
+  budget: string;
+  format: string | null;
+  recommendedFor: string | null;
+  badgeLabel: string | null;
+  steps: AdminEveningRouteRevisionStepInput[];
+}
+
 export interface EveningStepStateDto {
   perkUsed: boolean;
   ticketBought: boolean;
