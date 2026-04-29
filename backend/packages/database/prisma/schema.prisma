@@ -693,6 +693,106 @@ model PartnerOfferCode {
   @@index([routeTemplateId, activatedAt, id])
 }
 
+model AiEveningBrief {
+  id               String   @id @default(cuid())
+  city             String
+  timezone         String   @default("Europe/Moscow")
+  area             String?
+  titleIdea        String
+  audience         String
+  format           String
+  mood             String
+  budget           String
+  durationMinutes  Int
+  minSteps         Int      @default(2)
+  maxSteps         Int      @default(4)
+  requiredVenueIds Json?
+  excludedVenueIds Json?
+  partnerGoal      String?
+  tone             String?
+  boldness         String?
+  status           String   @default("draft")
+  createdByAdminId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  runs   AiEveningGenerationRun[]
+  drafts AiEveningDraft[]
+
+  @@index([city, status, createdAt, id])
+}
+
+model AiEveningGenerationRun {
+  id            String    @id @default(cuid())
+  briefId       String
+  provider      String    @default("openrouter")
+  model         String
+  promptVersion String
+  status        String    @default("running")
+  requestJson   Json
+  responseJson  Json?
+  errorCode     String?
+  errorMessage  String?
+  latencyMs     Int?
+  createdAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  brief  AiEveningBrief   @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  drafts AiEveningDraft[]
+
+  @@index([briefId, createdAt, id])
+  @@index([provider, model, createdAt, id])
+}
+
+model AiEveningDraft {
+  id               String    @id @default(cuid())
+  briefId          String
+  runId            String?
+  title            String
+  description      String
+  city             String
+  area             String?
+  vibe             String
+  budget           String
+  durationLabel    String
+  totalPriceFrom   Int
+  score            Int       @default(0)
+  validationStatus String    @default("pending")
+  validationIssues Json?
+  selectedAt       DateTime?
+  createdRouteId   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  brief AiEveningBrief          @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  run   AiEveningGenerationRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+  steps AiEveningDraftStep[]
+
+  @@index([briefId, validationStatus, score, id])
+}
+
+model AiEveningDraftStep {
+  id             String   @id @default(cuid())
+  draftId        String
+  sortOrder      Int
+  venueId        String?
+  partnerOfferId String?
+  kind           String
+  title          String
+  timeLabel      String
+  endTimeLabel   String?
+  description    String?
+  transition     String?
+  priceEstimate  Int?
+  walkMin        Int?
+  createdAt      DateTime @default(now())
+
+  draft AiEveningDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId, sortOrder, id])
+  @@index([venueId])
+}
+
 model EveningRouteTemplate {
   id                 String    @id @default(cuid())
   source             String    @default("team")

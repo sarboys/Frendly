@@ -87,6 +87,96 @@ CREATE TABLE "PartnerOfferCode" (
 );
 
 -- CreateTable
+CREATE TABLE "AiEveningBrief" (
+    "id" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "timezone" TEXT NOT NULL DEFAULT 'Europe/Moscow',
+    "area" TEXT,
+    "titleIdea" TEXT NOT NULL,
+    "audience" TEXT NOT NULL,
+    "format" TEXT NOT NULL,
+    "mood" TEXT NOT NULL,
+    "budget" TEXT NOT NULL,
+    "durationMinutes" INTEGER NOT NULL,
+    "minSteps" INTEGER NOT NULL DEFAULT 2,
+    "maxSteps" INTEGER NOT NULL DEFAULT 4,
+    "requiredVenueIds" JSONB,
+    "excludedVenueIds" JSONB,
+    "partnerGoal" TEXT,
+    "tone" TEXT,
+    "boldness" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'draft',
+    "createdByAdminId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AiEveningBrief_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AiEveningGenerationRun" (
+    "id" TEXT NOT NULL,
+    "briefId" TEXT NOT NULL,
+    "provider" TEXT NOT NULL DEFAULT 'openrouter',
+    "model" TEXT NOT NULL,
+    "promptVersion" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'running',
+    "requestJson" JSONB NOT NULL,
+    "responseJson" JSONB,
+    "errorCode" TEXT,
+    "errorMessage" TEXT,
+    "latencyMs" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "finishedAt" TIMESTAMP(3),
+
+    CONSTRAINT "AiEveningGenerationRun_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AiEveningDraft" (
+    "id" TEXT NOT NULL,
+    "briefId" TEXT NOT NULL,
+    "runId" TEXT,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "area" TEXT,
+    "vibe" TEXT NOT NULL,
+    "budget" TEXT NOT NULL,
+    "durationLabel" TEXT NOT NULL,
+    "totalPriceFrom" INTEGER NOT NULL,
+    "score" INTEGER NOT NULL DEFAULT 0,
+    "validationStatus" TEXT NOT NULL DEFAULT 'pending',
+    "validationIssues" JSONB,
+    "selectedAt" TIMESTAMP(3),
+    "createdRouteId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AiEveningDraft_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AiEveningDraftStep" (
+    "id" TEXT NOT NULL,
+    "draftId" TEXT NOT NULL,
+    "sortOrder" INTEGER NOT NULL,
+    "venueId" TEXT,
+    "partnerOfferId" TEXT,
+    "kind" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "timeLabel" TEXT NOT NULL,
+    "endTimeLabel" TEXT,
+    "description" TEXT,
+    "transition" TEXT,
+    "priceEstimate" INTEGER,
+    "walkMin" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AiEveningDraftStep_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "EveningRouteTemplate" (
     "id" TEXT NOT NULL,
     "source" TEXT NOT NULL DEFAULT 'team',
@@ -188,6 +278,24 @@ CREATE INDEX "PartnerOfferCode_offerId_activatedAt_id_idx" ON "PartnerOfferCode"
 CREATE INDEX "PartnerOfferCode_routeTemplateId_activatedAt_id_idx" ON "PartnerOfferCode"("routeTemplateId", "activatedAt", "id");
 
 -- CreateIndex
+CREATE INDEX "AiEveningBrief_city_status_createdAt_id_idx" ON "AiEveningBrief"("city", "status", "createdAt", "id");
+
+-- CreateIndex
+CREATE INDEX "AiEveningGenerationRun_briefId_createdAt_id_idx" ON "AiEveningGenerationRun"("briefId", "createdAt", "id");
+
+-- CreateIndex
+CREATE INDEX "AiEveningGenerationRun_provider_model_createdAt_id_idx" ON "AiEveningGenerationRun"("provider", "model", "createdAt", "id");
+
+-- CreateIndex
+CREATE INDEX "AiEveningDraft_briefId_validationStatus_score_id_idx" ON "AiEveningDraft"("briefId", "validationStatus", "score", "id");
+
+-- CreateIndex
+CREATE INDEX "AiEveningDraftStep_draftId_sortOrder_id_idx" ON "AiEveningDraftStep"("draftId", "sortOrder", "id");
+
+-- CreateIndex
+CREATE INDEX "AiEveningDraftStep_venueId_idx" ON "AiEveningDraftStep"("venueId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "EveningRouteTemplate_currentRouteId_key" ON "EveningRouteTemplate"("currentRouteId");
 
 -- CreateIndex
@@ -243,6 +351,18 @@ ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_venueId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "PartnerOfferCode" ADD CONSTRAINT "PartnerOfferCode_offerId_fkey" FOREIGN KEY ("offerId") REFERENCES "PartnerOffer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiEveningGenerationRun" ADD CONSTRAINT "AiEveningGenerationRun_briefId_fkey" FOREIGN KEY ("briefId") REFERENCES "AiEveningBrief"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiEveningDraft" ADD CONSTRAINT "AiEveningDraft_briefId_fkey" FOREIGN KEY ("briefId") REFERENCES "AiEveningBrief"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiEveningDraft" ADD CONSTRAINT "AiEveningDraft_runId_fkey" FOREIGN KEY ("runId") REFERENCES "AiEveningGenerationRun"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiEveningDraftStep" ADD CONSTRAINT "AiEveningDraftStep_draftId_fkey" FOREIGN KEY ("draftId") REFERENCES "AiEveningDraft"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "EveningRouteTemplate" ADD CONSTRAINT "EveningRouteTemplate_currentRouteId_fkey" FOREIGN KEY ("currentRouteId") REFERENCES "EveningRoute"("id") ON DELETE SET NULL ON UPDATE CASCADE;
