@@ -1068,15 +1068,15 @@ Performance rule:
 
 **Result after completion:** User can inspect a team route, see steps, partner offers and nearest meetings.
 
-- [ ] Show badge `Маршрут от команды Frendly`.
-- [ ] Show route title, blurb, area, budget, duration and recommendedFor.
-- [ ] Show steps with time labels, venues, addresses and offer labels.
-- [ ] Show nearest sessions block.
-- [ ] Add button `Создать встречу`.
-- [ ] Add button to join nearest session if sessions exist.
-- [ ] Make clear that route itself has no chat until a meeting exists.
-- [ ] Run Flutter analyze.
-- [ ] Commit with `git commit -m "feat: добавить экран маршрута"`.
+- [x] Show badge `Маршрут от команды Frendly`.
+- [x] Show route title, blurb, area, budget, duration and recommendedFor.
+- [x] Show steps with time labels, venues, addresses and offer labels.
+- [x] Show nearest sessions block.
+- [x] Add button `Создать встречу`.
+- [x] Add button to join nearest session if sessions exist.
+- [x] Make clear that route itself has no chat until a meeting exists.
+- [x] Run Flutter analyze.
+- [x] Commit with `git commit -m "feat: добавить экран маршрута"`.
 
 ### Task 4.5: Build create meeting flow from route
 
