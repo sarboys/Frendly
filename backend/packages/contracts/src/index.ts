@@ -240,6 +240,100 @@ export interface AdminEveningRouteRevisionInput {
   steps: AdminEveningRouteRevisionStepInput[];
 }
 
+export interface AdminAiEveningBriefInput {
+  city: string;
+  timezone?: string | null;
+  area?: string | null;
+  titleIdea: string;
+  audience: string;
+  format: string;
+  mood: string;
+  budget: string;
+  durationMinutes: number;
+  minSteps?: number;
+  maxSteps?: number;
+  requiredVenueIds?: string[];
+  excludedVenueIds?: string[];
+  partnerGoal?: string | null;
+  tone?: string | null;
+  boldness?: string | null;
+  createdByAdminId?: string | null;
+}
+
+export interface AdminAiEveningBriefDto {
+  id: string;
+  city: string;
+  timezone: string;
+  area: string | null;
+  titleIdea: string;
+  audience: string;
+  format: string;
+  mood: string;
+  budget: string;
+  durationMinutes: number;
+  minSteps: number;
+  maxSteps: number;
+  requiredVenueIds: string[];
+  excludedVenueIds: string[];
+  partnerGoal: string | null;
+  tone: string | null;
+  boldness: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAiEveningValidationIssueDto {
+  severity: 'error' | 'warning';
+  code: string;
+  message: string;
+  stepIndex?: number;
+  venueId?: string | null;
+}
+
+export interface AdminAiEveningDraftStepDto {
+  id: string;
+  sortOrder: number;
+  venueId: string | null;
+  partnerOfferId: string | null;
+  kind: string;
+  title: string;
+  timeLabel: string;
+  endTimeLabel: string | null;
+  description: string | null;
+  transition: string | null;
+  priceEstimate: number | null;
+  walkMin: number | null;
+}
+
+export interface AdminAiEveningDraftDto {
+  id: string;
+  briefId: string;
+  runId: string | null;
+  title: string;
+  description: string;
+  city: string;
+  area: string | null;
+  vibe: string;
+  budget: string;
+  durationLabel: string;
+  totalPriceFrom: number;
+  score: number;
+  validationStatus: string;
+  validationIssues: AdminAiEveningValidationIssueDto[];
+  selectedAt: string | null;
+  createdRouteId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  steps: AdminAiEveningDraftStepDto[];
+}
+
+export interface AdminAiEveningGenerateResponseDto {
+  runId: string;
+  status: string;
+  drafts: AdminAiEveningDraftDto[];
+}
+
 export interface CreateEveningRouteTemplateSessionRequestDto {
   startsAt: string;
   privacy?: 'open' | 'request' | 'invite';

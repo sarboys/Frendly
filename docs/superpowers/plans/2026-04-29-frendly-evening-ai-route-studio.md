@@ -1405,17 +1405,17 @@ Score rule for MVP:
 
 **Result after completion:** Admin can create a brief, run generation, inspect drafts and convert selected draft to a route template revision.
 
-- [ ] Add `POST /admin/evening/ai/briefs`.
-- [ ] Add `GET /admin/evening/ai/briefs/:briefId`.
-- [ ] Add `POST /admin/evening/ai/briefs/:briefId/generate`.
-- [ ] Add `GET /admin/evening/ai/briefs/:briefId/drafts`.
-- [ ] Add `POST /admin/evening/ai/drafts/:draftId/convert`.
-- [ ] Save prompt request in `AiEveningGenerationRun.requestJson`.
-- [ ] Save raw response in `AiEveningGenerationRun.responseJson`.
-- [ ] Save draft and steps.
-- [ ] Run validator before draft becomes selectable.
-- [ ] Convert creates `EveningRouteTemplate` and first `EveningRoute` revision.
-- [ ] Commit with `git commit -m "feat: добавить AI Route Studio API"`.
+- [x] Add `POST /admin/evening/ai/briefs`.
+- [x] Add `GET /admin/evening/ai/briefs/:briefId`.
+- [x] Add `POST /admin/evening/ai/briefs/:briefId/generate`.
+- [x] Add `GET /admin/evening/ai/briefs/:briefId/drafts`.
+- [x] Add `POST /admin/evening/ai/drafts/:draftId/convert`.
+- [x] Save prompt request in `AiEveningGenerationRun.requestJson`.
+- [x] Save raw response in `AiEveningGenerationRun.responseJson`.
+- [x] Save draft and steps.
+- [x] Run validator before draft becomes selectable.
+- [x] Convert creates `EveningRouteTemplate` and first `EveningRoute` revision.
+- [x] Commit with `git commit -m "feat: добавить AI Route Studio API"`.
 
 Expected AI JSON shape:
 

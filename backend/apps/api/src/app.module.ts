@@ -31,6 +31,7 @@ import { AuthGuard } from './common/auth.guard';
 import { AdminTokenGuard } from './common/admin-token.guard';
 import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
+import { AdminEveningAiService } from './services/admin-evening-ai.service';
 import { AdminEveningRouteService } from './services/admin-evening-route.service';
 import { AdminVenueService } from './services/admin-venue.service';
 import { AfterDarkService } from './services/after-dark.service';
@@ -38,6 +39,8 @@ import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
 import { DatingService } from './services/dating.service';
 import { EveningAnalyticsService } from './services/evening-analytics.service';
+import { EveningRouteAiCandidatesService } from './services/evening-route-ai-candidates.service';
+import { EveningRouteAiValidatorService } from './services/evening-route-ai-validator.service';
 import { EveningRouteTemplateService } from './services/evening-route-template.service';
 import { EveningService } from './services/evening.service';
 import { EventsService } from './services/events.service';
@@ -95,6 +98,7 @@ import { VerificationService } from './services/verification.service';
   ],
   providers: [
     AdminTokenGuard,
+    AdminEveningAiService,
     AdminEveningRouteService,
     AdminVenueService,
     AfterDarkService,
@@ -103,6 +107,8 @@ import { VerificationService } from './services/verification.service';
     CommunitiesService,
     DatingService,
     EveningAnalyticsService,
+    EveningRouteAiCandidatesService,
+    EveningRouteAiValidatorService,
     EveningRouteTemplateService,
     EveningService,
     EventsService,

@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Admin } from '../common/admin.decorator';
+import { AdminEveningAiService } from '../services/admin-evening-ai.service';
 import { AdminEveningRouteService } from '../services/admin-evening-route.service';
 import { AdminVenueService } from '../services/admin-venue.service';
 
@@ -9,7 +10,33 @@ export class AdminEveningController {
   constructor(
     private readonly adminVenueService: AdminVenueService,
     private readonly adminRouteService: AdminEveningRouteService,
+    private readonly adminAiService: AdminEveningAiService,
   ) {}
+
+  @Post('ai/briefs')
+  createAiBrief(@Body() body: Record<string, unknown>) {
+    return this.adminAiService.createBrief(body);
+  }
+
+  @Get('ai/briefs/:briefId')
+  getAiBrief(@Param('briefId') briefId: string) {
+    return this.adminAiService.getBrief(briefId);
+  }
+
+  @Post('ai/briefs/:briefId/generate')
+  generateAiDrafts(@Param('briefId') briefId: string) {
+    return this.adminAiService.generateDrafts(briefId);
+  }
+
+  @Get('ai/briefs/:briefId/drafts')
+  listAiDrafts(@Param('briefId') briefId: string) {
+    return this.adminAiService.listDrafts(briefId);
+  }
+
+  @Post('ai/drafts/:draftId/convert')
+  convertAiDraft(@Param('draftId') draftId: string) {
+    return this.adminAiService.convertDraft(draftId);
+  }
 
   @Get('route-templates')
   listRouteTemplates(@Query() query: Record<string, unknown>) {
