@@ -114,10 +114,10 @@ This avoids a large rewrite of live flow, because `EveningSessionStepState`, `Ev
 - [x] Phase 2, backend route templates and venue catalog
 - [x] Phase 3, admin catalog and route editor
 - [x] Phase 4, mobile route catalog and meeting creation
-- [ ] Phase 5, partner QR redemption
+- [x] Phase 5, partner QR redemption
 - [x] Phase 6, AI Route Studio
 - [x] Phase 7, analytics and dashboards
-- [ ] Phase 8, verification, docs and context update
+- [x] Phase 8, verification, docs and context update
 
 ---
 
@@ -1578,11 +1578,11 @@ Expected result: seed completes without duplicate errors.
 
 **Result after completion:** Backend compiles, tests pass and Prisma client is valid.
 
-- [ ] Run Prisma generate.
-- [ ] Run backend unit tests.
-- [ ] Run backend build.
-- [ ] Fix failures only in files touched by this plan.
-- [ ] Commit fixes with a focused Russian message.
+- [x] Run Prisma generate.
+- [x] Run backend unit tests.
+- [x] Run backend build.
+- [x] Fix failures only in files touched by this plan. No failures.
+- [x] Commit fixes with a focused Russian message. No fixes to commit.
 
 Commands:
 
@@ -1603,12 +1603,12 @@ Expected result: all commands pass.
 
 **Result after completion:** Admin, landing and mobile build or analyze cleanly.
 
-- [ ] Run admin tests.
-- [ ] Run admin build.
-- [ ] Run landing build.
-- [ ] Run Flutter analyze.
-- [ ] Run Flutter tests.
-- [ ] Commit fixes with a focused Russian message.
+- [x] Run admin tests.
+- [x] Run admin build.
+- [x] Run landing build.
+- [x] Run Flutter analyze.
+- [x] Run Flutter tests.
+- [x] Commit fixes with a focused Russian message. No fixes to commit.
 
 Commands:
 
@@ -1639,12 +1639,12 @@ Expected result: all commands pass.
 
 **Result after completion:** Future sessions can find the new route template, venue, offer and QR flows without scanning the project.
 
-- [ ] Update database map with `EveningRouteTemplate`, venue, partner, offer, code and AI draft models.
-- [ ] Update backend map with new admin endpoints, route template endpoints and code activation endpoint.
-- [ ] Update Flutter map with `Маршруты` screen, detail screen, create session screen and QR screen.
-- [ ] Update landing map with `/code/:code`.
-- [ ] Do not paste raw code into AI context.
-- [ ] Commit with `git commit -m "docs: обновить карту AI маршрутов"`.
+- [x] Update database map with `EveningRouteTemplate`, venue, partner, offer, code and AI draft models.
+- [x] Update backend map with new admin endpoints, route template endpoints and code activation endpoint.
+- [x] Update Flutter map with `Маршруты` screen, detail screen, create session screen and QR screen.
+- [x] Update landing map with `/code/:code`.
+- [x] Do not paste raw code into AI context.
+- [x] Commit with `git commit -m "docs: обновить карту AI маршрутов"`.
 
 ---
 

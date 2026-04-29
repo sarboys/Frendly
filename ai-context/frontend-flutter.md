@@ -357,6 +357,14 @@ Tonight Routes entry
   -> EveningPreview
 ```
 
+Notes:
+
+- Tonight opens the standalone `Маршруты` catalog through `/routes`; it is not a bottom tab.
+- The catalog reads published route templates for the current city and keeps list work bounded to the visible catalog page.
+- Route detail reads the template current route revision, nearest sessions and partner offer snapshots.
+- Create template meeting posts to `/evening/route-templates/:templateId/sessions`; route steps are not editable on the user side.
+- Meeting creation opens `EveningPreview`, then users join through the normal Evening session flow.
+
 External discovery flow:
 
 ```text
