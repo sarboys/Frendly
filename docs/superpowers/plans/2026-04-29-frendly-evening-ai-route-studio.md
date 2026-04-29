@@ -113,7 +113,7 @@ This avoids a large rewrite of live flow, because `EveningSessionStepState`, `Ev
 - [x] Phase 1, database foundation
 - [x] Phase 2, backend route templates and venue catalog
 - [x] Phase 3, admin catalog and route editor
-- [ ] Phase 4, mobile route catalog and meeting creation
+- [x] Phase 4, mobile route catalog and meeting creation
 - [ ] Phase 5, partner QR redemption
 - [ ] Phase 6, AI Route Studio
 - [ ] Phase 7, analytics and dashboards
@@ -1068,15 +1068,15 @@ Performance rule:
 
 **Result after completion:** User can inspect a team route, see steps, partner offers and nearest meetings.
 
-- [ ] Show badge `Маршрут от команды Frendly`.
-- [ ] Show route title, blurb, area, budget, duration and recommendedFor.
-- [ ] Show steps with time labels, venues, addresses and offer labels.
-- [ ] Show nearest sessions block.
-- [ ] Add button `Создать встречу`.
-- [ ] Add button to join nearest session if sessions exist.
-- [ ] Make clear that route itself has no chat until a meeting exists.
-- [ ] Run Flutter analyze.
-- [ ] Commit with `git commit -m "feat: добавить экран маршрута"`.
+- [x] Show badge `Маршрут от команды Frendly`.
+- [x] Show route title, blurb, area, budget, duration and recommendedFor.
+- [x] Show steps with time labels, venues, addresses and offer labels.
+- [x] Show nearest sessions block.
+- [x] Add button `Создать встречу`.
+- [x] Add button to join nearest session if sessions exist.
+- [x] Make clear that route itself has no chat until a meeting exists.
+- [x] Run Flutter analyze.
+- [x] Commit with `git commit -m "feat: добавить экран маршрута"`.
 
 ### Task 4.5: Build create meeting flow from route
 
@@ -1087,18 +1087,18 @@ Performance rule:
 
 **Result after completion:** User can choose date, time, privacy and capacity, then create a meeting from a team route.
 
-- [ ] Add date picker.
-- [ ] Add time picker.
-- [ ] Add privacy selector with `open` and `request`.
-- [ ] Keep `invite` out of MVP unless backend already supports it cleanly for template meetings.
-- [ ] Add capacity stepper from 2 to 12.
-- [ ] Add optional host note.
-- [ ] Submit to `POST /evening/route-templates/:templateId/sessions`.
-- [ ] On success, invalidate evening sessions provider.
-- [ ] On success, navigate to `/evening-preview/:sessionId` or meetup chat according to existing app pattern.
-- [ ] Show backend errors for spam limits and invalid dates.
-- [ ] Run Flutter analyze and tests.
-- [ ] Commit with `git commit -m "feat: создавать встречу из маршрута"`.
+- [x] Add date picker.
+- [x] Add time picker.
+- [x] Add privacy selector with `open` and `request`.
+- [x] Keep `invite` out of MVP unless backend already supports it cleanly for template meetings.
+- [x] Add capacity stepper from 2 to 12.
+- [x] Add optional host note.
+- [x] Submit to `POST /evening/route-templates/:templateId/sessions`.
+- [x] On success, invalidate evening sessions provider.
+- [x] On success, navigate to `/evening-preview/:sessionId` or meetup chat according to existing app pattern.
+- [x] Show backend errors for spam limits and invalid dates.
+- [x] Run Flutter analyze and tests.
+- [x] Commit with `git commit -m "feat: создавать встречу из маршрута"`.
 
 ### Task 4.6: Show curated route badge in session feed and preview
 
@@ -1111,13 +1111,13 @@ Performance rule:
 
 **Result after completion:** Meetings created from team routes are recognizable in feed and preview.
 
-- [ ] Parse `isCurated`, `badgeLabel`, `routeTemplateId`.
-- [ ] Show badge on session cards.
-- [ ] In preview, show both route source and host.
-- [ ] Text rule: `Маршрут от команды Frendly`, `Хост: <name>`.
-- [ ] Do not imply Frendly verifies host behavior.
-- [ ] Run Flutter analyze.
-- [ ] Commit with `git commit -m "feat: показать бейдж маршрута Frendly"`.
+- [x] Parse `isCurated`, `badgeLabel`, `routeTemplateId`.
+- [x] Show badge on session cards.
+- [x] In preview, show both route source and host.
+- [x] Text rule: `Маршрут от команды Frendly`, `Хост: <name>`.
+- [x] Do not imply Frendly verifies host behavior.
+- [x] Run Flutter analyze.
+- [x] Commit with `git commit -m "feat: показать бейдж маршрута Frendly"`.
 
 ---
 
