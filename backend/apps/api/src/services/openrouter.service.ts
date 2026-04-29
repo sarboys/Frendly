@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 
 type FetchResponseLike = {
@@ -40,6 +40,7 @@ type OpenRouterServiceOptions = {
   fetchImpl?: FetchLike;
 };
 
+export const OPENROUTER_SERVICE_OPTIONS = Symbol('OPENROUTER_SERVICE_OPTIONS');
 const DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = 'openai/gpt-4.1-mini';
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -52,7 +53,11 @@ export class OpenRouterService {
   private readonly timeoutMs: number;
   private readonly fetchImpl: FetchLike;
 
-  constructor(options: OpenRouterServiceOptions = {}) {
+  constructor(
+    @Optional()
+    @Inject(OPENROUTER_SERVICE_OPTIONS)
+    options: OpenRouterServiceOptions = {},
+  ) {
     this.apiKey = textOrNull(options.apiKey) ?? textOrNull(process.env.OPENROUTER_API_KEY);
     this.model = textOrNull(options.model) ?? textOrNull(process.env.OPENROUTER_MODEL) ?? DEFAULT_MODEL;
     this.baseUrl =
