@@ -177,6 +177,24 @@ CREATE TABLE "AiEveningDraftStep" (
 );
 
 -- CreateTable
+CREATE TABLE "EveningAnalyticsEvent" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "userId" TEXT,
+    "routeTemplateId" TEXT,
+    "routeId" TEXT,
+    "sessionId" TEXT,
+    "partnerId" TEXT,
+    "venueId" TEXT,
+    "offerId" TEXT,
+    "city" TEXT,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "EveningAnalyticsEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "EveningRouteTemplate" (
     "id" TEXT NOT NULL,
     "source" TEXT NOT NULL DEFAULT 'team',
@@ -294,6 +312,21 @@ CREATE INDEX "AiEveningDraftStep_draftId_sortOrder_id_idx" ON "AiEveningDraftSte
 
 -- CreateIndex
 CREATE INDEX "AiEveningDraftStep_venueId_idx" ON "AiEveningDraftStep"("venueId");
+
+-- CreateIndex
+CREATE INDEX "EveningAnalyticsEvent_name_createdAt_id_idx" ON "EveningAnalyticsEvent"("name", "createdAt", "id");
+
+-- CreateIndex
+CREATE INDEX "EveningAnalyticsEvent_routeTemplateId_name_createdAt_id_idx" ON "EveningAnalyticsEvent"("routeTemplateId", "name", "createdAt", "id");
+
+-- CreateIndex
+CREATE INDEX "EveningAnalyticsEvent_sessionId_name_createdAt_id_idx" ON "EveningAnalyticsEvent"("sessionId", "name", "createdAt", "id");
+
+-- CreateIndex
+CREATE INDEX "EveningAnalyticsEvent_partnerId_name_createdAt_id_idx" ON "EveningAnalyticsEvent"("partnerId", "name", "createdAt", "id");
+
+-- CreateIndex
+CREATE INDEX "EveningAnalyticsEvent_city_name_createdAt_id_idx" ON "EveningAnalyticsEvent"("city", "name", "createdAt", "id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "EveningRouteTemplate_currentRouteId_key" ON "EveningRouteTemplate"("currentRouteId");

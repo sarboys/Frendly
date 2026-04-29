@@ -793,6 +793,27 @@ model AiEveningDraftStep {
   @@index([venueId])
 }
 
+model EveningAnalyticsEvent {
+  id              String   @id @default(cuid())
+  name            String
+  userId          String?
+  routeTemplateId String?
+  routeId         String?
+  sessionId       String?
+  partnerId       String?
+  venueId         String?
+  offerId         String?
+  city            String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([name, createdAt, id])
+  @@index([routeTemplateId, name, createdAt, id])
+  @@index([sessionId, name, createdAt, id])
+  @@index([partnerId, name, createdAt, id])
+  @@index([city, name, createdAt, id])
+}
+
 model EveningRouteTemplate {
   id                 String    @id @default(cuid())
   source             String    @default("team")
