@@ -9,7 +9,6 @@ import 'package:big_break_mobile/features/share_card/presentation/share_card_scr
 import 'package:big_break_mobile/features/stories/presentation/stories_screen.dart';
 import 'package:big_break_mobile/features/verification/presentation/verification_screen.dart';
 import 'package:big_break_mobile/features/welcome/presentation/welcome_screen.dart';
-import 'package:big_break_mobile/shared/data/app_providers.dart';
 import 'package:big_break_mobile/shared/data/backend_repository.dart';
 import 'package:big_break_mobile/shared/models/public_share.dart';
 import 'package:dio/dio.dart';

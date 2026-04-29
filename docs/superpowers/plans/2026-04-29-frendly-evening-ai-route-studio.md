@@ -1012,16 +1012,16 @@ Expected result: tests pass.
 
 **Result after completion:** User can open `Маршруты` from Tonight, see a placeholder backed by real providers, and navigate to route details.
 
-- [ ] Add route `/routes`.
-- [ ] Add route `/routes/:templateId`.
-- [ ] Add route `/routes/:templateId/create`.
-- [ ] Add button `Маршруты` on Tonight.
-- [ ] Keep bottom navigation unchanged.
-- [ ] Route list screen reads selected city, default to profile city or Moscow fallback.
-- [ ] Detail screen opens by template id.
-- [ ] Create screen opens by template id.
-- [ ] Run Flutter analyze.
-- [ ] Commit with `git commit -m "feat: добавить вход в маршруты"`.
+- [x] Add route `/routes`.
+- [x] Add route `/routes/:templateId`.
+- [x] Add route `/routes/:templateId/create`.
+- [x] Add button `Маршруты` on Tonight.
+- [x] Keep bottom navigation unchanged.
+- [x] Route list screen reads selected city, default to profile city or Moscow fallback.
+- [x] Detail screen opens by template id.
+- [x] Create screen opens by template id.
+- [x] Run Flutter analyze.
+- [x] Commit with `git commit -m "feat: добавить вход в маршруты"`.
 
 Validation command:
 
