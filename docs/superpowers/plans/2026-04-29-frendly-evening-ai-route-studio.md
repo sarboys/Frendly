@@ -1368,21 +1368,21 @@ Prompt rule:
 
 **Result after completion:** AI gets bounded clean venue candidates, and every generated draft is validated before admin sees it.
 
-- [ ] Candidate selector filters by city.
-- [ ] Candidate selector filters `moderationStatus=approved`.
-- [ ] Candidate selector filters `trustLevel=verified` or `partner_claimed`.
-- [ ] Candidate selector filters category and tags from brief.
-- [ ] Candidate selector includes active offers.
-- [ ] Candidate selector caps venue list at 40.
-- [ ] Validator rejects unknown venue id.
-- [ ] Validator rejects duplicate venue unless brief allows repeat.
-- [ ] Validator rejects steps below min or above max.
-- [ ] Validator rejects missing coordinates.
-- [ ] Validator warns when opening hours are missing.
-- [ ] Validator warns when step time is outside opening hours.
-- [ ] Validator warns when walk time is high.
-- [ ] Validator computes score.
-- [ ] Commit with `git commit -m "feat: проверять AI маршруты"`.
+- [x] Candidate selector filters by city.
+- [x] Candidate selector filters `moderationStatus=approved`.
+- [x] Candidate selector filters `trustLevel=verified` or `partner_claimed`.
+- [x] Candidate selector filters category and tags from brief.
+- [x] Candidate selector includes active offers.
+- [x] Candidate selector caps venue list at 40.
+- [x] Validator rejects unknown venue id.
+- [x] Validator rejects duplicate venue unless brief allows repeat.
+- [x] Validator rejects steps below min or above max.
+- [x] Validator rejects missing coordinates.
+- [x] Validator warns when opening hours are missing.
+- [x] Validator warns when step time is outside opening hours.
+- [x] Validator warns when walk time is high.
+- [x] Validator computes score.
+- [x] Commit with `git commit -m "feat: проверять AI маршруты"`.
 
 Score rule for MVP:
 
