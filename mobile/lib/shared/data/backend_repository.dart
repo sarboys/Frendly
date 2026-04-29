@@ -18,6 +18,7 @@ import 'package:big_break_mobile/shared/models/message.dart';
 import 'package:big_break_mobile/shared/models/notification_item.dart';
 import 'package:big_break_mobile/shared/models/onboarding_data.dart';
 import 'package:big_break_mobile/shared/models/paginated_response.dart';
+import 'package:big_break_mobile/shared/models/partner_offer_code.dart';
 import 'package:big_break_mobile/shared/models/person_summary.dart';
 import 'package:big_break_mobile/shared/models/personal_chat.dart';
 import 'package:big_break_mobile/shared/models/poster.dart';
@@ -1060,6 +1061,24 @@ class BackendRepository {
     await dio.post<Map<String, dynamic>>(
       '/evening/sessions/$sessionId/steps/$stepId/check-in',
     );
+  }
+
+  Future<PartnerOfferCode> issuePartnerOfferCode({
+    required String sessionId,
+    required String stepId,
+    required String offerId,
+  }) async {
+    final response = await dio.post<Map<String, dynamic>>(
+      '/evening/sessions/$sessionId/steps/$stepId/offers/$offerId/code',
+    );
+    return PartnerOfferCode.fromJson(response.data!);
+  }
+
+  Future<PartnerOfferCode> fetchPartnerOfferCode(String codeId) async {
+    final response = await dio.get<Map<String, dynamic>>(
+      '/evening/offer-codes/$codeId',
+    );
+    return PartnerOfferCode.fromJson(response.data!);
   }
 
   Future<void> advanceEveningStep(String sessionId, String stepId) async {

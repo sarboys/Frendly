@@ -1276,13 +1276,13 @@ Expected result: build succeeds.
 
 **Result after completion:** Mobile can request QR data and render QR with `qr_flutter`.
 
-- [ ] Add dependency `qr_flutter`.
-- [ ] Run `flutter pub get`.
-- [ ] Add `PartnerOfferCode` model.
-- [ ] Add repository method `issuePartnerOfferCode`.
-- [ ] Add repository method `fetchPartnerOfferCode`.
-- [ ] Add model tests.
-- [ ] Commit with `git commit -m "feat: добавить модель QR оффера"`.
+- [x] Add dependency `qr_flutter`.
+- [x] Run `flutter pub get`.
+- [x] Add `PartnerOfferCode` model.
+- [x] Add repository method `issuePartnerOfferCode`.
+- [x] Add repository method `fetchPartnerOfferCode`.
+- [x] Add model tests.
+- [x] Commit with `git commit -m "feat: добавить модель QR оффера"`.
 
 Validation command:
 
