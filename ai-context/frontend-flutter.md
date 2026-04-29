@@ -111,6 +111,11 @@ Discovery and events:
 - `/evening-share/:sessionId`
   - builds a public share link through `POST /shares` with `targetType=evening_session`;
   - opens Telegram share URL or Instagram Stories through native `app.social.share`.
+- `/offer-code/:codeId`
+  - fullscreen partner offer QR screen.
+  - fetches `GET /evening/offer-codes/:codeId`.
+  - renders QR from `codeUrl`.
+  - polls every 4 seconds only while this screen is open and stops when status is not `issued`.
 
 Chat:
 
@@ -149,6 +154,7 @@ Frendly Evening:
 - `/evening-share/:sessionId`
 - `/evening-live/:routeId`
 - `/evening-after-party/:routeId`
+- `/offer-code/:codeId`
 
 Communities:
 
@@ -316,6 +322,7 @@ Files:
 - Route detail: `features/evening_routes/presentation/evening_route_detail_screen.dart`.
 - Route detail pieces: `features/evening_routes/presentation/evening_route_step_list.dart`, `features/evening_routes/presentation/evening_nearest_sessions.dart`.
 - Template meeting create flow: `features/evening_routes/presentation/create_evening_session_screen.dart`.
+- Partner offer QR screen: `features/evening_routes/presentation/partner_offer_qr_screen.dart`.
 - Builder: `features/evening_plan/presentation/evening_builder_screen.dart`.
 - Local front-parity route data and API DTO mapping fallback: `evening_plan_data.dart`.
 - Local editable route overrides and edit diff rules: `evening_edit_state.dart`.
@@ -404,6 +411,7 @@ EveningPreview:
 - Data provider: `eveningSessionProvider`.
 - Shows hero privacy badge, optional live badge, host, capacity, route timeline and sticky CTA.
 - Header share button opens `/evening-share/:sessionId`.
+- Joined users see `Показать QR` on steps with `partnerOfferId`; tap issues a personal code and opens `/offer-code/:codeId`.
 - Uses `isJoined` and `isRequested` from backend session detail, so joined users can reopen chat/live and request-mode users see persisted “Заявка отправлена”.
 - CTA behavior:
   - open: join session and immediately open meetup chat, including late live join with pinned live card.
@@ -429,6 +437,7 @@ Live timeline:
 - Uses route data from `evening_plan_data.dart` as fallback.
 - When opened with `sessionId`, hydrates title, chat id, steps, participants, step status and current user's check-in state from `eveningSessionProvider`.
 - Step states: done, current, upcoming, skipped.
+- Steps with `partnerOfferId` show `Показать QR`; QR issue happens only on tap and polling happens only inside `PartnerOfferQrScreen`.
 - Check-in is optimistic locally, then syncs through the session check-in endpoint.
 - Manual and hybrid show “Дальше” only to the session host; guests keep chat, route detail and check-in, but do not see host-only advance or skip controls.
 - Auto hides manual advance and relies on backend worker plus `chat.updated` for step changes.
@@ -456,6 +465,8 @@ Backend contract:
 - `POST /evening/sessions/:sessionId/steps/:stepId/check-in`.
 - `POST /evening/sessions/:sessionId/steps/:stepId/advance`.
 - `POST /evening/sessions/:sessionId/steps/:stepId/skip`.
+- `POST /evening/sessions/:sessionId/steps/:stepId/offers/:offerId/code`.
+- `GET /evening/offer-codes/:codeId`.
 - `GET /evening/sessions/:sessionId/after-party`.
 - `POST /evening/sessions/:sessionId/after-party/feedback`.
 - `POST /evening/sessions/:sessionId/after-party/photos`.
