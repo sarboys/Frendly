@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthController } from './controllers/auth.controller';
 import { AdminEveningController } from './controllers/admin-evening.controller';
+import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { ChatsController } from './controllers/chats.controller';
 import { CommunitiesController } from './controllers/communities.controller';
@@ -16,6 +17,8 @@ import { MediaController } from './controllers/media.controller';
 import { NotificationsController } from './controllers/notifications.controller';
 import { OnboardingController } from './controllers/onboarding.controller';
 import { PeopleController } from './controllers/people.controller';
+import { PartnerAuthController } from './controllers/partner-auth.controller';
+import { PartnerPortalController } from './controllers/partner-portal.controller';
 import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { PublicCodeController } from './controllers/public-code.controller';
@@ -29,6 +32,7 @@ import { VerificationController } from './controllers/verification.controller';
 import { ApiExceptionFilter } from './common/api-exception.filter';
 import { AuthGuard } from './common/auth.guard';
 import { AdminTokenGuard } from './common/admin-token.guard';
+import { PartnerAuthGuard } from './common/partner-auth.guard';
 import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
 import { AdminEveningAnalyticsService } from './services/admin-evening-analytics.service';
@@ -52,7 +56,9 @@ import { NotificationsService } from './services/notifications.service';
 import { OnboardingService } from './services/onboarding.service';
 import { OpenRouterService } from './services/openrouter.service';
 import { PeopleService } from './services/people.service';
+import { PartnerAuthService } from './services/partner-auth.service';
 import { PartnerOfferCodeService } from './services/partner-offer-code.service';
+import { PartnerPortalService } from './services/partner-portal.service';
 import { PostersService } from './services/posters.service';
 import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
@@ -71,6 +77,7 @@ import { VerificationService } from './services/verification.service';
 @Module({
   controllers: [
     AdminEveningController,
+    AdminPartnerAccountsController,
     AfterDarkController,
     AuthController,
     ChatsController,
@@ -86,6 +93,8 @@ import { VerificationService } from './services/verification.service';
     NotificationsController,
     OnboardingController,
     PeopleController,
+    PartnerAuthController,
+    PartnerPortalController,
     PostersController,
     ProfileController,
     PublicCodeController,
@@ -99,6 +108,7 @@ import { VerificationService } from './services/verification.service';
   ],
   providers: [
     AdminTokenGuard,
+    PartnerAuthGuard,
     AdminEveningAnalyticsService,
     AdminEveningAiService,
     AdminEveningRouteService,
@@ -121,7 +131,9 @@ import { VerificationService } from './services/verification.service';
     OnboardingService,
     OpenRouterService,
     PeopleService,
+    PartnerAuthService,
     PartnerOfferCodeService,
+    PartnerPortalService,
     PhoneOtpService,
     PostersService,
     PrismaService,

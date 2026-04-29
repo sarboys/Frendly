@@ -51,9 +51,11 @@
   - endpoints: `/auth/*`, `/me`.
 - Partner Auth:
   - controller: `partner-auth.controller.ts`
+  - admin approval controller: `admin-partner-accounts.controller.ts`.
   - service: `partner-auth.service.ts`
   - guard: `partner-auth.guard.ts`, current partner decorator: `current-partner.decorator.ts`.
   - endpoints: `/partner/auth/register`, login, refresh, logout and `/partner/me`.
+  - admin endpoints: `/admin/partner-accounts`, approve, reject and suspend, guarded by `@Admin()`.
   - registration creates `PartnerAccount` with `status=pending`; login uses email plus password and separate `PartnerSession`.
 - Profile:
   - controller: `profile.controller.ts`

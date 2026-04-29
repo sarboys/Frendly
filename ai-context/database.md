@@ -39,6 +39,11 @@
 - `UserVerification`: verification state.
 - `Session`: refresh token id and revocation.
   - stores `provider` for the login source used by onboarding contact requirements.
+- `PartnerAccount`: email/password account for `partner.frendly.tech`.
+  - stores organization name, INN as `taxId`, city, contact, status and optional `partnerId`.
+  - statuses used by API: `pending`, `approved`, `rejected`, `suspended`.
+- `PartnerSession`: separate refresh-token session table for partner accounts.
+  - not mixed with mobile app `Session`.
 - `PhoneOtpChallenge`: phone code flow.
 - `TelegramAccount`: linked Telegram account.
 - `TelegramLoginSession`: Telegram login start/code flow.
@@ -59,7 +64,11 @@
 ### Discovery and events
 
 - `Event`: meetup/event root, host, time, place, coordinates, access, after dark flags.
+  - partner portal ownership uses optional `partnerId`.
+  - partner cancellation uses nullable `canceledAt` and `cancelReason`; public event feed excludes canceled rows.
 - `Poster`: curated or external event card source.
+  - partner portal ownership uses optional `partnerId`.
+  - moderation status is a string field, default `published` for existing public posters and `draft` for partner-created posters.
 - `EventParticipant`: joined user.
 - `EventJoinRequest`: request/invite review state.
 - `EventAttendance`: check-in state.
@@ -71,8 +80,9 @@
 ### Frendly Evening
 
 - `Partner`: партнерская организация для вечерних маршрутов.
-  - stores city, status, contact and notes.
-  - owns `Venue`, `PartnerOffer` and `PartnerOfferCode`.
+  - stores city, INN `taxId`, status, contact and notes.
+  - `hostUserId` points to a system `User` used as host for partner-created Events.
+  - owns `PartnerAccount`, `Venue`, `PartnerOffer`, `PartnerOfferCode`, partner Events, Communities, Posters and featuring requests.
 - `Venue`: проверенная площадка для командных маршрутов.
   - stores source/external id, moderation status, trust level, city, timezone, area, coordinates, category, tags, average check and opening hours.
   - can belong to `Partner`; route steps keep optional `venueId` plus immutable venue snapshots.
@@ -136,6 +146,9 @@
 - `EveningAnalyticsEvent`:
   - focused event log for route views, session creation and offer activation metrics.
   - stores event name, optional user/session/route/template/partner/venue/offer ids, city, metadata and created time.
+- `PartnerFeaturedRequest`:
+  - partner-created request to feature one owned `Event`, `Community` or `Poster`.
+  - stores target type/id, city, placement, period, status and review note.
 
 Evening chat summary state is also denormalized on `Chat` for fast lists:
 
@@ -180,6 +193,8 @@ Current Evening notes:
 ### Communities
 
 - `Community`: community root and unique chat relation.
+  - partner portal ownership uses optional `partnerId`.
+  - partner archive uses nullable `archivedAt`.
 - `CommunityMember`: user membership plus role.
 - `CommunityNewsItem`: news.
 - `CommunityMeetupItem`: lightweight meetup item inside community.

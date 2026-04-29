@@ -14,6 +14,19 @@ export interface RefreshTokenPayload extends JwtPayload {
   kind: 'refresh';
 }
 
+export interface PartnerAccessTokenPayload extends JwtPayload {
+  partnerAccountId: string;
+  sessionId: string;
+  kind: 'partner_access';
+}
+
+export interface PartnerRefreshTokenPayload extends JwtPayload {
+  partnerAccountId: string;
+  sessionId: string;
+  refreshTokenId: string;
+  kind: 'partner_refresh';
+}
+
 export function signAccessToken(userId: string, sessionId: string): string {
   const config = getJwtConfig();
   const options: SignOptions = {
@@ -32,11 +45,54 @@ export function signRefreshToken(userId: string, sessionId: string, refreshToken
   return jwt.sign({ userId, sessionId, refreshTokenId, kind: 'refresh' }, config.refreshSecret, options);
 }
 
+export function signPartnerAccessToken(
+  partnerAccountId: string,
+  sessionId: string,
+): string {
+  const config = getJwtConfig();
+  const options: SignOptions = {
+    expiresIn: config.accessTtl as SignOptions['expiresIn'],
+  };
+
+  return jwt.sign(
+    { partnerAccountId, sessionId, kind: 'partner_access' },
+    config.accessSecret,
+    options,
+  );
+}
+
+export function signPartnerRefreshToken(
+  partnerAccountId: string,
+  sessionId: string,
+  refreshTokenId: string,
+): string {
+  const config = getJwtConfig();
+  const options: SignOptions = {
+    expiresIn: config.refreshTtl as SignOptions['expiresIn'],
+  };
+
+  return jwt.sign(
+    { partnerAccountId, sessionId, refreshTokenId, kind: 'partner_refresh' },
+    config.refreshSecret,
+    options,
+  );
+}
+
 export function verifyAccessToken(token: string): AccessTokenPayload {
   const config = getJwtConfig();
   const payload = jwt.verify(token, config.accessSecret);
   if (!isAccessTokenPayload(payload)) {
     throw new Error('Invalid access token payload');
+  }
+
+  return payload;
+}
+
+export function verifyPartnerAccessToken(token: string): PartnerAccessTokenPayload {
+  const config = getJwtConfig();
+  const payload = jwt.verify(token, config.accessSecret);
+  if (!isPartnerAccessTokenPayload(payload)) {
+    throw new Error('Invalid partner access token payload');
   }
 
   return payload;
@@ -52,6 +108,16 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload {
   return payload;
 }
 
+export function verifyPartnerRefreshToken(token: string): PartnerRefreshTokenPayload {
+  const config = getJwtConfig();
+  const payload = jwt.verify(token, config.refreshSecret);
+  if (!isPartnerRefreshTokenPayload(payload)) {
+    throw new Error('Invalid partner refresh token payload');
+  }
+
+  return payload;
+}
+
 function isAccessTokenPayload(payload: string | JwtPayload): payload is AccessTokenPayload {
   return (
     typeof payload !== 'string' &&
@@ -61,11 +127,34 @@ function isAccessTokenPayload(payload: string | JwtPayload): payload is AccessTo
   );
 }
 
+function isPartnerAccessTokenPayload(
+  payload: string | JwtPayload,
+): payload is PartnerAccessTokenPayload {
+  return (
+    typeof payload !== 'string' &&
+    payload.kind === 'partner_access' &&
+    isNonEmptyString(payload.partnerAccountId) &&
+    isNonEmptyString(payload.sessionId)
+  );
+}
+
 function isRefreshTokenPayload(payload: string | JwtPayload): payload is RefreshTokenPayload {
   return (
     typeof payload !== 'string' &&
     payload.kind === 'refresh' &&
     isNonEmptyString(payload.userId) &&
+    isNonEmptyString(payload.sessionId) &&
+    isNonEmptyString(payload.refreshTokenId)
+  );
+}
+
+function isPartnerRefreshTokenPayload(
+  payload: string | JwtPayload,
+): payload is PartnerRefreshTokenPayload {
+  return (
+    typeof payload !== 'string' &&
+    payload.kind === 'partner_refresh' &&
+    isNonEmptyString(payload.partnerAccountId) &&
     isNonEmptyString(payload.sessionId) &&
     isNonEmptyString(payload.refreshTokenId)
   );

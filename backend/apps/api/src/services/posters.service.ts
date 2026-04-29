@@ -32,6 +32,7 @@ export class PostersService {
     const cursorPoster = await this.resolveCursor(params.cursor);
     const where: Prisma.PosterWhereInput = {
       city,
+      status: 'published',
       ...(category ? { category } : {}),
       ...(featuredOnly ? { isFeatured: true } : {}),
       ...(query
@@ -82,6 +83,10 @@ export class PostersService {
     });
 
     if (!poster) {
+      throw new ApiError(404, 'poster_not_found', 'Poster not found');
+    }
+
+    if (poster.status !== 'published') {
       throw new ApiError(404, 'poster_not_found', 'Poster not found');
     }
 
@@ -256,6 +261,7 @@ export class PostersService {
       tone: poster.tone,
       tags: this.normalizeTags(poster.tags),
       description: poster.description,
+      status: poster.status,
       isFeatured: poster.isFeatured,
       cover,
     };

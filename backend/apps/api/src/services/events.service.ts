@@ -1831,6 +1831,9 @@ export class EventsService {
   ): Prisma.EventWhereInput {
     const conditions: Prisma.EventWhereInput[] = [
       {
+        canceledAt: null,
+      },
+      {
         isAfterDark: false,
       },
       {
