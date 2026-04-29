@@ -534,16 +534,20 @@ export class AdminEveningRouteService {
       budget: route.budget,
       durationLabel: route.durationLabel,
       totalPriceFrom: route.totalPriceFrom,
-      stepsPreview: steps.slice(0, 3).map((step: any) => ({
+      totalSavings: route.totalSavings ?? 0,
+      mood: route.mood ?? '',
+      premium: route.premium ?? false,
+      hostsCount: route.hostsCount ?? 0,
+      stepsPreview: steps.slice(0, 4).map((step: any) => ({
         title: step.title,
         venue: step.venue,
         emoji: step.emoji,
+        time: step.timeLabel ?? null,
+        kind: step.kind ?? null,
       })),
       partnerOffersPreview: [],
       nearestSessions: [],
-      totalSavings: route.totalSavings,
       goal: route.goal,
-      mood: route.mood,
       format: route.format ?? null,
       recommendedFor: route.recommendedFor ?? null,
       steps: steps.map((step: any) => ({

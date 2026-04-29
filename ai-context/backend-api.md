@@ -31,6 +31,7 @@
 - Public routes use `@Public()`.
 - Current user comes from `@CurrentUser()`.
 - Request context stores `requestId`, `userId`, `sessionId`.
+- Partner routes additionally store `partnerAccountId` and `partnerId` in request context through `PartnerAuthGuard`.
 - Errors use `ApiError` and `ApiExceptionFilter`.
 - CORS is enabled only when `CORS_ORIGIN` is set.
 
@@ -48,6 +49,12 @@
   - controller: `auth.controller.ts`
   - services: `auth.service.ts`, `telegram-auth.service.ts`, `social-auth.service.ts`, `social-identity-verifier.service.ts`
   - endpoints: `/auth/*`, `/me`.
+- Partner Auth:
+  - controller: `partner-auth.controller.ts`
+  - service: `partner-auth.service.ts`
+  - guard: `partner-auth.guard.ts`, current partner decorator: `current-partner.decorator.ts`.
+  - endpoints: `/partner/auth/register`, login, refresh, logout and `/partner/me`.
+  - registration creates `PartnerAccount` with `status=pending`; login uses email plus password and separate `PartnerSession`.
 - Profile:
   - controller: `profile.controller.ts`
   - service: `profile.service.ts`
@@ -78,6 +85,7 @@
     - `GET /evening/route-templates/:templateId/sessions`
     - `POST /evening/route-templates/:templateId/sessions`
     - list and detail expose only published templates in the user's city.
+    - summary DTO includes card UI fields from the current route: `mood`, `premium`, `totalSavings`, `hostsCount`, and step preview `time` plus `kind`.
     - session creation uses the template current route revision and creates a dedicated Evening session chat.
   - offer QR endpoints:
     - `POST /evening/sessions/:sessionId/steps/:stepId/offers/:offerId/code`
@@ -92,6 +100,13 @@
   - venue catalog endpoints cover partners, venues and offers.
   - AI Route Studio endpoints create briefs, generate drafts, list drafts and convert a draft into a route template revision.
   - analytics endpoint `GET /admin/evening/analytics/partners` returns partner, venue and offer activation metrics.
+- Partner Portal:
+  - controller: `partner-portal.controller.ts`.
+  - service: `partner-portal.service.ts`.
+  - endpoints under `/partner/portal/*` are guarded by `PartnerAuthGuard`.
+  - CRUD covers partner meetups, communities, posters and featuring requests.
+  - every query scopes by `partnerId` from the partner session; client input cannot set scope.
+  - partner-created meetups use `Partner.hostUserId` as the Event host and create it lazily for the organization.
 - People:
   - controller: `people.controller.ts`
   - service: `people.service.ts`

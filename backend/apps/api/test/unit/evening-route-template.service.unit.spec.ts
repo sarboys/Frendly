@@ -11,8 +11,12 @@ describe('EveningRouteTemplateService unit', () => {
     badgeLabel: 'Маршрут от команды Frendly',
     coverAssetId: null,
     budget: 'mid',
+    totalSavings: 650,
     durationLabel: '2.5 часа',
     totalPriceFrom: 1800,
+    mood: 'chill',
+    premium: true,
+    hostsCount: 8,
     steps: [
       {
         id: 'step-1',
@@ -88,6 +92,17 @@ describe('EveningRouteTemplateService unit', () => {
         routeId: 'route-1',
         title: 'Кино без кино',
         city: 'Москва',
+        totalSavings: 650,
+        mood: 'chill',
+        premium: true,
+        hostsCount: 8,
+        stepsPreview: [
+          expect.objectContaining({
+            venue: 'Example Bar',
+            time: '19:00',
+            kind: 'bar',
+          }),
+        ],
       }),
     ]);
   });

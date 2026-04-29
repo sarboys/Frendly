@@ -133,6 +133,8 @@ export interface EveningRouteTemplateStepPreviewDto {
   title: string;
   venue: string;
   emoji: string;
+  time: string | null;
+  kind: string | null;
 }
 
 export interface EveningRouteTemplatePartnerOfferPreviewDto {
@@ -161,6 +163,10 @@ export interface EveningRouteTemplateSummaryDto {
   budget: string;
   durationLabel: string;
   totalPriceFrom: number;
+  totalSavings: number;
+  mood: string;
+  premium: boolean;
+  hostsCount: number;
   stepsPreview: EveningRouteTemplateStepPreviewDto[];
   partnerOffersPreview: EveningRouteTemplatePartnerOfferPreviewDto[];
   nearestSessions: EveningRouteTemplateSessionDto[];
@@ -177,9 +183,7 @@ export interface EveningRouteTemplateStepDto extends EveningRouteStepDto {
 
 export interface EveningRouteTemplateDetailDto
   extends EveningRouteTemplateSummaryDto {
-  totalSavings: number;
   goal: string;
-  mood: string;
   format: string | null;
   recommendedFor: string | null;
   steps: EveningRouteTemplateStepDto[];

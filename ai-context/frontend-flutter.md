@@ -352,16 +352,20 @@ Curated team route flow:
 ```text
 Tonight Routes entry
   -> Routes catalog
-  -> Route detail
-  -> Create template meeting
-  -> EveningPreview
+  -> RouteCard "Подробнее" opens EveningPlan by routeId
+  -> RouteCard "Создать встречу" opens EveningPlan with launch=1
+  -> LaunchEveningSheet publishes session
+  -> MeetupChat for gathering
 ```
 
 Notes:
 
 - Tonight opens the standalone `Маршруты` catalog through `/routes`; it is not a bottom tab.
+- The catalog mirrors `front/src/components/bigbreak/screens/Routes.tsx`: city header, search, mood chips, featured route, other routes, empty reset state and dashed AI builder card.
+- Route cards use the premium mono UI from `front/src/components/bigbreak/RouteCard.tsx`: mood tag, Frendly+ tag, mini timeline, price, savings, avatar stack and two CTAs.
 - The catalog reads published route templates for the current city and keeps list work bounded to the visible catalog page.
-- Route detail reads the template current route revision, nearest sessions and partner offer snapshots.
+- Route template summaries carry card UI fields: `mood`, `premium`, `totalSavings`, `hostsCount`, and step preview `time` plus `kind`.
+- Route detail still exists at `/routes/:templateId`; it reads the template current route revision, nearest sessions and partner offer snapshots.
 - Create template meeting posts to `/evening/route-templates/:templateId/sessions`; route steps are not editable on the user side.
 - Meeting creation opens `EveningPreview`, then users join through the normal Evening session flow.
 
