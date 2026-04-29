@@ -77,6 +77,58 @@ export interface EveningOptionsDto {
   areas: EveningOptionDto[];
 }
 
+export interface PartnerDto {
+  id: string;
+  name: string;
+  city: string;
+  status: string;
+  contact: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VenueDto {
+  id: string;
+  ownerType: string;
+  partnerId: string | null;
+  source: string;
+  externalId: string | null;
+  moderationStatus: string;
+  trustLevel: string;
+  city: string;
+  timezone: string;
+  area: string | null;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  category: string;
+  tags: unknown;
+  averageCheck: number | null;
+  openingHours: unknown | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartnerOfferDto {
+  id: string;
+  partnerId: string;
+  venueId: string;
+  title: string;
+  description: string;
+  terms: string | null;
+  shortLabel: string | null;
+  validFrom: string | null;
+  validTo: string | null;
+  daysOfWeek: unknown | null;
+  timeWindow: unknown | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface EveningStepStateDto {
   perkUsed: boolean;
   ticketBought: boolean;
