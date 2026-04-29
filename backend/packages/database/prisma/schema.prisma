@@ -235,90 +235,90 @@ enum AuthAuditResult {
 }
 
 model User {
-  id                String                  @id @default(cuid())
-  displayName       String
-  phoneNumber       String?                 @unique
-  email             String?                 @unique
-  verified          Boolean                 @default(false)
-  online            Boolean                 @default(false)
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  profile           Profile?
-  onboarding        OnboardingPreferences?
-  settings          UserSettings?
-  verification      UserVerification?
-  sessions          Session[]
-  otpChallenges     PhoneOtpChallenge[]
-  pushTokens        PushToken[]
-  notifications     Notification[]
-  hostedEvents      Event[]                 @relation("HostedEvents")
-  eventParticipants EventParticipant[]
-  joinRequests      EventJoinRequest[]
-  reviewedRequests  EventJoinRequest[]      @relation("ReviewedJoinRequests")
-  eventAttendances  EventAttendance[]       @relation("EventAttendanceUser")
-  checkedInEvents   EventAttendance[]       @relation("AttendanceCheckedInBy")
-  feedbacks         EventFeedback[]
-  favoriteSources   EventFavorite[]         @relation("EventFavoriteSource")
-  favoriteTargets   EventFavorite[]         @relation("EventFavoriteTarget")
-  trustedContacts   TrustedContact[]
-  safetySosAlerts   SafetySosAlert[]
-  reportsSent       UserReport[]            @relation("UserReportsSent")
-  reportsReceived   UserReport[]            @relation("UserReportsReceived")
-  createdPublicShares PublicShare[]          @relation("CreatedPublicShares")
-  blockedUsers      UserBlock[]             @relation("UserBlocks")
-  blockedByUsers    UserBlock[]             @relation("BlockedByUsers")
-  stories           EventStory[]
-  subscriptions     UserSubscription[]
-  chatMembers       ChatMember[]
-  createdCommunities Community[]             @relation("CommunityCreator")
-  communityMemberships CommunityMember[]
-  messages          Message[]
-  mediaAssets       MediaAsset[]
-  telegramAccount   TelegramAccount?
-  externalAuthAccounts ExternalAuthAccount[]
-  authAuditEvents   AuthAuditEvent[]
-  datingActionsSent DatingAction[]          @relation("DatingActionActor")
-  datingActionsReceived DatingAction[]       @relation("DatingActionTarget")
-  eveningStepActions UserEveningStepAction[]
-  hostedEveningSessions EveningSession[]      @relation("EveningSessionHost")
-  eveningSessionParticipants EveningSessionParticipant[]
-  eveningSessionJoinRequests EveningSessionJoinRequest[]
+  id                                 String                      @id @default(cuid())
+  displayName                        String
+  phoneNumber                        String?                     @unique
+  email                              String?                     @unique
+  verified                           Boolean                     @default(false)
+  online                             Boolean                     @default(false)
+  createdAt                          DateTime                    @default(now())
+  updatedAt                          DateTime                    @updatedAt
+  profile                            Profile?
+  onboarding                         OnboardingPreferences?
+  settings                           UserSettings?
+  verification                       UserVerification?
+  sessions                           Session[]
+  otpChallenges                      PhoneOtpChallenge[]
+  pushTokens                         PushToken[]
+  notifications                      Notification[]
+  hostedEvents                       Event[]                     @relation("HostedEvents")
+  eventParticipants                  EventParticipant[]
+  joinRequests                       EventJoinRequest[]
+  reviewedRequests                   EventJoinRequest[]          @relation("ReviewedJoinRequests")
+  eventAttendances                   EventAttendance[]           @relation("EventAttendanceUser")
+  checkedInEvents                    EventAttendance[]           @relation("AttendanceCheckedInBy")
+  feedbacks                          EventFeedback[]
+  favoriteSources                    EventFavorite[]             @relation("EventFavoriteSource")
+  favoriteTargets                    EventFavorite[]             @relation("EventFavoriteTarget")
+  trustedContacts                    TrustedContact[]
+  safetySosAlerts                    SafetySosAlert[]
+  reportsSent                        UserReport[]                @relation("UserReportsSent")
+  reportsReceived                    UserReport[]                @relation("UserReportsReceived")
+  createdPublicShares                PublicShare[]               @relation("CreatedPublicShares")
+  blockedUsers                       UserBlock[]                 @relation("UserBlocks")
+  blockedByUsers                     UserBlock[]                 @relation("BlockedByUsers")
+  stories                            EventStory[]
+  subscriptions                      UserSubscription[]
+  chatMembers                        ChatMember[]
+  createdCommunities                 Community[]                 @relation("CommunityCreator")
+  communityMemberships               CommunityMember[]
+  messages                           Message[]
+  mediaAssets                        MediaAsset[]
+  telegramAccount                    TelegramAccount?
+  externalAuthAccounts               ExternalAuthAccount[]
+  authAuditEvents                    AuthAuditEvent[]
+  datingActionsSent                  DatingAction[]              @relation("DatingActionActor")
+  datingActionsReceived              DatingAction[]              @relation("DatingActionTarget")
+  eveningStepActions                 UserEveningStepAction[]
+  hostedEveningSessions              EveningSession[]            @relation("EveningSessionHost")
+  eveningSessionParticipants         EveningSessionParticipant[]
+  eveningSessionJoinRequests         EveningSessionJoinRequest[]
   reviewedEveningSessionJoinRequests EveningSessionJoinRequest[] @relation("ReviewedEveningSessionJoinRequests")
-  eveningStepCheckIns EveningStepCheckIn[]
-  eveningAfterPartyFeedbacks EveningAfterPartyFeedback[]
-  eveningAfterPartyPhotos EveningAfterPartyPhoto[]
+  eveningStepCheckIns                EveningStepCheckIn[]
+  eveningAfterPartyFeedbacks         EveningAfterPartyFeedback[]
+  eveningAfterPartyPhotos            EveningAfterPartyPhoto[]
 
   @@index([displayName, id])
 }
 
 model UserSettings {
-  userId              String   @id
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  allowLocation       Boolean  @default(true)
-  allowPush           Boolean  @default(true)
-  allowContacts       Boolean  @default(false)
-  autoSharePlans      Boolean  @default(true)
-  hideExactLocation   Boolean  @default(false)
-  quietHours          Boolean  @default(false)
-  showAge             Boolean  @default(true)
-  discoverable        Boolean  @default(true)
-  darkMode            Boolean  @default(false)
+  userId                  String    @id
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allowLocation           Boolean   @default(true)
+  allowPush               Boolean   @default(true)
+  allowContacts           Boolean   @default(false)
+  autoSharePlans          Boolean   @default(true)
+  hideExactLocation       Boolean   @default(false)
+  quietHours              Boolean   @default(false)
+  showAge                 Boolean   @default(true)
+  discoverable            Boolean   @default(true)
+  darkMode                Boolean   @default(false)
   afterDarkAgeConfirmedAt DateTime?
   afterDarkCodeAcceptedAt DateTime?
-  updatedAt           DateTime @updatedAt
+  updatedAt               DateTime  @updatedAt
 
   @@index([discoverable, userId])
 }
 
 model UserVerification {
-  userId        String             @id
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status        VerificationStatus @default(not_started)
-  selfieDone    Boolean            @default(false)
-  documentDone  Boolean            @default(false)
-  reviewedAt    DateTime?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  userId       String             @id
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       VerificationStatus @default(not_started)
+  selfieDone   Boolean            @default(false)
+  documentDone Boolean            @default(false)
+  reviewedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 }
 
 model PhoneOtpChallenge {
@@ -343,16 +343,16 @@ model PhoneOtpChallenge {
 }
 
 model TelegramAccount {
-  userId          String   @id
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  telegramUserId  String   @unique
-  chatId          String
-  username        String?
-  firstName       String?
-  lastName        String?
-  lastLoginAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  userId         String    @id
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  telegramUserId String    @unique
+  chatId         String
+  username       String?
+  firstName      String?
+  lastName       String?
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model ExternalAuthAccount {
@@ -421,22 +421,22 @@ model AuthAuditEvent {
 }
 
 model Profile {
-  userId         String      @id
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  age            Int?
-  birthDate      DateTime?   @db.Date
-  gender         UserGender?
-  city           String?
-  area           String?
-  bio            String?
-  vibe           String?
-  rating         Float       @default(0)
-  meetupCount    Int         @default(0)
-  avatarUrl      String?
-  avatarAssetId  String?     @unique
-  avatarAsset    MediaAsset? @relation("ProfileAvatar", fields: [avatarAssetId], references: [id])
-  photos         ProfilePhoto[]
-  updatedAt      DateTime    @updatedAt
+  userId        String         @id
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age           Int?
+  birthDate     DateTime?      @db.Date
+  gender        UserGender?
+  city          String?
+  area          String?
+  bio           String?
+  vibe          String?
+  rating        Float          @default(0)
+  meetupCount   Int            @default(0)
+  avatarUrl     String?
+  avatarAssetId String?        @unique
+  avatarAsset   MediaAsset?    @relation("ProfileAvatar", fields: [avatarAssetId], references: [id])
+  photos        ProfilePhoto[]
+  updatedAt     DateTime       @updatedAt
 }
 
 model ProfilePhoto {
@@ -453,84 +453,85 @@ model ProfilePhoto {
 }
 
 model OnboardingPreferences {
-  userId     String   @id
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  intent     String?
-  gender     UserGender?
-  birthDate  DateTime? @db.Date
-  city       String?
-  area       String?
-  interests  Json
-  vibe       String?
-  updatedAt  DateTime @updatedAt
+  userId    String      @id
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  intent    String?
+  gender    UserGender?
+  birthDate DateTime?   @db.Date
+  city      String?
+  area      String?
+  interests Json
+  vibe      String?
+  updatedAt DateTime    @updatedAt
 }
 
 model Session {
-  id             String    @id @default(cuid())
+  id             String       @id @default(cuid())
   userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshTokenId String    @unique
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenId String       @unique
   provider       AuthProvider @default(session)
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime     @default(now())
   lastUsedAt     DateTime?
   revokedAt      DateTime?
 }
 
 model Event {
-  id              String             @id @default(cuid())
-  title           String
-  emoji           String
-  startsAt        DateTime
-  durationMinutes Int                @default(120)
-  place           String
-  distanceKm      Float
-  latitude        Float?
-  longitude       Float?
-  vibe            String
-  tone            EventTone          @default(warm)
-  joinMode        EventJoinMode      @default(open)
-  lifestyle       EventLifestyle     @default(neutral)
-  priceMode       EventPriceMode     @default(free)
-  priceAmountFrom Int?
-  priceAmountTo   Int?
-  accessMode      EventAccessMode    @default(open)
-  genderMode      EventGenderMode    @default(all)
-  visibilityMode  EventVisibilityMode @default(public)
-  hostNote        String?
-  description     String
-  partnerName     String?
-  partnerOffer    String?
-  isAfterDark     Boolean            @default(false)
+  id                String              @id @default(cuid())
+  title             String
+  emoji             String
+  startsAt          DateTime
+  durationMinutes   Int                 @default(120)
+  place             String
+  distanceKm        Float
+  latitude          Float?
+  longitude         Float?
+  vibe              String
+  tone              EventTone           @default(warm)
+  joinMode          EventJoinMode       @default(open)
+  lifestyle         EventLifestyle      @default(neutral)
+  priceMode         EventPriceMode      @default(free)
+  priceAmountFrom   Int?
+  priceAmountTo     Int?
+  accessMode        EventAccessMode     @default(open)
+  genderMode        EventGenderMode     @default(all)
+  visibilityMode    EventVisibilityMode @default(public)
+  hostNote          String?
+  description       String
+  partnerName       String?
+  partnerOffer      String?
+  isAfterDark       Boolean             @default(false)
   afterDarkCategory String?
-  afterDarkGlow   String?
-  dressCode       String?
-  ageRange        String?
-  ratioLabel      String?
-  consentRequired Boolean            @default(false)
-  rules           Json?
-  capacity        Int
-  idempotencyKey  String?
-  isCalm          Boolean            @default(false)
-  isNewcomers     Boolean            @default(false)
-  isDate          Boolean            @default(false)
-  sourcePosterId  String?
-  hostId          String
-  host            User               @relation("HostedEvents", fields: [hostId], references: [id])
-  sourcePoster    Poster?            @relation(fields: [sourcePosterId], references: [id], onDelete: SetNull)
-  participants    EventParticipant[]
-  joinRequests    EventJoinRequest[]
-  attendances     EventAttendance[]
-  liveState       EventLiveState?
-  feedbacks       EventFeedback[]
-  favorites       EventFavorite[]
-  stories         EventStory[]
-  publicShares    PublicShare[]
-  safetySosAlerts SafetySosAlert[]
-  chat            Chat?
-  sourceChats     Chat[]             @relation("ChatSourceEvent")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  afterDarkGlow     String?
+  dressCode         String?
+  ageRange          String?
+  ratioLabel        String?
+  consentRequired   Boolean             @default(false)
+  rules             Json?
+  capacity          Int
+  idempotencyKey    String?
+  isCalm            Boolean             @default(false)
+  isNewcomers       Boolean             @default(false)
+  isDate            Boolean             @default(false)
+  sourcePosterId    String?
+  hostId            String
+  host              User                @relation("HostedEvents", fields: [hostId], references: [id])
+  sourcePoster      Poster?             @relation(fields: [sourcePosterId], references: [id], onDelete: SetNull)
+  participants      EventParticipant[]
+  joinRequests      EventJoinRequest[]
+  attendances       EventAttendance[]
+  liveState         EventLiveState?
+  feedbacks         EventFeedback[]
+  favorites         EventFavorite[]
+  stories           EventStory[]
+  publicShares      PublicShare[]
+  safetySosAlerts   SafetySosAlert[]
+  chat              Chat?
+  sourceChats       Chat[]              @relation("ChatSourceEvent")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
+  @@unique([hostId, idempotencyKey])
   @@index([sourcePosterId])
   @@index([isAfterDark, startsAt])
   @@index([isAfterDark, startsAt, id])
@@ -544,115 +545,253 @@ model Event {
   @@index([isAfterDark, genderMode, startsAt, id])
   @@index([startsAt, id])
   @@index([hostId, startsAt, id])
-  @@unique([hostId, idempotencyKey])
 }
 
 model Poster {
-  id          String         @id
-  city        String
-  category    PosterCategory
-  title       String
-  emoji       String
-  startsAt    DateTime
-  dateLabel   String
-  timeLabel   String
-  venue       String
-  address     String
-  distanceKm  Float
-  priceFrom   Int
-  ticketUrl   String
-  provider    String
-  tone        EventTone      @default(warm)
-  tags        Json
-  description String
-  isFeatured  Boolean        @default(false)
-  coverAssetId String?       @unique
-  events      Event[]
-  coverAsset  MediaAsset?    @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id           String         @id
+  city         String
+  category     PosterCategory
+  title        String
+  emoji        String
+  startsAt     DateTime
+  dateLabel    String
+  timeLabel    String
+  venue        String
+  address      String
+  distanceKm   Float
+  priceFrom    Int
+  ticketUrl    String
+  provider     String
+  tone         EventTone      @default(warm)
+  tags         Json
+  description  String
+  isFeatured   Boolean        @default(false)
+  coverAssetId String?        @unique
+  events       Event[]
+  coverAsset   MediaAsset?    @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@index([city, startsAt])
   @@index([city, category, startsAt])
   @@index([city, isFeatured, startsAt])
 }
 
+model Partner {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  status    String   @default("active")
+  contact   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  venues Venue[]
+  offers PartnerOffer[]
+
+  @@index([city, status, id])
+}
+
+model Venue {
+  id                String    @id @default(cuid())
+  ownerType         String    @default("frendly")
+  partnerId         String?
+  source            String    @default("manual")
+  externalId        String?
+  moderationStatus  String    @default("approved")
+  trustLevel        String    @default("verified")
+  city              String
+  timezone          String    @default("Europe/Moscow")
+  area              String?
+  name              String
+  address           String
+  lat               Float
+  lng               Float
+  category          String
+  tags              Json
+  averageCheck      Int?
+  openingHours      Json?
+  status            String    @default("open")
+  lastSyncedAt      DateTime?
+  lastVerifiedAt    DateTime?
+  verifiedByAdminId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  partner    Partner?           @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  offers     PartnerOffer[]
+  routeSteps EveningRouteStep[]
+
+  @@unique([source, externalId])
+  @@index([city, moderationStatus, trustLevel, id])
+  @@index([city, category, id])
+  @@index([partnerId, id])
+}
+
+model PartnerOffer {
+  id          String    @id @default(cuid())
+  partnerId   String
+  venueId     String
+  title       String
+  description String
+  terms       String?
+  shortLabel  String?
+  validFrom   DateTime?
+  validTo     DateTime?
+  daysOfWeek  Json?
+  timeWindow  Json?
+  status      String    @default("active")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  partner    Partner            @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  venue      Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  routeSteps EveningRouteStep[]
+
+  @@index([partnerId, status, id])
+  @@index([venueId, status, id])
+}
+
+model EveningRouteTemplate {
+  id                 String    @id @default(cuid())
+  source             String    @default("team")
+  status             String    @default("draft")
+  city               String
+  timezone           String    @default("Europe/Moscow")
+  area               String?
+  centerLat          Float?
+  centerLng          Float?
+  radiusMeters       Int?
+  currentRouteId     String?   @unique
+  scheduledPublishAt DateTime?
+  publishedAt        DateTime?
+  archivedAt         DateTime?
+  createdByAdminId   String?
+  updatedByAdminId   String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  currentRoute EveningRoute?    @relation("CurrentEveningRoute", fields: [currentRouteId], references: [id], onDelete: SetNull)
+  revisions    EveningRoute[]   @relation("EveningRouteTemplateRevisions")
+  sessions     EveningSession[]
+
+  @@index([city, status, publishedAt, id])
+  @@index([city, scheduledPublishAt, id])
+}
+
 model EveningRoute {
-  id             String                  @id
-  title          String
-  vibe           String
-  blurb          String
-  totalPriceFrom Int
-  totalSavings   Int
-  durationLabel  String
-  area           String
-  goal           String
-  mood           String
-  budget         String
-  format         String?
-  premium        Boolean                 @default(false)
-  recommendedFor String?
-  hostsCount     Int                     @default(0)
-  chatId         String?                 @unique
-  chat           Chat?                   @relation("EveningRouteChat", fields: [chatId], references: [id], onDelete: SetNull)
-  steps          EveningRouteStep[]
-  stepActions    UserEveningStepAction[]
-  sessions       EveningSession[]
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  id                 String                  @id
+  templateId         String?
+  title              String
+  vibe               String
+  blurb              String
+  totalPriceFrom     Int
+  totalSavings       Int
+  durationLabel      String
+  area               String
+  goal               String
+  mood               String
+  budget             String
+  format             String?
+  premium            Boolean                 @default(false)
+  recommendedFor     String?
+  hostsCount         Int                     @default(0)
+  chatId             String?                 @unique
+  version            Int                     @default(1)
+  source             String                  @default("manual")
+  status             String                  @default("legacy")
+  city               String                  @default("Москва")
+  timezone           String                  @default("Europe/Moscow")
+  centerLat          Float?
+  centerLng          Float?
+  radiusMeters       Int?
+  isCurated          Boolean                 @default(false)
+  badgeLabel         String?
+  coverAssetId       String?
+  createdByAdminId   String?
+  publishedAt        DateTime?
+  archivedAt         DateTime?
+  template           EveningRouteTemplate?   @relation("EveningRouteTemplateRevisions", fields: [templateId], references: [id], onDelete: SetNull)
+  currentForTemplate EveningRouteTemplate?   @relation("CurrentEveningRoute")
+  chat               Chat?                   @relation("EveningRouteChat", fields: [chatId], references: [id], onDelete: SetNull)
+  steps              EveningRouteStep[]
+  stepActions        UserEveningStepAction[]
+  sessions           EveningSession[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
   @@index([goal, mood, budget, id])
   @@index([premium, id])
+  @@index([templateId, version])
+  @@index([city, status, isCurated, id])
+  @@index([city, publishedAt, id])
 }
 
 model EveningRouteStep {
-  id               String                  @id
-  routeId          String
-  route            EveningRoute            @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  sortOrder        Int
-  timeLabel        String
-  endTimeLabel     String?
-  kind             String
-  title            String
-  venue            String
-  address          String
-  emoji            String
-  distanceLabel    String
-  walkMin          Int?
-  perk             String?
-  perkShort        String?
-  ticketPrice      Int?
-  ticketCommission Int?
-  sponsored        Boolean                 @default(false)
-  premium          Boolean                 @default(false)
-  partnerId        String?
-  description      String?
-  vibeTag          String?
-  lat              Float
-  lng              Float
-  actions          UserEveningStepAction[]
-  sessionStates    EveningSessionStepState[]
-  checkIns         EveningStepCheckIn[]
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+  id                       String                    @id
+  routeId                  String
+  route                    EveningRoute              @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  venueId                  String?
+  partnerOfferId           String?
+  sortOrder                Int
+  timeLabel                String
+  endTimeLabel             String?
+  kind                     String
+  title                    String
+  venue                    String
+  address                  String
+  emoji                    String
+  distanceLabel            String
+  walkMin                  Int?
+  perk                     String?
+  perkShort                String?
+  ticketPrice              Int?
+  ticketCommission         Int?
+  sponsored                Boolean                   @default(false)
+  premium                  Boolean                   @default(false)
+  partnerId                String?
+  description              String?
+  vibeTag                  String?
+  lat                      Float
+  lng                      Float
+  offerTitleSnapshot       String?
+  offerDescriptionSnapshot String?
+  offerTermsSnapshot       String?
+  offerShortLabelSnapshot  String?
+  offerValidFromSnapshot   DateTime?
+  offerValidToSnapshot     DateTime?
+  venueNameSnapshot        String?
+  venueAddressSnapshot     String?
+  venueLatSnapshot         Float?
+  venueLngSnapshot         Float?
+  venueRecord              Venue?                    @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  partnerOffer             PartnerOffer?             @relation(fields: [partnerOfferId], references: [id], onDelete: SetNull)
+  actions                  UserEveningStepAction[]
+  sessionStates            EveningSessionStepState[]
+  checkIns                 EveningStepCheckIn[]
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
 
   @@index([routeId, sortOrder, id])
+  @@index([venueId])
+  @@index([partnerOfferId])
 }
 
 model UserEveningStepAction {
-  id              String           @id @default(cuid())
-  userId          String
-  routeId         String
-  stepId          String
-  perkUsedAt      DateTime?
-  ticketBoughtAt  DateTime?
-  sentToChatAt    DateTime?
-  chatMessageId   String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  route           EveningRoute     @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  step            EveningRouteStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  id             String           @id @default(cuid())
+  userId         String
+  routeId        String
+  stepId         String
+  perkUsedAt     DateTime?
+  ticketBoughtAt DateTime?
+  sentToChatAt   DateTime?
+  chatMessageId  String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route          EveningRoute     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  step           EveningRouteStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@unique([userId, stepId])
   @@index([userId, routeId])
@@ -660,35 +799,38 @@ model UserEveningStepAction {
 }
 
 model EveningSession {
-  id           String                      @id @default(cuid())
-  routeId      String
-  hostUserId   String
-  chatId       String                      @unique
-  phase        String                      @default("scheduled")
-  privacy      String                      @default("open")
-  mode         String                      @default("hybrid")
-  capacity     Int                         @default(10)
-  startsAt     DateTime?
-  startedAt    DateTime?
-  endedAt      DateTime?
-  currentStep  Int?
-  inviteToken  String?                     @unique
-  createdAt    DateTime                    @default(now())
-  updatedAt    DateTime                    @updatedAt
-  route        EveningRoute                @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  host         User                        @relation("EveningSessionHost", fields: [hostUserId], references: [id], onDelete: Cascade)
-  chat         Chat                        @relation("EveningSessionChat", fields: [chatId], references: [id], onDelete: Cascade)
-  participants EveningSessionParticipant[]
-  joinRequests EveningSessionJoinRequest[]
-  stepStates   EveningSessionStepState[]
-  checkIns     EveningStepCheckIn[]
+  id                  String                      @id @default(cuid())
+  routeId             String
+  routeTemplateId     String?
+  hostUserId          String
+  chatId              String                      @unique
+  phase               String                      @default("scheduled")
+  privacy             String                      @default("open")
+  mode                String                      @default("hybrid")
+  capacity            Int                         @default(10)
+  startsAt            DateTime?
+  startedAt           DateTime?
+  endedAt             DateTime?
+  currentStep         Int?
+  inviteToken         String?                     @unique
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  route               EveningRoute                @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  routeTemplate       EveningRouteTemplate?       @relation(fields: [routeTemplateId], references: [id], onDelete: SetNull)
+  host                User                        @relation("EveningSessionHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  chat                Chat                        @relation("EveningSessionChat", fields: [chatId], references: [id], onDelete: Cascade)
+  participants        EveningSessionParticipant[]
+  joinRequests        EveningSessionJoinRequest[]
+  stepStates          EveningSessionStepState[]
+  checkIns            EveningStepCheckIn[]
   afterPartyFeedbacks EveningAfterPartyFeedback[]
   afterPartyPhotos    EveningAfterPartyPhoto[]
-  publicShares PublicShare[]
+  publicShares        PublicShare[]
 
   @@index([phase, startsAt, id])
   @@index([hostUserId, phase, id])
   @@index([routeId, createdAt, id])
+  @@index([routeTemplateId, phase, startsAt, id])
   @@index([chatId])
 }
 
@@ -817,12 +959,12 @@ model EveningAfterPartyPhoto {
 }
 
 model EventParticipant {
-  id        String   @id @default(cuid())
-  eventId    String
-  userId     String
-  joinedAt   DateTime @default(now())
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String   @id @default(cuid())
+  eventId  String
+  userId   String
+  joinedAt DateTime @default(now())
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
   @@index([eventId, joinedAt, id])
@@ -850,19 +992,19 @@ model EventJoinRequest {
 }
 
 model EventAttendance {
-  id              String                 @id @default(cuid())
-  eventId         String
-  userId          String
-  status          AttendanceStatus       @default(not_checked_in)
-  checkedInAt     DateTime?
-  checkedInById   String?
-  checkInMethod   AttendanceCheckInMethod?
-  leftAt          DateTime?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  event           Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user            User                   @relation("EventAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
-  checkedInBy     User?                  @relation("AttendanceCheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
+  id            String                   @id @default(cuid())
+  eventId       String
+  userId        String
+  status        AttendanceStatus         @default(not_checked_in)
+  checkedInAt   DateTime?
+  checkedInById String?
+  checkInMethod AttendanceCheckInMethod?
+  leftAt        DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  event         Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User                     @relation("EventAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
+  checkedInBy   User?                    @relation("AttendanceCheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
 
   @@unique([eventId, userId])
   @@index([eventId, status])
@@ -870,39 +1012,39 @@ model EventAttendance {
 
 model EventLiveState {
   id         String          @id @default(cuid())
-  eventId     String          @unique
-  status      EventLiveStatus @default(idle)
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId    String          @unique
+  status     EventLiveStatus @default(idle)
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  event      Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model EventFeedback {
   id         String   @id @default(cuid())
-  eventId     String
-  userId      String
-  vibe        String
-  hostRating  Int
-  note        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId    String
+  userId     String
+  vibe       String
+  hostRating Int
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
 }
 
 model EventFavorite {
-  id            String   @id @default(cuid())
-  eventId        String
-  sourceUserId   String
-  targetUserId   String
-  createdAt      DateTime @default(now())
-  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  sourceUser     User     @relation("EventFavoriteSource", fields: [sourceUserId], references: [id], onDelete: Cascade)
-  targetUser     User     @relation("EventFavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  eventId      String
+  sourceUserId String
+  targetUserId String
+  createdAt    DateTime @default(now())
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sourceUser   User     @relation("EventFavoriteSource", fields: [sourceUserId], references: [id], onDelete: Cascade)
+  targetUser   User     @relation("EventFavoriteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, sourceUserId, targetUserId])
   @@index([sourceUserId, targetUserId])
@@ -910,19 +1052,19 @@ model EventFavorite {
 }
 
 model TrustedContact {
-  id          String             @id @default(cuid())
-  userId       String
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name         String
-  channel      TrustedContactChannel @default(phone)
-  value        String
-  phoneNumber  String
-  mode         TrustedContactMode @default(all_plans)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id          String                @id @default(cuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  channel     TrustedContactChannel @default(phone)
+  value       String
+  phoneNumber String
+  mode        TrustedContactMode    @default(all_plans)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 
-  @@index([userId, createdAt, id])
   @@unique([userId, channel, value])
+  @@index([userId, createdAt, id])
 }
 
 model SafetySosAlert {
@@ -942,7 +1084,7 @@ model SafetySosAlert {
 }
 
 model UserReport {
-  id            String       @id @default(cuid())
+  id             String       @id @default(cuid())
   reporterId     String
   targetUserId   String
   reason         String
@@ -971,31 +1113,31 @@ model UserBlock {
 }
 
 model EventStory {
-  id         String   @id @default(cuid())
-  eventId     String
-  authorId    String
-  caption     String
-  emoji       String
-  mediaAssetId String? @unique
-  createdAt   DateTime @default(now())
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  mediaAsset  MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  id           String      @id @default(cuid())
+  eventId      String
+  authorId     String
+  caption      String
+  emoji        String
+  mediaAssetId String?     @unique
+  createdAt    DateTime    @default(now())
+  event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
 
   @@index([eventId, createdAt])
 }
 
 model UserSubscription {
   id          String             @id @default(cuid())
-  userId       String
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan         SubscriptionPlan
-  status       SubscriptionStatus @default(inactive)
-  startedAt    DateTime?
-  renewsAt     DateTime?
-  trialEndsAt  DateTime?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        SubscriptionPlan
+  status      SubscriptionStatus @default(inactive)
+  startedAt   DateTime?
+  renewsAt    DateTime?
+  trialEndsAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@index([userId, createdAt])
   @@index([userId, status, renewsAt])
@@ -1021,32 +1163,32 @@ model DatingAction {
 }
 
 model Community {
-  id               String                 @id @default(cuid())
+  id               String                @id @default(cuid())
   name             String
   avatar           String
   description      String
-  privacy          CommunityPrivacy       @default(public)
+  privacy          CommunityPrivacy      @default(public)
   tags             Json
   joinRule         String
-  premiumOnly      Boolean                @default(true)
+  premiumOnly      Boolean               @default(true)
   mood             String
   sharedMediaLabel String
   createdById      String
-  chatId           String                 @unique
+  chatId           String                @unique
   idempotencyKey   String?
-  createdBy        User                   @relation("CommunityCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  chat             Chat                   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  createdBy        User                  @relation("CommunityCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  chat             Chat                  @relation(fields: [chatId], references: [id], onDelete: Cascade)
   members          CommunityMember[]
   news             CommunityNewsItem[]
   meetups          CommunityMeetupItem[]
   media            CommunityMediaItem[]
   socialLinks      CommunitySocialLink[]
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
+  @@unique([createdById, idempotencyKey])
   @@index([createdAt, id])
   @@index([privacy, createdAt, id])
-  @@unique([createdById, idempotencyKey])
 }
 
 model CommunityMember {
@@ -1137,7 +1279,7 @@ model Chat {
   messages       Message[]
   members        ChatMember[]
   community      Community?
-  eveningRoute   EveningRoute?  @relation("EveningRouteChat")
+  eveningRoute   EveningRoute?   @relation("EveningRouteChat")
   eveningSession EveningSession? @relation("EveningSessionChat")
   realtimeEvents RealtimeEvent[]
 
@@ -1163,18 +1305,18 @@ model ChatMember {
 }
 
 model Message {
-  id              String              @id @default(cuid())
-  chatId          String
-  senderId        String
-  text            String
-  clientMessageId String
+  id               String              @id @default(cuid())
+  chatId           String
+  senderId         String
+  text             String
+  clientMessageId  String
   replyToMessageId String?
-  createdAt       DateTime            @default(now())
-  chat            Chat                @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender          User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  replyTo         Message?            @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies         Message[]           @relation("MessageReplies")
-  attachments     MessageAttachment[]
+  createdAt        DateTime            @default(now())
+  chat             Chat                @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender           User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo          Message?            @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies          Message[]           @relation("MessageReplies")
+  attachments      MessageAttachment[]
 
   @@unique([chatId, clientMessageId])
   @@index([chatId, createdAt, id])
@@ -1184,39 +1326,39 @@ model Message {
 
 model MessageAttachment {
   id           String     @id @default(cuid())
-  messageId     String
-  mediaAssetId  String
-  createdAt     DateTime   @default(now())
-  message       Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  mediaAsset    MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  messageId    String
+  mediaAssetId String
+  createdAt    DateTime   @default(now())
+  message      Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, mediaAssetId])
   @@index([mediaAssetId])
 }
 
 model MediaAsset {
-  id               String            @id @default(cuid())
-  ownerId          String
-  owner            User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  kind             MediaAssetKind
-  status           MediaAssetStatus  @default(pending)
-  bucket           String
-  objectKey        String            @unique
-  mimeType         String
-  byteSize         Int
-  durationMs       Int?
-  waveform         Float[]           @default([])
-  originalFileName String
-  publicUrl        String?
-  error            String?
-  chatId           String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  profileAvatar    Profile?          @relation("ProfileAvatar")
-  profilePhotos    ProfilePhoto[]
-  storyAsset       EventStory?
-  posterCover      Poster?
-  messageLinks     MessageAttachment[]
+  id                      String                   @id @default(cuid())
+  ownerId                 String
+  owner                   User                     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind                    MediaAssetKind
+  status                  MediaAssetStatus         @default(pending)
+  bucket                  String
+  objectKey               String                   @unique
+  mimeType                String
+  byteSize                Int
+  durationMs              Int?
+  waveform                Float[]                  @default([])
+  originalFileName        String
+  publicUrl               String?
+  error                   String?
+  chatId                  String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  profileAvatar           Profile?                 @relation("ProfileAvatar")
+  profilePhotos           ProfilePhoto[]
+  storyAsset              EventStory?
+  posterCover             Poster?
+  messageLinks            MessageAttachment[]
   eveningAfterPartyPhotos EveningAfterPartyPhoto[]
 
   @@index([ownerId, status, chatId])
@@ -1224,7 +1366,7 @@ model MediaAsset {
 }
 
 model Notification {
-  id         String            @id @default(cuid())
+  id          String           @id @default(cuid())
   userId      String
   kind        NotificationKind
   title       String
@@ -1237,28 +1379,28 @@ model Notification {
   dedupeKey   String?
   payload     Json
   readAt      DateTime?
-  createdAt   DateTime          @default(now())
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([dedupeKey])
   @@index([userId, kind, readAt])
   @@index([userId, kind, readAt, chatId])
   @@index([userId, kind, readAt, actorUserId])
   @@index([userId, readAt, eventId, requestId])
   @@index([userId, createdAt, id])
-  @@unique([dedupeKey])
 }
 
 model PushToken {
   id         String       @id @default(cuid())
-  userId      String
-  provider    PushProvider
-  token       String       @unique
-  deviceId    String?
-  platform    String?
-  disabledAt  DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  provider   PushProvider
+  token      String       @unique
+  deviceId   String?
+  platform   String?
+  disabledAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, disabledAt])
   @@index([userId, deviceId])
@@ -1281,12 +1423,12 @@ model OutboxEvent {
 }
 
 model RealtimeEvent {
-  id         BigInt   @id @default(autoincrement())
-  chatId      String
-  eventType   String
-  payload     Json
-  createdAt   DateTime @default(now())
-  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  id        BigInt   @id @default(autoincrement())
+  chatId    String
+  eventType String
+  payload   Json
+  createdAt DateTime @default(now())
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([chatId, id])
 }
