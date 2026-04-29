@@ -129,6 +129,62 @@ export interface PartnerOfferDto {
   updatedAt: string;
 }
 
+export interface EveningRouteTemplateStepPreviewDto {
+  title: string;
+  venue: string;
+  emoji: string;
+}
+
+export interface EveningRouteTemplatePartnerOfferPreviewDto {
+  partnerId: string;
+  title: string;
+  shortLabel: string | null;
+}
+
+export interface EveningRouteTemplateSessionDto {
+  sessionId: string;
+  startsAt: string;
+  joinedCount: number;
+  capacity: number;
+}
+
+export interface EveningRouteTemplateSummaryDto {
+  id: string;
+  routeId: string;
+  title: string;
+  blurb: string;
+  city: string;
+  area: string | null;
+  badgeLabel: string | null;
+  coverUrl: string | null;
+  vibe: string;
+  budget: string;
+  durationLabel: string;
+  totalPriceFrom: number;
+  stepsPreview: EveningRouteTemplateStepPreviewDto[];
+  partnerOffersPreview: EveningRouteTemplatePartnerOfferPreviewDto[];
+  nearestSessions: EveningRouteTemplateSessionDto[];
+}
+
+export interface EveningRouteTemplateStepDto extends EveningRouteStepDto {
+  venueId: string | null;
+  partnerOfferId: string | null;
+  offerTitle: string | null;
+  offerDescription: string | null;
+  offerTerms: string | null;
+  offerShortLabel: string | null;
+}
+
+export interface EveningRouteTemplateDetailDto
+  extends EveningRouteTemplateSummaryDto {
+  totalSavings: number;
+  goal: string;
+  mood: string;
+  format: string | null;
+  recommendedFor: string | null;
+  steps: EveningRouteTemplateStepDto[];
+}
+
 export interface EveningStepStateDto {
   perkUsed: boolean;
   ticketBought: boolean;

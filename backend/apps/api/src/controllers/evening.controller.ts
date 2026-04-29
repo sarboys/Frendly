@@ -1,14 +1,42 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
+import { EveningRouteTemplateService } from '../services/evening-route-template.service';
 import { EveningService } from '../services/evening.service';
 
 @Controller('evening')
 export class EveningController {
-  constructor(private readonly eveningService: EveningService) {}
+  constructor(
+    private readonly eveningService: EveningService,
+    private readonly routeTemplateService: EveningRouteTemplateService,
+  ) {}
 
   @Get('options')
   getOptions() {
     return this.eveningService.getOptions();
+  }
+
+  @Get('route-templates')
+  listRouteTemplates(@Query() query: Record<string, unknown>) {
+    return this.routeTemplateService.listRouteTemplates(query);
+  }
+
+  @Get('route-templates/:templateId')
+  getRouteTemplate(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('templateId') templateId: string,
+  ) {
+    return this.routeTemplateService.getRouteTemplate(
+      currentUser.userId,
+      templateId,
+    );
+  }
+
+  @Get('route-templates/:templateId/sessions')
+  listRouteTemplateSessions(
+    @Param('templateId') templateId: string,
+    @Query() query: Record<string, unknown>,
+  ) {
+    return this.routeTemplateService.listTemplateSessions(templateId, query);
   }
 
   @Post('routes/resolve')
