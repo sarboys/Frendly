@@ -28,6 +28,7 @@ import 'package:big_break_mobile/features/evening_plan/presentation/evening_shar
 import 'package:big_break_mobile/features/evening_routes/presentation/create_evening_session_screen.dart';
 import 'package:big_break_mobile/features/evening_routes/presentation/evening_route_detail_screen.dart';
 import 'package:big_break_mobile/features/evening_routes/presentation/evening_routes_screen.dart';
+import 'package:big_break_mobile/features/evening_routes/presentation/partner_offer_qr_screen.dart';
 import 'package:big_break_mobile/features/event_detail/presentation/event_detail_screen.dart';
 import 'package:big_break_mobile/features/host_dashboard/presentation/host_dashboard_screen.dart';
 import 'package:big_break_mobile/features/join_request/presentation/join_request_screen.dart';
@@ -417,6 +418,15 @@ GoRouter buildAppRouter({
           EveningAfterPartyScreen(
             routeId: state.pathParameters['routeId']!,
             sessionId: state.uri.queryParameters['sessionId'],
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoute.offerCode.path,
+        name: AppRoute.offerCode.name,
+        pageBuilder: (context, state) => _slidePage(
+          PartnerOfferQrScreen(
+            codeId: state.pathParameters['codeId']!,
           ),
         ),
       ),

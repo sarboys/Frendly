@@ -211,7 +211,12 @@ class _EveningPreviewScreenState extends ConsumerState<EveningPreviewScreen> {
                     ),
                     SliverToBoxAdapter(child: _Hero(session: session)),
                     SliverToBoxAdapter(child: _HostCard(session: session)),
-                    SliverToBoxAdapter(child: _Timeline(session: session)),
+                    SliverToBoxAdapter(
+                      child: _Timeline(
+                        session: session,
+                        onShowQr: session.isJoined ? _openOfferQr : null,
+                      ),
+                    ),
                     SliverToBoxAdapter(
                       child: _PrivacyHint(
                         privacy: session.privacy,
@@ -265,6 +270,32 @@ class _EveningPreviewScreenState extends ConsumerState<EveningPreviewScreen> {
       AppRoute.eveningShareCard,
       pathParameters: {'sessionId': session.id},
     );
+  }
+
+  Future<void> _openOfferQr(EveningSessionStep step) async {
+    final offerId = step.partnerOfferId;
+    if (offerId == null || offerId.isEmpty) {
+      return;
+    }
+    try {
+      final code =
+          await ref.read(backendRepositoryProvider).issuePartnerOfferCode(
+                sessionId: widget.sessionId,
+                stepId: step.id,
+                offerId: offerId,
+              );
+      if (!mounted) {
+        return;
+      }
+      await context.pushRoute(
+        AppRoute.offerCode,
+        pathParameters: {'codeId': code.id},
+      );
+    } catch (_) {
+      if (mounted) {
+        _showError('Не получилось открыть QR. Попробуй ещё раз');
+      }
+    }
   }
 }
 
@@ -505,9 +536,13 @@ class _HostCard extends StatelessWidget {
 }
 
 class _Timeline extends StatelessWidget {
-  const _Timeline({required this.session});
+  const _Timeline({
+    required this.session,
+    this.onShowQr,
+  });
 
   final EveningSessionDetail session;
+  final ValueChanged<EveningSessionStep>? onShowQr;
 
   @override
   Widget build(BuildContext context) {
@@ -530,6 +565,7 @@ class _Timeline extends StatelessWidget {
               total: session.steps.length,
               isCurrent: session.isLive && index == currentIndex,
               isPast: session.isLive && index < currentIndex,
+              onShowQr: onShowQr,
             ),
             if (index != session.steps.length - 1)
               const SizedBox(height: AppSpacing.xs),
@@ -547,6 +583,7 @@ class _TimelineTile extends StatelessWidget {
     required this.total,
     required this.isCurrent,
     required this.isPast,
+    this.onShowQr,
   });
 
   final EveningSessionStep step;
@@ -554,6 +591,7 @@ class _TimelineTile extends StatelessWidget {
   final int total;
   final bool isCurrent;
   final bool isPast;
+  final ValueChanged<EveningSessionStep>? onShowQr;
 
   @override
   Widget build(BuildContext context) {
@@ -571,58 +609,73 @@ class _TimelineTile extends StatelessWidget {
           ),
           boxShadow: isCurrent ? AppShadows.soft : null,
         ),
-        child: Row(
+        child: Column(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: isCurrent ? colors.primary : colors.warmStart,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                step.emoji,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    step.venue,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.itemTitle.copyWith(fontSize: 13),
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: isCurrent ? colors.primary : colors.warmStart,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${step.time} · ${step.address}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        AppTextStyles.caption.copyWith(color: colors.inkMute),
+                  alignment: Alignment.center,
+                  child: Text(
+                    step.emoji,
+                    style: const TextStyle(fontSize: 18),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        step.venue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.itemTitle.copyWith(fontSize: 13),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${step.time} · ${step.address}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption
+                            .copyWith(color: colors.inkMute),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isCurrent)
+                  _Badge(
+                    icon: LucideIcons.radio,
+                    label: 'Сейчас',
+                    foreground: colors.primary,
+                    background: colors.primarySoft,
+                  )
+                else
+                  Text(
+                    '${index + 1}/$total',
+                    style: AppTextStyles.caption.copyWith(
+                      color: colors.inkMute,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
             ),
-            if (isCurrent)
-              _Badge(
-                icon: LucideIcons.radio,
-                label: 'Сейчас',
-                foreground: colors.primary,
-                background: colors.primarySoft,
-              )
-            else
-              Text(
-                '${index + 1}/$total',
-                style: AppTextStyles.caption.copyWith(
-                  color: colors.inkMute,
-                  fontWeight: FontWeight.w700,
+            if (step.partnerOfferId != null && onShowQr != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => onShowQr!(step),
+                  icon: const Icon(LucideIcons.qr_code, size: 16),
+                  label: const Text('Показать QR'),
                 ),
               ),
+            ],
           ],
         ),
       ),

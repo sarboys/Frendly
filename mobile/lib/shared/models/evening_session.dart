@@ -264,6 +264,12 @@ class EveningSessionStep {
     this.sponsored = false,
     this.premium = false,
     this.partnerId,
+    this.venueId,
+    this.partnerOfferId,
+    this.offerTitle,
+    this.offerDescription,
+    this.offerTerms,
+    this.offerShortLabel,
     this.description,
     this.vibeTag,
     this.lat,
@@ -292,6 +298,12 @@ class EveningSessionStep {
   final bool sponsored;
   final bool premium;
   final String? partnerId;
+  final String? venueId;
+  final String? partnerOfferId;
+  final String? offerTitle;
+  final String? offerDescription;
+  final String? offerTerms;
+  final String? offerShortLabel;
   final String? description;
   final String? vibeTag;
   final double? lat;
@@ -321,6 +333,12 @@ class EveningSessionStep {
       sponsored: json['sponsored'] as bool? ?? false,
       premium: json['premium'] as bool? ?? false,
       partnerId: json['partnerId'] as String?,
+      venueId: json['venueId'] as String?,
+      partnerOfferId: json['partnerOfferId'] as String?,
+      offerTitle: json['offerTitle'] as String?,
+      offerDescription: json['offerDescription'] as String?,
+      offerTerms: json['offerTerms'] as String?,
+      offerShortLabel: json['offerShortLabel'] as String?,
       description: json['description'] as String?,
       vibeTag: json['vibeTag'] as String?,
       lat: (json['lat'] as num?)?.toDouble(),

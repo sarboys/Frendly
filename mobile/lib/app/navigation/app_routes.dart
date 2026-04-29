@@ -28,6 +28,7 @@ enum AppRoute {
   eveningShareCard('/evening-share/:sessionId'),
   eveningLive('/evening-live/:routeId'),
   eveningAfterParty('/evening-after-party/:routeId'),
+  offerCode('/offer-code/:codeId'),
   eveningRoutes('/routes'),
   eveningRouteDetail('/routes/:templateId'),
   createEveningSession('/routes/:templateId/create'),

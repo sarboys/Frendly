@@ -291,6 +291,12 @@ export interface EveningRouteStepDto {
   sponsored: boolean;
   premium: boolean;
   partnerId: string | null;
+  venueId?: string | null;
+  partnerOfferId?: string | null;
+  offerTitle?: string | null;
+  offerDescription?: string | null;
+  offerTerms?: string | null;
+  offerShortLabel?: string | null;
   description: string | null;
   vibeTag: string | null;
   lat: number;

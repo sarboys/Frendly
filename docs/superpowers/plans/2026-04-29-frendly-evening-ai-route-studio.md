@@ -1306,19 +1306,19 @@ Expected result: dependencies resolve and tests pass.
 
 **Result after completion:** User can open a fullscreen QR for each partner offer and see status change after scan.
 
-- [ ] Add route `/offer-code/:codeId`.
-- [ ] QR screen receives `codeId`.
-- [ ] QR screen fetches code data.
-- [ ] Render QR from `codeUrl`.
-- [ ] Show offer title and venue.
-- [ ] Show status `Активен`, `Использован`, `Истек`.
-- [ ] Poll status every 4 seconds while screen is visible.
-- [ ] Stop polling when screen is closed.
-- [ ] Stop polling when status is not `issued`.
-- [ ] Add button close.
-- [ ] Add entry button `Показать QR` for offer steps in preview and live flow.
-- [ ] Run Flutter analyze and tests.
-- [ ] Commit with `git commit -m "feat: показать QR оффера в приложении"`.
+- [x] Add route `/offer-code/:codeId`.
+- [x] QR screen receives `codeId`.
+- [x] QR screen fetches code data.
+- [x] Render QR from `codeUrl`.
+- [x] Show offer title and venue.
+- [x] Show status `Активен`, `Использован`, `Истек`.
+- [x] Poll status every 4 seconds while screen is visible.
+- [x] Stop polling when screen is closed.
+- [x] Stop polling when status is not `issued`.
+- [x] Add button close.
+- [x] Add entry button `Показать QR` for offer steps in preview and live flow.
+- [x] Run Flutter analyze and tests.
+- [x] Commit with `git commit -m "feat: показать QR оффера в приложении"`.
 
 Performance rule:
 
