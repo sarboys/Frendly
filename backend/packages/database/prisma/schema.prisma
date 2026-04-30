@@ -516,12 +516,14 @@ model Event {
   isNewcomers       Boolean             @default(false)
   isDate            Boolean             @default(false)
   sourcePosterId    String?
+  eveningRouteId    String?
   partnerId         String?
   canceledAt        DateTime?
   cancelReason      String?
   hostId            String
   host              User                @relation("HostedEvents", fields: [hostId], references: [id])
   sourcePoster      Poster?             @relation(fields: [sourcePosterId], references: [id], onDelete: SetNull)
+  eveningRoute      EveningRoute?       @relation(fields: [eveningRouteId], references: [id], onDelete: SetNull)
   partner           Partner?            @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   participants      EventParticipant[]
   joinRequests      EventJoinRequest[]
@@ -539,6 +541,7 @@ model Event {
 
   @@unique([hostId, idempotencyKey])
   @@index([sourcePosterId])
+  @@index([eveningRouteId, startsAt, id])
   @@index([partnerId, startsAt, id])
   @@index([canceledAt, startsAt, id])
   @@index([isAfterDark, startsAt])
@@ -961,6 +964,7 @@ model EveningRoute {
   steps              EveningRouteStep[]
   stepActions        UserEveningStepAction[]
   sessions           EveningSession[]
+  sourceEvents       Event[]
   partnerOfferCodes  PartnerOfferCode[]
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt

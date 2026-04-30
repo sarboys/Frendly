@@ -61,6 +61,26 @@ type EventListCursor = {
   startsAt: Date;
 };
 
+type NormalizedEventRouteStep = {
+  time: string;
+  emoji: string;
+  title: string;
+  place: string;
+};
+
+type NormalizedEventRouteSelection =
+  | {
+      kind: 'existing';
+      routeId: string;
+      title?: string;
+    }
+  | {
+      kind: 'custom';
+      title: string;
+      durationLabel: string;
+      steps: NormalizedEventRouteStep[];
+    };
+
 const EARTH_RADIUS_KM = 6371;
 const EVENT_DETAIL_ATTENDEE_LIMIT = 24;
 
@@ -765,6 +785,30 @@ export class EventsService {
         : await this.prismaService.client.poster.findUnique({
             where: { id: posterId },
           });
+    const routeSelection = this.parseEventRouteSelection(body);
+
+    if (posterId != null && routeSelection != null) {
+      throw new ApiError(
+        400,
+        'invalid_event_payload',
+        'posterId and route cannot be used together',
+      );
+    }
+
+    const existingRoute =
+      routeSelection?.kind !== 'existing'
+        ? null
+        : await this.prismaService.client.eveningRoute.findUnique({
+            where: { id: routeSelection.routeId },
+            select: {
+              id: true,
+              title: true,
+            },
+          });
+
+    if (routeSelection?.kind === 'existing' && !existingRoute) {
+      throw new ApiError(404, 'route_not_found', 'Route not found');
+    }
 
     const mode =
       body.mode === 'dating' || body.mode === 'afterdark'
@@ -802,13 +846,21 @@ export class EventsService {
     const place =
       typeof body.place === 'string' && body.place.trim().length > 0
         ? body.place.trim()
-        : poster == null
-          ? ''
-          : `${poster.venue}, ${poster.address}`;
+        : routeSelection != null
+          ? `Маршрут: ${
+              routeSelection.kind === 'existing'
+                ? existingRoute?.title ?? routeSelection.title ?? 'вечера'
+                : routeSelection.title
+            }`
+          : poster == null
+            ? ''
+            : `${poster.venue}, ${poster.address}`;
     const distanceKm =
       typeof body.distanceKm === 'number'
         ? body.distanceKm
-        : poster?.distanceKm ?? 1.0;
+        : routeSelection != null
+          ? 0
+          : poster?.distanceKm ?? 1.0;
     const latitude =
       typeof body.latitude === 'number' ? body.latitude : null;
     const longitude =
@@ -1008,6 +1060,18 @@ export class EventsService {
     let created: { id: string };
     try {
       created = await this.prismaService.client.$transaction(async (tx) => {
+        const privateRoute =
+          routeSelection?.kind === 'custom'
+            ? await this.createPrivateEventRoute(tx, {
+                route: routeSelection,
+                vibe,
+                description,
+              })
+            : null;
+        const eventRouteId =
+          routeSelection?.kind === 'existing'
+            ? routeSelection.routeId
+            : privateRoute?.id ?? null;
         const event = await tx.event.create({
           data: {
             id: `ev-${randomUUID()}`,
@@ -1044,6 +1108,7 @@ export class EventsService {
             isAfterDark: isAfterDarkMode,
             afterDarkCategory,
             afterDarkGlow,
+            eveningRouteId: eventRouteId,
             dressCode: isAfterDarkMode ? dressCode : null,
             ageRange: isAfterDarkMode ? ageRange : null,
             ratioLabel: isAfterDarkMode ? ratioLabel : null,
@@ -2522,6 +2587,179 @@ export class EventsService {
     if (!unlocked) {
       throw new ApiError(403, 'after_dark_locked', 'After Dark is locked');
     }
+  }
+
+  private parseEventRouteSelection(
+    body: Record<string, unknown>,
+  ): NormalizedEventRouteSelection | null {
+    const topLevelRouteId =
+      typeof body.routeId === 'string' && body.routeId.trim().length > 0
+        ? body.routeId.trim()
+        : null;
+    const rawRoute =
+      body.route != null && typeof body.route === 'object' && !Array.isArray(body.route)
+        ? (body.route as Record<string, unknown>)
+        : null;
+    const nestedRouteId =
+      rawRoute != null && typeof rawRoute.routeId === 'string' && rawRoute.routeId.trim().length > 0
+        ? rawRoute.routeId.trim()
+        : null;
+
+    if (topLevelRouteId != null || nestedRouteId != null) {
+      return {
+        kind: 'existing',
+        routeId: topLevelRouteId ?? nestedRouteId!,
+        title:
+          rawRoute != null && typeof rawRoute.title === 'string'
+            ? rawRoute.title.trim()
+            : undefined,
+      };
+    }
+
+    if (rawRoute == null) {
+      return null;
+    }
+
+    const rawSteps = Array.isArray(rawRoute.steps) ? rawRoute.steps : [];
+    const steps = rawSteps.map((item) => this.parseEventRouteStep(item));
+    if (steps.some((step) => step == null) || steps.length < 2) {
+      throw new ApiError(
+        400,
+        'invalid_event_route',
+        'Route must contain at least two steps with titles',
+      );
+    }
+
+    const normalizedSteps = steps as NormalizedEventRouteStep[];
+    const firstStep = normalizedSteps[0]!;
+    const lastStep = normalizedSteps[normalizedSteps.length - 1]!;
+    const title =
+      typeof rawRoute.title === 'string' && rawRoute.title.trim().length > 0
+        ? rawRoute.title.trim()
+        : `${firstStep.title} + ${lastStep.title}`;
+    const durationLabel =
+      typeof rawRoute.durationLabel === 'string' && rawRoute.durationLabel.trim().length > 0
+        ? rawRoute.durationLabel.trim()
+        : `${normalizedSteps.length} шага`;
+
+    return {
+      kind: 'custom',
+      title,
+      durationLabel,
+      steps: normalizedSteps,
+    };
+  }
+
+  private parseEventRouteStep(raw: unknown): NormalizedEventRouteStep | null {
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+      return null;
+    }
+
+    const item = raw as Record<string, unknown>;
+    const title =
+      typeof item.title === 'string' && item.title.trim().length > 0
+        ? item.title.trim()
+        : null;
+    if (title == null) {
+      return null;
+    }
+
+    const time = typeof item.time === 'string' ? item.time.trim().slice(0, 16) : '';
+    const emoji =
+      typeof item.emoji === 'string' && item.emoji.trim().length > 0
+        ? item.emoji.trim().slice(0, 8)
+        : '✨';
+    const place =
+      typeof item.place === 'string' && item.place.trim().length > 0
+        ? item.place.trim()
+        : title;
+
+    return {
+      time,
+      emoji,
+      title,
+      place,
+    };
+  }
+
+  private async createPrivateEventRoute(
+    tx: any,
+    params: {
+      route: Extract<NormalizedEventRouteSelection, { kind: 'custom' }>;
+      vibe: string;
+      description: string;
+    },
+  ) {
+    const routeId = `route-${randomUUID()}`;
+    const blurb =
+      params.description.trim().length > 0
+        ? params.description.trim().slice(0, 180)
+        : 'Свой маршрут для встречи';
+
+    return tx.eveningRoute.create({
+      data: {
+        id: routeId,
+        templateId: null,
+        title: params.route.title,
+        vibe: params.vibe,
+        blurb,
+        totalPriceFrom: 0,
+        totalSavings: 0,
+        durationLabel: params.route.durationLabel,
+        area: 'Свой маршрут',
+        goal: 'meetup',
+        mood: 'custom',
+        budget: 'any',
+        format: 'custom',
+        premium: false,
+        recommendedFor: null,
+        hostsCount: 0,
+        chatId: null,
+        source: 'meetup_create',
+        status: 'private',
+        city: 'Москва',
+        timezone: 'Europe/Moscow',
+        centerLat: null,
+        centerLng: null,
+        radiusMeters: null,
+        isCurated: false,
+        badgeLabel: null,
+        coverAssetId: null,
+        createdByAdminId: null,
+        publishedAt: null,
+        archivedAt: null,
+        steps: {
+          create: params.route.steps.map((step, index) => ({
+            id: `step-${randomUUID()}`,
+            sortOrder: index,
+            timeLabel: step.time,
+            endTimeLabel: null,
+            kind: 'custom',
+            title: step.title,
+            venue: step.place,
+            address: step.place,
+            emoji: step.emoji,
+            distanceLabel: '',
+            walkMin: null,
+            perk: null,
+            perkShort: null,
+            ticketPrice: null,
+            ticketCommission: null,
+            sponsored: false,
+            premium: false,
+            partnerId: null,
+            description: null,
+            vibeTag: null,
+            lat: 0,
+            lng: 0,
+          })),
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+      },
+    });
   }
 
   private parseEventRules(raw: unknown) {

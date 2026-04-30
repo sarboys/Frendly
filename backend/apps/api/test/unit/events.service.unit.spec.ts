@@ -1429,6 +1429,111 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('creates a private evening route when event is created from custom route steps', async () => {
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 'event-created',
+      title: 'Маршрут на вечер',
+      emoji: '🗺️',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000),
+      place: 'Маршрут: Футбол и хинкали',
+    });
+    const eveningRouteCreate = jest.fn().mockResolvedValue({
+      id: 'route-event-created',
+      title: 'Футбол и хинкали',
+    });
+    const tx = {
+      eveningRoute: { create: eveningRouteCreate },
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+      title: 'Маршрут на вечер',
+    } as any);
+
+    await service.createEvent('user-me', {
+      title: 'Маршрут на вечер',
+      description: 'Сначала играем, потом ужинаем',
+      emoji: '🗺️',
+      vibe: 'Активно',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      capacity: 6,
+      distanceKm: 0,
+      route: {
+        type: 'custom',
+        title: 'Футбол и хинкали',
+        durationLabel: '2 шага',
+        steps: [
+          {
+            time: '15:00',
+            emoji: '⚽',
+            title: 'Поиграть в футбол',
+            place: 'Парк Горького',
+          },
+          {
+            time: '18:00',
+            emoji: '🥟',
+            title: 'Пойти есть хинкали',
+            place: 'Хинкальная',
+          },
+        ],
+      },
+    });
+
+    expect(eveningRouteCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          templateId: null,
+          source: 'meetup_create',
+          status: 'private',
+          isCurated: false,
+          title: 'Футбол и хинкали',
+          steps: expect.objectContaining({
+            create: expect.arrayContaining([
+              expect.objectContaining({
+                sortOrder: 0,
+                timeLabel: '15:00',
+                emoji: '⚽',
+                title: 'Поиграть в футбол',
+                venue: 'Парк Горького',
+              }),
+            ]),
+          }),
+        }),
+      }),
+    );
+    expect(eventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          place: 'Маршрут: Футбол и хинкали',
+          distanceKm: 0,
+          eveningRouteId: 'route-event-created',
+        }),
+      }),
+    );
+  });
+
   it('rejects partial event coordinates', async () => {
     const service = new EventsService(
       {
