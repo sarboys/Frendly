@@ -1534,6 +1534,79 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('links event to an existing evening route when routeId is provided', async () => {
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 'event-created',
+      title: 'Маршрут на вечер',
+      emoji: '🗺️',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000),
+      place: 'Маршрут: Теплый круг на Покровке',
+    });
+    const eveningRouteFindUnique = jest.fn().mockResolvedValue({
+      id: 'r-cozy-circle',
+      title: 'Теплый круг на Покровке',
+    });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          eveningRoute: {
+            findUnique: eveningRouteFindUnique,
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+      title: 'Маршрут на вечер',
+    } as any);
+
+    await service.createEvent('user-me', {
+      title: 'Маршрут на вечер',
+      description: 'Собираемся пройти готовый маршрут',
+      emoji: '🗺️',
+      vibe: 'Спокойно',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      capacity: 6,
+      routeId: 'r-cozy-circle',
+    });
+
+    expect(eveningRouteFindUnique).toHaveBeenCalledWith({
+      where: { id: 'r-cozy-circle' },
+      select: {
+        id: true,
+        title: true,
+      },
+    });
+    expect(eventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          place: 'Маршрут: Теплый круг на Покровке',
+          distanceKm: 0,
+          eveningRouteId: 'r-cozy-circle',
+        }),
+      }),
+    );
+  });
+
   it('rejects partial event coordinates', async () => {
     const service = new EventsService(
       {

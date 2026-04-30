@@ -443,10 +443,28 @@ async function main() {
     ],
   });
 
-  for (const route of seededEveningRoutes) {
+  for (const [routeIndex, route] of seededEveningRoutes.entries()) {
+    const routeTemplateId = `route-template-${route.id}`;
+    const routePublishedAt = new Date(
+      testRoutePublishedAt.getTime() - routeIndex * 60_000,
+    );
+
+    await prisma.eveningRouteTemplate.create({
+      data: {
+        id: routeTemplateId,
+        source: 'team',
+        status: 'published',
+        city: 'Москва',
+        timezone: 'Europe/Moscow',
+        area: route.area,
+        publishedAt: routePublishedAt,
+      },
+    });
+
     await prisma.eveningRoute.create({
       data: {
         id: route.id,
+        templateId: routeTemplateId,
         title: route.title,
         vibe: route.vibe,
         blurb: route.blurb,
@@ -462,6 +480,14 @@ async function main() {
         recommendedFor: route.recommendedFor ?? null,
         hostsCount: route.hostsCount,
         chatId: route.chatId,
+        version: 1,
+        source: 'team',
+        status: 'published',
+        city: 'Москва',
+        timezone: 'Europe/Moscow',
+        isCurated: true,
+        badgeLabel: route.premium ? 'Frendly+' : 'Маршрут от команды Frendly',
+        publishedAt: routePublishedAt,
         steps: {
           create: route.steps.map((step, index) => ({
             id: step.id,
@@ -489,6 +515,11 @@ async function main() {
           })),
         },
       },
+    });
+
+    await prisma.eveningRouteTemplate.update({
+      where: { id: routeTemplateId },
+      data: { currentRouteId: route.id },
     });
   }
 
@@ -573,14 +604,14 @@ async function main() {
     data: {
       id: 'route-template-frendly-test-evening',
       source: 'team',
-      status: 'published',
+      status: 'draft',
       city: 'Москва',
       timezone: 'Europe/Moscow',
       area: 'Чистые пруды',
       centerLat: 55.7579,
       centerLng: 37.6434,
       radiusMeters: 1200,
-      publishedAt: testRoutePublishedAt,
+      publishedAt: null,
     },
   });
 
@@ -604,7 +635,7 @@ async function main() {
       hostsCount: 0,
       version: 1,
       source: 'team',
-      status: 'published',
+      status: 'draft',
       city: 'Москва',
       timezone: 'Europe/Moscow',
       centerLat: 55.7579,
@@ -612,7 +643,7 @@ async function main() {
       radiusMeters: 1200,
       isCurated: true,
       badgeLabel: 'Тест',
-      publishedAt: testRoutePublishedAt,
+      publishedAt: null,
       steps: {
         create: [
           {
@@ -751,7 +782,10 @@ async function main() {
   ];
 
   await prisma.eveningSession.createMany({
-    data: seededEveningSessions,
+    data: seededEveningSessions.map((session) => ({
+      ...session,
+      routeTemplateId: `route-template-${session.routeId}`,
+    })),
   });
 
   await prisma.eveningSessionParticipant.createMany({
