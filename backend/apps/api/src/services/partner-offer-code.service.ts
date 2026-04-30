@@ -18,6 +18,17 @@ export type OfferCodeActivationMeta = {
 
 type OfferCodeStatus = 'issued' | 'activated' | 'expired';
 
+type PartnerOfferCodeServiceOptions = {
+  now?: () => Date;
+  activationWindowMs?: number;
+  maxActivationAttemptsPerWindow?: number;
+};
+
+type ActivationBucket = {
+  resetAt: number;
+  count: number;
+};
+
 export function computeOfferCodeExpiresAt(params: {
   startsAt: Date;
   timezone?: string | null;
@@ -40,10 +51,20 @@ export function computeOfferCodeExpiresAt(params: {
 
 @Injectable()
 export class PartnerOfferCodeService {
+  private readonly activationBuckets = new Map<string, ActivationBucket>();
+  private readonly now: () => Date;
+  private readonly activationWindowMs: number;
+  private readonly maxActivationAttemptsPerWindow: number;
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly analytics: EveningAnalyticsService,
-  ) {}
+    options: PartnerOfferCodeServiceOptions = {},
+  ) {
+    this.now = options.now ?? (() => new Date());
+    this.activationWindowMs = options.activationWindowMs ?? 60_000;
+    this.maxActivationAttemptsPerWindow = options.maxActivationAttemptsPerWindow ?? 20;
+  }
 
   async issueCode(
     userId: string,
@@ -172,6 +193,7 @@ export class PartnerOfferCodeService {
     if (!normalizedCode) {
       return this.mapPublicResult('not_found', null);
     }
+    this.assertActivationRateLimit(requestMeta);
 
     const record = await this.prismaService.client.partnerOfferCode.findUnique({
       where: {
@@ -193,7 +215,7 @@ export class PartnerOfferCodeService {
       return this.mapPublicResult('expired', record);
     }
 
-    const now = new Date();
+    const now = this.now();
     const updated =
       await this.prismaService.client.partnerOfferCode.updateMany({
         where: {
@@ -392,10 +414,37 @@ export class PartnerOfferCodeService {
     if (code.status === 'activated') {
       return 'activated';
     }
-    if (code.status === 'expired' || code.expiresAt.getTime() <= Date.now()) {
+    if (code.status === 'expired' || code.expiresAt.getTime() <= this.now().getTime()) {
       return 'expired';
     }
     return 'issued';
+  }
+
+  private assertActivationRateLimit(requestMeta: OfferCodeActivationMeta) {
+    const key = this.activationRateLimitKey(requestMeta);
+    const now = this.now().getTime();
+    const current = this.activationBuckets.get(key);
+    if (!current || current.resetAt <= now) {
+      this.activationBuckets.set(key, {
+        resetAt: now + this.activationWindowMs,
+        count: 1,
+      });
+      return;
+    }
+
+    current.count += 1;
+    if (current.count > this.maxActivationAttemptsPerWindow) {
+      throw new ApiError(
+        429,
+        'partner_offer_code_rate_limited',
+        'Too many offer code activation attempts',
+      );
+    }
+  }
+
+  private activationRateLimitKey(requestMeta: OfferCodeActivationMeta) {
+    const ip = requestMeta.ip?.trim();
+    return ip ? `ip:${this.hashNullable(ip)}` : 'ip:unknown';
   }
 
   private async markExpired(codeId: string) {

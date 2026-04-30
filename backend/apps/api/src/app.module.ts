@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthController } from './controllers/auth.controller';
+import { AdminAuthController } from './controllers/admin-auth.controller';
 import { AdminEveningController } from './controllers/admin-evening.controller';
 import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
@@ -30,11 +31,13 @@ import { SubscriptionController } from './controllers/subscription.controller';
 import { UploadsController } from './controllers/uploads.controller';
 import { VerificationController } from './controllers/verification.controller';
 import { ApiExceptionFilter } from './common/api-exception.filter';
+import { AdminAuditInterceptor } from './common/admin-audit.interceptor';
 import { AuthGuard } from './common/auth.guard';
 import { AdminTokenGuard } from './common/admin-token.guard';
 import { PartnerAuthGuard } from './common/partner-auth.guard';
 import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
+import { AdminAuthService } from './services/admin-auth.service';
 import { AdminEveningAnalyticsService } from './services/admin-evening-analytics.service';
 import { AdminEveningAiService } from './services/admin-evening-ai.service';
 import { AdminEveningRouteService } from './services/admin-evening-route.service';
@@ -77,6 +80,7 @@ import { VerificationService } from './services/verification.service';
 @Module({
   controllers: [
     AdminEveningController,
+    AdminAuthController,
     AdminPartnerAccountsController,
     AfterDarkController,
     AuthController,
@@ -108,12 +112,14 @@ import { VerificationService } from './services/verification.service';
   ],
   providers: [
     AdminTokenGuard,
+    AdminAuditInterceptor,
     PartnerAuthGuard,
     AdminEveningAnalyticsService,
     AdminEveningAiService,
     AdminEveningRouteService,
     AdminVenueService,
     AfterDarkService,
+    AdminAuthService,
     AuthService,
     ChatsService,
     CommunitiesService,

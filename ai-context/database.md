@@ -30,6 +30,7 @@ Auth and user:
 - `User`, `Profile`, `ProfilePhoto`, `OnboardingPreferences`, `UserSettings`, `UserVerification`.
 - `Session`, `PhoneOtpChallenge`, `TelegramAccount`, `TelegramLoginSession`, `ExternalAuthAccount`, `AuthAuditEvent`.
 - Partner auth: `PartnerAccount`, `PartnerSession`.
+- Admin auth: `AdminUser`, `AdminSession`, `AdminAuditEvent`.
 
 Discovery and events:
 
@@ -97,6 +98,7 @@ Public:
 - `20260429090001_public_share_links`.
 - `20260429110000_curated_evening_routes`.
 - `20260430120000_event_route_selection`.
+- `20260430170000_admin_auth_audit_and_checks`.
 
 ## Hot paths
 
@@ -105,6 +107,7 @@ Public:
 - Incoming dating likes use `DatingAction.targetUserId + action + actorUserId`.
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.
 - Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`.
+- Evening analytics admin filters use `EveningAnalyticsEvent.venueId + name + createdAt + id`.
 
 ## Commands
 
@@ -131,4 +134,5 @@ It seeds users, events, chats, posters, communities, After Dark and Evening demo
 3. Update seed if demo data changes.
 4. Run Prisma generate.
 5. Update services, contracts and tests if API shape changed.
-6. Update this map if model, relation, hot path or flow changed.
+6. For string status fields, prefer DB check constraints when the field stays a Prisma `String`.
+7. Update this map if model, relation, hot path or flow changed.

@@ -321,6 +321,37 @@ describe('PartnerOfferCodeService unit', () => {
       activatedAt: null,
     });
   });
+
+  it('rate limits repeated public activation attempts from the same ip', async () => {
+    const service = new PartnerOfferCodeService(
+      {
+        client: {
+          partnerOfferCode: {
+            findUnique: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+      {
+        now: () => new Date('2026-05-10T10:00:00.000Z'),
+        maxActivationAttemptsPerWindow: 2,
+        activationWindowMs: 60_000,
+      },
+    );
+
+    await expect(service.activateCode('UNKNOWN111111', { ip: '203.0.113.10' })).resolves.toMatchObject({
+      status: 'not_found',
+    });
+    await expect(service.activateCode('UNKNOWN222222', { ip: '203.0.113.10' })).resolves.toMatchObject({
+      status: 'not_found',
+    });
+    await expect(
+      service.activateCode('UNKNOWN333333', { ip: '203.0.113.10' }),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'partner_offer_code_rate_limited',
+    });
+  });
 });
 
 function codeRecord(overrides: Record<string, unknown> = {}) {

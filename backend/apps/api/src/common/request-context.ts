@@ -6,6 +6,9 @@ export interface RequestContext {
   sessionId?: string;
   partnerAccountId?: string;
   partnerId?: string;
+  adminUserId?: string;
+  adminSessionId?: string;
+  adminAuthMode?: 'session' | 'legacy_token';
 }
 
 export interface RequestWithContext extends Request {

@@ -22,6 +22,8 @@ Use this for REST endpoints, DTOs, service behavior and API tests.
 - Current user comes from `@CurrentUser()`.
 - Request context carries `requestId`, `userId`, `sessionId`.
 - Partner portal uses `PartnerAuthGuard` and partner request context.
+- Admin routes use `@Admin()`, `AdminTokenGuard` and admin request context.
+- Admin actions are written to `AdminAuditEvent` by `AdminAuditInterceptor`.
 - Errors use `ApiError` and `ApiExceptionFilter`.
 - CORS only when `CORS_ORIGIN` is set.
 
@@ -34,7 +36,7 @@ Use this for REST endpoints, DTOs, service behavior and API tests.
 - Host: `host.controller.ts`, `host.service.ts`.
 - Chats: `chats.controller.ts`, `chats.service.ts`.
 - Evening: `evening.controller.ts`, `evening.service.ts`, `partner-offer-code.service.ts`.
-- Admin Evening: `admin-evening.controller.ts`, `admin-venue.service.ts`, `admin-evening-route.service.ts`, `admin-evening-ai.service.ts`, `admin-evening-analytics.service.ts`.
+- Admin Evening: `admin-evening.controller.ts`, `admin-auth.controller.ts`, `admin-auth.service.ts`, `admin-venue.service.ts`, `admin-evening-route.service.ts`, `admin-evening-ai.service.ts`, `admin-evening-analytics.service.ts`.
 - Partner portal: `partner-portal.controller.ts`, `partner-portal.service.ts`, `partner-auth.controller.ts`, `partner-auth.service.ts`.
 - People: `people.controller.ts`, `people.service.ts`.
 - Dating and matches: `dating.controller.ts`, `matches.controller.ts`, `dating.service.ts`, `matches.service.ts`.
@@ -121,6 +123,13 @@ Public sharing:
 - `GET /public/shares/:slug`
 - `POST /public/offer-codes/:code/activate`
 
+Admin auth:
+
+- `POST /admin/auth/login`
+- `POST /admin/auth/refresh`
+- `POST /admin/auth/logout`
+- `GET /admin/auth/me`
+
 ## Important behavior
 
 - Event joins are idempotent for existing participants.
@@ -138,6 +147,9 @@ Public sharing:
 - Evening lifecycle writes system chat messages with `kind=system`.
 - Evening phase refresh uses `chat.updated`.
 - Dedicated `evening.session.updated` is not implemented yet.
+- Public offer code activation has a per-IP in-process limit before DB lookup.
+- Admin auth uses httpOnly cookies and can bootstrap the first admin from `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`.
+- Legacy `x-admin-token` still works when `ADMIN_API_TOKEN` is configured, but browser admin should use `/admin/auth/*`.
 
 ## Shared packages
 

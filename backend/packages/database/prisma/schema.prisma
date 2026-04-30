@@ -234,6 +234,12 @@ enum AuthAuditResult {
   revoked
 }
 
+enum AdminRole {
+  owner
+  operator
+  analyst
+}
+
 model User {
   id                                 String                      @id @default(cuid())
   displayName                        String
@@ -291,6 +297,56 @@ model User {
   partnerOfferCodes                  PartnerOfferCode[]
 
   @@index([displayName, id])
+}
+
+model AdminUser {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  passwordHash String
+  displayName  String
+  role         AdminRole         @default(operator)
+  status       String            @default("active")
+  lastLoginAt  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  sessions     AdminSession[]
+  auditEvents  AdminAuditEvent[]
+
+  @@index([status, createdAt, id])
+}
+
+model AdminSession {
+  id             String    @id @default(cuid())
+  adminUserId    String
+  refreshTokenId String    @unique
+  createdAt      DateTime  @default(now())
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, revokedAt])
+}
+
+model AdminAuditEvent {
+  id          String    @id @default(cuid())
+  adminUserId String?
+  sessionId   String?
+  action      String
+  method      String
+  path        String
+  statusCode  Int?
+  requestId   String?
+  ip          String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId, createdAt, id])
+  @@index([action, createdAt, id])
+  @@index([path, createdAt, id])
 }
 
 model UserSettings {

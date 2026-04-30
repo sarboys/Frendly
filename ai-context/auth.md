@@ -15,9 +15,10 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - Telegram service: `backend/apps/api/src/services/telegram-auth.service.ts`.
 - Social OAuth: `backend/apps/api/src/services/social-auth.service.ts`, `social-identity-verifier.service.ts`.
 - Guard: `backend/apps/api/src/common/auth.guard.ts`.
+- Admin guard: `backend/apps/api/src/common/admin-token.guard.ts`.
 - Public decorator: `backend/apps/api/src/common/public.decorator.ts`.
 - JWT helpers: `backend/packages/database/src/auth-tokens.ts`.
-- DB models: `Session`, `PhoneOtpChallenge`, `TelegramAccount`, `TelegramLoginSession`, `ExternalAuthAccount`, `AuthAuditEvent`.
+- DB models: `Session`, `PhoneOtpChallenge`, `TelegramAccount`, `TelegramLoginSession`, `ExternalAuthAccount`, `AuthAuditEvent`, `AdminUser`, `AdminSession`, `AdminAuditEvent`.
 
 ## Tokens and sessions
 
@@ -30,6 +31,8 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - `Session` stores user id, refresh token id, provider, created time, last used time and revoked time.
 - Refresh rotates `refreshTokenId`.
 - Logout sets `revokedAt`.
+- Admin access and refresh tokens use the same JWT secrets with `kind=admin_access` and `kind=admin_refresh`.
+- Admin refresh rotates `AdminSession.refreshTokenId`.
 
 ## API protection
 
@@ -38,6 +41,9 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - Guard reads `Authorization: Bearer <token>`.
 - Guard verifies access JWT and DB session.
 - Controllers read user through `@CurrentUser()`.
+- Admin browser auth uses httpOnly cookies, `frendly_admin_access` and `frendly_admin_refresh`.
+- `AdminTokenGuard` accepts the admin access cookie or bearer admin access token.
+- Legacy `x-admin-token` is accepted only when `ADMIN_API_TOKEN` is configured.
 
 ## Public endpoints
 
@@ -55,6 +61,16 @@ Protected:
 
 - `POST /auth/logout`
 - `GET /me`
+
+Admin public auth:
+
+- `POST /admin/auth/login`
+- `POST /admin/auth/refresh`
+
+Admin protected auth:
+
+- `POST /admin/auth/logout`
+- `GET /admin/auth/me`
 
 ## Phone auth
 
