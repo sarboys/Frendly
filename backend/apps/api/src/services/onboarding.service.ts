@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
@@ -187,13 +187,81 @@ export class OnboardingService {
     });
   }
 
+  async checkContactAvailability(
+    userId: string,
+    sessionId: string | undefined,
+    body: Record<string, unknown>,
+  ) {
+    const [sessionProvider, user] = await Promise.all([
+      this.resolveSessionProvider(sessionId),
+      this.prismaService.client.user.findUnique({
+        where: { id: userId },
+        select: {
+          email: true,
+          phoneNumber: true,
+        },
+      }),
+    ]);
+
+    if (!user) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
+    }
+
+    const requiredContact = requiredContactFor(sessionProvider, user);
+    const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email');
+    const hasPhoneNumber = Object.prototype.hasOwnProperty.call(
+      body,
+      'phoneNumber',
+    );
+    const email = hasEmail ? normalizeEmail(body.email) : undefined;
+    const phoneNumber = hasPhoneNumber
+      ? normalizePhoneNumber(body.phoneNumber)
+      : undefined;
+
+    if (requiredContact === 'email') {
+      if (!email) {
+        throw new ApiError(400, 'required_email', 'email is required');
+      }
+      await this.assertEmailAvailable(userId, email);
+      return { available: true, requiredContact };
+    }
+
+    if (requiredContact === 'phone') {
+      if (!phoneNumber) {
+        throw new ApiError(
+          400,
+          'required_phone_number',
+          'phoneNumber is required',
+        );
+      }
+      await this.assertPhoneAvailable(userId, phoneNumber);
+      return { available: true, requiredContact };
+    }
+
+    if (email) {
+      await this.assertEmailAvailable(userId, email);
+    }
+    if (phoneNumber) {
+      await this.assertPhoneAvailable(userId, phoneNumber);
+    }
+    return { available: true, requiredContact: null };
+  }
+
   async updateOnboarding(
     userId: string,
     sessionId: string | undefined,
     body: Record<string, unknown>,
   ) {
-    if (body.interests !== undefined && body.interests !== null && !Array.isArray(body.interests)) {
-      throw new ApiError(400, 'invalid_onboarding_payload', 'interests must be an array');
+    if (
+      body.interests !== undefined &&
+      body.interests !== null &&
+      !Array.isArray(body.interests)
+    ) {
+      throw new ApiError(
+        400,
+        'invalid_onboarding_payload',
+        'interests must be an array',
+      );
     }
 
     const sessionProvider = await this.resolveSessionProvider(sessionId);
@@ -213,9 +281,14 @@ export class OnboardingService {
     const city = typeof body.city === 'string' ? body.city : null;
     const area = typeof body.area === 'string' ? body.area : null;
     const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email');
-    const hasPhoneNumber = Object.prototype.hasOwnProperty.call(body, 'phoneNumber');
+    const hasPhoneNumber = Object.prototype.hasOwnProperty.call(
+      body,
+      'phoneNumber',
+    );
     const email = hasEmail ? normalizeEmail(body.email) : undefined;
-    const phoneNumber = hasPhoneNumber ? normalizePhoneNumber(body.phoneNumber) : undefined;
+    const phoneNumber = hasPhoneNumber
+      ? normalizePhoneNumber(body.phoneNumber)
+      : undefined;
 
     try {
       const onboarding = await this.prismaService.client.$transaction(async (tx) => {
@@ -236,7 +309,17 @@ export class OnboardingService {
           throw new ApiError(400, 'required_email', 'email is required');
         }
         if (requiredContact === 'phone' && !phoneNumber) {
-          throw new ApiError(400, 'required_phone_number', 'phoneNumber is required');
+          throw new ApiError(
+            400,
+            'required_phone_number',
+            'phoneNumber is required',
+          );
+        }
+        if (email) {
+          await this.assertEmailAvailable(userId, email, tx);
+        }
+        if (phoneNumber) {
+          await this.assertPhoneAvailable(userId, phoneNumber, tx);
         }
 
         const userUpdate: Prisma.UserUpdateInput = {};
@@ -253,57 +336,57 @@ export class OnboardingService {
           });
         }
 
-      const updated = await tx.onboardingPreferences.upsert({
-        where: { userId },
-        update: {
-          intent: typeof body.intent === 'string' ? body.intent : null,
-          gender,
-          ...(hasBirthDate ? { birthDate } : {}),
-          city,
-          area,
-          interests,
-          vibe: typeof body.vibe === 'string' ? body.vibe : null,
-        },
-        create: {
-          userId,
-          intent: typeof body.intent === 'string' ? body.intent : null,
-          gender,
-          birthDate: birthDate ?? null,
-          city,
-          area,
-          interests,
-          vibe: typeof body.vibe === 'string' ? body.vibe : null,
-        },
-        include: {
-          user: {
-            select: {
-              email: true,
-              phoneNumber: true,
+        const updated = await tx.onboardingPreferences.upsert({
+          where: { userId },
+          update: {
+            intent: typeof body.intent === 'string' ? body.intent : null,
+            gender,
+            ...(hasBirthDate ? { birthDate } : {}),
+            city,
+            area,
+            interests,
+            vibe: typeof body.vibe === 'string' ? body.vibe : null,
+          },
+          create: {
+            userId,
+            intent: typeof body.intent === 'string' ? body.intent : null,
+            gender,
+            birthDate: birthDate ?? null,
+            city,
+            area,
+            interests,
+            vibe: typeof body.vibe === 'string' ? body.vibe : null,
+          },
+          include: {
+            user: {
+              select: {
+                email: true,
+                phoneNumber: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      await tx.profile.upsert({
-        where: { userId },
-        update: {
-          gender,
-          ...(hasBirthDate ? { birthDate, age } : {}),
-          city,
-          area,
-        },
-        create: {
-          userId,
-          gender,
-          birthDate: birthDate ?? null,
-          age: age ?? null,
-          city,
-          area,
-        },
-      });
+        await tx.profile.upsert({
+          where: { userId },
+          update: {
+            gender,
+            ...(hasBirthDate ? { birthDate, age } : {}),
+            city,
+            area,
+          },
+          create: {
+            userId,
+            gender,
+            birthDate: birthDate ?? null,
+            age: age ?? null,
+            city,
+            area,
+          },
+        });
 
-      return updated;
-    });
+        return updated;
+      });
 
       return mapOnboarding({
         ...onboarding,
@@ -328,6 +411,50 @@ export class OnboardingService {
     });
 
     return (session?.provider ?? 'session') as SessionProvider;
+  }
+
+  private async assertEmailAvailable(
+    userId: string,
+    email: string,
+    client: Prisma.TransactionClient | PrismaClient =
+      this.prismaService.client,
+  ) {
+    const existing = await client.user.findFirst({
+      where: {
+        email,
+        id: { not: userId },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ApiError(
+        409,
+        'contact_already_used',
+        'Contact is already used',
+      );
+    }
+  }
+
+  private async assertPhoneAvailable(
+    userId: string,
+    phoneNumber: string,
+    client: Prisma.TransactionClient | PrismaClient =
+      this.prismaService.client,
+  ) {
+    const existing = await client.user.findFirst({
+      where: {
+        phoneNumber,
+        id: { not: userId },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ApiError(
+        409,
+        'contact_already_used',
+        'Contact is already used',
+      );
+    }
   }
 
   private isUniqueConstraintError(error: unknown) {

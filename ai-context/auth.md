@@ -122,6 +122,7 @@ Yandex native bridge:
 - `/onboarding/me` returns `email`, `phoneNumber`, `requiredContact`.
 - Phone or Telegram sessions require email when missing.
 - Google or Yandex sessions require phone when missing.
+- `POST /onboarding/contact/check` preflights the required email or phone before the user leaves the contact step.
 - `PUT /onboarding/me` enforces the same server-side rule.
 - Duplicate contact returns `contact_already_used`.
 

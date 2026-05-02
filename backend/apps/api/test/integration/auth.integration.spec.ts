@@ -804,6 +804,38 @@ describe('auth flows', () => {
     expect(user?.email).toBe(savedResponse.body.email);
   });
 
+  it('checks duplicate onboarding email before profile onboarding is saved', async () => {
+    const usedEmail = `used-${randomUUID()}@example.com`;
+    await (prisma as any).user.create({
+      data: {
+        id: `user-used-email-${randomUUID()}`,
+        displayName: 'Used Email',
+        email: usedEmail,
+        profile: { create: {} },
+        onboarding: { create: { interests: [] } },
+        settings: { create: {} },
+        verification: { create: {} },
+      },
+    });
+    const session = await loginWithPhone();
+
+    const duplicateResponse = await request(app.getHttpServer())
+      .post('/onboarding/contact/check')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .send({ email: usedEmail });
+
+    expect(duplicateResponse.status).toBe(409);
+    expect(duplicateResponse.body.code).toBe('contact_already_used');
+
+    const freeResponse = await request(app.getHttpServer())
+      .post('/onboarding/contact/check')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .send({ email: `free-${randomUUID()}@example.com` })
+      .expect(201);
+
+    expect(freeResponse.body).toMatchObject({ available: true });
+  });
+
   it('requires phone in onboarding for google and yandex sessions', async () => {
     const socialSession = await createSocialAccessToken(
       'google',
@@ -844,6 +876,41 @@ describe('auth flows', () => {
       where: { id: socialSession.userId },
     });
     expect(user?.phoneNumber).toBe(phoneNumber);
+  });
+
+  it('checks duplicate onboarding phone before profile onboarding is saved', async () => {
+    const usedPhoneNumber = nextPhoneNumber();
+    await (prisma as any).user.create({
+      data: {
+        id: `user-used-phone-${randomUUID()}`,
+        displayName: 'Used Phone',
+        phoneNumber: usedPhoneNumber,
+        profile: { create: {} },
+        onboarding: { create: { interests: [] } },
+        settings: { create: {} },
+        verification: { create: {} },
+      },
+    });
+    const socialSession = await createSocialAccessToken(
+      'google',
+      `social-${randomUUID()}@example.com`,
+    );
+
+    const duplicateResponse = await request(app.getHttpServer())
+      .post('/onboarding/contact/check')
+      .set('authorization', `Bearer ${socialSession.accessToken}`)
+      .send({ phoneNumber: usedPhoneNumber });
+
+    expect(duplicateResponse.status).toBe(409);
+    expect(duplicateResponse.body.code).toBe('contact_already_used');
+
+    const freeResponse = await request(app.getHttpServer())
+      .post('/onboarding/contact/check')
+      .set('authorization', `Bearer ${socialSession.accessToken}`)
+      .send({ phoneNumber: nextPhoneNumber() })
+      .expect(201);
+
+    expect(freeResponse.body).toMatchObject({ available: true });
   });
 
   it('creates a new user and telegram account for unknown phone', async () => {

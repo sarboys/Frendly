@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { OnboardingService } from '../services/onboarding.service';
 
@@ -22,6 +22,18 @@ export class OnboardingController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.onboardingService.updateOnboarding(
+      currentUser.userId,
+      currentUser.sessionId,
+      body,
+    );
+  }
+
+  @Post('contact/check')
+  checkContact(
+    @CurrentUser() currentUser: { userId: string; sessionId?: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.onboardingService.checkContactAvailability(
       currentUser.userId,
       currentUser.sessionId,
       body,
