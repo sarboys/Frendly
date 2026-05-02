@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PartnerOfferCodeDto, PublicPartnerOfferCodeActivationDto } from '@big-break/contracts';
 import { createHash, createHmac, randomBytes } from 'crypto';
 import { ApiError } from '../common/api-error';
@@ -59,6 +59,7 @@ export class PartnerOfferCodeService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly analytics: EveningAnalyticsService,
+    @Optional()
     options: PartnerOfferCodeServiceOptions = {},
   ) {
     this.now = options.now ?? (() => new Date());

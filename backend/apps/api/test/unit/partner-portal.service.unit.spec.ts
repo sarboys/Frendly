@@ -6,6 +6,8 @@ const approvedPartner = {
 };
 
 describe('PartnerPortalService unit', () => {
+  const futureDate = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
   it('requires an approved partner binding before portal CRUD', async () => {
     const service = new PartnerPortalService({ client: {} } as any);
 
@@ -41,13 +43,14 @@ describe('PartnerPortalService unit', () => {
   });
 
   it('creates partner posters as drafts owned by the session partner', async () => {
+    const startsAt = futureDate();
     const create = jest.fn().mockResolvedValue({
       id: 'poster-1',
       partnerId: 'partner-1',
       category: 'concert',
       title: 'Jazz Night',
       emoji: '🎷',
-      startsAt: new Date('2026-05-01T20:00:00.000Z'),
+      startsAt,
       dateLabel: '01.05',
       timeLabel: '20:00',
       venue: 'Roof',
@@ -77,7 +80,7 @@ describe('PartnerPortalService unit', () => {
       category: 'concert',
       title: 'Jazz Night',
       emoji: '🎷',
-      startsAt: '2026-05-01T20:00:00.000Z',
+      startsAt: startsAt.toISOString(),
       venue: 'Roof',
       address: 'Москва, Тверская 1',
       priceFrom: 1200,

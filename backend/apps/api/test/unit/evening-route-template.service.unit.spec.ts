@@ -1,6 +1,9 @@
 import { EveningRouteTemplateService } from '../../src/services/evening-route-template.service';
 
 describe('EveningRouteTemplateService unit', () => {
+  const futureIso = () =>
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
   const route = {
     id: 'route-1',
     title: 'Кино без кино',
@@ -198,7 +201,7 @@ describe('EveningRouteTemplateService unit', () => {
       'user-host',
       'template-1',
       {
-        startsAt: '2026-04-30T16:00:00.000Z',
+        startsAt: futureIso(),
         privacy: 'request',
         capacity: 8,
         hostNote: 'Встречаемся без спешки',
@@ -295,7 +298,7 @@ describe('EveningRouteTemplateService unit', () => {
       'user-host',
       'template-1',
       {
-        startsAt: '2026-04-30T18:00:00.000Z',
+        startsAt: futureIso(),
         privacy: 'open',
       },
     );
