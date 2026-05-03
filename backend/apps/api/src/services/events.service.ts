@@ -100,6 +100,7 @@ export class EventsService {
       price?: string;
       gender?: string;
       access?: string;
+      date?: string;
       cursor?: string;
       limit?: number;
       latitude?: number;
@@ -129,6 +130,7 @@ export class EventsService {
         price: params.price as EventPriceFilter | undefined,
         gender: params.gender as EventGenderFilter | undefined,
         access: params.access as EventAccessFilter | undefined,
+        date: params.date,
       },
       geoQuery?.bounds,
     );
@@ -1891,6 +1893,7 @@ export class EventsService {
       price?: EventPriceFilter;
       gender?: EventGenderFilter;
       access?: EventAccessFilter;
+      date?: string;
     },
     geoBounds?: EventGeoBounds,
   ): Prisma.EventWhereInput {
@@ -2008,6 +2011,16 @@ export class EventsService {
       conditions.push(priceWhere);
     }
 
+    const dateRange = this.parseIsoDateRange(params.date);
+    if (dateRange) {
+      conditions.push({
+        startsAt: {
+          gte: dateRange.start,
+          lt: dateRange.end,
+        },
+      });
+    }
+
     if (geoBounds != null) {
       conditions.push({
         latitude: {
@@ -2057,6 +2070,25 @@ export class EventsService {
       default:
         return null;
     }
+  }
+
+  private parseIsoDateRange(raw?: string) {
+    if (!raw || raw === 'any') {
+      return null;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return null;
+    }
+
+    const start = new Date(`${raw}T00:00:00.000Z`);
+    if (!Number.isFinite(start.getTime())) {
+      return null;
+    }
+
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    return { start, end };
   }
 
   private listOrderBy(

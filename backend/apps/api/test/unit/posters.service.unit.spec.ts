@@ -49,6 +49,27 @@ describe('PostersService unit', () => {
     expect(query).toBe('a'.repeat(64));
   });
 
+  it('filters posters by ISO date', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const service = new PostersService({
+      client: {
+        poster: {
+          findMany,
+        },
+      },
+    } as any);
+
+    await service.listPosters({
+      date: '2026-05-03',
+      limit: 20,
+    } as any);
+
+    expect(findMany.mock.calls[0][0].where.startsAt).toEqual({
+      gte: new Date('2026-05-03T00:00:00.000Z'),
+      lt: new Date('2026-05-04T00:00:00.000Z'),
+    });
+  });
+
   it('uses poster cursor payload without reading the cursor poster again', async () => {
     const firstPoster = makePoster('poster-1', {
       isFeatured: true,

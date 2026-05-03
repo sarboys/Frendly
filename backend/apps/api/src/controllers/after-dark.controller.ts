@@ -22,10 +22,14 @@ export class AfterDarkController {
   @Get('events')
   listEvents(
     @CurrentUser() currentUser: { userId: string },
+    @Query('q') q?: string,
+    @Query('date') date?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
     return this.afterDarkService.listEvents(currentUser.userId, {
+      q,
+      date,
       cursor,
       limit: limit == null ? undefined : Number(limit),
     });

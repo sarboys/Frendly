@@ -33,6 +33,7 @@ Use this for REST endpoints, DTOs, service behavior and API tests.
 - Profile: `profile.controller.ts`, `profile.service.ts`.
 - Onboarding: `onboarding.controller.ts`, `onboarding.service.ts`.
 - Events: `events.controller.ts`, `events.service.ts`.
+- Grouped search: `search.controller.ts`, `search.service.ts`.
 - Host: `host.controller.ts`, `host.service.ts`.
 - Chats: `chats.controller.ts`, `chats.service.ts`.
 - Evening: `evening.controller.ts`, `evening.service.ts`, `partner-offer-code.service.ts`.
@@ -77,6 +78,12 @@ Events:
 - `POST /events/:eventId/invites/:requestId/accept`
 - `POST /events/:eventId/invites/:requestId/decline`
 - check-in, live, after-party, feedback endpoints live under `/events/:eventId/*`.
+
+Search:
+
+- `GET /search` returns `{ meetups, evenings, routes, posters, nextCursors }`.
+- Query params include `q`, `date`, `city`, `lifestyle`, `price`, `gender`, `access`, plus per-block limits: `meetupsLimit`, `eveningsLimit`, `routesLimit`, `postersLimit`.
+- `date` is `yyyy-mm-dd` or `any`. Events, after-dark events and posters apply it as a one-day UTC range.
 
 Chats:
 
@@ -134,6 +141,8 @@ Admin auth:
 
 - Event joins are idempotent for existing participants.
 - `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates.
+- `GET /events` and `GET /posters` accept `date=yyyy-mm-dd` for one-day filtering.
+- `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
 - Direct joins lock the event row and check capacity inside the transaction.
 - Join request review must not reset a reviewed request back to pending.
 - Event detail uses bounded previews and separate counts.

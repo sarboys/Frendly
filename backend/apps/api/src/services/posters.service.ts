@@ -21,6 +21,7 @@ export class PostersService {
     category?: string;
     q?: string;
     featured?: string;
+    date?: string;
     cursor?: string;
     limit?: number;
   }) {
@@ -28,6 +29,7 @@ export class PostersService {
     const category = this.parseCategory(params.category);
     const query = normalizeSearchQuery(params.q);
     const featuredOnly = params.featured === 'true';
+    const dateRange = this.parseIsoDateRange(params.date);
     const take = this.normalizeLimit(params.limit);
     const cursorPoster = await this.resolveCursor(params.cursor);
     const where: Prisma.PosterWhereInput = {
@@ -35,6 +37,14 @@ export class PostersService {
       status: 'published',
       ...(category ? { category } : {}),
       ...(featuredOnly ? { isFeatured: true } : {}),
+      ...(dateRange
+        ? {
+            startsAt: {
+              gte: dateRange.start,
+              lt: dateRange.end,
+            },
+          }
+        : {}),
       ...(query
         ? {
             OR: [
@@ -118,6 +128,25 @@ export class PostersService {
     }
 
     return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private parseIsoDateRange(raw?: string) {
+    if (!raw || raw === 'any') {
+      return null;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return null;
+    }
+
+    const start = new Date(`${raw}T00:00:00.000Z`);
+    if (!Number.isFinite(start.getTime())) {
+      return null;
+    }
+
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    return { start, end };
   }
 
   private async resolveCursor(cursor?: string): Promise<PosterCursor | null> {

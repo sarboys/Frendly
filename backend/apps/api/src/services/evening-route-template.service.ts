@@ -8,6 +8,7 @@ import {
 } from '@big-break/contracts';
 import { randomBytes } from 'crypto';
 import { ApiError } from '../common/api-error';
+import { normalizeSearchQuery } from '../common/search-query';
 import { EveningAnalyticsService } from './evening-analytics.service';
 import { PrismaService } from './prisma.service';
 
@@ -26,12 +27,48 @@ export class EveningRouteTemplateService {
     userId?: string | null,
   ) {
     const city = this.optionalText(params.city) ?? 'Москва';
+    const query = normalizeSearchQuery(this.optionalText(params.q) ?? undefined);
     const templates =
       await this.prismaService.client.eveningRouteTemplate.findMany({
         where: {
           status: 'published',
           city,
           currentRouteId: { not: null },
+          ...(query
+            ? {
+                OR: [
+                  { area: { contains: query, mode: 'insensitive' } },
+                  {
+                    currentRoute: {
+                      is: {
+                        title: { contains: query, mode: 'insensitive' },
+                      },
+                    },
+                  },
+                  {
+                    currentRoute: {
+                      is: {
+                        blurb: { contains: query, mode: 'insensitive' },
+                      },
+                    },
+                  },
+                  {
+                    currentRoute: {
+                      is: {
+                        vibe: { contains: query, mode: 'insensitive' },
+                      },
+                    },
+                  },
+                  {
+                    currentRoute: {
+                      is: {
+                        area: { contains: query, mode: 'insensitive' },
+                      },
+                    },
+                  },
+                ],
+              }
+            : {}),
         },
         include: this.templateSummaryInclude(),
         orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }],

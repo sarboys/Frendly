@@ -159,7 +159,7 @@ describe('AfterDarkService', () => {
     });
 
     expect(eventFindFirst).not.toHaveBeenCalled();
-    expect(eventFindMany.mock.calls[1][0].where.OR).toEqual([
+    expect(eventFindMany.mock.calls[1][0].where.AND[0].OR).toEqual([
       {
         startsAt: {
           gt: firstEvent.startsAt,

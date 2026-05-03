@@ -70,6 +70,43 @@ describe('EventsService unit', () => {
     expect(searchCondition.OR[0].title.contains).toBe('вечер'.repeat(20).slice(0, 64));
   });
 
+  it('filters event feed by ISO date', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+      date: '2026-05-03',
+    } as any);
+
+    const where = eventFindMany.mock.calls[0][0].where as any;
+    const dateCondition = where.AND.find(
+      (condition: any) =>
+        condition.startsAt?.gte?.toISOString?.() ===
+        '2026-05-03T00:00:00.000Z',
+    );
+
+    expect(dateCondition.startsAt.lt.toISOString()).toBe(
+      '2026-05-04T00:00:00.000Z',
+    );
+  });
+
   it('limits participant preview in event feed queries', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([
       {

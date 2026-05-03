@@ -24,6 +24,7 @@ import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { PublicCodeController } from './controllers/public-code.controller';
 import { SafetyController } from './controllers/safety.controller';
+import { SearchController } from './controllers/search.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { SharesController } from './controllers/shares.controller';
 import { StoriesController } from './controllers/stories.controller';
@@ -66,6 +67,7 @@ import { PostersService } from './services/posters.service';
 import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
 import { SafetyService } from './services/safety.service';
+import { SearchService } from './services/search.service';
 import { SettingsService } from './services/settings.service';
 import { SharesService } from './services/shares.service';
 import { SocialAuthService } from './services/social-auth.service';
@@ -103,6 +105,7 @@ import { VerificationService } from './services/verification.service';
     ProfileController,
     PublicCodeController,
     SafetyController,
+    SearchController,
     SettingsController,
     SharesController,
     StoriesController,
@@ -145,6 +148,7 @@ import { VerificationService } from './services/verification.service';
     PrismaService,
     ProfileService,
     SafetyService,
+    SearchService,
     SettingsService,
     SharesService,
     SocialAuthService,

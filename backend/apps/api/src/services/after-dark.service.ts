@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
+import { normalizeSearchQuery } from '../common/search-query';
 import {
   decodeCursor,
   encodeCursor,
@@ -65,35 +67,60 @@ export class AfterDarkService {
 
   async listEvents(
     userId: string,
-    params: { cursor?: string; limit?: number } = {},
+    params: { q?: string; date?: string; cursor?: string; limit?: number } = {},
   ) {
     await this.assertUnlocked(userId);
     const blockedUserIds = await this.getBlockedUserIds(userId);
+    const query = normalizeSearchQuery(params.q);
+    const dateRange = this.parseIsoDateRange(params.date);
     const take = this.normalizeLimit(params.limit);
     const cursorEvent = await this.resolveEventCursor(params.cursor);
+    const andFilters: Prisma.EventWhereInput[] = [];
+
+    if (query) {
+      andFilters.push({
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { place: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { vibe: { contains: query, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (cursorEvent) {
+      andFilters.push({
+        OR: [
+          {
+            startsAt: {
+              gt: cursorEvent.startsAt,
+            },
+          },
+          {
+            startsAt: cursorEvent.startsAt,
+            id: {
+              gt: cursorEvent.id,
+            },
+          },
+        ],
+      });
+    }
+
     const events = await this.prismaService.client.event.findMany({
       where: {
         isAfterDark: true,
         hostId: {
           notIn: [...blockedUserIds],
         },
-        ...(cursorEvent
+        ...(dateRange
           ? {
-              OR: [
-                {
-                  startsAt: {
-                    gt: cursorEvent.startsAt,
-                  },
-                },
-                {
-                  startsAt: cursorEvent.startsAt,
-                  id: {
-                    gt: cursorEvent.id,
-                  },
-                },
-              ],
+              startsAt: {
+                gte: dateRange.start,
+                lt: dateRange.end,
+              },
             }
           : {}),
+        ...(andFilters.length > 0 ? { AND: andFilters } : {}),
       },
       include: {
         host: {
@@ -433,6 +460,25 @@ export class AfterDarkService {
     }
 
     return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private parseIsoDateRange(raw?: string) {
+    if (!raw || raw === 'any') {
+      return null;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return null;
+    }
+
+    const start = new Date(`${raw}T00:00:00.000Z`);
+    if (!Number.isFinite(start.getTime())) {
+      return null;
+    }
+
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    return { start, end };
   }
 
   private async resolveEventCursor(cursor?: string): Promise<AfterDarkEventCursor | null> {

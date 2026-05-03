@@ -11,6 +11,7 @@ export class PostersController {
     @Query('category') category?: string,
     @Query('q') q?: string,
     @Query('featured') featured?: string,
+    @Query('date') date?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
@@ -19,6 +20,7 @@ export class PostersController {
       category,
       q,
       featured,
+      date,
       cursor,
       limit: limit ? Number(limit) : undefined,
     });
