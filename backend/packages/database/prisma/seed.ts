@@ -6,9 +6,17 @@ const {
   seededPosters,
   seededUsers,
 }: typeof import('../src/seed-data') = require('../src/seed-data.ts');
+const {
+  shiftSeedDate,
+  shiftSeedDatesIntoFuture,
+}: typeof import('../src/seed-dates') = require('../src/seed-dates.ts');
 
 const prisma = new PrismaClient();
-const testRoutePublishedAt = new Date('2026-04-29T09:00:00.000Z');
+const seedDateOffsetMs = shiftSeedDatesIntoFuture();
+const testRoutePublishedAt = shiftSeedDate(
+  new Date('2026-04-29T09:00:00.000Z'),
+  seedDateOffsetMs,
+);
 
 const seededPhoneNumbers: Record<string, string> = {
   'user-me': '+71111111111',
@@ -120,6 +128,15 @@ const seededSettings: Record<
 };
 
 async function main() {
+  const shiftedSeededEvents = seededEvents.map((event) => ({
+    ...event,
+    startsAt: shiftSeedDate(event.startsAt, seedDateOffsetMs),
+  }));
+  const shiftedSeededPosters = seededPosters.map((poster) => ({
+    ...poster,
+    startsAt: shiftSeedDate(poster.startsAt, seedDateOffsetMs),
+  }));
+
   await prisma.realtimeEvent.deleteMany();
   await prisma.outboxEvent.deleteMany();
   await prisma.authAuditEvent.deleteMany();
@@ -264,11 +281,11 @@ async function main() {
   }
 
   await prisma.event.createMany({
-    data: seededEvents,
+    data: shiftedSeededEvents,
   });
 
   await prisma.poster.createMany({
-    data: seededPosters.map((poster) => ({
+    data: shiftedSeededPosters.map((poster) => ({
       ...poster,
       tags: poster.tags,
     })),
@@ -723,8 +740,8 @@ async function main() {
       privacy: 'open',
       mode: 'hybrid',
       capacity: 10,
-      startsAt: new Date('2026-04-26T16:00:00.000Z'),
-      startedAt: new Date('2026-04-26T16:00:00.000Z'),
+      startsAt: shiftSeedDate(new Date('2026-04-26T16:00:00.000Z'), seedDateOffsetMs),
+      startedAt: shiftSeedDate(new Date('2026-04-26T16:00:00.000Z'), seedDateOffsetMs),
       currentStep: 2,
     },
     {
@@ -736,7 +753,7 @@ async function main() {
       privacy: 'request',
       mode: 'hybrid',
       capacity: 8,
-      startsAt: new Date('2026-04-26T17:45:00.000Z'),
+      startsAt: shiftSeedDate(new Date('2026-04-26T17:45:00.000Z'), seedDateOffsetMs),
       currentStep: null,
     },
     {
@@ -748,7 +765,7 @@ async function main() {
       privacy: 'open',
       mode: 'manual',
       capacity: 12,
-      startsAt: new Date('2026-04-26T19:30:00.000Z'),
+      startsAt: shiftSeedDate(new Date('2026-04-26T19:30:00.000Z'), seedDateOffsetMs),
       currentStep: null,
     },
     {
@@ -761,7 +778,7 @@ async function main() {
       mode: 'manual',
       capacity: 4,
       inviteToken: 'seed-quiet-soul',
-      startsAt: new Date('2026-04-26T20:00:00.000Z'),
+      startsAt: shiftSeedDate(new Date('2026-04-26T20:00:00.000Z'), seedDateOffsetMs),
       currentStep: null,
     },
     {
@@ -774,9 +791,9 @@ async function main() {
       mode: 'hybrid',
       capacity: 6,
       inviteToken: 'seed-afterdark',
-      startsAt: new Date('2026-04-25T20:00:00.000Z'),
-      startedAt: new Date('2026-04-25T20:00:00.000Z'),
-      endedAt: new Date('2026-04-25T23:30:00.000Z'),
+      startsAt: shiftSeedDate(new Date('2026-04-25T20:00:00.000Z'), seedDateOffsetMs),
+      startedAt: shiftSeedDate(new Date('2026-04-25T20:00:00.000Z'), seedDateOffsetMs),
+      endedAt: shiftSeedDate(new Date('2026-04-25T23:30:00.000Z'), seedDateOffsetMs),
       currentStep: null,
     },
   ];

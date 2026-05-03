@@ -1,4 +1,5 @@
 import { MediaService } from '../../src/services/media.service';
+import { signAccessToken } from '@big-break/database';
 
 async function readStream(stream: NodeJS.ReadableStream) {
   const chunks: Buffer[] = [];
@@ -11,6 +12,10 @@ async function readStream(stream: NodeJS.ReadableStream) {
 }
 
 describe('MediaService', () => {
+  afterEach(() => {
+    delete process.env.MEDIA_PROXY_STREAMING_ENABLED;
+  });
+
   it('serves suffix byte ranges from the end of inline media', async () => {
     const payload = Buffer.from('0123456789').toString('base64');
     const client = {
@@ -32,10 +37,11 @@ describe('MediaService', () => {
     const service = new MediaService({ client } as any);
 
     const media = await service.getAsset('asset-1', 'bytes=-4');
+    const streamMedia = media as any;
 
-    expect(media.contentLength).toBe(4);
-    expect(media.contentRange).toBe('bytes 6-9/10');
-    await expect(readStream(media.stream)).resolves.toBe('6789');
+    expect(streamMedia.contentLength).toBe(4);
+    expect(streamMedia.contentRange).toBe('bytes 6-9/10');
+    await expect(readStream(streamMedia.stream)).resolves.toBe('6789');
   });
 
   it('clamps oversized byte range ends to the asset size', async () => {
@@ -59,10 +65,53 @@ describe('MediaService', () => {
     const service = new MediaService({ client } as any);
 
     const media = await service.getAsset('asset-1', 'bytes=6-999999');
+    const streamMedia = media as any;
 
-    expect(media.contentLength).toBe(4);
-    expect(media.contentRange).toBe('bytes 6-9/10');
-    await expect(readStream(media.stream)).resolves.toBe('6789');
+    expect(streamMedia.contentLength).toBe(4);
+    expect(streamMedia.contentRange).toBe('bytes 6-9/10');
+    await expect(readStream(streamMedia.stream)).resolves.toBe('6789');
+  });
+
+  it('redirects private S3 media to a signed url by default', async () => {
+    const s3Send = jest.fn();
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-1',
+          status: 'ready',
+          ownerId: 'user-owner',
+          kind: 'chat_voice',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'chat-attachments/user-owner/voice.m4a',
+          publicUrl: null,
+          mimeType: 'audio/mp4',
+          byteSize: 100,
+        }),
+      },
+      session: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: 'user-owner',
+          revokedAt: null,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+    (service as any).s3 = { send: s3Send };
+
+    const media = await service.getAsset(
+      'asset-1',
+      undefined,
+      `Bearer ${signAccessToken('user-owner', 'session-1')}`,
+    );
+
+    expect(media).toEqual(
+      expect.objectContaining({
+        redirectUrl: expect.stringContaining('X-Amz-Signature='),
+        cacheControl: 'private, max-age=300',
+      }),
+    );
+    expect(s3Send).not.toHaveBeenCalled();
   });
 
   it('denies direct chat media download when the peer is blocked', async () => {

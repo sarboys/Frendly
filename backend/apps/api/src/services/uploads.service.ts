@@ -1,6 +1,11 @@
 import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
-import { buildPublicAssetUrl, createPresignedUpload, createS3Client } from '@big-break/database';
+import {
+  buildPublicAssetUrl,
+  createPresignedUpload,
+  createS3Client,
+  getS3Config,
+} from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
@@ -44,6 +49,7 @@ export class UploadsService {
   ) {}
 
   private readonly s3 = createS3Client();
+  private readonly s3Bucket = getS3Config().bucket;
 
   async createMediaUpload(userId: string, body: Record<string, unknown>) {
     const scope = this.resolveScope(body);
@@ -203,7 +209,7 @@ export class UploadsService {
     if (!BYPASS_S3_UPLOAD) {
       await this.s3.send(
         new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: uploadFile.mimetype,
           Body: uploadFile.buffer,
@@ -216,7 +222,7 @@ export class UploadsService {
         ownerId: userId,
         kind: uploadMeta.kind,
         status: 'ready',
-        bucket: process.env.S3_BUCKET ?? 'big-break',
+        bucket: this.s3Bucket,
         objectKey,
         mimeType: uploadFile.mimetype,
         byteSize: uploadFile.size,
@@ -331,7 +337,7 @@ export class UploadsService {
     if (!BYPASS_S3_UPLOAD) {
       await this.s3.send(
         new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: uploadFile.mimetype,
           Body: uploadFile.buffer,
@@ -344,7 +350,7 @@ export class UploadsService {
         ownerId: userId,
         kind: 'story_media',
         status: 'ready',
-        bucket: process.env.S3_BUCKET ?? 'big-break',
+        bucket: this.s3Bucket,
         objectKey,
         mimeType: uploadFile.mimetype,
         byteSize: uploadFile.size,
@@ -568,7 +574,7 @@ export class UploadsService {
           ownerId: input.userId,
           kind: input.uploadMeta.kind,
           status: 'ready',
-          bucket: process.env.S3_BUCKET ?? 'big-break',
+          bucket: this.s3Bucket,
           objectKey: input.objectKey,
           mimeType: input.mimeType,
           byteSize: input.byteSize,
@@ -634,7 +640,7 @@ export class UploadsService {
 
     const object = await this.s3.send(
       new HeadObjectCommand({
-        Bucket: process.env.S3_BUCKET ?? 'big-break',
+        Bucket: this.s3Bucket,
         Key: objectKey,
       }),
     );
@@ -752,7 +758,7 @@ export class UploadsService {
           ownerId: input.userId,
           kind: 'story_media',
           status: 'ready',
-          bucket: process.env.S3_BUCKET ?? 'big-break',
+          bucket: this.s3Bucket,
           objectKey: input.objectKey,
           mimeType: input.mimeType,
           byteSize: input.byteSize,
@@ -841,7 +847,7 @@ export class UploadsService {
 
     const object = await this.s3.send(
       new HeadObjectCommand({
-        Bucket: process.env.S3_BUCKET ?? 'big-break',
+        Bucket: this.s3Bucket,
         Key: objectKey,
       }),
     );

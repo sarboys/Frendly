@@ -962,10 +962,12 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     const actorUserId = this.getActorUserId(event);
-    const blockedUserIds =
-      actorUserId != null ? await this.getBlockedUserIds(actorUserId) : null;
     const replyAuthorId = this.getReplyAuthorId(event.payload);
-    const recipientBlockedUserIds = new Map<string, Set<string>>();
+    const subscribedSockets: WebSocket[] = [];
+    const userIdsForBlockLookup = new Set<string>();
+    if (actorUserId != null) {
+      userIdsForBlockLookup.add(actorUserId);
+    }
 
     for (const socket of this.socketsByChatId.get(chatId) ?? []) {
       const state = this.stateBySocket.get(socket);
@@ -973,21 +975,36 @@ export class ChatServerService implements OnModuleDestroy {
         continue;
       }
 
+      subscribedSockets.push(socket);
+      if (state.userId != null) {
+        userIdsForBlockLookup.add(state.userId);
+      }
+    }
+
+    const blockedUserIdsByUserId = await this.getBlockedUserIdsByUserIds(
+      [...userIdsForBlockLookup],
+    );
+    const actorBlockedUserIds =
+      actorUserId == null ? null : blockedUserIdsByUserId.get(actorUserId) ?? new Set<string>();
+
+    for (const socket of subscribedSockets) {
+      const state = this.stateBySocket.get(socket);
+      if (state == null) {
+        continue;
+      }
+
       if (
-        blockedUserIds != null &&
+        actorBlockedUserIds != null &&
         state.userId != null &&
         actorUserId !== state.userId &&
-        blockedUserIds.has(state.userId)
+        actorBlockedUserIds.has(state.userId)
       ) {
         continue;
       }
 
       if (replyAuthorId != null && state.userId != null) {
-        let blockedForRecipient = recipientBlockedUserIds.get(state.userId);
-        if (!blockedForRecipient) {
-          blockedForRecipient = await this.getBlockedUserIds(state.userId);
-          recipientBlockedUserIds.set(state.userId, blockedForRecipient);
-        }
+        const blockedForRecipient =
+          blockedUserIdsByUserId.get(state.userId) ?? new Set<string>();
 
         this.send(socket, {
           ...event,
@@ -1001,6 +1018,55 @@ export class ChatServerService implements OnModuleDestroy {
 
       this.send(socket, event);
     }
+  }
+
+  private async getBlockedUserIdsByUserIds(userIds: string[]) {
+    const uniqueUserIds = [...new Set(userIds)].filter((userId) => userId.length > 0);
+    if (uniqueUserIds.length === 0) {
+      return new Map<string, Set<string>>();
+    }
+
+    const rows = await this.prismaService.client.userBlock.findMany({
+      where: {
+        OR: [
+          {
+            userId: {
+              in: uniqueUserIds,
+            },
+          },
+          {
+            blockedUserId: {
+              in: uniqueUserIds,
+            },
+          },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+    const uniqueUserIdSet = new Set(uniqueUserIds);
+    const result = new Map<string, Set<string>>();
+    const add = (userId: string, blockedUserId: string) => {
+      const current = result.get(userId);
+      if (current) {
+        current.add(blockedUserId);
+        return;
+      }
+      result.set(userId, new Set([blockedUserId]));
+    };
+
+    for (const row of rows) {
+      if (uniqueUserIdSet.has(row.userId)) {
+        add(row.userId, row.blockedUserId);
+      }
+      if (uniqueUserIdSet.has(row.blockedUserId)) {
+        add(row.blockedUserId, row.userId);
+      }
+    }
+
+    return result;
   }
 
   private async requireAuthenticated(socket: WebSocket) {

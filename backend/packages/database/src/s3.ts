@@ -8,6 +8,7 @@ export interface S3Config {
   secretAccessKey: string;
   bucket: string;
   publicEndpoint: string;
+  cdnEndpoint: string;
 }
 
 export interface PresignedUploadInput {
@@ -21,9 +22,22 @@ const DEFAULT_S3_REGION = 'ru-central-1';
 const DEFAULT_S3_BUCKET = 'frendly';
 const DEFAULT_S3_PUBLIC_ENDPOINT = 'https://global.s3.cloud.ru';
 const REQUIRED_S3_ENV_KEYS = ['S3_ACCESS_KEY', 'S3_SECRET_KEY'] as const;
+const REQUIRED_PRODUCTION_S3_ENV_KEYS = [
+  ...REQUIRED_S3_ENV_KEYS,
+  'S3_BUCKET',
+] as const;
+
+function optionalEnv(key: string): string | undefined {
+  const value = process.env[key];
+  return value && value.trim().length > 0 ? value : undefined;
+}
 
 export function getS3Config(): S3Config {
-  const missingKeys = REQUIRED_S3_ENV_KEYS.filter((key) => !process.env[key]);
+  const requiredKeys =
+    process.env.NODE_ENV === 'production'
+      ? REQUIRED_PRODUCTION_S3_ENV_KEYS
+      : REQUIRED_S3_ENV_KEYS;
+  const missingKeys = requiredKeys.filter((key) => !process.env[key]);
 
   if (missingKeys.length > 0) {
     throw new Error(`Missing required S3 env: ${missingKeys.join(', ')}`);
@@ -36,6 +50,10 @@ export function getS3Config(): S3Config {
     secretAccessKey: process.env.S3_SECRET_KEY!,
     bucket: process.env.S3_BUCKET ?? DEFAULT_S3_BUCKET,
     publicEndpoint: process.env.S3_PUBLIC_ENDPOINT ?? DEFAULT_S3_PUBLIC_ENDPOINT,
+    cdnEndpoint:
+      optionalEnv('S3_CDN_ENDPOINT') ??
+      process.env.S3_PUBLIC_ENDPOINT ??
+      DEFAULT_S3_PUBLIC_ENDPOINT,
   };
 }
 
@@ -105,6 +123,10 @@ export async function createPresignedDownload(objectKey: string) {
 
 export function buildPublicAssetUrl(objectKey: string): string {
   const config = getS3Config();
+  if (optionalEnv('S3_CDN_ENDPOINT')) {
+    return `${config.cdnEndpoint}/${objectKey}`;
+  }
+
   return `${config.publicEndpoint}/${config.bucket}/${objectKey}`;
 }
 

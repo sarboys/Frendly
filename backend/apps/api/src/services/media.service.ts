@@ -11,6 +11,19 @@ import { ApiError } from '../common/api-error';
 import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
+type MediaStreamDelivery = {
+  stream: Readable;
+  mimeType: string;
+  cacheControl: string;
+  contentLength: number;
+  contentRange: string | null;
+};
+
+type MediaRedirectDelivery = {
+  redirectUrl: string;
+  cacheControl: string;
+};
+
 @Injectable()
 export class MediaService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -21,7 +34,7 @@ export class MediaService {
     assetId: string,
     rangeHeader?: string,
     authorizationHeader?: string,
-  ) {
+  ): Promise<MediaStreamDelivery | MediaRedirectDelivery> {
     const asset = await this.prismaService.client.mediaAsset.findUnique({
       where: { id: assetId },
       select: {
@@ -53,6 +66,18 @@ export class MediaService {
         cacheControl,
         contentLength: inlineAsset.contentLength,
         contentRange: inlineAsset.contentRange,
+      };
+    }
+
+    if (process.env.MEDIA_PROXY_STREAMING_ENABLED !== 'true') {
+      const redirectUrl =
+        this.isPublicKind(asset.kind) && asset.publicUrl != null
+          ? asset.publicUrl
+          : (await createPresignedDownload(asset.objectKey)).url;
+
+      return {
+        redirectUrl,
+        cacheControl,
       };
     }
 

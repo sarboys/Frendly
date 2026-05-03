@@ -135,20 +135,25 @@ export class EventsService {
       geoQuery?.bounds,
     );
     const cursorEvent = await this.resolveListCursor(params.cursor, filter);
-    const cursorWhere = this.buildListCursorWhere(cursorEvent, filter);
+    const postgisCandidates = await this.loadPostgisEventCandidates({
+      geoQuery,
+      cursorEvent,
+      take,
+      radiusKm: params.radiusKm,
+      blockedUserIds,
+    });
+    const shouldApplyDatabaseCursor =
+      cursorEvent != null &&
+      geoQuery?.center == null &&
+      postgisCandidates == null;
+    const cursorWhere = shouldApplyDatabaseCursor
+      ? this.buildListCursorWhere(cursorEvent, filter)
+      : null;
 
     if (cursorWhere) {
       const conditions = (where.AND as Prisma.EventWhereInput[] | undefined) ?? [];
       where.AND = [...conditions, cursorWhere];
     }
-
-    const postgisCandidates = await this.loadPostgisEventCandidates({
-      geoQuery,
-      cursor: params.cursor,
-      take,
-      radiusKm: params.radiusKm,
-      blockedUserIds,
-    });
     if (postgisCandidates != null && postgisCandidates.length === 0) {
       return {
         items: [],
@@ -218,8 +223,21 @@ export class EventsService {
     const orderedEvents = postgisCandidates == null
       ? this.orderEventsByGeo(events, geoQuery)
       : this.orderEventsByPostgisCandidates(events, postgisCandidates);
-    const hasMore = orderedEvents.length > take;
-    const page = hasMore ? orderedEvents.slice(0, take) : orderedEvents;
+    const eventsWithEffectiveDistance = orderedEvents.map((event) =>
+      this.eventWithGeoDistance(
+        event,
+        geoQuery,
+        postgisDistanceByEventId.get(event.id),
+      ),
+    );
+    const cursorFilteredEvents =
+      postgisCandidates == null && geoQuery?.center != null
+        ? this.applyGeoCursor(eventsWithEffectiveDistance, cursorEvent)
+        : eventsWithEffectiveDistance;
+    const hasMore = cursorFilteredEvents.length > take;
+    const page = hasMore
+      ? cursorFilteredEvents.slice(0, take)
+      : cursorFilteredEvents;
     const pageEventIds = page.map((event) => event.id);
     const [participantCounts, currentParticipations] =
       pageEventIds.length === 0
@@ -260,11 +278,7 @@ export class EventsService {
 
     const mapped = page.map((event) =>
       mapEventSummary({
-        event: this.eventWithGeoDistance(
-          event,
-          geoQuery,
-          postgisDistanceByEventId.get(event.id),
-        ),
+        event,
         participants: event.participants,
         currentUserId: userId,
         participantCount: participantCountByEventId.get(event.id),
@@ -2116,7 +2130,7 @@ export class EventsService {
 
   private async loadPostgisEventCandidates(params: {
     geoQuery?: EventGeoQuery;
-    cursor?: string;
+    cursorEvent: EventListCursor | null;
     take: number;
     radiusKm?: number;
     blockedUserIds: Set<string>;
@@ -2124,8 +2138,7 @@ export class EventsService {
     const center = params.geoQuery?.center;
     if (
       process.env.ENABLE_POSTGIS_EVENT_FEED !== 'true' ||
-      center == null ||
-      params.cursor != null
+      center == null
     ) {
       return null;
     }
@@ -2141,27 +2154,43 @@ export class EventsService {
       params.blockedUserIds.size === 0
         ? Prisma.empty
         : Prisma.sql`AND e."hostId" NOT IN (${Prisma.join([...params.blockedUserIds])})`;
+    const cursorFilter =
+      params.cursorEvent == null
+        ? Prisma.empty
+        : Prisma.sql`
+          WHERE candidate.distance_km > ${params.cursorEvent.distanceKm}
+            OR (
+              candidate.distance_km = ${params.cursorEvent.distanceKm}
+              AND candidate.event_id > ${params.cursorEvent.id}
+            )
+        `;
     const rows = await this.prismaService.client.$queryRaw<Array<{
       event_id: string;
       distance_km: bigint | number | string;
     }>>(Prisma.sql`
       SELECT
-        e."id" AS event_id,
-        ST_Distance(
-          e."geo",
-          ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography
-        ) / 1000 AS distance_km
-      FROM "Event" e
-      WHERE e."geo" IS NOT NULL
-        AND e."isAfterDark" = false
-        AND e."startsAt" >= ${now}
-        ${blockedHostFilter}
-        AND ST_DWithin(
-          e."geo",
-          ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography,
-          ${radiusMeters}
-        )
-      ORDER BY distance_km ASC, e."id" ASC
+        candidate.event_id,
+        candidate.distance_km
+      FROM (
+        SELECT
+          e."id" AS event_id,
+          ST_Distance(
+            e."geo",
+            ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography
+          ) / 1000 AS distance_km
+        FROM "Event" e
+        WHERE e."geo" IS NOT NULL
+          AND e."isAfterDark" = false
+          AND e."startsAt" >= ${now}
+          ${blockedHostFilter}
+          AND ST_DWithin(
+            e."geo",
+            ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography,
+            ${radiusMeters}
+          )
+      ) candidate
+      ${cursorFilter}
+      ORDER BY candidate.distance_km ASC, candidate.event_id ASC
       LIMIT ${candidateLimit}
     `);
 
@@ -2312,6 +2341,22 @@ export class EventsService {
     return candidates
       .map((candidate) => eventById.get(candidate.eventId))
       .filter((event): event is T => event != null);
+  }
+
+  private applyGeoCursor<T extends { id: string; distanceKm: number }>(
+    events: T[],
+    cursorEvent: EventListCursor | null,
+  ) {
+    if (cursorEvent == null) {
+      return events;
+    }
+
+    return events.filter(
+      (event) =>
+        event.distanceKm > cursorEvent.distanceKm ||
+        (event.distanceKm === cursorEvent.distanceKm &&
+          event.id > cursorEvent.id),
+    );
   }
 
   private eventWithGeoDistance<

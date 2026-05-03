@@ -426,21 +426,13 @@ export class CommunitiesService {
     const communityIds = communities.map((item) => item.communityId);
     const chatIds = communities.map((item) => item.chatId);
 
-    const blockedUserIds =
-      process.env.CHAT_UNREAD_COUNTER_READS === 'true'
-        ? await this.getBlockedUserIds(userId)
-        : new Set<string>();
+    const useUnreadCounters =
+      process.env.CHAT_UNREAD_COUNTER_READS !== 'false' &&
+      typeof this.prismaService.client.chatMember?.findMany === 'function';
     const unreadCountsPromise =
-      process.env.CHAT_UNREAD_COUNTER_READS === 'true' &&
-      blockedUserIds.size === 0
+      useUnreadCounters
         ? this.loadUnreadCounters(userId, chatIds)
-        : this.countUnreadMessages(
-            userId,
-            chatIds,
-            process.env.CHAT_UNREAD_COUNTER_READS === 'true'
-              ? blockedUserIds
-              : undefined,
-          );
+        : this.countUnreadMessages(userId, chatIds);
 
     const [onlineGroups, unreadByChatId, memberships] = await Promise.all([
       this.prismaService.client.communityMember.groupBy({

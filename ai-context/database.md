@@ -2,17 +2,13 @@
 
 Use this for Prisma schema, migrations, seed, indexes and model relations.
 
-## Fast paths
+For concrete files and impacted services, run `./scripts/ua-query.mjs "<model or flow>"` first.
+
+## Source of truth
 
 - Schema: `backend/packages/database/prisma/schema.prisma`.
 - Migrations: `backend/packages/database/prisma/migrations/`.
 - Seed: `backend/packages/database/prisma/seed.ts`.
-- Shared client: `backend/packages/database/src/client.ts`.
-- Shared block helper: `backend/packages/database/src/user-blocks.ts`.
-- API Prisma wrapper: `backend/apps/api/src/services/prisma.service.ts`.
-- Chat Prisma wrapper: `backend/apps/chat/src/prisma.service.ts`.
-- Worker Prisma wrapper: `backend/apps/worker/src/prisma.service.ts`.
-- DB scripts: `backend/packages/database/src/concurrent-indexes.ts`, `chat-unread-backfill.ts`, `chat-unread-verifier.ts`, `hot-query-explain.ts`, `retention-cleanup.ts`.
 
 ## Stack
 
@@ -85,28 +81,16 @@ Public:
 - `Community` owns a unique chat.
 - `Partner` owns venues, offers, offer codes and partner-created content.
 
-## Recent important migrations
-
-- `20260426090000_db_hot_path_indexes`.
-- `20260426120000_evening_plan`.
-- `20260426150000_evening_chat_phase`.
-- `20260426180000_evening_sessions`.
-- `20260427120000_phone_otp_hardening`.
-- `20260428120000_auth_contact_requirements`.
-- `20260428133000_external_auth_accounts`.
-- `20260428143000_backend_hot_path_indexes`.
-- `20260429090001_public_share_links`.
-- `20260429110000_curated_evening_routes`.
-- `20260430120000_event_route_selection`.
-- `20260430170000_admin_auth_audit_and_checks`.
-
 ## Hot paths
 
-- Chat unread can read `ChatMember.unreadCount` when `CHAT_UNREAD_COUNTER_READS=true`.
-- Blocked senders keep filtered COUNT path where needed.
+- Chat unread reads `ChatMember.unreadCount` by default. Set `CHAT_UNREAD_COUNTER_READS=false` for the filtered COUNT fallback.
+- Community unread fallback keeps the DB `UserBlock` visibility filter in SQL.
 - Incoming dating likes use `DatingAction.targetUserId + action + actorUserId`.
+- `/matches` reads reciprocal positive `DatingAction` rows, not event favorites.
+- Dating matches need `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes.
+- `db:perf:hot-queries` covers reciprocal dating matches and bounded push token dispatch reads.
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.
-- Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`.
+- Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`. Geo cursors must use the same effective distance that sorted the page.
 - Evening analytics admin filters use `EveningAnalyticsEvent.venueId + name + createdAt + id`.
 
 ## Commands
@@ -125,7 +109,7 @@ cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 
 Seed file: `backend/packages/database/prisma/seed.ts`.
 
-It seeds users, events, chats, posters, communities, After Dark and Evening demo data. Curated Evening seed includes a test partner, Moscow venues, active offer, published route template and route revision.
+It seeds users, events, chats, posters, communities, After Dark and Evening demo data. Curated Evening seed includes a test partner, Moscow venues, active offer, published route template and route revision. Upcoming event and poster dates shift forward relative to the current UTC day.
 
 ## When changing schema
 

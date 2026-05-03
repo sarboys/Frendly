@@ -398,19 +398,13 @@ describe('ChatServerService unit', () => {
     expect(unsubscribedSocket.send).not.toHaveBeenCalled();
   });
 
-  it('removes blocked reply previews from realtime broadcasts per recipient', async () => {
-    const findMany = jest.fn(async (args: any) => {
-      const userId = args.where.OR[0].userId;
-      if (userId === 'user-recipient') {
-        return [
-          {
-            userId: 'user-recipient',
-            blockedUserId: 'blocked-user',
-          },
-        ];
-      }
-      return [];
-    });
+  it('removes blocked reply previews from realtime broadcasts with one bulk block lookup', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      {
+        userId: 'user-recipient',
+        blockedUserId: 'blocked-user',
+      },
+    ]);
     const service = new ChatServerService({
       client: {
         userBlock: {
@@ -419,12 +413,19 @@ describe('ChatServerService unit', () => {
       },
     } as any);
     const recipientSocket = createOpenSocket();
+    const otherSockets = Array.from({ length: 100 }, (_, index) => createOpenSocket());
 
     (service as any).stateBySocket.set(recipientSocket, {
       userId: 'user-recipient',
       subscriptions: new Set(['chat-1']),
     });
-    (service as any).socketsByChatId.set('chat-1', new Set([recipientSocket]));
+    for (const [index, socket] of otherSockets.entries()) {
+      (service as any).stateBySocket.set(socket, {
+        userId: `user-${index}`,
+        subscriptions: new Set(['chat-1']),
+      });
+    }
+    (service as any).socketsByChatId.set('chat-1', new Set([recipientSocket, ...otherSockets]));
 
     await (service as any).broadcastEvent({
       type: 'message.created',
@@ -440,6 +441,27 @@ describe('ChatServerService unit', () => {
 
     const sent = JSON.parse(recipientSocket.send.mock.calls[0][0]);
     expect(sent.payload.replyTo).toBeNull();
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          {
+            userId: {
+              in: expect.arrayContaining(['user-actor', 'user-recipient', 'user-0']),
+            },
+          },
+          {
+            blockedUserId: {
+              in: expect.arrayContaining(['user-actor', 'user-recipient', 'user-0']),
+            },
+          },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
   });
 
   it('broadcasts chat events only to sockets indexed by chat id', async () => {

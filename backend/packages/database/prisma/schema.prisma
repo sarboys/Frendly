@@ -1466,6 +1466,7 @@ model DatingAction {
   @@index([targetUserId, action, createdAt])
   @@index([targetUserId, action, actorUserId])
   @@index([actorUserId, action, createdAt])
+  @@index([actorUserId, action, updatedAt, targetUserId])
 }
 
 model Community {
@@ -1715,6 +1716,7 @@ model PushToken {
 
   @@index([userId, disabledAt])
   @@index([userId, deviceId])
+  @@index([userId, disabledAt, updatedAt, id])
 }
 
 model OutboxEvent {

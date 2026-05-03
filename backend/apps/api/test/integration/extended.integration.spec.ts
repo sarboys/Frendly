@@ -12,20 +12,6 @@ describe('extended rollout api flows', () => {
   let prisma: PrismaClient;
   let accessToken = '';
 
-  const futureIso = (daysFromNow: number, hourUtc: number, minute = 0) => {
-    const date = new Date();
-    date.setUTCDate(date.getUTCDate() + daysFromNow);
-    date.setUTCHours(hourUtc, minute, 0, 0);
-    return date.toISOString();
-  };
-
-  const pastDate = (daysAgo: number, hourUtc: number, minute = 0) => {
-    const date = new Date();
-    date.setUTCDate(date.getUTCDate() - daysAgo);
-    date.setUTCHours(hourUtc, minute, 0, 0);
-    return date;
-  };
-
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ApiAppModule],
@@ -330,30 +316,28 @@ describe('extended rollout api flows', () => {
       },
     });
 
-    await request(app.getHttpServer())
-      .post('/events/e1/feedback')
-      .set('authorization', `Bearer ${accessToken}`)
-      .send({
-        vibe: 'cozy',
-        hostRating: 5,
-        favoriteUserIds: ['user-sonya'],
-      })
-      .expect(201);
-
-    const peerLogin = await request(app.getHttpServer())
-      .post('/auth/dev/login')
-      .send({ userId: 'user-sonya' })
-      .expect(201);
-
-    await request(app.getHttpServer())
-      .post('/events/e1/feedback')
-      .set('authorization', `Bearer ${peerLogin.body.accessToken}`)
-      .send({
-        vibe: 'cozy',
-        hostRating: 5,
-        favoriteUserIds: ['user-me'],
-      })
-      .expect(201);
+    await prisma.datingAction.deleteMany({
+      where: {
+        OR: [
+          { actorUserId: 'user-me', targetUserId: 'user-sonya' },
+          { actorUserId: 'user-sonya', targetUserId: 'user-me' },
+        ],
+      },
+    });
+    await prisma.datingAction.createMany({
+      data: [
+        {
+          actorUserId: 'user-me',
+          targetUserId: 'user-sonya',
+          action: 'like',
+        },
+        {
+          actorUserId: 'user-sonya',
+          targetUserId: 'user-me',
+          action: 'like',
+        },
+      ],
+    });
 
     const matchesResponse = await request(app.getHttpServer())
       .get('/matches')
@@ -680,79 +664,29 @@ describe('extended rollout api flows', () => {
     expect(currentAfterCleanup.body.plan).toBeNull();
   });
 
-  it('returns unique matches from mutual favorites across multiple events', async () => {
-    await request(app.getHttpServer())
-      .post('/events/e1/feedback')
-      .set('authorization', `Bearer ${accessToken}`)
-      .send({
-        vibe: 'cozy',
-        hostRating: 5,
-        favoriteUserIds: ['user-anya'],
-      })
-      .expect(201);
-
-    const peerLogin = await request(app.getHttpServer())
-      .post('/auth/dev/login')
-      .send({ userId: 'user-anya' })
-      .expect(201);
-
-    await request(app.getHttpServer())
-      .post('/events/e1/feedback')
-      .set('authorization', `Bearer ${peerLogin.body.accessToken}`)
-      .send({
-        vibe: 'magic',
-        hostRating: 5,
-        favoriteUserIds: ['user-me'],
-      })
-      .expect(201);
-
-    const createResponse = await request(app.getHttpServer())
-      .post('/events')
-      .set('authorization', `Bearer ${accessToken}`)
-      .send({
-        title: 'Второй вечер для проверки match dedupe',
-        description: 'Нужен еще один mutual favorite без дублей в matches',
-        emoji: '🍸',
-        vibe: 'Спокойно',
-        place: 'Петровка 11',
-        startsAt: futureIso(1, 19),
-        capacity: 4,
-        distanceKm: 0.6,
-        joinMode: 'open',
-      })
-      .expect(201);
-
-    await prisma.event.update({
-      where: { id: createResponse.body.id as string },
-      data: {
-        startsAt: pastDate(2, 19),
+  it('returns matches from reciprocal dating actions', async () => {
+    await prisma.datingAction.deleteMany({
+      where: {
+        OR: [
+          { actorUserId: 'user-me', targetUserId: 'user-anya' },
+          { actorUserId: 'user-anya', targetUserId: 'user-me' },
+        ],
       },
     });
-
-    await request(app.getHttpServer())
-      .post(`/events/${createResponse.body.id}/join`)
-      .set('authorization', `Bearer ${peerLogin.body.accessToken}`)
-      .expect(201);
-
-    await request(app.getHttpServer())
-      .post(`/events/${createResponse.body.id}/feedback`)
-      .set('authorization', `Bearer ${accessToken}`)
-      .send({
-        vibe: 'calm',
-        hostRating: 5,
-        favoriteUserIds: ['user-anya'],
-      })
-      .expect(201);
-
-    await request(app.getHttpServer())
-      .post(`/events/${createResponse.body.id}/feedback`)
-      .set('authorization', `Bearer ${peerLogin.body.accessToken}`)
-      .send({
-        vibe: 'calm',
-        hostRating: 5,
-        favoriteUserIds: ['user-me'],
-      })
-      .expect(201);
+    await prisma.datingAction.createMany({
+      data: [
+        {
+          actorUserId: 'user-me',
+          targetUserId: 'user-anya',
+          action: 'like',
+        },
+        {
+          actorUserId: 'user-anya',
+          targetUserId: 'user-me',
+          action: 'super_like',
+        },
+      ],
+    });
 
     const matches = await request(app.getHttpServer())
       .get('/matches')

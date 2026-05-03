@@ -5,6 +5,7 @@ import {
   buildPublicAssetUrl,
   createPresignedUpload,
   createS3Client,
+  getS3Config,
 } from '@big-break/database';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
@@ -42,6 +43,7 @@ export class ProfileService {
   constructor(private readonly prismaService: PrismaService) {}
 
   private readonly s3 = createS3Client();
+  private readonly s3Bucket = getS3Config().bucket;
 
   async getBasicUser(userId: string) {
     const user = await this._loadProfileUser(this.prismaService.client, userId);
@@ -132,7 +134,7 @@ export class ProfileService {
     this.assertAvatarSize(verified.byteSize);
 
     const asset = await this.createAvatarUploadAsset(userId, {
-      bucket: process.env.S3_BUCKET ?? 'big-break',
+      bucket: this.s3Bucket,
       objectKey,
       mimeType: verified.mimeType,
       byteSize: verified.byteSize,
@@ -160,7 +162,7 @@ export class ProfileService {
     if (!BYPASS_S3_UPLOAD) {
       await this.s3.send(
         new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: file.mimetype,
           Body: file.buffer,
@@ -190,7 +192,7 @@ export class ProfileService {
           status: 'ready',
           bucket: BYPASS_S3_UPLOAD
             ? INLINE_MEDIA_BUCKET
-            : process.env.S3_BUCKET ?? 'big-break',
+            : this.s3Bucket,
           objectKey: BYPASS_S3_UPLOAD
             ? `inline-avatar/${userId}/${randomUUID()}-${file.originalname}`
             : objectKey,
@@ -268,7 +270,7 @@ export class ProfileService {
     if (!BYPASS_S3_UPLOAD) {
       await this.s3.send(
         new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET ?? 'big-break',
+          Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: file.mimetype,
           Body: file.buffer,
@@ -282,7 +284,7 @@ export class ProfileService {
     const next = await this._storeProfilePhotoAsset(userId, {
       bucket: BYPASS_S3_UPLOAD
           ? INLINE_MEDIA_BUCKET
-          : process.env.S3_BUCKET ?? 'big-break',
+          : this.s3Bucket,
       objectKey: BYPASS_S3_UPLOAD
           ? `inline-avatar/${userId}/${randomUUID()}-${file.originalname}`
           : objectKey,
@@ -330,7 +332,7 @@ export class ProfileService {
     this.assertAvatarSize(verified.byteSize);
 
     const next = await this.storeProfilePhotoAssetSafely(userId, {
-      bucket: process.env.S3_BUCKET ?? 'big-break',
+      bucket: this.s3Bucket,
       objectKey,
       mimeType: verified.mimeType,
       byteSize: verified.byteSize,
@@ -475,7 +477,7 @@ export class ProfileService {
 
     const object = await this.s3.send(
       new HeadObjectCommand({
-        Bucket: process.env.S3_BUCKET ?? 'big-break',
+        Bucket: this.s3Bucket,
         Key: objectKey,
       }),
     );

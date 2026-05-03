@@ -1,3 +1,4 @@
+import { decodeCursor } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { EventsService } from '../../src/services/events.service';
 
@@ -1569,6 +1570,64 @@ describe('EventsService unit', () => {
         }),
       }),
     );
+  });
+
+  it('paginates geo feed with the computed distance used for sorting', async () => {
+    const near = eventFixture({
+      id: 'event-near',
+      distanceKm: 99,
+      latitude: 55.7501,
+      longitude: 37.6201,
+    });
+    const far = eventFixture({
+      id: 'event-far',
+      distanceKm: 1,
+      latitude: 55.85,
+      longitude: 37.75,
+    });
+    const eventFindMany = jest.fn().mockResolvedValue([near, far]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          eventParticipant: {
+            findMany: jest.fn().mockResolvedValue([]),
+            groupBy: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const firstPage = await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 55.75,
+      longitude: 37.62,
+      limit: 1,
+    });
+    const cursor = decodeCursor(firstPage.nextCursor!);
+
+    expect(firstPage.items.map((item) => item.id)).toEqual(['event-near']);
+    expect(cursor?.distanceKm).toBeLessThan(near.distanceKm);
+
+    const secondPage = await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 55.75,
+      longitude: 37.62,
+      cursor: firstPage.nextCursor!,
+      limit: 1,
+    });
+
+    expect(secondPage.items.map((item) => item.id)).toEqual(['event-far']);
   });
 
   it('links event to an existing evening route when routeId is provided', async () => {

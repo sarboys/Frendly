@@ -55,16 +55,25 @@ describe('ChatsService unit', () => {
     jest.restoreAllMocks();
   });
 
-  it('counts chat unread messages from chat member read state, not notifications', async () => {
+  it('reads chat unread counts from ChatMember counters by default', async () => {
     const queryRaw = jest.fn().mockResolvedValue([
       {
         chat_id: 'chat-1',
         unread_count: BigInt(4),
       },
     ]);
+    const chatMemberFindMany = jest.fn().mockResolvedValue([
+      {
+        chatId: 'chat-1',
+        unreadCount: 4,
+      },
+    ]);
     const notificationGroupBy = jest.fn();
     const service = new ChatsService({
       client: {
+        chatMember: {
+          findMany: chatMemberFindMany,
+        },
         $queryRaw: queryRaw,
         notification: {
           groupBy: notificationGroupBy,
@@ -79,19 +88,21 @@ describe('ChatsService unit', () => {
     );
 
     expect(result).toEqual(new Map([['chat-1', 4]]));
-    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(chatMemberFindMany).toHaveBeenCalledTimes(1);
+    expect(queryRaw).not.toHaveBeenCalled();
     expect(notificationGroupBy).not.toHaveBeenCalled();
   });
 
-  it('reads chat unread counts from ChatMember counters when enabled', async () => {
-    process.env.CHAT_UNREAD_COUNTER_READS = 'true';
+  it('can fall back to raw chat unread counts when counter reads are explicitly disabled', async () => {
+    process.env.CHAT_UNREAD_COUNTER_READS = 'false';
     const queryRaw = jest.fn();
-    const findMany = jest.fn().mockResolvedValue([
+    queryRaw.mockResolvedValue([
       {
-        chatId: 'chat-1',
-        unreadCount: 7,
+        chat_id: 'chat-1',
+        unread_count: BigInt(7),
       },
     ]);
+    const findMany = jest.fn();
     const service = new ChatsService({
       client: {
         chatMember: {
@@ -108,19 +119,8 @@ describe('ChatsService unit', () => {
     );
 
     expect(result).toEqual(new Map([['chat-1', 7]]));
-    expect(findMany).toHaveBeenCalledWith({
-      where: {
-        userId: 'user-me',
-        chatId: {
-          in: ['chat-1', 'chat-2'],
-        },
-      },
-      select: {
-        chatId: true,
-        unreadCount: true,
-      },
-    });
-    expect(queryRaw).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
+    expect(queryRaw).toHaveBeenCalledTimes(1);
   });
 
   it('maps evening meetup chat phase metadata for the chat list', () => {

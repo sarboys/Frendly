@@ -297,6 +297,33 @@ describe('NotificationsService unit', () => {
     });
   });
 
+  it('retries push token registration after a device uniqueness race', async () => {
+    const uniqueConflict = Object.assign(new Error('duplicate device token'), {
+      code: 'P2002',
+    });
+    const upsert = jest.fn()
+      .mockRejectedValueOnce(uniqueConflict)
+      .mockResolvedValueOnce({ id: 'push-2' });
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new NotificationsService({
+      client: {
+        pushToken: {
+          upsert,
+          deleteMany,
+        },
+      },
+    } as any);
+
+    await expect(
+      service.registerPushToken('user-me', {
+        token: 'token-2',
+        deviceId: 'device-1',
+      }),
+    ).resolves.toEqual({ id: 'push-2' });
+    expect(deleteMany).toHaveBeenCalledTimes(2);
+    expect(upsert).toHaveBeenCalledTimes(2);
+  });
+
   it('marks only central notifications as read', async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 2 });
     const service = new NotificationsService({

@@ -50,11 +50,17 @@ describe('CommunitiesService unit', () => {
     },
   });
 
-  it('counts community chat unread messages from chat member read state, not notifications', async () => {
+  it('reads community chat unread counters from ChatMember by default', async () => {
     const queryRaw = jest.fn().mockResolvedValue([
       {
         chat_id: 'chat-1',
         unread_count: BigInt(2),
+      },
+    ]);
+    const chatMemberFindMany = jest.fn().mockResolvedValue([
+      {
+        chatId: 'chat-1',
+        unreadCount: 2,
       },
     ]);
     const service = new CommunitiesService(
@@ -63,6 +69,9 @@ describe('CommunitiesService unit', () => {
           communityMember: {
             groupBy: jest.fn().mockResolvedValue([]),
             findMany: jest.fn().mockResolvedValue([]),
+          },
+          chatMember: {
+            findMany: chatMemberFindMany,
           },
           notification: {
             groupBy: jest.fn(),
@@ -81,10 +90,8 @@ describe('CommunitiesService unit', () => {
     ]);
 
     expect(counters.unreadByChatId).toEqual(new Map([['chat-1', 2]]));
-    expect(queryRaw).toHaveBeenCalledTimes(1);
-    const unreadSql = flattenSql(queryRaw.mock.calls[0]);
-    expect(unreadSql).toContain('"UserBlock"');
-    expect(unreadSql).toContain('"blockedUserId"');
+    expect(chatMemberFindMany).toHaveBeenCalledTimes(1);
+    expect(queryRaw).not.toHaveBeenCalled();
     expect(
       (service as any).prismaService.client.notification.groupBy,
     ).not.toHaveBeenCalled();
@@ -141,8 +148,8 @@ describe('CommunitiesService unit', () => {
     expect(queryRaw).not.toHaveBeenCalled();
   });
 
-  it('falls back to raw community unread counts when counter reads would include blocked senders', async () => {
-    process.env.CHAT_UNREAD_COUNTER_READS = 'true';
+  it('falls back to raw community unread counts when counter reads are explicitly disabled', async () => {
+    process.env.CHAT_UNREAD_COUNTER_READS = 'false';
     const queryRaw = jest.fn().mockResolvedValue([
       {
         chat_id: 'chat-1',
@@ -161,12 +168,7 @@ describe('CommunitiesService unit', () => {
             findMany: chatMemberFindMany,
           },
           userBlock: {
-            findMany: jest.fn().mockResolvedValue([
-              {
-                userId: 'user-me',
-                blockedUserId: 'blocked-user',
-              },
-            ]),
+            findMany: jest.fn().mockResolvedValue([]),
           },
           $queryRaw: queryRaw,
         },
@@ -186,8 +188,8 @@ describe('CommunitiesService unit', () => {
     expect(queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('reuses loaded blocked user ids for community unread fallback when counters are enabled', async () => {
-    process.env.CHAT_UNREAD_COUNTER_READS = 'true';
+  it('uses block visibility SQL in community unread fallback when counters are disabled', async () => {
+    process.env.CHAT_UNREAD_COUNTER_READS = 'false';
     const queryRaw = jest.fn().mockResolvedValue([
       {
         chat_id: 'chat-1',
@@ -200,14 +202,6 @@ describe('CommunitiesService unit', () => {
           communityMember: {
             groupBy: jest.fn().mockResolvedValue([]),
             findMany: jest.fn().mockResolvedValue([]),
-          },
-          userBlock: {
-            findMany: jest.fn().mockResolvedValue([
-              {
-                userId: 'user-me',
-                blockedUserId: 'blocked-user',
-              },
-            ]),
           },
           $queryRaw: queryRaw,
         },
@@ -223,8 +217,8 @@ describe('CommunitiesService unit', () => {
     ]);
 
     const unreadSql = flattenSql(queryRaw.mock.calls[0]);
-    expect(unreadSql).toContain('m."senderId" NOT IN');
-    expect(unreadSql).not.toContain('"UserBlock"');
+    expect(unreadSql).toContain('"UserBlock"');
+    expect(unreadSql).toContain('"blockedUserId"');
   });
 
 	  it('loads online counters with groupBy instead of all online member rows',

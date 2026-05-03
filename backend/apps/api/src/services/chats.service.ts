@@ -716,10 +716,11 @@ export class ChatsService {
       return new Map<string, number>();
     }
 
-    if (
-      process.env.CHAT_UNREAD_COUNTER_READS === 'true' &&
-      blockedUserIds.size === 0
-    ) {
+    const canReadUnreadCounters =
+      process.env.CHAT_UNREAD_COUNTER_READS !== 'false' &&
+      typeof this.prismaService.client.chatMember?.findMany === 'function';
+
+    if (canReadUnreadCounters) {
       const rows = await this.prismaService.client.chatMember.findMany({
         where: {
           userId,

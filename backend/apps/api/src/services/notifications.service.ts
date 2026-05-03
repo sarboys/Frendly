@@ -157,37 +157,87 @@ export class NotificationsService {
       throw new ApiError(400, 'invalid_push_token', 'token is required');
     }
 
-    const pushToken = await this.prismaService.client.pushToken.upsert({
-      where: { token },
-      update: {
-        userId,
-        provider,
-        deviceId,
-        platform,
-        disabledAt: null,
-      },
-      create: {
-        userId,
-        token,
-        provider,
-        deviceId,
-        platform,
-      },
+    return this.writePushTokenWithDeviceCleanup({
+      userId,
+      token,
+      provider,
+      deviceId: deviceId ?? null,
+      platform: platform ?? null,
+      retryOnDeviceRace: true,
     });
+  }
 
-    if (deviceId) {
-      await this.prismaService.client.pushToken.deleteMany({
+  private async writePushTokenWithDeviceCleanup(input: {
+    userId: string;
+    token: string;
+    provider: 'apns' | 'fcm';
+    deviceId: string | null;
+    platform: string | null;
+    retryOnDeviceRace: boolean;
+  }): Promise<unknown> {
+    try {
+      return await this.writePushTokenOnce(input);
+    } catch (error) {
+      if (!input.retryOnDeviceRace || !this.isUniqueConflict(error)) {
+        throw error;
+      }
+
+      return this.writePushTokenWithDeviceCleanup({
+        ...input,
+        retryOnDeviceRace: false,
+      });
+    }
+  }
+
+  private async writePushTokenOnce(input: {
+    userId: string;
+    token: string;
+    provider: 'apns' | 'fcm';
+    deviceId: string | null;
+    platform: string | null;
+  }) {
+    const client = this.prismaService.client;
+    if (input.deviceId) {
+      await client.pushToken.deleteMany({
         where: {
-          userId,
-          deviceId,
+          userId: input.userId,
+          deviceId: input.deviceId,
           token: {
-            not: token,
+            not: input.token,
           },
         },
       });
     }
 
-    return pushToken;
+    return client.pushToken.upsert({
+      where: { token: input.token },
+      update: {
+        userId: input.userId,
+        provider: input.provider,
+        deviceId: input.deviceId,
+        platform: input.platform,
+        disabledAt: null,
+      },
+      create: {
+        userId: input.userId,
+        token: input.token,
+        provider: input.provider,
+        deviceId: input.deviceId,
+        platform: input.platform,
+      },
+    });
+  }
+
+  private isUniqueConflict(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) || (
+      typeof error === 'object' &&
+      error != null &&
+      'code' in error &&
+      (error as { code?: unknown }).code === 'P2002'
+    );
   }
 
   async deletePushToken(userId: string, tokenId: string) {

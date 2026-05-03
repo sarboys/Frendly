@@ -76,6 +76,18 @@ const statements: ConcurrentIndexStatement[] = [
     sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "PushToken_userId_deviceId_idx" ON "PushToken"("userId", "deviceId")',
   },
   {
+    name: 'PushToken_userId_disabledAt_updatedAt_id_idx',
+    sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "PushToken_userId_disabledAt_updatedAt_id_idx" ON "PushToken"("userId", "disabledAt", "updatedAt" DESC, "id" DESC)',
+  },
+  {
+    name: 'DatingAction_actor_action_updatedAt_target_idx',
+    sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "DatingAction_actor_action_updatedAt_target_idx" ON "DatingAction"("actorUserId", "action", "updatedAt" DESC, "targetUserId")',
+  },
+  {
+    name: 'DatingAction_target_action_actor_idx',
+    sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "DatingAction_target_action_actor_idx" ON "DatingAction"("targetUserId", "action", "actorUserId")',
+  },
+  {
     name: 'UserSubscription_status_renewsAt_id_idx',
     sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "UserSubscription_status_renewsAt_id_idx" ON "UserSubscription"("status", "renewsAt", "id")',
   },

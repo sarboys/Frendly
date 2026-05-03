@@ -33,6 +33,7 @@ describe('worker outbox recovery', () => {
   afterEach(() => {
     delete process.env.WORKER_OUTBOX_BATCH_CLAIM;
     delete process.env.WORKER_OUTBOX_PROCESSING_CONCURRENCY;
+    delete process.env.WORKER_PUSH_TOKEN_BATCH_SIZE;
     delete process.env.WORKER_RETENTION_CLEANUP_ENABLED;
     delete process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS;
   });
@@ -614,6 +615,7 @@ describe('worker outbox recovery', () => {
   });
 
   it('publishes unread fanout events from outbox payload', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
     const now = Date.now();
     const event = {
       id: 'evt-unread',
@@ -697,6 +699,7 @@ describe('worker outbox recovery', () => {
   });
 
   it('publishes unread fanout events with bounded parallelism', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
     const previousConcurrency = process.env.WORKER_BUS_PUBLISH_CONCURRENCY;
     process.env.WORKER_BUS_PUBLISH_CONCURRENCY = '2';
     const now = Date.now();
@@ -962,6 +965,7 @@ describe('worker outbox recovery', () => {
   });
 
   it('processes chat unread fanout in bounded batches without message notifications', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
     const previousBatchSize = process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE;
     process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE = '2';
     const now = Date.now();
@@ -1067,6 +1071,74 @@ describe('worker outbox recovery', () => {
     expect(queryRaw).toHaveBeenCalledTimes(1);
   });
 
+  it('uses batch outbox claim by default when raw SQL is available', async () => {
+    const events = [
+      { id: 'evt-1', type: 'push.dispatch', payload: {}, attempts: 1 },
+    ];
+    const queryRaw = jest.fn().mockResolvedValue(events);
+    const update = jest.fn().mockResolvedValue({});
+    const service = new WorkerService({
+      client: {
+        $queryRaw: queryRaw,
+        outboxEvent: {
+          update,
+        },
+        notification: {
+          findUnique: jest.fn().mockResolvedValue(null),
+        },
+        pushToken: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await service.runOnce();
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'evt-1' },
+      data: expect.objectContaining({
+        status: 'done',
+      }),
+    });
+  });
+
+  it('logs claimed outbox backlog age when the oldest event is stale', async () => {
+    const oldEventCreatedAt = new Date(Date.now() - 10 * 60 * 1000);
+    const events = [
+      {
+        id: 'evt-old',
+        type: 'push.dispatch',
+        payload: {},
+        attempts: 1,
+        createdAt: oldEventCreatedAt,
+      },
+    ];
+    const queryRaw = jest.fn().mockResolvedValue(events);
+    const consoleWarn = jest
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+    const service = new WorkerService({
+      client: {
+        $queryRaw: queryRaw,
+      },
+    } as any);
+    (service as any).processEvent = jest.fn().mockResolvedValue(undefined);
+
+    await service.runOnce();
+
+    expect(consoleWarn).toHaveBeenCalledWith(
+      '[worker-outbox-backlog-age]',
+      expect.objectContaining({
+        oldestEventId: 'evt-old',
+        oldestEventType: 'push.dispatch',
+        thresholdMs: 300000,
+        claimedCount: 1,
+      }),
+    );
+    consoleWarn.mockRestore();
+  });
+
   it('sends push notifications with bounded parallelism', async () => {
     const previousConcurrency = process.env.WORKER_PUSH_CONCURRENCY;
     process.env.WORKER_PUSH_CONCURRENCY = '2';
@@ -1146,6 +1218,12 @@ describe('worker outbox recovery', () => {
 
     expect(send).toHaveBeenCalledTimes(5);
     expect(maxActiveSends).toBe(2);
+    expect(findPushTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: 20,
+      }),
+    );
   });
 
   it('uses notification owner for push dispatch instead of payload user id', async () => {
@@ -1215,12 +1293,16 @@ describe('worker outbox recovery', () => {
         quietHours: true,
       },
     });
-    expect(findPushTokens).toHaveBeenCalledWith({
-      where: {
-        userId: 'owner-user',
-        disabledAt: null,
-      },
-    });
+    expect(findPushTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'owner-user',
+          disabledAt: null,
+        },
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: 20,
+      }),
+    );
     expect(send).toHaveBeenCalledTimes(1);
   });
 

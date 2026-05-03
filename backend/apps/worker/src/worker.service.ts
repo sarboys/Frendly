@@ -20,12 +20,22 @@ const DEFAULT_BUS_PUBLISH_CONCURRENCY = 25;
 const DEFAULT_MESSAGE_NOTIFICATION_BATCH_SIZE = 500;
 const DEFAULT_SYSTEM_NOTIFICATION_INTERVAL_MS = 60_000;
 const DEFAULT_SYSTEM_NOTIFICATION_BATCH_SIZE = 500;
+const DEFAULT_OUTBOX_BACKLOG_WARN_AGE_MS = 5 * 60 * 1000;
 const DEFAULT_RETENTION_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_RETENTION_BATCH_SIZE = 500;
 const DEFAULT_EVENING_AUTO_ADVANCE_INTERVAL_MS = 30_000;
 const DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE = 25;
+const DEFAULT_PUSH_TOKEN_BATCH_SIZE = 20;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+type ClaimedOutboxEvent = {
+  id: string;
+  type: string;
+  payload: unknown;
+  attempts: number;
+  createdAt?: Date | null;
+};
 
 @Injectable()
 export class WorkerService implements OnModuleDestroy {
@@ -64,6 +74,14 @@ export class WorkerService implements OnModuleDestroy {
   private readonly systemNotificationBatchSize = this.resolvePositiveInteger(
     process.env.WORKER_SYSTEM_NOTIFICATION_BATCH_SIZE,
     DEFAULT_SYSTEM_NOTIFICATION_BATCH_SIZE,
+  );
+  private readonly outboxBacklogWarnAgeMs = this.resolvePositiveInteger(
+    process.env.WORKER_OUTBOX_BACKLOG_WARN_AGE_MS,
+    DEFAULT_OUTBOX_BACKLOG_WARN_AGE_MS,
+  );
+  private readonly pushTokenBatchSize = this.resolvePositiveInteger(
+    process.env.WORKER_PUSH_TOKEN_BATCH_SIZE,
+    DEFAULT_PUSH_TOKEN_BATCH_SIZE,
   );
   private readonly retentionCleanupEnabled =
     process.env.WORKER_RETENTION_CLEANUP_ENABLED === 'true';
@@ -169,8 +187,9 @@ export class WorkerService implements OnModuleDestroy {
     this.running = true;
 
     try {
-      if (process.env.WORKER_OUTBOX_BATCH_CLAIM === 'true') {
+      if (this.shouldUseBatchOutboxClaim()) {
         const events = await this.claimNextEvents();
+        this.recordOutboxBacklogAge(events);
         await this.runWithConcurrency(
           events,
           this.outboxProcessingConcurrency,
@@ -194,12 +213,44 @@ export class WorkerService implements OnModuleDestroy {
     }
   }
 
-  private async processEvent(event: {
-    id: string;
-    type: string;
-    payload: unknown;
-    attempts: number;
-  }) {
+  private shouldUseBatchOutboxClaim() {
+    if (process.env.WORKER_OUTBOX_BATCH_CLAIM === 'false') {
+      return false;
+    }
+
+    return typeof this.prismaService.client.$queryRaw === 'function';
+  }
+
+  private recordOutboxBacklogAge(events: ClaimedOutboxEvent[]) {
+    const oldest = events.reduce<ClaimedOutboxEvent | null>((current, event) => {
+      if (event.createdAt == null) {
+        return current;
+      }
+      if (current == null || current.createdAt == null) {
+        return event;
+      }
+      return event.createdAt < current.createdAt ? event : current;
+    }, null);
+
+    if (oldest?.createdAt == null) {
+      return;
+    }
+
+    const ageMs = Date.now() - oldest.createdAt.getTime();
+    if (ageMs < this.outboxBacklogWarnAgeMs) {
+      return;
+    }
+
+    console.warn('[worker-outbox-backlog-age]', {
+      oldestEventId: oldest.id,
+      oldestEventType: oldest.type,
+      ageMs,
+      thresholdMs: this.outboxBacklogWarnAgeMs,
+      claimedCount: events.length,
+    });
+  }
+
+  private async processEvent(event: ClaimedOutboxEvent) {
     try {
       switch (event.type) {
         case OUTBOX_EVENT_TYPES.mediaFinalize:
@@ -280,12 +331,7 @@ export class WorkerService implements OnModuleDestroy {
     const now = new Date();
     const staleBefore = new Date(now.getTime() - PROCESSING_STALE_AFTER_MS);
 
-    return this.prismaService.client.$queryRaw<Array<{
-      id: string;
-      type: string;
-      payload: unknown;
-      attempts: number;
-    }>>`
+    return this.prismaService.client.$queryRaw<ClaimedOutboxEvent[]>`
       WITH next_events AS (
         SELECT "id"
         FROM "OutboxEvent"
@@ -312,7 +358,8 @@ export class WorkerService implements OnModuleDestroy {
         event."id",
         event."type",
         event."payload",
-        event."attempts"
+        event."attempts",
+        event."createdAt"
     `;
   }
 
@@ -479,6 +526,8 @@ export class WorkerService implements OnModuleDestroy {
         userId,
         disabledAt: null,
       },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: this.pushTokenBatchSize,
     });
 
     await this.runWithConcurrency(tokens, this.pushConcurrency, async (token) => {

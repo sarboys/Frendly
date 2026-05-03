@@ -2,20 +2,14 @@
 
 Use this for Docker, deploy, Redis, worker, S3, push, DB rollout and public routing.
 
-## Fast paths
+For concrete files, run `./scripts/ua-query.mjs "infra <topic>"` first.
 
-- Local stack: `compose.yaml`.
-- Production stack: `compose.prod.yml`.
-- Telegram relay stack: `compose.telegram-relay.yml`.
-- Backend image: `backend/Dockerfile`.
-- Landing image: `landing/Dockerfile`.
-- Nginx routing: `deploy/nginx/frendly.conf`.
-- Worker loop: `backend/apps/worker/src/worker.service.ts`.
-- Push providers: `backend/apps/worker/src/push.providers.ts`.
-- S3 helpers: `backend/packages/database/src/s3.ts`.
-- Redis helpers: `backend/packages/database/src/pubsub.ts`.
-- Outbox constants: `backend/packages/database/src/outbox.ts`.
-- DB scripts: `backend/packages/database/src/concurrent-indexes.ts`, `hot-query-explain.ts`.
+## Source of truth
+
+- Compose files define local and production topology.
+- `deploy/nginx/frendly.conf` defines public routing.
+- Worker code owns async side effects.
+- Database package owns Redis, S3, outbox and DB scripts.
 
 ## Local stack
 
@@ -72,9 +66,11 @@ Public routing:
 
 - Queue table: `OutboxEvent`.
 - Worker polls pending records, claims work, retries failures, marks done or failed.
-- Default worker path claims one event with lock.
-- `WORKER_OUTBOX_BATCH_CLAIM=true` enables batch claim with `FOR UPDATE SKIP LOCKED`.
+- Default worker path uses batch claim with `FOR UPDATE SKIP LOCKED` when raw SQL is available.
+- `WORKER_OUTBOX_BATCH_CLAIM=false` disables batch claim for sequential fallback.
 - `WORKER_OUTBOX_PROCESSING_CONCURRENCY` can raise concurrency after testing.
+- Worker logs `[worker-outbox-backlog-age]` when claimed outbox age exceeds `WORKER_OUTBOX_BACKLOG_WARN_AGE_MS`, default `300000`.
+- `WORKER_PUSH_TOKEN_BATCH_SIZE` caps active push tokens loaded per dispatch, default `20`.
 - `WORKER_RETENTION_CLEANUP_ENABLED=true` enables DB retention cleanup.
 
 Event types:
@@ -109,7 +105,11 @@ Concurrent index scripts must not run inside a transaction wrapper.
 - Production endpoint: `https://s3.twcstorage.ru`.
 - Region: `ru-1`.
 - Bucket: `frendly-backet`.
-- Env: `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_PUBLIC_ENDPOINT`.
+- Env: `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_PUBLIC_ENDPOINT`, `S3_CDN_ENDPOINT`.
+- Production requires explicit `S3_BUCKET`; uploads and `HeadObject` use `getS3Config().bucket`.
+- `S3_PUBLIC_ENDPOINT` is the S3-compatible public API endpoint used for presigned upload/download URLs.
+- `S3_CDN_ENDPOINT` is optional and only builds public read URLs for assets served through CDN.
+- `/media/:assetId` redirects non-inline assets to public or signed S3 URLs by default. Set `MEDIA_PROXY_STREAMING_ENABLED=true` to force API streaming fallback.
 
 Uses:
 
@@ -134,6 +134,7 @@ Flow:
 - APNS env: `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY`, `APNS_BUNDLE_ID`.
 - Push tokens stored in `PushToken`.
 - API: `POST /push-tokens`, `DELETE /push-tokens/:tokenId`, `DELETE /push-tokens/device/:deviceId`.
+- DB keeps one non-null `deviceId` token per user with a partial unique index.
 - Worker respects settings and block checks before push.
 
 ## Telegram relay

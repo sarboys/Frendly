@@ -29,6 +29,12 @@ export class MediaController {
       rangeHeader,
       authorizationHeader,
     );
+    if ('redirectUrl' in media) {
+      response.setHeader('Cache-Control', media.cacheControl);
+      response.redirect(307, media.redirectUrl);
+      return;
+    }
+
     response.setHeader('Content-Type', media.mimeType);
     response.setHeader('Cache-Control', media.cacheControl);
     response.setHeader('Accept-Ranges', 'bytes');

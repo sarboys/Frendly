@@ -118,6 +118,44 @@ export function buildHotQueryExplainTargets(
       `,
     },
     {
+      label: 'dating-matches-reciprocal-actions',
+      query: Prisma.sql`
+        SELECT da."targetUserId", da."updatedAt"
+        FROM "DatingAction" da
+        JOIN "User" target_user ON target_user."id" = da."targetUserId"
+        JOIN "UserSettings" settings ON settings."userId" = target_user."id"
+        WHERE da."actorUserId" = ${params.userId}
+          AND da."action" IN (
+            'like'::"DatingActionKind",
+            'super_like'::"DatingActionKind"
+          )
+          AND settings."discoverable" = true
+          AND EXISTS (
+            SELECT 1
+            FROM "DatingAction" reciprocal
+            WHERE reciprocal."actorUserId" = da."targetUserId"
+              AND reciprocal."targetUserId" = ${params.userId}
+              AND reciprocal."action" IN (
+                'like'::"DatingActionKind",
+                'super_like'::"DatingActionKind"
+              )
+          )
+        ORDER BY da."updatedAt" DESC, da."targetUserId" ASC
+        LIMIT ${limit}
+      `,
+    },
+    {
+      label: 'push-token-dispatch-read',
+      query: Prisma.sql`
+        SELECT pt."id"
+        FROM "PushToken" pt
+        WHERE pt."userId" = ${params.userId}
+          AND pt."disabledAt" IS NULL
+        ORDER BY pt."updatedAt" DESC, pt."id" DESC
+        LIMIT ${limit}
+      `,
+    },
+    {
       label: 'outbox-batch-candidate-scan',
       query: Prisma.sql`
         SELECT "id"

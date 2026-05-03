@@ -1,70 +1,63 @@
 import { MatchesService } from '../../src/services/matches.service';
 
 describe('MatchesService unit', () => {
-  it('loads only the primary photo preview for match list users', async () => {
-    const favoriteFindMany = jest
-      .fn()
-      .mockResolvedValueOnce([{ targetUserId: 'peer-1' }])
-      .mockResolvedValueOnce([
+  const matchedUser = {
+    id: 'peer-1',
+    displayName: 'Peer',
+    profile: {
+      avatarUrl: null,
+      area: 'Центр',
+      vibe: 'Спокойно',
+      photos: [
         {
-          targetUserId: 'peer-1',
-          eventId: 'event-1',
-          event: { title: 'Кофе' },
+          id: 'photo-1',
+          sortOrder: 1,
+          mediaAsset: {
+            id: 'asset-1',
+            kind: 'profile_photo',
+            mimeType: 'image/jpeg',
+            byteSize: 1234,
+            durationMs: null,
+            publicUrl: 'https://cdn.test/photo-1.jpg',
+          },
         },
-      ])
-      .mockResolvedValueOnce([
         {
-          sourceUserId: 'peer-1',
-          targetUserId: 'user-me',
-          eventId: 'event-1',
+          id: 'photo-2',
+          sortOrder: 2,
+          mediaAsset: {
+            id: 'asset-2',
+            kind: 'profile_photo',
+            mimeType: 'image/jpeg',
+            byteSize: 1234,
+            durationMs: null,
+            publicUrl: 'https://cdn.test/photo-2.jpg',
+          },
         },
-      ]);
-    const userFindMany = jest.fn().mockResolvedValue([
+      ],
+    },
+    onboarding: { interests: ['coffee'] },
+    settings: { discoverable: true },
+  };
+
+  it('lists dating matches from reciprocal positive dating actions', async () => {
+    const datingActionFindMany = jest.fn().mockResolvedValue([
       {
-        id: 'peer-1',
-        displayName: 'Peer',
-        profile: {
-          avatarUrl: null,
-          area: 'Центр',
-          vibe: 'Спокойно',
-          photos: [
-            {
-              id: 'photo-1',
-              sortOrder: 1,
-              mediaAsset: {
-                id: 'asset-1',
-                kind: 'profile_photo',
-                mimeType: 'image/jpeg',
-                byteSize: 1234,
-                durationMs: null,
-                publicUrl: 'https://cdn.test/photo-1.jpg',
-              },
-            },
-            {
-              id: 'photo-2',
-              sortOrder: 2,
-              mediaAsset: {
-                id: 'asset-2',
-                kind: 'profile_photo',
-                mimeType: 'image/jpeg',
-                byteSize: 1234,
-                durationMs: null,
-                publicUrl: 'https://cdn.test/photo-2.jpg',
-              },
-            },
-          ],
-        },
-        onboarding: { interests: ['coffee'] },
-        settings: { discoverable: true },
+        actorUserId: 'user-me',
+        targetUserId: 'peer-1',
+        updatedAt: new Date('2026-05-03T10:00:00.000Z'),
       },
     ]);
+    const userFindMany = jest.fn().mockResolvedValue([matchedUser]);
     const currentUserFindUnique = jest.fn().mockResolvedValue({
       onboarding: { interests: ['coffee'] },
     });
     const service = new MatchesService({
       client: {
+        datingAction: {
+          findMany: datingActionFindMany,
+        },
         eventFavorite: {
-          findMany: favoriteFindMany,
+          findMany: jest.fn(),
         },
         user: {
           findMany: userFindMany,
@@ -78,129 +71,74 @@ describe('MatchesService unit', () => {
 
     const result = await service.listMatches('user-me');
 
+    expect(datingActionFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          actorUserId: 'user-me',
+          action: {
+            in: ['like', 'super_like'],
+          },
+          targetUser: expect.objectContaining({
+            datingActionsSent: {
+              some: {
+                targetUserId: 'user-me',
+                action: {
+                  in: ['like', 'super_like'],
+                },
+              },
+            },
+          }),
+        }),
+        orderBy: [{ updatedAt: 'desc' }, { targetUserId: 'asc' }],
+        take: 21,
+      }),
+    );
+    expect((service as any).prismaService.client.eventFavorite.findMany).not.toHaveBeenCalled();
     expect(userFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
-          id: true,
-          displayName: true,
           profile: expect.objectContaining({
             select: expect.objectContaining({
-              avatarUrl: true,
-              area: true,
-              vibe: true,
               photos: expect.objectContaining({
                 take: 1,
-                select: expect.objectContaining({
-                  id: true,
-                  sortOrder: true,
-                  mediaAsset: expect.objectContaining({
-                    select: expect.objectContaining({
-                      id: true,
-                      kind: true,
-                      mimeType: true,
-                      byteSize: true,
-                      durationMs: true,
-                      publicUrl: true,
-                    }),
-                  }),
-                }),
               }),
             }),
           }),
-          onboarding: {
-            select: {
-              interests: true,
-            },
-          },
         }),
       }),
     );
-    expect(currentUserFindUnique).toHaveBeenCalledWith({
-      where: { id: 'user-me' },
-      select: {
-        onboarding: {
-          select: {
-            interests: true,
-          },
-        },
-      },
+    expect(result.items[0]).toMatchObject({
+      userId: 'peer-1',
+      avatarUrl: 'https://cdn.test/photo-1.jpg',
+      photos: expect.any(Array),
+      eventId: null,
+      eventTitle: 'Взаимная симпатия',
     });
-    expect(favoriteFindMany.mock.calls[1][0]).toEqual(
-      expect.objectContaining({
-        select: {
-          targetUserId: true,
-          eventId: true,
-          event: {
-            select: {
-              title: true,
-            },
-          },
-        },
-      }),
-    );
-    expect(favoriteFindMany.mock.calls[2][0]).toEqual(
-      expect.objectContaining({
-        select: {
-          sourceUserId: true,
-          eventId: true,
-        },
-      }),
-    );
-    expect(result.items[0]!.avatarUrl).toBe('https://cdn.test/photo-1.jpg');
-    expect(result.items[0]!.photos).toHaveLength(1);
   });
 
-  it('reuses current user onboarding across match batches', async () => {
-    const firstTargetPage = Array.from({ length: 20 }, (_, index) => ({
-      targetUserId: `peer-empty-${index}`,
-    }));
-    const favoriteFindMany = jest
-      .fn()
-      .mockResolvedValueOnce(firstTargetPage)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ targetUserId: 'peer-final' }])
-      .mockResolvedValueOnce([
-        {
-          targetUserId: 'peer-final',
-          eventId: 'event-1',
-          event: { title: 'Кофе' },
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          sourceUserId: 'peer-final',
-          targetUserId: 'user-me',
-          eventId: 'event-1',
-        },
-      ]);
-    const currentUserFindUnique = jest.fn().mockResolvedValue({
-      onboarding: { interests: ['coffee'] },
-    });
+  it('uses a stable dating action cursor for the next match page', async () => {
+    const datingActionFindMany = jest.fn().mockResolvedValue([
+      {
+        actorUserId: 'user-me',
+        targetUserId: 'peer-1',
+        updatedAt: new Date('2026-05-03T10:00:00.000Z'),
+      },
+      {
+        actorUserId: 'user-me',
+        targetUserId: 'peer-2',
+        updatedAt: new Date('2026-05-03T09:00:00.000Z'),
+      },
+    ]);
     const service = new MatchesService({
       client: {
-        eventFavorite: {
-          findMany: favoriteFindMany,
+        datingAction: {
+          findMany: datingActionFindMany,
         },
         user: {
-          findMany: jest
-            .fn()
-            .mockResolvedValueOnce([])
-            .mockResolvedValueOnce([
-              {
-                id: 'peer-final',
-                displayName: 'Peer',
-                profile: {
-                  avatarUrl: null,
-                  area: null,
-                  vibe: null,
-                  photos: [],
-                },
-                onboarding: { interests: ['coffee'] },
-                settings: { discoverable: true },
-              },
-            ]),
-          findUnique: currentUserFindUnique,
+          findMany: jest.fn().mockResolvedValue([matchedUser]),
+          findUnique: jest.fn().mockResolvedValue({
+            onboarding: { interests: ['coffee'] },
+          }),
         },
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
@@ -208,9 +146,24 @@ describe('MatchesService unit', () => {
       },
     } as any);
 
-    const result = await service.listMatches('user-me', { limit: 1 });
+    const firstPage = await service.listMatches('user-me', { limit: 1 });
+    await service.listMatches('user-me', {
+      limit: 1,
+      cursor: firstPage.nextCursor!,
+    });
 
-    expect(currentUserFindUnique).toHaveBeenCalledTimes(1);
-    expect(result.items).toHaveLength(1);
+    expect(datingActionFindMany.mock.calls[1][0].where.OR).toEqual([
+      {
+        updatedAt: {
+          lt: new Date('2026-05-03T10:00:00.000Z'),
+        },
+      },
+      {
+        updatedAt: new Date('2026-05-03T10:00:00.000Z'),
+        targetUserId: {
+          gt: 'peer-1',
+        },
+      },
+    ]);
   });
 });

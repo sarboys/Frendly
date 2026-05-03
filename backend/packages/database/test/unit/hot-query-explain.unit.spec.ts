@@ -23,6 +23,8 @@ describe('hot query explain helpers', () => {
       'chat-list-counter-read',
       'chat-list-count-fallback',
       'host-dashboard-stats',
+      'dating-matches-reciprocal-actions',
+      'push-token-dispatch-read',
       'outbox-batch-candidate-scan',
       'event-starting-scan',
       'subscription-expiring-scan',
@@ -37,6 +39,27 @@ describe('hot query explain helpers', () => {
 
     expect(targets.map((target) => target.label)).toContain(
       'event-postgis-feed-scan',
+    );
+  });
+
+  it('covers dating matches and push token dispatch hot paths', () => {
+    const targets = buildHotQueryExplainTargets(baseParams);
+    const datingMatches = targets.find(
+      (target) => target.label === 'dating-matches-reciprocal-actions',
+    );
+    const pushTokens = targets.find(
+      (target) => target.label === 'push-token-dispatch-read',
+    );
+
+    expect(datingMatches?.query.strings.join(' ')).toContain(
+      'FROM "DatingAction" da',
+    );
+    expect(datingMatches?.query.strings.join(' ')).toContain(
+      'ORDER BY da."updatedAt" DESC, da."targetUserId" ASC',
+    );
+    expect(pushTokens?.query.strings.join(' ')).toContain('FROM "PushToken" pt');
+    expect(pushTokens?.query.strings.join(' ')).toContain(
+      'ORDER BY pt."updatedAt" DESC, pt."id" DESC',
     );
   });
 
@@ -65,7 +88,7 @@ describe('hot query explain helpers', () => {
       },
     );
 
-    expect(queryRaw).toHaveBeenCalledTimes(6);
+    expect(queryRaw).toHaveBeenCalledTimes(8);
     expect(reports).toEqual(
       expect.arrayContaining([
         {
