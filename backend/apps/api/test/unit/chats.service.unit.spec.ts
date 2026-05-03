@@ -18,6 +18,7 @@ describe('ChatsService unit', () => {
       durationMinutes: 120,
       isAfterDark: false,
       afterDarkGlow: null,
+      sourcePoster: null,
       liveState: {
         status: 'idle',
       },
@@ -288,6 +289,45 @@ describe('ChatsService unit', () => {
           },
         },
       });
+  });
+
+  it('maps poster ticket url for meetup chats created from posters', async () => {
+    const chat = makeChatListItem(
+      'chat-poster',
+      new Date('2026-04-24T10:00:00.000Z'),
+    ) as any;
+    chat.event.sourcePoster = {
+      ticketUrl: 'https://tickets.example/show',
+    };
+    chat.members = [
+      {
+        userId: 'user-me',
+        user: {
+          displayName: 'Ты',
+        },
+      },
+    ];
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([chat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-poster',
+      ticketUrl: 'https://tickets.example/show',
+    });
   });
 
   it('uses chat list cursor payload without reading the cursor chat again', async () => {

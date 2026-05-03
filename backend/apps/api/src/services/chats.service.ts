@@ -66,6 +66,11 @@ export class ChatsService {
             durationMinutes: true,
             isAfterDark: true,
             afterDarkGlow: true,
+            sourcePoster: {
+              select: {
+                ticketUrl: true,
+              },
+            },
             liveState: {
               select: {
                 status: true,
@@ -225,6 +230,7 @@ export class ChatsService {
               chat.event?.isAfterDark ?? chat.sourceEvent?.isAfterDark ?? false,
               chat.event?.afterDarkGlow ?? chat.sourceEvent?.afterDarkGlow ?? null,
             ),
+            ticketUrl: chat.event?.sourcePoster?.ticketUrl ?? null,
             ...this.mapEveningChatPhase(chat),
           };
         }
