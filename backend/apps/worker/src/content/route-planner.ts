@@ -305,6 +305,36 @@ export function validateRouteDraft(
     });
   }
 
+  for (let index = 0; index < resolvedSteps.length; index += 1) {
+    const current = resolvedSteps[index];
+    if (!current) {
+      continue;
+    }
+    if (current.candidate.normalizedCategory === 'bar' && index < resolvedSteps.length - 1) {
+      issues.push({
+        severity: 'error',
+        code: 'bar_step_not_final',
+        message: 'Bar should be the final social stop, not a middle step before another activity',
+        stepIndex: current.index,
+        externalContentItemId: current.candidate.id,
+      });
+    }
+    const previous = index > 0 ? resolvedSteps[index - 1] : null;
+    if (
+      previous &&
+      isHospitalityCategory(previous.candidate.normalizedCategory) &&
+      isHospitalityCategory(current.candidate.normalizedCategory)
+    ) {
+      issues.push({
+        severity: 'error',
+        code: 'hospitality_steps_adjacent',
+        message: 'Restaurant, cafe and bar steps should not be adjacent in the same route',
+        stepIndex: current.index,
+        externalContentItemId: current.candidate.id,
+      });
+    }
+  }
+
   const eventCategoryCounts = new Map<string, number>();
   for (const timedAnchor of timedAnchors) {
     const count = eventCategoryCounts.get(timedAnchor.candidate.normalizedCategory) ?? 0;
@@ -406,7 +436,7 @@ function buildAnchoredRoute(
     return null;
   }
   const maxWalk = MAX_WALK_BY_MOOD[input.mood] ?? 18;
-  const before = findFlexiblePlace(candidates, anchor, beforeCategories(input.mood), [], maxWalk);
+  let before = findFlexiblePlace(candidates, anchor, beforeCategories(input.mood), [], maxWalk);
   const after = findFlexiblePlace(
     candidates,
     anchor,
@@ -414,6 +444,21 @@ function buildAnchoredRoute(
     [anchor.id, before?.id ?? ''],
     maxWalk,
   );
+  const secondAfterOptions = after
+    ? secondAfterCategories(input.mood, after.normalizedCategory)
+    : [];
+  const secondAfter = after && secondAfterOptions.length > 0
+    ? findFlexiblePlace(
+      candidates,
+      after,
+      secondAfterOptions,
+      [anchor.id, before?.id ?? '', after.id],
+      maxWalk,
+    )
+    : null;
+  if (prefersPostEventFlow(input.mood) && after?.normalizedCategory === 'walk' && secondAfter) {
+    before = null;
+  }
   if (!before && !after) {
     return null;
   }
@@ -452,7 +497,7 @@ function buildAnchoredRoute(
   if (after) {
     const walkMin = walkMinutes(anchor, after);
     const afterStart = anchorEnd + Math.max(ANCHOR_GAP_MINUTES, walkMin + 5);
-      const afterEnd = afterStart + defaultDuration(after);
+    const afterEnd = afterStart + defaultDuration(after);
     steps.push(buildStep({
       candidate: after,
       input,
@@ -462,6 +507,21 @@ function buildAnchoredRoute(
       distanceLabel: `${walkMin} минут пешком`,
       description: `После события зайдите в "${after.title}", чтобы спокойно обсудить впечатления.`,
     }));
+
+    if (secondAfter) {
+      const secondWalkMin = walkMinutes(after, secondAfter);
+      const secondAfterStart = afterEnd + Math.max(ANCHOR_GAP_MINUTES, secondWalkMin + 5);
+      const secondAfterEnd = secondAfterStart + defaultDuration(secondAfter);
+      steps.push(buildStep({
+        candidate: secondAfter,
+        input,
+        startMin: secondAfterStart,
+        endMin: secondAfterEnd,
+        walkMin: secondWalkMin,
+        distanceLabel: `${secondWalkMin} минут пешком`,
+        description: `Финал в "${secondAfter.title}": точка, где можно остаться и продолжить разговор.`,
+      }));
+    }
   }
 
   if (steps.length < 2) {
@@ -825,7 +885,24 @@ function afterCategories(mood: string) {
   if (mood === 'calm') {
     return ['walk', 'cafe', 'food'];
   }
-  return ['bar', 'food', 'walk'];
+  return ['walk', 'bar', 'food'];
+}
+
+function secondAfterCategories(mood: string, previousCategory: string) {
+  if (previousCategory !== 'walk' && previousCategory !== 'outdoor') {
+    return [];
+  }
+  if (mood === 'social' || mood === 'culture' || mood === 'date') {
+    return ['bar', 'cafe', 'food'];
+  }
+  if (mood === 'calm') {
+    return ['cafe', 'food'];
+  }
+  return [];
+}
+
+function prefersPostEventFlow(mood: string) {
+  return mood === 'social' || mood === 'culture';
 }
 
 function flexibleCategories(mood: string) {
@@ -850,6 +927,10 @@ function flexibleCategories(mood: string) {
 function categoryPriority(category: string, categories: string[]) {
   const priority = categories.indexOf(category);
   return priority === -1 ? 99 : priority;
+}
+
+function isHospitalityCategory(category: string) {
+  return category === 'food' || category === 'cafe' || category === 'bar';
 }
 
 function normalizeCategory(category: string, title?: string | null, summary?: string | null) {

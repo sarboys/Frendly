@@ -75,6 +75,50 @@ describe('route planner', () => {
     expect(routes[0]?.totalPriceFrom).toBe(2200);
   });
 
+  it('builds social routes as event, walk, then bar when a nearby walk exists', () => {
+    const routes = buildRouteSkeletons(
+      { city: 'Москва', mood: 'social', budget: 'low', timezone: 'Europe/Moscow', maxDrafts: 1 },
+      [
+        event('concert-1', 'Дворовый концерт', 'concert', 55.760, 37.620, '2026-05-05T16:00:00.000Z', '2026-05-05T17:15:00.000Z', 900),
+        place('walk-1', 'Прогулка по набережной', 'park', 55.761, 37.621, 0),
+        place('bar-1', 'Бар у воды', 'bar', 55.762, 37.622, 700),
+        place('food-1', 'Ресторан у воды', 'restaurant', 55.763, 37.623, 900),
+      ],
+    );
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0]?.steps.map((step) => step.kind)).toEqual(['concert', 'walk', 'bar']);
+  });
+
+  it('rejects route drafts with adjacent food and bar or a bar before an event', () => {
+    const candidates = [
+      place('food-1', 'Ресторан у воды', 'restaurant', 55.760, 37.620, 900),
+      place('bar-1', 'Бар у воды', 'bar', 55.761, 37.621, 700),
+      event('concert-1', 'Концерт в Кремлевском дворце', 'concert', 55.762, 37.622, '2026-05-05T18:00:00.000Z', '2026-05-05T19:30:00.000Z', 1200),
+    ];
+
+    const validation = validateRouteDraft(
+      {
+        title: 'Ресторан, бар и концерт',
+        description: 'Сначала ресторан, потом бар, потом событие.',
+        steps: [
+          { externalContentItemId: 'food-1', timeLabel: '19:00', endTimeLabel: '20:00', walkMin: 0, lat: 55.760, lng: 37.620 },
+          { externalContentItemId: 'bar-1', timeLabel: '20:10', endTimeLabel: '21:10', walkMin: 2, lat: 55.761, lng: 37.621 },
+          { externalContentItemId: 'concert-1', timeLabel: '21:00', endTimeLabel: '22:30', walkMin: 3, lat: 55.762, lng: 37.622 },
+        ],
+      },
+      candidates,
+      'Europe/Moscow',
+      'low',
+    );
+
+    expect(validation.status).toBe('invalid');
+    expect(validation.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'hospitality_steps_adjacent', stepIndex: 1 }),
+      expect.objectContaining({ code: 'bar_step_not_final', stepIndex: 1 }),
+    ]));
+  });
+
   it('uses category duration profiles for flexible places', () => {
     const routes = buildRouteSkeletons(
       { city: 'Москва', mood: 'culture', budget: 'mid', timezone: 'Europe/Moscow', maxDrafts: 1 },

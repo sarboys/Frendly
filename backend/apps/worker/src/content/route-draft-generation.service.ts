@@ -355,7 +355,7 @@ export class RouteDraftGenerationService {
           'Do not publish anything. Drafts require admin review.',
           'Do not return empty route objects.',
         ],
-        routePolicy: 'Use routeSkeletons as the source of truth. Prefer one timed event. Use two timed events only when the skeleton has two timed events, their categories differ, their times do not overlap, and travel time fits. Keep visible movement between places.',
+        routePolicy: 'Use routeSkeletons as the source of truth. Prefer one timed event. Use two timed events only when the skeleton has two timed events, their categories differ, their times do not overlap, and travel time fits. Keep visible movement between places. Do not put restaurant, cafe and bar as adjacent steps. A bar is a final social stop, never a middle step before a walk, cultural venue or event.',
         stepPolicy: 'Every route must include a steps array with 2 to 4 step objects. Keep event timeLabel and endTimeLabel equal to imported startsAt and endsAt. If you cannot build that route, omit it.',
       },
       brief: {
@@ -479,6 +479,7 @@ export class RouteDraftGenerationService {
       'Use only provided candidate ids and facts.',
       'Never claim coupons, partner perks, reservations, ticket availability, or official partnerships.',
       'Every draft is only a review draft, never a published route.',
+      'Respect route flow: event or culture first when possible, then walk, then final bar. Do not place restaurant and bar as adjacent steps.',
     ].join('\n');
   }
 
