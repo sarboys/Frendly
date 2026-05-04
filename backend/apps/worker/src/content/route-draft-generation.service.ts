@@ -54,9 +54,11 @@ export type RouteDraftGenerationInput = {
 const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
 const DEFAULT_FORMAT = 'evening_route';
-const MAX_CANDIDATES_PER_PROMPT = 36;
+const MAX_EVENT_CANDIDATES_PER_PROMPT = 48;
+const MAX_PLACE_CANDIDATES_PER_PROMPT = 72;
+const MAX_CONTEXT_CANDIDATES_WITHOUT_SKELETON = 36;
 const MAX_INPUT_PROMPT_CHARS = 720_000;
-const MAX_OPENROUTER_TOKENS = 4096;
+const MAX_OPENROUTER_TOKENS = 8192;
 const DEFAULT_STALE_RUNNING_MS = 5 * 60 * 1000;
 
 @Injectable()
@@ -278,36 +280,46 @@ export class RouteDraftGenerationService {
     }
   }
 
-  private selectCandidates(city: string) {
+  private async selectCandidates(city: string) {
     const now = new Date();
     const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-    return this.prismaService.client.externalContentItem.findMany({
-      where: {
-        city,
-        moderationStatus: { in: ['pending', 'approved'] },
-        lat: { not: null },
-        lng: { not: null },
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: now } },
-        ],
-        AND: [
-          {
-            OR: [
-              { startsAt: null },
-              { startsAt: { gte: now, lte: in14Days } },
-            ],
-          },
-        ],
+    const commonWhere = {
+      city,
+      moderationStatus: { in: ['pending', 'approved'] },
+      lat: { not: null },
+      lng: { not: null },
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: now } },
+      ],
+    };
+    const include = {
+      source: {
+        select: { code: true, name: true },
       },
-      include: {
-        source: {
-          select: { code: true, name: true },
+    };
+    const [events, places] = await Promise.all([
+      this.prismaService.client.externalContentItem.findMany({
+        where: {
+          ...commonWhere,
+          contentKind: 'event',
+          startsAt: { gte: now, lte: in14Days },
         },
-      },
-      orderBy: [{ startsAt: 'asc' }, { importedAt: 'desc' }, { id: 'asc' }],
-      take: MAX_CANDIDATES_PER_PROMPT,
-    });
+        include,
+        orderBy: [{ startsAt: 'asc' }, { importedAt: 'desc' }, { id: 'asc' }],
+        take: MAX_EVENT_CANDIDATES_PER_PROMPT,
+      }),
+      this.prismaService.client.externalContentItem.findMany({
+        where: {
+          ...commonWhere,
+          contentKind: 'place',
+        },
+        include,
+        orderBy: [{ importedAt: 'desc' }, { category: 'asc' }, { id: 'asc' }],
+        take: MAX_PLACE_CANDIDATES_PER_PROMPT,
+      }),
+    ]);
+    return uniqueCandidates([...events, ...places]);
   }
 
   private buildPromptRequest(input: RouteDraftGenerationInput, candidates: any[]) {
@@ -320,6 +332,12 @@ export class RouteDraftGenerationService {
       },
       candidates as RoutePlannerCandidate[],
     );
+    const skeletonCandidateIds = new Set(
+      routeSkeletons.flatMap((route) => route.steps.map((step) => step.externalContentItemId)),
+    );
+    const promptCandidates = skeletonCandidateIds.size > 0
+      ? candidates.filter((item) => skeletonCandidateIds.has(item.id))
+      : candidates.slice(0, MAX_CONTEXT_CANDIDATES_WITHOUT_SKELETON);
     return {
       promptVersion: PROMPT_VERSION,
       instructions: {
@@ -332,7 +350,7 @@ export class RouteDraftGenerationService {
           'Do not publish anything. Drafts require admin review.',
           'Do not return empty route objects.',
         ],
-        routePolicy: 'Use routeSkeletons as the source of truth. A route needs one main timed event at most, real duration, nearby flexible places before or after, and visible movement between places.',
+        routePolicy: 'Use routeSkeletons as the source of truth. Prefer one timed event. Use two timed events only when the skeleton has two timed events and their times do not overlap. Keep visible movement between places.',
         stepPolicy: 'Every route must include a steps array with 2 to 4 step objects. Keep event timeLabel and endTimeLabel equal to imported startsAt and endsAt. If you cannot build that route, omit it.',
       },
       brief: {
@@ -344,7 +362,14 @@ export class RouteDraftGenerationService {
         audience: DEFAULT_AUDIENCE,
         format: DEFAULT_FORMAT,
       },
-      candidates: candidates.map((item) => ({
+      inventorySummary: {
+        totalCandidates: candidates.length,
+        promptCandidates: promptCandidates.length,
+        routeSkeletons: routeSkeletons.length,
+        events: candidates.filter((item) => item.contentKind === 'event').length,
+        places: candidates.filter((item) => item.contentKind === 'place').length,
+      },
+      candidates: promptCandidates.map((item) => ({
         id: item.id,
         source: item.source?.code,
         sourceName: item.source?.name,
@@ -363,8 +388,13 @@ export class RouteDraftGenerationService {
       })),
       routeSkeletons: routeSkeletons.map((route) => ({
         title: route.title,
+        description: route.description,
+        vibe: route.vibe,
         durationLabel: route.durationLabel,
         totalPriceFrom: route.totalPriceFrom,
+        goal: route.goal,
+        recommendedFor: route.recommendedFor,
+        badgeLabel: route.badgeLabel,
         steps: route.steps.map((step) => ({
           externalContentItemId: step.externalContentItemId,
           timeLabel: step.timeLabel,
@@ -373,8 +403,10 @@ export class RouteDraftGenerationService {
           title: step.title,
           venue: step.venue,
           address: step.address,
+          emoji: step.emoji,
           walkMin: step.walkMin,
           distanceLabel: step.distanceLabel,
+          ticketPrice: step.ticketPrice,
           lat: step.lat,
           lng: step.lng,
         })),
@@ -529,6 +561,17 @@ function buildFallbackRoute(input: RouteDraftGenerationInput, candidates: any[])
     },
     candidates as RoutePlannerCandidate[],
   )[0] ?? null;
+}
+
+function uniqueCandidates<T extends { id: string }>(candidates: T[]) {
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    if (seen.has(candidate.id)) {
+      return false;
+    }
+    seen.add(candidate.id);
+    return true;
+  });
 }
 
 function durationMinutes(startsAt: unknown, endsAt: unknown) {

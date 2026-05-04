@@ -455,6 +455,95 @@ describe('RouteDraftGenerationService', () => {
     }));
   });
 
+  it('selects timed events and flexible places as separate pools before fallback generation', async () => {
+    const batchUpdate = jest.fn().mockResolvedValue({});
+    const draftCreate = jest.fn().mockResolvedValue({});
+    const eventItem = {
+      id: 'event-1',
+      sourceUrl: 'https://example.com/event',
+      contentKind: 'event',
+      city: 'Москва',
+      title: 'Лекция о городе',
+      shortSummary: 'Спокойное событие вечером',
+      category: 'lecture',
+      address: 'Никольская, 12',
+      lat: 55.751,
+      lng: 37.609,
+      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      endsAt: new Date('2026-05-05T17:00:00.000Z'),
+      priceFrom: 500,
+      source: { name: 'Timepad', code: 'timepad' },
+    };
+    const placeItem = {
+      id: 'cafe-1',
+      sourceUrl: 'https://example.com/cafe',
+      contentKind: 'place',
+      city: 'Москва',
+      title: 'Кофейня рядом',
+      shortSummary: 'Кофе перед событием',
+      category: 'cafe',
+      address: 'Никольская, 10',
+      lat: 55.750,
+      lng: 37.608,
+      startsAt: null,
+      endsAt: null,
+      priceFrom: 300,
+      source: { name: 'OSM Overpass', code: 'overpass' },
+    };
+    const findMany = jest.fn((query: any) => Promise.resolve(
+      query.where.contentKind === 'event' ? [eventItem] : [placeItem],
+    ));
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: { findMany },
+          generatedRouteDraftBatch: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'batch-1',
+                city: 'Москва',
+                area: null,
+                mood: 'calm',
+                budget: 'low',
+                requestJson: { maxDrafts: 1 },
+              },
+            ]),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            update: batchUpdate,
+          },
+          generatedRouteReviewDraft: { create: draftCreate },
+        },
+      } as any,
+      {
+        generateJson: jest.fn().mockRejectedValue(
+          new OpenRouterClientError(
+            502,
+            'openrouter_invalid_json',
+            'OpenRouter returned invalid JSON',
+          ),
+        ),
+      } as any,
+    );
+
+    await service.processPendingManualBatches();
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ contentKind: 'event' }),
+    }));
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ contentKind: 'place' }),
+    }));
+    expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'batch-1' },
+      data: expect.objectContaining({ status: 'completed' }),
+    }));
+    const createArg = draftCreate.mock.calls[0]?.[0];
+    expect(createArg.data.validationStatus).toBe('valid');
+    expect(new Set(createArg.data.steps.create.map((step: any) => step.externalContentItemId))).toEqual(
+      new Set(['cafe-1', 'event-1']),
+    );
+  });
+
   it('marks generated drafts invalid when an event step ignores the source event time', async () => {
     const batchUpdate = jest.fn().mockResolvedValue({});
     const draftCreate = jest.fn().mockResolvedValue({});

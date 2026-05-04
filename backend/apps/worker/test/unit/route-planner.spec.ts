@@ -96,6 +96,39 @@ describe('route planner', () => {
       { id: 'bar-1', start: '21:20', end: '22:20' },
     ]);
   });
+
+  it('builds a reviewable event-hop route when places are missing but events fit by time and distance', () => {
+    const candidates = [
+      event('lecture-1', 'Лекция про город', 'lecture', 55.760, 37.620, '2026-05-05T16:00:00.000Z', '2026-05-05T17:00:00.000Z', 400),
+      event('concert-1', 'Камерный концерт', 'concert', 55.768, 37.628, '2026-05-05T18:00:00.000Z', '2026-05-05T19:15:00.000Z', 900),
+    ];
+
+    const routes = buildRouteSkeletons(
+      { city: 'Москва', mood: 'culture', budget: 'low', timezone: 'Europe/Moscow', maxDrafts: 1 },
+      candidates,
+    );
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0]?.steps.map((step) => step.externalContentItemId)).toEqual(['lecture-1', 'concert-1']);
+
+    const validation = validateRouteDraft(routes[0]!, candidates, 'Europe/Moscow', 'low');
+    expect(validation.status).toBe('warning');
+    expect(validation.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'too_many_timed_events', severity: 'warning' }),
+    ]));
+  });
+
+  it('does not build a route from repeated quests in the same venue cluster', () => {
+    const routes = buildRouteSkeletons(
+      { city: 'Москва', mood: 'active', budget: 'mid', timezone: 'Europe/Moscow', maxDrafts: 1 },
+      [
+        event('quest-1', 'Квест «Один из нас»', 'quest', 55.751, 37.610, '2026-05-05T16:00:00.000Z', '2026-05-05T17:30:00.000Z', 1200),
+        event('quest-2', 'Квест «Мгла»', 'quest', 55.75101, 37.61001, '2026-05-05T18:00:00.000Z', '2026-05-05T19:30:00.000Z', 1200),
+      ],
+    );
+
+    expect(routes).toHaveLength(0);
+  });
 });
 
 function event(

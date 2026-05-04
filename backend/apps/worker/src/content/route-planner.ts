@@ -104,6 +104,7 @@ const MINUTES_PER_STEP = 45;
 const ANCHOR_GAP_MINUTES = 10;
 const VENUE_CLUSTER_METERS = 80;
 const ROUTE_MOVEMENT_METERS = 120;
+const EVENT_HOP_MAX_GAP_MINUTES = 150;
 const BUDGET_LIMITS: Record<string, number | null> = {
   free: 0,
   low: 2500,
@@ -138,6 +139,16 @@ export function buildRouteSkeletons(
     validateRouteDraft(flexibleRoute, candidates, timezone, input.budget).status === 'valid'
   ) {
     routes.push(flexibleRoute);
+  }
+
+  if (routes.length === 0) {
+    const eventHopRoute = buildEventHopRoute(input, timezone, candidates);
+    if (
+      eventHopRoute &&
+      validateRouteDraft(eventHopRoute, candidates, timezone, input.budget).status !== 'invalid'
+    ) {
+      routes.push(eventHopRoute);
+    }
   }
 
   return routes.slice(0, input.maxDrafts ?? 4);
@@ -177,7 +188,7 @@ export function validateRouteDraft(
   }
 
   const seenIds = new Set<string>();
-  const timedAnchors: Array<{ step: RouteDraftStepForValidation; index: number }> = [];
+  const timedAnchors: Array<{ step: RouteDraftStepForValidation; candidate: PlanningCandidate; index: number }> = [];
   const resolvedSteps: Array<{ step: RouteDraftStepForValidation; candidate: PlanningCandidate; index: number }> = [];
   let totalPriceFrom = 0;
 
@@ -240,7 +251,7 @@ export function validateRouteDraft(
     }
 
     if (candidate.contentKind === 'event' && candidate.startsAt) {
-      timedAnchors.push({ step, index });
+      timedAnchors.push({ step, candidate, index });
       const expectedStart = formatTime(candidate.startsAt, timezone);
       const expectedEnd = candidate.endsAt ? formatTime(candidate.endsAt, timezone) : null;
       if (!sameTimeLabel(step.timeLabel, expectedStart)) {
@@ -264,12 +275,41 @@ export function validateRouteDraft(
     }
   });
 
-  if (timedAnchors.length > 1) {
+  if (timedAnchors.length === 2) {
+    issues.push({
+      severity: 'warning',
+      code: 'too_many_timed_events',
+      message: 'Route uses two timed events and needs admin review',
+    });
+  } else if (timedAnchors.length > 2) {
     issues.push({
       severity: 'error',
       code: 'too_many_timed_events',
-      message: 'Route should have one timed event anchor',
+      message: 'Route should not use more than two timed events',
     });
+  }
+
+  for (let index = 1; index < resolvedSteps.length; index += 1) {
+    const previous = resolvedSteps[index - 1];
+    const current = resolvedSteps[index];
+    if (!previous || !current || previous.candidate.contentKind !== 'event' || current.candidate.contentKind !== 'event') {
+      continue;
+    }
+    const previousEnd = eventEndDate(previous.candidate);
+    const currentStart = current.candidate.startsAt;
+    if (!previousEnd || !currentStart) {
+      continue;
+    }
+    const requiredGapMs = Math.max(ANCHOR_GAP_MINUTES, walkMinutes(previous.candidate, current.candidate) + 5) * 60_000;
+    if (currentStart.getTime() < previousEnd.getTime() + requiredGapMs) {
+      issues.push({
+        severity: 'error',
+        code: 'event_time_overlap',
+        message: 'Timed events overlap or do not leave enough travel time',
+        stepIndex: current.index,
+        externalContentItemId: current.candidate.id,
+      });
+    }
   }
 
   for (let index = 0; index < resolvedSteps.length; index += 1) {
@@ -456,6 +496,66 @@ function buildFlexibleRoute(
   });
 
   return buildRouteSummary(input, steps, selected[0] ?? null);
+}
+
+function buildEventHopRoute(
+  input: RoutePlannerInput,
+  timezone: string,
+  candidates: PlanningCandidate[],
+): PlannedRoute | null {
+  const maxWalk = MAX_WALK_BY_MOOD[input.mood] ?? 18;
+  const anchors = selectAnchors(input.mood, candidates);
+  for (const first of anchors) {
+    const firstEnd = eventEndDate(first);
+    if (!first.startsAt || !firstEnd) {
+      continue;
+    }
+    const second = anchors.find((candidate) => {
+      if (
+        candidate.id === first.id ||
+        candidate.normalizedCategory === first.normalizedCategory ||
+        sameVenueCluster(first, candidate) ||
+        !candidate.startsAt
+      ) {
+        return false;
+      }
+      const walkMin = walkMinutes(first, candidate);
+      const gapMinutes = (candidate.startsAt.getTime() - firstEnd.getTime()) / 60_000;
+      return (
+        walkMin <= maxWalk &&
+        gapMinutes >= Math.max(ANCHOR_GAP_MINUTES, walkMin + 5) &&
+        gapMinutes <= EVENT_HOP_MAX_GAP_MINUTES
+      );
+    });
+    if (!second || !second.startsAt) {
+      continue;
+    }
+    const secondEnd = eventEndDate(second);
+    const walkMin = walkMinutes(first, second);
+    const secondEndForStep = secondEnd ?? new Date(second.startsAt.getTime() + defaultDuration(second) * 60_000);
+    const steps = [
+      buildStep({
+        candidate: first,
+        input,
+        startMin: localMinutes(first.startsAt, timezone),
+        endMin: localMinutes(firstEnd, timezone),
+        walkMin: 0,
+        distanceLabel: 'старт маршрута',
+        description: `Начните с "${first.title}". Это первый временной слот вечера, время взято из импорта.`,
+      }),
+      buildStep({
+        candidate: second,
+        input,
+        startMin: localMinutes(second.startsAt, timezone),
+        endMin: localMinutes(secondEndForStep, timezone),
+        walkMin,
+        distanceLabel: `${walkMin} минут пешком`,
+        description: `Дальше "${second.title}". События не пересекаются, переход заложен в расписание.`,
+      }),
+    ];
+    return buildRouteSummary(input, steps, first);
+  }
+  return null;
 }
 
 function buildRouteSummary(
@@ -867,6 +967,16 @@ function defaultDuration(candidate: PlanningCandidate) {
     return 30;
   }
   return MINUTES_PER_STEP;
+}
+
+function eventEndDate(candidate: PlanningCandidate) {
+  if (!candidate.startsAt) {
+    return null;
+  }
+  if (candidate.endsAt && candidate.endsAt.getTime() > candidate.startsAt.getTime()) {
+    return candidate.endsAt;
+  }
+  return new Date(candidate.startsAt.getTime() + defaultDuration(candidate) * 60_000);
 }
 
 function localMinutes(date: Date, timezone: string) {
