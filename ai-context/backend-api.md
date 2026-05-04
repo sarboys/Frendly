@@ -56,6 +56,7 @@ Affiche:
 - `GET /affiche/events`
 - `GET /affiche/events/:eventId`
 - Public affiche returns only imported `ExternalContentItem` rows with `contentKind=event`, `publicStatus=published` and `priceMode in (free, paid)`.
+- Public affiche list/detail use narrow `select` and must not read `ExternalContentItem.raw` in the public request path.
 - Query params include `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `featured`, `q`, `cursor`, `limit`.
 - Paid public ticket events come from `advcake_ticketland` and use external `actionUrl`. Unknown price is not exposed as free.
 - KudaGo places stay outside affiche and should continue through places/search/route flows.
@@ -139,9 +140,12 @@ Admin Evening route review:
 - `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates. It also accepts `afficheEventId` for creating a meetup from a published affiche event; `posterId`, `afficheEventId` and route selection are mutually exclusive.
 - `GET /events` and `GET /posters` accept `date=yyyy-mm-dd` for one-day filtering.
 - `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
+- `GET /evening/route-templates` list uses summary payload only: route summary fields, first 4 steps and bounded partner offer preview. Template detail loads full steps separately.
 - Direct joins lock the event row and check capacity inside the transaction.
 - Join request review must not reset a reviewed request back to pending.
 - Event detail uses bounded previews and separate counts.
+- Nearby event list without PostGIS uses two-phase loading: light candidate rows with ids and coordinates first, then full list includes only for the selected page ids. Optional PostGIS candidate scan stays behind `ENABLE_POSTGIS_EVENT_FEED=true`; it must apply the same key public feed filters before returning candidate ids, including canceled state, visibility, gender visibility, date window, route flags, text query, lifestyle, gender, access and price.
+- Mobile remote search keeps grouped search limits bounded instead of requesting 20 items per group.
 - Chat list member previews are bounded and block-aware. Meetup previews include `memberProfiles` so clients do not use display names as ids.
 - Chat history hides blocked `replyTo` previews.
 - Cursors carry sort keys plus id when possible.

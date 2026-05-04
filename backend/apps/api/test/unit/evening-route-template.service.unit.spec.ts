@@ -66,11 +66,25 @@ describe('EveningRouteTemplateService unit', () => {
         sessions: [],
       },
     ]);
+    const partnerStepFindMany = jest.fn().mockResolvedValue([
+      {
+        routeId: 'route-1',
+        partnerId: 'partner-1',
+        partnerOfferId: 'offer-1',
+        offerTitleSnapshot: 'Комплимент',
+        perk: 'Комплимент',
+        offerShortLabelSnapshot: 'Подарок',
+        perkShort: 'Подарок',
+      },
+    ]);
     const service = new EveningRouteTemplateService(
       {
         client: {
           eveningRouteTemplate: {
             findMany,
+          },
+          eveningRouteStep: {
+            findMany: partnerStepFindMany,
           },
         },
       } as any,
@@ -92,6 +106,33 @@ describe('EveningRouteTemplateService unit', () => {
         take: 20,
       }),
     );
+    const findManyArgs = findMany.mock.calls[0][0];
+    expect(findManyArgs).not.toHaveProperty('include');
+    expect(findManyArgs.select.currentRoute.select.steps).toEqual(
+      expect.objectContaining({
+        take: 4,
+        select: expect.objectContaining({
+          title: true,
+          venue: true,
+          emoji: true,
+          timeLabel: true,
+          kind: true,
+        }),
+      }),
+    );
+    expect(findManyArgs.select.currentRoute.select.steps.select).not.toHaveProperty('description');
+    expect(findManyArgs.select.currentRoute.select.steps.select).not.toHaveProperty('ticketUrl');
+    expect(findManyArgs.select.currentRoute.select.steps.select).not.toHaveProperty('offerTermsSnapshot');
+    expect(partnerStepFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          description: true,
+          ticketUrl: true,
+          offerTermsSnapshot: true,
+        }),
+        take: 8,
+      }),
+    );
     expect(result.items).toEqual([
       expect.objectContaining({
         id: 'template-1',
@@ -107,6 +148,13 @@ describe('EveningRouteTemplateService unit', () => {
             venue: 'Example Bar',
             time: '19:00',
             kind: 'bar',
+          }),
+        ],
+        partnerOffersPreview: [
+          expect.objectContaining({
+            partnerId: 'partner-1',
+            title: 'Комплимент',
+            shortLabel: 'Подарок',
           }),
         ],
       }),

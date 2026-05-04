@@ -8,13 +8,20 @@ export class TimepadAdapter implements ExternalSourceAdapter {
   private readonly baseUrl = process.env.TIMEPAD_BASE_URL ?? 'https://api.timepad.ru/v1';
 
   async fetchItems(input: ExternalSourceFetchInput): Promise<ExternalRawItem[]> {
+    const batches = [];
+    for await (const batch of this.fetchBatches(input)) {
+      batches.push(...batch);
+    }
+    return batches;
+  }
+
+  async *fetchBatches(input: ExternalSourceFetchInput): AsyncIterable<ExternalRawItem[]> {
     const token = text(process.env.TIMEPAD_API_TOKEN);
     if (!token) {
       console.warn('[content-import] timepad_disabled_missing_token');
-      return [];
+      return;
     }
 
-    const items: Record<string, unknown>[] = [];
     const maxPages = positiveInt(process.env.CONTENT_IMPORT_MAX_PAGES_PER_ENDPOINT, DEFAULT_MAX_PAGES_PER_ENDPOINT);
     for (let page = 0; page < maxPages; page += 1) {
       const skip = page * PAGE_SIZE;
@@ -34,10 +41,13 @@ export class TimepadAdapter implements ExternalSourceAdapter {
       }
       const payload = await response.json();
       const pageItems = values(payload);
-      items.push(...pageItems.filter((item) => {
+      const mapped = pageItems.filter((item) => {
         const startsAt = date(item.starts_at);
         return startsAt == null || startsAt <= input.to;
-      }));
+      }).flatMap((item) => this.mapEvent(item, input.city));
+      if (mapped.length > 0) {
+        yield mapped;
+      }
       const hasItemAfterWindow = pageItems.some((item) => {
         const startsAt = date(item.starts_at);
         return startsAt != null && startsAt > input.to;
@@ -49,7 +59,6 @@ export class TimepadAdapter implements ExternalSourceAdapter {
         break;
       }
     }
-    return items.flatMap((item) => this.mapEvent(item, input.city));
   }
 
   private mapEvent(item: Record<string, unknown>, city: string): ExternalRawItem[] {

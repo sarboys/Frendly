@@ -721,6 +721,12 @@ describe('EventsService unit', () => {
 
     const result = await service.listEvents('user-me', {
       filter: 'nearby',
+      q: 'джаз',
+      lifestyle: 'creative',
+      price: 'cheap',
+      gender: 'male',
+      access: 'request',
+      date: '2026-05-03',
       latitude: 55.75,
       longitude: 37.61,
       radiusKm: 25,
@@ -728,6 +734,34 @@ describe('EventsService unit', () => {
     } as any);
 
     const where = eventFindMany.mock.calls[0][0].where as any;
+    expect(eventFindMany).toHaveBeenCalledTimes(2);
+    expect(eventFindMany.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          id: true,
+          latitude: true,
+          longitude: true,
+          startsAt: true,
+        }),
+        take: 12,
+      }),
+    );
+    expect(eventFindMany.mock.calls[0][0]).not.toHaveProperty('include');
+    expect(eventFindMany.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        where: {
+          id: {
+            in: ['event-near', 'event-far'],
+          },
+        },
+        include: expect.objectContaining({
+          participants: expect.any(Object),
+          joinRequests: expect.any(Object),
+          attendances: expect.any(Object),
+          liveState: expect.any(Object),
+        }),
+      }),
+    );
     expect(where.AND).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -803,6 +837,12 @@ describe('EventsService unit', () => {
 
     const result = await service.listEvents('user-me', {
       filter: 'nearby',
+      q: 'джаз',
+      lifestyle: 'creative',
+      price: 'cheap',
+      gender: 'male',
+      access: 'request',
+      date: '2026-05-03',
       latitude: 55.75,
       longitude: 37.61,
       radiusKm: 25,
@@ -822,8 +862,18 @@ describe('EventsService unit', () => {
             .map((part) => part.strings.join(' ')),
         ].join(' ');
     expect(postgisSql).toContain('ST_DWithin');
+    expect(postgisSql).toContain('e."canceledAt" IS NULL');
     expect(postgisSql).toContain('e."isAfterDark" = false');
     expect(postgisSql).toContain('e."startsAt" >=');
+    expect(postgisSql).toContain('e."startsAt" <');
+    expect(postgisSql).toContain('e."visibilityMode"::text =');
+    expect(postgisSql).toContain('FROM "EventParticipant" ep');
+    expect(postgisSql).toContain('FROM "EventAttendance" ea');
+    expect(postgisSql).toContain('e."title" ILIKE');
+    expect(postgisSql).toContain('e."lifestyle"::text =');
+    expect(postgisSql).toContain('e."genderMode"::text =');
+    expect(postgisSql).toContain('e."accessMode"::text =');
+    expect(postgisSql).toContain('e."priceAmountTo" BETWEEN');
     expect(postgisSql).toContain('e."hostId" NOT IN');
     expect(eventFindMany).toHaveBeenCalledWith(
       expect.objectContaining({

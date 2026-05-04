@@ -6,6 +6,7 @@ const DEFAULT_OFFER_ID = '663';
 const DEFAULT_WEBSITES = ['ticketland.ru', 'live.mts.ru'];
 const DEFAULT_FEED_FORMAT = 'yml';
 const DEFAULT_MAX_FEED_BYTES = 60 * 1024 * 1024;
+const OFFER_BATCH_SIZE = 100;
 const TICKETLAND_PROVIDER = 'Ticketland / MTS Live';
 const SUPPORTED_CITIES = ['Москва', 'Санкт-Петербург'];
 
@@ -55,16 +56,27 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
   });
 
   async fetchItems(input: ExternalSourceFetchInput): Promise<ExternalRawItem[]> {
+    const items = [];
+    for await (const batch of this.fetchBatches(input)) {
+      items.push(...batch);
+    }
+    return items;
+  }
+
+  async *fetchBatches(input: ExternalSourceFetchInput): AsyncIterable<ExternalRawItem[]> {
     const pass = text(process.env.ADVCAKE_API_PASS);
     if (!pass) {
       console.warn('[content-import] advcake_ticketland_disabled_missing_pass');
-      return [];
+      return;
     }
 
     const feedUrl = await this.loadFeedUrl(pass, input.signal);
-    const yml = await this.loadFeed(feedUrl, input.signal);
-    const offers = extractOffers(this.parser.parse(yml));
-    return offers.flatMap((offer) => this.mapOffer(offer, input));
+    for await (const offers of this.loadOfferBatches(feedUrl, input.signal)) {
+      const mapped = offers.flatMap((offer) => this.mapOffer(offer, input));
+      if (mapped.length > 0) {
+        yield mapped;
+      }
+    }
   }
 
   private async loadFeedUrl(pass: string, signal: AbortSignal) {
@@ -91,7 +103,7 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
     return feedUrl;
   }
 
-  private async loadFeed(feedUrl: string, signal: AbortSignal) {
+  private async *loadOfferBatches(feedUrl: string, signal: AbortSignal): AsyncIterable<Record<string, unknown>[]> {
     const response = await fetch(feedUrl, {
       signal,
       headers: { Accept: 'application/xml,text/xml,*/*' },
@@ -105,11 +117,69 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
       throw new Error('advcake_feed_too_large');
     }
 
-    const body = await response.text();
-    if (Buffer.byteLength(body, 'utf8') > this.maxFeedBytes) {
-      throw new Error('advcake_feed_too_large');
+    if (!response.body) {
+      const body = await response.text();
+      if (Buffer.byteLength(body, 'utf8') > this.maxFeedBytes) {
+        throw new Error('advcake_feed_too_large');
+      }
+      yield* chunkArray(extractOffers(this.parser.parse(body)), OFFER_BATCH_SIZE);
+      return;
     }
-    return body;
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffered = '';
+    let bytesRead = 0;
+    let batch: Record<string, unknown>[] = [];
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) {
+          buffered += decoder.decode();
+          break;
+        }
+        bytesRead += value.byteLength;
+        if (bytesRead > this.maxFeedBytes) {
+          throw new Error('advcake_feed_too_large');
+        }
+        buffered += decoder.decode(value, { stream: true });
+        const extracted = extractOfferFragments(buffered);
+        buffered = extracted.rest;
+        for (const fragment of extracted.fragments) {
+          const offer = this.parseOfferFragment(fragment);
+          if (!offer) {
+            continue;
+          }
+          batch.push(offer);
+          if (batch.length >= OFFER_BATCH_SIZE) {
+            yield batch;
+            batch = [];
+          }
+        }
+      }
+
+      const extracted = extractOfferFragments(buffered);
+      for (const fragment of extracted.fragments) {
+        const offer = this.parseOfferFragment(fragment);
+        if (offer) {
+          batch.push(offer);
+        }
+      }
+      if (batch.length > 0) {
+        yield batch;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private parseOfferFragment(fragment: string) {
+    try {
+      const parsed = this.parser.parse(fragment);
+      return object((parsed as { offer?: unknown }).offer);
+    } catch {
+      return null;
+    }
   }
 
   private mapOffer(offer: Record<string, unknown>, input: ExternalSourceFetchInput): ExternalRawItem[] {
@@ -190,6 +260,36 @@ function extractOffers(payload: unknown): Record<string, unknown>[] {
   const shop = object(object(root?.yml_catalog)?.shop) ?? object(root?.shop) ?? root;
   const offers = object(shop?.offers)?.offer ?? shop?.offer;
   return array(offers).filter((item): item is Record<string, unknown> => item != null && typeof item === 'object');
+}
+
+function extractOfferFragments(value: string) {
+  let rest = value;
+  const fragments: string[] = [];
+  for (;;) {
+    const start = rest.search(/<offer\b/i);
+    if (start < 0) {
+      return {
+        fragments,
+        rest: rest.slice(Math.max(0, rest.length - 64)),
+      };
+    }
+    if (start > 0) {
+      rest = rest.slice(start);
+    }
+    const endMatch = /<\/offer>/i.exec(rest);
+    if (!endMatch) {
+      return { fragments, rest };
+    }
+    const end = endMatch.index + endMatch[0].length;
+    fragments.push(rest.slice(0, end));
+    rest = rest.slice(end);
+  }
+}
+
+function* chunkArray<T>(items: T[], size: number) {
+  for (let index = 0; index < items.length; index += size) {
+    yield items.slice(index, index + size);
+  }
 }
 
 function findFeedUrl(payload: unknown, feedFormat: string): string | null {

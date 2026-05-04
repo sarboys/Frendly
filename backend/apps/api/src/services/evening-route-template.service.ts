@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { OUTBOX_EVENT_TYPES } from '@big-break/database';
 import {
   CreateEveningRouteTemplateSessionResponseDto,
+  EveningRouteTemplatePartnerOfferPreviewDto,
   EveningRouteTemplateDetailDto,
   EveningRouteTemplateSessionDto,
   EveningRouteTemplateSummaryDto,
 } from '@big-break/contracts';
+import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { ApiError } from '../common/api-error';
 import { normalizeSearchQuery } from '../common/search-query';
@@ -14,6 +16,138 @@ import { PrismaService } from './prisma.service';
 
 const TEMPLATE_SESSION_PRIVACY = ['open', 'request', 'invite'] as const;
 type TemplateSessionPrivacy = (typeof TEMPLATE_SESSION_PRIVACY)[number];
+
+const templateSessionSelect = {
+  id: true,
+  startsAt: true,
+  capacity: true,
+  participants: {
+    where: { status: 'joined' },
+    select: { userId: true },
+  },
+} satisfies Prisma.EveningSessionSelect;
+
+const routeSummaryFields = {
+  id: true,
+  title: true,
+  vibe: true,
+  blurb: true,
+  area: true,
+  badgeLabel: true,
+  budget: true,
+  totalSavings: true,
+  durationLabel: true,
+  totalPriceFrom: true,
+  mood: true,
+  premium: true,
+  hostsCount: true,
+} satisfies Prisma.EveningRouteSelect;
+
+const routeStepPreviewSelect = {
+  title: true,
+  venue: true,
+  emoji: true,
+  timeLabel: true,
+  kind: true,
+} satisfies Prisma.EveningRouteStepSelect;
+
+const partnerOfferStepSelect = {
+  routeId: true,
+  partnerId: true,
+  partnerOfferId: true,
+  offerTitleSnapshot: true,
+  perk: true,
+  offerShortLabelSnapshot: true,
+  perkShort: true,
+} satisfies Prisma.EveningRouteStepSelect;
+
+const routeStepDetailSelect = {
+  id: true,
+  timeLabel: true,
+  endTimeLabel: true,
+  kind: true,
+  title: true,
+  venue: true,
+  address: true,
+  emoji: true,
+  distanceLabel: true,
+  walkMin: true,
+  perk: true,
+  perkShort: true,
+  ticketPrice: true,
+  ticketCommission: true,
+  ticketUrl: true,
+  ticketSourceCode: true,
+  ticketProvider: true,
+  sponsored: true,
+  premium: true,
+  partnerId: true,
+  description: true,
+  vibeTag: true,
+  lat: true,
+  lng: true,
+  venueId: true,
+  partnerOfferId: true,
+  offerTitleSnapshot: true,
+  offerDescriptionSnapshot: true,
+  offerTermsSnapshot: true,
+  offerShortLabelSnapshot: true,
+} satisfies Prisma.EveningRouteStepSelect;
+
+const templateSummarySelect = {
+  id: true,
+  status: true,
+  city: true,
+  area: true,
+  currentRouteId: true,
+  currentRoute: {
+    select: {
+      ...routeSummaryFields,
+      steps: {
+        orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
+        take: 4,
+        select: routeStepPreviewSelect,
+      },
+    },
+  },
+  sessions: {
+    where: {
+      phase: { in: ['scheduled', 'live'] },
+    },
+    select: templateSessionSelect,
+    orderBy: [{ startsAt: 'asc' as const }, { id: 'asc' as const }],
+    take: 3,
+  },
+} satisfies Prisma.EveningRouteTemplateSelect;
+
+const templateDetailSelect = {
+  ...templateSummarySelect,
+  timezone: true,
+  currentRoute: {
+    select: {
+      ...routeSummaryFields,
+      goal: true,
+      format: true,
+      recommendedFor: true,
+      steps: {
+        orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
+        select: routeStepDetailSelect,
+      },
+    },
+  },
+} satisfies Prisma.EveningRouteTemplateSelect;
+
+type TemplateSummaryRecord = Prisma.EveningRouteTemplateGetPayload<{
+  select: typeof templateSummarySelect;
+}>;
+
+type TemplateDetailRecord = Prisma.EveningRouteTemplateGetPayload<{
+  select: typeof templateDetailSelect;
+}>;
+
+type PartnerOfferStepRecord = Prisma.EveningRouteStepGetPayload<{
+  select: typeof partnerOfferStepSelect;
+}>;
 
 @Injectable()
 export class EveningRouteTemplateService {
@@ -70,15 +204,23 @@ export class EveningRouteTemplateService {
               }
             : {}),
         },
-        include: this.templateSummaryInclude(),
+        select: templateSummarySelect,
         orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }],
         take: this.parseLimit(params.limit),
       });
 
     const items = templates
-      .filter((template: any) => template.status === 'published')
-      .filter((template: any) => template.currentRoute != null)
-      .map((template: any) => this.mapTemplateSummary(template));
+      .filter((template) => template.status === 'published')
+      .filter((template) => template.currentRoute != null);
+    const partnerOffersByRouteId = await this.loadPartnerOffersPreview(
+      items.map((template) => template.currentRoute?.id).filter(Boolean) as string[],
+    );
+    const summaries = items.map((template) =>
+      this.mapTemplateSummary(
+        template,
+        partnerOffersByRouteId.get(template.currentRoute?.id ?? '') ?? [],
+      ),
+    );
 
     await this.analytics.track({
       name: 'route_template_list_viewed',
@@ -86,12 +228,12 @@ export class EveningRouteTemplateService {
       city,
       metadata: {
         surface: 'route_template_list',
-        resultCount: items.length,
+        resultCount: summaries.length,
       },
     });
 
     return {
-      items,
+      items: summaries,
     };
   }
 
@@ -103,7 +245,7 @@ export class EveningRouteTemplateService {
           status: 'published',
           currentRouteId: { not: null },
         },
-        include: this.templateSummaryInclude(),
+        select: templateDetailSelect,
       });
 
     if (!template?.currentRoute) {
@@ -348,33 +490,53 @@ export class EveningRouteTemplateService {
     };
   }
 
-  private templateSummaryInclude() {
-    return {
-      currentRoute: {
-        include: {
-          steps: {
-            orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
-          },
-        },
+  private async loadPartnerOffersPreview(routeIds: string[]) {
+    const uniqueRouteIds = [...new Set(routeIds)];
+    const result = new Map<string, EveningRouteTemplatePartnerOfferPreviewDto[]>();
+    if (uniqueRouteIds.length === 0) {
+      return result;
+    }
+
+    const rows = await this.prismaService.client.eveningRouteStep.findMany({
+      where: {
+        routeId: { in: uniqueRouteIds },
+        partnerId: { not: null },
+        OR: [
+          { offerTitleSnapshot: { not: null } },
+          { perk: { not: null } },
+        ],
       },
-      sessions: {
-        where: {
-          phase: { in: ['scheduled', 'live'] },
-        },
-        include: {
-          participants: {
-            where: { status: 'joined' },
-            select: { userId: true },
-          },
-        },
-        orderBy: [{ startsAt: 'asc' as const }, { id: 'asc' as const }],
-        take: 3,
-      },
-    };
+      select: partnerOfferStepSelect,
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      take: uniqueRouteIds.length * 8,
+    });
+
+    const grouped = new Map<string, PartnerOfferStepRecord[]>();
+    for (const row of rows) {
+      const existing = grouped.get(row.routeId) ?? [];
+      if (existing.length < 8) {
+        existing.push(row);
+        grouped.set(row.routeId, existing);
+      }
+    }
+    for (const [routeId, steps] of grouped) {
+      result.set(routeId, this.mapPartnerOffersPreview(steps));
+    }
+    return result;
   }
 
-  private mapTemplateSummary(template: any): EveningRouteTemplateSummaryDto {
+  private mapTemplateSummary(
+    template: TemplateSummaryRecord | TemplateDetailRecord,
+    partnerOffersPreview?: EveningRouteTemplatePartnerOfferPreviewDto[],
+  ): EveningRouteTemplateSummaryDto {
     const route = template.currentRoute;
+    if (!route) {
+      throw new ApiError(
+        500,
+        'route_template_current_route_missing',
+        'Route template current route is missing',
+      );
+    }
     const steps = route?.steps ?? [];
 
     return {
@@ -401,16 +563,24 @@ export class EveningRouteTemplateService {
         time: step.timeLabel ?? null,
         kind: step.kind ?? null,
       })),
-      partnerOffersPreview: this.mapPartnerOffersPreview(steps),
+      partnerOffersPreview:
+        partnerOffersPreview ?? this.mapPartnerOffersPreview(steps),
       nearestSessions: (template.sessions ?? [])
         .slice(0, 3)
         .map((session: any) => this.mapTemplateSession(session)),
     };
   }
 
-  private mapTemplateDetail(template: any): EveningRouteTemplateDetailDto {
+  private mapTemplateDetail(template: TemplateDetailRecord): EveningRouteTemplateDetailDto {
     const summary = this.mapTemplateSummary(template);
     const route = template.currentRoute;
+    if (!route) {
+      throw new ApiError(
+        500,
+        'route_template_current_route_missing',
+        'Route template current route is missing',
+      );
+    }
 
     return {
       ...summary,

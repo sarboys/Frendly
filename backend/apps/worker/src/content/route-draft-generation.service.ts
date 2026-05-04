@@ -55,7 +55,10 @@ const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
 const DEFAULT_FORMAT = 'evening_route';
 const MAX_EVENT_CANDIDATES_PER_PROMPT = 48;
-const MAX_PLACE_CANDIDATES_PER_PROMPT = 720;
+const MAX_PLACE_CANDIDATES_PER_QUERY = 240;
+const MAX_PLACE_CANDIDATES_PER_PROMPT = 180;
+const MAX_PLACE_CANDIDATES_PER_CATEGORY = 24;
+const MAX_PLACE_CANDIDATES_PER_GEO_BUCKET = 12;
 const MAX_CONTEXT_CANDIDATES_WITHOUT_SKELETON = 36;
 const MAX_INPUT_PROMPT_CHARS = 720_000;
 const MAX_OPENROUTER_TOKENS = 8192;
@@ -69,7 +72,7 @@ export class RouteDraftGenerationService {
   ) {}
 
   async generateForCity(input: RouteDraftGenerationInput) {
-    const candidates = await this.selectCandidates(input.city);
+    const candidates = await this.selectCandidates(input);
     if (candidates.length < 2) {
       return null;
     }
@@ -105,7 +108,7 @@ export class RouteDraftGenerationService {
 
     for (const batch of batches as any[]) {
       const input = this.inputFromBatch(batch);
-      const candidates = await this.selectCandidates(input.city);
+      const candidates = await this.selectCandidates(input);
       if (candidates.length < 2) {
         await this.prismaService.client.generatedRouteDraftBatch.update({
           where: { id: batch.id },
@@ -143,6 +146,8 @@ export class RouteDraftGenerationService {
     candidates: any[],
     request: Record<string, unknown>,
   ) {
+    const rssBefore = process.memoryUsage().rss;
+    const startedAt = Date.now();
     try {
       console.log('[route-generation] started', {
         batchId,
@@ -151,6 +156,7 @@ export class RouteDraftGenerationService {
         budget: input.budget,
         maxDrafts: input.maxDrafts ?? 4,
         candidateCount: candidates.length,
+        rssBefore,
       });
       const generated = await this.generateRoutes(input, candidates, request);
       const routes = generated.routes;
@@ -170,6 +176,9 @@ export class RouteDraftGenerationService {
         batchId,
         draftCount: routes.length,
         fallback: generated.fallback,
+        durationMs: Date.now() - startedAt,
+        rssBefore,
+        rssAfter: process.memoryUsage().rss,
       });
     } catch (caught) {
       const failure = routeGenerationFailure(caught);
@@ -186,6 +195,9 @@ export class RouteDraftGenerationService {
         batchId,
         code: failure.code,
         message: failure.message,
+        durationMs: Date.now() - startedAt,
+        rssBefore,
+        rssAfter: process.memoryUsage().rss,
       });
     }
   }
@@ -285,11 +297,11 @@ export class RouteDraftGenerationService {
     }
   }
 
-  private async selectCandidates(city: string) {
+  private async selectCandidates(input: RouteDraftGenerationInput) {
     const now = new Date();
     const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
     const commonWhere = {
-      city,
+      city: input.city,
       moderationStatus: { in: ['pending', 'approved'] },
       publicStatus: 'published',
       lat: { not: null },
@@ -323,10 +335,11 @@ export class RouteDraftGenerationService {
         },
         include,
         orderBy: [{ importedAt: 'desc' }, { category: 'asc' }, { id: 'asc' }],
-        take: MAX_PLACE_CANDIDATES_PER_PROMPT,
+        take: MAX_PLACE_CANDIDATES_PER_QUERY,
       }),
     ]);
-    return uniqueCandidates([...events, ...places]);
+    const balancedPlaces = balancePlaceCandidates(places, input);
+    return uniqueCandidates([...events, ...balancedPlaces]);
   }
 
   private buildPromptRequest(input: RouteDraftGenerationInput, candidates: any[]) {
@@ -598,6 +611,61 @@ function buildFallbackRoute(input: RouteDraftGenerationInput, candidates: any[])
   )[0] ?? null;
 }
 
+function balancePlaceCandidates<T extends {
+  id: string;
+  area?: string | null;
+  category?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+}>(places: T[], input: RouteDraftGenerationInput) {
+  const preferredArea = normalizeArea(input.area);
+  const sorted = [...places].sort((left, right) => {
+    const leftArea = preferredArea != null && normalizeArea(left.area) === preferredArea ? 0 : 1;
+    const rightArea = preferredArea != null && normalizeArea(right.area) === preferredArea ? 0 : 1;
+    if (leftArea !== rightArea) {
+      return leftArea - rightArea;
+    }
+    return 0;
+  });
+  const selected: T[] = [];
+  const byCategory = new Map<string, number>();
+  const byBucket = new Map<string, number>();
+
+  const minimumFallbackPlaces = Math.min(MAX_PLACE_CANDIDATES_PER_PROMPT, 48);
+  for (const place of sorted) {
+    if (selected.length >= minimumFallbackPlaces) {
+      break;
+    }
+    const category = place.category ?? 'place';
+    const bucket = geoBucket(place);
+    if ((byCategory.get(category) ?? 0) >= MAX_PLACE_CANDIDATES_PER_CATEGORY) {
+      continue;
+    }
+    if ((byBucket.get(bucket) ?? 0) >= MAX_PLACE_CANDIDATES_PER_GEO_BUCKET) {
+      continue;
+    }
+    selected.push(place);
+    byCategory.set(category, (byCategory.get(category) ?? 0) + 1);
+    byBucket.set(bucket, (byBucket.get(bucket) ?? 0) + 1);
+  }
+
+  if (selected.length >= Math.min(MAX_PLACE_CANDIDATES_PER_PROMPT, 48)) {
+    return selected;
+  }
+
+  const selectedIds = new Set(selected.map((place) => place.id));
+  for (const place of sorted) {
+    if (selected.length >= minimumFallbackPlaces) {
+      break;
+    }
+    if (!selectedIds.has(place.id)) {
+      selected.push(place);
+      selectedIds.add(place.id);
+    }
+  }
+  return selected;
+}
+
 function uniqueCandidates<T extends { id: string }>(candidates: T[]) {
   const seen = new Set<string>();
   return candidates.filter((candidate) => {
@@ -607,6 +675,21 @@ function uniqueCandidates<T extends { id: string }>(candidates: T[]) {
     seen.add(candidate.id);
     return true;
   });
+}
+
+function normalizeArea(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, ' ');
+  return normalized.length > 0 ? normalized : null;
+}
+
+function geoBucket(value: { lat?: number | null; lng?: number | null }) {
+  if (typeof value.lat !== 'number' || typeof value.lng !== 'number') {
+    return 'no-geo';
+  }
+  return `${Math.floor(value.lat * 50)}:${Math.floor(value.lng * 50)}`;
 }
 
 function durationMinutes(startsAt: unknown, endsAt: unknown) {

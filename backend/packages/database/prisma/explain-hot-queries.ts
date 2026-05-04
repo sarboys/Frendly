@@ -21,10 +21,17 @@ async function main() {
   const reports = await runHotQueryExplain(prisma, {
     userId,
     hostId,
+    city: process.env.PERF_CHECK_CITY?.trim() || 'Москва',
+    afficheSearchQuery: process.env.PERF_CHECK_AFFICHE_Q?.trim() || 'концерт',
+    affichePriceMode: readPriceModeEnv('PERF_CHECK_AFFICHE_PRICE_MODE', 'free'),
     latitude: readNumberEnv('PERF_CHECK_LATITUDE', 55.75),
     longitude: readNumberEnv('PERF_CHECK_LONGITUDE', 37.61),
     radiusKm: readNumberEnv('PERF_CHECK_RADIUS_KM', 25),
     limit: readIntegerEnv('PERF_CHECK_LIMIT', 100),
+    routePlaceCandidateLimit: readIntegerEnv(
+      'PERF_CHECK_ROUTE_PLACE_CANDIDATE_LIMIT',
+      240,
+    ),
     includePostgis: readBooleanEnv('PERF_CHECK_INCLUDE_POSTGIS', false),
     analyze,
   });
@@ -78,6 +85,11 @@ function readNumberEnv(name: string, fallback: number) {
 
 function readIntegerEnv(name: string, fallback: number) {
   return Math.max(1, Math.trunc(readNumberEnv(name, fallback)));
+}
+
+function readPriceModeEnv(name: string, fallback: 'free' | 'paid') {
+  const value = process.env[name]?.trim().toLowerCase();
+  return value === 'paid' || value === 'free' ? value : fallback;
 }
 
 main()

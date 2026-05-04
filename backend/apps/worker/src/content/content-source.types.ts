@@ -76,6 +76,7 @@ export type ExternalSourceFetchInput = {
 export interface ExternalSourceAdapter {
   code: ExternalSourceCode;
   fetchItems(input: ExternalSourceFetchInput): Promise<ExternalRawItem[]>;
+  fetchBatches?(input: ExternalSourceFetchInput): AsyncIterable<ExternalRawItem[]>;
 }
 
 export type ExternalSourceInfo = {

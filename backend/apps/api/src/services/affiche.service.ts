@@ -11,6 +11,38 @@ type AfficheCursor = {
   startsAt: Date | null;
 };
 
+const afficheEventSelect = {
+  id: true,
+  title: true,
+  shortSummary: true,
+  city: true,
+  timezone: true,
+  venueName: true,
+  address: true,
+  lat: true,
+  lng: true,
+  startsAt: true,
+  endsAt: true,
+  category: true,
+  priceFrom: true,
+  priceMode: true,
+  currency: true,
+  imageUrl: true,
+  sourceProvider: true,
+  sourceUrl: true,
+  actionUrl: true,
+  actionKind: true,
+  isAffiliate: true,
+  tags: true,
+  source: {
+    select: { code: true, name: true },
+  },
+} satisfies Prisma.ExternalContentItemSelect;
+
+type AfficheEventRecord = Prisma.ExternalContentItemGetPayload<{
+  select: typeof afficheEventSelect;
+}>;
+
 @Injectable()
 export class AfficheService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -24,11 +56,7 @@ export class AfficheService {
 
     const items = await this.prismaService.client.externalContentItem.findMany({
       where: cursorWhere ? { AND: [where, cursorWhere] } : where,
-      include: {
-        source: {
-          select: { code: true, name: true },
-        },
-      },
+      select: afficheEventSelect,
       orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       take: limit + 1,
     });
@@ -49,16 +77,12 @@ export class AfficheService {
         moderationStatus: { not: 'rejected' },
         priceMode: { in: ['free', 'paid'] },
       },
-      include: {
-        source: {
-          select: { code: true, name: true },
-        },
-      },
+      select: afficheEventSelect,
     });
     if (!item) {
       throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
     }
-    return this.mapEvent(item as any);
+    return this.mapEvent(item);
   }
 
   private buildWhere(query: Record<string, unknown>, city: string): Prisma.ExternalContentItemWhereInput {
@@ -175,7 +199,7 @@ export class AfficheService {
     });
   }
 
-  private mapEvent(item: any): AfficheEventDto {
+  private mapEvent(item: AfficheEventRecord): AfficheEventDto {
     return {
       id: item.id,
       title: item.title,

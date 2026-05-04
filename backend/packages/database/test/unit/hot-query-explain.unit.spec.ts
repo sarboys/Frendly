@@ -28,6 +28,11 @@ describe('hot query explain helpers', () => {
       'outbox-batch-candidate-scan',
       'event-starting-scan',
       'subscription-expiring-scan',
+      'affiche-events-list-basic',
+      'affiche-events-list-search',
+      'affiche-events-list-price-mode',
+      'route-generation-events-candidate-scan',
+      'route-generation-places-candidate-scan',
     ]);
   });
 
@@ -63,6 +68,44 @@ describe('hot query explain helpers', () => {
     );
   });
 
+  it('covers external content affiche and route generation hot paths', () => {
+    const targets = buildHotQueryExplainTargets({
+      ...baseParams,
+      city: 'Москва',
+      afficheSearchQuery: 'джаз',
+      affichePriceMode: 'paid',
+    });
+    const labels = targets.map((target) => target.label);
+    const search = targets.find(
+      (target) => target.label === 'affiche-events-list-search',
+    );
+    const places = targets.find(
+      (target) => target.label === 'route-generation-places-candidate-scan',
+    );
+
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        'affiche-events-list-basic',
+        'affiche-events-list-search',
+        'affiche-events-list-price-mode',
+        'route-generation-events-candidate-scan',
+        'route-generation-places-candidate-scan',
+      ]),
+    );
+    expect(search?.query.strings.join(' ')).toContain(
+      'FROM "ExternalContentItem" eci',
+    );
+    expect(search?.query.strings.join(' ')).toContain(
+      'eci."title" ILIKE',
+    );
+    expect(places?.query.strings.join(' ')).toContain(
+      'eci."contentKind" =',
+    );
+    expect(places?.query.strings.join(' ')).toContain(
+      'ORDER BY eci."importedAt" DESC, eci."category" ASC, eci."id" ASC',
+    );
+  });
+
   it('keeps ANALYZE disabled unless the caller opts in', () => {
     const target = buildHotQueryExplainTargets(baseParams)[0]!;
 
@@ -88,7 +131,7 @@ describe('hot query explain helpers', () => {
       },
     );
 
-    expect(queryRaw).toHaveBeenCalledTimes(8);
+    expect(queryRaw).toHaveBeenCalledTimes(13);
     expect(reports).toEqual(
       expect.arrayContaining([
         {

@@ -65,15 +65,20 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
   private readonly baseUrl = process.env.KUDAGO_BASE_URL ?? 'https://kudago.com/public-api/v1.4';
 
   async fetchItems(input: ExternalSourceFetchInput): Promise<ExternalRawItem[]> {
-    const cityCode = KUDAGO_CITY_CODES[input.city] ?? input.cityCode;
-    const [events, places] = await Promise.all([
-      this.fetchEvents(input, cityCode),
-      this.fetchPlaces(input, cityCode),
-    ]);
-    return [...events, ...places];
+    const batches = [];
+    for await (const batch of this.fetchBatches(input)) {
+      batches.push(...batch);
+    }
+    return batches;
   }
 
-  private async fetchEvents(input: ExternalSourceFetchInput, cityCode: string) {
+  async *fetchBatches(input: ExternalSourceFetchInput): AsyncIterable<ExternalRawItem[]> {
+    const cityCode = KUDAGO_CITY_CODES[input.city] ?? input.cityCode;
+    yield* this.fetchEvents(input, cityCode);
+    yield* this.fetchPlaces(input, cityCode);
+  }
+
+  private async *fetchEvents(input: ExternalSourceFetchInput, cityCode: string): AsyncIterable<ExternalRawItem[]> {
     const url = new URL(`${this.baseUrl}/events/`);
     url.searchParams.set('lang', 'ru');
     url.searchParams.set('location', cityCode);
@@ -82,19 +87,27 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
     url.searchParams.set('page_size', String(PAGE_SIZE));
     url.searchParams.set('categories', KUDAGO_EVENT_CATEGORY_SLUGS.join(','));
     url.searchParams.set('fields', 'id,title,short_title,description,site_url,categories,dates,place,price');
-    const items = await fetchPaged(url, input.signal);
-    return items.flatMap((item) => this.mapEvent(item, input.city));
+    for await (const items of fetchPaged(url, input.signal)) {
+      const mapped = items.flatMap((item) => this.mapEvent(item, input.city));
+      if (mapped.length > 0) {
+        yield mapped;
+      }
+    }
   }
 
-  private async fetchPlaces(input: ExternalSourceFetchInput, cityCode: string) {
+  private async *fetchPlaces(input: ExternalSourceFetchInput, cityCode: string): AsyncIterable<ExternalRawItem[]> {
     const url = new URL(`${this.baseUrl}/places/`);
     url.searchParams.set('lang', 'ru');
     url.searchParams.set('location', cityCode);
     url.searchParams.set('page_size', String(PAGE_SIZE));
     url.searchParams.set('categories', KUDAGO_PLACE_CATEGORY_SLUGS.join(','));
     url.searchParams.set('fields', 'id,title,address,coords,site_url,categories,subway');
-    const items = await fetchPaged(url, input.signal);
-    return items.flatMap((item) => this.mapPlace(item, input.city));
+    for await (const items of fetchPaged(url, input.signal)) {
+      const mapped = items.flatMap((item) => this.mapPlace(item, input.city));
+      if (mapped.length > 0) {
+        yield mapped;
+      }
+    }
   }
 
   private mapEvent(item: Record<string, unknown>, city: string): ExternalRawItem[] {
@@ -174,20 +187,20 @@ async function fetchJson(url: URL, signal: AbortSignal) {
   return response.json();
 }
 
-async function fetchPaged(url: URL, signal: AbortSignal) {
-  const items: Record<string, unknown>[] = [];
+async function* fetchPaged(url: URL, signal: AbortSignal): AsyncIterable<Record<string, unknown>[]> {
   const maxPages = positiveInt(process.env.CONTENT_IMPORT_MAX_PAGES_PER_ENDPOINT, DEFAULT_MAX_PAGES_PER_ENDPOINT);
   for (let page = 1; page <= maxPages; page += 1) {
     const pageUrl = new URL(url.toString());
     pageUrl.searchParams.set('page', String(page));
     const payload = await fetchJson(pageUrl, signal);
     const pageItems = results(payload);
-    items.push(...pageItems);
+    if (pageItems.length > 0) {
+      yield pageItems;
+    }
     if (pageItems.length < PAGE_SIZE) {
       break;
     }
   }
-  return items;
 }
 
 function results(payload: unknown): Record<string, unknown>[] {

@@ -141,6 +141,15 @@ export class EventsService {
       take,
       radiusKm: params.radiusKm,
       blockedUserIds,
+      userId,
+      userGender,
+      filter,
+      q: params.q,
+      lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
+      price: params.price as EventPriceFilter | undefined,
+      gender: params.gender as EventGenderFilter | undefined,
+      access: params.access as EventAccessFilter | undefined,
+      date: params.date,
     });
     const shouldApplyDatabaseCursor =
       cursorEvent != null &&
@@ -181,63 +190,65 @@ export class EventsService {
       ];
     }
 
-    const events = await this.prismaService.client.event.findMany({
-      where,
-      include: {
-        participants: {
-          where: {
-            userId: {
-              notIn: [...blockedUserIds],
-            },
-          },
-          include: {
-            user: {
-              select: {
-                displayName: true,
-              },
-            },
-          },
-          orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
-          take: 6,
+    let cursorFilteredEvents: any[];
+    if (postgisCandidates == null && geoQuery?.center != null) {
+      const candidates = await this.prismaService.client.event.findMany({
+        where,
+        select: {
+          id: true,
+          distanceKm: true,
+          latitude: true,
+          longitude: true,
+          startsAt: true,
         },
-        joinRequests: {
-          where: { userId },
-          take: 1,
-          select: { status: true },
-        },
-        attendances: {
-          where: { userId },
-          take: 1,
-          select: { status: true },
-        },
-        liveState: {
-          select: { status: true },
-        },
-      },
-      orderBy: this.listOrderBy(filter, postgisCandidates == null ? geoQuery : undefined),
-      take: postgisCandidates == null
-        ? this.listTake(take, geoQuery)
-        : postgisCandidates.length,
-    });
+        orderBy: this.listOrderBy(filter, geoQuery),
+        take: this.listTake(take, geoQuery),
+      });
+      const orderedCandidates = this.orderEventsByGeo(candidates, geoQuery);
+      const candidatesWithEffectiveDistance = orderedCandidates.map((event) =>
+        this.eventWithGeoDistance(event, geoQuery),
+      );
+      cursorFilteredEvents = this.applyGeoCursor(
+        candidatesWithEffectiveDistance,
+        cursorEvent,
+      );
+    } else {
+      const events = await this.prismaService.client.event.findMany({
+        where,
+        include: this.eventListInclude(userId, blockedUserIds),
+        orderBy: this.listOrderBy(
+          filter,
+          postgisCandidates == null ? geoQuery : undefined,
+        ),
+        take:
+          postgisCandidates == null
+            ? this.listTake(take, geoQuery)
+            : postgisCandidates.length,
+      });
 
-    const orderedEvents = postgisCandidates == null
-      ? this.orderEventsByGeo(events, geoQuery)
-      : this.orderEventsByPostgisCandidates(events, postgisCandidates);
-    const eventsWithEffectiveDistance = orderedEvents.map((event) =>
-      this.eventWithGeoDistance(
-        event,
-        geoQuery,
-        postgisDistanceByEventId.get(event.id),
-      ),
-    );
-    const cursorFilteredEvents =
-      postgisCandidates == null && geoQuery?.center != null
-        ? this.applyGeoCursor(eventsWithEffectiveDistance, cursorEvent)
-        : eventsWithEffectiveDistance;
+      const orderedEvents =
+        postgisCandidates == null
+          ? this.orderEventsByGeo(events, geoQuery)
+          : this.orderEventsByPostgisCandidates(events, postgisCandidates);
+      cursorFilteredEvents = orderedEvents.map((event) =>
+        this.eventWithGeoDistance(
+          event,
+          geoQuery,
+          postgisDistanceByEventId.get(event.id),
+        ),
+      );
+    }
     const hasMore = cursorFilteredEvents.length > take;
-    const page = hasMore
+    let page = hasMore
       ? cursorFilteredEvents.slice(0, take)
       : cursorFilteredEvents;
+    if (postgisCandidates == null && geoQuery?.center != null) {
+      page = await this.loadEventListDetailsForCandidates(
+        page,
+        userId,
+        blockedUserIds,
+      );
+    }
     const pageEventIds = page.map((event) => event.id);
     const [participantCounts, currentParticipations] =
       pageEventIds.length === 0
@@ -2114,6 +2125,69 @@ export class EventsService {
     }
   }
 
+  private async loadEventListDetailsForCandidates(
+    candidates: Array<{ id: string; distanceKm: number }>,
+    userId: string,
+    blockedUserIds: Set<string>,
+  ) {
+    if (candidates.length === 0) {
+      return [];
+    }
+
+    const events = await this.prismaService.client.event.findMany({
+      where: {
+        id: {
+          in: candidates.map((event) => event.id),
+        },
+      },
+      include: this.eventListInclude(userId, blockedUserIds),
+    });
+    const eventById = new Map(events.map((event) => [event.id, event]));
+
+    const page: Array<(typeof events)[number]> = [];
+    for (const candidate of candidates) {
+      const event = eventById.get(candidate.id);
+      if (event) {
+        page.push({ ...event, distanceKm: candidate.distanceKm });
+      }
+    }
+    return page;
+  }
+
+  private eventListInclude(userId: string, blockedUserIds: Set<string>) {
+    return {
+      participants: {
+        where: {
+          userId: {
+            notIn: [...blockedUserIds],
+          },
+        },
+        include: {
+          user: {
+            select: {
+              displayName: true,
+            },
+          },
+        },
+        orderBy: [{ joinedAt: 'asc' as const }, { id: 'asc' as const }],
+        take: 6,
+      },
+      joinRequests: {
+        where: { userId },
+        take: 1,
+        select: { status: true },
+      },
+      attendances: {
+        where: { userId },
+        take: 1,
+        select: { status: true },
+      },
+      liveState: {
+        select: { status: true },
+      },
+    };
+  }
+
   private parseIsoDateRange(raw?: string) {
     if (!raw || raw === 'any') {
       return null;
@@ -2162,6 +2236,15 @@ export class EventsService {
     take: number;
     radiusKm?: number;
     blockedUserIds: Set<string>;
+    userId: string;
+    userGender?: string | null;
+    filter?: EventFilter;
+    q?: string;
+    lifestyle?: EventLifestyleFilter;
+    price?: EventPriceFilter;
+    gender?: EventGenderFilter;
+    access?: EventAccessFilter;
+    date?: string;
   }): Promise<PostgisEventCandidate[] | null> {
     const center = params.geoQuery?.center;
     if (
@@ -2178,6 +2261,60 @@ export class EventsService {
     const radiusMeters = radiusKm * 1000;
     const candidateLimit = this.listTake(params.take, params.geoQuery);
     const now = new Date();
+    const participantOrAttendanceVisibility = Prisma.sql`
+      EXISTS (
+        SELECT 1
+        FROM "EventParticipant" ep
+        WHERE ep."eventId" = e."id"
+          AND ep."userId" = ${params.userId}
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM "EventAttendance" ea
+        WHERE ea."eventId" = e."id"
+          AND ea."userId" = ${params.userId}
+      )
+    `;
+    const visibilityFilter = Prisma.sql`
+      AND (
+        e."visibilityMode"::text = 'public'
+        OR e."hostId" = ${params.userId}
+        OR ${participantOrAttendanceVisibility}
+      )
+    `;
+    const genderVisibilityFilter =
+      params.userGender == null
+        ? Prisma.sql`
+          AND (
+            e."genderMode"::text = 'all'
+            OR e."hostId" = ${params.userId}
+            OR ${participantOrAttendanceVisibility}
+          )
+        `
+        : Prisma.sql`
+          AND (
+            e."genderMode"::text = 'all'
+            OR e."genderMode"::text = ${params.userGender}
+            OR e."hostId" = ${params.userId}
+            OR ${participantOrAttendanceVisibility}
+          )
+        `;
+    const startsAtFilter = this.postgisStartsAtFilter(params.filter, params.date, now);
+    const routeFilter = this.postgisRouteFilter(params.filter);
+    const searchFilter = this.postgisSearchFilter(params.q);
+    const lifestyleFilter =
+      params.lifestyle && params.lifestyle !== 'any'
+        ? Prisma.sql`AND e."lifestyle"::text = ${params.lifestyle}`
+        : Prisma.empty;
+    const genderFilter =
+      params.gender && params.gender !== 'any'
+        ? Prisma.sql`AND e."genderMode"::text = ${params.gender}`
+        : Prisma.empty;
+    const accessFilter =
+      params.access && params.access !== 'any'
+        ? Prisma.sql`AND e."accessMode"::text = ${params.access}`
+        : Prisma.empty;
+    const priceFilter = this.postgisPriceFilter(params.price);
     const blockedHostFilter =
       params.blockedUserIds.size === 0
         ? Prisma.empty
@@ -2208,8 +2345,17 @@ export class EventsService {
           ) / 1000 AS distance_km
         FROM "Event" e
         WHERE e."geo" IS NOT NULL
+          AND e."canceledAt" IS NULL
           AND e."isAfterDark" = false
-          AND e."startsAt" >= ${now}
+          ${visibilityFilter}
+          ${genderVisibilityFilter}
+          ${startsAtFilter}
+          ${routeFilter}
+          ${searchFilter}
+          ${lifestyleFilter}
+          ${genderFilter}
+          ${accessFilter}
+          ${priceFilter}
           ${blockedHostFilter}
           AND ST_DWithin(
             e."geo",
@@ -2226,6 +2372,106 @@ export class EventsService {
       eventId: row.event_id,
       distanceKm: Number(row.distance_km),
     }));
+  }
+
+  private postgisStartsAtFilter(
+    filter: EventFilter | undefined,
+    date: string | undefined,
+    now: Date,
+  ) {
+    const dateRange = this.parseIsoDateRange(date);
+    if (dateRange) {
+      return Prisma.sql`
+        AND e."startsAt" >= ${dateRange.start}
+        AND e."startsAt" < ${dateRange.end}
+      `;
+    }
+
+    if (filter === 'now') {
+      return Prisma.sql`
+        AND e."startsAt" >= ${new Date(now.getTime() - 3 * 60 * 60 * 1000)}
+        AND e."startsAt" <= ${new Date(now.getTime() + 3 * 60 * 60 * 1000)}
+      `;
+    }
+
+    return Prisma.sql`AND e."startsAt" >= ${now}`;
+  }
+
+  private postgisRouteFilter(filter?: EventFilter) {
+    switch (filter) {
+      case 'calm':
+        return Prisma.sql`AND e."isCalm" = true`;
+      case 'newcomers':
+        return Prisma.sql`AND e."isNewcomers" = true`;
+      case 'date':
+        return Prisma.sql`AND e."isDate" = true`;
+      default:
+        return Prisma.empty;
+    }
+  }
+
+  private postgisSearchFilter(raw?: string) {
+    const query = normalizeSearchQuery(raw);
+    if (!query) {
+      return Prisma.empty;
+    }
+
+    const pattern = `%${query
+      .replaceAll('\\', '\\\\')
+      .replaceAll('%', '\\%')
+      .replaceAll('_', '\\_')}%`;
+
+    return Prisma.sql`
+      AND (
+        e."title" ILIKE ${pattern} ESCAPE '\\'
+        OR e."place" ILIKE ${pattern} ESCAPE '\\'
+        OR e."description" ILIKE ${pattern} ESCAPE '\\'
+        OR e."hostNote" ILIKE ${pattern} ESCAPE '\\'
+        OR e."vibe" ILIKE ${pattern} ESCAPE '\\'
+      )
+    `;
+  }
+
+  private postgisPriceFilter(price?: EventPriceFilter) {
+    if (!price || price === 'any') {
+      return Prisma.empty;
+    }
+
+    if (price === 'free') {
+      return Prisma.sql`AND e."priceMode"::text = 'free'`;
+    }
+
+    const between = (min: number, max?: number) =>
+      max == null
+        ? Prisma.sql`
+          AND (
+            e."priceAmountTo" > ${min}
+            OR (
+              e."priceAmountTo" IS NULL
+              AND e."priceAmountFrom" > ${min}
+            )
+          )
+        `
+        : Prisma.sql`
+          AND (
+            e."priceAmountTo" BETWEEN ${min} AND ${max}
+            OR (
+              e."priceAmountTo" IS NULL
+              AND e."priceAmountFrom" BETWEEN ${min} AND ${max}
+            )
+          )
+        `;
+
+    switch (price) {
+      case 'cheap':
+        return between(0, 1000);
+      case 'mid':
+        return between(1001, 3000);
+      case 'premium':
+        return between(3000);
+      default:
+        return Prisma.empty;
+    }
   }
 
   private normalizeEventGeoQuery(params: {

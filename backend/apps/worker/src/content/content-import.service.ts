@@ -5,7 +5,13 @@ import { maskAdvCakeSecrets } from './advcake-ticketland.adapter';
 import { dayKey, eventDuplicateMatch } from './content-deduplication.service';
 import { ContentNormalizerService } from './content-normalizer.service';
 import { ExternalSourceRegistry } from './external-source.registry';
-import type { ExternalSourceCode, NormalizedExternalContentItem } from './content-source.types';
+import type {
+  ExternalRawItem,
+  ExternalSourceAdapter,
+  ExternalSourceCode,
+  ExternalSourceFetchInput,
+  NormalizedExternalContentItem,
+} from './content-source.types';
 
 export type ContentImportInput = {
   city: string;
@@ -38,6 +44,28 @@ const PUBLIC_STATUS_PUBLISHED = 'published';
 const PUBLIC_STATUS_HIDDEN = 'hidden';
 const PUBLIC_STATUS_STALE = 'stale';
 const STALE_GRACE_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_DUPLICATE_PRELOAD_LIMIT = 1000;
+
+type DuplicateCandidateCache = Map<string, Promise<EventDuplicateCandidate[]>>;
+
+type EventDuplicateCandidate = {
+  id: string;
+  sourceItemId: string;
+  sourceUrl: string | null;
+  contentKind: 'place' | 'event';
+  city: string;
+  title: string;
+  venueName: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  startsAt: Date | null;
+  priceMode: string;
+  publicStatus: string;
+  actionUrl: string | null;
+  raw: unknown;
+  source: { code: ExternalSourceCode; name: string } | null;
+};
 
 @Injectable()
 export class ContentImportService {
@@ -142,6 +170,9 @@ export class ContentImportService {
     let freeCount = 0;
     let unknownPriceCount = 0;
     let missingCoordsCount = 0;
+    const rssBefore = process.memoryUsage().rss;
+    const startedAt = Date.now();
+    const duplicateCache: DuplicateCandidateCache = new Map();
     try {
       console.info('[content-import] source started', {
         runId: input.runId,
@@ -149,15 +180,44 @@ export class ContentImportService {
         city: input.city,
         from: input.from.toISOString(),
         to: input.to.toISOString(),
+        rssBefore,
       });
-      const rawItems = await adapter.fetchItems({
+      const fetchInput = {
         city: input.city,
         cityCode: SOURCE_CITY_CODES[input.sourceCode]?.[input.city] ?? input.city,
         from: input.from,
         to: input.to,
         signal: controller.signal,
-      });
-      fetchedCount = rawItems.length;
+      };
+      for await (const rawItems of this.fetchItemBatches(adapter, fetchInput)) {
+        fetchedCount += rawItems.length;
+        for (const rawItem of rawItems) {
+          try {
+            const normalized = await this.prepareItemForUpsert(
+              this.normalizer.normalize(rawItem),
+              duplicateCache,
+            );
+            const publicStatus = normalized.publicStatusOverride ?? publicStatusFor(normalized.item);
+            await this.upsertItem(input.sourceId, input.runId, normalized.item, publicStatus);
+            normalizedCount += 1;
+            if (publicStatus === PUBLIC_STATUS_PUBLISHED) {
+              publishedCount += 1;
+            }
+            if (normalized.item.priceMode === 'paid') {
+              paidCount += 1;
+            } else if (normalized.item.priceMode === 'free') {
+              freeCount += 1;
+            } else {
+              unknownPriceCount += 1;
+            }
+            if (normalized.item.lat == null || normalized.item.lng == null) {
+              missingCoordsCount += 1;
+            }
+          } catch {
+            skippedCount += 1;
+          }
+        }
+      }
       if (fetchedCount === 0) {
         console.warn('[content-import] source returned empty feed', {
           runId: input.runId,
@@ -165,30 +225,9 @@ export class ContentImportService {
           city: input.city,
         });
       }
-      for (const rawItem of rawItems) {
-        try {
-          const normalized = await this.prepareItemForUpsert(this.normalizer.normalize(rawItem));
-          const publicStatus = normalized.publicStatusOverride ?? publicStatusFor(normalized.item);
-          await this.upsertItem(input.sourceId, input.runId, normalized.item, publicStatus);
-          normalizedCount += 1;
-          if (publicStatus === PUBLIC_STATUS_PUBLISHED) {
-            publishedCount += 1;
-          }
-          if (normalized.item.priceMode === 'paid') {
-            paidCount += 1;
-          } else if (normalized.item.priceMode === 'free') {
-            freeCount += 1;
-          } else {
-            unknownPriceCount += 1;
-          }
-          if (normalized.item.lat == null || normalized.item.lng == null) {
-            missingCoordsCount += 1;
-          }
-        } catch {
-          skippedCount += 1;
-        }
-      }
       await this.markStaleItems(input.sourceId, input.city);
+      const durationMs = Date.now() - startedAt;
+      const rssAfter = process.memoryUsage().rss;
       await this.prismaService.client.externalImportRun.update({
         where: { id: input.runId },
         data: {
@@ -220,9 +259,15 @@ export class ContentImportService {
         freeCount,
         unknownPriceCount,
         missingCoordsCount,
+        rssBefore,
+        rssAfter,
+        durationMs,
+        itemsPerSecond: itemsPerSecond(fetchedCount, durationMs),
       });
     } catch (caught) {
       const failure = contentImportFailure(caught);
+      const durationMs = Date.now() - startedAt;
+      const rssAfter = process.memoryUsage().rss;
       await this.prismaService.client.externalImportRun.update({
         where: { id: input.runId },
         data: {
@@ -246,9 +291,30 @@ export class ContentImportService {
         city: input.city,
         code: failure.code,
         message: failure.message,
+        fetchedCount,
+        normalizedCount,
+        skippedCount,
+        rssBefore,
+        rssAfter,
+        durationMs,
+        itemsPerSecond: itemsPerSecond(fetchedCount, durationMs),
       });
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  private async *fetchItemBatches(
+    adapter: ExternalSourceAdapter,
+    input: ExternalSourceFetchInput,
+  ): AsyncIterable<ExternalRawItem[]> {
+    if (adapter.fetchBatches) {
+      yield* adapter.fetchBatches(input);
+      return;
+    }
+    const items = await adapter.fetchItems(input);
+    if (items.length > 0) {
+      yield items;
     }
   }
 
@@ -351,7 +417,10 @@ export class ContentImportService {
     });
   }
 
-  private async prepareItemForUpsert(item: NormalizedExternalContentItem): Promise<{
+  private async prepareItemForUpsert(
+    item: NormalizedExternalContentItem,
+    duplicateCache: DuplicateCandidateCache,
+  ): Promise<{
     item: NormalizedExternalContentItem;
     publicStatusOverride?: string;
   }> {
@@ -359,7 +428,7 @@ export class ContentImportService {
       return { item };
     }
 
-    const duplicate = await this.findEventDuplicate(item);
+    const duplicate = await this.findEventDuplicate(item, duplicateCache);
     if (!duplicate || duplicate.match.confidence === 'low') {
       return { item };
     }
@@ -396,25 +465,17 @@ export class ContentImportService {
     return { item };
   }
 
-  private async findEventDuplicate(item: NormalizedExternalContentItem) {
+  private async findEventDuplicate(
+    item: NormalizedExternalContentItem,
+    duplicateCache: DuplicateCandidateCache,
+  ) {
     if (!item.startsAt) {
       return null;
     }
-    const [from, to] = dayBounds(item.startsAt);
-    const candidates = await this.prismaService.client.externalContentItem.findMany({
-      where: {
-        city: item.city,
-        contentKind: 'event',
-        startsAt: { gte: from, lt: to },
-        source: { code: { not: item.sourceCode } },
-      },
-      include: { source: { select: { code: true, name: true } } },
-      orderBy: [{ importedAt: 'desc' }, { id: 'asc' }],
-      take: 30,
-    });
+    const candidates = await this.loadEventDuplicateCandidates(item, duplicateCache);
 
     const matches = candidates
-      .map((candidate: any) => ({
+      .map((candidate) => ({
         item: candidate,
         match: eventDuplicateMatch(item, {
           city: candidate.city,
@@ -428,6 +489,38 @@ export class ContentImportService {
     return matches.find((candidate) => candidate.item.source?.code === 'advcake_ticketland')
       ?? matches[0]
       ?? null;
+  }
+
+  private loadEventDuplicateCandidates(
+    item: NormalizedExternalContentItem,
+    duplicateCache: DuplicateCandidateCache,
+  ) {
+    if (!item.startsAt) {
+      return Promise.resolve([]);
+    }
+    const key = duplicateCacheKey(item);
+    const existing = duplicateCache.get(key);
+    if (existing) {
+      return existing;
+    }
+
+    const [from, to] = dayBounds(item.startsAt);
+    const preload = this.prismaService.client.externalContentItem.findMany({
+      where: {
+        city: item.city,
+        contentKind: 'event',
+        startsAt: { gte: from, lt: to },
+        source: { code: { not: item.sourceCode } },
+      },
+      include: { source: { select: { code: true, name: true } } },
+      orderBy: [{ importedAt: 'desc' }, { id: 'asc' }],
+      take: positiveInt(
+        process.env.CONTENT_IMPORT_DUPLICATE_PRELOAD_LIMIT,
+        DEFAULT_DUPLICATE_PRELOAD_LIMIT,
+      ),
+    }) as Promise<EventDuplicateCandidate[]>;
+    duplicateCache.set(key, preload);
+    return preload;
   }
 
   private enrichExistingAffiliateItem(
@@ -484,6 +577,22 @@ function dayBounds(value: Date): [Date, Date] {
   const from = new Date(`${day}T00:00:00.000Z`);
   const to = new Date(from.getTime() + 24 * 60 * 60 * 1000);
   return [from, to];
+}
+
+function duplicateCacheKey(item: NormalizedExternalContentItem) {
+  return [
+    item.city,
+    item.contentKind,
+    dayKey(item.startsAt),
+    item.sourceCode,
+  ].join('|');
+}
+
+function itemsPerSecond(count: number, durationMs: number) {
+  if (durationMs <= 0) {
+    return count;
+  }
+  return Math.round((count / durationMs) * 1000 * 100) / 100;
 }
 
 function enrichItemFromDuplicate(

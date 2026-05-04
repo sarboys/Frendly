@@ -95,6 +95,79 @@ describe('ContentImportService', () => {
     }));
   });
 
+  it('imports adapter batches without collecting the whole feed first', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const fetchItems = jest.fn().mockResolvedValue([]);
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-1', code: 'kudago' },
+        itemUpsert,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'kudago',
+        fetchItems,
+        fetchBatches: async function* () {
+          yield [
+            rawEvent({ sourceItemId: 'event-1', priceFrom: 0 }),
+            rawEvent({ sourceItemId: 'event-2', priceFrom: 0 }),
+          ];
+          yield [
+            rawEvent({ sourceItemId: 'event-3', priceFrom: 0 }),
+          ];
+        },
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['kudago'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-05-11T00:00:00.000Z'),
+    });
+
+    expect(fetchItems).not.toHaveBeenCalled();
+    expect(itemUpsert).toHaveBeenCalledTimes(3);
+  });
+
+  it('preloads event duplicates once per source day instead of querying per item', async () => {
+    const itemFindMany = jest.fn().mockResolvedValue([]);
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-1', code: 'kudago' },
+        itemFindMany,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'kudago',
+        fetchItems: jest.fn().mockResolvedValue(
+          Array.from({ length: 100 }, (_, index) =>
+            rawEvent({
+              sourceItemId: `event-${index}`,
+              title: `Событие ${index}`,
+              priceFrom: 0,
+            }),
+          ),
+        ),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['kudago'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-05-11T00:00:00.000Z'),
+    });
+
+    expect(itemFindMany).toHaveBeenCalledTimes(1);
+    expect(itemFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        city: 'Москва',
+        contentKind: 'event',
+      }),
+    }));
+  });
+
   it('publishes only monetized paid events and exact free KudaGo or Timepad events', async () => {
     const itemUpsert = jest.fn().mockResolvedValue({});
     const service = new ContentImportService(

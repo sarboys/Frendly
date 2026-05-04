@@ -1070,6 +1070,85 @@ describe('RouteDraftGenerationService', () => {
     }));
   });
 
+  it('bounds route generation place candidates before building prompt', async () => {
+    const batchCreate = jest.fn().mockResolvedValue({ id: 'batch-1' });
+    const place = (index: number) => ({
+      id: `place-${index}`,
+      sourceUrl: `https://example.com/place-${index}`,
+      contentKind: 'place',
+      city: 'Москва',
+      area: index < 10 ? 'центр' : 'другой район',
+      title: `Кофейня ${index}`,
+      shortSummary: 'Кандидат для маршрута',
+      category: 'food',
+      address: `Улица ${index}`,
+      lat: 55.75 + index * 0.0001,
+      lng: 37.61 + index * 0.0001,
+      startsAt: null,
+      endsAt: null,
+      priceFrom: 500,
+      source: { name: 'KudaGo', code: 'kudago' },
+    });
+    const event = (index: number) => ({
+      id: `event-${index}`,
+      sourceUrl: `https://example.com/event-${index}`,
+      contentKind: 'event',
+      city: 'Москва',
+      title: `Концерт ${index}`,
+      shortSummary: 'Событие',
+      category: 'concert',
+      address: `Площадка ${index}`,
+      lat: 55.76 + index * 0.001,
+      lng: 37.62 + index * 0.001,
+      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      endsAt: new Date('2026-05-05T18:00:00.000Z'),
+      priceFrom: 500,
+      source: { name: 'Timepad', code: 'timepad' },
+    });
+    const findMany = jest.fn()
+      .mockResolvedValueOnce([event(1), event(2)])
+      .mockResolvedValueOnce(Array.from({ length: 300 }, (_, index) => place(index)));
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: {
+            findMany,
+          },
+          generatedRouteDraftBatch: {
+            create: batchCreate,
+            update: jest.fn().mockResolvedValue({}),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
+          generatedRouteReviewDraft: { create: jest.fn() },
+        },
+      } as any,
+      {
+        generateJson: jest.fn().mockRejectedValue(
+          new OpenRouterClientError(
+            504,
+            'openrouter_timeout',
+            'OpenRouter request timed out after 1000ms',
+          ),
+        ),
+      } as any,
+    );
+
+    await service.generateForCity({
+      city: 'Москва',
+      area: 'центр',
+      mood: 'calm',
+      budget: 'mid',
+      maxDrafts: 1,
+    });
+
+    expect(findMany.mock.calls[1][0]).toEqual(expect.objectContaining({
+      take: 240,
+    }));
+    const requestJson = batchCreate.mock.calls[0][0].data.requestJson;
+    expect(requestJson.inventorySummary.places).toBeLessThanOrEqual(48);
+    expect(requestJson.inventorySummary.totalCandidates).toBeLessThanOrEqual(50);
+  });
+
   it('fails stale running generation batches before processing manual queue', async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const findMany = jest.fn().mockResolvedValue([]);

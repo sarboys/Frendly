@@ -3,11 +3,15 @@ import { Prisma } from '@prisma/client';
 export type HotQueryExplainParams = {
   userId: string;
   hostId: string;
+  city?: string;
+  afficheSearchQuery?: string;
+  affichePriceMode?: 'free' | 'paid';
   latitude: number;
   longitude: number;
   radiusKm: number;
   now?: Date;
   limit?: number;
+  routePlaceCandidateLimit?: number;
   analyze?: boolean;
   includePostgis?: boolean;
 };
@@ -52,7 +56,15 @@ export function buildHotQueryExplainTargets(
 ): HotQueryExplainTarget[] {
   const now = params.now ?? new Date();
   const limit = resolvePositiveInteger(params.limit, DEFAULT_LIMIT);
+  const city = params.city?.trim() || 'Москва';
+  const afficheSearchPattern = `%${(params.afficheSearchQuery?.trim() || 'концерт').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`;
+  const affichePriceMode = params.affichePriceMode === 'paid' ? 'paid' : 'free';
+  const routePlaceCandidateLimit = resolvePositiveInteger(
+    params.routePlaceCandidateLimit,
+    240,
+  );
   const eventStartingWindowEnd = new Date(now.getTime() + EVENT_STARTING_WINDOW_MS);
+  const routeCandidateWindowEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
   const subscriptionWindowEnd = new Date(
     now.getTime() + SUBSCRIPTION_EXPIRING_WINDOW_MS,
   );
@@ -228,6 +240,99 @@ export function buildHotQueryExplainTargets(
           )
         ORDER BY ends_at ASC, us."id" ASC
         LIMIT ${limit}
+      `,
+    },
+    {
+      label: 'affiche-events-list-basic',
+      query: Prisma.sql`
+        SELECT eci."id", eci."startsAt"
+        FROM "ExternalContentItem" eci
+        WHERE eci."city" = ${city}
+          AND eci."contentKind" = 'event'
+          AND eci."publicStatus" = 'published'
+          AND eci."moderationStatus" <> 'rejected'
+          AND eci."priceMode" IN ('free', 'paid')
+          AND eci."startsAt" >= ${now}
+        ORDER BY eci."startsAt" ASC, eci."id" ASC
+        LIMIT ${limit}
+      `,
+    },
+    {
+      label: 'affiche-events-list-search',
+      query: Prisma.sql`
+        SELECT eci."id", eci."startsAt"
+        FROM "ExternalContentItem" eci
+        WHERE eci."city" = ${city}
+          AND eci."contentKind" = 'event'
+          AND eci."publicStatus" = 'published'
+          AND eci."moderationStatus" <> 'rejected'
+          AND eci."priceMode" IN ('free', 'paid')
+          AND eci."startsAt" >= ${now}
+          AND (
+            eci."title" ILIKE ${afficheSearchPattern} ESCAPE '\\'
+            OR eci."shortSummary" ILIKE ${afficheSearchPattern} ESCAPE '\\'
+            OR eci."venueName" ILIKE ${afficheSearchPattern} ESCAPE '\\'
+            OR eci."address" ILIKE ${afficheSearchPattern} ESCAPE '\\'
+            OR eci."category" ILIKE ${afficheSearchPattern} ESCAPE '\\'
+          )
+        ORDER BY eci."startsAt" ASC, eci."id" ASC
+        LIMIT ${limit}
+      `,
+    },
+    {
+      label: 'affiche-events-list-price-mode',
+      query: Prisma.sql`
+        SELECT eci."id", eci."startsAt"
+        FROM "ExternalContentItem" eci
+        WHERE eci."city" = ${city}
+          AND eci."contentKind" = 'event'
+          AND eci."publicStatus" = 'published'
+          AND eci."moderationStatus" <> 'rejected'
+          AND eci."priceMode" = ${affichePriceMode}
+          AND eci."startsAt" >= ${now}
+        ORDER BY eci."startsAt" ASC, eci."id" ASC
+        LIMIT ${limit}
+      `,
+    },
+    {
+      label: 'route-generation-events-candidate-scan',
+      query: Prisma.sql`
+        SELECT eci."id", eci."startsAt", eci."importedAt"
+        FROM "ExternalContentItem" eci
+        WHERE eci."city" = ${city}
+          AND eci."moderationStatus" IN ('pending', 'approved')
+          AND eci."publicStatus" = 'published'
+          AND eci."lat" IS NOT NULL
+          AND eci."lng" IS NOT NULL
+          AND (
+            eci."expiresAt" IS NULL
+            OR eci."expiresAt" > ${now}
+          )
+          AND eci."contentKind" = 'event'
+          AND eci."priceMode" IN ('free', 'paid')
+          AND eci."startsAt" >= ${now}
+          AND eci."startsAt" <= ${routeCandidateWindowEnd}
+        ORDER BY eci."startsAt" ASC, eci."importedAt" DESC, eci."id" ASC
+        LIMIT 48
+      `,
+    },
+    {
+      label: 'route-generation-places-candidate-scan',
+      query: Prisma.sql`
+        SELECT eci."id", eci."importedAt", eci."category"
+        FROM "ExternalContentItem" eci
+        WHERE eci."city" = ${city}
+          AND eci."moderationStatus" IN ('pending', 'approved')
+          AND eci."publicStatus" = 'published'
+          AND eci."lat" IS NOT NULL
+          AND eci."lng" IS NOT NULL
+          AND (
+            eci."expiresAt" IS NULL
+            OR eci."expiresAt" > ${now}
+          )
+          AND eci."contentKind" = 'place'
+        ORDER BY eci."importedAt" DESC, eci."category" ASC, eci."id" ASC
+        LIMIT ${routePlaceCandidateLimit}
       `,
     },
   ];

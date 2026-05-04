@@ -40,6 +40,17 @@ describe('AfficheService', () => {
       orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       take: 11,
     }));
+    const findManyArgs = findMany.mock.calls[0][0];
+    expect(findManyArgs).not.toHaveProperty('include');
+    expect(findManyArgs.select).toEqual(expect.objectContaining({
+      id: true,
+      title: true,
+      shortSummary: true,
+      source: { select: { code: true, name: true } },
+    }));
+    expect(findManyArgs.select).not.toHaveProperty('raw');
+    expect(findManyArgs.select).not.toHaveProperty('normalizedHash');
+    expect(findManyArgs.select).not.toHaveProperty('importRunId');
     expect(result.items).toEqual([
       expect.objectContaining({
         id: 'event-1',
@@ -74,6 +85,9 @@ describe('AfficheService', () => {
         priceMode: { in: ['free', 'paid'] },
       }),
     }));
+    const findFirstArgs = findFirst.mock.calls[0][0];
+    expect(findFirstArgs).not.toHaveProperty('include');
+    expect(findFirstArgs.select).not.toHaveProperty('raw');
   });
 });
 

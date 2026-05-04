@@ -97,9 +97,9 @@ Public:
 - Incoming dating likes use `DatingAction.targetUserId + action + actorUserId`.
 - `/matches` reads reciprocal positive `DatingAction` rows, not event favorites.
 - Dating matches need `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes.
-- `db:perf:hot-queries` covers reciprocal dating matches and bounded push token dispatch reads.
+- `db:perf:hot-queries` covers reciprocal dating matches, bounded push token dispatch reads, public Affiche list/search/price filters, and route generation ExternalContentItem event/place scans.
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.
-- Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`. Geo cursors must use the same effective distance that sorted the page.
+- Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`. The generated `Event.geo` column and GiST index are enabled by `db:postgis:event-geo`, not by normal Prisma deploy, so do not make it the production default unless that rollout step is guaranteed. Geo cursors must use the same effective distance that sorted the page.
 - Evening analytics admin filters use `EveningAnalyticsEvent.venueId + name + createdAt + id`.
 - Public affiche reads use `ExternalContentItem.publicStatus + city + startsAt + id` and filters `contentKind=event`, `priceMode in (free, paid)`.
 - Admin content review uses `ExternalContentItem.city + startsAt + priceMode + contentKind + moderationStatus + sourceId` plus `sourceId + priceMode + importedAt + id`.
