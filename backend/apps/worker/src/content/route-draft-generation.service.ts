@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { OpenRouterClient, OpenRouterClientError } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import {
+  buildRouteSkeletons,
+  validateRouteDraft,
+  type RoutePlannerCandidate,
+} from './route-planner';
 
 type GeneratedRoute = {
   title?: unknown;
@@ -42,6 +47,7 @@ export type RouteDraftGenerationInput = {
   area?: string | null;
   mood: string;
   budget: string;
+  timezone?: string | null;
   maxDrafts?: number;
 };
 
@@ -52,7 +58,6 @@ const MAX_CANDIDATES_PER_PROMPT = 36;
 const MAX_INPUT_PROMPT_CHARS = 720_000;
 const MAX_OPENROUTER_TOKENS = 4096;
 const DEFAULT_STALE_RUNNING_MS = 5 * 60 * 1000;
-const FALLBACK_MAX_WALK_METERS = 1800;
 
 @Injectable()
 export class RouteDraftGenerationService {
@@ -306,6 +311,15 @@ export class RouteDraftGenerationService {
   }
 
   private buildPromptRequest(input: RouteDraftGenerationInput, candidates: any[]) {
+    const timezone = input.timezone ?? 'Europe/Moscow';
+    const routeSkeletons = buildRouteSkeletons(
+      {
+        ...input,
+        timezone,
+        maxDrafts: input.maxDrafts ?? 4,
+      },
+      candidates as RoutePlannerCandidate[],
+    );
     return {
       promptVersion: PROMPT_VERSION,
       instructions: {
@@ -318,12 +332,12 @@ export class RouteDraftGenerationService {
           'Do not publish anything. Drafts require admin review.',
           'Do not return empty route objects.',
         ],
-        routePolicy: 'Each route must work as a social meeting scenario with 2 to 4 nearby steps.',
-        stepPolicy: 'Every route must include a steps array with 2 to 4 step objects. If you cannot build that route, omit it.',
+        routePolicy: 'Use routeSkeletons as the source of truth. A route needs one main timed event at most, real duration, nearby flexible places before or after, and visible movement between places.',
+        stepPolicy: 'Every route must include a steps array with 2 to 4 step objects. Keep event timeLabel and endTimeLabel equal to imported startsAt and endsAt. If you cannot build that route, omit it.',
       },
       brief: {
         city: input.city,
-        timezone: 'Europe/Moscow',
+        timezone,
         area: input.area ?? null,
         mood: input.mood,
         budget: input.budget,
@@ -344,7 +358,26 @@ export class RouteDraftGenerationService {
         lng: item.lng,
         startsAt: dateToIso(item.startsAt),
         endsAt: dateToIso(item.endsAt),
+        durationMinutes: durationMinutes(item.startsAt, item.endsAt),
         priceFrom: item.priceFrom,
+      })),
+      routeSkeletons: routeSkeletons.map((route) => ({
+        title: route.title,
+        durationLabel: route.durationLabel,
+        totalPriceFrom: route.totalPriceFrom,
+        steps: route.steps.map((step) => ({
+          externalContentItemId: step.externalContentItemId,
+          timeLabel: step.timeLabel,
+          endTimeLabel: step.endTimeLabel,
+          kind: step.kind,
+          title: step.title,
+          venue: step.venue,
+          address: step.address,
+          walkMin: step.walkMin,
+          distanceLabel: step.distanceLabel,
+          lat: step.lat,
+          lng: step.lng,
+        })),
       })),
       expectedShape: {
         routes: [
@@ -381,6 +414,7 @@ export class RouteDraftGenerationService {
 
   private inputFromBatch(batch: {
     city: string;
+    timezone?: string | null;
     area?: string | null;
     mood: string;
     budget: string;
@@ -392,6 +426,7 @@ export class RouteDraftGenerationService {
     return {
       city: batch.city,
       area: batch.area ?? null,
+      timezone: batch.timezone ?? 'Europe/Moscow',
       mood: batch.mood,
       budget: batch.budget,
       maxDrafts: positiveInt(request.maxDrafts, 2),
@@ -417,7 +452,12 @@ export class RouteDraftGenerationService {
     route: GeneratedRoute,
   ) {
     const steps = Array.isArray(route.steps) ? route.steps.slice(0, 4) : [];
-    const validation = validateRoute(route, steps);
+    const validation = validateRouteDraft(
+      { ...route, steps },
+      candidates as RoutePlannerCandidate[],
+      input.timezone ?? 'Europe/Moscow',
+      input.budget,
+    );
     const candidateById = new Map(candidates.map((item) => [item.id, item]));
 
     await this.prismaService.client.generatedRouteReviewDraft.create({
@@ -475,206 +515,31 @@ export class RouteDraftGenerationService {
   }
 }
 
-function validateRoute(route: GeneratedRoute, steps: GeneratedRouteStep[]) {
-  const issues = [];
-  if (steps.length < 2 || steps.length > 4) {
-    issues.push({ severity: 'error', code: 'steps_count_invalid', message: 'Route must have 2 to 4 steps' });
-  }
-  if (text(route.title, '').length > 90) {
-    issues.push({ severity: 'error', code: 'title_too_long', message: 'Title is too long' });
-  }
-  if (text(route.description, '').length > 500) {
-    issues.push({ severity: 'error', code: 'description_too_long', message: 'Description is too long' });
-  }
-  const seen = new Set<string>();
-  steps.forEach((step, index) => {
-    const id = nullableText(step.externalContentItemId);
-    if (id) {
-      if (seen.has(id)) {
-        issues.push({ severity: 'error', code: 'source_item_repeated', message: 'Source item is repeated', stepIndex: index });
-      }
-      seen.add(id);
-    }
-    if (number(step.lat) == null || number(step.lng) == null) {
-      issues.push({ severity: 'error', code: 'coordinates_missing', message: 'Step coordinates are missing', stepIndex: index });
-    }
-    const walkMin = nullableInt(step.walkMin);
-    if (walkMin != null && walkMin >= 30) {
-      issues.push({ severity: 'error', code: 'walk_too_long', message: 'Walk time is too long', stepIndex: index });
-    }
-  });
-  const errorCount = issues.filter((issue) => issue.severity === 'error').length;
-  return {
-    status: errorCount > 0 ? 'invalid' : 'valid',
-    score: Math.max(0, 100 - errorCount * 20),
-    issues,
-  };
-}
-
 function hasUsableStepCount(route: GeneratedRoute) {
   const steps = Array.isArray(route.steps) ? route.steps : [];
   return steps.length >= 2 && steps.length <= 4;
 }
 
 function buildFallbackRoute(input: RouteDraftGenerationInput, candidates: any[]): GeneratedRoute | null {
-  const selected = selectFallbackCandidates(candidates);
-  if (selected.length < 2) {
+  return buildRouteSkeletons(
+    {
+      ...input,
+      timezone: input.timezone ?? 'Europe/Moscow',
+      maxDrafts: 1,
+    },
+    candidates as RoutePlannerCandidate[],
+  )[0] ?? null;
+}
+
+function durationMinutes(startsAt: unknown, endsAt: unknown) {
+  if (!(startsAt instanceof Date) || !(endsAt instanceof Date)) {
     return null;
   }
-  const routeTitle = fallbackTitle(input.mood, input.city);
-  const steps = selected.map((candidate, index) => {
-    const previous = index > 0 ? selected[index - 1] : null;
-    const walkMin = previous
-      ? Math.max(1, Math.ceil(distanceMeters(previous, candidate) / 80))
-      : 0;
-    const titleValue = text(candidate.title, `Место ${index + 1}`);
-    const kind = text(candidate.category, text(candidate.contentKind, 'place'));
-    return {
-      externalContentItemId: candidate.id,
-      timeLabel: ['19:00', '20:00', '21:00', '22:00'][index] ?? '19:00',
-      endTimeLabel: ['19:45', '20:45', '21:45', '22:45'][index] ?? null,
-      kind,
-      title: titleValue,
-      venue: titleValue,
-      address: text(candidate.address, 'Адрес уточняется'),
-      emoji: emojiForKind(kind),
-      distanceLabel: index === 0 ? 'старт маршрута' : `${walkMin} минут пешком`,
-      walkMin,
-      description: fallbackStepDescription(index, titleValue, input.mood),
-      vibeTag: input.mood,
-      ticketPrice: nullableInt(candidate.priceFrom),
-      lat: candidate.lat,
-      lng: candidate.lng,
-    };
-  });
-  const totalPriceFrom = selected.reduce(
-    (sum, candidate) => sum + (nullableInt(candidate.priceFrom) ?? 0),
-    0,
-  );
-  return {
-    title: routeTitle,
-    description: `${routeTitle}: ${steps.map((step) => step.venue).join(' -> ')}. Черновик собран автоматически из импортированных мест, проверь факты перед публикацией.`,
-    vibe: fallbackVibe(input.mood),
-    durationLabel: selected.length >= 3 ? '3 часа' : '2 часа',
-    totalPriceFrom,
-    goal: 'social',
-    recommendedFor: 'friends',
-    badgeLabel: 'fallback',
-    steps,
-  };
-}
-
-function selectFallbackCandidates(candidates: any[]) {
-  const points = candidates
-    .map((candidate) => ({
-      ...candidate,
-      lat: number(candidate.lat),
-      lng: number(candidate.lng),
-    }))
-    .filter((candidate) => candidate.lat != null && candidate.lng != null);
-  let best: any[] = [];
-  for (const anchor of points) {
-    const nearby = points
-      .map((candidate) => ({
-        candidate,
-        distance: distanceMeters(anchor, candidate),
-      }))
-      .filter((item) => item.distance <= FALLBACK_MAX_WALK_METERS)
-      .sort((left, right) => left.distance - right.distance)
-      .map((item) => item.candidate);
-    const selected = diversifyCandidates(nearby).slice(0, 3);
-    if (selected.length > best.length) {
-      best = selected;
-    }
-    if (best.length >= 3) {
-      break;
-    }
+  const duration = endsAt.getTime() - startsAt.getTime();
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return null;
   }
-  return best;
-}
-
-function diversifyCandidates(candidates: any[]) {
-  const selected: any[] = [];
-  const seenCategories = new Set<string>();
-  for (const candidate of candidates) {
-    const category = text(candidate.category, text(candidate.contentKind, 'place'));
-    if (selected.length < 2 || !seenCategories.has(category)) {
-      selected.push(candidate);
-      seenCategories.add(category);
-    }
-    if (selected.length >= 3) {
-      return selected;
-    }
-  }
-  for (const candidate of candidates) {
-    if (!selected.some((item) => item.id === candidate.id)) {
-      selected.push(candidate);
-    }
-    if (selected.length >= 3) {
-      return selected;
-    }
-  }
-  return selected;
-}
-
-function distanceMeters(left: { lat: number; lng: number }, right: { lat: number; lng: number }) {
-  const radius = 6371000;
-  const lat1 = degreesToRadians(left.lat);
-  const lat2 = degreesToRadians(right.lat);
-  const deltaLat = degreesToRadians(right.lat - left.lat);
-  const deltaLng = degreesToRadians(right.lng - left.lng);
-  const a = Math.sin(deltaLat / 2) ** 2
-    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
-  return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function degreesToRadians(value: number) {
-  return value * Math.PI / 180;
-}
-
-function fallbackTitle(mood: string, city: string) {
-  if (mood === 'calm') {
-    return `Спокойный вечер, ${city}`;
-  }
-  if (mood === 'social') {
-    return `Дружеский вечер, ${city}`;
-  }
-  if (mood === 'date') {
-    return `Маршрут для свидания, ${city}`;
-  }
-  if (mood === 'culture') {
-    return `Культурный вечер, ${city}`;
-  }
-  if (mood === 'active') {
-    return `Активный вечер, ${city}`;
-  }
-  return `Вечерний маршрут, ${city}`;
-}
-
-function fallbackVibe(mood: string) {
-  if (mood === 'calm') {
-    return 'спокойно';
-  }
-  if (mood === 'social') {
-    return 'дружески';
-  }
-  if (mood === 'date') {
-    return 'для двоих';
-  }
-  if (mood === 'culture') {
-    return 'культурно';
-  }
-  if (mood === 'active') {
-    return 'активно';
-  }
-  return mood;
-}
-
-function fallbackStepDescription(index: number, titleValue: string, mood: string) {
-  if (index === 0) {
-    return `Начните маршрут с "${titleValue}". Это базовый шаг для настроения "${fallbackVibe(mood)}".`;
-  }
-  return `Продолжите вечер в "${titleValue}". Место рядом с предыдущим шагом, проверь детали перед публикацией.`;
+  return Math.round(duration / 60000);
 }
 
 function text(value: unknown, fallback: string) {

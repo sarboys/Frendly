@@ -144,6 +144,7 @@ Admin Evening route review:
 - Generated route review drafts are never public by default. Admin must approve, convert to `EveningRouteTemplate`, then publish through existing Evening route publishing.
 - Manual route review import requests create `pending_manual` import runs. External fetch stays in worker, not in the API request path.
 - Manual route review generation requests create `GeneratedRouteDraftBatch.status=pending_manual`. Worker picks them up and calls OpenRouter outside the API request path. Drafts stay in admin review until approve, convert and publish.
+- Route review generation uses a deterministic worker planner before OpenRouter. Planner builds route skeletons with one timed event anchor, real imported event times, nearby flexible places before or after, walking limits, duplicate venue-cluster checks and no-route movement checks. Planner has scenario recipes for calm, social, date, culture and active moods; category taxonomy covers cafe, food, bar, quest, theatre, concert, comedy, quiz, lecture, workshop, market, festival, cinema, sport, spa, walk and culture. Budget policy filters free/low/mid/high/premium candidates and validation rejects drafts over budget. OpenRouter writes copy over those skeletons, while worker validation can still mark drafts invalid before admin approval.
 
 ## Shared packages
 
