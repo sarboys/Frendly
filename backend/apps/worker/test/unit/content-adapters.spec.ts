@@ -1,8 +1,10 @@
+import { AdvCakeTicketlandAdapter } from '../../src/content/advcake-ticketland.adapter';
 import { KudaGoAdapter } from '../../src/content/kudago.adapter';
 import { OverpassAdapter } from '../../src/content/overpass.adapter';
 import { TimepadAdapter } from '../../src/content/timepad.adapter';
 
 const originalTimepadToken = process.env.TIMEPAD_API_TOKEN;
+const originalAdvCakePass = process.env.ADVCAKE_API_PASS;
 
 describe('content source adapters', () => {
   afterEach(() => {
@@ -11,6 +13,11 @@ describe('content source adapters', () => {
       delete process.env.TIMEPAD_API_TOKEN;
     } else {
       process.env.TIMEPAD_API_TOKEN = originalTimepadToken;
+    }
+    if (originalAdvCakePass == null) {
+      delete process.env.ADVCAKE_API_PASS;
+    } else {
+      process.env.ADVCAKE_API_PASS = originalAdvCakePass;
     }
   });
 
@@ -132,6 +139,68 @@ describe('content source adapters', () => {
     expect(items.every((item) => item.startsAt == null || item.startsAt <= fetchInput().to)).toBe(true);
   });
 
+  it('loads AdvCake feed url and maps Ticketland YML offers', async () => {
+    process.env.ADVCAKE_API_PASS = 'fake-pass';
+    const adapter = new AdvCakeTicketlandAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes('/common-feeds')) {
+        expect(url).toContain('offer_id=663');
+        expect(url).toContain('pass=fake-pass');
+        return jsonResponse({
+          data: [
+            { format: 'csv', url: 'https://feeds.advcake.ru/csv-feed' },
+            { format: 'yml', url: 'https://feeds.advcake.ru/yml-feed' },
+          ],
+        });
+      }
+      expect(url).toBe('https://feeds.advcake.ru/yml-feed');
+      return textResponse(ticketlandYml());
+    });
+
+    const items = await adapter.fetchItems(fetchInput());
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      sourceCode: 'advcake_ticketland',
+      sourceItemId: 'offer-100',
+      contentKind: 'event',
+      city: 'Москва',
+      title: 'Большой стендап',
+      category: 'comedy',
+      venueName: 'Клуб',
+      imageUrl: 'https://ticketland.ru/image.jpg',
+      actionUrl: 'https://go.avred.online/click',
+      actionKind: 'affiliate_ticket',
+      priceMode: 'paid',
+      isAffiliate: true,
+      sourceProvider: 'Ticketland / MTS Live',
+      priceFrom: 1500,
+      currency: 'RUB',
+      description: 'Описание & детали',
+    });
+    expect(items[0]?.startsAt?.toISOString()).toBe('2026-05-05T16:00:00.000Z');
+  });
+
+  it('filters AdvCake offers by city, date and required fields', async () => {
+    process.env.ADVCAKE_API_PASS = 'fake-pass';
+    const adapter = new AdvCakeTicketlandAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ feeds: [{ format: 'yml', url: 'https://feeds.advcake.ru/yml-feed' }] }) as any)
+      .mockResolvedValueOnce(textResponse(ticketlandYml({
+        extraOffers: `
+          <offer id="101"><url>https://go.avred.online/spb</url><price>2000</price><currencyId>RUB</currencyId><model>СПб</model><vendor>Зал</vendor><typePrefix>Драмы</typePrefix><region>Санкт-Петербург</region><date>2026-05-05 19:00:00</date></offer>
+          <offer id="102"><url>https://go.avred.online/late</url><price>2000</price><currencyId>RUB</currencyId><model>Поздно</model><vendor>Зал</vendor><typePrefix>Рок</typePrefix><region>Москва</region><date>2026-07-05 19:00:00</date></offer>
+          <offer id="103"><price>2000</price><currencyId>RUB</currencyId><model>Без ссылки</model><vendor>Зал</vendor><typePrefix>Рок</typePrefix><region>Москва</region><date>2026-05-05 19:00:00</date></offer>
+        `,
+      })) as any);
+
+    const items = await adapter.fetchItems(fetchInput());
+
+    expect(items.map((item) => item.sourceItemId)).toEqual(['offer-100']);
+  });
+
   it('imports outdoor and bike places from Overpass tags', async () => {
     const adapter = new OverpassAdapter();
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ elements: [] }) as any);
@@ -165,7 +234,16 @@ function jsonResponse(payload: unknown) {
   return {
     ok: true,
     json: async () => payload,
-  } as Response;
+    headers: { get: () => null },
+  } as unknown as Response;
+}
+
+function textResponse(payload: string) {
+  return {
+    ok: true,
+    text: async () => payload,
+    headers: { get: () => String(Buffer.byteLength(payload, 'utf8')) },
+  } as unknown as Response;
 }
 
 function kudagoEvent(id: number) {
@@ -198,4 +276,29 @@ function timepadEvent(id: number, startsAt: string) {
     },
     categories: [{ name: 'outdoor' }],
   };
+}
+
+function ticketlandYml(options: { extraOffers?: string } = {}) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog>
+  <shop>
+    <offers>
+      <offer id="100">
+        <url>https://go.avred.online/click</url>
+        <picture>https://ticketland.ru/image.jpg</picture>
+        <price>1500</price>
+        <currencyId>RUB</currencyId>
+        <model>Большой стендап</model>
+        <vendor>Клуб</vendor>
+        <categoryId>10</categoryId>
+        <typePrefix>Комедии</typePrefix>
+        <region>Москва</region>
+        <date>2026-05-05 19:00:00</date>
+        <description><![CDATA[<p>Описание &amp; детали</p>]]></description>
+        <age>18+</age>
+      </offer>
+      ${options.extraOffers ?? ''}
+    </offers>
+  </shop>
+</yml_catalog>`;
 }

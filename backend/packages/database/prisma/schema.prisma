@@ -963,6 +963,11 @@ model ExternalImportRun {
   fetchedCount    Int       @default(0)
   normalizedCount Int       @default(0)
   skippedCount    Int       @default(0)
+  publishedCount  Int       @default(0)
+  paidCount       Int       @default(0)
+  freeCount       Int       @default(0)
+  unknownPriceCount Int     @default(0)
+  missingCoordsCount Int    @default(0)
   errorCode       String?
   errorMessage    String?
   cursor          String?
@@ -996,6 +1001,16 @@ model ExternalContentItem {
   endsAt           DateTime?
   priceFrom        Int?
   currency         String?
+  venueName        String?
+  imageUrl         String?
+  actionUrl        String?
+  actionKind       String?
+  priceMode        String    @default("unknown")
+  isAffiliate      Boolean   @default(false)
+  sourceProvider   String?
+  placeKind        String?
+  lastSeenAt       DateTime?
+  publicStatus     String    @default("published")
   raw              Json?
   normalizedHash   String
   moderationStatus String    @default("pending")
@@ -1011,6 +1026,9 @@ model ExternalContentItem {
   @@unique([sourceId, sourceItemId])
   @@index([city, contentKind, startsAt, id])
   @@index([city, category, moderationStatus, id])
+  @@index([city, startsAt, priceMode, contentKind, moderationStatus, sourceId])
+  @@index([publicStatus, city, startsAt, id])
+  @@index([sourceId, priceMode, importedAt, id])
   @@index([normalizedHash])
 }
 

@@ -42,6 +42,9 @@ Frendly Evening:
 - `PartnerOfferCode`, `UserEveningStepAction`.
 - AI studio: `AiEveningBrief`, `AiEveningGenerationRun`, `AiEveningDraft`, `AiEveningDraftStep`.
 - Route aggregation: `ExternalContentSource`, `ExternalImportRun`, `ExternalContentItem`, `GeneratedRouteDraftBatch`, `GeneratedRouteReviewDraft`, `GeneratedRouteDraftStep`. Manual imports and route generations use `pending_manual` statuses that worker scans outside the API request path.
+- `ExternalImportRun` stores import counters for admin health: `publishedCount`, `paidCount`, `freeCount`, `unknownPriceCount`, `missingCoordsCount`.
+- `ExternalContentItem` separates imported events and places through `contentKind`. Public affiche fields include `venueName`, `imageUrl`, `actionUrl`, `actionKind`, `priceMode`, `isAffiliate`, `sourceProvider`, `placeKind`, `lastSeenAt`, `publicStatus`.
+- `priceMode=free` means exact external price `0`; `unknown` must not be treated as free. `publicStatus` gates public affiche and route candidate visibility.
 - Analytics: `EveningAnalyticsEvent`.
 - Partner featuring: `PartnerFeaturedRequest`.
 
@@ -94,6 +97,8 @@ Public:
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.
 - Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`. Geo cursors must use the same effective distance that sorted the page.
 - Evening analytics admin filters use `EveningAnalyticsEvent.venueId + name + createdAt + id`.
+- Public affiche reads use `ExternalContentItem.publicStatus + city + startsAt + id` and filters `contentKind=event`, `priceMode in (free, paid)`.
+- Admin content review uses `ExternalContentItem.city + startsAt + priceMode + contentKind + moderationStatus + sourceId` plus `sourceId + priceMode + importedAt + id`.
 
 ## Commands
 

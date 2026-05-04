@@ -17,7 +17,7 @@ import { ApiError } from '../common/api-error';
 import { AdminEveningRouteService } from './admin-evening-route.service';
 import { PrismaService } from './prisma.service';
 
-const VALID_SOURCES = ['kudago', 'timepad', 'overpass'] as const;
+const VALID_SOURCES = ['kudago', 'timepad', 'overpass', 'advcake_ticketland'] as const;
 type SourceCode = (typeof VALID_SOURCES)[number];
 const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
@@ -38,6 +38,11 @@ const SOURCE_INFO: Record<SourceCode, { name: string; kind: string; baseUrl: str
     name: 'OSM Overpass',
     kind: 'places',
     baseUrl: process.env.OVERPASS_BASE_URL ?? 'https://overpass-api.de/api/interpreter',
+  },
+  advcake_ticketland: {
+    name: 'AdvCake Ticketland',
+    kind: 'affiliate_events',
+    baseUrl: process.env.ADVCAKE_BASE_URL ?? 'https://api.advcake.com',
   },
 };
 
@@ -263,7 +268,12 @@ export class AdminRouteReviewService {
         ...(this.optionalText(query.city) ? { city: this.optionalText(query.city)! } : {}),
         ...(this.optionalText(query.contentKind) ? { contentKind: this.optionalText(query.contentKind)! } : {}),
         ...(this.optionalText(query.category) ? { category: this.optionalText(query.category)! } : {}),
+        ...(this.optionalText(query.priceMode) ? { priceMode: this.optionalText(query.priceMode)! } : {}),
+        ...(this.optionalText(query.publicStatus) ? { publicStatus: this.optionalText(query.publicStatus)! } : {}),
         ...(this.optionalText(query.moderationStatus) ? { moderationStatus: this.optionalText(query.moderationStatus)! } : {}),
+        ...(this.parseHasCoords(query.hasCoords) === true ? { lat: { not: null }, lng: { not: null } } : {}),
+        ...(this.parseHasCoords(query.hasCoords) === false ? { OR: [{ lat: null }, { lng: null }] } : {}),
+        ...(this.dateRangeWhere(query.dateFrom, query.dateTo)),
         ...(source ? { source: { code: source } } : {}),
         ...(cursor
           ? {
@@ -328,6 +338,12 @@ export class AdminRouteReviewService {
 
   async listSources(): Promise<AdminRouteReviewSourceListDto> {
     const sources = await this.prismaService.client.externalContentSource.findMany({
+      include: {
+        importRuns: {
+          orderBy: [{ startedAt: 'desc' as const }, { id: 'asc' as const }],
+          take: 1,
+        },
+      },
       orderBy: [{ code: 'asc' }],
     });
     return { items: sources.map((source: any) => this.mapSource(source)) };
@@ -343,11 +359,13 @@ export class AdminRouteReviewService {
         kind: info.kind,
         baseUrl: info.baseUrl,
         status: 'active',
+        config: sourceConfig(code),
       },
       update: {
         name: info.name,
         kind: info.kind,
         baseUrl: info.baseUrl,
+        config: sourceConfig(code),
       },
     });
   }
@@ -448,6 +466,11 @@ export class AdminRouteReviewService {
       fetchedCount: run.fetchedCount,
       normalizedCount: run.normalizedCount,
       skippedCount: run.skippedCount,
+      publishedCount: run.publishedCount ?? 0,
+      paidCount: run.paidCount ?? 0,
+      freeCount: run.freeCount ?? 0,
+      unknownPriceCount: run.unknownPriceCount ?? 0,
+      missingCoordsCount: run.missingCoordsCount ?? 0,
       errorCode: run.errorCode ?? null,
       errorMessage: run.errorMessage ?? null,
     };
@@ -476,6 +499,16 @@ export class AdminRouteReviewService {
       endsAt: this.dateToIso(item.endsAt),
       priceFrom: item.priceFrom ?? null,
       currency: item.currency ?? null,
+      venueName: item.venueName ?? null,
+      imageUrl: item.imageUrl ?? null,
+      actionUrl: item.actionUrl ?? null,
+      actionKind: item.actionKind ?? null,
+      priceMode: item.priceMode ?? 'unknown',
+      isAffiliate: item.isAffiliate === true,
+      sourceProvider: item.sourceProvider ?? null,
+      placeKind: item.placeKind ?? null,
+      publicStatus: item.publicStatus ?? 'published',
+      hasCoords: item.lat != null && item.lng != null,
       moderationStatus: item.moderationStatus,
       importedAt: this.requiredDateToIso(item.importedAt),
       expiresAt: this.dateToIso(item.expiresAt),
@@ -515,7 +548,44 @@ export class AdminRouteReviewService {
       kind: source.kind,
       status: source.status,
       lastImportedAt: this.dateToIso(source.lastImportedAt),
+      baseUrl: source.baseUrl ?? null,
+      lastError: source.importRuns?.[0]?.errorMessage ?? null,
+      lastFetchedCount: source.importRuns?.[0]?.fetchedCount ?? 0,
+      lastPublishedCount: source.importRuns?.[0]?.publishedCount ?? 0,
     };
+  }
+
+  private parseHasCoords(value: unknown) {
+    if (value === true || value === 'true' || value === '1') {
+      return true;
+    }
+    if (value === false || value === 'false' || value === '0') {
+      return false;
+    }
+    return null;
+  }
+
+  private dateRangeWhere(dateFrom: unknown, dateTo: unknown) {
+    const from = this.optionalDate(dateFrom);
+    const to = this.optionalDate(dateTo);
+    if (!from && !to) {
+      return {};
+    }
+    return {
+      startsAt: {
+        ...(from ? { gte: from } : {}),
+        ...(to ? { lte: to } : {}),
+      },
+    };
+  }
+
+  private optionalDate(value: unknown) {
+    const raw = this.optionalText(value);
+    if (!raw) {
+      return null;
+    }
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   private parseSources(value: unknown): SourceCode[] {
@@ -600,4 +670,15 @@ export class AdminRouteReviewService {
   private requiredDateToIso(value: Date) {
     return value.toISOString();
   }
+}
+
+function sourceConfig(code: SourceCode) {
+  if (code !== 'advcake_ticketland') {
+    return {};
+  }
+  return {
+    offerId: process.env.ADVCAKE_TICKETLAND_OFFER_ID ?? '663',
+    website: process.env.ADVCAKE_TICKETLAND_WEBSITE ?? 'ticketland.ru',
+    feedFormat: process.env.ADVCAKE_FEED_FORMAT ?? 'yml',
+  };
 }

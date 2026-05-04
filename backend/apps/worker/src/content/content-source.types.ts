@@ -1,4 +1,6 @@
-export type ExternalSourceCode = 'kudago' | 'timepad' | 'overpass';
+export type ExternalSourceCode = 'kudago' | 'timepad' | 'overpass' | 'advcake_ticketland';
+
+export type ExternalPriceMode = 'free' | 'paid' | 'unknown';
 
 export type ExternalRawItem = {
   sourceCode: ExternalSourceCode;
@@ -18,6 +20,15 @@ export type ExternalRawItem = {
   endsAt?: Date | null;
   priceFrom?: number | null;
   currency?: string | null;
+  venueName?: string | null;
+  imageUrl?: string | null;
+  actionUrl?: string | null;
+  actionKind?: string | null;
+  priceMode?: ExternalPriceMode | null;
+  isAffiliate?: boolean | null;
+  sourceProvider?: string | null;
+  placeKind?: string | null;
+  lastSeenAt?: Date | null;
   raw: unknown;
 };
 
@@ -40,6 +51,15 @@ export type NormalizedExternalContentItem = {
   endsAt: Date | null;
   priceFrom: number | null;
   currency: string | null;
+  venueName: string | null;
+  imageUrl: string | null;
+  actionUrl: string | null;
+  actionKind: string | null;
+  priceMode: ExternalPriceMode;
+  isAffiliate: boolean;
+  sourceProvider: string | null;
+  placeKind: string | null;
+  lastSeenAt: Date | null;
   raw: unknown;
   normalizedHash: string;
   expiresAt: Date | null;
@@ -63,4 +83,5 @@ export type ExternalSourceInfo = {
   name: string;
   kind: string;
   baseUrl: string;
+  config?: Record<string, string | number | boolean | null>;
 };

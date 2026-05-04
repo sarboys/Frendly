@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
+import { AfficheService } from './affiche.service';
 import { AfterDarkService } from './after-dark.service';
 import { EveningRouteTemplateService } from './evening-route-template.service';
 import { EventsService } from './events.service';
@@ -12,6 +13,7 @@ export class SearchService {
     private readonly afterDarkService: AfterDarkService,
     private readonly routeTemplateService: EveningRouteTemplateService,
     private readonly postersService: PostersService,
+    private readonly afficheService: AfficheService,
   ) {}
 
   async groupedSearch(userId: string, query: Record<string, unknown>) {
@@ -21,8 +23,9 @@ export class SearchService {
     const eveningsLimit = this.parseLimit(query.eveningsLimit, 3, 20);
     const routesLimit = this.parseLimit(query.routesLimit, 3, 20);
     const postersLimit = this.parseLimit(query.postersLimit, 6, 24);
+    const afficheLimit = this.parseLimit(query.afficheLimit, 6, 24);
 
-    const [meetups, evenings, routes, posters] = await Promise.all([
+    const [meetups, evenings, routes, posters, affiche] = await Promise.all([
       this.eventsService.listEvents(userId, {
         filter: 'nearby',
         q,
@@ -52,6 +55,13 @@ export class SearchService {
         date,
         limit: postersLimit,
       }),
+      this.afficheService.listEvents({
+        city: this.optionalText(query.city) ?? 'Москва',
+        q,
+        date,
+        priceMode: this.optionalText(query.priceMode) ?? 'any',
+        limit: afficheLimit,
+      }),
     ]);
 
     return {
@@ -59,10 +69,12 @@ export class SearchService {
       evenings: evenings.items,
       routes: routes.items,
       posters: posters.items,
+      affiche: affiche.items,
       nextCursors: {
         meetups: meetups.nextCursor ?? null,
         evenings: evenings.nextCursor ?? null,
         posters: posters.nextCursor ?? null,
+        affiche: affiche.nextCursor ?? null,
       },
     };
   }

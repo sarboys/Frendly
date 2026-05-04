@@ -29,7 +29,7 @@ const DEFAULT_RETENTION_BATCH_SIZE = 500;
 const DEFAULT_EVENING_AUTO_ADVANCE_INTERVAL_MS = 30_000;
 const DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE = 25;
 const DEFAULT_PUSH_TOKEN_BATCH_SIZE = 20;
-const DEFAULT_CONTENT_IMPORT_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_CONTENT_IMPORT_INTERVAL_MS = 4 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -1385,9 +1385,12 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   private resolveContentSources(): ExternalSourceCode[] {
-    const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'timepad', 'overpass'];
+    const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'timepad', 'advcake_ticketland'];
     return requested.filter((source): source is ExternalSourceCode =>
-      source === 'kudago' || source === 'timepad' || source === 'overpass',
+      source === 'kudago' ||
+      source === 'timepad' ||
+      source === 'overpass' ||
+      source === 'advcake_ticketland',
     );
   }
 

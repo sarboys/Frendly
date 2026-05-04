@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
-import type { ExternalRawItem, NormalizedExternalContentItem } from './content-source.types';
+import type { ExternalPriceMode, ExternalRawItem, NormalizedExternalContentItem } from './content-source.types';
 
 const CATEGORY_MAP: Record<string, string> = {
   cafe: 'food',
@@ -67,6 +67,14 @@ const CATEGORY_MAP: Record<string, string> = {
   sports_centre: 'sport',
   lecture: 'lecture',
   education: 'lecture',
+  'комедии': 'comedy',
+  'драмы': 'theatre',
+  'балет': 'theatre',
+  'рок': 'concert',
+  'джаз': 'concert',
+  'пешеходные_экскурсии': 'walk',
+  'автобусные_экскурсии': 'culture',
+  'детям': 'culture',
 };
 
 @Injectable()
@@ -79,6 +87,7 @@ export class ContentNormalizerService {
     const categoryKey = normalizeKey(raw.category ?? raw.contentKind);
     const lat = coordinate(raw.lat, -90, 90);
     const lng = coordinate(raw.lng, -180, 180);
+    const priceFrom = integer(raw.priceFrom);
     const normalized: Omit<NormalizedExternalContentItem, 'normalizedHash'> = {
       sourceCode: raw.sourceCode,
       sourceItemId: raw.sourceItemId,
@@ -96,8 +105,17 @@ export class ContentNormalizerService {
       lng,
       startsAt: validDate(raw.startsAt),
       endsAt: validDate(raw.endsAt),
-      priceFrom: integer(raw.priceFrom),
+      priceFrom,
       currency: cleanText(raw.currency),
+      venueName: cleanText(raw.venueName),
+      imageUrl: cleanText(raw.imageUrl, 1000),
+      actionUrl: cleanText(raw.actionUrl, 1000),
+      actionKind: cleanText(raw.actionKind),
+      priceMode: priceMode(raw.priceMode, priceFrom),
+      isAffiliate: raw.isAffiliate === true,
+      sourceProvider: cleanText(raw.sourceProvider),
+      placeKind: cleanText(raw.placeKind),
+      lastSeenAt: validDate(raw.lastSeenAt) ?? new Date(),
       raw: raw.raw,
       expiresAt: expiresAt(raw),
     };
@@ -152,6 +170,19 @@ function integer(value: unknown) {
     return null;
   }
   return Math.max(0, Math.floor(value));
+}
+
+function priceMode(explicit: ExternalPriceMode | null | undefined, priceFrom: number | null): ExternalPriceMode {
+  if (explicit === 'free' || explicit === 'paid' || explicit === 'unknown') {
+    return explicit;
+  }
+  if (priceFrom === 0) {
+    return 'free';
+  }
+  if (priceFrom != null && priceFrom > 0) {
+    return 'paid';
+  }
+  return 'unknown';
 }
 
 function validDate(value: unknown) {

@@ -291,6 +291,7 @@ export class RouteDraftGenerationService {
     const commonWhere = {
       city,
       moderationStatus: { in: ['pending', 'approved'] },
+      publicStatus: 'published',
       lat: { not: null },
       lng: { not: null },
       OR: [
@@ -308,6 +309,7 @@ export class RouteDraftGenerationService {
         where: {
           ...commonWhere,
           contentKind: 'event',
+          priceMode: { in: ['free', 'paid'] },
           startsAt: { gte: now, lte: in14Days },
         },
         include,

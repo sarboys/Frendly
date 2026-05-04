@@ -448,6 +448,10 @@ export interface AdminRouteReviewSourceDto {
   kind: string;
   status: string;
   lastImportedAt: string | null;
+  baseUrl: string | null;
+  lastError: string | null;
+  lastFetchedCount: number;
+  lastPublishedCount: number;
 }
 
 export interface AdminRouteReviewSourceListDto {
@@ -465,6 +469,11 @@ export interface AdminExternalImportRunDto {
   fetchedCount: number;
   normalizedCount: number;
   skippedCount: number;
+  publishedCount: number;
+  paidCount: number;
+  freeCount: number;
+  unknownPriceCount: number;
+  missingCoordsCount: number;
   errorCode: string | null;
   errorMessage: string | null;
 }
@@ -502,6 +511,16 @@ export interface AdminExternalContentItemDto {
   endsAt: string | null;
   priceFrom: number | null;
   currency: string | null;
+  venueName: string | null;
+  imageUrl: string | null;
+  actionUrl: string | null;
+  actionKind: string | null;
+  priceMode: string;
+  isAffiliate: boolean;
+  sourceProvider: string | null;
+  placeKind: string | null;
+  publicStatus: string;
+  hasCoords: boolean;
   moderationStatus: string;
   importedAt: string;
   expiresAt: string | null;
@@ -509,6 +528,37 @@ export interface AdminExternalContentItemDto {
 
 export interface AdminExternalContentItemListDto {
   items: AdminExternalContentItemDto[];
+  nextCursor: string | null;
+}
+
+export interface AfficheEventDto {
+  id: string;
+  title: string;
+  description: string | null;
+  city: string;
+  venue: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  dateLabel: string | null;
+  timeLabel: string | null;
+  category: string;
+  priceFrom: number | null;
+  priceMode: 'free' | 'paid' | 'unknown';
+  currency: string | null;
+  imageUrl: string | null;
+  provider: string | null;
+  sourceCode: string | null;
+  actionUrl: string | null;
+  actionKind: string | null;
+  isAffiliate: boolean;
+  tags: string[];
+}
+
+export interface AfficheEventListDto {
+  items: AfficheEventDto[];
   nextCursor: string | null;
 }
 

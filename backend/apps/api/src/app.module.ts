@@ -4,6 +4,7 @@ import { AuthController } from './controllers/auth.controller';
 import { AdminAuthController } from './controllers/admin-auth.controller';
 import { AdminEveningController } from './controllers/admin-evening.controller';
 import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
+import { AfficheController } from './controllers/affiche.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { ChatsController } from './controllers/chats.controller';
 import { CommunitiesController } from './controllers/communities.controller';
@@ -44,6 +45,7 @@ import { AdminEveningAiService } from './services/admin-evening-ai.service';
 import { AdminEveningRouteService } from './services/admin-evening-route.service';
 import { AdminRouteReviewService } from './services/admin-route-review.service';
 import { AdminVenueService } from './services/admin-venue.service';
+import { AfficheService } from './services/affiche.service';
 import { AfterDarkService } from './services/after-dark.service';
 import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
@@ -85,6 +87,7 @@ import { VerificationService } from './services/verification.service';
     AdminEveningController,
     AdminAuthController,
     AdminPartnerAccountsController,
+    AfficheController,
     AfterDarkController,
     AuthController,
     ChatsController,
@@ -123,6 +126,7 @@ import { VerificationService } from './services/verification.service';
     AdminEveningRouteService,
     AdminRouteReviewService,
     AdminVenueService,
+    AfficheService,
     AfterDarkService,
     AdminAuthService,
     AuthService,

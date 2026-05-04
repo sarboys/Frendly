@@ -1,3 +1,4 @@
+import { AdvCakeTicketlandAdapter } from './advcake-ticketland.adapter';
 import { Injectable } from '@nestjs/common';
 import { KudaGoAdapter } from './kudago.adapter';
 import { OverpassAdapter } from './overpass.adapter';
@@ -27,6 +28,17 @@ const SOURCE_INFO: Record<ExternalSourceCode, ExternalSourceInfo> = {
     kind: 'places',
     baseUrl: process.env.OVERPASS_BASE_URL ?? 'https://overpass-api.de/api/interpreter',
   },
+  advcake_ticketland: {
+    code: 'advcake_ticketland',
+    name: 'AdvCake Ticketland / MTS Live',
+    kind: 'affiliate_events',
+    baseUrl: process.env.ADVCAKE_BASE_URL ?? 'https://api.advcake.com',
+    config: {
+      offerId: process.env.ADVCAKE_TICKETLAND_OFFER_ID ?? '663',
+      websites: process.env.ADVCAKE_TICKETLAND_WEBSITES ?? 'ticketland.ru,live.mts.ru',
+      feedFormat: process.env.ADVCAKE_FEED_FORMAT ?? 'yml',
+    },
+  },
 };
 
 @Injectable()
@@ -38,6 +50,7 @@ export class ExternalSourceRegistry {
       kudago: new KudaGoAdapter(),
       timepad: new TimepadAdapter(),
       overpass: new OverpassAdapter(),
+      advcake_ticketland: new AdvCakeTicketlandAdapter(),
     };
   }
 

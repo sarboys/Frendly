@@ -97,6 +97,44 @@ describe('ContentNormalizerService', () => {
     expect(normalizedCategory(service, 'workshops')).toBe('workshop');
     expect(normalizedCategory(service, 'rynok')).toBe('market');
   });
+
+  it('sets price mode without treating unknown price as free', () => {
+    const service = new ContentNormalizerService();
+
+    const free = service.normalize(baseEvent({ priceFrom: 0 }));
+    const paid = service.normalize(baseEvent({ priceFrom: 750 }));
+    const unknown = service.normalize(baseEvent({ priceFrom: null }));
+
+    expect(free.priceMode).toBe('free');
+    expect(paid.priceMode).toBe('paid');
+    expect(unknown.priceMode).toBe('unknown');
+  });
+
+  it('keeps affiche fields for affiliate events', () => {
+    const service = new ContentNormalizerService();
+
+    const item = service.normalize(baseEvent({
+      sourceCode: 'advcake_ticketland',
+      priceFrom: 1200,
+      venueName: 'Клуб',
+      imageUrl: 'https://ticketland.ru/image.jpg',
+      actionUrl: 'https://go.avred.online/click',
+      actionKind: 'affiliate_ticket',
+      isAffiliate: true,
+      sourceProvider: 'Ticketland / MTS Live',
+    }));
+
+    expect(item).toMatchObject({
+      priceMode: 'paid',
+      venueName: 'Клуб',
+      imageUrl: 'https://ticketland.ru/image.jpg',
+      actionUrl: 'https://go.avred.online/click',
+      actionKind: 'affiliate_ticket',
+      isAffiliate: true,
+      sourceProvider: 'Ticketland / MTS Live',
+      lastSeenAt: expect.any(Date),
+    });
+  });
 });
 
 function normalizedCategory(service: ContentNormalizerService, category: string) {
@@ -113,4 +151,22 @@ function normalizedCategory(service: ContentNormalizerService, category: string)
     lng: 37.617,
     raw: { category },
   }).category;
+}
+
+function baseEvent(overrides: Record<string, unknown> = {}) {
+  return {
+    sourceCode: 'kudago' as const,
+    sourceItemId: 'event-1',
+    contentKind: 'event' as const,
+    city: 'Москва',
+    timezone: 'Europe/Moscow',
+    title: 'Событие',
+    category: 'concert',
+    address: 'Москва, Петровка, 1',
+    lat: 55.756,
+    lng: 37.617,
+    startsAt: new Date('2026-05-05T16:00:00.000Z'),
+    raw: { id: 1 },
+    ...overrides,
+  };
 }

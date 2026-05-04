@@ -11,6 +11,7 @@ export type RoutePlannerCandidate = {
   startsAt?: Date | null;
   endsAt?: Date | null;
   priceFrom?: number | null;
+  priceMode?: string | null;
   source?: {
     name?: string | null;
     code?: string | null;
@@ -1462,6 +1463,15 @@ function nullableInt(value: unknown) {
 }
 
 function candidateFitsBudget(candidate: PlanningCandidate, budget: string | null | undefined) {
+  if (
+    candidate.contentKind === 'event' &&
+    (candidate.priceMode === 'unknown' || (candidate.priceMode == null && candidate.priceFrom == null))
+  ) {
+    return false;
+  }
+  if (candidate.contentKind === 'event' && budget === 'free') {
+    return candidate.priceMode === 'free' || candidate.priceFrom === 0;
+  }
   const limit = budget == null ? null : budgetLimitFor(budget);
   return limit == null || (candidate.priceFrom ?? 0) <= limit;
 }
