@@ -79,6 +79,24 @@ describe('ContentNormalizerService', () => {
     expect(normalizedCategory(service, 'atv')).toBe('adventure');
     expect(normalizedCategory(service, 'picnic_site')).toBe('outdoor');
   });
+
+  it('maps selected KudaGo place categories into route planning categories', () => {
+    const service = new ContentNormalizerService();
+
+    expect(normalizedCategory(service, 'restaurants')).toBe('food');
+    expect(normalizedCategory(service, 'anticafe')).toBe('cafe');
+    expect(normalizedCategory(service, 'museums')).toBe('culture');
+    expect(normalizedCategory(service, 'art-centers')).toBe('culture');
+    expect(normalizedCategory(service, 'concert-hall')).toBe('concert');
+    expect(normalizedCategory(service, 'questroom')).toBe('quest');
+    expect(normalizedCategory(service, 'photo-places')).toBe('walk');
+    expect(normalizedCategory(service, 'prirodnyj-zapovednik')).toBe('outdoor');
+    expect(normalizedCategory(service, 'recreation')).toBe('sport');
+    expect(normalizedCategory(service, 'salons')).toBe('spa');
+    expect(normalizedCategory(service, 'stable')).toBe('adventure');
+    expect(normalizedCategory(service, 'workshops')).toBe('workshop');
+    expect(normalizedCategory(service, 'rynok')).toBe('market');
+  });
 });
 
 function normalizedCategory(service: ContentNormalizerService, category: string) {

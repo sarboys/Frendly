@@ -33,6 +33,82 @@ describe('content source adapters', () => {
     expect(items.filter((item) => item.contentKind === 'event')).toHaveLength(501);
   });
 
+  it('filters KudaGo events and places by route-worthy categories', async () => {
+    const adapter = new KudaGoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ results: [] }) as any);
+
+    await adapter.fetchItems(fetchInput());
+
+    const urls = fetchMock.mock.calls.map((call) => new URL(String(call[0])));
+    const eventCategories = urls
+      .find((url) => url.pathname.endsWith('/events/'))
+      ?.searchParams.get('categories');
+    const placeCategories = urls
+      .find((url) => url.pathname.endsWith('/places/'))
+      ?.searchParams.get('categories');
+
+    expect(eventCategories).toBe([
+      'cinema',
+      'concert',
+      'education',
+      'entertainment',
+      'exhibition',
+      'festival',
+      'holiday',
+      'party',
+      'photo',
+      'quest',
+      'recreation',
+      'theater',
+      'tour',
+      'yarmarki-razvlecheniya-yarmarki',
+    ].join(','));
+    expect(eventCategories).not.toContain('business-events');
+    expect(eventCategories).not.toContain('kids');
+    expect(eventCategories).not.toContain('stock');
+
+    expect(placeCategories).toBe([
+      'amusement',
+      'anticafe',
+      'art-centers',
+      'art-space',
+      'attractions',
+      'bar',
+      'brewery',
+      'bridge',
+      'cinema',
+      'clubs',
+      'comedy-club',
+      'concert-hall',
+      'culture',
+      'dance-studio',
+      'fountain',
+      'handmade',
+      'homesteads',
+      'library',
+      'museums',
+      'observatory',
+      'palace',
+      'park',
+      'photo-places',
+      'prirodnyj-zapovednik',
+      'questroom',
+      'recreation',
+      'restaurants',
+      'rynok',
+      'salons',
+      'sights',
+      'stable',
+      'suburb',
+      'theatre',
+      'workshops',
+    ].join(','));
+    expect(placeCategories).not.toContain('airports');
+    expect(placeCategories).not.toContain('car-washes');
+    expect(placeCategories).not.toContain('metro');
+    expect(placeCategories).not.toContain('animal-shelters');
+  });
+
   it('loads all Timepad pages until the selected period ends', async () => {
     process.env.TIMEPAD_API_TOKEN = 'test-token';
     const adapter = new TimepadAdapter();

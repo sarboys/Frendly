@@ -7,6 +7,58 @@ const KUDAGO_CITY_CODES: Record<string, string> = {
 
 const PAGE_SIZE = 100;
 const DEFAULT_MAX_PAGES_PER_ENDPOINT = 1000;
+const KUDAGO_EVENT_CATEGORY_SLUGS = [
+  'cinema',
+  'concert',
+  'education',
+  'entertainment',
+  'exhibition',
+  'festival',
+  'holiday',
+  'party',
+  'photo',
+  'quest',
+  'recreation',
+  'theater',
+  'tour',
+  'yarmarki-razvlecheniya-yarmarki',
+];
+const KUDAGO_PLACE_CATEGORY_SLUGS = [
+  'amusement',
+  'anticafe',
+  'art-centers',
+  'art-space',
+  'attractions',
+  'bar',
+  'brewery',
+  'bridge',
+  'cinema',
+  'clubs',
+  'comedy-club',
+  'concert-hall',
+  'culture',
+  'dance-studio',
+  'fountain',
+  'handmade',
+  'homesteads',
+  'library',
+  'museums',
+  'observatory',
+  'palace',
+  'park',
+  'photo-places',
+  'prirodnyj-zapovednik',
+  'questroom',
+  'recreation',
+  'restaurants',
+  'rynok',
+  'salons',
+  'sights',
+  'stable',
+  'suburb',
+  'theatre',
+  'workshops',
+];
 
 export class KudaGoAdapter implements ExternalSourceAdapter {
   readonly code = 'kudago' as const;
@@ -28,6 +80,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
     url.searchParams.set('actual_since', String(Math.floor(input.from.getTime() / 1000)));
     url.searchParams.set('actual_until', String(Math.floor(input.to.getTime() / 1000)));
     url.searchParams.set('page_size', String(PAGE_SIZE));
+    url.searchParams.set('categories', KUDAGO_EVENT_CATEGORY_SLUGS.join(','));
     url.searchParams.set('fields', 'id,title,short_title,description,site_url,categories,dates,place,price');
     const items = await fetchPaged(url, input.signal);
     return items.flatMap((item) => this.mapEvent(item, input.city));
@@ -38,6 +91,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
     url.searchParams.set('lang', 'ru');
     url.searchParams.set('location', cityCode);
     url.searchParams.set('page_size', String(PAGE_SIZE));
+    url.searchParams.set('categories', KUDAGO_PLACE_CATEGORY_SLUGS.join(','));
     url.searchParams.set('fields', 'id,title,address,coords,site_url,categories,subway');
     const items = await fetchPaged(url, input.signal);
     return items.flatMap((item) => this.mapPlace(item, input.city));
