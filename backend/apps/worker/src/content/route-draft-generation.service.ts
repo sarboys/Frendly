@@ -150,8 +150,18 @@ export class RouteDraftGenerationService {
         maxTokens: 2600,
       });
       const routes = Array.isArray(response.parsedJson.routes)
-        ? response.parsedJson.routes.slice(0, input.maxDrafts ?? 4)
+        ? response.parsedJson.routes.filter(hasUsableStepCount).slice(0, input.maxDrafts ?? 4)
         : [];
+      if (routes.length === 0) {
+        throw new OpenRouterClientError(
+          502,
+          'openrouter_invalid_route_draft',
+          'OpenRouter returned no route drafts with 2 to 4 steps',
+        );
+      }
+      for (const route of routes) {
+        await this.saveDraft(batchId, input, candidates, route);
+      }
       await this.prismaService.client.generatedRouteDraftBatch.update({
         where: { id: batchId },
         data: {
@@ -161,9 +171,6 @@ export class RouteDraftGenerationService {
         },
       });
 
-      for (const route of routes) {
-        await this.saveDraft(batchId, input, candidates, route);
-      }
       console.log('[route-generation] completed', {
         batchId,
         draftCount: routes.length,
@@ -270,8 +277,10 @@ export class RouteDraftGenerationService {
           'Do not claim a partner perk.',
           'Do not claim discounts, coupons, reservation, ticket availability, or official partnership.',
           'Do not publish anything. Drafts require admin review.',
+          'Do not return empty route objects.',
         ],
         routePolicy: 'Each route must work as a social meeting scenario with 2 to 4 nearby steps.',
+        stepPolicy: 'Every route must include a steps array with 2 to 4 step objects. If you cannot build that route, omit it.',
       },
       brief: {
         city: input.city,
@@ -354,6 +363,8 @@ export class RouteDraftGenerationService {
     return [
       'You create Frendly evening route drafts for admin review.',
       'Return only strict JSON.',
+      'Every route must include 2 to 4 steps.',
+      'Never return empty route objects.',
       'Use only provided candidate ids and facts.',
       'Never claim coupons, partner perks, reservations, ticket availability, or official partnerships.',
       'Every draft is only a review draft, never a published route.',
@@ -459,6 +470,11 @@ function validateRoute(route: GeneratedRoute, steps: GeneratedRouteStep[]) {
     score: Math.max(0, 100 - errorCount * 20),
     issues,
   };
+}
+
+function hasUsableStepCount(route: GeneratedRoute) {
+  const steps = Array.isArray(route.steps) ? route.steps : [];
+  return steps.length >= 2 && steps.length <= 4;
 }
 
 function text(value: unknown, fallback: string) {

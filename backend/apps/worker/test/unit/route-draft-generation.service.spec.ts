@@ -266,6 +266,87 @@ describe('RouteDraftGenerationService', () => {
     expect(draftCreate).not.toHaveBeenCalled();
   });
 
+  it('fails batch instead of saving empty OpenRouter route objects', async () => {
+    const batchUpdate = jest.fn().mockResolvedValue({});
+    const draftCreate = jest.fn().mockResolvedValue({});
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'item-1',
+                sourceUrl: 'https://example.com/place',
+                contentKind: 'place',
+                city: 'Москва',
+                title: 'Кофейня',
+                shortSummary: 'Тихий кофе',
+                category: 'food',
+                address: 'Тверская, 1',
+                lat: 55.75,
+                lng: 37.61,
+                startsAt: null,
+                priceFrom: 300,
+                source: { name: 'KudaGo', code: 'kudago' },
+              },
+              {
+                id: 'item-2',
+                sourceUrl: 'https://example.com/event',
+                contentKind: 'event',
+                city: 'Москва',
+                title: 'Экскурсия',
+                shortSummary: 'Прогулка',
+                category: 'culture',
+                address: 'Никольская, 12',
+                lat: 55.751,
+                lng: 37.609,
+                startsAt: new Date('2026-05-05T16:00:00.000Z'),
+                priceFrom: 500,
+                source: { name: 'Timepad', code: 'timepad' },
+              },
+            ]),
+          },
+          generatedRouteDraftBatch: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'batch-1',
+                city: 'Москва',
+                area: null,
+                mood: 'calm',
+                budget: 'low',
+                requestJson: { maxDrafts: 1 },
+              },
+            ]),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            update: batchUpdate,
+          },
+          generatedRouteReviewDraft: { create: draftCreate },
+        },
+      } as any,
+      {
+        generateJson: jest.fn().mockResolvedValue({
+          rawResponse: { choices: [] },
+          parsedJson: {
+            routes: [{ '': '' }],
+          },
+          latencyMs: 10,
+        }),
+      } as any,
+    );
+
+    await service.processPendingManualBatches();
+
+    expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'batch-1' },
+      data: expect.objectContaining({
+        status: 'failed',
+        errorCode: 'openrouter_invalid_route_draft',
+        errorMessage: 'OpenRouter returned no route drafts with 2 to 4 steps',
+      }),
+    }));
+    expect(draftCreate).not.toHaveBeenCalled();
+  });
+
   it('fails stale running generation batches before processing manual queue', async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const findMany = jest.fn().mockResolvedValue([]);
