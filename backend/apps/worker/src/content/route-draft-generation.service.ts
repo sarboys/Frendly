@@ -50,6 +50,7 @@ const DEFAULT_AUDIENCE = 'friends';
 const DEFAULT_FORMAT = 'evening_route';
 const MAX_CANDIDATES_PER_PROMPT = 80;
 const MAX_INPUT_PROMPT_CHARS = 720_000;
+const DEFAULT_STALE_RUNNING_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class RouteDraftGenerationService {
@@ -85,6 +86,8 @@ export class RouteDraftGenerationService {
   }
 
   async processPendingManualBatches(limit = 5) {
+    await this.failStaleRunningBatches();
+
     const batches = await this.prismaService.client.generatedRouteDraftBatch.findMany({
       where: { status: 'pending_manual' },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -132,12 +135,23 @@ export class RouteDraftGenerationService {
     request: Record<string, unknown>,
   ) {
     try {
+      console.log('[route-generation] started', {
+        batchId,
+        city: input.city,
+        mood: input.mood,
+        budget: input.budget,
+        maxDrafts: input.maxDrafts ?? 4,
+        candidateCount: candidates.length,
+      });
       const response = await this.openRouterClient.generateJson<OpenRouterRouteReviewResponse>({
         systemPrompt: this.systemPrompt(),
         userPrompt: JSON.stringify(request).slice(0, MAX_INPUT_PROMPT_CHARS),
         temperature: 0.35,
         maxTokens: 2600,
       });
+      const routes = Array.isArray(response.parsedJson.routes)
+        ? response.parsedJson.routes.slice(0, input.maxDrafts ?? 4)
+        : [];
       await this.prismaService.client.generatedRouteDraftBatch.update({
         where: { id: batchId },
         data: {
@@ -147,12 +161,13 @@ export class RouteDraftGenerationService {
         },
       });
 
-      const routes = Array.isArray(response.parsedJson.routes)
-        ? response.parsedJson.routes.slice(0, input.maxDrafts ?? 4)
-        : [];
       for (const route of routes) {
         await this.saveDraft(batchId, input, candidates, route);
       }
+      console.log('[route-generation] completed', {
+        batchId,
+        draftCount: routes.length,
+      });
     } catch (caught) {
       const failure = routeGenerationFailure(caught);
       await this.prismaService.client.generatedRouteDraftBatch.update({
@@ -163,6 +178,39 @@ export class RouteDraftGenerationService {
           errorMessage: failure.message,
           finishedAt: new Date(),
         },
+      });
+      console.warn('[route-generation] failed', {
+        batchId,
+        code: failure.code,
+        message: failure.message,
+      });
+    }
+  }
+
+  private async failStaleRunningBatches() {
+    const staleAfterMs = Math.max(
+      DEFAULT_STALE_RUNNING_MS,
+      positiveInt(process.env.OPENROUTER_TIMEOUT_MS, 180_000) + 60_000,
+      positiveInt(process.env.CONTENT_ROUTE_GENERATION_STALE_RUNNING_MS, 0),
+    );
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - staleAfterMs);
+    const result = await this.prismaService.client.generatedRouteDraftBatch.updateMany({
+      where: {
+        status: 'running',
+        createdAt: { lt: cutoff },
+      },
+      data: {
+        status: 'failed',
+        errorCode: 'route_generation_interrupted',
+        errorMessage: 'Route generation was interrupted or exceeded stale running timeout. Start a new generation run.',
+        finishedAt: now,
+      },
+    });
+    if (result.count > 0) {
+      console.warn('[route-generation] stale running batches failed', {
+        count: result.count,
+        staleAfterMs,
       });
     }
   }

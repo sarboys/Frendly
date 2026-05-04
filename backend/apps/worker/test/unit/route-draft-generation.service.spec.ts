@@ -45,7 +45,11 @@ describe('RouteDraftGenerationService', () => {
               },
             ]),
           },
-          generatedRouteDraftBatch: { create: batchCreate, update: batchUpdate },
+          generatedRouteDraftBatch: {
+            create: batchCreate,
+            update: batchUpdate,
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
           generatedRouteReviewDraft: { create: draftCreate },
         },
       } as any,
@@ -136,6 +140,7 @@ describe('RouteDraftGenerationService', () => {
                 requestJson: { maxDrafts: 1 },
               },
             ]),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
             update: batchUpdate,
           },
           generatedRouteReviewDraft: { create: draftCreate },
@@ -231,6 +236,7 @@ describe('RouteDraftGenerationService', () => {
                 requestJson: { maxDrafts: 1 },
               },
             ]),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
             update: batchUpdate,
           },
           generatedRouteReviewDraft: { create: draftCreate },
@@ -258,5 +264,44 @@ describe('RouteDraftGenerationService', () => {
       }),
     }));
     expect(draftCreate).not.toHaveBeenCalled();
+  });
+
+  it('fails stale running generation batches before processing manual queue', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const findMany = jest.fn().mockResolvedValue([]);
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: jest.fn(),
+          },
+          generatedRouteDraftBatch: {
+            findMany,
+            updateMany,
+            update: jest.fn(),
+          },
+          generatedRouteReviewDraft: { create: jest.fn() },
+        },
+      } as any,
+      {
+        generateJson: jest.fn(),
+      } as any,
+    );
+
+    await service.processPendingManualBatches();
+
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        status: 'running',
+        createdAt: expect.objectContaining({ lt: expect.any(Date) }),
+      }),
+      data: expect.objectContaining({
+        status: 'failed',
+        errorCode: 'route_generation_interrupted',
+      }),
+    }));
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { status: 'pending_manual' },
+    }));
   });
 });
