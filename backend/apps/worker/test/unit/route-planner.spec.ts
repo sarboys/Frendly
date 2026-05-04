@@ -97,6 +97,30 @@ describe('route planner', () => {
     ]);
   });
 
+  it('finds a nearby place cluster instead of picking first matching categories across the city', () => {
+    const candidates = [
+      place('far-cafe-1', 'Кафе на севере', 'cafe', 55.850, 37.450, 300),
+      place('far-museum-1', 'Музей на юге', 'museum', 55.620, 37.700, 500),
+      place('far-bar-1', 'Бар на востоке', 'bar', 55.800, 37.900, 900),
+      place('cluster-cafe-1', 'Кофе у Арбата', 'cafe', 55.752, 37.596, 300),
+      place('cluster-gallery-1', 'Галерея на Арбате', 'attraction', 55.753, 37.597, 500),
+      place('cluster-bar-1', 'Бар на Смоленской', 'bar', 55.754, 37.598, 900),
+    ];
+
+    const routes = buildRouteSkeletons(
+      { city: 'Москва', mood: 'culture', budget: 'mid', timezone: 'Europe/Moscow', maxDrafts: 1 },
+      candidates,
+    );
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0]?.steps.map((step) => step.externalContentItemId)).toEqual([
+      'cluster-cafe-1',
+      'cluster-gallery-1',
+      'cluster-bar-1',
+    ]);
+    expect(validateRouteDraft(routes[0]!, candidates, 'Europe/Moscow', 'mid').status).toBe('valid');
+  });
+
   it('builds a reviewable event-hop route when places are missing but events fit by time and distance', () => {
     const candidates = [
       event('lecture-1', 'Лекция про город', 'lecture', 55.760, 37.620, '2026-05-05T16:00:00.000Z', '2026-05-05T17:00:00.000Z', 400),

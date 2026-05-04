@@ -476,31 +476,7 @@ function buildFlexibleRoute(
   candidates: PlanningCandidate[],
 ): PlannedRoute | null {
   const preferred = flexibleCategories(input.mood);
-  const selected: PlanningCandidate[] = [];
-  for (const category of preferred) {
-    const candidate = candidates.find((item) =>
-      item.contentKind === 'place' &&
-      item.normalizedCategory === category &&
-      !selected.some((selectedItem) => selectedItem.id === item.id || sameVenueCluster(selectedItem, item)),
-    );
-    if (candidate) {
-      selected.push(candidate);
-    }
-    if (selected.length >= 3) {
-      break;
-    }
-  }
-  for (const candidate of candidates) {
-    if (
-      candidate.contentKind === 'place' &&
-      !selected.some((selectedItem) => selectedItem.id === candidate.id || sameVenueCluster(selectedItem, candidate))
-    ) {
-      selected.push(candidate);
-    }
-    if (selected.length >= 3) {
-      break;
-    }
-  }
+  const selected = selectFlexiblePlaceCluster(input.mood, preferred, candidates);
   if (selected.length < 2) {
     return null;
   }
@@ -527,6 +503,101 @@ function buildFlexibleRoute(
   });
 
   return buildRouteSummary(input, steps, selected[0] ?? null);
+}
+
+function selectFlexiblePlaceCluster(
+  mood: string,
+  preferred: string[],
+  candidates: PlanningCandidate[],
+) {
+  const places = candidates.filter((candidate) => candidate.contentKind === 'place');
+  const maxWalk = Math.min(MAX_WALK_BY_MOOD[mood] ?? 18, 28);
+  const seeds = [...places].sort((left, right) => {
+    const leftPriority = categoryPriority(left.normalizedCategory, preferred);
+    const rightPriority = categoryPriority(right.normalizedCategory, preferred);
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+    return left.title.localeCompare(right.title, 'ru');
+  });
+
+  let best: { selected: PlanningCandidate[]; score: number } | null = null;
+  for (const seed of seeds) {
+    const selected = growFlexiblePlaceCluster(seed, places, preferred, maxWalk);
+    if (selected.length < 2) {
+      continue;
+    }
+    const score = flexibleClusterScore(selected, preferred);
+    if (!best || score < best.score) {
+      best = { selected, score };
+    }
+  }
+  return best?.selected ?? [];
+}
+
+function growFlexiblePlaceCluster(
+  seed: PlanningCandidate,
+  places: PlanningCandidate[],
+  preferred: string[],
+  maxWalk: number,
+) {
+  const selected = [seed];
+  while (selected.length < 3) {
+    const next = findNextFlexiblePlace(places, selected, preferred, maxWalk);
+    if (!next) {
+      break;
+    }
+    selected.push(next);
+  }
+  return selected;
+}
+
+function findNextFlexiblePlace(
+  places: PlanningCandidate[],
+  selected: PlanningCandidate[],
+  preferred: string[],
+  maxWalk: number,
+) {
+  const previous = selected[selected.length - 1];
+  if (!previous) {
+    return null;
+  }
+  const selectedCategories = new Set(selected.map((candidate) => candidate.normalizedCategory));
+  return places
+    .filter((candidate) =>
+      !selectedCategories.has(candidate.normalizedCategory) &&
+      !selected.some((selectedItem) => selectedItem.id === candidate.id || sameVenueCluster(selectedItem, candidate)) &&
+      walkMinutes(previous, candidate) <= maxWalk,
+    )
+    .sort((left, right) => {
+      const leftScore = nextFlexiblePlaceScore(left, previous, preferred);
+      const rightScore = nextFlexiblePlaceScore(right, previous, preferred);
+      return leftScore - rightScore;
+    })[0] ?? null;
+}
+
+function nextFlexiblePlaceScore(
+  candidate: PlanningCandidate,
+  previous: PlanningCandidate,
+  preferred: string[],
+) {
+  return categoryPriority(candidate.normalizedCategory, preferred) * 500
+    + distanceMeters(candidate, previous);
+}
+
+function flexibleClusterScore(selected: PlanningCandidate[], preferred: string[]) {
+  const lengthPenalty = selected.length < 3 ? 5000 : 0;
+  const categoryScore = selected.reduce(
+    (sum, candidate, index) =>
+      sum + categoryPriority(candidate.normalizedCategory, preferred) * (selected.length - index),
+    0,
+  );
+  const walkScore = selected.reduce((sum, candidate, index) => {
+    const previous = index > 0 ? selected[index - 1] : null;
+    return previous ? sum + walkMinutes(previous, candidate) : sum;
+  }, 0);
+  const movementPenalty = maxPairDistance(selected) <= ROUTE_MOVEMENT_METERS ? 10000 : 0;
+  return lengthPenalty + categoryScore * 100 + walkScore + movementPenalty;
 }
 
 function buildEventHopRoute(
@@ -945,7 +1016,15 @@ function explicitCategoryFromSource(category: string) {
   if (normalized === 'festival') {
     return 'festival';
   }
-  if (normalized === 'museum' || normalized === 'gallery' || normalized === 'culture') {
+  if (
+    normalized === 'museum' ||
+    normalized === 'gallery' ||
+    normalized === 'culture' ||
+    normalized === 'attraction' ||
+    normalized === 'sights' ||
+    normalized === 'monastery' ||
+    normalized === 'place_of_worship'
+  ) {
     return 'culture';
   }
   if (normalized === 'park' || normalized === 'walk') {
@@ -977,8 +1056,23 @@ function explicitCategoryFromSource(category: string) {
   ) {
     return 'outdoor';
   }
-  if (normalized === 'sport' || normalized === 'sports' || normalized === 'sports_centre') {
+  if (
+    normalized === 'sport' ||
+    normalized === 'sports' ||
+    normalized === 'sports_centre' ||
+    normalized === 'pitch' ||
+    normalized === 'track' ||
+    normalized === 'training' ||
+    normalized === 'sport_school' ||
+    normalized === 'dojo' ||
+    normalized === 'ice_rink' ||
+    normalized === 'swimming_pool' ||
+    normalized === 'fitness_centre'
+  ) {
     return 'sport';
+  }
+  if (normalized === 'marina' || normalized === 'camp_site' || normalized === 'beach') {
+    return 'outdoor';
   }
   if (normalized === 'spa') {
     return 'spa';

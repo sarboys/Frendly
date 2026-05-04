@@ -455,6 +455,163 @@ describe('RouteDraftGenerationService', () => {
     }));
   });
 
+  it('uses clustered place-only fallback when no timed events have coordinates', async () => {
+    const batchUpdate = jest.fn().mockResolvedValue({});
+    const draftCreate = jest.fn().mockResolvedValue({});
+    const places = [
+      {
+        id: 'far-cafe-1',
+        sourceUrl: 'https://example.com/far-cafe',
+        contentKind: 'place',
+        city: 'Москва',
+        title: 'Кафе на севере',
+        shortSummary: 'Далеко от остальных мест',
+        category: 'cafe',
+        address: 'Северная, 1',
+        lat: 55.850,
+        lng: 37.450,
+        startsAt: null,
+        endsAt: null,
+        priceFrom: 300,
+        source: { name: 'OSM Overpass', code: 'overpass' },
+      },
+      {
+        id: 'far-museum-1',
+        sourceUrl: 'https://example.com/far-museum',
+        contentKind: 'place',
+        city: 'Москва',
+        title: 'Музей на юге',
+        shortSummary: 'Далеко от остальных мест',
+        category: 'museum',
+        address: 'Южная, 1',
+        lat: 55.620,
+        lng: 37.700,
+        startsAt: null,
+        endsAt: null,
+        priceFrom: 500,
+        source: { name: 'OSM Overpass', code: 'overpass' },
+      },
+      {
+        id: 'far-bar-1',
+        sourceUrl: 'https://example.com/far-bar',
+        contentKind: 'place',
+        city: 'Москва',
+        title: 'Бар на востоке',
+        shortSummary: 'Далеко от остальных мест',
+        category: 'bar',
+        address: 'Восточная, 1',
+        lat: 55.800,
+        lng: 37.900,
+        startsAt: null,
+        endsAt: null,
+        priceFrom: 900,
+        source: { name: 'OSM Overpass', code: 'overpass' },
+      },
+      {
+        id: 'cluster-cafe-1',
+        sourceUrl: 'https://example.com/cluster-cafe',
+        contentKind: 'place',
+        city: 'Москва',
+        title: 'Кофе у Арбата',
+        shortSummary: 'Кофе перед прогулкой',
+        category: 'cafe',
+        address: 'Арбат, 1',
+        lat: 55.752,
+        lng: 37.596,
+        startsAt: null,
+        endsAt: null,
+        priceFrom: 300,
+        source: { name: 'OSM Overpass', code: 'overpass' },
+      },
+      {
+        id: 'cluster-gallery-1',
+        sourceUrl: 'https://example.com/cluster-gallery',
+        contentKind: 'place',
+        city: 'Москва',
+        title: 'Галерея на Арбате',
+        shortSummary: 'Небольшая культурная точка',
+        category: 'attraction',
+        address: 'Арбат, 3',
+        lat: 55.753,
+        lng: 37.597,
+        startsAt: null,
+        endsAt: null,
+        priceFrom: 500,
+        source: { name: 'OSM Overpass', code: 'overpass' },
+      },
+      {
+        id: 'cluster-bar-1',
+        sourceUrl: 'https://example.com/cluster-bar',
+        contentKind: 'place',
+        city: 'Москва',
+        title: 'Бар на Смоленской',
+        shortSummary: 'Финальная точка рядом',
+        category: 'bar',
+        address: 'Смоленская, 5',
+        lat: 55.754,
+        lng: 37.598,
+        startsAt: null,
+        endsAt: null,
+        priceFrom: 900,
+        source: { name: 'OSM Overpass', code: 'overpass' },
+      },
+    ];
+    const findMany = jest.fn((query: any) => Promise.resolve(
+      query.where.contentKind === 'event' ? [] : places,
+    ));
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: { findMany },
+          generatedRouteDraftBatch: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'batch-1',
+                city: 'Москва',
+                area: null,
+                mood: 'culture',
+                budget: 'mid',
+                requestJson: { maxDrafts: 1 },
+              },
+            ]),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            update: batchUpdate,
+          },
+          generatedRouteReviewDraft: { create: draftCreate },
+        },
+      } as any,
+      {
+        generateJson: jest.fn().mockRejectedValue(
+          new OpenRouterClientError(
+            502,
+            'openrouter_invalid_route_draft',
+            'OpenRouter returned no valid route drafts',
+          ),
+        ),
+      } as any,
+    );
+
+    await service.processPendingManualBatches();
+
+    expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'batch-1' },
+      data: expect.objectContaining({
+        status: 'completed',
+        responseJson: expect.objectContaining({
+          fallback: true,
+          reasonCode: 'openrouter_invalid_route_draft',
+        }),
+      }),
+    }));
+    const createArg = draftCreate.mock.calls[0]?.[0];
+    expect(createArg.data.validationStatus).toBe('valid');
+    expect(createArg.data.steps.create.map((step: any) => step.externalContentItemId)).toEqual([
+      'cluster-cafe-1',
+      'cluster-gallery-1',
+      'cluster-bar-1',
+    ]);
+  });
+
   it('selects timed events and flexible places as separate pools before fallback generation', async () => {
     const batchUpdate = jest.fn().mockResolvedValue({});
     const draftCreate = jest.fn().mockResolvedValue({});
