@@ -93,6 +93,21 @@ export class AdminEveningController {
     return this.routeReviewService.listImportRuns(query);
   }
 
+  @Get('route-review/content-items')
+  listRouteReviewContentItems(@Query() query: Record<string, unknown>) {
+    return this.routeReviewService.listContentItems(query);
+  }
+
+  @Post('route-review/generation-runs')
+  createRouteReviewGenerationRun(@Body() body: Record<string, unknown>) {
+    return this.routeReviewService.createGenerationRun(body as any);
+  }
+
+  @Get('route-review/generation-runs')
+  listRouteReviewGenerationRuns(@Query() query: Record<string, unknown>) {
+    return this.routeReviewService.listGenerationRuns(query);
+  }
+
   @Get('route-review/sources')
   listRouteReviewSources() {
     return this.routeReviewService.listSources();

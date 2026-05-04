@@ -41,7 +41,7 @@ Frendly Evening:
 - `EveningAfterPartyFeedback`, `EveningAfterPartyPhoto`.
 - `PartnerOfferCode`, `UserEveningStepAction`.
 - AI studio: `AiEveningBrief`, `AiEveningGenerationRun`, `AiEveningDraft`, `AiEveningDraftStep`.
-- Route aggregation: `ExternalContentSource`, `ExternalImportRun`, `ExternalContentItem`, `GeneratedRouteDraftBatch`, `GeneratedRouteReviewDraft`, `GeneratedRouteDraftStep`.
+- Route aggregation: `ExternalContentSource`, `ExternalImportRun`, `ExternalContentItem`, `GeneratedRouteDraftBatch`, `GeneratedRouteReviewDraft`, `GeneratedRouteDraftStep`. Manual imports and route generations use `pending_manual` statuses that worker scans outside the API request path.
 - Analytics: `EveningAnalyticsEvent`.
 - Partner featuring: `PartnerFeaturedRequest`.
 

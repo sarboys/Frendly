@@ -55,6 +55,109 @@ describe('AdminRouteReviewService', () => {
       code: 'route_review_invalid_status',
     });
   });
+
+  it('lists imported source items for admin inspection', async () => {
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'item-1',
+                sourceId: 'source-1',
+                sourceItemId: 'event-1',
+                sourceUrl: 'https://example.com/event',
+                contentKind: 'event',
+                city: 'Москва',
+                timezone: 'Europe/Moscow',
+                area: null,
+                title: 'Экскурсия',
+                shortSummary: 'Прогулка по центру',
+                category: 'culture',
+                tags: ['walk'],
+                address: 'Никольская, 12',
+                lat: 55.75,
+                lng: 37.62,
+                startsAt: new Date('2026-05-05T16:00:00.000Z'),
+                endsAt: null,
+                priceFrom: 500,
+                currency: 'RUB',
+                moderationStatus: 'pending',
+                importedAt: new Date('2026-05-04T10:00:00.000Z'),
+                expiresAt: null,
+                source: { code: 'timepad', name: 'Timepad' },
+              },
+            ]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listContentItems({ city: 'Москва', source: 'timepad', limit: 10 });
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 'item-1',
+        sourceCode: 'timepad',
+        title: 'Экскурсия',
+        sourceUrl: 'https://example.com/event',
+      }),
+    ]);
+  });
+
+  it('queues route generation runs without calling OpenRouter in API path', async () => {
+    const batchCreate = jest.fn().mockResolvedValue({
+      id: 'batch-1',
+      city: 'Москва',
+      timezone: 'Europe/Moscow',
+      area: null,
+      mood: 'calm',
+      budget: 'low',
+      audience: 'friends',
+      format: 'evening_route',
+      source: 'aggregation',
+      status: 'pending_manual',
+      promptVersion: 'aggregation-route-review-v1',
+      requestJson: {
+        maxDrafts: 2,
+        requestedBy: 'admin',
+      },
+      responseJson: null,
+      errorCode: null,
+      errorMessage: null,
+      createdAt: new Date('2026-05-04T10:00:00.000Z'),
+      finishedAt: null,
+      _count: { drafts: 0 },
+    });
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          generatedRouteDraftBatch: {
+            create: batchCreate,
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.createGenerationRun({
+      city: 'Москва',
+      mood: 'calm',
+      budget: 'low',
+      maxDrafts: 2,
+    });
+
+    expect(batchCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        city: 'Москва',
+        status: 'pending_manual',
+        requestJson: expect.objectContaining({ maxDrafts: 2, requestedBy: 'admin' }),
+      }),
+    }));
+    expect(result.status).toBe('pending_manual');
+    expect(result.draftCount).toBe(0);
+  });
 });
 
 function reviewDraft(overrides: Record<string, unknown> = {}) {

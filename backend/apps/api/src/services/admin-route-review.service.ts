@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import type {
   AdminExternalImportRunDto,
   AdminExternalImportRunListDto,
+  AdminExternalContentItemListDto,
+  AdminRouteGenerationRunDto,
+  AdminRouteGenerationRunInput,
+  AdminRouteGenerationRunListDto,
   AdminRouteReviewActionInput,
   AdminRouteReviewDraftDto,
   AdminRouteReviewDraftListDto,
@@ -15,6 +19,9 @@ import { PrismaService } from './prisma.service';
 
 const VALID_SOURCES = ['kudago', 'timepad', 'overpass'] as const;
 type SourceCode = (typeof VALID_SOURCES)[number];
+const PROMPT_VERSION = 'aggregation-route-review-v1';
+const DEFAULT_AUDIENCE = 'friends';
+const DEFAULT_FORMAT = 'evening_route';
 
 const SOURCE_INFO: Record<SourceCode, { name: string; kind: string; baseUrl: string }> = {
   kudago: {
@@ -247,6 +254,78 @@ export class AdminRouteReviewService {
     return { items };
   }
 
+  async listContentItems(query: Record<string, unknown> = {}): Promise<AdminExternalContentItemListDto> {
+    const limit = this.parseLimit(query.limit);
+    const cursor = this.parseCursor(this.optionalText(query.cursor));
+    const source = this.optionalText(query.source);
+    const items = await this.prismaService.client.externalContentItem.findMany({
+      where: {
+        ...(this.optionalText(query.city) ? { city: this.optionalText(query.city)! } : {}),
+        ...(this.optionalText(query.contentKind) ? { contentKind: this.optionalText(query.contentKind)! } : {}),
+        ...(this.optionalText(query.category) ? { category: this.optionalText(query.category)! } : {}),
+        ...(this.optionalText(query.moderationStatus) ? { moderationStatus: this.optionalText(query.moderationStatus)! } : {}),
+        ...(source ? { source: { code: source } } : {}),
+        ...(cursor
+          ? {
+              OR: [
+                { importedAt: { lt: cursor.createdAt } },
+                { importedAt: cursor.createdAt, id: { gt: cursor.id } },
+              ],
+            }
+          : {}),
+      },
+      include: { source: { select: { code: true, name: true } } },
+      orderBy: [{ importedAt: 'desc' }, { id: 'asc' }],
+      take: limit + 1,
+    });
+    const page = items.slice(0, limit);
+    const next = items.length > limit ? items[limit] : null;
+    return {
+      items: page.map((item: any) => this.mapContentItem(item)),
+      nextCursor: next ? `${next.importedAt.toISOString()}|${next.id}` : null,
+    };
+  }
+
+  async listGenerationRuns(query: Record<string, unknown> = {}): Promise<AdminRouteGenerationRunListDto> {
+    const runs = await this.prismaService.client.generatedRouteDraftBatch.findMany({
+      where: {
+        ...(this.optionalText(query.city) ? { city: this.optionalText(query.city)! } : {}),
+        ...(this.optionalText(query.status) ? { status: this.optionalText(query.status)! } : {}),
+      },
+      include: { _count: { select: { drafts: true } } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take: this.parseLimit(query.limit),
+    });
+    return { items: runs.map((run: any) => this.mapGenerationRun(run)) };
+  }
+
+  async createGenerationRun(input: AdminRouteGenerationRunInput): Promise<AdminRouteGenerationRunDto> {
+    const city = this.requiredText(input.city, 'route_generation_city_required');
+    const mood = this.requiredText(input.mood, 'route_generation_mood_required');
+    const budget = this.requiredText(input.budget, 'route_generation_budget_required');
+    const maxDrafts = this.parseMaxDrafts(input.maxDrafts);
+    const run = await this.prismaService.client.generatedRouteDraftBatch.create({
+      data: {
+        city,
+        timezone: 'Europe/Moscow',
+        area: this.optionalText(input.area),
+        mood,
+        budget,
+        audience: DEFAULT_AUDIENCE,
+        format: DEFAULT_FORMAT,
+        source: 'aggregation',
+        status: 'pending_manual',
+        promptVersion: PROMPT_VERSION,
+        requestJson: {
+          maxDrafts,
+          requestedBy: 'admin',
+        },
+      },
+      include: { _count: { select: { drafts: true } } },
+    });
+    return this.mapGenerationRun(run);
+  }
+
   async listSources(): Promise<AdminRouteReviewSourceListDto> {
     const sources = await this.prismaService.client.externalContentSource.findMany({
       orderBy: [{ code: 'asc' }],
@@ -374,6 +453,60 @@ export class AdminRouteReviewService {
     };
   }
 
+  private mapContentItem(item: any) {
+    return {
+      id: item.id,
+      sourceId: item.sourceId,
+      sourceCode: item.source?.code ?? null,
+      sourceName: item.source?.name ?? null,
+      sourceItemId: item.sourceItemId,
+      sourceUrl: item.sourceUrl ?? null,
+      contentKind: item.contentKind,
+      city: item.city,
+      timezone: item.timezone,
+      area: item.area ?? null,
+      title: item.title,
+      shortSummary: item.shortSummary ?? null,
+      category: item.category,
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      address: item.address ?? null,
+      lat: item.lat ?? null,
+      lng: item.lng ?? null,
+      startsAt: this.dateToIso(item.startsAt),
+      endsAt: this.dateToIso(item.endsAt),
+      priceFrom: item.priceFrom ?? null,
+      currency: item.currency ?? null,
+      moderationStatus: item.moderationStatus,
+      importedAt: this.requiredDateToIso(item.importedAt),
+      expiresAt: this.dateToIso(item.expiresAt),
+    };
+  }
+
+  private mapGenerationRun(run: any): AdminRouteGenerationRunDto {
+    const request = run.requestJson != null && typeof run.requestJson === 'object'
+      ? run.requestJson as Record<string, unknown>
+      : {};
+    return {
+      id: run.id,
+      city: run.city,
+      timezone: run.timezone,
+      area: run.area ?? null,
+      mood: run.mood,
+      budget: run.budget,
+      audience: run.audience,
+      format: run.format,
+      source: run.source,
+      status: run.status,
+      promptVersion: run.promptVersion,
+      maxDrafts: typeof request.maxDrafts === 'number' ? request.maxDrafts : null,
+      draftCount: run._count?.drafts ?? 0,
+      errorCode: run.errorCode ?? null,
+      errorMessage: run.errorMessage ?? null,
+      createdAt: this.requiredDateToIso(run.createdAt),
+      finishedAt: this.dateToIso(run.finishedAt),
+    };
+  }
+
   private mapSource(source: any): AdminRouteReviewSourceDto {
     return {
       id: source.id,
@@ -409,6 +542,18 @@ export class AdminRouteReviewService {
       }
     }
     return 50;
+  }
+
+  private parseMaxDrafts(value: unknown) {
+    const parsed = typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseInt(value, 10)
+        : 2;
+    if (!Number.isFinite(parsed)) {
+      return 2;
+    }
+    return Math.min(12, Math.max(1, Math.floor(parsed)));
   }
 
   private parseCursor(value: string | null) {

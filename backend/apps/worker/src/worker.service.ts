@@ -31,6 +31,7 @@ const DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE = 25;
 const DEFAULT_PUSH_TOKEN_BATCH_SIZE = 20;
 const DEFAULT_CONTENT_IMPORT_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
+const DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
@@ -51,6 +52,7 @@ export class WorkerService implements OnModuleDestroy {
   private eveningAutoAdvanceTimer?: NodeJS.Timeout;
   private contentImportTimer?: NodeJS.Timeout;
   private contentManualImportTimer?: NodeJS.Timeout;
+  private contentManualGenerationTimer?: NodeJS.Timeout;
   private contentRouteGenerationTimer?: NodeJS.Timeout;
   private running = false;
   private systemNotificationRunning = false;
@@ -58,6 +60,7 @@ export class WorkerService implements OnModuleDestroy {
   private eveningAutoAdvanceRunning = false;
   private contentImportRunning = false;
   private contentManualImportRunning = false;
+  private contentManualGenerationRunning = false;
   private contentRouteGenerationRunning = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
     process.env.WORKER_MAX_EVENTS_PER_RUN,
@@ -123,6 +126,10 @@ export class WorkerService implements OnModuleDestroy {
     process.env.CONTENT_MANUAL_IMPORT_INTERVAL_MS,
     DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS,
   );
+  private readonly contentManualGenerationIntervalMs = this.resolvePositiveInteger(
+    process.env.CONTENT_MANUAL_GENERATION_INTERVAL_MS,
+    DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS,
+  );
   private readonly contentRouteGenerationEnabled =
     process.env.CONTENT_ROUTE_GENERATION_ENABLED === 'true';
   private readonly contentRouteGenerationIntervalMs = this.resolvePositiveInteger(
@@ -171,6 +178,12 @@ export class WorkerService implements OnModuleDestroy {
         () => this.runPendingManualImportScan(),
       );
     }, this.contentManualImportIntervalMs);
+    this.contentManualGenerationTimer = setInterval(() => {
+      void this.runScheduledTask(
+        'content-manual-generation',
+        () => this.runPendingManualGenerationScan(),
+      );
+    }, this.contentManualGenerationIntervalMs);
     if (this.contentImportEnabled) {
       this.contentImportTimer = setInterval(() => {
         void this.runScheduledTask(
@@ -207,6 +220,10 @@ export class WorkerService implements OnModuleDestroy {
       'content-manual-import',
       () => this.runPendingManualImportScan(),
     );
+    void this.runScheduledTask(
+      'content-manual-generation',
+      () => this.runPendingManualGenerationScan(),
+    );
     if (this.contentImportEnabled) {
       void this.runScheduledTask(
         'content-import',
@@ -239,6 +256,9 @@ export class WorkerService implements OnModuleDestroy {
     }
     if (this.contentManualImportTimer) {
       clearInterval(this.contentManualImportTimer);
+    }
+    if (this.contentManualGenerationTimer) {
+      clearInterval(this.contentManualGenerationTimer);
     }
     if (this.contentRouteGenerationTimer) {
       clearInterval(this.contentRouteGenerationTimer);
@@ -1329,6 +1349,20 @@ export class WorkerService implements OnModuleDestroy {
       }
     } finally {
       this.contentImportRunning = false;
+    }
+  }
+
+  private async runPendingManualGenerationScan() {
+    if (this.contentManualGenerationRunning || !this.routeDraftGenerationService) {
+      return;
+    }
+
+    this.contentManualGenerationRunning = true;
+
+    try {
+      await this.routeDraftGenerationService.processPendingManualBatches();
+    } finally {
+      this.contentManualGenerationRunning = false;
     }
   }
 

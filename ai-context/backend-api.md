@@ -114,6 +114,9 @@ Admin Evening route review:
 - `POST /admin/evening/route-review/drafts/:draftId/publish`
 - `POST /admin/evening/route-review/import-runs`
 - `GET /admin/evening/route-review/import-runs`
+- `GET /admin/evening/route-review/content-items`
+- `POST /admin/evening/route-review/generation-runs`
+- `GET /admin/evening/route-review/generation-runs`
 - `GET /admin/evening/route-review/sources`
 
 ## Important behavior
@@ -140,6 +143,7 @@ Admin Evening route review:
 - Legacy `x-admin-token` still works when `ADMIN_API_TOKEN` is configured, but browser admin should use `/admin/auth/*`.
 - Generated route review drafts are never public by default. Admin must approve, convert to `EveningRouteTemplate`, then publish through existing Evening route publishing.
 - Manual route review import requests create `pending_manual` import runs. External fetch stays in worker, not in the API request path.
+- Manual route review generation requests create `GeneratedRouteDraftBatch.status=pending_manual`. Worker picks them up and calls OpenRouter outside the API request path. Drafts stay in admin review until approve, convert and publish.
 
 ## Shared packages
 

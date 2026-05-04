@@ -80,6 +80,57 @@ export class RouteDraftGenerationService {
       },
     });
 
+    await this.executeBatch(batch.id, input, candidates, request);
+    return batch;
+  }
+
+  async processPendingManualBatches(limit = 5) {
+    const batches = await this.prismaService.client.generatedRouteDraftBatch.findMany({
+      where: { status: 'pending_manual' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: limit,
+    });
+
+    for (const batch of batches as any[]) {
+      const input = this.inputFromBatch(batch);
+      const candidates = await this.selectCandidates(input.city);
+      if (candidates.length < 2) {
+        await this.prismaService.client.generatedRouteDraftBatch.update({
+          where: { id: batch.id },
+          data: {
+            status: 'failed',
+            errorCode: 'content_candidates_insufficient',
+            errorMessage: 'Not enough imported candidates with coordinates',
+            finishedAt: new Date(),
+          },
+        });
+        continue;
+      }
+      const request = this.buildPromptRequest(input, candidates);
+      await this.prismaService.client.generatedRouteDraftBatch.update({
+        where: { id: batch.id },
+        data: {
+          status: 'running',
+          requestJson: {
+            ...request,
+            queuedRequest: batch.requestJson ?? null,
+          } as Prisma.InputJsonValue,
+          responseJson: undefined,
+          errorCode: null,
+          errorMessage: null,
+          finishedAt: null,
+        },
+      });
+      await this.executeBatch(batch.id, input, candidates, request);
+    }
+  }
+
+  private async executeBatch(
+    batchId: string,
+    input: RouteDraftGenerationInput,
+    candidates: any[],
+    request: Record<string, unknown>,
+  ) {
     try {
       const response = await this.openRouterClient.generateJson<OpenRouterRouteReviewResponse>({
         systemPrompt: this.systemPrompt(),
@@ -88,7 +139,7 @@ export class RouteDraftGenerationService {
         maxTokens: 2600,
       });
       await this.prismaService.client.generatedRouteDraftBatch.update({
-        where: { id: batch.id },
+        where: { id: batchId },
         data: {
           status: 'completed',
           responseJson: response.rawResponse as Prisma.InputJsonValue,
@@ -100,12 +151,11 @@ export class RouteDraftGenerationService {
         ? response.parsedJson.routes.slice(0, input.maxDrafts ?? 4)
         : [];
       for (const route of routes) {
-        await this.saveDraft(batch.id, input, candidates, route);
+        await this.saveDraft(batchId, input, candidates, route);
       }
-      return batch;
     } catch (caught) {
       await this.prismaService.client.generatedRouteDraftBatch.update({
-        where: { id: batch.id },
+        where: { id: batchId },
         data: {
           status: 'failed',
           errorCode: caught instanceof Error ? caught.message.slice(0, 120) : 'route_generation_failed',
@@ -113,7 +163,6 @@ export class RouteDraftGenerationService {
           finishedAt: new Date(),
         },
       });
-      return batch;
     }
   }
 
@@ -230,6 +279,25 @@ export class RouteDraftGenerationService {
           },
         ],
       },
+    };
+  }
+
+  private inputFromBatch(batch: {
+    city: string;
+    area?: string | null;
+    mood: string;
+    budget: string;
+    requestJson?: unknown;
+  }): RouteDraftGenerationInput {
+    const request = batch.requestJson != null && typeof batch.requestJson === 'object'
+      ? batch.requestJson as Record<string, unknown>
+      : {};
+    return {
+      city: batch.city,
+      area: batch.area ?? null,
+      mood: batch.mood,
+      budget: batch.budget,
+      maxDrafts: positiveInt(request.maxDrafts, 2),
     };
   }
 
@@ -383,7 +451,11 @@ function csv(value: unknown) {
 }
 
 function positiveInt(value: unknown, fallback: number) {
-  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 

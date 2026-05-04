@@ -74,8 +74,9 @@ Public routing:
 - `WORKER_RETENTION_CLEANUP_ENABLED=true` enables DB retention cleanup.
 - Route aggregation runs in the existing worker. `CONTENT_IMPORT_ENABLED=false` and `CONTENT_ROUTE_GENERATION_ENABLED=false` keep scheduled import and generation off by default.
 - Manual admin import creates `ExternalImportRun.status=pending_manual`; worker scans those runs and performs KudaGo, Timepad and Overpass fetches outside the API request path.
+- Manual admin route generation creates `GeneratedRouteDraftBatch.status=pending_manual`; worker scans those batches and performs OpenRouter generation outside the API request path.
 - Source env: `KUDAGO_BASE_URL`, `TIMEPAD_BASE_URL`, `TIMEPAD_API_TOKEN`, `OVERPASS_BASE_URL`. OpenRouter env: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`.
-- Route aggregation schedule env: `CONTENT_IMPORT_INTERVAL_MS`, `CONTENT_IMPORT_CITIES`, `CONTENT_IMPORT_SOURCES`, `CONTENT_MANUAL_IMPORT_INTERVAL_MS`, `CONTENT_ROUTE_GENERATION_INTERVAL_MS`, `CONTENT_ROUTE_GENERATION_MAX_DRAFTS_PER_CITY`.
+- Route aggregation schedule env: `CONTENT_IMPORT_INTERVAL_MS`, `CONTENT_IMPORT_CITIES`, `CONTENT_IMPORT_SOURCES`, `CONTENT_MANUAL_IMPORT_INTERVAL_MS`, `CONTENT_MANUAL_GENERATION_INTERVAL_MS`, `CONTENT_ROUTE_GENERATION_INTERVAL_MS`, `CONTENT_ROUTE_GENERATION_MAX_DRAFTS_PER_CITY`.
 
 Event types:
 
