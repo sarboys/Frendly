@@ -170,7 +170,7 @@ describe('content source adapters', () => {
       title: 'Большой стендап',
       category: 'comedy',
       venueName: 'Клуб',
-      imageUrl: 'https://ticketland.ru/image.jpg',
+      imageUrl: 'https://api.live.mts.ru/web-api/v3/image-scaling/?ScalingFactor=4&Url=https%3A%2F%2Fmedia.ticketland.ru%2Fimages%2F250x250%2F24%2F16%2Fimage.png',
       actionUrl: 'https://go.avred.online/click',
       actionKind: 'affiliate_ticket',
       priceMode: 'paid',
@@ -302,7 +302,7 @@ function ticketlandYml(options: { extraOffers?: string; url?: string } = {}) {
     <offers>
       <offer id="100">
         <url>${options.url ?? 'https://go.avred.online/click'}</url>
-        <picture>https://ticketland.ru/image.jpg</picture>
+        <picture>https://api.live.mts.ru/web-api/v3/image-scaling/?ScalingFactor=2&amp;Url=https%3A%2F%2Fmedia.ticketland.ru%2Fimages%2F250x250%2F24%2F16%2Fimage.png</picture>
         <price>1500</price>
         <currencyId>RUB</currencyId>
         <model>Большой стендап</model>
@@ -311,7 +311,7 @@ function ticketlandYml(options: { extraOffers?: string; url?: string } = {}) {
         <typePrefix>Комедии</typePrefix>
         <region>Москва</region>
         <date>2026-05-05 19:00:00</date>
-        <description><![CDATA[<p>Описание &amp; детали</p>]]></description>
+        <description>&lt;p&gt;Описание &amp;amp; детали&lt;/p&gt;</description>
         <age>18+</age>
       </offer>
       ${options.extraOffers ?? ''}

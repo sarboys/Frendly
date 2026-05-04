@@ -208,6 +208,14 @@ export class ChatsService {
 
           const eventTime = chat.event ? formatEventTime(chat.event.startsAt) : '';
           const parts = eventTime.split('·');
+          const memberProfiles = chat.members
+            .filter((entry) => !blockedUserIds.has(entry.userId))
+            .map((entry) => ({
+              userId: entry.user.id,
+              name: entry.user.displayName,
+              online: entry.user.online ?? false,
+              isCurrentUser: entry.userId === userId,
+            }));
 
           return {
             id: chat.id,
@@ -220,9 +228,8 @@ export class ChatsService {
             lastAuthor: lastMessage?.sender.displayName ?? '',
             lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
             unread,
-            members: chat.members
-              .filter((entry) => !blockedUserIds.has(entry.userId))
-              .map((entry) => entry.user.displayName),
+            members: memberProfiles.map((entry) => entry.name),
+            memberProfiles,
             typing: false,
             isAfterDark:
               chat.event?.isAfterDark ?? chat.sourceEvent?.isAfterDark ?? false,

@@ -156,7 +156,7 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
       priceFrom,
       currency: text(readField(offer, 'currencyId')) ?? 'RUB',
       venueName: text(readField(offer, 'vendor')),
-      imageUrl: text(readField(offer, 'picture')),
+      imageUrl: normalizeImageUrl(text(readField(offer, 'picture'))),
       actionUrl,
       actionKind: 'affiliate_ticket',
       priceMode: priceFrom > 0 ? 'paid' : 'free',
@@ -261,11 +261,27 @@ function cleanHtml(value: string | null) {
   if (!value) {
     return null;
   }
-  const withoutTags = value
+  const withoutTags = decodeEntities(value)
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<[^>]+>/g, ' ');
   return decodeEntities(withoutTags).replace(/\s+/g, ' ').trim() || null;
+}
+
+function normalizeImageUrl(value: string | null) {
+  if (!value) {
+    return null;
+  }
+  const parsed = parseUrl(value);
+  if (
+    parsed?.protocol === 'https:' &&
+    parsed.hostname === 'api.live.mts.ru' &&
+    parsed.pathname.includes('/image-scaling/')
+  ) {
+    parsed.searchParams.set('ScalingFactor', '4');
+    return parsed.toString();
+  }
+  return value;
 }
 
 function parseWebsites() {

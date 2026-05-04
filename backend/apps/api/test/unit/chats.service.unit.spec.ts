@@ -330,6 +330,65 @@ describe('ChatsService unit', () => {
     });
   });
 
+  it('exposes meetup member profiles with user ids for direct chat actions', async () => {
+    const chat = makeChatListItem(
+      'chat-members',
+      new Date('2026-04-24T10:00:00.000Z'),
+    ) as any;
+    chat.members = [
+      {
+        userId: 'user-me',
+        user: {
+          id: 'user-me',
+          displayName: 'Сергей',
+          online: true,
+        },
+      },
+      {
+        userId: 'user-sonya',
+        user: {
+          id: 'user-sonya',
+          displayName: 'Соня М',
+          online: false,
+        },
+      },
+    ];
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([chat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-members',
+      memberProfiles: [
+        {
+          userId: 'user-me',
+          name: 'Сергей',
+          online: true,
+          isCurrentUser: true,
+        },
+        {
+          userId: 'user-sonya',
+          name: 'Соня М',
+          online: false,
+          isCurrentUser: false,
+        },
+      ],
+    });
+  });
+
   it('uses chat list cursor payload without reading the cursor chat again', async () => {
     const firstChat = makeChatListItem(
       'chat-2',
