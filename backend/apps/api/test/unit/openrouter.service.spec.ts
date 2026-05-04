@@ -76,4 +76,32 @@ describe('OpenRouterService unit', () => {
       code: 'openrouter_unavailable',
     });
   });
+
+  it('times out hung OpenRouter requests', async () => {
+    jest.useFakeTimers();
+    try {
+      const fetchImpl = jest.fn((_url, _init) => new Promise<never>(() => undefined));
+      const service = new OpenRouterService({
+        apiKey: 'test-key',
+        timeoutMs: 1000,
+        fetchImpl,
+      });
+
+      const promise = service.generateJson({
+        systemPrompt: 'Generate route drafts.',
+        userPrompt: 'Use these venues.',
+      });
+
+      await Promise.resolve();
+      jest.advanceTimersByTime(1000);
+
+      await expect(promise).rejects.toMatchObject({
+        statusCode: 504,
+        code: 'openrouter_timeout',
+      });
+      expect(fetchImpl.mock.calls[0]?.[1].signal?.aborted).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

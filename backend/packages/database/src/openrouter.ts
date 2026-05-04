@@ -50,7 +50,7 @@ export class OpenRouterClientError extends Error {
 
 const DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
-const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = 180_000;
 
 export class OpenRouterClient {
   private readonly apiKey: string | null;
@@ -66,7 +66,10 @@ export class OpenRouterClient {
       textOrNull(options.baseUrl) ??
       textOrNull(process.env.OPENROUTER_BASE_URL) ??
       DEFAULT_BASE_URL;
-    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.timeoutMs =
+      positiveInteger(options.timeoutMs) ??
+      positiveInteger(process.env.OPENROUTER_TIMEOUT_MS) ??
+      DEFAULT_TIMEOUT_MS;
     this.fetchImpl =
       options.fetchImpl ??
       ((globalThis.fetch as unknown as OpenRouterFetchLike | undefined) ??
@@ -90,58 +93,26 @@ export class OpenRouterClient {
 
     const startedAt = Date.now();
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    let timedOut = false;
 
     try {
-      const response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.model,
-          temperature: input.temperature ?? 0.4,
-          max_tokens: input.maxTokens ?? 1800,
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: [
-                'Return strict JSON only.',
-                'Do not invent real places.',
-                'Use only approved venues and active offers provided in the prompt.',
-                input.systemPrompt,
-              ].join('\n'),
-            },
-            {
-              role: 'user',
-              content: input.userPrompt,
-            },
-          ],
-        }),
-        signal: controller.signal,
+      const operation = this.executeGenerateJson<T>(input, startedAt, controller.signal);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+          reject(this.timeoutError());
+        }, this.timeoutMs);
       });
 
-      if (!response.ok) {
-        throw new OpenRouterClientError(
-          503,
-          'openrouter_unavailable',
-          `OpenRouter request failed with status ${response.status}`,
-        );
-      }
-
-      const rawResponse = await response.json();
-      const content = extractAssistantContent(rawResponse);
-      return {
-        rawResponse,
-        parsedJson: parseOpenRouterJsonContent<T>(content),
-        model: this.model,
-        latencyMs: Date.now() - startedAt,
-      };
+      return await Promise.race([operation, timeoutPromise]);
     } catch (caught) {
       if (caught instanceof OpenRouterClientError) {
         throw caught;
+      }
+      if (timedOut || isAbortError(caught)) {
+        throw this.timeoutError();
       }
       throw new OpenRouterClientError(
         503,
@@ -149,8 +120,71 @@ export class OpenRouterClient {
         'OpenRouter request failed',
       );
     } finally {
-      clearTimeout(timeout);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
     }
+  }
+
+  private async executeGenerateJson<T>(
+    input: OpenRouterGenerateJsonInput,
+    startedAt: number,
+    signal: AbortSignal,
+  ): Promise<OpenRouterGenerateJsonResult<T>> {
+    const response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        temperature: input.temperature ?? 0.4,
+        max_tokens: input.maxTokens ?? 1800,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: [
+              'Return strict JSON only.',
+              'Do not invent real places.',
+              'Use only approved venues and active offers provided in the prompt.',
+              input.systemPrompt,
+            ].join('\n'),
+          },
+          {
+            role: 'user',
+            content: input.userPrompt,
+          },
+        ],
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new OpenRouterClientError(
+        503,
+        'openrouter_unavailable',
+        `OpenRouter request failed with status ${response.status}`,
+      );
+    }
+
+    const rawResponse = await response.json();
+    const content = extractAssistantContent(rawResponse);
+    return {
+      rawResponse,
+      parsedJson: parseOpenRouterJsonContent<T>(content),
+      model: this.model,
+      latencyMs: Date.now() - startedAt,
+    };
+  }
+
+  private timeoutError() {
+    return new OpenRouterClientError(
+      504,
+      'openrouter_timeout',
+      `OpenRouter request timed out after ${this.timeoutMs}ms`,
+    );
   }
 }
 
@@ -219,6 +253,19 @@ function textOrNull(value: unknown) {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function positiveInteger(value: unknown) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function isAbortError(value: unknown) {
+  return value instanceof Error && value.name === 'AbortError';
 }
 
 async function unavailableFetch(): Promise<OpenRouterFetchResponseLike> {

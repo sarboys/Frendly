@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OpenRouterClient } from '@big-break/database';
+import { OpenRouterClient, OpenRouterClientError } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
@@ -154,12 +154,13 @@ export class RouteDraftGenerationService {
         await this.saveDraft(batchId, input, candidates, route);
       }
     } catch (caught) {
+      const failure = routeGenerationFailure(caught);
       await this.prismaService.client.generatedRouteDraftBatch.update({
         where: { id: batchId },
         data: {
           status: 'failed',
-          errorCode: caught instanceof Error ? caught.message.slice(0, 120) : 'route_generation_failed',
-          errorMessage: caught instanceof Error ? caught.message.slice(0, 500) : 'Route generation failed',
+          errorCode: failure.code,
+          errorMessage: failure.message,
           finishedAt: new Date(),
         },
       });
@@ -457,6 +458,25 @@ function positiveInt(value: unknown, fallback: number) {
       ? Number.parseInt(value, 10)
       : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function routeGenerationFailure(caught: unknown) {
+  if (caught instanceof OpenRouterClientError) {
+    return {
+      code: caught.code.slice(0, 120),
+      message: caught.message.slice(0, 500),
+    };
+  }
+  if (caught instanceof Error) {
+    return {
+      code: 'route_generation_failed',
+      message: caught.message.slice(0, 500),
+    };
+  }
+  return {
+    code: 'route_generation_failed',
+    message: 'Route generation failed',
+  };
 }
 
 function emojiForKind(kind: string) {
