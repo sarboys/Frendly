@@ -1,6 +1,6 @@
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
 
-const MAX_ITEMS_PER_RUN = 1200;
+const DEFAULT_OVERPASS_QUERY_TIMEOUT_SECONDS = 120;
 
 const CITY_BBOX: Record<string, string> = {
   'Москва': '55.55,37.35,55.95,37.95',
@@ -48,7 +48,7 @@ export class OverpassAdapter implements ExternalSourceAdapter {
       throw new Error(`overpass_${response.status}`);
     }
     const payload = await response.json();
-    return elements(payload).flatMap((item) => this.mapElement(item, input.city)).slice(0, MAX_ITEMS_PER_RUN);
+    return elements(payload).flatMap((item) => this.mapElement(item, input.city));
   }
 
   private mapElement(item: Record<string, unknown>, city: string): ExternalRawItem[] {
@@ -91,12 +91,16 @@ export class OverpassAdapter implements ExternalSourceAdapter {
 }
 
 function buildQuery(bbox: string) {
+  const timeoutSeconds = positiveInt(
+    process.env.OVERPASS_QUERY_TIMEOUT_SECONDS,
+    DEFAULT_OVERPASS_QUERY_TIMEOUT_SECONDS,
+  );
   const selectors = TAGS.flatMap(([key, value]) => [
     `node["${key}"="${value}"](${bbox});`,
     `way["${key}"="${value}"](${bbox});`,
     `relation["${key}"="${value}"](${bbox});`,
   ]).join('\n');
-  return `[out:json][timeout:25];\n(\n${selectors}\n);\nout center 500;`;
+  return `[out:json][timeout:${timeoutSeconds}];\n(\n${selectors}\n);\nout center;`;
 }
 
 function elements(payload: unknown): Record<string, unknown>[] {
@@ -130,4 +134,9 @@ function addressFromTags(tags: Record<string, unknown>) {
   const house = text(tags['addr:housenumber']);
   const city = text(tags['addr:city']);
   return [city, street, house].filter(Boolean).join(', ') || null;
+}
+
+function positiveInt(value: unknown, fallback: number) {
+  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }

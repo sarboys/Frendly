@@ -6,8 +6,7 @@ const KUDAGO_CITY_CODES: Record<string, string> = {
 };
 
 const PAGE_SIZE = 100;
-const MAX_ITEMS_PER_KIND = 500;
-const MAX_ITEMS_PER_RUN = 1000;
+const DEFAULT_MAX_PAGES_PER_ENDPOINT = 1000;
 
 export class KudaGoAdapter implements ExternalSourceAdapter {
   readonly code = 'kudago' as const;
@@ -19,7 +18,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
       this.fetchEvents(input, cityCode),
       this.fetchPlaces(input, cityCode),
     ]);
-    return [...events, ...places].slice(0, MAX_ITEMS_PER_RUN);
+    return [...events, ...places];
   }
 
   private async fetchEvents(input: ExternalSourceFetchInput, cityCode: string) {
@@ -30,7 +29,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
     url.searchParams.set('actual_until', String(Math.floor(input.to.getTime() / 1000)));
     url.searchParams.set('page_size', String(PAGE_SIZE));
     url.searchParams.set('fields', 'id,title,short_title,description,site_url,categories,dates,place,price');
-    const items = await fetchPaged(url, input.signal, MAX_ITEMS_PER_KIND);
+    const items = await fetchPaged(url, input.signal);
     return items.flatMap((item) => this.mapEvent(item, input.city));
   }
 
@@ -40,7 +39,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
     url.searchParams.set('location', cityCode);
     url.searchParams.set('page_size', String(PAGE_SIZE));
     url.searchParams.set('fields', 'id,title,address,coords,site_url,categories,subway');
-    const items = await fetchPaged(url, input.signal, MAX_ITEMS_PER_KIND);
+    const items = await fetchPaged(url, input.signal);
     return items.flatMap((item) => this.mapPlace(item, input.city));
   }
 
@@ -121,9 +120,10 @@ async function fetchJson(url: URL, signal: AbortSignal) {
   return response.json();
 }
 
-async function fetchPaged(url: URL, signal: AbortSignal, maxItems: number) {
+async function fetchPaged(url: URL, signal: AbortSignal) {
   const items: Record<string, unknown>[] = [];
-  for (let page = 1; items.length < maxItems; page += 1) {
+  const maxPages = positiveInt(process.env.CONTENT_IMPORT_MAX_PAGES_PER_ENDPOINT, DEFAULT_MAX_PAGES_PER_ENDPOINT);
+  for (let page = 1; page <= maxPages; page += 1) {
     const pageUrl = new URL(url.toString());
     pageUrl.searchParams.set('page', String(page));
     const payload = await fetchJson(pageUrl, signal);
@@ -133,7 +133,7 @@ async function fetchPaged(url: URL, signal: AbortSignal, maxItems: number) {
       break;
     }
   }
-  return items.slice(0, maxItems);
+  return items;
 }
 
 function results(payload: unknown): Record<string, unknown>[] {
@@ -197,4 +197,9 @@ function priceFrom(value: unknown) {
     return match ? Number.parseInt(match[0], 10) : null;
   }
   return null;
+}
+
+function positiveInt(value: unknown, fallback: number) {
+  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }

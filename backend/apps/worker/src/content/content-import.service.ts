@@ -12,7 +12,7 @@ export type ContentImportInput = {
   to: Date;
 };
 
-const DEFAULT_IMPORT_TIMEOUT_MS = 15_000;
+const DEFAULT_IMPORT_TIMEOUT_MS = 120_000;
 const SOURCE_CITY_CODES: Record<ExternalSourceCode, Record<string, string>> = {
   kudago: {
     'Москва': 'msk',
@@ -94,7 +94,7 @@ export class ContentImportService {
     for (const run of runs as any[]) {
       const metadata = object(run.metadata);
       const from = parseDate(metadata?.from) ?? new Date();
-      const to = parseDate(metadata?.to) ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const to = parseDate(metadata?.to) ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await this.prismaService.client.externalImportRun.update({
         where: { id: run.id },
         data: { status: 'running', startedAt: new Date(), finishedAt: null, errorCode: null, errorMessage: null },

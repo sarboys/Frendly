@@ -14,13 +14,13 @@ describe('content source adapters', () => {
     }
   });
 
-  it('loads multiple KudaGo pages instead of only the first 100 items', async () => {
+  it('loads all KudaGo pages for the selected period', async () => {
     const adapter = new KudaGoAdapter();
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = new URL(String(input));
       const page = Number.parseInt(url.searchParams.get('page') ?? '1', 10);
       const isEvents = url.pathname.endsWith('/events/');
-      const count = isEvents ? (page === 1 ? 100 : page === 2 ? 1 : 0) : 0;
+      const count = isEvents ? (page <= 5 ? 100 : page === 6 ? 1 : 0) : 0;
       return jsonResponse({
         results: Array.from({ length: count }, (_, index) => kudagoEvent(page * 1000 + index)),
       });
@@ -29,27 +29,30 @@ describe('content source adapters', () => {
     const items = await adapter.fetchItems(fetchInput());
 
     const urls = fetchMock.mock.calls.map((call) => String(call[0]));
-    expect(urls.some((url) => url.includes('/events/') && url.includes('page=2'))).toBe(true);
-    expect(items.filter((item) => item.contentKind === 'event')).toHaveLength(101);
+    expect(urls.some((url) => url.includes('/events/') && url.includes('page=6'))).toBe(true);
+    expect(items.filter((item) => item.contentKind === 'event')).toHaveLength(501);
   });
 
-  it('loads multiple Timepad pages and cuts events after the import window', async () => {
+  it('loads all Timepad pages until the selected period ends', async () => {
     process.env.TIMEPAD_API_TOKEN = 'test-token';
     const adapter = new TimepadAdapter();
-    jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = new URL(String(input));
       const skip = Number.parseInt(url.searchParams.get('skip') ?? '0', 10);
-      const count = skip === 0 ? 100 : skip === 100 ? 2 : 0;
+      const count = skip <= 500 ? 100 : skip === 600 ? 2 : 0;
       return jsonResponse({
         values: Array.from({ length: count }, (_, index) =>
-          timepadEvent(skip + index, index === 1 && skip === 100 ? '2026-06-20T19:00:00.000Z' : '2026-05-06T19:00:00.000Z'),
+          timepadEvent(skip + index, index === 1 && skip === 600 ? '2026-06-20T19:00:00.000Z' : '2026-05-06T19:00:00.000Z'),
         ),
       });
     });
 
     const items = await adapter.fetchItems(fetchInput());
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
 
-    expect(items).toHaveLength(101);
+    expect(urls.some((url) => url.includes('skip=600'))).toBe(true);
+    expect(urls.some((url) => url.includes('skip=700'))).toBe(false);
+    expect(items).toHaveLength(601);
     expect(items.every((item) => item.startsAt == null || item.startsAt <= fetchInput().to)).toBe(true);
   });
 
@@ -64,6 +67,8 @@ describe('content source adapters', () => {
     expect(query).toContain('"amenity"="bicycle_rental"');
     expect(query).toContain('"tourism"="picnic_site"');
     expect(query).toContain('"tourism"="viewpoint"');
+    expect(query).toContain('out center;');
+    expect(query).not.toContain('out center 500;');
   });
 });
 

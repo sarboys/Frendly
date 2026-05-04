@@ -1,7 +1,7 @@
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
 
 const PAGE_SIZE = 100;
-const MAX_ITEMS_PER_RUN = 500;
+const DEFAULT_MAX_PAGES_PER_ENDPOINT = 1000;
 
 export class TimepadAdapter implements ExternalSourceAdapter {
   readonly code = 'timepad' as const;
@@ -15,7 +15,9 @@ export class TimepadAdapter implements ExternalSourceAdapter {
     }
 
     const items: Record<string, unknown>[] = [];
-    for (let skip = 0; items.length < MAX_ITEMS_PER_RUN; skip += PAGE_SIZE) {
+    const maxPages = positiveInt(process.env.CONTENT_IMPORT_MAX_PAGES_PER_ENDPOINT, DEFAULT_MAX_PAGES_PER_ENDPOINT);
+    for (let page = 0; page < maxPages; page += 1) {
+      const skip = page * PAGE_SIZE;
       const url = new URL(`${this.baseUrl}/events.json`);
       url.searchParams.set('limit', String(PAGE_SIZE));
       url.searchParams.set('skip', String(skip));
@@ -32,14 +34,22 @@ export class TimepadAdapter implements ExternalSourceAdapter {
       }
       const payload = await response.json();
       const pageItems = values(payload);
-      items.push(...pageItems);
+      items.push(...pageItems.filter((item) => {
+        const startsAt = date(item.starts_at);
+        return startsAt == null || startsAt <= input.to;
+      }));
+      const hasItemAfterWindow = pageItems.some((item) => {
+        const startsAt = date(item.starts_at);
+        return startsAt != null && startsAt > input.to;
+      });
       if (pageItems.length < PAGE_SIZE) {
         break;
       }
+      if (hasItemAfterWindow) {
+        break;
+      }
     }
-    return items.flatMap((item) => this.mapEvent(item, input.city)).filter((item) =>
-      item.startsAt == null || item.startsAt <= input.to,
-    ).slice(0, MAX_ITEMS_PER_RUN);
+    return items.flatMap((item) => this.mapEvent(item, input.city));
   }
 
   private mapEvent(item: Record<string, unknown>, city: string): ExternalRawItem[] {
@@ -140,4 +150,9 @@ function categoryTags(value: unknown) {
 
 function firstCategory(value: unknown) {
   return categoryTags(value)[0] ?? null;
+}
+
+function positiveInt(value: unknown, fallback: number) {
+  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
