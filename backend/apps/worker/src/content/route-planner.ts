@@ -99,6 +99,7 @@ const MAX_WALK_BY_MOOD: Record<string, number> = {
   culture: 18,
   social: 20,
   active: 25,
+  outdoor: 35,
 };
 const MINUTES_PER_STEP = 45;
 const ANCHOR_GAP_MINUTES = 10;
@@ -123,6 +124,19 @@ export function buildRouteSkeletons(
   const routes: PlannedRoute[] = [];
   const anchors = selectAnchors(input.mood, candidates);
 
+  if (input.mood === 'outdoor') {
+    const flexibleRoute = buildFlexibleRoute(input, candidates);
+    if (
+      flexibleRoute &&
+      validateRouteDraft(flexibleRoute, candidates, timezone, input.budget).status === 'valid'
+    ) {
+      routes.push(flexibleRoute);
+    }
+    if (routes.length >= (input.maxDrafts ?? 4)) {
+      return routes;
+    }
+  }
+
   for (const anchor of anchors) {
     const route = buildAnchoredRoute(input, timezone, candidates, anchor);
     if (route && validateRouteDraft(route, candidates, timezone, input.budget).status === 'valid') {
@@ -133,12 +147,14 @@ export function buildRouteSkeletons(
     }
   }
 
-  const flexibleRoute = buildFlexibleRoute(input, candidates);
-  if (
-    flexibleRoute &&
-    validateRouteDraft(flexibleRoute, candidates, timezone, input.budget).status === 'valid'
-  ) {
-    routes.push(flexibleRoute);
+  if (input.mood !== 'outdoor') {
+    const flexibleRoute = buildFlexibleRoute(input, candidates);
+    if (
+      flexibleRoute &&
+      validateRouteDraft(flexibleRoute, candidates, timezone, input.budget).status === 'valid'
+    ) {
+      routes.push(flexibleRoute);
+    }
   }
 
   if (routes.length === 0) {
@@ -287,6 +303,21 @@ export function validateRouteDraft(
       code: 'too_many_timed_events',
       message: 'Route should not use more than two timed events',
     });
+  }
+
+  const eventCategoryCounts = new Map<string, number>();
+  for (const timedAnchor of timedAnchors) {
+    const count = eventCategoryCounts.get(timedAnchor.candidate.normalizedCategory) ?? 0;
+    if (count > 0) {
+      issues.push({
+        severity: 'error',
+        code: 'event_category_repeated',
+        message: 'Route repeats the same event category',
+        stepIndex: timedAnchor.index,
+        externalContentItemId: timedAnchor.candidate.id,
+      });
+    }
+    eventCategoryCounts.set(timedAnchor.candidate.normalizedCategory, count + 1);
   }
 
   for (let index = 1; index < resolvedSteps.length; index += 1) {
@@ -670,8 +701,11 @@ function normalizeCandidates(candidates: RoutePlannerCandidate[]): PlanningCandi
 }
 
 function anchorCategories(mood: string) {
+  if (mood === 'outdoor') {
+    return ['bike', 'adventure', 'outdoor', 'sport', 'walk', 'festival', 'market'];
+  }
   if (mood === 'active') {
-    return ['quest', 'sport', 'workshop', 'active', 'festival'];
+    return ['sport', 'adventure', 'bike', 'outdoor', 'workshop', 'festival', 'quest'];
   }
   if (mood === 'date') {
     return ['theatre', 'concert', 'cinema', 'culture', 'walk', 'quest'];
@@ -686,6 +720,9 @@ function anchorCategories(mood: string) {
 }
 
 function beforeCategories(mood: string) {
+  if (mood === 'outdoor') {
+    return ['cafe', 'food', 'walk'];
+  }
   if (mood === 'active') {
     return ['food', 'cafe'];
   }
@@ -702,6 +739,9 @@ function beforeCategories(mood: string) {
 }
 
 function afterCategories(mood: string) {
+  if (mood === 'outdoor') {
+    return ['walk', 'food', 'cafe', 'bar'];
+  }
   if (mood === 'active') {
     return ['bar', 'food', 'cafe'];
   }
@@ -718,8 +758,11 @@ function afterCategories(mood: string) {
 }
 
 function flexibleCategories(mood: string) {
+  if (mood === 'outdoor') {
+    return ['walk', 'outdoor', 'bike', 'sport', 'adventure', 'park', 'food', 'cafe'];
+  }
   if (mood === 'active') {
-    return ['sport', 'quest', 'workshop', 'food', 'bar', 'walk'];
+    return ['sport', 'adventure', 'bike', 'outdoor', 'workshop', 'food', 'bar', 'walk', 'quest'];
   }
   if (mood === 'date') {
     return ['food', 'culture', 'theatre', 'bar', 'walk'];
@@ -745,6 +788,38 @@ function normalizeCategory(category: string, title?: string | null, summary?: st
   }
 
   const raw = [title, summary, category].filter(Boolean).join(' ').toLowerCase();
+  if (
+    raw.includes('велосип') ||
+    raw.includes('велопрогул') ||
+    raw.includes('веломаршрут') ||
+    raw.includes('bike') ||
+    raw.includes('bicycle') ||
+    raw.includes('cycling')
+  ) {
+    return 'bike';
+  }
+  if (
+    raw.includes('квадроцикл') ||
+    raw.includes('atv') ||
+    raw.includes('джип') ||
+    raw.includes('off-road') ||
+    raw.includes('offroad') ||
+    raw.includes('приключ')
+  ) {
+    return 'adventure';
+  }
+  if (
+    raw.includes('поход') ||
+    raw.includes('hiking') ||
+    raw.includes('outdoor') ||
+    raw.includes('nature') ||
+    raw.includes('природ') ||
+    raw.includes('лес') ||
+    raw.includes('набереж') ||
+    raw.includes('пикник')
+  ) {
+    return 'outdoor';
+  }
   if (raw.includes('квест') || raw.includes('quest')) {
     return 'quest';
   }
@@ -876,6 +951,32 @@ function explicitCategoryFromSource(category: string) {
   if (normalized === 'park' || normalized === 'walk') {
     return 'walk';
   }
+  if (
+    normalized === 'bike' ||
+    normalized === 'bicycle' ||
+    normalized === 'bicycle_rental' ||
+    normalized === 'cycling'
+  ) {
+    return 'bike';
+  }
+  if (
+    normalized === 'adventure' ||
+    normalized === 'atv' ||
+    normalized === 'quadbike' ||
+    normalized === 'quad_bike' ||
+    normalized === 'offroad'
+  ) {
+    return 'adventure';
+  }
+  if (
+    normalized === 'outdoor' ||
+    normalized === 'nature' ||
+    normalized === 'picnic_site' ||
+    normalized === 'viewpoint' ||
+    normalized === 'hiking'
+  ) {
+    return 'outdoor';
+  }
   if (normalized === 'sport' || normalized === 'sports' || normalized === 'sports_centre') {
     return 'sport';
   }
@@ -952,6 +1053,9 @@ function defaultDuration(candidate: PlanningCandidate) {
     candidate.normalizedCategory === 'market' ||
     candidate.normalizedCategory === 'festival' ||
     candidate.normalizedCategory === 'sport' ||
+    candidate.normalizedCategory === 'bike' ||
+    candidate.normalizedCategory === 'adventure' ||
+    candidate.normalizedCategory === 'outdoor' ||
     candidate.normalizedCategory === 'spa' ||
     candidate.normalizedCategory === 'active'
   ) {
@@ -1052,6 +1156,9 @@ function routeTitle(input: RoutePlannerInput, anchor: PlanningCandidate | null) 
     if (input.mood === 'active') {
       return `Активный вечер: ${anchor.title}`.slice(0, 90);
     }
+    if (input.mood === 'outdoor') {
+      return `На природе: ${anchor.title}`.slice(0, 90);
+    }
     if (input.mood === 'date') {
       return `Вечер для двоих: ${anchor.title}`.slice(0, 90);
     }
@@ -1077,6 +1184,9 @@ function routeTitle(input: RoutePlannerInput, anchor: PlanningCandidate | null) 
   if (input.mood === 'active') {
     return `Активный вечер, ${input.city}`;
   }
+  if (input.mood === 'outdoor') {
+    return `На природе, ${input.city}`;
+  }
   return `Вечерний маршрут, ${input.city}`;
 }
 
@@ -1095,6 +1205,9 @@ function fallbackVibe(mood: string) {
   }
   if (mood === 'active') {
     return 'активно';
+  }
+  if (mood === 'outdoor') {
+    return 'на природе';
   }
   return mood;
 }
@@ -1130,6 +1243,15 @@ function emojiForKind(kind: string) {
   }
   if (kind === 'sport') {
     return '🏃';
+  }
+  if (kind === 'bike') {
+    return '🚲';
+  }
+  if (kind === 'outdoor') {
+    return '🌿';
+  }
+  if (kind === 'adventure') {
+    return '🧭';
   }
   if (kind === 'spa') {
     return '🫧';

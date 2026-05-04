@@ -75,6 +75,9 @@ describe('ContentNormalizerService', () => {
     expect(normalizedCategory(service, 'cinema')).toBe('cinema');
     expect(normalizedCategory(service, 'spa')).toBe('spa');
     expect(normalizedCategory(service, 'sports_centre')).toBe('sport');
+    expect(normalizedCategory(service, 'bicycle_rental')).toBe('bike');
+    expect(normalizedCategory(service, 'atv')).toBe('adventure');
+    expect(normalizedCategory(service, 'picnic_site')).toBe('outdoor');
   });
 });
 

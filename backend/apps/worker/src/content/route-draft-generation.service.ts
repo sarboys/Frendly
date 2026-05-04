@@ -202,9 +202,14 @@ export class RouteDraftGenerationService {
         temperature: 0.1,
         maxTokens: MAX_OPENROUTER_TOKENS,
       });
-      const routes = Array.isArray(response.parsedJson.routes)
-        ? response.parsedJson.routes.filter(hasUsableStepCount).slice(0, input.maxDrafts ?? 4)
+      const candidatesWithUsableStepCount = Array.isArray(response.parsedJson.routes)
+        ? response.parsedJson.routes.filter(hasUsableStepCount)
         : [];
+      const routes = validGeneratedRoutes(
+        candidatesWithUsableStepCount,
+        candidates as RoutePlannerCandidate[],
+        input,
+      ).slice(0, input.maxDrafts ?? 4);
       if (routes.length > 0) {
         return {
           routes,
@@ -215,7 +220,7 @@ export class RouteDraftGenerationService {
       throw new OpenRouterClientError(
         502,
         'openrouter_invalid_route_draft',
-        'OpenRouter returned no route drafts with 2 to 4 steps',
+        'OpenRouter returned no valid route drafts',
       );
     } catch (caught) {
       const failure = routeGenerationFailure(caught);
@@ -272,7 +277,7 @@ export class RouteDraftGenerationService {
     const cities = csv(process.env.CONTENT_IMPORT_CITIES) ?? ['Москва', 'Санкт-Петербург'];
     const maxDrafts = positiveInt(process.env.CONTENT_ROUTE_GENERATION_MAX_DRAFTS_PER_CITY, 12);
     for (const city of cities) {
-      for (const mood of ['calm', 'social', 'date', 'culture', 'active']) {
+      for (const mood of ['calm', 'social', 'date', 'culture', 'active', 'outdoor']) {
         for (const budget of ['free', 'low', 'mid']) {
           await this.generateForCity({ city, mood, budget, maxDrafts });
         }
@@ -350,7 +355,7 @@ export class RouteDraftGenerationService {
           'Do not publish anything. Drafts require admin review.',
           'Do not return empty route objects.',
         ],
-        routePolicy: 'Use routeSkeletons as the source of truth. Prefer one timed event. Use two timed events only when the skeleton has two timed events and their times do not overlap. Keep visible movement between places.',
+        routePolicy: 'Use routeSkeletons as the source of truth. Prefer one timed event. Use two timed events only when the skeleton has two timed events, their categories differ, their times do not overlap, and travel time fits. Keep visible movement between places.',
         stepPolicy: 'Every route must include a steps array with 2 to 4 step objects. Keep event timeLabel and endTimeLabel equal to imported startsAt and endsAt. If you cannot build that route, omit it.',
       },
       brief: {
@@ -550,6 +555,33 @@ export class RouteDraftGenerationService {
 function hasUsableStepCount(route: GeneratedRoute) {
   const steps = Array.isArray(route.steps) ? route.steps : [];
   return steps.length >= 2 && steps.length <= 4;
+}
+
+function validGeneratedRoutes(
+  routes: GeneratedRoute[],
+  candidates: RoutePlannerCandidate[],
+  input: RouteDraftGenerationInput,
+) {
+  return routes.filter((route) => {
+    const steps = Array.isArray(route.steps) ? route.steps.slice(0, 4) : [];
+    const validation = validateRouteDraft(
+      { ...route, steps },
+      candidates,
+      input.timezone ?? 'Europe/Moscow',
+      input.budget,
+    );
+    if (validation.status === 'invalid') {
+      console.warn('[route-generation] rejected invalid OpenRouter draft', {
+        city: input.city,
+        mood: input.mood,
+        budget: input.budget,
+        title: text(route.title, 'untitled').slice(0, 90),
+        issues: validation.issues.map((issue) => issue.code).slice(0, 8),
+      });
+      return false;
+    }
+    return true;
+  });
 }
 
 function buildFallbackRoute(input: RouteDraftGenerationInput, candidates: any[]): GeneratedRoute | null {

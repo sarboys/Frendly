@@ -1,5 +1,6 @@
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
 
+const PAGE_SIZE = 100;
 const MAX_ITEMS_PER_RUN = 500;
 
 export class TimepadAdapter implements ExternalSourceAdapter {
@@ -13,22 +14,32 @@ export class TimepadAdapter implements ExternalSourceAdapter {
       return [];
     }
 
-    const url = new URL(`${this.baseUrl}/events.json`);
-    url.searchParams.set('limit', '100');
-    url.searchParams.set('skip', '0');
-    url.searchParams.set('cities', input.city);
-    url.searchParams.set('starts_at', input.from.toISOString().slice(0, 10));
-    url.searchParams.set('sort', '+starts_at');
-    url.searchParams.set('fields', 'location,starts_at,ends_at,name,description,url,categories,price_min');
-    const response = await fetch(url, {
-      signal: input.signal,
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`timepad_${response.status}`);
+    const items: Record<string, unknown>[] = [];
+    for (let skip = 0; items.length < MAX_ITEMS_PER_RUN; skip += PAGE_SIZE) {
+      const url = new URL(`${this.baseUrl}/events.json`);
+      url.searchParams.set('limit', String(PAGE_SIZE));
+      url.searchParams.set('skip', String(skip));
+      url.searchParams.set('cities', input.city);
+      url.searchParams.set('starts_at', input.from.toISOString().slice(0, 10));
+      url.searchParams.set('sort', '+starts_at');
+      url.searchParams.set('fields', 'location,starts_at,ends_at,name,description,url,categories,price_min');
+      const response = await fetch(url, {
+        signal: input.signal,
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`timepad_${response.status}`);
+      }
+      const payload = await response.json();
+      const pageItems = values(payload);
+      items.push(...pageItems);
+      if (pageItems.length < PAGE_SIZE) {
+        break;
+      }
     }
-    const payload = await response.json();
-    return values(payload).flatMap((item) => this.mapEvent(item, input.city)).slice(0, MAX_ITEMS_PER_RUN);
+    return items.flatMap((item) => this.mapEvent(item, input.city)).filter((item) =>
+      item.startsAt == null || item.startsAt <= input.to,
+    ).slice(0, MAX_ITEMS_PER_RUN);
   }
 
   private mapEvent(item: Record<string, unknown>, city: string): ExternalRawItem[] {

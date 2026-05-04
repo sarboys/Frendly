@@ -129,6 +129,49 @@ describe('route planner', () => {
 
     expect(routes).toHaveLength(0);
   });
+
+  it('rejects two timed events with the same planning category even in different places', () => {
+    const candidates = [
+      event('quest-1', 'Квест «Один из нас»', 'quest', 55.751, 37.610, '2026-05-05T16:00:00.000Z', '2026-05-05T17:00:00.000Z', 1000),
+      event('quest-2', 'Квест «Мгла»', 'quest', 55.760, 37.620, '2026-05-05T17:30:00.000Z', '2026-05-05T18:30:00.000Z', 1000),
+    ];
+
+    const validation = validateRouteDraft(
+      {
+        title: 'Вечер квестов',
+        description: 'Два квеста подряд.',
+        steps: [
+          { externalContentItemId: 'quest-1', timeLabel: '19:00', endTimeLabel: '20:00', walkMin: 0, lat: 55.751, lng: 37.610 },
+          { externalContentItemId: 'quest-2', timeLabel: '20:30', endTimeLabel: '21:30', walkMin: 15, lat: 55.760, lng: 37.620 },
+        ],
+      },
+      candidates,
+      'Europe/Moscow',
+      'mid',
+    );
+
+    expect(validation.status).toBe('invalid');
+    expect(validation.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'event_category_repeated', stepIndex: 1 }),
+    ]));
+  });
+
+  it('builds outdoor routes from bike and park candidates before quests', () => {
+    const routes = buildRouteSkeletons(
+      { city: 'Москва', mood: 'outdoor', budget: 'low', timezone: 'Europe/Moscow', maxDrafts: 1 },
+      [
+        place('bike-1', 'Велопрокат у парка', 'bicycle_rental', 55.760, 37.620, 500),
+        place('park-1', 'Парк у воды', 'park', 55.765, 37.625, 0),
+        place('food-1', 'Кафе у входа', 'cafe', 55.770, 37.630, 600),
+        event('quest-1', 'Квест в помещении', 'quest', 55.761, 37.621, '2026-05-05T16:00:00.000Z', '2026-05-05T17:30:00.000Z', 1200),
+      ],
+    );
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0]?.title).toContain('На природе');
+    expect(routes[0]?.steps.map((step) => step.kind)).toEqual(['walk', 'bike', 'cafe']);
+    expect(routes[0]?.steps.map((step) => step.externalContentItemId)).not.toContain('quest-1');
+  });
 });
 
 function event(

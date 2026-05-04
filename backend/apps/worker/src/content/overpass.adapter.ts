@@ -1,6 +1,6 @@
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
 
-const MAX_ITEMS_PER_RUN = 500;
+const MAX_ITEMS_PER_RUN = 1200;
 
 const CITY_BBOX: Record<string, string> = {
   'Москва': '55.55,37.35,55.95,37.95',
@@ -15,6 +15,17 @@ const TAGS = [
   ['tourism', 'gallery'],
   ['leisure', 'park'],
   ['leisure', 'sports_centre'],
+  ['leisure', 'pitch'],
+  ['leisure', 'track'],
+  ['leisure', 'swimming_pool'],
+  ['leisure', 'ice_rink'],
+  ['leisure', 'marina'],
+  ['tourism', 'viewpoint'],
+  ['tourism', 'picnic_site'],
+  ['tourism', 'attraction'],
+  ['amenity', 'bicycle_rental'],
+  ['shop', 'bicycle'],
+  ['route', 'bicycle'],
 ] as const;
 
 export class OverpassAdapter implements ExternalSourceAdapter {
@@ -52,7 +63,7 @@ export class OverpassAdapter implements ExternalSourceAdapter {
       const center = object(item.center);
       const lat = number(item.lat) ?? number(center?.lat);
       const lng = number(item.lon) ?? number(center?.lon);
-      const category = text(tags.amenity) ?? text(tags.tourism) ?? text(tags.leisure) ?? 'place';
+      const category = text(tags.amenity) ?? text(tags.tourism) ?? text(tags.leisure) ?? text(tags.shop) ?? text(tags.route) ?? 'place';
       return [{
         sourceCode: this.code,
         sourceItemId: `${type}-${id}`,

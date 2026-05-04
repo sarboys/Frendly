@@ -544,7 +544,7 @@ describe('RouteDraftGenerationService', () => {
     );
   });
 
-  it('marks generated drafts invalid when an event step ignores the source event time', async () => {
+  it('rejects invalid OpenRouter drafts and saves a valid fallback instead', async () => {
     const batchUpdate = jest.fn().mockResolvedValue({});
     const draftCreate = jest.fn().mockResolvedValue({});
     const service = new RouteDraftGenerationService(
@@ -629,14 +629,143 @@ describe('RouteDraftGenerationService', () => {
 
     await service.processPendingManualBatches();
 
-    expect(draftCreate).toHaveBeenCalledWith(expect.objectContaining({
+    expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'batch-1' },
       data: expect.objectContaining({
-        validationStatus: 'invalid',
-        validationIssues: expect.arrayContaining([
-          expect.objectContaining({ code: 'event_time_mismatch', stepIndex: 1 }),
-        ]),
+        status: 'completed',
+        responseJson: expect.objectContaining({
+          fallback: true,
+          reasonCode: 'openrouter_invalid_route_draft',
+        }),
       }),
     }));
+    const createArg = draftCreate.mock.calls[0]?.[0];
+    expect(createArg.data.validationStatus).toBe('valid');
+    expect(createArg.data.validationIssues).toEqual([]);
+    expect(createArg.data.steps.create).toEqual(expect.arrayContaining([
+      expect.objectContaining({ externalContentItemId: 'cafe-1' }),
+      expect.objectContaining({
+        externalContentItemId: 'quest-1',
+        timeLabel: '20:00',
+        endTimeLabel: '21:45',
+      }),
+    ]));
+  });
+
+  it('rejects OpenRouter drafts with two events of the same category', async () => {
+    const batchUpdate = jest.fn().mockResolvedValue({});
+    const draftCreate = jest.fn().mockResolvedValue({});
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'quest-1',
+                sourceUrl: 'https://example.com/quest-1',
+                contentKind: 'event',
+                city: 'Москва',
+                title: 'Квест «Один из нас»',
+                shortSummary: 'Командный квест',
+                category: 'quest',
+                address: 'Вернисажная, 6',
+                lat: 55.751,
+                lng: 37.610,
+                startsAt: new Date('2026-05-05T16:00:00.000Z'),
+                endsAt: new Date('2026-05-05T17:00:00.000Z'),
+                priceFrom: 1000,
+                source: { name: 'KudaGo', code: 'kudago' },
+              },
+              {
+                id: 'quest-2',
+                sourceUrl: 'https://example.com/quest-2',
+                contentKind: 'event',
+                city: 'Москва',
+                title: 'Квест «Мгла»',
+                shortSummary: 'Еще один квест',
+                category: 'quest',
+                address: 'Советская, 80',
+                lat: 55.760,
+                lng: 37.620,
+                startsAt: new Date('2026-05-05T17:30:00.000Z'),
+                endsAt: new Date('2026-05-05T18:30:00.000Z'),
+                priceFrom: 1000,
+                source: { name: 'KudaGo', code: 'kudago' },
+              },
+              {
+                id: 'cafe-1',
+                sourceUrl: 'https://example.com/cafe',
+                contentKind: 'place',
+                city: 'Москва',
+                title: 'Кафе рядом',
+                shortSummary: 'Кофе перед событием',
+                category: 'food',
+                address: 'Вернисажная, 8',
+                lat: 55.752,
+                lng: 37.611,
+                startsAt: null,
+                endsAt: null,
+                priceFrom: 400,
+                source: { name: 'OSM Overpass', code: 'overpass' },
+              },
+            ]),
+          },
+          generatedRouteDraftBatch: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'batch-1',
+                city: 'Москва',
+                area: null,
+                mood: 'active',
+                budget: 'mid',
+                requestJson: { maxDrafts: 1 },
+              },
+            ]),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            update: batchUpdate,
+          },
+          generatedRouteReviewDraft: { create: draftCreate },
+        },
+      } as any,
+      {
+        generateJson: jest.fn().mockResolvedValue({
+          rawResponse: { choices: [] },
+          parsedJson: {
+            routes: [
+              {
+                title: 'Вечер квестов с друзьями',
+                description: 'Два квеста подряд.',
+                vibe: 'активно',
+                durationLabel: '2 часа',
+                totalPriceFrom: 2000,
+                goal: 'social',
+                steps: [
+                  { externalContentItemId: 'quest-1', timeLabel: '19:00', endTimeLabel: '20:00', kind: 'quest', title: 'Квест', venue: 'Квест «Один из нас»', address: 'Вернисажная, 6', emoji: '✨', distanceLabel: 'старт', walkMin: 0, lat: 55.751, lng: 37.610 },
+                  { externalContentItemId: 'quest-2', timeLabel: '20:30', endTimeLabel: '21:30', kind: 'quest', title: 'Квест', venue: 'Квест «Мгла»', address: 'Советская, 80', emoji: '✨', distanceLabel: '15 минут пешком', walkMin: 15, lat: 55.760, lng: 37.620 },
+                ],
+              },
+            ],
+          },
+          latencyMs: 10,
+        }),
+      } as any,
+    );
+
+    await service.processPendingManualBatches();
+
+    expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'batch-1' },
+      data: expect.objectContaining({
+        status: 'completed',
+        responseJson: expect.objectContaining({
+          fallback: true,
+          reasonCode: 'openrouter_invalid_route_draft',
+        }),
+      }),
+    }));
+    const createArg = draftCreate.mock.calls[0]?.[0];
+    expect(createArg.data.validationStatus).toBe('valid');
+    expect(createArg.data.steps.create.filter((step: any) => step.kind === 'quest')).toHaveLength(1);
   });
 
   it('uses fallback routes with one timed anchor and no repeated venue cluster', async () => {
