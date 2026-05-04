@@ -192,11 +192,170 @@ describe('ContentImportService', () => {
       }),
     }));
   });
+
+  it('enriches AdvCake duplicate with KudaGo coordinates and hides source duplicate', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const itemUpdate = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-advcake', code: 'advcake_ticketland' },
+        itemUpsert,
+        itemFindMany: jest.fn().mockResolvedValue([
+          {
+            id: 'kudago-item',
+            sourceItemId: 'event-k1',
+            source: { code: 'kudago', name: 'KudaGo' },
+            sourceUrl: 'https://kudago.com/event',
+            contentKind: 'event',
+            city: 'Москва',
+            title: 'Событие',
+            venueName: 'Клуб',
+            address: 'Тверская 1',
+            lat: 55.75,
+            lng: 37.61,
+            startsAt: new Date('2026-05-05T15:00:00.000Z'),
+            raw: {},
+          },
+        ]),
+        itemUpdate,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'advcake_ticketland',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawEvent({
+            sourceCode: 'advcake_ticketland',
+            sourceItemId: 'ticket-1',
+            venueName: 'Клуб',
+            priceFrom: 1500,
+            actionUrl: 'https://go.avred.online/click',
+            actionKind: 'affiliate_ticket',
+            isAffiliate: true,
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['advcake_ticketland'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-05-11T00:00:00.000Z'),
+    });
+
+    expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceItemId: 'ticket-1',
+        address: 'Тверская 1',
+        lat: 55.75,
+        lng: 37.61,
+        publicStatus: 'published',
+        raw: expect.objectContaining({
+          enrichment: expect.objectContaining({
+            sourceCode: 'kudago',
+            confidence: 'high',
+            role: 'affiliate_event_enriched',
+          }),
+        }),
+      }),
+    }));
+    expect(itemUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'kudago-item' },
+      data: expect.objectContaining({
+        publicStatus: 'hidden',
+      }),
+    }));
+  });
+
+  it('enriches an existing AdvCake item when a free source duplicate arrives later', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const itemUpdate = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-kudago', code: 'kudago' },
+        itemUpsert,
+        itemFindMany: jest.fn().mockResolvedValue([
+          {
+            id: 'advcake-item',
+            sourceItemId: 'ticket-1',
+            source: { code: 'advcake_ticketland', name: 'AdvCake Ticketland' },
+            sourceUrl: 'https://go.avred.online/click',
+            actionUrl: 'https://go.avred.online/click',
+            contentKind: 'event',
+            city: 'Москва',
+            title: 'Событие',
+            venueName: 'Клуб',
+            address: null,
+            lat: null,
+            lng: null,
+            startsAt: new Date('2026-05-05T15:00:00.000Z'),
+            priceMode: 'paid',
+            publicStatus: 'published',
+            raw: {},
+          },
+        ]),
+        itemUpdate,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'kudago',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawEvent({
+            sourceCode: 'kudago',
+            sourceItemId: 'event-k1',
+            priceFrom: 0,
+            venueName: 'Клуб',
+            address: 'Тверская 1',
+            lat: 55.75,
+            lng: 37.61,
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['kudago'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-05-11T00:00:00.000Z'),
+    });
+
+    expect(itemUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'advcake-item' },
+      data: expect.objectContaining({
+        address: 'Тверская 1',
+        lat: 55.75,
+        lng: 37.61,
+        publicStatus: 'published',
+        raw: expect.objectContaining({
+          enrichment: expect.objectContaining({
+            sourceCode: 'kudago',
+            sourceItemId: 'event-k1',
+            role: 'affiliate_event_enriched',
+          }),
+        }),
+      }),
+    }));
+    expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceItemId: 'event-k1',
+        publicStatus: 'hidden',
+        raw: expect.objectContaining({
+          enrichment: expect.objectContaining({
+            sourceCode: 'advcake_ticketland',
+            role: 'duplicate_of_affiliate_event',
+          }),
+        }),
+      }),
+    }));
+  });
 });
 
 function prismaMock(options: {
   source: { id: string; code: string };
   itemUpsert?: jest.Mock;
+  itemFindMany?: jest.Mock;
+  itemUpdate?: jest.Mock;
   runUpdate?: jest.Mock;
 }) {
   return {
@@ -211,6 +370,8 @@ function prismaMock(options: {
       },
       externalContentItem: {
         upsert: options.itemUpsert ?? jest.fn().mockResolvedValue({}),
+        findMany: options.itemFindMany ?? jest.fn().mockResolvedValue([]),
+        update: options.itemUpdate ?? jest.fn().mockResolvedValue({}),
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
     },

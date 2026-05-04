@@ -98,6 +98,14 @@ export class AdminEveningController {
     return this.routeReviewService.listContentItems(query);
   }
 
+  @Post('route-review/content-items/:itemId/:action')
+  moderateRouteReviewContentItem(
+    @Param('itemId') itemId: string,
+    @Param('action') action: string,
+  ) {
+    return this.routeReviewService.moderateContentItem(itemId, action);
+  }
+
   @Post('route-review/generation-runs')
   createRouteReviewGenerationRun(@Body() body: Record<string, unknown>) {
     return this.routeReviewService.createGenerationRun(body as any);

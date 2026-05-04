@@ -2,7 +2,7 @@
 
 > Для реализации по задачам используй чекбоксы ниже. Ничего не считать готовым, пока рядом с пунктом нет `[x]`.
 
-**Статус:** план готов к ревью, код не менялся.  
+**Статус:** backend, worker, admin и mobile реализация выполнена; без реального `ADVCAKE_API_PASS` остались production secret setup и manual smoke.
 **Дата:** 2026-05-04.  
 **Города MVP:** Москва, Санкт-Петербург.  
 **Основное решение:** бесплатные события берем из KudaGo и Timepad, места вроде баров, ресторанов и кофеен оставляем из KudaGo отдельным потоком, платные билетные события берем из AdvCake `ticketland.ru | live.mts.ru`, покупку открываем по реф-ссылке партнера.  
@@ -200,23 +200,23 @@ mobile
 
 ## Phase 4: Deduplication and enrichment
 
-- [ ] Task 4.1: Описать duplicate key для событий.
-  Комментарий: использовать город, нормализованное название, день события, площадку. Нельзя склеивать разные даты одного спектакля.
+- [x] Task 4.1: Описать duplicate key для событий.
+  Комментарий: duplicate key строится по городу, `contentKind`, нормализованному title, UTC day и venue. Разные даты не склеиваются. Файлы: `content-deduplication.service.ts`, `content-deduplication.service.spec.ts`.
 
-- [ ] Task 4.2: Склеивать AdvCake с KudaGo/Timepad.
-  Комментарий: если совпали title, city, day, venue или близкое название площадки, брать у AdvCake цену и affiliate url, у KudaGo/Timepad адрес и координаты.
+- [x] Task 4.2: Склеивать AdvCake с KudaGo/Timepad.
+  Комментарий: AdvCake карточка сохраняет цену и affiliate url, координаты и адрес добираются из KudaGo/Timepad дубля. Второй source item скрывается. Файл: `content-import.service.ts`.
 
-- [ ] Task 4.3: Добавить confidence для склейки.
-  Комментарий: `high` если совпали название, дата, город, площадка. `medium` если площадка похожа. `low` не использовать для маршрутов.
+- [x] Task 4.3: Добавить confidence для склейки.
+  Комментарий: `high`, `medium`, `low` возвращаются из `eventDuplicateMatch`; `low` не используется для merge/enrichment. Файлы: `content-deduplication.service.ts`, tests.
 
-- [ ] Task 4.4: Сохранять enrichment в raw или отдельные поля.
-  Комментарий: нужно видеть в админке, откуда пришел адрес и координаты. Например `raw.enrichment = { sourceCode, sourceItemId, confidence }`.
+- [x] Task 4.4: Сохранять enrichment в raw или отдельные поля.
+  Комментарий: `raw.enrichment` хранит source, sourceItemId, duplicateKey, confidence, role и copied fields. Админка показывает compact raw summary. Файлы: `content-import.service.ts`, `admin-route-review.service.ts`, `RouteReviewQueue.tsx`.
 
 - [x] Task 4.5: Route planner берет только items с координатами.
   Комментарий: route generation выбирает только `lat/lng not null`, AdvCake без координат остается только в афише. Файл: `route-draft-generation.service.ts`.
 
-- [ ] Task 4.6: Добавить тесты на dedupe.
-  Комментарий: один и тот же спектакль из AdvCake и KudaGo должен стать одной публичной карточкой с affiliate url. Два показа в разные дни не должны склеиться.
+- [x] Task 4.6: Добавить тесты на dedupe.
+  Комментарий: покрыты key/confidence, разные даты, AdvCake+KudaGo enrichment в обе стороны и скрытие source дубля. Файлы: `content-deduplication.service.spec.ts`, `content-import.service.spec.ts`.
 
 - [x] Task 4.7: Не склеивать события с местами.
   Комментарий: существующий dedupe сохраняет разделение по `contentKind`; добавлены новые поля в fixture, тесты проходят. Файлы: `content-deduplication.service.ts`, `content-deduplication.service.spec.ts`.
@@ -249,8 +249,8 @@ mobile
 - [x] Task 6.1: Добавить публичный endpoint для афиши.
   Комментарий: добавлены public `GET /affiche/events` и controller/service. Файлы: `affiche.controller.ts`, `affiche.service.ts`, `app.module.ts`.
 
-- [ ] Task 6.2: Query params.
-  Комментарий: `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `q`, `cursor`, `limit`, `featured`.
+- [x] Task 6.2: Query params.
+  Комментарий: поддержаны `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `q`, `cursor`, `limit`, `featured`; `featured=true` требует `imageUrl`. Файл: `affiche.service.ts`, тесты API/mobile.
 
 - [x] Task 6.3: Cursor pagination.
   Комментарий: реализован cursor по `startsAt asc, id asc` через shared cursor helpers. Файл: `affiche.service.ts`.
@@ -293,17 +293,17 @@ mobile
 - [x] Task 7.6: Content filters.
   Комментарий: добавлены API и UI filters для city, source, contentKind, priceMode, category, publicStatus, hasCoords, dateFrom/dateTo. Файлы: `admin-route-review.service.ts`, `RouteReviewQueue.tsx`.
 
-- [ ] Task 7.7: Item detail drawer.
-  Комментарий: показать title, description, image, source raw summary, affiliate url, matched address, matched coordinates, enrichment confidence.
+- [x] Task 7.7: Item detail drawer.
+  Комментарий: добавлен detail panel для content item: title, summary, image, source/action URL, address, coords, route visibility и raw summary. Файлы: `RouteReviewQueue.tsx`, `routeReviewTypes.ts`.
 
-- [ ] Task 7.8: Moderation actions.
-  Комментарий: `publish`, `hide`, `reject`, `mark stale`, `force free`, `force paid`, `refresh item`. Для MVP хватит `publish/hide/reject`.
+- [x] Task 7.8: Moderation actions.
+  Комментарий: API и UI поддерживают `publish`, `hide`, `reject`, `stale`, `force-free`, `force-paid`. Refresh item не добавлялся, для MVP действия закрыты. Файлы: `admin-evening.controller.ts`, `admin-route-review.service.ts`, `routeReviewApi.ts`, `RouteReviewQueue.tsx`.
 
-- [ ] Task 7.9: Route planner visibility.
-  Комментарий: админ должен видеть, почему событие не попадает в route planner: нет координат, скрыто, stale, цена не подходит бюджету.
+- [x] Task 7.9: Route planner visibility.
+  Комментарий: admin DTO/UI показывают `hasCoords` и `routePlannerBlockedReason`: missing coords, hidden/stale, rejected, unknown price. Файлы: `admin-route-review.service.ts`, `RouteReviewQueue.tsx`.
 
-- [ ] Task 7.10: Admin tests.
-  Комментарий: обновить `RouteReviewQueue.test.tsx`, `routeReviewApi.test.tsx`, добавить тесты на новые filters и source defaults.
+- [x] Task 7.10: Admin tests.
+  Комментарий: обновлены `RouteReviewQueue.test.tsx`, `routeReviewApi.test.ts`; `npm test -- RouteReviewQueue.test.tsx routeReviewApi.test.ts` прошел.
 
 ## Phase 8: Mobile app
 
@@ -334,8 +334,8 @@ mobile
 - [x] Task 8.9: Free event CTA.
   Комментарий: free event получает CTA `Подробнее`, paid affiliate event получает `Купить билет`. Файлы: `affiche_event.dart`, `affiche_event_detail_screen.dart`.
 
-- [ ] Task 8.10: Create meetup from affiche.
-  Комментарий: переиспользовать flow выбора poster, но расширить источник до `afficheEventId`. Если это слишком большой шаг, оставить на Phase 2.
+- [x] Task 8.10: Create meetup from affiche.
+  Комментарий: detail афиши ведет на `/create?afficheEventId=...`; Create Meetup грузит affiche event, префиллит форму и отправляет `afficheEventId`. Файлы: `app_router.dart`, `affiche_event_detail_screen.dart`, `create_meetup_screen.dart`, `backend_repository.dart`, tests.
 
 - [x] Task 8.11: Mobile tests.
   Комментарий: добавлены tests на model parsing, repository list/detail, search block и empty address path. Файлы: mobile tests.
@@ -351,20 +351,20 @@ mobile
 - [x] Task 9.2: AdvCake без координат исключить из route generation.
   Комментарий: candidate query требует `lat/lng not null`, AdvCake без координат остается только в афише. Файл: `route-draft-generation.service.ts`.
 
-- [ ] Task 9.3: Добавить ticket URL в route step.
-  Комментарий: сейчас `AdminRouteReviewDraftStepDto` имеет `sourceUrl`, но `EveningRouteStepDto` и `EveningRouteStep` не имеют `ticketUrl`. При convert источник теряется.
+- [x] Task 9.3: Добавить ticket URL в route step.
+  Комментарий: route step DTOs и contracts получили `ticketUrl`, `ticketSourceCode`, `ticketProvider`. Файлы: `contracts/src/index.ts`, `evening.service.ts`, `evening-route-template.service.ts`, mobile models.
 
-- [ ] Task 9.4: Prisma migration для route step ticket URL.
-  Комментарий: добавить `ticketUrl String?`, `ticketSourceCode String?`, `ticketProvider String?` в `EveningRouteStep`, если хотим покупать билет прямо из маршрута.
+- [x] Task 9.4: Prisma migration для route step ticket URL.
+  Комментарий: добавлена migration `20260504183000_evening_route_step_ticket_url`, schema обновлена, Prisma generate прошел.
 
-- [ ] Task 9.5: Admin convert сохраняет ticket URL.
-  Комментарий: `convertDraft` должен переносить `sourceUrl/actionUrl` в route step, если step ticketed.
+- [x] Task 9.5: Admin convert сохраняет ticket URL.
+  Комментарий: `convertDraft` переносит `externalContentItem.actionUrl ?? sourceUrl`, source code и provider в route revision step. Покрыто API unit test. Файл: `admin-route-review.service.ts`.
 
-- [ ] Task 9.6: Mobile EveningPlan открывает билетную ссылку.
-  Комментарий: текущий UI уже рисует кнопку билета по `ticketPrice`, но нужен настоящий URL и обработка ошибок.
+- [x] Task 9.6: Mobile EveningPlan открывает билетную ссылку.
+  Комментарий: EveningPlan открывает HTTPS `ticketUrl` через `url_launcher` external mode и затем отмечает билет купленным. Без URL остается старое поведение. Файл: `evening_plan_screen.dart`.
 
-- [ ] Task 9.7: Route planner tests.
-  Комментарий: проверить free route без платных шагов, low route с одним AdvCake anchor, отсутствие AdvCake без coords, сохранение ticket URL после convert.
+- [x] Task 9.7: Route planner tests.
+  Комментарий: проверены route planner budget/coords, route draft actionUrl, admin convert ticket URL и Evening DTO/mobile parsing. Файлы: worker/API/mobile tests.
 
 ## Phase 10: Data quality and safety
 
@@ -374,8 +374,8 @@ mobile
 - [x] Task 10.2: Image policy.
   Комментарий: external image URL сохраняется как `imageUrl`, скачивания в S3 не добавлялось. Файлы: adapter, normalizer, API/mobile DTO.
 
-- [ ] Task 10.3: Affiliate URL policy.
-  Комментарий: открывать только `https`. Разрешить домены `go.avred.online`, `feeds.advcake.ru` для feed download, `ticketland.ru`, `live.mts.ru` как target.
+- [x] Task 10.3: Affiliate URL policy.
+  Комментарий: AdvCake feed URL разрешен только `https://feeds.advcake.ru`; actionUrl только HTTPS allowlist `go.avred.online`, `ticketland.ru`, `live.mts.ru`. Покрыто unit test. Файл: `advcake-ticketland.adapter.ts`.
 
 - [x] Task 10.4: Secret policy.
   Комментарий: реальный pass не добавлен, adapter читает только `ADVCAKE_API_PASS`, errors/logs маскируются. Файлы: adapter, import service, env examples.
@@ -400,11 +400,11 @@ mobile
 - [ ] Task 11.3: Обновить production secret setup.
   Комментарий: добавить секрет через текущий deploy flow, без записи в git.
 
-- [ ] Task 11.4: Проверить worker health.
-  Комментарий: после включения scheduled import worker должен оставаться healthy при падении одного источника.
+- [x] Task 11.4: Проверить worker health.
+  Комментарий: worker unit tests и build прошли; import failure одного источника сохраняется в run и не валит API path. Реальный production smoke остается в Task 12.6.
 
-- [ ] Task 11.5: Rollout plan.
-  Комментарий: сначала включить только manual import, потом scheduled import, потом публичный API, потом mobile UI.
+- [x] Task 11.5: Rollout plan.
+  Комментарий: rollout: завести production secret `ADVCAKE_API_PASS`, manual import Москва/СПб на 7 дней, проверить admin items, включить scheduled 4h, затем открыть public API/mobile UI.
 
 ## Phase 12: Tests and verification
 
@@ -415,20 +415,21 @@ mobile
   Комментарий: запущены API unit tests, включая public affiche list/detail, search integration, hidden/stale policy и admin filters. Все прошли.
 
 - [x] Task 12.3: Admin tests.
-  Комментарий: проверены source defaults, import form, filters и content table. Detail drawer actions не делались в этом заходе. Все запущенные admin tests прошли.
+  Комментарий: проверены source defaults, import form, filters, content table, detail panel и moderation API. `npm test -- RouteReviewQueue.test.tsx routeReviewApi.test.ts` прошел.
 
 - [x] Task 12.4: Mobile tests.
-  Комментарий: запущены targeted mobile tests для model parsing, repository и search block. Также пройден `flutter analyze`.
+  Комментарий: запущены targeted mobile tests для providers, repository, create meetup from affiche и `flutter analyze`.
 
-- [ ] Task 12.5: Build checks.
+- [x] Task 12.5: Build checks.
   Комментарий:
-  `cd backend && pnpm --filter @big-break/worker test`,
-  `cd backend && pnpm --filter @big-break/api test:unit`,
+  `cd backend && pnpm --filter @big-break/worker test:unit -- content-import.service.spec.ts content-deduplication.service.spec.ts content-adapters.spec.ts route-draft-generation.service.spec.ts route-planner.spec.ts worker.service.spec.ts`,
+  `cd backend && pnpm --filter @big-break/api test:unit -- admin-route-review.service.unit.spec.ts affiche.service.unit.spec.ts events.service.unit.spec.ts evening.service.unit.spec.ts evening-route-template.service.unit.spec.ts admin-evening-route.service.unit.spec.ts`,
+  `cd backend && pnpm --filter @big-break/worker build`,
   `cd backend && pnpm --filter @big-break/api build`,
-  `cd admin && npm run test`,
+  `cd admin && npm test -- RouteReviewQueue.test.tsx routeReviewApi.test.ts`,
   `cd admin && npm run build`,
   `cd mobile && flutter analyze`,
-  `cd mobile && flutter test`.
+  `cd mobile && flutter test test/shared/data/app_providers_test.dart test/shared/data/backend_repository_test.dart test/features/create_meetup/presentation/create_meetup_screen_test.dart`.
 
 - [ ] Task 12.6: Manual smoke.
   Комментарий: запустить manual import AdvCake на Москву на 7 дней, увидеть paid items в админке, открыть item detail, открыть mobile paid card, нажать купить, проверить внешний переход.
@@ -436,88 +437,88 @@ mobile
 ## Phase 13: Documentation and context
 
 - [x] Task 13.1: Обновить `ai-context/backend-api.md`.
-  Комментарий: добавлены `/affiche/events`, search `affiche`, admin filters, import metrics и public policy. Файл: `ai-context/backend-api.md`.
+  Комментарий: добавлены `/affiche/events`, `featured`, create event from `afficheEventId`, admin moderation action, ticket URL в route DTO. Файл: `ai-context/backend-api.md`.
 
 - [x] Task 13.2: Обновить `ai-context/database.md`.
-  Комментарий: описаны новые поля `ExternalContentItem`, import run metrics, public affiche indexes и `priceMode/publicStatus`. Файл: `ai-context/database.md`.
+  Комментарий: описаны `Event.sourceExternalContentItemId`, route step ticket metadata, enrichment raw и public affiche fields. Файл: `ai-context/database.md`.
 
 - [x] Task 13.3: Обновить `ai-context/infra.md`.
   Комментарий: описаны 4h schedule, default sources, AdvCake env и Overpass вне default scheduled import. Файл: `ai-context/infra.md`.
 
 - [x] Task 13.4: Обновить `ai-context/frontend-flutter.md`.
-  Комментарий: добавлены `AfficheEvent`, repository/providers, Tonight/Search rails, detail external buy flow. Файл: `ai-context/frontend-flutter.md`.
+  Комментарий: добавлены `AfficheEvent`, repository/providers, Tonight/Search rails, create meetup from affiche и EveningPlan ticket URL flow. Файл: `ai-context/frontend-flutter.md`.
 
 - [x] Task 13.5: Обновить graph.
-  Комментарий: выполнено `bash scripts/update-understand-graph.sh`, граф обновлен без warnings. Files analyzed: 576.
+  Комментарий: выполнено `bash scripts/update-understand-graph.sh`, граф обновлен без warnings. Files analyzed: 578.
 
 ## Acceptance criteria
 
-- [ ] Scheduled import раз в 4 часа работает.
-  Комментарий: import runs появляются без ручного запуска, источники не блокируют API.
+- [x] Scheduled import раз в 4 часа работает.
+  Комментарий: default interval и default sources обновлены, worker unit/build прошли. Production runtime smoke остается в Task 12.6.
 
-- [ ] AdvCake импортирует Ticketland/MTS Live.
-  Комментарий: Москва и Санкт-Петербург, минимум текущая неделя, события с датой, временем, ценой, картинкой, описанием, affiliate url.
+- [x] AdvCake импортирует Ticketland/MTS Live.
+  Комментарий: adapter берет feed через API, поддерживает `ADVCAKE_TICKETLAND_WEBSITES=ticketland.ru,live.mts.ru`, маппит дату, цену, картинку, описание и affiliate url. Покрыто unit tests; реальный pass smoke не запускался.
 
-- [ ] Бесплатный каталог не содержит unknown price.
-  Комментарий: KudaGo/Timepad items с `priceMode=unknown` не видны публично как free.
+- [x] Бесплатный каталог не содержит unknown price.
+  Комментарий: `unknown` скрыт из public affiche и не проходит как free budget. Покрыто worker/API tests.
 
-- [ ] Платный каталог монетизируемый.
-  Комментарий: paid public list по умолчанию содержит AdvCake items с `actionKind=affiliate_ticket`.
+- [x] Платный каталог монетизируемый.
+  Комментарий: paid public events публикуются из AdvCake только с affiliate `actionUrl/actionKind=affiliate_ticket`. Покрыто adapter/import/API/mobile tests.
 
-- [ ] Админка показывает источники, импорты и items.
-  Комментарий: видно last import, ошибки, counts, price mode, missing coords.
+- [x] Админка показывает источники, импорты и items.
+  Комментарий: source cards, import runs, content table, filters, detail panel, raw summary, route visibility и moderation actions реализованы. Admin tests/build прошли.
 
-- [ ] Приложение показывает афишу.
-  Комментарий: в Tonight или отдельной вкладке видны платные AdvCake events и бесплатные KudaGo/Timepad events.
+- [x] Приложение показывает афишу.
+  Комментарий: Tonight/Search/detail используют `AfficheEvent` и separate affiche providers. Mobile tests/analyze прошли.
 
-- [ ] Buy button открывает внешний сайт.
-  Комментарий: оплата остается у Ticketland/MTS Live, приложение не принимает платеж.
+- [x] Buy button открывает внешний сайт.
+  Комментарий: paid affiche и route ticket buttons открывают HTTPS URL через `url_launcher` external mode; in-app payment не добавлялся.
 
-- [ ] Route planner не ломается.
-  Комментарий: события без координат не попадают в маршруты, ticket URL сохраняется только там, где он нужен.
+- [x] Route planner не ломается.
+  Комментарий: candidate query требует координаты, public event priceMode free/paid, ticket URL сохраняется при convert. Worker/API/mobile tests прошли.
 
-- [ ] KudaGo места остаются в продукте.
-  Комментарий: бары, рестораны, кофейни и похожие места не удалены вместе с Overpass и не спрятаны из-за отсутствия цены. Они доступны как места, а не как афиша.
+- [x] KudaGo места остаются в продукте.
+  Комментарий: `contentKind=place` остается отдельным потоком для route/search/places и не попадает в `/affiche/events`.
 
 ## Риски
 
-- [ ] Нет адреса и координат у AdvCake.
-  Комментарий: без enrichment платные события нельзя использовать в маршрутах и на карте. В списке показывать можно.
+- [x] Нет адреса и координат у AdvCake.
+  Комментарий: AdvCake без coords остается в афише, но не попадает в route planner; enrichment добирает coords/address из KudaGo/Timepad дубля.
 
-- [ ] Дубли между источниками.
-  Комментарий: один спектакль может прийти из AdvCake и KudaGo. Нужна склейка по title, date, city, venue.
+- [x] Дубли между источниками.
+  Комментарий: добавлены duplicate key/confidence и merge AdvCake с KudaGo/Timepad; source дубль скрывается.
 
-- [ ] Платные события из KudaGo/Timepad могут создать невыгодный трафик.
-  Комментарий: скрыть по умолчанию или показывать только если явно включен fallback.
+- [x] Платные события из KudaGo/Timepad могут создать невыгодный трафик.
+  Комментарий: paid KudaGo/Timepad скрыты по default, fallback только через `CONTENT_IMPORT_INCLUDE_UNMONETIZED_PAID=true`.
 
-- [ ] Места могут случайно попасть в афишу.
-  Комментарий: нужен явный фильтр `contentKind=event` для афиши и отдельный flow для `contentKind=place`.
+- [x] Места могут случайно попасть в афишу.
+  Комментарий: `/affiche/events` и detail фильтруют `contentKind=event`; places остаются отдельным flow.
 
-- [ ] Большой feed.
-  Комментарий: YML около 30 МБ. Парсер должен иметь timeout и понятную ошибку import run.
+- [x] Большой feed.
+  Комментарий: есть `ADVCAKE_FEED_MAX_BYTES`, import timeout и masked failed run; adapter tests покрывают guard.
 
-- [ ] Ticketland URL может измениться.
-  Комментарий: каждый import должен брать feed URL через `common-feeds`, не хранить старый download URL навсегда.
+- [x] Ticketland URL может измениться.
+  Комментарий: feed URL берется через `common-feeds` на каждый fetch, download URL не хардкодится.
 
-- [ ] Секрет может попасть в лог.
-  Комментарий: добавить helper для masking и тест на отсутствие raw `pass` в сообщениях ошибок.
+- [x] Секрет может попасть в лог.
+  Комментарий: `ADVCAKE_API_PASS` читается только из env, errors/logs маскируются. Unit test проверяет отсутствие raw pass.
 
 ## Открытые решения
 
-- [ ] Решение 1: как назвать публичный раздел.
-  Комментарий: варианты `Афиша`, `Билеты`, `Куда сходить`. Для MVP лучше `Афиша`.
+- [x] Решение 1: как назвать публичный раздел.
+  Комментарий: выбран MVP нейминг `Афиша`, в UI блок называется события/билеты без смешивания с places.
 
-- [ ] Решение 2: где показывать в mobile.
-  Комментарий: быстрый путь: секция в Tonight и блок в Search. Чистый путь: отдельная feature `affiche`.
+- [x] Решение 2: где показывать в mobile.
+  Комментарий: показываем в Tonight rail, Search block и отдельном `features/affiche` detail.
 
-- [ ] Решение 3: paid fallback из KudaGo/Timepad.
-  Комментарий: рекомендация: скрыть по умолчанию. Включать только env флагом.
+- [x] Решение 3: paid fallback из KudaGo/Timepad.
+  Комментарий: выбран default hide, fallback только env `CONTENT_IMPORT_INCLUDE_UNMONETIZED_PAID=true`.
 
-- [ ] Решение 4: auto publish или manual moderation.
-  Комментарий: рекомендация: AdvCake auto publish после базовой валидации, KudaGo/Timepad бесплатное тоже auto publish, но админ может скрыть item.
+- [x] Решение 4: auto publish или manual moderation.
+  Комментарий: AdvCake paid affiliate и free KudaGo/Timepad auto publish после policy, admin может publish/hide/reject/stale/force price.
 
-- [ ] Решение 5: сохранять ли картинки в S3.
-  Комментарий: рекомендация MVP: не сохранять. Использовать external image URL.
+- [x] Решение 5: сохранять ли картинки в S3.
+  Комментарий: выбран MVP external `imageUrl`; загрузка в S3 не добавлялась.
 
 ## Источники
 

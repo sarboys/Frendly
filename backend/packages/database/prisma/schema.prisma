@@ -572,6 +572,7 @@ model Event {
   isNewcomers       Boolean             @default(false)
   isDate            Boolean             @default(false)
   sourcePosterId    String?
+  sourceExternalContentItemId String?
   eveningRouteId    String?
   partnerId         String?
   canceledAt        DateTime?
@@ -579,6 +580,7 @@ model Event {
   hostId            String
   host              User                @relation("HostedEvents", fields: [hostId], references: [id])
   sourcePoster      Poster?             @relation(fields: [sourcePosterId], references: [id], onDelete: SetNull)
+  sourceExternalContentItem ExternalContentItem? @relation("EventSourceExternalContent", fields: [sourceExternalContentItemId], references: [id], onDelete: SetNull)
   eveningRoute      EveningRoute?       @relation(fields: [eveningRouteId], references: [id], onDelete: SetNull)
   partner           Partner?            @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   participants      EventParticipant[]
@@ -597,6 +599,7 @@ model Event {
 
   @@unique([hostId, idempotencyKey])
   @@index([sourcePosterId])
+  @@index([sourceExternalContentItemId])
   @@index([eveningRouteId, startsAt, id])
   @@index([partnerId, startsAt, id])
   @@index([canceledAt, startsAt, id])
@@ -1022,6 +1025,7 @@ model ExternalContentItem {
   source          ExternalContentSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   importRun       ExternalImportRun?        @relation(fields: [importRunId], references: [id], onDelete: SetNull)
   routeDraftSteps GeneratedRouteDraftStep[]
+  sourceEvents    Event[]               @relation("EventSourceExternalContent")
 
   @@unique([sourceId, sourceItemId])
   @@index([city, contentKind, startsAt, id])
@@ -1243,6 +1247,9 @@ model EveningRouteStep {
   perkShort                String?
   ticketPrice              Int?
   ticketCommission         Int?
+  ticketUrl                String?
+  ticketSourceCode         String?
+  ticketProvider           String?
   sponsored                Boolean                   @default(false)
   premium                  Boolean                   @default(false)
   partnerId                String?

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { maskAdvCakeSecrets } from './advcake-ticketland.adapter';
+import { dayKey, eventDuplicateMatch } from './content-deduplication.service';
 import { ContentNormalizerService } from './content-normalizer.service';
 import { ExternalSourceRegistry } from './external-source.registry';
 import type { ExternalSourceCode, NormalizedExternalContentItem } from './content-source.types';
@@ -166,21 +167,21 @@ export class ContentImportService {
       }
       for (const rawItem of rawItems) {
         try {
-          const normalized = this.normalizer.normalize(rawItem);
-          const publicStatus = publicStatusFor(normalized);
-          await this.upsertItem(input.sourceId, input.runId, normalized, publicStatus);
+          const normalized = await this.prepareItemForUpsert(this.normalizer.normalize(rawItem));
+          const publicStatus = normalized.publicStatusOverride ?? publicStatusFor(normalized.item);
+          await this.upsertItem(input.sourceId, input.runId, normalized.item, publicStatus);
           normalizedCount += 1;
           if (publicStatus === PUBLIC_STATUS_PUBLISHED) {
             publishedCount += 1;
           }
-          if (normalized.priceMode === 'paid') {
+          if (normalized.item.priceMode === 'paid') {
             paidCount += 1;
-          } else if (normalized.priceMode === 'free') {
+          } else if (normalized.item.priceMode === 'free') {
             freeCount += 1;
           } else {
             unknownPriceCount += 1;
           }
-          if (normalized.lat == null || normalized.lng == null) {
+          if (normalized.item.lat == null || normalized.item.lng == null) {
             missingCoordsCount += 1;
           }
         } catch {
@@ -349,6 +350,126 @@ export class ContentImportService {
       data: { publicStatus: PUBLIC_STATUS_STALE },
     });
   }
+
+  private async prepareItemForUpsert(item: NormalizedExternalContentItem): Promise<{
+    item: NormalizedExternalContentItem;
+    publicStatusOverride?: string;
+  }> {
+    if (item.contentKind !== 'event' || !item.startsAt) {
+      return { item };
+    }
+
+    const duplicate = await this.findEventDuplicate(item);
+    if (!duplicate || duplicate.match.confidence === 'low') {
+      return { item };
+    }
+
+    if (item.sourceCode === 'advcake_ticketland') {
+      const enriched = enrichItemFromDuplicate(item, duplicate.item);
+      await this.hideDuplicateItem(duplicate.item.id, duplicate.item.raw, {
+        sourceCode: item.sourceCode,
+        sourceItemId: item.sourceItemId,
+        confidence: duplicate.match.confidence,
+        duplicateKey: duplicate.match.key,
+        role: 'merged_into_affiliate_event',
+      });
+      return { item: enriched };
+    }
+
+    if (duplicate.item.source?.code === 'advcake_ticketland') {
+      await this.enrichExistingAffiliateItem(duplicate.item, item, duplicate.match);
+      return {
+        item: {
+          ...item,
+          raw: mergeRaw(item.raw, {
+            sourceCode: duplicate.item.source.code,
+            sourceItemId: duplicate.item.sourceItemId,
+            confidence: duplicate.match.confidence,
+            duplicateKey: duplicate.match.key,
+            role: 'duplicate_of_affiliate_event',
+          }),
+        },
+        publicStatusOverride: PUBLIC_STATUS_HIDDEN,
+      };
+    }
+
+    return { item };
+  }
+
+  private async findEventDuplicate(item: NormalizedExternalContentItem) {
+    if (!item.startsAt) {
+      return null;
+    }
+    const [from, to] = dayBounds(item.startsAt);
+    const candidates = await this.prismaService.client.externalContentItem.findMany({
+      where: {
+        city: item.city,
+        contentKind: 'event',
+        startsAt: { gte: from, lt: to },
+        source: { code: { not: item.sourceCode } },
+      },
+      include: { source: { select: { code: true, name: true } } },
+      orderBy: [{ importedAt: 'desc' }, { id: 'asc' }],
+      take: 30,
+    });
+
+    const matches = candidates
+      .map((candidate: any) => ({
+        item: candidate,
+        match: eventDuplicateMatch(item, {
+          city: candidate.city,
+          contentKind: candidate.contentKind,
+          title: candidate.title,
+          startsAt: candidate.startsAt,
+          venueName: candidate.venueName,
+        }),
+      }))
+      .filter((candidate) => candidate.match.confidence !== 'low');
+    return matches.find((candidate) => candidate.item.source?.code === 'advcake_ticketland')
+      ?? matches[0]
+      ?? null;
+  }
+
+  private enrichExistingAffiliateItem(
+    existing: any,
+    item: NormalizedExternalContentItem,
+    match: { confidence: 'high' | 'medium' | 'low'; key: string },
+  ) {
+    return this.prismaService.client.externalContentItem.update({
+      where: { id: existing.id },
+      data: {
+        address: existing.address ?? item.address,
+        lat: existing.lat ?? item.lat,
+        lng: existing.lng ?? item.lng,
+        venueName: existing.venueName ?? item.venueName,
+        publicStatus: existing.priceMode === 'paid' && existing.actionUrl
+          ? PUBLIC_STATUS_PUBLISHED
+          : existing.publicStatus,
+        raw: safeJson(mergeRaw(existing.raw, {
+          sourceCode: item.sourceCode,
+          sourceItemId: item.sourceItemId,
+          confidence: match.confidence,
+          duplicateKey: match.key,
+          role: 'affiliate_event_enriched',
+          fields: ['address', 'lat', 'lng', 'venueName'],
+        })),
+      },
+    });
+  }
+
+  private hideDuplicateItem(
+    itemId: string,
+    raw: unknown,
+    enrichment: Record<string, unknown>,
+  ) {
+    return this.prismaService.client.externalContentItem.update({
+      where: { id: itemId },
+      data: {
+        publicStatus: PUBLIC_STATUS_HIDDEN,
+        raw: safeJson(mergeRaw(raw, enrichment)),
+      },
+    });
+  }
 }
 
 function safeJson(value: unknown): Prisma.InputJsonValue {
@@ -356,6 +477,52 @@ function safeJson(value: unknown): Prisma.InputJsonValue {
     return {};
   }
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function dayBounds(value: Date): [Date, Date] {
+  const day = dayKey(value);
+  const from = new Date(`${day}T00:00:00.000Z`);
+  const to = new Date(from.getTime() + 24 * 60 * 60 * 1000);
+  return [from, to];
+}
+
+function enrichItemFromDuplicate(
+  item: NormalizedExternalContentItem,
+  duplicate: any,
+): NormalizedExternalContentItem {
+  const match = eventDuplicateMatch(item, {
+    city: duplicate.city,
+    contentKind: duplicate.contentKind,
+    title: duplicate.title,
+    startsAt: duplicate.startsAt,
+    venueName: duplicate.venueName,
+  });
+  return {
+    ...item,
+    address: item.address ?? duplicate.address ?? null,
+    lat: item.lat ?? duplicate.lat ?? null,
+    lng: item.lng ?? duplicate.lng ?? null,
+    venueName: item.venueName ?? duplicate.venueName ?? null,
+    raw: mergeRaw(item.raw, {
+      sourceCode: duplicate.source?.code,
+      sourceItemId: duplicate.sourceItemId,
+      confidence: match.confidence,
+      duplicateKey: match.key,
+      role: 'affiliate_event_enriched',
+      fields: ['address', 'lat', 'lng', 'venueName'],
+    }),
+  };
+}
+
+function mergeRaw(raw: unknown, enrichment: Record<string, unknown>) {
+  const base = object(raw) ?? {};
+  return {
+    ...base,
+    enrichment: {
+      ...(object(base.enrichment) ?? {}),
+      ...enrichment,
+    },
+  };
 }
 
 function positiveInt(value: unknown, fallback: number) {

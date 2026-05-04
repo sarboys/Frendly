@@ -32,6 +32,7 @@ Discovery and events:
 
 - `Event`, `Poster`, `EventParticipant`, `EventJoinRequest`, `EventAttendance`, `EventLiveState`, `EventFeedback`, `EventFavorite`, `EventStory`.
 - Partner-owned content uses optional `partnerId` where supported.
+- `Event.sourceExternalContentItemId` links a user-created meetup back to the imported affiche event when the user creates it from `afficheEventId`.
 
 Frendly Evening:
 
@@ -45,6 +46,8 @@ Frendly Evening:
 - `ExternalImportRun` stores import counters for admin health: `publishedCount`, `paidCount`, `freeCount`, `unknownPriceCount`, `missingCoordsCount`.
 - `ExternalContentItem` separates imported events and places through `contentKind`. Public affiche fields include `venueName`, `imageUrl`, `actionUrl`, `actionKind`, `priceMode`, `isAffiliate`, `sourceProvider`, `placeKind`, `lastSeenAt`, `publicStatus`.
 - `priceMode=free` means exact external price `0`; `unknown` must not be treated as free. `publicStatus` gates public affiche and route candidate visibility.
+- Dedupe enrichment can be stored in `ExternalContentItem.raw.enrichment`, including source code, source item id, duplicate key, confidence and fields copied from the matched item.
+- `EveningRouteStep` can store external ticket metadata as `ticketUrl`, `ticketSourceCode` and `ticketProvider`. This is for external affiliate checkout only, not in-app payment.
 - Analytics: `EveningAnalyticsEvent`.
 - Partner featuring: `PartnerFeaturedRequest`.
 
@@ -78,6 +81,7 @@ Public:
 
 - `User` owns profile, settings, sessions, messages, media, notifications, push tokens and safety records.
 - `Event` owns primary chat, participants, requests, attendance, feedback, stories and public shares. It can optionally point to `EveningRoute` via `eveningRouteId` when a meetup is created from a ready or custom route.
+- `Event` can optionally point to `ExternalContentItem` through `sourceExternalContentItemId` when created from public affiche.
 - `EveningRouteTemplate` owns immutable route revisions and current route pointer.
 - `EveningRoute` owns steps, sessions and optional route chat.
 - Generated route review drafts link to imported external items through draft steps. They publish only after admin convert and publish creates an `EveningRouteTemplate` plus current `EveningRoute`.

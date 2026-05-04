@@ -22,6 +22,7 @@ describe('AfficheService', () => {
       priceMode: 'paid',
       source: 'advcake_ticketland',
       category: 'comedy',
+      featured: 'true',
       q: 'стендап',
       limit: '10',
     });
@@ -34,6 +35,7 @@ describe('AfficheService', () => {
         priceMode: 'paid',
         source: { code: 'advcake_ticketland' },
         category: 'comedy',
+        imageUrl: { not: null },
       }),
       orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       take: 11,

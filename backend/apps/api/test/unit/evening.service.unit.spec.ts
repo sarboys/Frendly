@@ -61,6 +61,9 @@ describe('EveningService unit', () => {
         perkShort: null,
         ticketPrice: 800,
         ticketCommission: 80,
+        ticketUrl: 'https://go.avred.online/click',
+        ticketSourceCode: 'advcake_ticketland',
+        ticketProvider: 'Ticketland / MTS Live',
         sponsored: false,
         premium: false,
         partnerId: null,
@@ -125,6 +128,11 @@ describe('EveningService unit', () => {
         sentToChat: true,
         chatMessageId: 'msg-1',
       },
+    });
+    expect(result.steps[1]).toMatchObject({
+      ticketUrl: 'https://go.avred.online/click',
+      ticketSourceCode: 'advcake_ticketland',
+      ticketProvider: 'Ticketland / MTS Live',
     });
     expect(result.userState).toEqual({
       usedPerkStepIds: ['s1-1'],

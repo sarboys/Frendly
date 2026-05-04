@@ -56,7 +56,7 @@ Affiche:
 - `GET /affiche/events`
 - `GET /affiche/events/:eventId`
 - Public affiche returns only imported `ExternalContentItem` rows with `contentKind=event`, `publicStatus=published` and `priceMode in (free, paid)`.
-- Query params include `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `q`, `cursor`, `limit`.
+- Query params include `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `featured`, `q`, `cursor`, `limit`.
 - Paid public ticket events come from `advcake_ticketland` and use external `actionUrl`. Unknown price is not exposed as free.
 - KudaGo places stay outside affiche and should continue through places/search/route flows.
 
@@ -124,17 +124,19 @@ Admin Evening route review:
 - `POST /admin/evening/route-review/import-runs`
 - `GET /admin/evening/route-review/import-runs`
 - `GET /admin/evening/route-review/content-items`
+- `POST /admin/evening/route-review/content-items/:itemId/:action`
 - `POST /admin/evening/route-review/generation-runs`
 - `GET /admin/evening/route-review/generation-runs`
 - `GET /admin/evening/route-review/sources`
 - Admin content filters include `city`, `source`, `contentKind`, `priceMode`, `category`, `publicStatus`, `hasCoords`, `dateFrom`, `dateTo`.
 - Admin import runs expose `publishedCount`, `paidCount`, `freeCount`, `unknownPriceCount`, `missingCoordsCount`.
 - Admin content rows expose source, content kind, venue, image, action url, action kind, price mode, affiliate flag, public status and coordinates presence.
+- Admin content actions support publish, hide, reject, stale, force-free and force-paid. Rows also expose route planner blocked reason and a compact raw summary.
 
 ## Important behavior
 
 - Event joins are idempotent for existing participants.
-- `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates.
+- `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates. It also accepts `afficheEventId` for creating a meetup from a published affiche event; `posterId`, `afficheEventId` and route selection are mutually exclusive.
 - `GET /events` and `GET /posters` accept `date=yyyy-mm-dd` for one-day filtering.
 - `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
 - Direct joins lock the event row and check capacity inside the transaction.
@@ -156,7 +158,7 @@ Admin Evening route review:
 - Generated route review drafts are never public by default. Admin must approve, convert to `EveningRouteTemplate`, then publish through existing Evening route publishing.
 - Manual route review import requests create `pending_manual` import runs. External fetch stays in worker, not in the API request path.
 - Manual route review generation requests create `GeneratedRouteDraftBatch.status=pending_manual`. Worker picks them up and calls OpenRouter outside the API request path. Drafts stay in admin review until approve, convert and publish.
-- Route review generation uses a deterministic worker planner before OpenRouter. Candidate selection is balanced: worker fetches timed events and flexible places as separate pools so upcoming events do not push cafes, bars, parks and restaurants out of the prompt. Planner builds route skeletons with one timed event anchor, real imported event times, nearby flexible places before or after, walking limits, duplicate venue-cluster checks and no-route movement checks. Invalid OpenRouter drafts are rejected before saving; if all model drafts are invalid, worker uses deterministic fallback or fails the batch without creating invalid review cards. Planner rejects repeated event themes, for example two quests in one route. Planner also rejects bad flow: adjacent restaurant/cafe/bar steps, and a bar before another event, walk or culture stop. When social or culture routes have a nearby walk and bar after the event, planner prefers event -> walk -> final bar. If places are missing, planner may create a warning-level two-event route only when the events differ by category, do not overlap and leave travel time. Planner has scenario recipes for calm, social, date, culture, active and outdoor moods; category taxonomy covers cafe, food, bar, quest, theatre, concert, comedy, quiz, lecture, workshop, market, festival, cinema, sport, bike, adventure, outdoor, spa, walk and culture. Budget policy filters free/low/mid/high/premium candidates and validation rejects drafts over budget. Unknown-price events do not satisfy free budget. Public event route candidates require `priceMode` free or paid and coordinates. OpenRouter writes copy over those skeletons. KudaGo and Timepad importers paginate through all pages for the selected period, with a safety page guard from `CONTENT_IMPORT_MAX_PAGES_PER_ENDPOINT`; KudaGo sends route-worthy event and place category whitelists to its API so business, kids, stock, airports, car washes, metro, shelters and similar noise do not enter the imported pool. Overpass code remains available for explicit imports, but it is no longer part of default scheduled sources.
+- Route review generation uses a deterministic worker planner before OpenRouter. Candidate selection is balanced: worker fetches timed events and flexible places as separate pools so upcoming events do not push cafes, bars, parks and restaurants out of the prompt. Planner builds route skeletons with one timed event anchor, real imported event times, nearby flexible places before or after, walking limits, duplicate venue-cluster checks and no-route movement checks. Invalid OpenRouter drafts are rejected before saving; if all model drafts are invalid, worker uses deterministic fallback or fails the batch without creating invalid review cards. Planner rejects repeated event themes, for example two quests in one route. Planner also rejects bad flow: adjacent restaurant/cafe/bar steps, and a bar before another event, walk or culture stop. When social or culture routes have a nearby walk and bar after the event, planner prefers event -> walk -> final bar. If places are missing, planner may create a warning-level two-event route only when the events differ by category, do not overlap and leave travel time. Planner has scenario recipes for calm, social, date, culture, active and outdoor moods; category taxonomy covers cafe, food, bar, quest, theatre, concert, comedy, quiz, lecture, workshop, market, festival, cinema, sport, bike, adventure, outdoor, spa, walk and culture. Budget policy filters free/low/mid/high/premium candidates and validation rejects drafts over budget. Unknown-price events do not satisfy free budget. Public event route candidates require `priceMode` free or paid and coordinates. OpenRouter writes copy over those skeletons. Converted route steps preserve ticket URL metadata from affiliate imported events, so public route DTOs can expose `ticketUrl`, `ticketSourceCode` and `ticketProvider`. KudaGo and Timepad importers paginate through all pages for the selected period, with a safety page guard from `CONTENT_IMPORT_MAX_PAGES_PER_ENDPOINT`; KudaGo sends route-worthy event and place category whitelists to its API so business, kids, stock, airports, car washes, metro, shelters and similar noise do not enter the imported pool. Overpass code remains available for explicit imports, but it is no longer part of default scheduled sources.
 
 ## Shared packages
 

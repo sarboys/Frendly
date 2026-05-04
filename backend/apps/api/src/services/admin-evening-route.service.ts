@@ -382,8 +382,11 @@ export class AdminEveningRouteService {
         walkMin: step.walkMin ?? null,
         perk: offer?.title ?? null,
         perkShort: offer?.shortLabel ?? null,
-        ticketPrice: null,
+        ticketPrice: step.ticketPrice ?? null,
         ticketCommission: null,
+        ticketUrl: step.ticketUrl ?? null,
+        ticketSourceCode: step.ticketSourceCode ?? null,
+        ticketProvider: step.ticketProvider ?? null,
         sponsored: offer != null,
         premium: false,
         partnerId: offer?.partnerId ?? venue?.partnerId ?? null,
@@ -472,6 +475,10 @@ export class AdminEveningRouteService {
         body.lng == null
           ? null
           : this.parseCoordinate(body.lng, -180, 180, 'route_step_lng_invalid'),
+      ticketPrice: this.optionalInt(body.ticketPrice),
+      ticketUrl: this.optionalHttpsUrl(body.ticketUrl),
+      ticketSourceCode: this.optionalText(body.ticketSourceCode),
+      ticketProvider: this.optionalText(body.ticketProvider),
     };
   }
 
@@ -565,6 +572,9 @@ export class AdminEveningRouteService {
         perkShort: step.perkShort ?? null,
         ticketPrice: step.ticketPrice ?? null,
         ticketCommission: step.ticketCommission ?? null,
+        ticketUrl: step.ticketUrl ?? null,
+        ticketSourceCode: step.ticketSourceCode ?? null,
+        ticketProvider: step.ticketProvider ?? null,
         sponsored: step.sponsored,
         premium: step.premium,
         partnerId: step.partnerId ?? null,
@@ -612,6 +622,19 @@ export class AdminEveningRouteService {
     }
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private optionalHttpsUrl(value: unknown) {
+    const raw = this.optionalText(value);
+    if (!raw) {
+      return null;
+    }
+    try {
+      const url = new URL(raw);
+      return url.protocol === 'https:' ? url.toString() : null;
+    } catch {
+      return null;
+    }
   }
 
   private requiredText(value: unknown, code: string) {

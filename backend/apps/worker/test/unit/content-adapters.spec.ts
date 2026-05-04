@@ -201,6 +201,23 @@ describe('content source adapters', () => {
     expect(items.map((item) => item.sourceItemId)).toEqual(['offer-100']);
   });
 
+  it('rejects non-allowlisted AdvCake feed urls and skips unsafe action urls', async () => {
+    process.env.ADVCAKE_API_PASS = 'fake-pass';
+    const adapter = new AdvCakeTicketlandAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ feeds: [{ format: 'yml', url: 'https://evil.example/feed.yml' }] }) as any);
+
+    await expect(adapter.fetchItems(fetchInput())).rejects.toThrow('advcake_feed_url_forbidden');
+
+    jest.restoreAllMocks();
+    const safeAdapter = new AdvCakeTicketlandAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ feeds: [{ format: 'yml', url: 'https://feeds.advcake.ru/yml-feed' }] }) as any)
+      .mockResolvedValueOnce(textResponse(ticketlandYml({ url: 'http://ticketland.ru/not-https' })) as any);
+
+    await expect(safeAdapter.fetchItems(fetchInput())).resolves.toHaveLength(0);
+  });
+
   it('imports outdoor and bike places from Overpass tags', async () => {
     const adapter = new OverpassAdapter();
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ elements: [] }) as any);
@@ -278,13 +295,13 @@ function timepadEvent(id: number, startsAt: string) {
   };
 }
 
-function ticketlandYml(options: { extraOffers?: string } = {}) {
+function ticketlandYml(options: { extraOffers?: string; url?: string } = {}) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <yml_catalog>
   <shop>
     <offers>
       <offer id="100">
-        <url>https://go.avred.online/click</url>
+        <url>${options.url ?? 'https://go.avred.online/click'}</url>
         <picture>https://ticketland.ru/image.jpg</picture>
         <price>1500</price>
         <currencyId>RUB</currencyId>

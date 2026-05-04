@@ -33,6 +33,14 @@ describe('AdminRouteReviewService', () => {
       city: 'Москва',
       source: 'aggregation',
     }));
+    expect(routeService.createRevision).toHaveBeenCalledWith('template-1', expect.objectContaining({
+      steps: expect.arrayContaining([
+        expect.objectContaining({
+          ticketUrl: 'https://example.com',
+          ticketProvider: 'KudaGo',
+        }),
+      ]),
+    }));
     expect(routeService.publishTemplate).toHaveBeenCalledWith('template-1');
     expect(draftUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: 'published' }),
@@ -82,6 +90,8 @@ describe('AdminRouteReviewService', () => {
                 endsAt: null,
                 priceFrom: 500,
                 currency: 'RUB',
+                priceMode: 'paid',
+                publicStatus: 'published',
                 moderationStatus: 'pending',
                 importedAt: new Date('2026-05-04T10:00:00.000Z'),
                 expiresAt: null,
@@ -102,8 +112,70 @@ describe('AdminRouteReviewService', () => {
         sourceCode: 'timepad',
         title: 'Экскурсия',
         sourceUrl: 'https://example.com/event',
+        hasCoords: true,
+        routePlannerBlockedReason: null,
       }),
     ]);
+  });
+
+  it('moderates imported content items and exposes route planner visibility', async () => {
+    const update = jest.fn().mockResolvedValue({
+      id: 'item-1',
+      sourceId: 'source-1',
+      sourceItemId: 'ticket-1',
+      sourceUrl: 'https://go.avred.online/click',
+      contentKind: 'event',
+      city: 'Москва',
+      timezone: 'Europe/Moscow',
+      area: null,
+      title: 'Большой стендап',
+      shortSummary: null,
+      category: 'comedy',
+      tags: [],
+      address: null,
+      lat: null,
+      lng: null,
+      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      endsAt: null,
+      priceFrom: 1500,
+      currency: 'RUB',
+      venueName: 'Клуб',
+      imageUrl: null,
+      actionUrl: 'https://go.avred.online/click',
+      actionKind: 'affiliate_ticket',
+      priceMode: 'paid',
+      isAffiliate: true,
+      sourceProvider: 'Ticketland / MTS Live',
+      placeKind: null,
+      publicStatus: 'published',
+      raw: { enrichment: { sourceCode: 'kudago', confidence: 'high' } },
+      moderationStatus: 'approved',
+      importedAt: new Date('2026-05-04T10:00:00.000Z'),
+      expiresAt: null,
+      source: { code: 'advcake_ticketland', name: 'AdvCake Ticketland' },
+    });
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          externalContentItem: { update },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.moderateContentItem('item-1', 'publish');
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'item-1' },
+      data: { publicStatus: 'published', moderationStatus: 'approved' },
+    }));
+    expect(result).toEqual(expect.objectContaining({
+      publicStatus: 'published',
+      moderationStatus: 'approved',
+      hasCoords: false,
+      routePlannerBlockedReason: 'missing_coords',
+      rawSummary: expect.stringContaining('enrichment'),
+    }));
   });
 
   it('queues route generation runs without calling OpenRouter in API path', async () => {

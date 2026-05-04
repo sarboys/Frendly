@@ -380,7 +380,7 @@ export class RouteDraftGenerationService {
         id: item.id,
         source: item.source?.code,
         sourceName: item.source?.name,
-        sourceUrl: item.sourceUrl,
+        sourceUrl: item.actionUrl ?? item.sourceUrl,
         contentKind: item.contentKind,
         title: item.title,
         summary: item.shortSummary,
@@ -544,7 +544,7 @@ export class RouteDraftGenerationService {
               ticketPrice: nullableInt(step.ticketPrice),
               lat,
               lng,
-              sourceUrl: candidate?.sourceUrl ?? null,
+              sourceUrl: candidate?.actionUrl ?? candidate?.sourceUrl ?? null,
               sourceName: candidate?.source?.name ?? null,
               sourceTitle: candidate?.title ?? null,
             };

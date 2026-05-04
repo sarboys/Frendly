@@ -263,6 +263,10 @@ export interface AdminEveningRouteRevisionStepInput {
   walkMin?: number | null;
   lat?: number | null;
   lng?: number | null;
+  ticketPrice?: number | null;
+  ticketUrl?: string | null;
+  ticketSourceCode?: string | null;
+  ticketProvider?: string | null;
 }
 
 export interface AdminEveningRouteRevisionInput {
@@ -392,6 +396,9 @@ export interface AdminRouteReviewDraftStepDto {
   description: string | null;
   vibeTag: string | null;
   ticketPrice: number | null;
+  ticketUrl: string | null;
+  ticketSourceCode: string | null;
+  ticketProvider: string | null;
   lat: number;
   lng: number;
   sourceUrl: string | null;
@@ -521,6 +528,8 @@ export interface AdminExternalContentItemDto {
   placeKind: string | null;
   publicStatus: string;
   hasCoords: boolean;
+  routePlannerBlockedReason: string | null;
+  rawSummary: string | null;
   moderationStatus: string;
   importedAt: string;
   expiresAt: string | null;
@@ -642,6 +651,9 @@ export interface EveningRouteStepDto {
   perkShort: string | null;
   ticketPrice: number | null;
   ticketCommission: number | null;
+  ticketUrl: string | null;
+  ticketSourceCode: string | null;
+  ticketProvider: string | null;
   sponsored: boolean;
   premium: boolean;
   partnerId: string | null;

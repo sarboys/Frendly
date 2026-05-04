@@ -115,6 +115,7 @@ describe('RouteDraftGenerationService', () => {
               {
                 id: 'item-2',
                 sourceUrl: 'https://example.com/event',
+                actionUrl: 'https://go.avred.online/click',
                 contentKind: 'event',
                 city: 'Москва',
                 title: 'Экскурсия',
@@ -183,6 +184,12 @@ describe('RouteDraftGenerationService', () => {
     expect(draftCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ batchId: 'batch-1', status: 'needs_review' }),
     }));
+    expect(draftCreate.mock.calls[0]?.[0].data.steps.create).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        externalContentItemId: 'item-2',
+        sourceUrl: 'https://go.avred.online/click',
+      }),
+    ]));
   });
 
   it('uses fallback draft when OpenRouter times out', async () => {

@@ -67,6 +67,7 @@ export class AfficheService {
     const source = this.optionalText(query.source);
     const category = this.optionalText(query.category);
     const search = normalizeSearchQuery(this.optionalText(query.q) ?? undefined);
+    const featured = this.parseBoolean(query.featured);
 
     return {
       city,
@@ -76,6 +77,7 @@ export class AfficheService {
       priceMode: priceMode === 'any' ? { in: ['free', 'paid'] } : priceMode,
       ...(source ? { source: { code: source } } : {}),
       ...(category ? { category } : {}),
+      ...(featured === true ? { imageUrl: { not: null } } : {}),
       ...(dateRange
         ? { startsAt: { gte: dateRange.from, lt: dateRange.to } }
         : { startsAt: { gte: new Date() } }),
@@ -96,6 +98,17 @@ export class AfficheService {
   private parsePriceMode(value: unknown): 'free' | 'paid' | 'any' {
     const raw = this.optionalText(value);
     return raw === 'free' || raw === 'paid' || raw === 'any' ? raw : 'any';
+  }
+
+  private parseBoolean(value: unknown): boolean | null {
+    const raw = this.optionalText(value);
+    if (raw === 'true' || raw === '1') {
+      return true;
+    }
+    if (raw === 'false' || raw === '0') {
+      return false;
+    }
+    return null;
   }
 
   private parseDateRange(query: Record<string, unknown>) {

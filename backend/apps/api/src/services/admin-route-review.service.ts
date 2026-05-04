@@ -181,6 +181,10 @@ export class AdminRouteReviewService {
         emoji: step.emoji,
         distanceLabel: step.distanceLabel,
         walkMin: step.walkMin ?? null,
+        ticketPrice: step.ticketPrice ?? null,
+        ticketUrl: step.externalContentItem?.actionUrl ?? step.sourceUrl ?? null,
+        ticketSourceCode: step.externalContentItem?.source?.code ?? null,
+        ticketProvider: step.externalContentItem?.sourceProvider ?? step.sourceName ?? null,
         lat: step.lat,
         lng: step.lng,
       })),
@@ -294,6 +298,19 @@ export class AdminRouteReviewService {
       items: page.map((item: any) => this.mapContentItem(item)),
       nextCursor: next ? `${next.importedAt.toISOString()}|${next.id}` : null,
     };
+  }
+
+  async moderateContentItem(itemId: string, action: string) {
+    const data = contentModerationData(action);
+    if (!data) {
+      throw new ApiError(400, 'content_item_action_invalid', 'Content item action is invalid');
+    }
+    const item = await this.prismaService.client.externalContentItem.update({
+      where: { id: itemId },
+      data,
+      include: { source: { select: { code: true, name: true } } },
+    });
+    return this.mapContentItem(item);
   }
 
   async listGenerationRuns(query: Record<string, unknown> = {}): Promise<AdminRouteGenerationRunListDto> {
@@ -445,6 +462,9 @@ export class AdminRouteReviewService {
         description: step.description ?? null,
         vibeTag: step.vibeTag ?? null,
         ticketPrice: step.ticketPrice ?? null,
+        ticketUrl: step.externalContentItem?.actionUrl ?? step.sourceUrl ?? null,
+        ticketSourceCode: step.externalContentItem?.source?.code ?? null,
+        ticketProvider: step.externalContentItem?.sourceProvider ?? step.sourceName ?? null,
         lat: step.lat,
         lng: step.lng,
         sourceUrl: step.sourceUrl ?? step.externalContentItem?.sourceUrl ?? null,
@@ -509,6 +529,8 @@ export class AdminRouteReviewService {
       placeKind: item.placeKind ?? null,
       publicStatus: item.publicStatus ?? 'published',
       hasCoords: item.lat != null && item.lng != null,
+      routePlannerBlockedReason: routePlannerBlockedReason(item),
+      rawSummary: rawSummary(item.raw),
       moderationStatus: item.moderationStatus,
       importedAt: this.requiredDateToIso(item.importedAt),
       expiresAt: this.dateToIso(item.expiresAt),
@@ -678,7 +700,53 @@ function sourceConfig(code: SourceCode) {
   }
   return {
     offerId: process.env.ADVCAKE_TICKETLAND_OFFER_ID ?? '663',
-    website: process.env.ADVCAKE_TICKETLAND_WEBSITE ?? 'ticketland.ru',
+    websites: process.env.ADVCAKE_TICKETLAND_WEBSITES ?? 'ticketland.ru,live.mts.ru',
     feedFormat: process.env.ADVCAKE_FEED_FORMAT ?? 'yml',
   };
+}
+
+function contentModerationData(action: string) {
+  switch (action) {
+    case 'publish':
+      return { publicStatus: 'published', moderationStatus: 'approved' };
+    case 'hide':
+      return { publicStatus: 'hidden', moderationStatus: 'pending' };
+    case 'reject':
+      return { publicStatus: 'hidden', moderationStatus: 'rejected' };
+    case 'stale':
+      return { publicStatus: 'stale' };
+    case 'force-free':
+      return { priceMode: 'free', priceFrom: 0, publicStatus: 'published' };
+    case 'force-paid':
+      return { priceMode: 'paid', publicStatus: 'published' };
+    default:
+      return null;
+  }
+}
+
+function routePlannerBlockedReason(item: any) {
+  if (item.contentKind !== 'event' && item.contentKind !== 'place') {
+    return 'unsupported_kind';
+  }
+  if (item.publicStatus !== 'published') {
+    return item.publicStatus ?? 'not_published';
+  }
+  if (item.moderationStatus === 'rejected') {
+    return 'rejected';
+  }
+  if (item.lat == null || item.lng == null) {
+    return 'missing_coords';
+  }
+  if (item.contentKind === 'event' && item.priceMode !== 'free' && item.priceMode !== 'paid') {
+    return 'unknown_price';
+  }
+  return null;
+}
+
+function rawSummary(raw: unknown) {
+  if (raw == null || typeof raw !== 'object') {
+    return null;
+  }
+  const value = JSON.stringify(raw);
+  return value.length > 600 ? `${value.slice(0, 600)}...` : value;
 }

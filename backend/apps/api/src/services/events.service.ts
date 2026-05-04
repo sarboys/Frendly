@@ -795,19 +795,41 @@ export class EventsService {
       typeof body.posterId === 'string' && body.posterId.trim().length > 0
         ? body.posterId.trim()
         : undefined;
+    const afficheEventId =
+      typeof body.afficheEventId === 'string' && body.afficheEventId.trim().length > 0
+        ? body.afficheEventId.trim()
+        : undefined;
     const poster =
       posterId == null
         ? null
         : await this.prismaService.client.poster.findUnique({
             where: { id: posterId },
           });
+    const afficheEvent =
+      afficheEventId == null
+        ? null
+        : await this.prismaService.client.externalContentItem.findFirst({
+            where: {
+              id: afficheEventId,
+              contentKind: 'event',
+              publicStatus: 'published',
+              priceMode: { in: ['free', 'paid'] },
+            },
+          });
     const routeSelection = this.parseEventRouteSelection(body);
 
-    if (posterId != null && routeSelection != null) {
+    if ((posterId != null || afficheEventId != null) && routeSelection != null) {
       throw new ApiError(
         400,
         'invalid_event_payload',
-        'posterId and route cannot be used together',
+        'content source and route cannot be used together',
+      );
+    }
+    if (posterId != null && afficheEventId != null) {
+      throw new ApiError(
+        400,
+        'invalid_event_payload',
+        'posterId and afficheEventId cannot be used together',
       );
     }
 
@@ -844,19 +866,22 @@ export class EventsService {
     if (posterId != null && !poster) {
       throw new ApiError(404, 'poster_not_found', 'Poster not found');
     }
+    if (afficheEventId != null && !afficheEvent) {
+      throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
+    }
 
     const title =
       typeof body.title === 'string' && body.title.trim().length > 0
         ? body.title.trim()
-        : poster?.title ?? '';
+        : poster?.title ?? afficheEvent?.title ?? '';
     const description =
       typeof body.description === 'string' && body.description.trim().length > 0
         ? body.description.trim()
-        : poster?.description ?? '';
+        : poster?.description ?? afficheEvent?.shortSummary ?? '';
     const emoji =
       typeof body.emoji === 'string' && body.emoji.trim().length > 0
         ? body.emoji
-        : poster?.emoji ?? (isDatingMode ? '💘' : isAfterDarkMode ? '🖤' : '🍷');
+        : poster?.emoji ?? emojiForCategory(afficheEvent?.category) ?? (isDatingMode ? '💘' : isAfterDarkMode ? '🖤' : '🍷');
     const requestedVibe = typeof body.vibe === 'string' ? body.vibe : 'Спокойно';
     const vibe = isDatingMode ? 'Свидание' : requestedVibe;
     const place =
@@ -869,7 +894,9 @@ export class EventsService {
                 : routeSelection.title
             }`
           : poster == null
-            ? ''
+            ? afficheEvent == null
+              ? ''
+              : [afficheEvent.venueName, afficheEvent.address, afficheEvent.city].filter(Boolean).join(', ')
             : `${poster.venue}, ${poster.address}`;
     const distanceKm =
       typeof body.distanceKm === 'number'
@@ -878,15 +905,15 @@ export class EventsService {
           ? 0
           : poster?.distanceKm ?? 1.0;
     const latitude =
-      typeof body.latitude === 'number' ? body.latitude : null;
+      typeof body.latitude === 'number' ? body.latitude : afficheEvent?.lat ?? null;
     const longitude =
-      typeof body.longitude === 'number' ? body.longitude : null;
+      typeof body.longitude === 'number' ? body.longitude : afficheEvent?.lng ?? null;
     const capacity =
       typeof body.capacity === 'number' ? Math.trunc(body.capacity) : 8;
     const startsAtRaw =
       typeof body.startsAt === 'string' ? body.startsAt : undefined;
     const startsAt =
-      startsAtRaw != null ? new Date(startsAtRaw) : poster?.startsAt ?? new Date();
+      startsAtRaw != null ? new Date(startsAtRaw) : poster?.startsAt ?? afficheEvent?.startsAt ?? new Date();
     const lifestyle =
       body.lifestyle === 'zozh' || body.lifestyle === 'anti' || body.lifestyle === 'neutral'
         ? body.lifestyle
@@ -1116,6 +1143,7 @@ export class EventsService {
             description,
             idempotencyKey,
             sourcePosterId: poster?.id,
+            sourceExternalContentItemId: afficheEvent?.id,
             capacity: normalizedCapacity,
             hostId: userId,
             isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
@@ -2994,4 +3022,25 @@ export class EventsService {
     return value;
   }
 
+}
+
+function emojiForCategory(category: string | null | undefined) {
+  switch (category) {
+    case 'concert':
+      return '🎶';
+    case 'theatre':
+    case 'comedy':
+      return '🎭';
+    case 'cinema':
+      return '🎬';
+    case 'festival':
+      return '🎪';
+    case 'sport':
+      return '🏃';
+    case 'lecture':
+    case 'workshop':
+      return '📚';
+    default:
+      return null;
+  }
 }

@@ -85,6 +85,9 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
     if (!feedUrl) {
       throw new Error('advcake_feed_url_missing');
     }
+    if (!isAllowedFeedUrl(feedUrl)) {
+      throw new Error('advcake_feed_url_forbidden');
+    }
     return feedUrl;
   }
 
@@ -117,7 +120,7 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
     const priceFrom = integer(readField(offer, 'price'));
     const actionUrl = text(readField(offer, 'url'));
 
-    if (!id || !title || !region || !startsAt || priceFrom == null || !actionUrl) {
+    if (!id || !title || !region || !startsAt || priceFrom == null || !actionUrl || !isAllowedActionUrl(actionUrl)) {
       return [];
     }
     if (!SUPPORTED_CITIES.includes(region) || region !== input.city) {
@@ -209,6 +212,32 @@ function findFeedUrl(payload: unknown, feedFormat: string): string | null {
     queue.push(...Object.values(item));
   }
   return null;
+}
+
+function isAllowedFeedUrl(value: string) {
+  const url = parseUrl(value);
+  return url?.protocol === 'https:' && hostMatches(url.hostname, ['feeds.advcake.ru']);
+}
+
+function isAllowedActionUrl(value: string) {
+  const url = parseUrl(value);
+  return url?.protocol === 'https:' && hostMatches(url.hostname, [
+    'go.avred.online',
+    'ticketland.ru',
+    'live.mts.ru',
+  ]);
+}
+
+function parseUrl(value: string) {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function hostMatches(host: string, allowed: string[]) {
+  return allowed.some((domain) => host === domain || host.endsWith(`.${domain}`));
 }
 
 function readField(item: Record<string, unknown>, ...keys: string[]) {

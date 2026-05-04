@@ -1467,6 +1467,89 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('creates an event from a published affiche item', async () => {
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 'event-created',
+      title: 'Большой стендап',
+      emoji: '🎭',
+      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      place: 'Клуб, Тверская 1, Москва',
+    });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const externalContentFindFirst = jest.fn().mockResolvedValue({
+      id: 'affiche-1',
+      title: 'Большой стендап',
+      shortSummary: 'Комики на сцене',
+      category: 'comedy',
+      venueName: 'Клуб',
+      address: 'Тверская 1',
+      city: 'Москва',
+      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      lat: 55.75,
+      lng: 37.61,
+    });
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          externalContentItem: {
+            findFirst: externalContentFindFirst,
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+      title: 'Большой стендап',
+    } as any);
+
+    await service.createEvent('user-me', {
+      afficheEventId: 'affiche-1',
+      title: '',
+      description: '',
+      place: '',
+      vibe: 'Спокойно',
+      capacity: 6,
+      distanceKm: 1,
+    });
+
+    expect(externalContentFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'affiche-1',
+        contentKind: 'event',
+        publicStatus: 'published',
+        priceMode: { in: ['free', 'paid'] },
+      },
+    });
+    expect(eventCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        title: 'Большой стендап',
+        description: 'Комики на сцене',
+        place: 'Клуб, Тверская 1, Москва',
+        latitude: 55.75,
+        longitude: 37.61,
+        sourceExternalContentItemId: 'affiche-1',
+      }),
+    }));
+  });
+
   it('creates a private evening route when event is created from custom route steps', async () => {
     const eventCreate = jest.fn().mockResolvedValue({
       id: 'event-created',

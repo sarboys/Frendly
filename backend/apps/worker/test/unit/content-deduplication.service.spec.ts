@@ -1,4 +1,8 @@
-import { ContentDeduplicationService } from '../../src/content/content-deduplication.service';
+import {
+  ContentDeduplicationService,
+  eventDuplicateKey,
+  eventDuplicateMatch,
+} from '../../src/content/content-deduplication.service';
 import type { NormalizedExternalContentItem } from '../../src/content/content-source.types';
 
 function item(input: Partial<NormalizedExternalContentItem>): NormalizedExternalContentItem {
@@ -59,5 +63,39 @@ describe('ContentDeduplicationService', () => {
     ]);
 
     expect(groups).toHaveLength(2);
+  });
+
+  it('builds event duplicate key from city, title, day and venue', () => {
+    const source = item({
+      contentKind: 'event',
+      title: 'Большой стендап',
+      city: 'Москва',
+      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      venueName: 'Клуб',
+    });
+
+    expect(eventDuplicateKey(source)).toBe('Москва|event|большой стендап|2026-05-05|клуб');
+  });
+
+  it('matches event duplicates across sources with venue confidence', () => {
+    const advcake = item({
+      sourceCode: 'advcake_ticketland',
+      contentKind: 'event',
+      title: 'Большой стендап',
+      city: 'Москва',
+      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      venueName: 'Клуб',
+    });
+    const kudago = item({
+      sourceCode: 'kudago',
+      contentKind: 'event',
+      sourceItemId: 'k1',
+      title: 'Большой стендап',
+      city: 'Москва',
+      startsAt: new Date('2026-05-05T18:00:00.000Z'),
+      venueName: 'Клуб на Тверской',
+    });
+
+    expect(eventDuplicateMatch(advcake, kudago).confidence).toBe('medium');
   });
 });
