@@ -48,9 +48,11 @@ export type RouteDraftGenerationInput = {
 const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
 const DEFAULT_FORMAT = 'evening_route';
-const MAX_CANDIDATES_PER_PROMPT = 80;
+const MAX_CANDIDATES_PER_PROMPT = 36;
 const MAX_INPUT_PROMPT_CHARS = 720_000;
+const MAX_OPENROUTER_TOKENS = 4096;
 const DEFAULT_STALE_RUNNING_MS = 5 * 60 * 1000;
+const FALLBACK_MAX_WALK_METERS = 1800;
 
 @Injectable()
 export class RouteDraftGenerationService {
@@ -143,22 +145,8 @@ export class RouteDraftGenerationService {
         maxDrafts: input.maxDrafts ?? 4,
         candidateCount: candidates.length,
       });
-      const response = await this.openRouterClient.generateJson<OpenRouterRouteReviewResponse>({
-        systemPrompt: this.systemPrompt(),
-        userPrompt: JSON.stringify(request).slice(0, MAX_INPUT_PROMPT_CHARS),
-        temperature: 0.35,
-        maxTokens: 2600,
-      });
-      const routes = Array.isArray(response.parsedJson.routes)
-        ? response.parsedJson.routes.filter(hasUsableStepCount).slice(0, input.maxDrafts ?? 4)
-        : [];
-      if (routes.length === 0) {
-        throw new OpenRouterClientError(
-          502,
-          'openrouter_invalid_route_draft',
-          'OpenRouter returned no route drafts with 2 to 4 steps',
-        );
-      }
+      const generated = await this.generateRoutes(input, candidates, request);
+      const routes = generated.routes;
       for (const route of routes) {
         await this.saveDraft(batchId, input, candidates, route);
       }
@@ -166,7 +154,7 @@ export class RouteDraftGenerationService {
         where: { id: batchId },
         data: {
           status: 'completed',
-          responseJson: response.rawResponse as Prisma.InputJsonValue,
+          responseJson: generated.responseJson,
           finishedAt: new Date(),
         },
       });
@@ -174,6 +162,7 @@ export class RouteDraftGenerationService {
       console.log('[route-generation] completed', {
         batchId,
         draftCount: routes.length,
+        fallback: generated.fallback,
       });
     } catch (caught) {
       const failure = routeGenerationFailure(caught);
@@ -191,6 +180,56 @@ export class RouteDraftGenerationService {
         code: failure.code,
         message: failure.message,
       });
+    }
+  }
+
+  private async generateRoutes(
+    input: RouteDraftGenerationInput,
+    candidates: any[],
+    request: Record<string, unknown>,
+  ) {
+    try {
+      const response = await this.openRouterClient.generateJson<OpenRouterRouteReviewResponse>({
+        systemPrompt: this.systemPrompt(),
+        userPrompt: JSON.stringify(request).slice(0, MAX_INPUT_PROMPT_CHARS),
+        temperature: 0.1,
+        maxTokens: MAX_OPENROUTER_TOKENS,
+      });
+      const routes = Array.isArray(response.parsedJson.routes)
+        ? response.parsedJson.routes.filter(hasUsableStepCount).slice(0, input.maxDrafts ?? 4)
+        : [];
+      if (routes.length > 0) {
+        return {
+          routes,
+          responseJson: response.rawResponse as Prisma.InputJsonValue,
+          fallback: false,
+        };
+      }
+      throw new OpenRouterClientError(
+        502,
+        'openrouter_invalid_route_draft',
+        'OpenRouter returned no route drafts with 2 to 4 steps',
+      );
+    } catch (caught) {
+      const failure = routeGenerationFailure(caught);
+      const fallbackRoute = buildFallbackRoute(input, candidates);
+      if (!fallbackRoute) {
+        throw caught;
+      }
+      console.warn('[route-generation] using fallback draft', {
+        reasonCode: failure.code,
+        reasonMessage: failure.message,
+      });
+      return {
+        routes: [fallbackRoute],
+        responseJson: {
+          fallback: true,
+          reasonCode: failure.code,
+          reasonMessage: failure.message,
+          generatedAt: new Date().toISOString(),
+        } as Prisma.InputJsonValue,
+        fallback: true,
+      };
     }
   }
 
@@ -475,6 +514,167 @@ function validateRoute(route: GeneratedRoute, steps: GeneratedRouteStep[]) {
 function hasUsableStepCount(route: GeneratedRoute) {
   const steps = Array.isArray(route.steps) ? route.steps : [];
   return steps.length >= 2 && steps.length <= 4;
+}
+
+function buildFallbackRoute(input: RouteDraftGenerationInput, candidates: any[]): GeneratedRoute | null {
+  const selected = selectFallbackCandidates(candidates);
+  if (selected.length < 2) {
+    return null;
+  }
+  const routeTitle = fallbackTitle(input.mood, input.city);
+  const steps = selected.map((candidate, index) => {
+    const previous = index > 0 ? selected[index - 1] : null;
+    const walkMin = previous
+      ? Math.max(1, Math.ceil(distanceMeters(previous, candidate) / 80))
+      : 0;
+    const titleValue = text(candidate.title, `Место ${index + 1}`);
+    const kind = text(candidate.category, text(candidate.contentKind, 'place'));
+    return {
+      externalContentItemId: candidate.id,
+      timeLabel: ['19:00', '20:00', '21:00', '22:00'][index] ?? '19:00',
+      endTimeLabel: ['19:45', '20:45', '21:45', '22:45'][index] ?? null,
+      kind,
+      title: titleValue,
+      venue: titleValue,
+      address: text(candidate.address, 'Адрес уточняется'),
+      emoji: emojiForKind(kind),
+      distanceLabel: index === 0 ? 'старт маршрута' : `${walkMin} минут пешком`,
+      walkMin,
+      description: fallbackStepDescription(index, titleValue, input.mood),
+      vibeTag: input.mood,
+      ticketPrice: nullableInt(candidate.priceFrom),
+      lat: candidate.lat,
+      lng: candidate.lng,
+    };
+  });
+  const totalPriceFrom = selected.reduce(
+    (sum, candidate) => sum + (nullableInt(candidate.priceFrom) ?? 0),
+    0,
+  );
+  return {
+    title: routeTitle,
+    description: `${routeTitle}: ${steps.map((step) => step.venue).join(' -> ')}. Черновик собран автоматически из импортированных мест, проверь факты перед публикацией.`,
+    vibe: fallbackVibe(input.mood),
+    durationLabel: selected.length >= 3 ? '3 часа' : '2 часа',
+    totalPriceFrom,
+    goal: 'social',
+    recommendedFor: 'friends',
+    badgeLabel: 'fallback',
+    steps,
+  };
+}
+
+function selectFallbackCandidates(candidates: any[]) {
+  const points = candidates
+    .map((candidate) => ({
+      ...candidate,
+      lat: number(candidate.lat),
+      lng: number(candidate.lng),
+    }))
+    .filter((candidate) => candidate.lat != null && candidate.lng != null);
+  let best: any[] = [];
+  for (const anchor of points) {
+    const nearby = points
+      .map((candidate) => ({
+        candidate,
+        distance: distanceMeters(anchor, candidate),
+      }))
+      .filter((item) => item.distance <= FALLBACK_MAX_WALK_METERS)
+      .sort((left, right) => left.distance - right.distance)
+      .map((item) => item.candidate);
+    const selected = diversifyCandidates(nearby).slice(0, 3);
+    if (selected.length > best.length) {
+      best = selected;
+    }
+    if (best.length >= 3) {
+      break;
+    }
+  }
+  return best;
+}
+
+function diversifyCandidates(candidates: any[]) {
+  const selected: any[] = [];
+  const seenCategories = new Set<string>();
+  for (const candidate of candidates) {
+    const category = text(candidate.category, text(candidate.contentKind, 'place'));
+    if (selected.length < 2 || !seenCategories.has(category)) {
+      selected.push(candidate);
+      seenCategories.add(category);
+    }
+    if (selected.length >= 3) {
+      return selected;
+    }
+  }
+  for (const candidate of candidates) {
+    if (!selected.some((item) => item.id === candidate.id)) {
+      selected.push(candidate);
+    }
+    if (selected.length >= 3) {
+      return selected;
+    }
+  }
+  return selected;
+}
+
+function distanceMeters(left: { lat: number; lng: number }, right: { lat: number; lng: number }) {
+  const radius = 6371000;
+  const lat1 = degreesToRadians(left.lat);
+  const lat2 = degreesToRadians(right.lat);
+  const deltaLat = degreesToRadians(right.lat - left.lat);
+  const deltaLng = degreesToRadians(right.lng - left.lng);
+  const a = Math.sin(deltaLat / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+  return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function degreesToRadians(value: number) {
+  return value * Math.PI / 180;
+}
+
+function fallbackTitle(mood: string, city: string) {
+  if (mood === 'calm') {
+    return `Спокойный вечер, ${city}`;
+  }
+  if (mood === 'social') {
+    return `Дружеский вечер, ${city}`;
+  }
+  if (mood === 'date') {
+    return `Маршрут для свидания, ${city}`;
+  }
+  if (mood === 'culture') {
+    return `Культурный вечер, ${city}`;
+  }
+  if (mood === 'active') {
+    return `Активный вечер, ${city}`;
+  }
+  return `Вечерний маршрут, ${city}`;
+}
+
+function fallbackVibe(mood: string) {
+  if (mood === 'calm') {
+    return 'спокойно';
+  }
+  if (mood === 'social') {
+    return 'дружески';
+  }
+  if (mood === 'date') {
+    return 'для двоих';
+  }
+  if (mood === 'culture') {
+    return 'культурно';
+  }
+  if (mood === 'active') {
+    return 'активно';
+  }
+  return mood;
+}
+
+function fallbackStepDescription(index: number, titleValue: string, mood: string) {
+  if (index === 0) {
+    return `Начните маршрут с "${titleValue}". Это базовый шаг для настроения "${fallbackVibe(mood)}".`;
+  }
+  return `Продолжите вечер в "${titleValue}". Место рядом с предыдущим шагом, проверь детали перед публикацией.`;
 }
 
 function text(value: unknown, fallback: string) {

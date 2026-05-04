@@ -185,7 +185,7 @@ describe('RouteDraftGenerationService', () => {
     }));
   });
 
-  it('stores OpenRouter timeout code on failed manual generation', async () => {
+  it('uses fallback draft when OpenRouter times out', async () => {
     const batchUpdate = jest.fn().mockResolvedValue({});
     const draftCreate = jest.fn().mockResolvedValue({});
     const service = new RouteDraftGenerationService(
@@ -258,15 +258,22 @@ describe('RouteDraftGenerationService', () => {
     expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
       where: { id: 'batch-1' },
       data: expect.objectContaining({
-        status: 'failed',
-        errorCode: 'openrouter_timeout',
-        errorMessage: 'OpenRouter request timed out after 1000ms',
+        status: 'completed',
+        responseJson: expect.objectContaining({
+          fallback: true,
+          reasonCode: 'openrouter_timeout',
+        }),
       }),
     }));
-    expect(draftCreate).not.toHaveBeenCalled();
+    expect(draftCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'needs_review',
+        validationStatus: 'valid',
+      }),
+    }));
   });
 
-  it('fails batch instead of saving empty OpenRouter route objects', async () => {
+  it('uses fallback draft instead of saving empty OpenRouter route objects', async () => {
     const batchUpdate = jest.fn().mockResolvedValue({});
     const draftCreate = jest.fn().mockResolvedValue({});
     const service = new RouteDraftGenerationService(
@@ -339,12 +346,113 @@ describe('RouteDraftGenerationService', () => {
     expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
       where: { id: 'batch-1' },
       data: expect.objectContaining({
-        status: 'failed',
-        errorCode: 'openrouter_invalid_route_draft',
-        errorMessage: 'OpenRouter returned no route drafts with 2 to 4 steps',
+        status: 'completed',
+        responseJson: expect.objectContaining({
+          fallback: true,
+          reasonCode: 'openrouter_invalid_route_draft',
+        }),
       }),
     }));
-    expect(draftCreate).not.toHaveBeenCalled();
+    expect(draftCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'needs_review',
+        validationStatus: 'valid',
+        steps: expect.objectContaining({
+          create: expect.arrayContaining([
+            expect.objectContaining({ externalContentItemId: 'item-1' }),
+            expect.objectContaining({ externalContentItemId: 'item-2' }),
+          ]),
+        }),
+      }),
+    }));
+  });
+
+  it('uses fallback draft when OpenRouter returns invalid JSON', async () => {
+    const batchUpdate = jest.fn().mockResolvedValue({});
+    const draftCreate = jest.fn().mockResolvedValue({});
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'item-1',
+                sourceUrl: 'https://example.com/place',
+                contentKind: 'place',
+                city: 'Москва',
+                title: 'Кофейня',
+                shortSummary: 'Тихий кофе',
+                category: 'food',
+                address: 'Тверская, 1',
+                lat: 55.75,
+                lng: 37.61,
+                startsAt: null,
+                priceFrom: 300,
+                source: { name: 'KudaGo', code: 'kudago' },
+              },
+              {
+                id: 'item-2',
+                sourceUrl: 'https://example.com/event',
+                contentKind: 'event',
+                city: 'Москва',
+                title: 'Экскурсия',
+                shortSummary: 'Прогулка',
+                category: 'culture',
+                address: 'Никольская, 12',
+                lat: 55.751,
+                lng: 37.609,
+                startsAt: new Date('2026-05-05T16:00:00.000Z'),
+                priceFrom: 500,
+                source: { name: 'Timepad', code: 'timepad' },
+              },
+            ]),
+          },
+          generatedRouteDraftBatch: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'batch-1',
+                city: 'Москва',
+                area: null,
+                mood: 'social',
+                budget: 'low',
+                requestJson: { maxDrafts: 1 },
+              },
+            ]),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            update: batchUpdate,
+          },
+          generatedRouteReviewDraft: { create: draftCreate },
+        },
+      } as any,
+      {
+        generateJson: jest.fn().mockRejectedValue(
+          new OpenRouterClientError(
+            502,
+            'openrouter_invalid_json',
+            'OpenRouter returned invalid JSON',
+          ),
+        ),
+      } as any,
+    );
+
+    await service.processPendingManualBatches();
+
+    expect(batchUpdate).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'batch-1' },
+      data: expect.objectContaining({
+        status: 'completed',
+        responseJson: expect.objectContaining({
+          fallback: true,
+          reasonCode: 'openrouter_invalid_json',
+        }),
+      }),
+    }));
+    expect(draftCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'needs_review',
+        validationStatus: 'valid',
+      }),
+    }));
   });
 
   it('fails stale running generation batches before processing manual queue', async () => {
