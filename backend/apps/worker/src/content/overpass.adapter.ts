@@ -42,7 +42,11 @@ export class OverpassAdapter implements ExternalSourceAdapter {
       method: 'POST',
       body: new URLSearchParams({ data: query }),
       signal: input.signal,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+        'User-Agent': 'FrendlyRouteImporter/1.0',
+      },
     });
     if (!response.ok) {
       throw new Error(`overpass_${response.status}`);

@@ -139,12 +139,15 @@ describe('content source adapters', () => {
     await adapter.fetchItems(fetchInput());
 
     const body = fetchMock.mock.calls[0]?.[1]?.body as URLSearchParams;
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
     const query = body.get('data') ?? '';
     expect(query).toContain('"amenity"="bicycle_rental"');
     expect(query).toContain('"tourism"="picnic_site"');
     expect(query).toContain('"tourism"="viewpoint"');
     expect(query).toContain('out center;');
     expect(query).not.toContain('out center 500;');
+    expect(headers.Accept).toBe('application/json');
+    expect(headers['User-Agent']).toBe('FrendlyRouteImporter/1.0');
   });
 });
 
