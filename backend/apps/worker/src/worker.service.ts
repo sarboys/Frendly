@@ -10,6 +10,9 @@ import {
 } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import Redis from 'ioredis';
+import type { ExternalSourceCode } from './content/content-source.types';
+import { ContentImportService } from './content/content-import.service';
+import { RouteDraftGenerationService } from './content/route-draft-generation.service';
 import { ApnsPushProvider, FakePushProvider, FcmPushProvider, PushProvider } from './push.providers';
 import { PrismaService } from './prisma.service';
 
@@ -26,6 +29,9 @@ const DEFAULT_RETENTION_BATCH_SIZE = 500;
 const DEFAULT_EVENING_AUTO_ADVANCE_INTERVAL_MS = 30_000;
 const DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE = 25;
 const DEFAULT_PUSH_TOKEN_BATCH_SIZE = 20;
+const DEFAULT_CONTENT_IMPORT_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
+const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -43,10 +49,16 @@ export class WorkerService implements OnModuleDestroy {
   private systemNotificationTimer?: NodeJS.Timeout;
   private retentionCleanupTimer?: NodeJS.Timeout;
   private eveningAutoAdvanceTimer?: NodeJS.Timeout;
+  private contentImportTimer?: NodeJS.Timeout;
+  private contentManualImportTimer?: NodeJS.Timeout;
+  private contentRouteGenerationTimer?: NodeJS.Timeout;
   private running = false;
   private systemNotificationRunning = false;
   private retentionCleanupRunning = false;
   private eveningAutoAdvanceRunning = false;
+  private contentImportRunning = false;
+  private contentManualImportRunning = false;
+  private contentRouteGenerationRunning = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
     process.env.WORKER_MAX_EVENTS_PER_RUN,
     DEFAULT_MAX_EVENTS_PER_RUN,
@@ -101,13 +113,33 @@ export class WorkerService implements OnModuleDestroy {
     process.env.WORKER_EVENING_AUTO_ADVANCE_BATCH_SIZE,
     DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE,
   );
+  private readonly contentImportEnabled =
+    process.env.CONTENT_IMPORT_ENABLED === 'true';
+  private readonly contentImportIntervalMs = this.resolvePositiveInteger(
+    process.env.CONTENT_IMPORT_INTERVAL_MS,
+    DEFAULT_CONTENT_IMPORT_INTERVAL_MS,
+  );
+  private readonly contentManualImportIntervalMs = this.resolvePositiveInteger(
+    process.env.CONTENT_MANUAL_IMPORT_INTERVAL_MS,
+    DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS,
+  );
+  private readonly contentRouteGenerationEnabled =
+    process.env.CONTENT_ROUTE_GENERATION_ENABLED === 'true';
+  private readonly contentRouteGenerationIntervalMs = this.resolvePositiveInteger(
+    process.env.CONTENT_ROUTE_GENERATION_INTERVAL_MS,
+    DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS,
+  );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
   private readonly fakePushProvider = new FakePushProvider();
   private readonly fcmPushProvider = new FcmPushProvider();
   private readonly apnsPushProvider = new ApnsPushProvider();
 
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly contentImportService?: ContentImportService,
+    private readonly routeDraftGenerationService?: RouteDraftGenerationService,
+  ) {}
 
   start() {
     this.timer = setInterval(() => {
@@ -133,6 +165,28 @@ export class WorkerService implements OnModuleDestroy {
         );
       }, this.retentionCleanupIntervalMs);
     }
+    this.contentManualImportTimer = setInterval(() => {
+      void this.runScheduledTask(
+        'content-manual-import',
+        () => this.runPendingManualImportScan(),
+      );
+    }, this.contentManualImportIntervalMs);
+    if (this.contentImportEnabled) {
+      this.contentImportTimer = setInterval(() => {
+        void this.runScheduledTask(
+          'content-import',
+          () => this.runContentImportScan(),
+        );
+      }, this.contentImportIntervalMs);
+    }
+    if (this.contentRouteGenerationEnabled) {
+      this.contentRouteGenerationTimer = setInterval(() => {
+        void this.runScheduledTask(
+          'content-route-generation',
+          () => this.runContentRouteGenerationScan(),
+        );
+      }, this.contentRouteGenerationIntervalMs);
+    }
 
     void this.runScheduledTask('outbox', () => this.runOnce());
     void this.runScheduledTask(
@@ -149,6 +203,22 @@ export class WorkerService implements OnModuleDestroy {
         () => this.runRetentionCleanup(),
       );
     }
+    void this.runScheduledTask(
+      'content-manual-import',
+      () => this.runPendingManualImportScan(),
+    );
+    if (this.contentImportEnabled) {
+      void this.runScheduledTask(
+        'content-import',
+        () => this.runContentImportScan(),
+      );
+    }
+    if (this.contentRouteGenerationEnabled) {
+      void this.runScheduledTask(
+        'content-route-generation',
+        () => this.runContentRouteGenerationScan(),
+      );
+    }
   }
 
   async onModuleDestroy() {
@@ -163,6 +233,15 @@ export class WorkerService implements OnModuleDestroy {
     }
     if (this.eveningAutoAdvanceTimer) {
       clearInterval(this.eveningAutoAdvanceTimer);
+    }
+    if (this.contentImportTimer) {
+      clearInterval(this.contentImportTimer);
+    }
+    if (this.contentManualImportTimer) {
+      clearInterval(this.contentManualImportTimer);
+    }
+    if (this.contentRouteGenerationTimer) {
+      clearInterval(this.contentRouteGenerationTimer);
     }
 
     await this.redis.quit();
@@ -1216,6 +1295,68 @@ export class WorkerService implements OnModuleDestroy {
     }
   }
 
+  private async runPendingManualImportScan() {
+    if (this.contentManualImportRunning || !this.contentImportService) {
+      return;
+    }
+
+    this.contentManualImportRunning = true;
+
+    try {
+      await this.contentImportService.processPendingManualRuns();
+    } finally {
+      this.contentManualImportRunning = false;
+    }
+  }
+
+  private async runContentImportScan() {
+    if (this.contentImportRunning || !this.contentImportService) {
+      return;
+    }
+
+    this.contentImportRunning = true;
+
+    try {
+      const from = new Date();
+      const to = new Date(from.getTime() + 14 * 24 * 60 * 60 * 1000);
+      for (const city of this.resolveContentCities()) {
+        await this.contentImportService.runImport({
+          city,
+          sources: this.resolveContentSources(),
+          from,
+          to,
+        });
+      }
+    } finally {
+      this.contentImportRunning = false;
+    }
+  }
+
+  private async runContentRouteGenerationScan() {
+    if (this.contentRouteGenerationRunning || !this.routeDraftGenerationService) {
+      return;
+    }
+
+    this.contentRouteGenerationRunning = true;
+
+    try {
+      await this.routeDraftGenerationService.runScheduledGeneration();
+    } finally {
+      this.contentRouteGenerationRunning = false;
+    }
+  }
+
+  private resolveContentCities() {
+    return csv(process.env.CONTENT_IMPORT_CITIES) ?? ['Москва', 'Санкт-Петербург'];
+  }
+
+  private resolveContentSources(): ExternalSourceCode[] {
+    const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'timepad', 'overpass'];
+    return requested.filter((source): source is ExternalSourceCode =>
+      source === 'kudago' || source === 'timepad' || source === 'overpass',
+    );
+  }
+
   private async enqueueEventStartingNotifications() {
     const now = new Date();
     const windowEnd = new Date(now.getTime() + EVENT_STARTING_WINDOW_MS);
@@ -1408,4 +1549,12 @@ export class WorkerService implements OnModuleDestroy {
       }),
     );
   }
+}
+
+function csv(raw: string | undefined) {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const values = raw.split(',').map((item) => item.trim()).filter(Boolean);
+  return values.length > 0 ? values : null;
 }

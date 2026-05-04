@@ -3,6 +3,7 @@ import { Admin } from '../common/admin.decorator';
 import { AdminEveningAnalyticsService } from '../services/admin-evening-analytics.service';
 import { AdminEveningAiService } from '../services/admin-evening-ai.service';
 import { AdminEveningRouteService } from '../services/admin-evening-route.service';
+import { AdminRouteReviewService } from '../services/admin-route-review.service';
 import { AdminVenueService } from '../services/admin-venue.service';
 
 @Admin()
@@ -13,6 +14,7 @@ export class AdminEveningController {
     private readonly adminRouteService: AdminEveningRouteService,
     private readonly adminAiService: AdminEveningAiService,
     private readonly adminAnalyticsService: AdminEveningAnalyticsService,
+    private readonly routeReviewService: AdminRouteReviewService,
   ) {}
 
   @Get('analytics/partners')
@@ -43,6 +45,57 @@ export class AdminEveningController {
   @Post('ai/drafts/:draftId/convert')
   convertAiDraft(@Param('draftId') draftId: string) {
     return this.adminAiService.convertDraft(draftId);
+  }
+
+  @Get('route-review/drafts')
+  listRouteReviewDrafts(@Query() query: Record<string, unknown>) {
+    return this.routeReviewService.listDrafts(query);
+  }
+
+  @Get('route-review/drafts/:draftId')
+  getRouteReviewDraft(@Param('draftId') draftId: string) {
+    return this.routeReviewService.getDraft(draftId);
+  }
+
+  @Post('route-review/drafts/:draftId/approve')
+  approveRouteReviewDraft(
+    @Param('draftId') draftId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.routeReviewService.approveDraft(draftId, body);
+  }
+
+  @Post('route-review/drafts/:draftId/reject')
+  rejectRouteReviewDraft(
+    @Param('draftId') draftId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.routeReviewService.rejectDraft(draftId, body);
+  }
+
+  @Post('route-review/drafts/:draftId/convert')
+  convertRouteReviewDraft(@Param('draftId') draftId: string) {
+    return this.routeReviewService.convertDraft(draftId);
+  }
+
+  @Post('route-review/drafts/:draftId/publish')
+  publishRouteReviewDraft(@Param('draftId') draftId: string) {
+    return this.routeReviewService.publishDraft(draftId);
+  }
+
+  @Post('route-review/import-runs')
+  createRouteReviewImportRuns(@Body() body: Record<string, unknown>) {
+    return this.routeReviewService.createImportRuns(body as any);
+  }
+
+  @Get('route-review/import-runs')
+  listRouteReviewImportRuns(@Query() query: Record<string, unknown>) {
+    return this.routeReviewService.listImportRuns(query);
+  }
+
+  @Get('route-review/sources')
+  listRouteReviewSources() {
+    return this.routeReviewService.listSources();
   }
 
   @Get('route-templates')

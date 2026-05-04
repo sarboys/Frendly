@@ -8,6 +8,7 @@ export * from './config';
 export * from './cursor';
 export * from './hot-query-explain';
 export * from './outbox';
+export * from './openrouter';
 export * from './push-providers';
 export * from './pubsub';
 export * from './retention-cleanup';

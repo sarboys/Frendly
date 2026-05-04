@@ -2,17 +2,7 @@
 
 Use this for REST endpoints, DTOs, service behavior and API tests.
 
-## Fast paths
-
-- Controllers: `backend/apps/api/src/controllers/`.
-- Services: `backend/apps/api/src/services/`.
-- App module: `backend/apps/api/src/app.module.ts`.
-- API boot: `backend/apps/api/src/main.ts`.
-- Common helpers: `backend/apps/api/src/common/`.
-- Presenters: `backend/apps/api/src/common/presenters.ts`, `media-presenters.ts`.
-- Auth guard: `backend/apps/api/src/common/auth.guard.ts`.
-- Contracts: `backend/packages/contracts/src/index.ts`.
-- API tests: `backend/apps/api/test/unit/`, `backend/apps/api/test/integration/`.
+For concrete controllers and services, run `./scripts/ua-query.mjs "<endpoint or flow>"` first.
 
 ## Runtime rules
 
@@ -26,30 +16,6 @@ Use this for REST endpoints, DTOs, service behavior and API tests.
 - Admin actions are written to `AdminAuditEvent` by `AdminAuditInterceptor`.
 - Errors use `ApiError` and `ApiExceptionFilter`.
 - CORS only when `CORS_ORIGIN` is set.
-
-## Main controllers and services
-
-- Auth: `auth.controller.ts`, `auth.service.ts`, `telegram-auth.service.ts`, `social-auth.service.ts`.
-- Profile: `profile.controller.ts`, `profile.service.ts`.
-- Onboarding: `onboarding.controller.ts`, `onboarding.service.ts`.
-- Events: `events.controller.ts`, `events.service.ts`.
-- Grouped search: `search.controller.ts`, `search.service.ts`.
-- Host: `host.controller.ts`, `host.service.ts`.
-- Chats: `chats.controller.ts`, `chats.service.ts`.
-- Evening: `evening.controller.ts`, `evening.service.ts`, `partner-offer-code.service.ts`.
-- Admin Evening: `admin-evening.controller.ts`, `admin-auth.controller.ts`, `admin-auth.service.ts`, `admin-venue.service.ts`, `admin-evening-route.service.ts`, `admin-evening-ai.service.ts`, `admin-evening-analytics.service.ts`.
-- Partner portal: `partner-portal.controller.ts`, `partner-portal.service.ts`, `partner-auth.controller.ts`, `partner-auth.service.ts`.
-- People: `people.controller.ts`, `people.service.ts`.
-- Dating and matches: `dating.controller.ts`, `matches.controller.ts`, `dating.service.ts`, `matches.service.ts`.
-- Communities: `communities.controller.ts`, `communities.service.ts`.
-- After Dark: `after-dark.controller.ts`, `after-dark.service.ts`.
-- Posters: `posters.controller.ts`, `posters.service.ts`.
-- Uploads and media: `uploads.controller.ts`, `media.controller.ts`, `uploads.service.ts`, `media.service.ts`.
-- Notifications: `notifications.controller.ts`, `notifications.service.ts`.
-- Safety: `safety.controller.ts`, `safety.service.ts`.
-- Shares: `shares.controller.ts`, `shares.service.ts`.
-- Public offer codes: `public-code.controller.ts`.
-- Internal Telegram: `internal-telegram.controller.ts`.
 
 ## Endpoint groups
 
@@ -91,6 +57,7 @@ Chats:
 - `GET /chats/personal`
 - `GET /chats/:chatId/messages`
 - `POST /chats/:chatId/read`
+- Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
 
 Evening:
 
@@ -137,6 +104,18 @@ Admin auth:
 - `POST /admin/auth/logout`
 - `GET /admin/auth/me`
 
+Admin Evening route review:
+
+- `GET /admin/evening/route-review/drafts`
+- `GET /admin/evening/route-review/drafts/:draftId`
+- `POST /admin/evening/route-review/drafts/:draftId/approve`
+- `POST /admin/evening/route-review/drafts/:draftId/reject`
+- `POST /admin/evening/route-review/drafts/:draftId/convert`
+- `POST /admin/evening/route-review/drafts/:draftId/publish`
+- `POST /admin/evening/route-review/import-runs`
+- `GET /admin/evening/route-review/import-runs`
+- `GET /admin/evening/route-review/sources`
+
 ## Important behavior
 
 - Event joins are idempotent for existing participants.
@@ -146,7 +125,7 @@ Admin auth:
 - Direct joins lock the event row and check capacity inside the transaction.
 - Join request review must not reset a reviewed request back to pending.
 - Event detail uses bounded previews and separate counts.
-- Chat list member previews are bounded and block-aware.
+- Chat list member previews are bounded and block-aware. Meetup previews include `memberProfiles` so clients do not use display names as ids.
 - Chat history hides blocked `replyTo` previews.
 - Cursors carry sort keys plus id when possible.
 - Direct upload complete is idempotent by object key, owner, kind and target.
@@ -159,6 +138,8 @@ Admin auth:
 - Public offer code activation has a per-IP in-process limit before DB lookup.
 - Admin auth uses httpOnly cookies and can bootstrap the first admin from `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`.
 - Legacy `x-admin-token` still works when `ADMIN_API_TOKEN` is configured, but browser admin should use `/admin/auth/*`.
+- Generated route review drafts are never public by default. Admin must approve, convert to `EveningRouteTemplate`, then publish through existing Evening route publishing.
+- Manual route review import requests create `pending_manual` import runs. External fetch stays in worker, not in the API request path.
 
 ## Shared packages
 

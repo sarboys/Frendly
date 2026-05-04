@@ -376,6 +376,110 @@ export interface AdminAiEveningGenerateResponseDto {
   drafts: AdminAiEveningDraftDto[];
 }
 
+export interface AdminRouteReviewDraftStepDto {
+  id: string;
+  sortOrder: number;
+  externalContentItemId: string | null;
+  timeLabel: string;
+  endTimeLabel: string | null;
+  kind: string;
+  title: string;
+  venue: string;
+  address: string;
+  emoji: string;
+  distanceLabel: string;
+  walkMin: number | null;
+  description: string | null;
+  vibeTag: string | null;
+  ticketPrice: number | null;
+  lat: number;
+  lng: number;
+  sourceUrl: string | null;
+  sourceName: string | null;
+  sourceTitle: string | null;
+}
+
+export interface AdminRouteReviewDraftDto {
+  id: string;
+  batchId: string;
+  status: string;
+  title: string;
+  description: string;
+  city: string;
+  timezone: string;
+  area: string | null;
+  vibe: string;
+  budget: string;
+  durationLabel: string;
+  totalPriceFrom: number;
+  goal: string;
+  mood: string;
+  format: string | null;
+  recommendedFor: string | null;
+  badgeLabel: string | null;
+  score: number;
+  validationStatus: string;
+  validationIssues: AdminAiEveningValidationIssueDto[];
+  reviewedByAdminId: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  createdTemplateId: string | null;
+  publishedAt: string | null;
+  rejectedAt: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  steps: AdminRouteReviewDraftStepDto[];
+}
+
+export interface AdminRouteReviewDraftListDto {
+  items: AdminRouteReviewDraftDto[];
+  nextCursor: string | null;
+}
+
+export interface AdminRouteReviewActionInput {
+  reviewNote?: string | null;
+}
+
+export interface AdminRouteReviewSourceDto {
+  id: string;
+  code: string;
+  name: string;
+  kind: string;
+  status: string;
+  lastImportedAt: string | null;
+}
+
+export interface AdminRouteReviewSourceListDto {
+  items: AdminRouteReviewSourceDto[];
+}
+
+export interface AdminExternalImportRunDto {
+  id: string;
+  sourceId: string;
+  sourceCode: string | null;
+  city: string;
+  status: string;
+  startedAt: string;
+  finishedAt: string | null;
+  fetchedCount: number;
+  normalizedCount: number;
+  skippedCount: number;
+  errorCode: string | null;
+  errorMessage: string | null;
+}
+
+export interface AdminExternalImportRunListDto {
+  items: AdminExternalImportRunDto[];
+}
+
+export interface AdminRouteReviewImportRunInput {
+  city: string;
+  sources: string[];
+  from: string;
+  to: string;
+}
+
 export interface CreateEveningRouteTemplateSessionRequestDto {
   startsAt: string;
   privacy?: 'open' | 'request' | 'invite';

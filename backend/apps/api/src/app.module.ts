@@ -42,6 +42,7 @@ import { AdminAuthService } from './services/admin-auth.service';
 import { AdminEveningAnalyticsService } from './services/admin-evening-analytics.service';
 import { AdminEveningAiService } from './services/admin-evening-ai.service';
 import { AdminEveningRouteService } from './services/admin-evening-route.service';
+import { AdminRouteReviewService } from './services/admin-route-review.service';
 import { AdminVenueService } from './services/admin-venue.service';
 import { AfterDarkService } from './services/after-dark.service';
 import { ChatsService } from './services/chats.service';
@@ -120,6 +121,7 @@ import { VerificationService } from './services/verification.service';
     AdminEveningAnalyticsService,
     AdminEveningAiService,
     AdminEveningRouteService,
+    AdminRouteReviewService,
     AdminVenueService,
     AfterDarkService,
     AdminAuthService,

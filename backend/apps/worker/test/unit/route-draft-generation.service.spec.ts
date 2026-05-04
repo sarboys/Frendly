@@ -1,0 +1,86 @@
+import { RouteDraftGenerationService } from '../../src/content/route-draft-generation.service';
+
+describe('RouteDraftGenerationService', () => {
+  it('saves generated review drafts without publishing routes', async () => {
+    const batchCreate = jest.fn().mockResolvedValue({ id: 'batch-1' });
+    const batchUpdate = jest.fn().mockResolvedValue({});
+    const draftCreate = jest.fn().mockResolvedValue({});
+    const service = new RouteDraftGenerationService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'item-1',
+                sourceItemId: 'place-1',
+                sourceUrl: 'https://example.com/place',
+                contentKind: 'place',
+                city: 'Москва',
+                title: 'Кофейня',
+                shortSummary: 'Тихий кофе',
+                category: 'food',
+                address: 'Тверская, 1',
+                lat: 55.75,
+                lng: 37.61,
+                startsAt: null,
+                priceFrom: 300,
+                source: { name: 'KudaGo', code: 'kudago' },
+              },
+              {
+                id: 'item-2',
+                sourceItemId: 'place-2',
+                sourceUrl: 'https://example.com/museum',
+                contentKind: 'place',
+                city: 'Москва',
+                title: 'Галерея',
+                shortSummary: 'Небольшая выставка',
+                category: 'culture',
+                address: 'Арбат, 2',
+                lat: 55.751,
+                lng: 37.609,
+                startsAt: null,
+                priceFrom: 0,
+                source: { name: 'OSM Overpass', code: 'overpass' },
+              },
+            ]),
+          },
+          generatedRouteDraftBatch: { create: batchCreate, update: batchUpdate },
+          generatedRouteReviewDraft: { create: draftCreate },
+        },
+      } as any,
+      {
+        configuredModel: 'test-model',
+        generateJson: jest.fn().mockResolvedValue({
+          rawResponse: { choices: [] },
+          parsedJson: {
+            routes: [
+              {
+                title: 'Тихий центр',
+                description: 'Кофе и галерея рядом.',
+                vibe: 'спокойно',
+                durationLabel: '2 часа',
+                totalPriceFrom: 300,
+                goal: 'social',
+                recommendedFor: 'друзья',
+                steps: [
+                  { externalContentItemId: 'item-1', timeLabel: '19:00', kind: 'cafe', title: 'Кофе', venue: 'Кофейня', address: 'Тверская, 1', emoji: '☕', distanceLabel: '10 минут', walkMin: 10, lat: 55.75, lng: 37.61 },
+                  { externalContentItemId: 'item-2', timeLabel: '20:00', kind: 'gallery', title: 'Выставка', venue: 'Галерея', address: 'Арбат, 2', emoji: '🖼️', distanceLabel: '10 минут', walkMin: 10, lat: 55.751, lng: 37.609 },
+                ],
+              },
+            ],
+          },
+          latencyMs: 10,
+        }),
+      } as any,
+    );
+
+    await service.generateForCity({ city: 'Москва', area: null, mood: 'calm', budget: 'low', maxDrafts: 2 });
+
+    expect(batchCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ city: 'Москва', status: 'running' }),
+    }));
+    expect(draftCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'needs_review' }),
+    }));
+  });
+});

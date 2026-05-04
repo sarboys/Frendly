@@ -329,7 +329,7 @@ model AdminSession {
 }
 
 model AdminAuditEvent {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   adminUserId String?
   sessionId   String?
   action      String
@@ -340,7 +340,7 @@ model AdminAuditEvent {
   ip          String?
   userAgent   String?
   metadata    Json?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
   adminUser AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
 
@@ -714,7 +714,7 @@ model PartnerSession {
 }
 
 model PartnerFeaturedRequest {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   partnerId   String
   targetType  String
   targetId    String
@@ -724,10 +724,10 @@ model PartnerFeaturedRequest {
   description String
   startsAt    DateTime
   endsAt      DateTime
-  status      String    @default("draft")
+  status      String   @default("draft")
   reviewNote  String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
@@ -932,6 +932,179 @@ model AiEveningDraftStep {
 
   @@index([draftId, sortOrder, id])
   @@index([venueId])
+}
+
+model ExternalContentSource {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  name           String
+  kind           String
+  baseUrl        String?
+  status         String    @default("active")
+  cityCodes      Json?
+  config         Json?
+  lastImportedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  importRuns ExternalImportRun[]
+  items      ExternalContentItem[]
+
+  @@index([status, kind, id])
+}
+
+model ExternalImportRun {
+  id              String    @id @default(cuid())
+  sourceId        String
+  city            String
+  status          String    @default("running")
+  startedAt       DateTime  @default(now())
+  finishedAt      DateTime?
+  fetchedCount    Int       @default(0)
+  normalizedCount Int       @default(0)
+  skippedCount    Int       @default(0)
+  errorCode       String?
+  errorMessage    String?
+  cursor          String?
+  metadata        Json?
+
+  source ExternalContentSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  items  ExternalContentItem[]
+
+  @@index([sourceId, city, startedAt, id])
+  @@index([status, startedAt, id])
+}
+
+model ExternalContentItem {
+  id               String    @id @default(cuid())
+  sourceId         String
+  importRunId      String?
+  sourceItemId     String
+  sourceUrl        String?
+  contentKind      String
+  city             String
+  timezone         String    @default("Europe/Moscow")
+  area             String?
+  title            String
+  shortSummary     String?
+  category         String
+  tags             Json?
+  address          String?
+  lat              Float?
+  lng              Float?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  priceFrom        Int?
+  currency         String?
+  raw              Json?
+  normalizedHash   String
+  moderationStatus String    @default("pending")
+  importedAt       DateTime  @default(now())
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  source          ExternalContentSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  importRun       ExternalImportRun?        @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  routeDraftSteps GeneratedRouteDraftStep[]
+
+  @@unique([sourceId, sourceItemId])
+  @@index([city, contentKind, startsAt, id])
+  @@index([city, category, moderationStatus, id])
+  @@index([normalizedHash])
+}
+
+model GeneratedRouteDraftBatch {
+  id            String    @id @default(cuid())
+  city          String
+  timezone      String    @default("Europe/Moscow")
+  area          String?
+  mood          String
+  budget        String
+  audience      String
+  format        String
+  source        String    @default("aggregation")
+  status        String    @default("running")
+  promptVersion String
+  requestJson   Json
+  responseJson  Json?
+  errorCode     String?
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  drafts GeneratedRouteReviewDraft[]
+
+  @@index([city, status, createdAt, id])
+}
+
+model GeneratedRouteReviewDraft {
+  id                String    @id @default(cuid())
+  batchId           String
+  status            String    @default("needs_review")
+  title             String
+  description       String
+  city              String
+  timezone          String    @default("Europe/Moscow")
+  area              String?
+  vibe              String
+  budget            String
+  durationLabel     String
+  totalPriceFrom    Int
+  goal              String
+  mood              String
+  format            String?
+  recommendedFor    String?
+  badgeLabel        String?
+  score             Int       @default(0)
+  validationStatus  String    @default("pending")
+  validationIssues  Json?
+  reviewedByAdminId String?
+  reviewedAt        DateTime?
+  reviewNote        String?
+  createdTemplateId String?
+  publishedAt       DateTime?
+  rejectedAt        DateTime?
+  archivedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  batch GeneratedRouteDraftBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  steps GeneratedRouteDraftStep[]
+
+  @@index([city, status, createdAt, id])
+  @@index([batchId, score, id])
+}
+
+model GeneratedRouteDraftStep {
+  id                    String   @id @default(cuid())
+  draftId               String
+  externalContentItemId String?
+  sortOrder             Int
+  timeLabel             String
+  endTimeLabel          String?
+  kind                  String
+  title                 String
+  venue                 String
+  address               String
+  emoji                 String
+  distanceLabel         String
+  walkMin               Int?
+  description           String?
+  vibeTag               String?
+  ticketPrice           Int?
+  lat                   Float
+  lng                   Float
+  sourceUrl             String?
+  sourceName            String?
+  sourceTitle           String?
+  createdAt             DateTime @default(now())
+
+  draft               GeneratedRouteReviewDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  externalContentItem ExternalContentItem?      @relation(fields: [externalContentItemId], references: [id], onDelete: SetNull)
+
+  @@index([draftId, sortOrder, id])
+  @@index([externalContentItemId])
 }
 
 model EveningAnalyticsEvent {

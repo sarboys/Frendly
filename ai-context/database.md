@@ -41,6 +41,7 @@ Frendly Evening:
 - `EveningAfterPartyFeedback`, `EveningAfterPartyPhoto`.
 - `PartnerOfferCode`, `UserEveningStepAction`.
 - AI studio: `AiEveningBrief`, `AiEveningGenerationRun`, `AiEveningDraft`, `AiEveningDraftStep`.
+- Route aggregation: `ExternalContentSource`, `ExternalImportRun`, `ExternalContentItem`, `GeneratedRouteDraftBatch`, `GeneratedRouteReviewDraft`, `GeneratedRouteDraftStep`.
 - Analytics: `EveningAnalyticsEvent`.
 - Partner featuring: `PartnerFeaturedRequest`.
 
@@ -76,6 +77,7 @@ Public:
 - `Event` owns primary chat, participants, requests, attendance, feedback, stories and public shares. It can optionally point to `EveningRoute` via `eveningRouteId` when a meetup is created from a ready or custom route.
 - `EveningRouteTemplate` owns immutable route revisions and current route pointer.
 - `EveningRoute` owns steps, sessions and optional route chat.
+- Generated route review drafts link to imported external items through draft steps. They publish only after admin convert and publish creates an `EveningRouteTemplate` plus current `EveningRoute`.
 - `EveningSession` owns session chat, participants, join requests, step states, check-ins, feedback, photos and public shares.
 - `Chat` owns members, messages and realtime events.
 - `Community` owns a unique chat.
