@@ -1200,6 +1200,10 @@ describe('EveningService unit', () => {
         status: 'requested',
         note: 'Хочу присоединиться',
       }),
+      select: {
+        id: true,
+        status: true,
+      },
     });
     expect(result).toMatchObject({
       status: 'requested',
@@ -1222,6 +1226,9 @@ describe('EveningService unit', () => {
           userId: 'user-guest',
         }),
       }),
+      select: {
+        id: true,
+      },
     });
     expect(outboxCreateMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
@@ -1451,6 +1458,9 @@ describe('EveningService unit', () => {
           chatId: 'evening-chat-request',
         }),
       }),
+      select: {
+        id: true,
+      },
     });
   });
 
@@ -1601,6 +1611,9 @@ describe('EveningService unit', () => {
           status: 'rejected',
         }),
       }),
+      select: {
+        id: true,
+      },
     });
     expect(result).toMatchObject({
       status: 'rejected',
@@ -1671,7 +1684,10 @@ describe('EveningService unit', () => {
         stepId: 's1-2',
         userId: 'user-guest',
       }),
-      update: expect.any(Object),
+      update: {},
+      select: {
+        checkedInAt: true,
+      },
     });
     expect(result).toMatchObject({
       sessionId: 'evening-session-live',
@@ -1791,6 +1807,12 @@ describe('EveningService unit', () => {
         rating: 5,
         reaction: 'repeat',
       }),
+      select: {
+        id: true,
+        rating: true,
+        reaction: true,
+        comment: true,
+      },
     });
     expect(result).toMatchObject({
       sessionId: 'evening-session-done',
