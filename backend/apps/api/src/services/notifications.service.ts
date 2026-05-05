@@ -243,6 +243,9 @@ export class NotificationsService {
   async deletePushToken(userId: string, tokenId: string) {
     const token = await this.prismaService.client.pushToken.findUnique({
       where: { id: tokenId },
+      select: {
+        userId: true,
+      },
     });
 
     if (!token || token.userId !== userId) {
@@ -310,6 +313,15 @@ export class NotificationsService {
               ],
             }
           : {}),
+      },
+      select: {
+        id: true,
+        kind: true,
+        title: true,
+        body: true,
+        payload: true,
+        readAt: true,
+        createdAt: true,
       },
       orderBy: [
         { createdAt: 'desc' },

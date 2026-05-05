@@ -12,6 +12,43 @@ interface PosterCursor {
   startsAt: Date;
 }
 
+const posterCoverAssetSelect = {
+  id: true,
+  kind: true,
+  mimeType: true,
+  byteSize: true,
+  durationMs: true,
+  publicUrl: true,
+} satisfies Prisma.MediaAssetSelect;
+
+const posterSelect = {
+  id: true,
+  category: true,
+  title: true,
+  emoji: true,
+  startsAt: true,
+  dateLabel: true,
+  timeLabel: true,
+  venue: true,
+  address: true,
+  distanceKm: true,
+  priceFrom: true,
+  ticketUrl: true,
+  provider: true,
+  tone: true,
+  tags: true,
+  description: true,
+  status: true,
+  isFeatured: true,
+  coverAsset: {
+    select: posterCoverAssetSelect,
+  },
+} satisfies Prisma.PosterSelect;
+
+type PosterRecord = Prisma.PosterGetPayload<{
+  select: typeof posterSelect;
+}>;
+
 @Injectable()
 export class PostersService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -65,9 +102,7 @@ export class PostersService {
           : {
               AND: [where, cursorWhere],
             },
-      include: {
-        coverAsset: true,
-      },
+      select: posterSelect,
       orderBy: [{ isFeatured: 'desc' }, { startsAt: 'asc' }, { id: 'asc' }],
       take: take + 1,
     });
@@ -87,9 +122,7 @@ export class PostersService {
   async getPosterDetail(posterId: string) {
     const poster = await this.prismaService.client.poster.findUnique({
       where: { id: posterId },
-      include: {
-        coverAsset: true,
-      },
+      select: posterSelect,
     });
 
     if (!poster) {
@@ -251,16 +284,7 @@ export class PostersService {
   }
 
   private mapPoster(
-    poster: Poster & {
-      coverAsset?: {
-        id: string;
-        kind: string;
-        mimeType: string;
-        byteSize: number;
-        durationMs: number | null;
-        publicUrl: string | null;
-      } | null;
-    },
+    poster: PosterRecord,
   ) {
     const cover = poster.coverAsset == null
       ? null

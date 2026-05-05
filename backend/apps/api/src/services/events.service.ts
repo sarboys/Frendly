@@ -84,6 +84,68 @@ type NormalizedEventRouteSelection =
 const EARTH_RADIUS_KM = 6371;
 const EVENT_DETAIL_ATTENDEE_LIMIT = 24;
 
+const eventListSummarySelect = {
+  id: true,
+  title: true,
+  emoji: true,
+  startsAt: true,
+  place: true,
+  distanceKm: true,
+  latitude: true,
+  longitude: true,
+  capacity: true,
+  vibe: true,
+  tone: true,
+  hostNote: true,
+  lifestyle: true,
+  priceMode: true,
+  priceAmountFrom: true,
+  priceAmountTo: true,
+  accessMode: true,
+  genderMode: true,
+  visibilityMode: true,
+  joinMode: true,
+  hostId: true,
+} satisfies Prisma.EventSelect;
+
+const eventMessageMediaAssetSelect = {
+  id: true,
+  kind: true,
+  status: true,
+  mimeType: true,
+  byteSize: true,
+  durationMs: true,
+  originalFileName: true,
+  publicUrl: true,
+  waveform: true,
+} satisfies Prisma.MediaAssetSelect;
+
+const eventSystemMessageSelect = {
+  id: true,
+  chatId: true,
+  senderId: true,
+  text: true,
+  clientMessageId: true,
+  createdAt: true,
+  sender: {
+    select: {
+      displayName: true,
+      profile: {
+        select: {
+          avatarUrl: true,
+        },
+      },
+    },
+  },
+  attachments: {
+    select: {
+      mediaAsset: {
+        select: eventMessageMediaAssetSelect,
+      },
+    },
+  },
+} satisfies Prisma.MessageSelect;
+
 @Injectable()
 export class EventsService {
   constructor(
@@ -215,7 +277,7 @@ export class EventsService {
     } else {
       const events = await this.prismaService.client.event.findMany({
         where,
-        include: this.eventListInclude(userId, blockedUserIds),
+        select: this.eventListSelect(userId, blockedUserIds),
         orderBy: this.listOrderBy(
           filter,
           postgisCandidates == null ? geoQuery : undefined,
@@ -318,7 +380,11 @@ export class EventsService {
     const [event, participantCount, viewerParticipant] = await Promise.all([
       this.prismaService.client.event.findUnique({
         where: { id: eventId },
-        include: {
+        select: {
+          ...eventListSummarySelect,
+          description: true,
+          partnerName: true,
+          partnerOffer: true,
           host: {
             select: {
               id: true,
@@ -458,7 +524,22 @@ export class EventsService {
       this.getUserGender(userId),
       this.prismaService.client.event.findUnique({
         where: { id: eventId },
-        include: { chat: true },
+        select: {
+          hostId: true,
+          genderMode: true,
+          joinMode: true,
+          chat: {
+            select: { id: true },
+          },
+          participants: {
+            where: { userId },
+            select: { userId: true },
+          },
+          attendances: {
+            where: { userId },
+            select: { userId: true },
+          },
+        },
       }),
     ]);
 
@@ -555,7 +636,11 @@ export class EventsService {
       this.getUserGender(userId),
       this.prismaService.client.event.findUnique({
         where: { id: eventId },
-        include: {
+        select: {
+          hostId: true,
+          title: true,
+          genderMode: true,
+          joinMode: true,
           participants: {
             select: {
               userId: true,
@@ -591,6 +676,9 @@ export class EventsService {
           eventId,
           userId,
         },
+      },
+      select: {
+        status: true,
       },
     });
 
@@ -634,6 +722,14 @@ export class EventsService {
           status: 'pending',
           compatibilityScore,
         },
+        select: {
+          id: true,
+          eventId: true,
+          status: true,
+          note: true,
+          compatibilityScore: true,
+          createdAt: true,
+        },
       });
 
       if (next.status !== 'pending') {
@@ -670,6 +766,9 @@ export class EventsService {
             status: 'pending',
             userId,
           },
+        },
+        select: {
+          id: true,
         },
       });
 
@@ -712,6 +811,10 @@ export class EventsService {
           userId,
         },
       },
+      select: {
+        id: true,
+        status: true,
+      },
     });
 
     if (!request) {
@@ -729,6 +832,11 @@ export class EventsService {
     const canceled = await this.prismaService.client.eventJoinRequest.update({
       where: { id: request.id },
       data: { status: 'canceled' },
+      select: {
+        id: true,
+        eventId: true,
+        status: true,
+      },
     });
 
     return {
@@ -741,7 +849,11 @@ export class EventsService {
   async leaveEvent(userId: string, eventId: string) {
     const event = await this.prismaService.client.event.findUnique({
       where: { id: eventId },
-      include: { chat: true },
+      select: {
+        chat: {
+          select: { id: true },
+        },
+      },
     });
 
     if (!event?.chat) {
@@ -1237,6 +1349,9 @@ export class EventsService {
               compatibilityScore: 0,
               reviewedById: userId,
             },
+            select: {
+              id: true,
+            },
           });
 
           const notification = await tx.notification.create({
@@ -1257,6 +1372,9 @@ export class EventsService {
                 userName: hostUser.displayName,
                 eventTitle: event.title,
               },
+            },
+            select: {
+              id: true,
             },
           });
 
@@ -1309,9 +1427,19 @@ export class EventsService {
   async acceptInvite(userId: string, eventId: string, requestId: string) {
     const invite = await this.prismaService.client.eventJoinRequest.findUnique({
       where: { id: requestId },
-      include: {
+      select: {
+        id: true,
+        eventId: true,
+        userId: true,
+        status: true,
+        reviewedById: true,
         event: {
-          include: { chat: true },
+          select: {
+            hostId: true,
+            chat: {
+              select: { id: true },
+            },
+          },
         },
       },
     });
@@ -1412,9 +1540,20 @@ export class EventsService {
   async declineInvite(userId: string, eventId: string, requestId: string) {
     const invite = await this.prismaService.client.eventJoinRequest.findUnique({
       where: { id: requestId },
-      include: {
+      select: {
+        id: true,
+        eventId: true,
+        userId: true,
+        status: true,
+        reviewedById: true,
         event: {
-          include: { chat: true },
+          select: {
+            hostId: true,
+            title: true,
+            chat: {
+              select: { id: true },
+            },
+          },
         },
         user: {
           select: { displayName: true },
@@ -1470,22 +1609,7 @@ export class EventsService {
             text: `${invite.user.displayName} не присоединится к встрече.`,
             clientMessageId: `invite-decline-${requestId}`,
           },
-          include: {
-            sender: {
-              include: {
-                profile: {
-                  select: {
-                    avatarUrl: true,
-                  },
-                },
-              },
-            },
-            attachments: {
-              include: {
-                mediaAsset: true,
-              },
-            },
-          },
+          select: eventSystemMessageSelect,
         });
 
         await tx.chat.update({
@@ -1493,11 +1617,12 @@ export class EventsService {
           data: { updatedAt: new Date() },
         });
 
+        const mappedMessage = mapMessage(message);
         const realtimeEvent = await tx.realtimeEvent.create({
           data: {
             chatId: invite.event.chat.id,
             eventType: 'message.created',
-            payload: mapMessage(message),
+            payload: mappedMessage,
           },
         });
 
@@ -1507,7 +1632,7 @@ export class EventsService {
             payload: {
               type: 'message.created',
               payload: {
-                ...mapMessage(message),
+                ...mappedMessage,
                 eventId: realtimeEvent.id.toString(),
               },
             },
@@ -1530,6 +1655,9 @@ export class EventsService {
             status: 'rejected',
             userId,
           },
+        },
+        select: {
+          id: true,
         },
       });
 
@@ -1565,7 +1693,12 @@ export class EventsService {
 
     const event = await this.prismaService.client.event.findUnique({
       where: { id: eventId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        place: true,
+        latitude: true,
+        longitude: true,
         participants: {
           where: this.buildVisibleParticipantWhere(blockedUserIds),
           select: {
@@ -1654,6 +1787,11 @@ export class EventsService {
         checkedInById: userId,
         checkInMethod: 'qr',
       },
+      select: {
+        status: true,
+        checkInMethod: true,
+        checkedInAt: true,
+      },
     });
 
     return {
@@ -1680,7 +1818,10 @@ export class EventsService {
     const [event, storiesCount] = await Promise.all([
       this.prismaService.client.event.findUnique({
         where: { id: eventId },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          place: true,
           participants: {
             where: this.buildVisibleParticipantWhere(blockedUserIds),
             select: {
@@ -1759,7 +1900,10 @@ export class EventsService {
 
     const event = await this.prismaService.client.event.findUnique({
       where: { id: eventId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        emoji: true,
         participants: {
           where: this.buildVisibleParticipantWhere(blockedUserIds),
           select: {
@@ -1844,7 +1988,8 @@ export class EventsService {
       : [];
     const event = await this.prismaService.client.event.findUnique({
       where: { id: eventId },
-      include: {
+      select: {
+        startsAt: true,
         liveState: {
           select: { status: true },
         },
@@ -2140,7 +2285,7 @@ export class EventsService {
           in: candidates.map((event) => event.id),
         },
       },
-      include: this.eventListInclude(userId, blockedUserIds),
+      select: this.eventListSelect(userId, blockedUserIds),
     });
     const eventById = new Map(events.map((event) => [event.id, event]));
 
@@ -2154,15 +2299,17 @@ export class EventsService {
     return page;
   }
 
-  private eventListInclude(userId: string, blockedUserIds: Set<string>) {
+  private eventListSelect(userId: string, blockedUserIds: Set<string>) {
     return {
+      ...eventListSummarySelect,
       participants: {
         where: {
           userId: {
             notIn: [...blockedUserIds],
           },
         },
-        include: {
+        select: {
+          userId: true,
           user: {
             select: {
               displayName: true,
@@ -2853,7 +3000,13 @@ export class EventsService {
   ) {
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
-      include: { onboarding: true },
+      select: {
+        onboarding: {
+          select: {
+            interests: true,
+          },
+        },
+      },
     });
 
     const ownInterests = new Set(
@@ -2872,9 +3025,19 @@ export class EventsService {
     }
     compareUserIds.delete(userId);
 
+    if (compareUserIds.size === 0) {
+      return 52;
+    }
+
     const compareUsers = await this.prismaService.client.user.findMany({
       where: { id: { in: [...compareUserIds] } },
-      include: { onboarding: true },
+      select: {
+        onboarding: {
+          select: {
+            interests: true,
+          },
+        },
+      },
     });
 
     const commonInterests = new Set<string>();

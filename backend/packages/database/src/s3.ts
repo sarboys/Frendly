@@ -21,11 +21,14 @@ const DEFAULT_S3_ENDPOINT = 'https://s3.cloud.ru';
 const DEFAULT_S3_REGION = 'ru-central-1';
 const DEFAULT_S3_BUCKET = 'frendly';
 const DEFAULT_S3_PUBLIC_ENDPOINT = 'https://global.s3.cloud.ru';
+const DEFAULT_S3_REQUEST_TIMEOUT_MS = 15_000;
 const REQUIRED_S3_ENV_KEYS = ['S3_ACCESS_KEY', 'S3_SECRET_KEY'] as const;
 const REQUIRED_PRODUCTION_S3_ENV_KEYS = [
   ...REQUIRED_S3_ENV_KEYS,
   'S3_BUCKET',
 ] as const;
+let publicS3Client: S3Client | null = null;
+let publicS3ClientKey: string | null = null;
 
 function optionalEnv(key: string): string | undefined {
   const value = process.env[key];
@@ -71,6 +74,21 @@ export function createS3Client(): S3Client {
   });
 }
 
+export function createS3RequestOptions() {
+  const timeoutMs = resolveNonNegativeInteger(
+    process.env.S3_REQUEST_TIMEOUT_MS,
+    DEFAULT_S3_REQUEST_TIMEOUT_MS,
+  );
+
+  if (timeoutMs <= 0 || typeof AbortSignal.timeout !== 'function') {
+    return {};
+  }
+
+  return {
+    abortSignal: AbortSignal.timeout(timeoutMs),
+  };
+}
+
 function createPublicS3Client(): S3Client {
   const config = getS3Config();
 
@@ -85,9 +103,37 @@ function createPublicS3Client(): S3Client {
   });
 }
 
+function getPublicS3Client(): S3Client {
+  const config = getS3Config();
+  const cacheKey = [
+    config.publicEndpoint,
+    config.region,
+    config.accessKeyId,
+    config.bucket,
+  ].join('|');
+
+  if (!publicS3Client || publicS3ClientKey !== cacheKey) {
+    publicS3Client = createPublicS3Client();
+    publicS3ClientKey = cacheKey;
+  }
+
+  return publicS3Client;
+}
+
+function resolveNonNegativeInteger(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
+}
+
 export async function createPresignedUpload(input: PresignedUploadInput) {
   const config = getS3Config();
-  const client = createPublicS3Client();
+  const client = getPublicS3Client();
   const command = new PutObjectCommand({
     Bucket: config.bucket,
     Key: input.objectKey,
@@ -107,7 +153,7 @@ export async function createPresignedUpload(input: PresignedUploadInput) {
 
 export async function createPresignedDownload(objectKey: string) {
   const config = getS3Config();
-  const client = createPublicS3Client();
+  const client = getPublicS3Client();
   const command = new GetObjectCommand({
     Bucket: config.bucket,
     Key: objectKey,

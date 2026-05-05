@@ -4,6 +4,7 @@ import {
   buildPublicAssetUrl,
   createPresignedUpload,
   createS3Client,
+  createS3RequestOptions,
   getS3Config,
 } from '@big-break/database';
 import { Prisma } from '@prisma/client';
@@ -19,6 +20,7 @@ const MAX_CHAT_VOICE_BYTES = 8 * 1024 * 1024;
 export const MAX_CHAT_ATTACHMENT_UPLOAD_BYTES = 20 * 1024 * 1024;
 export const MAX_GENERIC_MEDIA_UPLOAD_BYTES = 25 * 1024 * 1024;
 export const MAX_STORY_MEDIA_UPLOAD_BYTES = 12 * 1024 * 1024;
+const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=300';
 const ENABLE_MEDIA_VIDEO_UPLOAD = process.env.ENABLE_MEDIA_VIDEO_UPLOAD === 'true';
 const ALLOWED_CHAT_ATTACHMENT_MIME_TYPES = new Set([
   'application/pdf',
@@ -152,6 +154,13 @@ export class UploadsService {
     let existingLookupError: unknown;
     const existingPromise = this.prismaService.client.mediaAsset.findUnique({
       where: { objectKey },
+      select: {
+        id: true,
+        ownerId: true,
+        kind: true,
+        status: true,
+        chatId: true,
+      },
     }).catch((error) => {
       existingLookupError = error;
       return null;
@@ -212,8 +221,10 @@ export class UploadsService {
           Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: uploadFile.mimetype,
+          CacheControl: PRIVATE_MEDIA_CACHE_CONTROL,
           Body: uploadFile.buffer,
         }),
+        createS3RequestOptions(),
       );
     }
 
@@ -286,6 +297,12 @@ export class UploadsService {
     const [existing] = await Promise.all([
       this.prismaService.client.mediaAsset.findUnique({
         where: { objectKey },
+        select: {
+          id: true,
+          ownerId: true,
+          kind: true,
+          status: true,
+        },
       }),
       this.storiesService.assertStoryParticipant(userId, eventId),
     ]);
@@ -340,8 +357,10 @@ export class UploadsService {
           Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: uploadFile.mimetype,
+          CacheControl: PRIVATE_MEDIA_CACHE_CONTROL,
           Body: uploadFile.buffer,
         }),
+        createS3RequestOptions(),
       );
     }
 
@@ -596,6 +615,13 @@ export class UploadsService {
 
       const existing = await this.prismaService.client.mediaAsset.findUnique({
         where: { objectKey: input.objectKey },
+        select: {
+          id: true,
+          ownerId: true,
+          kind: true,
+          status: true,
+          chatId: true,
+        },
       });
       if (!existing) {
         throw error;
@@ -643,6 +669,7 @@ export class UploadsService {
         Bucket: this.s3Bucket,
         Key: objectKey,
       }),
+      createS3RequestOptions(),
     );
 
     return {
@@ -781,6 +808,12 @@ export class UploadsService {
 
       const existing = await this.prismaService.client.mediaAsset.findUnique({
         where: { objectKey: input.objectKey },
+        select: {
+          id: true,
+          ownerId: true,
+          kind: true,
+          status: true,
+        },
       });
       if (!existing) {
         throw error;
@@ -850,6 +883,7 @@ export class UploadsService {
         Bucket: this.s3Bucket,
         Key: objectKey,
       }),
+      createS3RequestOptions(),
     );
 
     return {

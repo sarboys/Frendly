@@ -144,6 +144,7 @@ export class SocialIdentityVerifier {
       () => controller.abort(),
       this.providerTimeoutMs(),
     );
+    timeout.unref?.();
 
     try {
       return await fetch(url, {

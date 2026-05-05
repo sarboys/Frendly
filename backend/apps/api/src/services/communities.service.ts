@@ -67,7 +67,7 @@ export class CommunitiesService {
                 },
               ],
             },
-      include: this.communityInclude({
+      select: this.communitySelect({
         news: LIST_NEWS_LIMIT,
         meetups: LIST_MEETUP_LIMIT,
         media: LIST_MEDIA_LIMIT,
@@ -100,7 +100,7 @@ export class CommunitiesService {
   async getCommunity(userId: string, communityId: string) {
     const community = await this.prismaService.client.community.findFirst({
       where: this.visibleCommunityWhere(userId, communityId),
-      include: this.communityInclude({
+      select: this.communitySelect({
         news: DETAIL_NEWS_LIMIT,
         meetups: DETAIL_MEETUP_LIMIT,
         media: DETAIL_MEDIA_LIMIT,
@@ -156,6 +156,14 @@ export class CommunitiesService {
 
     const media = await this.prismaService.client.communityMediaItem.findMany({
       where,
+      select: {
+        id: true,
+        communityId: true,
+        emoji: true,
+        label: true,
+        kind: true,
+        sortOrder: true,
+      },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       take: take + 1,
     });
@@ -341,23 +349,35 @@ export class CommunitiesService {
     return this.getCommunity(userId, created.id);
   }
 
-  private communityInclude(limits?: {
+  private communitySelect(limits?: {
     news?: number;
     meetups?: number;
     media?: number;
   }) {
     return {
+      id: true,
+      chatId: true,
+      name: true,
+      avatar: true,
+      description: true,
+      privacy: true,
+      tags: true,
+      joinRule: true,
+      premiumOnly: true,
+      mood: true,
+      sharedMediaLabel: true,
+      createdById: true,
+      createdAt: true,
       _count: {
         select: {
           members: true,
         },
       },
       members: {
-        include: {
+        select: {
           user: {
             select: {
               displayName: true,
-              online: true,
             },
           },
         },
@@ -365,25 +385,53 @@ export class CommunitiesService {
         take: MEMBER_NAME_LIMIT,
       },
       news: {
+        select: {
+          id: true,
+          title: true,
+          blurb: true,
+          timeLabel: true,
+        },
         orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
         ...(limits?.news == null ? {} : { take: limits.news }),
       },
       meetups: {
         where: this.upcomingCommunityMeetupWhere(),
+        select: {
+          id: true,
+          title: true,
+          emoji: true,
+          timeLabel: true,
+          place: true,
+          format: true,
+          going: true,
+        },
         orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
         ...(limits?.meetups == null ? {} : { take: limits.meetups }),
       },
       media: {
+        select: {
+          id: true,
+          emoji: true,
+          label: true,
+          kind: true,
+        },
         orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
         ...(limits?.media == null ? {} : { take: limits.media }),
       },
       socialLinks: {
+        select: {
+          id: true,
+          label: true,
+          handle: true,
+        },
         orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
       },
       chat: {
-        include: {
+        select: {
           messages: {
-            include: {
+            select: {
+              text: true,
+              createdAt: true,
               sender: {
                 select: {
                   displayName: true,

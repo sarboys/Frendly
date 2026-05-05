@@ -7,6 +7,13 @@
 **/build
 **/.idea
 **/.DS_Store
+.codex
+.ai-factory
+ai-context
+project_map.md
+*.log
+/.env
+/.env.*
 front
 landing
 mobile

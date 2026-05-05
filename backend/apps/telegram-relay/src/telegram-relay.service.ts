@@ -131,6 +131,7 @@ export class TelegramRelayService implements OnModuleDestroy {
         this.scheduleNext(this.backoffMs);
       }
     }, delayMs);
+    this.timer.unref?.();
   }
 
   private async handleUpdate(update: TelegramUpdate) {

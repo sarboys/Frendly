@@ -89,9 +89,23 @@ export class SharesService {
       where: {
         slug: normalizedSlug,
       },
-      include: {
+      select: {
+        targetType: true,
         event: {
-          include: {
+          select: {
+            id: true,
+            title: true,
+            emoji: true,
+            description: true,
+            startsAt: true,
+            durationMinutes: true,
+            place: true,
+            vibe: true,
+            partnerName: true,
+            partnerOffer: true,
+            capacity: true,
+            visibilityMode: true,
+            isAfterDark: true,
             host: {
               select: {
                 id: true,
@@ -130,7 +144,12 @@ export class SharesService {
           },
         },
         eveningSession: {
-          include: {
+          select: {
+            id: true,
+            startsAt: true,
+            capacity: true,
+            privacy: true,
+            phase: true,
             host: {
               select: {
                 id: true,
@@ -143,8 +162,31 @@ export class SharesService {
               },
             },
             route: {
-              include: {
+              select: {
+                title: true,
+                blurb: true,
+                area: true,
+                vibe: true,
+                durationLabel: true,
+                totalPriceFrom: true,
+                totalSavings: true,
                 steps: {
+                  select: {
+                    id: true,
+                    timeLabel: true,
+                    endTimeLabel: true,
+                    title: true,
+                    venue: true,
+                    address: true,
+                    emoji: true,
+                    description: true,
+                    distanceLabel: true,
+                    walkMin: true,
+                    perkShort: true,
+                    perk: true,
+                    lat: true,
+                    lng: true,
+                  },
                   orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
                 },
               },
@@ -153,7 +195,7 @@ export class SharesService {
               where: {
                 status: 'joined',
               },
-              include: {
+              select: {
                 user: {
                   select: {
                     id: true,

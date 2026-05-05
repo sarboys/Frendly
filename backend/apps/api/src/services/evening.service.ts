@@ -52,23 +52,87 @@ const EVENING_SESSION_PUBLIC_PHASES = ['scheduled', 'live'] as const;
 
 type EveningPrivacy = (typeof EVENING_PRIVACY)[number];
 
+const eveningRouteStepSelect = {
+  id: true,
+  timeLabel: true,
+  endTimeLabel: true,
+  kind: true,
+  title: true,
+  venue: true,
+  address: true,
+  emoji: true,
+  distanceLabel: true,
+  walkMin: true,
+  perk: true,
+  perkShort: true,
+  ticketPrice: true,
+  ticketCommission: true,
+  ticketUrl: true,
+  ticketSourceCode: true,
+  ticketProvider: true,
+  sponsored: true,
+  premium: true,
+  partnerId: true,
+  venueId: true,
+  partnerOfferId: true,
+  offerTitleSnapshot: true,
+  offerDescriptionSnapshot: true,
+  offerTermsSnapshot: true,
+  offerShortLabelSnapshot: true,
+  description: true,
+  vibeTag: true,
+  lat: true,
+  lng: true,
+} satisfies Prisma.EveningRouteStepSelect;
+
+const eveningRouteWithStepsSelect = {
+  id: true,
+  title: true,
+  vibe: true,
+  blurb: true,
+  totalPriceFrom: true,
+  totalSavings: true,
+  durationLabel: true,
+  area: true,
+  goal: true,
+  mood: true,
+  budget: true,
+  format: true,
+  premium: true,
+  recommendedFor: true,
+  hostsCount: true,
+  chatId: true,
+  isCurated: true,
+  badgeLabel: true,
+  steps: {
+    select: eveningRouteStepSelect,
+    orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
+  },
+} satisfies Prisma.EveningRouteSelect;
+
 type EveningRouteWithSteps = Prisma.EveningRouteGetPayload<{
-  include: {
-    steps: true;
-  };
+  select: typeof eveningRouteWithStepsSelect;
 }>;
 
-type EveningStepWithRoute = Prisma.EveningRouteStepGetPayload<{
-  include: {
-    route: {
-      select: {
-        id: true;
-        premium: true;
-        chatId: true;
-      };
-    };
-  };
+type EveningRouteStepForResponse = Prisma.EveningRouteStepGetPayload<{
+  select: typeof eveningRouteStepSelect;
 }>;
+
+type EveningStepWithRoute = {
+  id: string;
+  timeLabel: string;
+  endTimeLabel: string | null;
+  ticketPrice: number | null;
+  title: string;
+  perk: string | null;
+  perkShort: string | null;
+  venue: string;
+  route: {
+    id: string;
+    premium: boolean;
+    chatId: string | null;
+  };
+};
 
 type StepActionRecord = {
   stepId: string;
@@ -77,6 +141,44 @@ type StepActionRecord = {
   sentToChatAt: Date | null;
   chatMessageId: string | null;
 };
+
+const eveningMessageMediaAssetSelect = {
+  id: true,
+  kind: true,
+  status: true,
+  mimeType: true,
+  byteSize: true,
+  durationMs: true,
+  originalFileName: true,
+  publicUrl: true,
+  waveform: true,
+} satisfies Prisma.MediaAssetSelect;
+
+const eveningMessageSelect = {
+  id: true,
+  chatId: true,
+  senderId: true,
+  text: true,
+  clientMessageId: true,
+  createdAt: true,
+  sender: {
+    select: {
+      displayName: true,
+      profile: {
+        select: {
+          avatarUrl: true,
+        },
+      },
+    },
+  },
+  attachments: {
+    select: {
+      mediaAsset: {
+        select: eveningMessageMediaAssetSelect,
+      },
+    },
+  },
+} satisfies Prisma.MessageSelect;
 
 @Injectable()
 export class EveningService {
@@ -115,11 +217,7 @@ export class EveningService {
   async getRoute(userId: string, routeId: string) {
     const route = await this.prismaService.client.eveningRoute.findUnique({
       where: { id: routeId },
-      include: {
-        steps: {
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-        },
-      },
+      select: eveningRouteWithStepsSelect,
     });
 
     if (!route) {
@@ -155,6 +253,12 @@ export class EveningService {
       update: {
         perkUsedAt: now,
       },
+      select: {
+        perkUsedAt: true,
+        ticketBoughtAt: true,
+        sentToChatAt: true,
+        chatMessageId: true,
+      },
     });
 
     return this.mapActionResponse(stepId, action);
@@ -185,6 +289,12 @@ export class EveningService {
       },
       update: {
         ticketBoughtAt: now,
+      },
+      select: {
+        perkUsedAt: true,
+        ticketBoughtAt: true,
+        sentToChatAt: true,
+        chatMessageId: true,
       },
     });
 
@@ -252,32 +362,7 @@ export class EveningService {
           text: previewText,
           clientMessageId,
         },
-        include: {
-          sender: {
-            include: {
-              profile: {
-                select: {
-                  avatarUrl: true,
-                },
-              },
-            },
-          },
-          replyTo: {
-            include: {
-              sender: true,
-              attachments: {
-                include: {
-                  mediaAsset: true,
-                },
-              },
-            },
-          },
-          attachments: {
-            include: {
-              mediaAsset: true,
-            },
-          },
-        },
+        select: eveningMessageSelect,
       });
 
       await tx.chat.update({
@@ -556,10 +641,22 @@ export class EveningService {
   async startSession(userId: string, sessionId: string) {
     const session = await this.prismaService.client.eveningSession.findUnique({
       where: { id: sessionId },
-      include: {
+      select: {
+        id: true,
+        routeId: true,
+        chatId: true,
+        hostUserId: true,
+        phase: true,
+        currentStep: true,
+        startsAt: true,
         route: {
-          include: {
+          select: {
             steps: {
+              select: {
+                id: true,
+                venue: true,
+                endTimeLabel: true,
+              },
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
             },
           },
@@ -664,10 +761,24 @@ export class EveningService {
   ) {
     const session = await this.prismaService.client.eveningSession.findUnique({
       where: { id: sessionId },
-      include: {
+      select: {
+        id: true,
+        routeTemplateId: true,
+        routeId: true,
+        chatId: true,
+        hostUserId: true,
+        phase: true,
+        currentStep: true,
+        privacy: true,
+        inviteToken: true,
         route: {
-          include: {
+          select: {
+            title: true,
+            city: true,
             steps: {
+              select: {
+                id: true,
+              },
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
             },
           },
@@ -749,6 +860,10 @@ export class EveningService {
           ? await tx.eveningSessionJoinRequest.update({
               where: { id: existingRequest.id },
               data: { note },
+              select: {
+                id: true,
+                status: true,
+              },
             })
           : await tx.eveningSessionJoinRequest.create({
               data: {
@@ -756,6 +871,10 @@ export class EveningService {
                 userId,
                 status: 'requested',
                 note,
+              },
+              select: {
+                id: true,
+                status: true,
               },
             });
 
@@ -890,7 +1009,9 @@ export class EveningService {
         sessionId: session.id,
         status: 'requested',
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
         user: {
           select: {
             displayName: true,
@@ -1141,6 +1262,9 @@ export class EveningService {
           checkedInAt: now,
         },
         update: {},
+        select: {
+          checkedInAt: true,
+        },
       });
 
       await this.createSystemMessage(tx, {
@@ -1173,10 +1297,17 @@ export class EveningService {
   async finishSession(userId: string, sessionId: string) {
     const session = await this.prismaService.client.eveningSession.findUnique({
       where: { id: sessionId },
-      include: {
+      select: {
+        id: true,
+        routeId: true,
+        chatId: true,
+        hostUserId: true,
         route: {
-          include: {
+          select: {
             steps: {
+              select: {
+                id: true,
+              },
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
             },
           },
@@ -1237,15 +1368,34 @@ export class EveningService {
   async getAfterParty(userId: string, sessionId: string) {
     const session = await this.prismaService.client.eveningSession.findUnique({
       where: { id: sessionId },
-      include: {
-        route: true,
+      select: {
+        id: true,
+        routeId: true,
+        phase: true,
+        hostUserId: true,
+        route: {
+          select: {
+            title: true,
+          },
+        },
         participants: {
           where: { status: 'joined' },
           select: { userId: true },
         },
-        afterPartyFeedbacks: true,
+        afterPartyFeedbacks: {
+          select: {
+            userId: true,
+            rating: true,
+            reaction: true,
+            comment: true,
+          },
+        },
         afterPartyPhotos: {
-          include: {
+          select: {
+            id: true,
+            userId: true,
+            mediaAssetId: true,
+            createdAt: true,
             mediaAsset: {
               select: {
                 id: true,
@@ -1309,6 +1459,12 @@ export class EveningService {
         reaction,
         comment,
       },
+      select: {
+        id: true,
+        rating: true,
+        reaction: true,
+        comment: true,
+      },
     });
 
     return {
@@ -1371,6 +1527,9 @@ export class EveningService {
         mediaAssetId: asset.id,
       },
       update: {},
+      select: {
+        id: true,
+      },
     });
 
     return {
@@ -1421,11 +1580,7 @@ export class EveningService {
   private async loadEveningRouteTemplate(routeId: string) {
     const route = await this.prismaService.client.eveningRoute.findUnique({
       where: { id: routeId },
-      include: {
-        steps: {
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-        },
-      },
+      select: eveningRouteWithStepsSelect,
     });
 
     if (route) {
@@ -1487,21 +1642,13 @@ export class EveningService {
             })),
           },
         },
-        include: {
-          steps: {
-            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-          },
-        },
+        select: eveningRouteWithStepsSelect,
       });
     } catch (error) {
       if ((error as { code?: string }).code === 'P2002') {
         return this.prismaService.client.eveningRoute.findUnique({
           where: { id: routeId },
-          include: {
-            steps: {
-              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-            },
-          },
+          select: eveningRouteWithStepsSelect,
         });
       }
 
@@ -1531,28 +1678,20 @@ export class EveningService {
 
     const routes = await this.prismaService.client.eveningRoute.findMany({
       where: or.length > 0 ? { OR: or } : {},
-      include: {
-        steps: {
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-        },
-      },
+      select: eveningRouteWithStepsSelect,
       orderBy: [{ premium: 'asc' }, { id: 'asc' }],
       take: 20,
-    }) as EveningRouteWithSteps[];
+    });
 
     if (routes.length > 0) {
       return routes;
     }
 
     return this.prismaService.client.eveningRoute.findMany({
-      include: {
-        steps: {
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-        },
-      },
+      select: eveningRouteWithStepsSelect,
       orderBy: [{ premium: 'asc' }, { id: 'asc' }],
       take: 1,
-    }) as Promise<EveningRouteWithSteps[]>;
+    });
   }
 
   private pickBestRoute(
@@ -1636,7 +1775,7 @@ export class EveningService {
   }
 
   private mapStep(
-    step: EveningRouteWithSteps['steps'][number],
+    step: EveningRouteStepForResponse,
     action: StepActionRecord | null,
     sessionState?: {
       status?: string | null;
@@ -1712,11 +1851,7 @@ export class EveningService {
   ) {
     return {
       route: {
-        include: {
-          steps: {
-            orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
-          },
-        },
+        select: eveningRouteWithStepsSelect,
       },
       host: {
         select: {
@@ -1725,7 +1860,10 @@ export class EveningService {
         },
       },
       participants: {
-        include: {
+        select: {
+          userId: true,
+          role: true,
+          status: true,
           user: {
             select: {
               id: true,
@@ -1837,7 +1975,7 @@ export class EveningService {
         role: participant.role,
         status: participant.status,
       })),
-      steps: steps.map((step: EveningRouteWithSteps['steps'][number]) => {
+      steps: steps.map((step: EveningRouteStepForResponse) => {
         const state = stateByStepId.get(step.id) as any;
         return this.mapStep(step, null, {
           status: state?.status ?? null,
@@ -1864,10 +2002,24 @@ export class EveningService {
   private async loadSessionWithRoute(sessionId: string) {
     const session = await this.prismaService.client.eveningSession.findUnique({
       where: { id: sessionId },
-      include: {
+      select: {
+        id: true,
+        routeTemplateId: true,
+        routeId: true,
+        chatId: true,
+        hostUserId: true,
+        phase: true,
+        currentStep: true,
         route: {
-          include: {
+          select: {
+            title: true,
+            city: true,
             steps: {
+              select: {
+                id: true,
+                venue: true,
+                endTimeLabel: true,
+              },
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
             },
           },
@@ -1914,7 +2066,7 @@ export class EveningService {
 
   private findSessionStep(session: any, stepId: string) {
     const step = session.route.steps.find(
-      (item: EveningRouteWithSteps['steps'][number]) => item.id === stepId,
+      (item: { id: string }) => item.id === stepId,
     );
     if (!step) {
       throw new ApiError(404, 'evening_step_not_found', 'Evening route step not found');
@@ -1965,7 +2117,7 @@ export class EveningService {
     }
 
     const currentIndex = session.route.steps.findIndex(
-      (step: EveningRouteWithSteps['steps'][number]) => step.id === stepId,
+      (step: { id: string }) => step.id === stepId,
     );
     if (currentIndex < 0) {
       throw new ApiError(404, 'evening_step_not_found', 'Evening route step not found');
@@ -2229,6 +2381,9 @@ export class EveningService {
         dedupeKey: params.dedupeKey,
         payload: params.payload,
       },
+      select: {
+        id: true,
+      },
     });
 
     await tx.outboxEvent.createMany({
@@ -2368,7 +2523,15 @@ export class EveningService {
         id: stepId,
         routeId,
       },
-      include: {
+      select: {
+        id: true,
+        timeLabel: true,
+        endTimeLabel: true,
+        ticketPrice: true,
+        title: true,
+        perk: true,
+        perkShort: true,
+        venue: true,
         route: {
           select: {
             id: true,

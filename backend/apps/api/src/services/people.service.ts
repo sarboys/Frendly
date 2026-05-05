@@ -40,6 +40,9 @@ export class PeopleService {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.onboardingPreferences.findUnique({
         where: { userId },
+        select: {
+          interests: true,
+        },
       }),
       this.getBlockedUserIds(userId),
     ]);
@@ -499,56 +502,13 @@ export class PeopleService {
     currentUserId: string,
     targetUserId: string,
   ): Promise<ProfileSocialSnapshot> {
-    const [
-      followers,
-      likes,
-      superLikes,
-      follow,
-      reactions,
-    ] = await Promise.all([
-      this.prismaService.client.userFollow.count({
-        where: { targetUserId },
-      }),
-      this.prismaService.client.profileReaction.count({
-        where: { targetUserId, kind: ProfileReactionKind.like },
-      }),
-      this.prismaService.client.profileReaction.count({
-        where: { targetUserId, kind: ProfileReactionKind.super_like },
-      }),
-      currentUserId === targetUserId
-        ? Promise.resolve(null)
-        : this.prismaService.client.userFollow.findUnique({
-            where: {
-              followerUserId_targetUserId: {
-                followerUserId: currentUserId,
-                targetUserId,
-              },
-            },
-            select: { id: true },
-          }),
-      currentUserId === targetUserId
-        ? Promise.resolve([])
-        : this.prismaService.client.profileReaction.findMany({
-            where: {
-              actorUserId: currentUserId,
-              targetUserId,
-              kind: {
-                in: [ProfileReactionKind.like, ProfileReactionKind.super_like],
-              },
-            },
-            select: { kind: true },
-          }),
-    ]);
-    const activeKinds = new Set(reactions.map((entry) => entry.kind));
+    const previews = await loadProfileSocialPreviews(
+      this.prismaService.client,
+      currentUserId,
+      [targetUserId],
+    );
 
-    return {
-      followers,
-      likes,
-      superLikes,
-      iFollow: follow != null,
-      iLike: activeKinds.has(ProfileReactionKind.like),
-      iSuper: activeKinds.has(ProfileReactionKind.super_like),
-    };
+    return previews.get(targetUserId) ?? emptyProfileSocialPreview();
   }
 
   private isDirectChatDuplicateError(error: unknown) {

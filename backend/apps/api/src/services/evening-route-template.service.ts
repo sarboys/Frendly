@@ -294,12 +294,7 @@ export class EveningRouteTemplateService {
         routeTemplateId: templateId,
         phase: { in: ['scheduled', 'live'] },
       },
-      include: {
-        participants: {
-          where: { status: 'joined' },
-          select: { userId: true },
-        },
-      },
+      select: templateSessionSelect,
       orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       take: this.parseLimit(params.limit),
     });
@@ -321,11 +316,20 @@ export class EveningRouteTemplateService {
           status: 'published',
           currentRouteId: { not: null },
         },
-        include: {
+        select: {
+          id: true,
+          timezone: true,
+          city: true,
+          currentRouteId: true,
           currentRoute: {
-            include: {
+            select: {
+              title: true,
               steps: {
                 orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+                select: {
+                  id: true,
+                  emoji: true,
+                },
               },
             },
           },

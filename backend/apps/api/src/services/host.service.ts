@@ -17,6 +17,29 @@ import { assertEventCapacityAvailable } from './event-capacity';
 import { PrismaService } from './prisma.service';
 
 const HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT = 6;
+const hostEventSummarySelect = {
+  id: true,
+  title: true,
+  emoji: true,
+  startsAt: true,
+  place: true,
+  distanceKm: true,
+  latitude: true,
+  longitude: true,
+  capacity: true,
+  vibe: true,
+  tone: true,
+  hostNote: true,
+  lifestyle: true,
+  priceMode: true,
+  priceAmountFrom: true,
+  priceAmountTo: true,
+  accessMode: true,
+  genderMode: true,
+  visibilityMode: true,
+  joinMode: true,
+  hostId: true,
+} satisfies Prisma.EventSelect;
 
 interface HostEventCursor {
   id: string;
@@ -77,7 +100,8 @@ export class HostService {
           hostId: userId,
           ...this.buildEventCursorWhere(eventsCursor),
         },
-        include: {
+        select: {
+          ...hostEventSummarySelect,
           participants: {
             where: {
               userId: {
@@ -236,7 +260,8 @@ export class HostService {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const event = await this.prismaService.client.event.findFirst({
       where: { id: eventId, hostId: userId },
-      include: {
+      select: {
+        ...hostEventSummarySelect,
         participants: {
           where: {
             userId: {
@@ -528,6 +553,9 @@ export class HostService {
             userId,
           },
         },
+        select: {
+          id: true,
+        },
       });
 
       await tx.outboxEvent.createMany({
@@ -657,6 +685,9 @@ export class HostService {
             userId,
           },
         },
+        select: {
+          id: true,
+        },
       });
 
       await tx.outboxEvent.createMany({
@@ -698,6 +729,9 @@ export class HostService {
           userId: targetUserId,
         },
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!participant) {
@@ -724,6 +758,11 @@ export class HostService {
         checkedInAt: new Date(),
         checkedInById: userId,
         checkInMethod: 'host_manual',
+      },
+      select: {
+        status: true,
+        checkInMethod: true,
+        checkedInAt: true,
       },
     });
 

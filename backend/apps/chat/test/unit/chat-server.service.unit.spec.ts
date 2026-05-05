@@ -537,6 +537,48 @@ describe('ChatServerService unit', () => {
     expect(slowSocket.send).not.toHaveBeenCalled();
   });
 
+  it('terminates stale sockets during heartbeat cleanup', () => {
+    const service = createChatServiceForBroadcast();
+    const aliveSocket = {
+      readyState: WebSocket.OPEN,
+      bufferedAmount: 0,
+      ping: jest.fn(),
+      terminate: jest.fn(),
+    };
+    const staleSocket = {
+      readyState: WebSocket.OPEN,
+      bufferedAmount: 0,
+      ping: jest.fn(),
+      terminate: jest.fn(),
+    };
+
+    (service as any).stateBySocket.set(aliveSocket, {
+      userId: 'user-alive',
+      subscriptions: new Set(['chat-1']),
+      isAlive: true,
+    });
+    (service as any).stateBySocket.set(staleSocket, {
+      userId: 'user-stale',
+      subscriptions: new Set(['chat-1']),
+      isAlive: false,
+    });
+    (service as any).socketsByUserId.set('user-stale', new Set([staleSocket]));
+    (service as any).socketsByChatId.set(
+      'chat-1',
+      new Set([aliveSocket, staleSocket]),
+    );
+
+    (service as any).runHeartbeat();
+
+    expect(aliveSocket.ping).toHaveBeenCalledTimes(1);
+    expect((service as any).stateBySocket.get(aliveSocket).isAlive).toBe(false);
+    expect(staleSocket.terminate).toHaveBeenCalledTimes(1);
+    expect((service as any).stateBySocket.has(staleSocket)).toBe(false);
+    expect(
+      (service as any).socketsByChatId.get('chat-1')?.has(staleSocket),
+    ).toBe(false);
+  });
+
   it('throttles repeated typing events before another membership lookup', async () => {
     const findUnique = jest.fn().mockResolvedValue({
       chat: {

@@ -5,6 +5,7 @@ import { TelegramRelayService } from './telegram-relay.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(TelegramRelayAppModule);
+  app.enableShutdownHooks();
   await app.get(TelegramRelayService).start();
   await app.listen(Number(process.env.PORT ?? 3003));
 }

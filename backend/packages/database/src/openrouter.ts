@@ -104,6 +104,7 @@ export class OpenRouterClient {
           controller.abort();
           reject(this.timeoutError());
         }, this.timeoutMs);
+        timeout.unref?.();
       });
 
       return await Promise.race([operation, timeoutPromise]);

@@ -5,6 +5,7 @@ import { WorkerService } from './worker.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(WorkerAppModule);
+  app.enableShutdownHooks();
   app.get(WorkerService).start();
   await app.listen(Number(process.env.PORT ?? 3002));
 }

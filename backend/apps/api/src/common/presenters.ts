@@ -53,19 +53,39 @@ export function formatEventTime(startDate: Date): string {
   return `${hours}:${minutes}`;
 }
 
-export function mapMessage(
-  message: Message & {
-    sender: User & { profile?: Pick<Profile, 'avatarUrl'> | null };
-    replyTo?: (Message & {
-      sender: User;
-      attachments: Array<{
-        mediaAsset: MediaAsset;
-      }>;
-    }) | null;
+type MessageMediaAsset = Pick<
+  MediaAsset,
+  | 'id'
+  | 'kind'
+  | 'status'
+  | 'mimeType'
+  | 'byteSize'
+  | 'durationMs'
+  | 'originalFileName'
+  | 'publicUrl'
+  | 'waveform'
+>;
+
+type MessagePresenterInput = Pick<
+  Message,
+  'id' | 'chatId' | 'senderId' | 'text' | 'clientMessageId' | 'createdAt'
+> & {
+  sender: Pick<User, 'displayName'> & {
+    profile?: Pick<Profile, 'avatarUrl'> | null;
+  };
+  replyTo?: (Pick<Message, 'id' | 'senderId' | 'text'> & {
+    sender: Pick<User, 'displayName'>;
     attachments: Array<{
-      mediaAsset: MediaAsset;
+      mediaAsset: Pick<MediaAsset, 'kind'>;
     }>;
-  },
+  }) | null;
+  attachments: Array<{
+    mediaAsset: MessageMediaAsset;
+  }>;
+};
+
+export function mapMessage(
+  message: MessagePresenterInput,
 ) {
   const systemKind = resolveSystemMessageKind(message.clientMessageId);
   const isSystem = systemKind != null;
@@ -102,10 +122,10 @@ function resolveSystemMessageKind(clientMessageId: string) {
 }
 
 function mapReplyPreview(
-  message: Message & {
-    sender: User;
+  message: Pick<Message, 'id' | 'senderId' | 'text'> & {
+    sender: Pick<User, 'displayName'>;
     attachments: Array<{
-      mediaAsset: MediaAsset;
+      mediaAsset: Pick<MediaAsset, 'kind'>;
     }>;
   },
 ) {
@@ -227,11 +247,34 @@ export function mapLiveStatus(state?: Pick<EventLiveState, 'status'> | null) {
   return state?.status ?? 'idle';
 }
 
+type EventSummaryInput = Pick<
+  Event,
+  | 'id'
+  | 'title'
+  | 'emoji'
+  | 'startsAt'
+  | 'place'
+  | 'distanceKm'
+  | 'capacity'
+  | 'vibe'
+  | 'tone'
+  | 'hostNote'
+  | 'lifestyle'
+  | 'priceMode'
+  | 'priceAmountFrom'
+  | 'priceAmountTo'
+  | 'accessMode'
+  | 'genderMode'
+  | 'visibilityMode'
+  | 'joinMode'
+  | 'hostId'
+> & {
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
 export function mapEventSummary(params: {
-  event: Event & {
-    latitude?: number | null;
-    longitude?: number | null;
-  };
+  event: EventSummaryInput;
   participants: Array<{
     userId: string;
     user: Pick<User, 'displayName'>;

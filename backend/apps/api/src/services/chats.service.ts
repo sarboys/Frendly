@@ -16,6 +16,80 @@ import { PrismaService } from './prisma.service';
 
 const CHAT_MEMBER_PREVIEW_LIMIT = 8;
 
+const chatMessageMediaAssetSelect = {
+  id: true,
+  kind: true,
+  status: true,
+  mimeType: true,
+  byteSize: true,
+  durationMs: true,
+  originalFileName: true,
+  publicUrl: true,
+  waveform: true,
+} satisfies Prisma.MediaAssetSelect;
+
+const chatReplyAttachmentSelect = {
+  mediaAsset: {
+    select: {
+      kind: true,
+    },
+  },
+} satisfies Prisma.MessageAttachmentSelect;
+
+const chatListLastMessageSelect = {
+  text: true,
+  createdAt: true,
+  sender: {
+    select: {
+      displayName: true,
+    },
+  },
+  attachments: {
+    select: chatReplyAttachmentSelect,
+  },
+} satisfies Prisma.MessageSelect;
+
+const chatMessageSelect = {
+  id: true,
+  chatId: true,
+  senderId: true,
+  text: true,
+  clientMessageId: true,
+  createdAt: true,
+  sender: {
+    select: {
+      displayName: true,
+      profile: {
+        select: {
+          avatarUrl: true,
+        },
+      },
+    },
+  },
+  replyTo: {
+    select: {
+      id: true,
+      senderId: true,
+      text: true,
+      sender: {
+        select: {
+          displayName: true,
+        },
+      },
+      attachments: {
+        select: chatReplyAttachmentSelect,
+      },
+    },
+  },
+  attachments: {
+    select: {
+      mediaAsset: {
+        select: chatMessageMediaAssetSelect,
+      },
+    },
+  },
+} satisfies Prisma.MessageSelect;
+
 interface ChatListCursor {
   id: string;
   updatedAt: Date;
@@ -61,7 +135,16 @@ export class ChatsService {
                 ],
               }),
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        emoji: true,
+        meetupPhase: true,
+        meetupMode: true,
+        currentStep: true,
+        meetupStartsAt: true,
+        meetupEndsAt: true,
+        updatedAt: true,
         event: {
           select: {
             id: true,
@@ -110,7 +193,8 @@ export class ChatsService {
               notIn: [...blockedUserIds],
             },
           },
-          include: {
+          select: {
+            userId: true,
             user: {
               select: {
                 id: true,
@@ -128,14 +212,7 @@ export class ChatsService {
               notIn: [...blockedUserIds],
             },
           },
-          include: {
-            sender: true,
-            attachments: {
-              include: {
-                mediaAsset: true,
-              },
-            },
-          },
+          select: chatListLastMessageSelect,
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -583,32 +660,7 @@ export class ChatsService {
               }
             : {}),
         },
-        include: {
-          sender: {
-            include: {
-              profile: {
-                select: {
-                  avatarUrl: true,
-                },
-              },
-            },
-          },
-          replyTo: {
-            include: {
-              sender: true,
-              attachments: {
-                include: {
-                  mediaAsset: true,
-                },
-              },
-            },
-          },
-          attachments: {
-            include: {
-              mediaAsset: true,
-            },
-          },
-        },
+        select: chatMessageSelect,
         orderBy: [
           { createdAt: 'desc' },
           { id: 'desc' },

@@ -44,7 +44,7 @@ export class ProfileController {
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: MAX_PROFILE_ASSET_UPLOAD_BYTES + 1024 * 1024,
+        fileSize: MAX_PROFILE_ASSET_UPLOAD_BYTES,
       },
     }),
   )
@@ -59,7 +59,7 @@ export class ProfileController {
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: MAX_PROFILE_ASSET_UPLOAD_BYTES + 1024 * 1024,
+        fileSize: MAX_PROFILE_ASSET_UPLOAD_BYTES,
       },
     }),
   )

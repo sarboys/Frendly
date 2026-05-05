@@ -1,5 +1,6 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { PartnerOfferCodeDto, PublicPartnerOfferCodeActivationDto } from '@big-break/contracts';
+import { Prisma } from '@prisma/client';
 import { createHash, createHmac, randomBytes } from 'crypto';
 import { ApiError } from '../common/api-error';
 import { EveningAnalyticsService } from './evening-analytics.service';
@@ -28,6 +29,54 @@ type ActivationBucket = {
   resetAt: number;
   count: number;
 };
+
+const partnerOfferCodeSummarySelect = {
+  id: true,
+  userId: true,
+  routeTemplateId: true,
+  routeId: true,
+  sessionId: true,
+  partnerId: true,
+  venueId: true,
+  offerId: true,
+  status: true,
+  expiresAt: true,
+  activatedAt: true,
+  offer: {
+    select: {
+      title: true,
+    },
+  },
+  venue: {
+    select: {
+      name: true,
+    },
+  },
+  partner: {
+    select: {
+      name: true,
+    },
+  },
+  step: {
+    select: {
+      offerTitleSnapshot: true,
+      venueNameSnapshot: true,
+    },
+  },
+} satisfies Prisma.PartnerOfferCodeSelect;
+
+const partnerOfferIssueStepSelect = {
+  id: true,
+  routeId: true,
+  partnerOfferId: true,
+  partnerOffer: {
+    select: {
+      id: true,
+      partnerId: true,
+      venueId: true,
+    },
+  },
+} satisfies Prisma.EveningRouteStepSelect;
 
 export function computeOfferCodeExpiresAt(params: {
   startsAt: Date;
@@ -91,7 +140,7 @@ export class PartnerOfferCodeService {
     const existing =
       await this.prismaService.client.partnerOfferCode.findUnique({
         where: uniqueWhere,
-        include: this.codeSummaryInclude(),
+        select: this.codeSummarySelect(),
       });
 
     if (existing) {
@@ -123,7 +172,7 @@ export class PartnerOfferCodeService {
                 timezone: context.session.route.timezone,
               }),
             },
-            include: this.codeSummaryInclude(),
+            select: this.codeSummarySelect(),
           });
         await this.trackIssued(created, false);
         return this.mapCode(created);
@@ -135,7 +184,7 @@ export class PartnerOfferCodeService {
         const duplicate =
           await this.prismaService.client.partnerOfferCode.findUnique({
             where: uniqueWhere,
-            include: this.codeSummaryInclude(),
+            select: this.codeSummarySelect(),
           });
         if (duplicate) {
           await this.trackIssued(duplicate, true);
@@ -160,7 +209,7 @@ export class PartnerOfferCodeService {
         id: codeId,
         userId,
       },
-      include: this.codeSummaryInclude(),
+      select: this.codeSummarySelect(),
     });
 
     if (!code) {
@@ -200,7 +249,7 @@ export class PartnerOfferCodeService {
       where: {
         codeHash: this.hashCode(normalizedCode),
       },
-      include: this.codeSummaryInclude(),
+      select: this.codeSummarySelect(),
     });
 
     if (!record) {
@@ -236,7 +285,7 @@ export class PartnerOfferCodeService {
       const latest =
         await this.prismaService.client.partnerOfferCode.findUnique({
           where: { id: record.id },
-          include: this.codeSummaryInclude(),
+          select: this.codeSummarySelect(),
         });
       return this.mapPublicResult(
         this.resolveStatus(latest) === 'activated'
@@ -321,14 +370,7 @@ export class PartnerOfferCodeService {
         id: stepId,
         routeId: session.routeId,
       },
-      include: {
-        partnerOffer: {
-          include: {
-            partner: true,
-            venue: true,
-          },
-        },
-      },
+      select: partnerOfferIssueStepSelect,
     });
 
     if (!step) {
@@ -356,30 +398,8 @@ export class PartnerOfferCodeService {
     };
   }
 
-  private codeSummaryInclude() {
-    return {
-      offer: {
-        select: {
-          title: true,
-        },
-      },
-      venue: {
-        select: {
-          name: true,
-        },
-      },
-      partner: {
-        select: {
-          name: true,
-        },
-      },
-      step: {
-        select: {
-          offerTitleSnapshot: true,
-          venueNameSnapshot: true,
-        },
-      },
-    };
+  private codeSummarySelect() {
+    return partnerOfferCodeSummarySelect;
   }
 
   private mapCode(code: any): PartnerOfferCodeDto {

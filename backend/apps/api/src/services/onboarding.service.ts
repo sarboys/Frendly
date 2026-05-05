@@ -11,6 +11,22 @@ type SessionProvider =
   | 'google'
   | 'yandex';
 
+const onboardingResponseSelect = {
+  intent: true,
+  gender: true,
+  birthDate: true,
+  city: true,
+  area: true,
+  interests: true,
+  vibe: true,
+  user: {
+    select: {
+      email: true,
+      phoneNumber: true,
+    },
+  },
+} satisfies Prisma.OnboardingPreferencesSelect;
+
 function mapOnboarding(onboarding: {
   intent: string | null;
   gender: 'male' | 'female' | null;
@@ -170,14 +186,7 @@ export class OnboardingService {
           userId,
           interests: [],
         },
-        include: {
-          user: {
-            select: {
-              email: true,
-              phoneNumber: true,
-            },
-          },
-        },
+        select: onboardingResponseSelect,
       }),
     ]);
 
@@ -357,14 +366,7 @@ export class OnboardingService {
             interests,
             vibe: typeof body.vibe === 'string' ? body.vibe : null,
           },
-          include: {
-            user: {
-              select: {
-                email: true,
-                phoneNumber: true,
-              },
-            },
-          },
+          select: onboardingResponseSelect,
         });
 
         await tx.profile.upsert({

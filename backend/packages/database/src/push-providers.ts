@@ -10,6 +10,7 @@ export interface PushDispatch {
 
 export interface PushProvider {
   send(message: PushDispatch): Promise<void>;
+  close?(): Promise<void> | void;
 }
 
 type ApnProvider = InstanceType<typeof apn.Provider>;
@@ -18,9 +19,24 @@ function normalizePrivateKey(value?: string): string | undefined {
   return value?.replace(/\\n/g, '\n');
 }
 
+function maskPushToken(token: string): string {
+  if (token.length <= 8) {
+    return '[redacted]';
+  }
+
+  return `${token.slice(0, 4)}...${token.slice(-4)}`;
+}
+
+function serializePushLog(message: PushDispatch): string {
+  return JSON.stringify({
+    ...message,
+    token: maskPushToken(message.token),
+  });
+}
+
 export class FakePushProvider implements PushProvider {
   async send(message: PushDispatch): Promise<void> {
-    console.log('[fake-push]', JSON.stringify(message));
+    console.log('[fake-push]', serializePushLog(message));
   }
 }
 
@@ -36,6 +52,13 @@ export class FcmPushProvider implements PushProvider {
       return;
     }
 
+    const appName = 'big-break-fcm';
+    const existingApp = admin.apps.find((app) => app?.name === appName);
+    if (existingApp) {
+      this.app = existingApp;
+      return;
+    }
+
     this.app = admin.initializeApp(
       {
         credential: admin.credential.cert({
@@ -44,13 +67,13 @@ export class FcmPushProvider implements PushProvider {
           privateKey,
         }),
       },
-      'big-break-fcm',
+      appName,
     );
   }
 
   async send(message: PushDispatch): Promise<void> {
     if (!this.app) {
-      console.log('[fcm-push-skipped]', JSON.stringify(message));
+      console.log('[fcm-push-skipped]', serializePushLog(message));
       return;
     }
 
@@ -62,6 +85,15 @@ export class FcmPushProvider implements PushProvider {
       },
       data: message.data,
     });
+  }
+
+  async close(): Promise<void> {
+    if (!this.app) {
+      return;
+    }
+
+    await this.app.delete();
+    this.app = null;
   }
 }
 
@@ -85,13 +117,13 @@ export class ApnsPushProvider implements PushProvider {
         keyId,
         teamId,
       },
-      production: false,
+      production: process.env.APNS_PRODUCTION === 'true',
     });
   }
 
   async send(message: PushDispatch): Promise<void> {
     if (!this.provider || !this.topic) {
-      console.log('[apns-push-skipped]', JSON.stringify(message));
+      console.log('[apns-push-skipped]', serializePushLog(message));
       return;
     }
 
@@ -105,5 +137,10 @@ export class ApnsPushProvider implements PushProvider {
     });
 
     await this.provider.send(note, message.token);
+  }
+
+  close(): void {
+    this.provider?.shutdown();
+    this.provider = null;
   }
 }

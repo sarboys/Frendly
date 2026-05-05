@@ -67,6 +67,30 @@ type EventDuplicateCandidate = {
   source: { code: ExternalSourceCode; name: string } | null;
 };
 
+const EVENT_DUPLICATE_CANDIDATE_SELECT = {
+  id: true,
+  sourceItemId: true,
+  sourceUrl: true,
+  contentKind: true,
+  city: true,
+  title: true,
+  venueName: true,
+  address: true,
+  lat: true,
+  lng: true,
+  startsAt: true,
+  priceMode: true,
+  publicStatus: true,
+  actionUrl: true,
+  raw: true,
+  source: {
+    select: {
+      code: true,
+      name: true,
+    },
+  },
+} satisfies Prisma.ExternalContentItemSelect;
+
 @Injectable()
 export class ContentImportService {
   private readonly timeoutMs = positiveInt(process.env.CONTENT_IMPORT_TIMEOUT_MS, DEFAULT_IMPORT_TIMEOUT_MS);
@@ -127,7 +151,17 @@ export class ContentImportService {
   async processPendingManualRuns(limit = 10) {
     const runs = await this.prismaService.client.externalImportRun.findMany({
       where: { status: 'pending_manual' },
-      include: { source: true },
+      select: {
+        id: true,
+        sourceId: true,
+        city: true,
+        metadata: true,
+        source: {
+          select: {
+            code: true,
+          },
+        },
+      },
       orderBy: [{ startedAt: 'asc' }, { id: 'asc' }],
       take: limit,
     });
@@ -162,6 +196,7 @@ export class ContentImportService {
     const adapter = this.registry.getAdapter(input.sourceCode);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    timeout.unref?.();
     let fetchedCount = 0;
     let normalizedCount = 0;
     let skippedCount = 0;
@@ -512,7 +547,7 @@ export class ContentImportService {
         startsAt: { gte: from, lt: to },
         source: { code: { not: item.sourceCode } },
       },
-      include: { source: { select: { code: true, name: true } } },
+      select: EVENT_DUPLICATE_CANDIDATE_SELECT,
       orderBy: [{ importedAt: 'desc' }, { id: 'asc' }],
       take: positiveInt(
         process.env.CONTENT_IMPORT_DUPLICATE_PRELOAD_LIMIT,

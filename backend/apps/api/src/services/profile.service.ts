@@ -5,6 +5,7 @@ import {
   buildPublicAssetUrl,
   createPresignedUpload,
   createS3Client,
+  createS3RequestOptions,
   getS3Config,
 } from '@big-break/database';
 import { randomUUID } from 'node:crypto';
@@ -22,6 +23,7 @@ const ALLOWED_AVATAR_MIME_TYPES = new Set([
 const BYPASS_S3_UPLOAD = process.env.NODE_ENV !== 'production';
 export const MAX_PROFILE_ASSET_UPLOAD_BYTES = 10 * 1024 * 1024;
 const INLINE_MEDIA_BUCKET = '__inline__';
+const IMMUTABLE_MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const PROFILE_PHOTO_MEDIA_SELECT = {
   id: true,
   kind: true,
@@ -165,8 +167,10 @@ export class ProfileService {
           Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: file.mimetype,
+          CacheControl: IMMUTABLE_MEDIA_CACHE_CONTROL,
           Body: file.buffer,
         }),
+        createS3RequestOptions(),
       );
     }
     const inlinePublicUrl = BYPASS_S3_UPLOAD
@@ -273,8 +277,10 @@ export class ProfileService {
           Bucket: this.s3Bucket,
           Key: objectKey,
           ContentType: file.mimetype,
+          CacheControl: IMMUTABLE_MEDIA_CACHE_CONTROL,
           Body: file.buffer,
         }),
+        createS3RequestOptions(),
       );
     }
     const inlinePublicUrl = BYPASS_S3_UPLOAD
@@ -359,6 +365,10 @@ export class ProfileService {
           id: photoId,
           profileUserId: userId,
         },
+        select: {
+          id: true,
+          mediaAssetId: true,
+        },
       });
       if (!photo) {
         throw new ApiError(404, 'profile_photo_not_found', 'Profile photo not found');
@@ -397,6 +407,9 @@ export class ProfileService {
     await this.prismaService.client.$transaction(async (tx) => {
       const photos = await tx.profilePhoto.findMany({
         where: { profileUserId: userId },
+        select: {
+          id: true,
+        },
         orderBy: { sortOrder: 'asc' },
       });
 
@@ -433,6 +446,9 @@ export class ProfileService {
     await this.prismaService.client.$transaction(async (tx) => {
       const photos = await tx.profilePhoto.findMany({
         where: { profileUserId: userId },
+        select: {
+          id: true,
+        },
         orderBy: { sortOrder: 'asc' },
       });
 
@@ -480,6 +496,7 @@ export class ProfileService {
         Bucket: this.s3Bucket,
         Key: objectKey,
       }),
+      createS3RequestOptions(),
     );
 
     return {
@@ -604,6 +621,10 @@ export class ProfileService {
   private async _normalizePhotoOrder(tx: Prisma.TransactionClient, userId: string) {
     const photos = await tx.profilePhoto.findMany({
       where: { profileUserId: userId },
+      select: {
+        id: true,
+        sortOrder: true,
+      },
       orderBy: { sortOrder: 'asc' },
     });
 

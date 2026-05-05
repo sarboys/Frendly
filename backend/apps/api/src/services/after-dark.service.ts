@@ -122,7 +122,24 @@ export class AfterDarkService {
           : {}),
         ...(andFilters.length > 0 ? { AND: andFilters } : {}),
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        emoji: true,
+        startsAt: true,
+        place: true,
+        distanceKm: true,
+        capacity: true,
+        vibe: true,
+        afterDarkCategory: true,
+        afterDarkGlow: true,
+        dressCode: true,
+        ageRange: true,
+        ratioLabel: true,
+        consentRequired: true,
+        priceMode: true,
+        priceAmountFrom: true,
+        priceAmountTo: true,
         host: {
           select: {
             verified: true,
@@ -205,7 +222,10 @@ export class AfterDarkService {
     return this.eventsService.joinEvent(userId, eventId);
   }
 
-  private async buildAccess(userId: string) {
+  private async buildAccess(
+    userId: string,
+    options: { includePreviewCount?: boolean } = {},
+  ) {
     const [settings, verification, subscription, previewCount] = await Promise.all([
       this.prismaService.client.userSettings.findUnique({
         where: { userId },
@@ -219,11 +239,13 @@ export class AfterDarkService {
         select: { status: true },
       }),
       this.subscriptionService.getCurrent(userId),
-      this.prismaService.client.event.count({
-        where: {
-          isAfterDark: true,
-        },
-      }),
+      options.includePreviewCount === false
+        ? Promise.resolve(0)
+        : this.prismaService.client.event.count({
+            where: {
+              isAfterDark: true,
+            },
+          }),
     ]);
 
     const ageConfirmed = settings?.afterDarkAgeConfirmedAt != null;
@@ -246,7 +268,7 @@ export class AfterDarkService {
   }
 
   private async assertUnlocked(userId: string) {
-    const access = await this.buildAccess(userId);
+    const access = await this.buildAccess(userId, { includePreviewCount: false });
     if (!access.unlocked) {
       throw new ApiError(403, 'after_dark_locked', 'After Dark is locked');
     }
@@ -260,7 +282,29 @@ export class AfterDarkService {
         id: eventId,
         isAfterDark: true,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        emoji: true,
+        startsAt: true,
+        place: true,
+        distanceKm: true,
+        capacity: true,
+        vibe: true,
+        description: true,
+        hostNote: true,
+        afterDarkCategory: true,
+        afterDarkGlow: true,
+        dressCode: true,
+        ageRange: true,
+        ratioLabel: true,
+        consentRequired: true,
+        priceMode: true,
+        priceAmountFrom: true,
+        priceAmountTo: true,
+        rules: true,
+        hostId: true,
+        joinMode: true,
         host: {
           select: {
             id: true,

@@ -252,6 +252,11 @@ export class SafetyService {
           details,
           blockRequested,
         },
+        select: {
+          id: true,
+          status: true,
+          blockRequested: true,
+        },
       });
 
       if (blockRequested) {
@@ -341,6 +346,11 @@ export class SafetyService {
         userId,
         blockedUserId: targetUserId,
       },
+      select: {
+        id: true,
+        blockedUserId: true,
+        createdAt: true,
+      },
     });
 
     return {
@@ -396,6 +406,14 @@ export class SafetyService {
       }),
       this.prismaService.client.trustedContact.findMany({
         where: { userId },
+        select: {
+          id: true,
+          name: true,
+          channel: true,
+          value: true,
+          phoneNumber: true,
+          mode: true,
+        },
         orderBy: { createdAt: 'asc' },
       }),
     ]);
@@ -433,6 +451,13 @@ export class SafetyService {
           recipientsCount: recipients.length,
           messagePreview,
           status: 'queued',
+        },
+        select: {
+          id: true,
+          eventId: true,
+          recipientsCount: true,
+          status: true,
+          createdAt: true,
         },
       });
 

@@ -5,6 +5,7 @@ import { ChatServerService } from './chat-server.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(ChatAppModule);
+  app.enableShutdownHooks();
   const chatServer = app.get(ChatServerService);
   chatServer.attach(app.getHttpServer());
   await app.listen(Number(process.env.PORT ?? 3001));

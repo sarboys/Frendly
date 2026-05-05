@@ -5,6 +5,7 @@ import {
   buildPublicAssetUrl,
   createRedisPublisher,
   createS3Client,
+  createS3RequestOptions,
   publishBusEvent,
   runRetentionCleanup,
 } from '@big-break/database';
@@ -146,7 +147,11 @@ export class WorkerService implements OnModuleDestroy {
     private readonly prismaService: PrismaService,
     private readonly contentImportService?: ContentImportService,
     private readonly routeDraftGenerationService?: RouteDraftGenerationService,
-  ) {}
+  ) {
+    this.redis.on('error', (error) => {
+      console.error('[worker] redis publisher error', error);
+    });
+  }
 
   start() {
     this.timer = setInterval(() => {
@@ -200,6 +205,7 @@ export class WorkerService implements OnModuleDestroy {
         );
       }, this.contentRouteGenerationIntervalMs);
     }
+    this.unrefTimers();
 
     void this.runScheduledTask('outbox', () => this.runOnce());
     void this.runScheduledTask(
@@ -239,32 +245,54 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.timer) {
-      clearInterval(this.timer);
+    this.clearTimers();
+    const shutdownResults = await Promise.allSettled([
+      this.redis.quit(),
+      this.fcmPushProvider.close(),
+      Promise.resolve(this.apnsPushProvider.close()),
+    ]);
+
+    for (const result of shutdownResults) {
+      if (result.status === 'rejected') {
+        console.error('[worker] shutdown cleanup failed', result.reason);
+      }
     }
-    if (this.systemNotificationTimer) {
-      clearInterval(this.systemNotificationTimer);
+  }
+
+  private unrefTimers() {
+    for (const timer of this.getTimers()) {
+      timer?.unref?.();
     }
-    if (this.retentionCleanupTimer) {
-      clearInterval(this.retentionCleanupTimer);
-    }
-    if (this.eveningAutoAdvanceTimer) {
-      clearInterval(this.eveningAutoAdvanceTimer);
-    }
-    if (this.contentImportTimer) {
-      clearInterval(this.contentImportTimer);
-    }
-    if (this.contentManualImportTimer) {
-      clearInterval(this.contentManualImportTimer);
-    }
-    if (this.contentManualGenerationTimer) {
-      clearInterval(this.contentManualGenerationTimer);
-    }
-    if (this.contentRouteGenerationTimer) {
-      clearInterval(this.contentRouteGenerationTimer);
+  }
+
+  private clearTimers() {
+    for (const timer of this.getTimers()) {
+      if (timer) {
+        clearInterval(timer);
+      }
     }
 
-    await this.redis.quit();
+    this.timer = undefined;
+    this.systemNotificationTimer = undefined;
+    this.retentionCleanupTimer = undefined;
+    this.eveningAutoAdvanceTimer = undefined;
+    this.contentImportTimer = undefined;
+    this.contentManualImportTimer = undefined;
+    this.contentManualGenerationTimer = undefined;
+    this.contentRouteGenerationTimer = undefined;
+  }
+
+  private getTimers() {
+    return [
+      this.timer,
+      this.systemNotificationTimer,
+      this.retentionCleanupTimer,
+      this.eveningAutoAdvanceTimer,
+      this.contentImportTimer,
+      this.contentManualImportTimer,
+      this.contentManualGenerationTimer,
+      this.contentRouteGenerationTimer,
+    ];
   }
 
   private async runScheduledTask(
@@ -482,7 +510,14 @@ export class WorkerService implements OnModuleDestroy {
           },
         ],
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        type: true,
+        payload: true,
+        attempts: true,
+        createdAt: true,
+      },
     });
 
     if (!event) {
@@ -546,6 +581,12 @@ export class WorkerService implements OnModuleDestroy {
   private async handleMediaFinalize(payload: { assetId: string; chatId?: string }) {
     const asset = await this.prismaService.client.mediaAsset.findUnique({
       where: { id: payload.assetId },
+      select: {
+        id: true,
+        bucket: true,
+        objectKey: true,
+        chatId: true,
+      },
     });
 
     if (!asset) {
@@ -557,6 +598,7 @@ export class WorkerService implements OnModuleDestroy {
         Bucket: asset.bucket,
         Key: asset.objectKey,
       }),
+      createS3RequestOptions(),
     );
 
     await this.prismaService.client.mediaAsset.update({
@@ -593,6 +635,13 @@ export class WorkerService implements OnModuleDestroy {
   private async handlePushDispatch(payload: { userId: string; notificationId: string }) {
     const notification = await this.prismaService.client.notification.findUnique({
       where: { id: payload.notificationId },
+      select: {
+        id: true,
+        userId: true,
+        actorUserId: true,
+        title: true,
+        body: true,
+      },
     });
 
     if (!notification) {
@@ -624,6 +673,10 @@ export class WorkerService implements OnModuleDestroy {
       where: {
         userId,
         disabledAt: null,
+      },
+      select: {
+        provider: true,
+        token: true,
       },
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       take: this.pushTokenBatchSize,
@@ -671,6 +724,17 @@ export class WorkerService implements OnModuleDestroy {
 
     const notification = await this.prismaService.client.notification.findUnique({
       where: { id: payload.notificationId },
+      select: {
+        id: true,
+        userId: true,
+        actorUserId: true,
+        kind: true,
+        title: true,
+        body: true,
+        payload: true,
+        createdAt: true,
+        readAt: true,
+      },
     });
 
     if (!notification) {
@@ -730,11 +794,23 @@ export class WorkerService implements OnModuleDestroy {
             not: null,
           },
         },
-        include: {
+        select: {
+          id: true,
+          chatId: true,
+          hostUserId: true,
+          routeId: true,
+          currentStep: true,
+          startedAt: true,
           route: {
-            include: {
+            select: {
               steps: {
                 orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+                select: {
+                  id: true,
+                  timeLabel: true,
+                  endTimeLabel: true,
+                  venue: true,
+                },
               },
             },
           },
@@ -1519,6 +1595,9 @@ export class WorkerService implements OnModuleDestroy {
           eventId: params.eventId,
           dedupeKey: params.dedupeKey,
           payload: params.payload as Prisma.InputJsonValue,
+        },
+        select: {
+          id: true,
         },
       });
 

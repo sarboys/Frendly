@@ -2,6 +2,7 @@ import { Body, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/c
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../common/current-user.decorator';
 import {
+  MAX_CHAT_ATTACHMENT_UPLOAD_BYTES,
   MAX_GENERIC_MEDIA_UPLOAD_BYTES,
   UploadsService,
 } from '../services/uploads.service';
@@ -60,7 +61,7 @@ export class UploadsController {
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: MAX_GENERIC_MEDIA_UPLOAD_BYTES,
+        fileSize: MAX_CHAT_ATTACHMENT_UPLOAD_BYTES,
       },
     }),
   )

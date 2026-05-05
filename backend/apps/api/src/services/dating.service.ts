@@ -500,6 +500,9 @@ export class DatingService {
               source: 'dating',
             },
           },
+          select: {
+            id: true,
+          },
         });
 
         await tx.outboxEvent.createMany({

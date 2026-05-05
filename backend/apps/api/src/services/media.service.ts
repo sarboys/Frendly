@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import {
   createPresignedDownload,
   createS3Client,
+  createS3RequestOptions,
   getBlockedUserIds,
   verifyAccessToken,
 } from '@big-break/database';
@@ -90,6 +91,7 @@ export class MediaService {
                 ? undefined
                 : `bytes=${requestedRange.start}-${requestedRange.end}`,
       }),
+      createS3RequestOptions(),
     );
 
     if (!object.Body) {

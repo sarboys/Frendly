@@ -22,6 +22,7 @@ interface SocketState {
   tokenExpiresAtMs?: number;
   authCheckedAtMs?: number;
   subscriptions: Set<string>;
+  isAlive: boolean;
 }
 
 interface Envelope {
@@ -47,6 +48,67 @@ const DEFAULT_AUTH_RECHECK_MS = 30_000;
 const DEFAULT_MAX_PAYLOAD_BYTES = 64 * 1024;
 const DEFAULT_MAX_MESSAGE_TEXT_LENGTH = 4000;
 const DEFAULT_MAX_ATTACHMENT_COUNT = 10;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
+
+const messageReplyAttachmentSelect = {
+  mediaAsset: {
+    select: {
+      kind: true,
+    },
+  },
+} satisfies Prisma.MessageAttachmentSelect;
+
+const messageAttachmentSelect = {
+  mediaAsset: {
+    select: {
+      id: true,
+      kind: true,
+      status: true,
+      mimeType: true,
+      byteSize: true,
+      durationMs: true,
+      waveform: true,
+      originalFileName: true,
+    },
+  },
+} satisfies Prisma.MessageAttachmentSelect;
+
+const chatMessageSelect = {
+  id: true,
+  chatId: true,
+  senderId: true,
+  text: true,
+  clientMessageId: true,
+  createdAt: true,
+  sender: {
+    select: {
+      displayName: true,
+      profile: {
+        select: {
+          avatarUrl: true,
+        },
+      },
+    },
+  },
+  replyTo: {
+    select: {
+      id: true,
+      senderId: true,
+      text: true,
+      sender: {
+        select: {
+          displayName: true,
+        },
+      },
+      attachments: {
+        select: messageReplyAttachmentSelect,
+      },
+    },
+  },
+  attachments: {
+    select: messageAttachmentSelect,
+  },
+} satisfies Prisma.MessageSelect;
 
 @Injectable()
 export class ChatServerService implements OnModuleDestroy {
@@ -83,12 +145,20 @@ export class ChatServerService implements OnModuleDestroy {
     process.env.CHAT_MEMBERSHIP_CACHE_MAX_ENTRIES,
     DEFAULT_MEMBERSHIP_CACHE_MAX_ENTRIES,
   );
+  private readonly heartbeatIntervalMs = this.resolveDurationMs(
+    process.env.CHAT_WS_HEARTBEAT_INTERVAL_MS,
+    DEFAULT_HEARTBEAT_INTERVAL_MS,
+  );
   private readonly lastTypingSentAtBySocket = new Map<WebSocket, Map<string, number>>();
   private readonly membershipCache = new Map<string, number>();
   private readonly publisher: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly subscriber: Redis = createRedisSubscriber(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  private heartbeatTimer?: NodeJS.Timeout;
 
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {
+    this.publisher.on('error', (error) => this.logRedisError('publisher', error));
+    this.subscriber.on('error', (error) => this.logRedisError('subscriber', error));
+  }
 
   attach(server: HttpServer) {
     this.wss = new WebSocketServer({
@@ -96,23 +166,39 @@ export class ChatServerService implements OnModuleDestroy {
       maxPayload: this.maxPayloadBytes,
     });
     this.wss.on('connection', (socket: WebSocket) => this.handleConnection(socket));
+    this.startHeartbeat();
 
-    this.subscriber.subscribe(PUBSUB_CHANNEL).then(() => {
-      this.subscriber.on('message', async (_channel, payload) => {
-        const event = JSON.parse(payload) as Envelope;
-        await this.broadcastEvent(event);
-      });
-    });
+    this.subscriber
+      .subscribe(PUBSUB_CHANNEL)
+      .then(() => {
+        this.subscriber.on('message', (_channel, payload) => {
+          void this.handleRedisMessage(payload);
+        });
+      })
+      .catch((error) => this.logRedisError('subscriber subscribe', error));
   }
 
   async onModuleDestroy() {
-    await this.publisher.quit();
-    await this.subscriber.quit();
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = undefined;
+    }
+    for (const socket of this.wss?.clients ?? []) {
+      this.terminateSocket(socket);
+    }
     this.wss?.close();
+    await Promise.allSettled([this.publisher.quit(), this.subscriber.quit()]);
   }
 
   private handleConnection(socket: WebSocket) {
-    this.stateBySocket.set(socket, { subscriptions: new Set() });
+    this.stateBySocket.set(socket, { subscriptions: new Set(), isAlive: true });
+
+    socket.on('pong', () => {
+      const state = this.stateBySocket.get(socket);
+      if (state) {
+        state.isAlive = true;
+      }
+    });
 
     socket.on('message', async (raw: RawData) => {
       try {
@@ -136,6 +222,50 @@ export class ChatServerService implements OnModuleDestroy {
     socket.on('close', () => {
       this.cleanupSocket(socket);
     });
+  }
+
+  private startHeartbeat() {
+    if (this.heartbeatIntervalMs <= 0 || this.heartbeatTimer) {
+      return;
+    }
+
+    this.heartbeatTimer = setInterval(() => this.runHeartbeat(), this.heartbeatIntervalMs);
+    this.heartbeatTimer.unref?.();
+  }
+
+  private runHeartbeat() {
+    for (const socket of this.wss?.clients ?? this.stateBySocket.keys()) {
+      const state = this.stateBySocket.get(socket);
+      if (!state) {
+        continue;
+      }
+
+      if (!state.isAlive) {
+        this.terminateSocket(socket);
+        continue;
+      }
+
+      state.isAlive = false;
+      if (socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.ping();
+        } catch {
+          this.terminateSocket(socket);
+        }
+      }
+    }
+  }
+
+  private async handleRedisMessage(payload: string) {
+    try {
+      const event = JSON.parse(payload) as Envelope;
+      await this.broadcastEvent(event);
+    } catch (error) {
+      console.error('[chat] redis message handling failed', {
+        message: error instanceof Error ? error.message : 'Unknown redis message error',
+        payloadBytes: Buffer.byteLength(payload),
+      });
+    }
   }
 
   private async handleEnvelope(socket: WebSocket, envelope: Envelope) {
@@ -299,32 +429,7 @@ export class ChatServerService implements OnModuleDestroy {
         senderId: state.userId!,
         clientMessageId,
       },
-      include: {
-        sender: {
-          include: {
-            profile: {
-              select: {
-                avatarUrl: true,
-              },
-            },
-          },
-        },
-        replyTo: {
-          include: {
-            sender: true,
-            attachments: {
-              include: {
-                mediaAsset: true,
-              },
-            },
-          },
-        },
-        attachments: {
-          include: {
-            mediaAsset: true,
-          },
-        },
-      },
+      select: chatMessageSelect,
     });
 
     if (existing) {
@@ -342,6 +447,10 @@ export class ChatServerService implements OnModuleDestroy {
         },
         ownerId: state.userId!,
         status: 'ready',
+      },
+      select: {
+        id: true,
+        chatId: true,
       },
     });
 
@@ -398,32 +507,7 @@ export class ChatServerService implements OnModuleDestroy {
               },
             },
           },
-          include: {
-            sender: {
-              include: {
-                profile: {
-                  select: {
-                    avatarUrl: true,
-                  },
-                },
-              },
-            },
-            replyTo: {
-              include: {
-                sender: true,
-                attachments: {
-                  include: {
-                    mediaAsset: true,
-                  },
-                },
-              },
-            },
-            attachments: {
-              include: {
-                mediaAsset: true,
-              },
-            },
-          },
+          select: chatMessageSelect,
         });
 
         await tx.chat.update({
@@ -538,32 +622,7 @@ export class ChatServerService implements OnModuleDestroy {
       const updated = await tx.message.update({
         where: { id: messageId },
         data: { text },
-        include: {
-          sender: {
-            include: {
-              profile: {
-                select: {
-                  avatarUrl: true,
-                },
-              },
-            },
-          },
-          replyTo: {
-            include: {
-              sender: true,
-              attachments: {
-                include: {
-                  mediaAsset: true,
-                },
-              },
-            },
-          },
-          attachments: {
-            include: {
-              mediaAsset: true,
-            },
-          },
-        },
+        select: chatMessageSelect,
       });
 
       await tx.chat.update({
@@ -947,10 +1006,11 @@ export class ChatServerService implements OnModuleDestroy {
         return;
       }
 
+      const serializedEvent = JSON.stringify(event);
       for (const socket of this.socketsByUserId.get(userId) ?? []) {
         const state = this.stateBySocket.get(socket);
         if (state?.userId === userId) {
-          this.send(socket, event);
+          this.sendSerialized(socket, serializedEvent);
         }
       }
       return;
@@ -986,6 +1046,7 @@ export class ChatServerService implements OnModuleDestroy {
     );
     const actorBlockedUserIds =
       actorUserId == null ? null : blockedUserIdsByUserId.get(actorUserId) ?? new Set<string>();
+    const serializedEvent = replyAuthorId == null ? JSON.stringify(event) : null;
 
     for (const socket of subscribedSockets) {
       const state = this.stateBySocket.get(socket);
@@ -1016,7 +1077,11 @@ export class ChatServerService implements OnModuleDestroy {
         continue;
       }
 
-      this.send(socket, event);
+      if (serializedEvent != null) {
+        this.sendSerialized(socket, serializedEvent);
+      } else {
+        this.send(socket, event);
+      }
     }
   }
 
@@ -1115,13 +1180,22 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private send(socket: WebSocket, event: Envelope) {
+    this.sendSerialized(socket, JSON.stringify(event));
+  }
+
+  private sendSerialized(socket: WebSocket, payload: string) {
     const bufferedAmount =
       typeof socket.bufferedAmount === 'number' ? socket.bufferedAmount : 0;
     if (
       socket.readyState === WebSocket.OPEN &&
       bufferedAmount <= this.maxBufferedBytes
     ) {
-      socket.send(JSON.stringify(event));
+      try {
+        socket.send(payload);
+      } catch (error) {
+        console.error('[chat] websocket send failed', error);
+        this.terminateSocket(socket);
+      }
     }
   }
 
@@ -1154,6 +1228,19 @@ export class ChatServerService implements OnModuleDestroy {
     this.clearAuthenticatedState(socket, state);
     this.stateBySocket.delete(socket);
     this.lastTypingSentAtBySocket.delete(socket);
+  }
+
+  private terminateSocket(socket: WebSocket) {
+    this.cleanupSocket(socket);
+    try {
+      socket.terminate();
+    } catch (error) {
+      console.error('[chat] websocket terminate failed', error);
+    }
+  }
+
+  private logRedisError(scope: string, error: unknown) {
+    console.error(`[chat] redis ${scope} error`, error);
   }
 
   private clearAuthenticatedState(socket: WebSocket, state: SocketState) {
@@ -1444,13 +1531,11 @@ export class ChatServerService implements OnModuleDestroy {
         id: string;
         kind: string;
         status: string;
-        publicUrl: string | null;
         mimeType: string;
         byteSize: number;
         durationMs: number | null;
         waveform: number[];
         originalFileName: string;
-        objectKey: string;
       };
     }>;
   }, eventId?: string) {
