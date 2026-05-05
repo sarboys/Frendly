@@ -1505,6 +1505,9 @@ describe('worker outbox recovery', () => {
         eventId: 'event-1',
         dedupeKey: 'event_starting:event-1:user-1:30m',
       }),
+      select: {
+        id: true,
+      },
     });
     expect(outboxCreateMany).toHaveBeenCalledWith({
       data: [
@@ -1566,6 +1569,9 @@ describe('worker outbox recovery', () => {
         title: 'Подписка скоро закончится',
         dedupeKey: 'subscription_expiring:subscription-1:3d',
       }),
+      select: {
+        id: true,
+      },
     });
     expect(outboxCreateMany).toHaveBeenCalledWith({
       data: [
