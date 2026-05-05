@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OpenRouterClient } from '@big-break/database';
 import { ContentImportService } from './content/content-import.service';
+import { ContentImageMirrorService } from './content/content-image-mirror.service';
 import { ContentNormalizerService } from './content/content-normalizer.service';
 import { ExternalSourceRegistry } from './content/external-source.registry';
 import { RouteDraftGenerationService } from './content/route-draft-generation.service';
@@ -12,6 +13,7 @@ import { WorkerService } from './worker.service';
   controllers: [HealthController],
   providers: [
     PrismaService,
+    ContentImageMirrorService,
     ContentNormalizerService,
     ExternalSourceRegistry,
     ContentImportService,

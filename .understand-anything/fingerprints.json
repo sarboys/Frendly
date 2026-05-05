@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "d7391854b125f8f581a4d47a39e06d3cfa2428d0",
-  "generatedAt": "2026-05-05T10:09:50.528Z",
+  "gitCommitHash": "f4a3558fe4c8254b86dd517195077c2273666247",
+  "generatedAt": "2026-05-05T11:39:35.611Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -9517,17 +9517,18 @@
     },
     "backend/apps/api/src/common/api-exception.filter.ts": {
       "filePath": "backend/apps/api/src/common/api-exception.filter.ts",
-      "contentHash": "b68e2eba43d879a6409ffd3e9e9bae62ba06734611db38d4a2bcf8f02e30e0c2",
+      "contentHash": "d5234b114c8052682cc27bb9513a8ec3648a09257cd297759364993a99885f0d",
       "functions": [],
       "classes": [
         {
           "name": "ApiExceptionFilter",
           "methods": [
-            "catch"
+            "catch",
+            "mapUploadFileSizeError"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 39
+          "lineCount": 70
         }
       ],
       "imports": [
@@ -9570,7 +9571,7 @@
       "exports": [
         "ApiExceptionFilter"
       ],
-      "totalLines": 47,
+      "totalLines": 78,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/auth.guard.ts": {
@@ -13998,7 +13999,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "7886acd91deb416a649596777d1ee7a1c1c5b97c0da68158390aa4fe848a84e0",
+      "contentHash": "a6f872394f738181a2d7fd2db6f5bda90a0e1284bccc9cdb84300f2218822c32",
       "functions": [],
       "classes": [
         {
@@ -14024,7 +14025,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 505
+          "lineCount": 508
         }
       ],
       "imports": [
@@ -14085,7 +14086,7 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 628,
+      "totalLines": 631,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -14558,7 +14559,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "5ec8b567138a7d0043805a9e7133a9ca54e11eeb8e467b87f76ff3810a2dc783",
+      "contentHash": "f77c338bc076c89d9f8d3cbde5061f6bf5c3e3ee1f4dbfcb3cd3387b14ef2d67",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14635,7 +14636,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3276
+          "lineCount": 3285
         }
       ],
       "imports": [
@@ -14722,7 +14723,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3447,
+      "totalLines": 3456,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -17284,7 +17285,7 @@
     },
     "backend/apps/worker/src/app.module.ts": {
       "filePath": "backend/apps/worker/src/app.module.ts",
-      "contentHash": "775c2e5895f296eb3bda0ae6236055010e8f962c051037e2e201153edb4d6f6d",
+      "contentHash": "b71ba980429c48af5ea9469463e58950271953b91e087a90d99e7c952aa49d93",
       "functions": [],
       "classes": [
         {
@@ -17312,6 +17313,12 @@
           "source": "./content/content-import.service",
           "specifiers": [
             "ContentImportService"
+          ]
+        },
+        {
+          "source": "./content/content-image-mirror.service",
+          "specifiers": [
+            "ContentImageMirrorService"
           ]
         },
         {
@@ -17354,7 +17361,7 @@
       "exports": [
         "WorkerAppModule"
       ],
-      "totalLines": 27,
+      "totalLines": 29,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
@@ -17706,9 +17713,124 @@
       "totalLines": 119,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/worker/src/content/content-image-mirror.service.ts": {
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "contentHash": "b7f4ff8392ae5e0e48b8adc2ad4364cb6e1479700610b041b6ff25b28c5ea145",
+      "functions": [
+        {
+          "name": "isHttpsUrl",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "normalizedContentType",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "extensionFor",
+          "params": [
+            "contentType"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "safePathSegment",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "integer",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "positiveInt",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "ContentImageMirrorService",
+          "methods": [
+            "mirrorExternalImage",
+            "downloadImage",
+            "putIfMissing",
+            "objectKey",
+            "isOwnAssetUrl",
+            "s3Client"
+          ],
+          "properties": [
+            "s3"
+          ],
+          "exported": true,
+          "lineCount": 136
+        }
+      ],
+      "imports": [
+        {
+          "source": "@aws-sdk/client-s3",
+          "specifiers": [
+            "HeadObjectCommand",
+            "PutObjectCommand",
+            "S3Client"
+          ]
+        },
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "buildPublicAssetUrl",
+            "createS3Client",
+            "createS3RequestOptions",
+            "getS3Config"
+          ]
+        },
+        {
+          "source": "crypto",
+          "specifiers": [
+            "createHash"
+          ]
+        },
+        {
+          "source": "./content-source.types",
+          "specifiers": [
+            "NormalizedExternalContentItem"
+          ]
+        }
+      ],
+      "exports": [
+        "ContentImageMirrorService"
+      ],
+      "totalLines": 206,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "3e404281ea51ed902db032e918f6236af2b20a08a15b1590e3e20de0ff6be79d",
+      "contentHash": "f6b0a325ed405aea984cbadf7f758b00c06f518d744de014c085b66222f47f07",
       "functions": [
         {
           "name": "safeJson",
@@ -17836,14 +17958,15 @@
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 507
+          "lineCount": 511
         }
       ],
       "imports": [
         {
           "source": "@nestjs/common",
           "specifiers": [
-            "Injectable"
+            "Injectable",
+            "Optional"
           ]
         },
         {
@@ -17878,6 +18001,12 @@
           ]
         },
         {
+          "source": "./content-image-mirror.service",
+          "specifiers": [
+            "ContentImageMirrorService"
+          ]
+        },
+        {
           "source": "./external-source.registry",
           "specifiers": [
             "ExternalSourceRegistry"
@@ -17897,7 +18026,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 728,
+      "totalLines": 733,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {

@@ -130,6 +130,54 @@ describe('ContentImportService', () => {
     expect(itemUpsert).toHaveBeenCalledTimes(3);
   });
 
+  it('mirrors imported external images before saving content items', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const imageMirror = {
+      mirrorExternalImage: jest.fn().mockImplementation(async (item) => ({
+        ...item,
+        imageUrl: 'https://cdn.frendly.tech/external-content/kudago/event-1.jpg',
+      })),
+    };
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-1', code: 'kudago' },
+        itemUpsert,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'kudago',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawEvent({
+            sourceItemId: 'event-1',
+            imageUrl: 'https://kudago.com/images/event-1.jpg',
+          }),
+        ]),
+      }),
+      imageMirror as any,
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['kudago'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-05-11T00:00:00.000Z'),
+    });
+
+    expect(imageMirror.mirrorExternalImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageUrl: 'https://kudago.com/images/event-1.jpg',
+      }),
+    );
+    expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        imageUrl: 'https://cdn.frendly.tech/external-content/kudago/event-1.jpg',
+      }),
+      update: expect.objectContaining({
+        imageUrl: 'https://cdn.frendly.tech/external-content/kudago/event-1.jpg',
+      }),
+    }));
+  });
+
   it('preloads event duplicates once per source day instead of querying per item', async () => {
     const itemFindMany = jest.fn().mockResolvedValue([]);
     const service = new ContentImportService(

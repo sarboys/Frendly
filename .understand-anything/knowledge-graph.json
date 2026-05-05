@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-05T10:09:49.390Z",
-    "gitCommitHash": "d7391854b125f8f581a4d47a39e06d3cfa2428d0"
+    "analyzedAt": "2026-05-05T11:39:35.190Z",
+    "gitCommitHash": "f4a3558fe4c8254b86dd517195077c2273666247"
   },
   "nodes": [
     {
@@ -7764,7 +7764,7 @@
       "filePath": "backend/apps/api/src/common/api-exception.filter.ts",
       "lineRange": [
         8,
-        46
+        77
       ],
       "summary": "ApiExceptionFilter in api-exception.filter.ts.",
       "tags": [
@@ -10458,7 +10458,7 @@
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
         123,
-        627
+        630
       ],
       "summary": "DatingService in dating.service.ts.",
       "tags": [
@@ -10820,8 +10820,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3427,
-        3446
+        3436,
+        3455
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -10838,7 +10838,7 @@
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
         150,
-        3425
+        3434
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -12328,8 +12328,8 @@
       "name": "WorkerAppModule",
       "filePath": "backend/apps/worker/src/app.module.ts",
       "lineRange": [
-        26,
-        26
+        28,
+        28
       ],
       "summary": "WorkerAppModule in app.module.ts.",
       "tags": [
@@ -12910,6 +12910,138 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "type": "file",
+      "name": "content-image-mirror.service.ts",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "summary": "content-image-mirror.service.ts contains 1 classes, 6 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:isHttpsUrl",
+      "type": "function",
+      "name": "isHttpsUrl",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        154,
+        161
+      ],
+      "summary": "isHttpsUrl in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:normalizedContentType",
+      "type": "function",
+      "name": "normalizedContentType",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        163,
+        166
+      ],
+      "summary": "normalizedContentType in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:extensionFor",
+      "type": "function",
+      "name": "extensionFor",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        168,
+        181
+      ],
+      "summary": "extensionFor in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:safePathSegment",
+      "type": "function",
+      "name": "safePathSegment",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        183,
+        189
+      ],
+      "summary": "safePathSegment in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:integer",
+      "type": "function",
+      "name": "integer",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        191,
+        197
+      ],
+      "summary": "integer in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:positiveInt",
+      "type": "function",
+      "name": "positiveInt",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        199,
+        205
+      ],
+      "summary": "positiveInt in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/apps/worker/src/content/content-image-mirror.service.ts:ContentImageMirrorService",
+      "type": "class",
+      "name": "ContentImageMirrorService",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        17,
+        152
+      ],
+      "summary": "ContentImageMirrorService in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:backend/apps/worker/src/content/content-import.service.ts",
       "type": "file",
       "name": "content-import.service.ts",
@@ -12928,8 +13060,8 @@
       "name": "safeJson",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        603,
-        608
+        608,
+        613
       ],
       "summary": "safeJson in content-import.service.ts.",
       "tags": [
@@ -12945,8 +13077,8 @@
       "name": "dayBounds",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        610,
-        615
+        615,
+        620
       ],
       "summary": "dayBounds in content-import.service.ts.",
       "tags": [
@@ -12962,8 +13094,8 @@
       "name": "duplicateCacheKey",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        617,
-        624
+        622,
+        629
       ],
       "summary": "duplicateCacheKey in content-import.service.ts.",
       "tags": [
@@ -12979,8 +13111,8 @@
       "name": "itemsPerSecond",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        626,
-        631
+        631,
+        636
       ],
       "summary": "itemsPerSecond in content-import.service.ts.",
       "tags": [
@@ -12996,8 +13128,8 @@
       "name": "enrichItemFromDuplicate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        633,
-        659
+        638,
+        664
       ],
       "summary": "enrichItemFromDuplicate in content-import.service.ts.",
       "tags": [
@@ -13013,8 +13145,8 @@
       "name": "mergeRaw",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        661,
-        670
+        666,
+        675
       ],
       "summary": "mergeRaw in content-import.service.ts.",
       "tags": [
@@ -13030,8 +13162,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        672,
-        675
+        677,
+        680
       ],
       "summary": "positiveInt in content-import.service.ts.",
       "tags": [
@@ -13047,8 +13179,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        677,
-        679
+        682,
+        684
       ],
       "summary": "object in content-import.service.ts.",
       "tags": [
@@ -13064,8 +13196,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        681,
-        687
+        686,
+        692
       ],
       "summary": "parseDate in content-import.service.ts.",
       "tags": [
@@ -13081,8 +13213,8 @@
       "name": "publicStatusFor",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        689,
-        708
+        694,
+        713
       ],
       "summary": "publicStatusFor in content-import.service.ts.",
       "tags": [
@@ -13098,8 +13230,8 @@
       "name": "contentImportFailure",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        710,
-        717
+        715,
+        722
       ],
       "summary": "contentImportFailure in content-import.service.ts.",
       "tags": [
@@ -13115,8 +13247,8 @@
       "name": "maskKnownSecrets",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        719,
-        727
+        724,
+        732
       ],
       "summary": "maskKnownSecrets in content-import.service.ts.",
       "tags": [
@@ -13132,8 +13264,8 @@
       "name": "ContentImportService",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        95,
-        601
+        96,
+        606
       ],
       "summary": "ContentImportService in content-import.service.ts.",
       "tags": [
@@ -27424,7 +27556,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "file:mobile/lib/shared/widgets/bb_profile_photo_gallery.dart",
@@ -33220,6 +33352,55 @@
     {
       "source": "file:backend/apps/worker/src/content/content-deduplication.service.ts",
       "target": "class:backend/apps/worker/src/content/content-deduplication.service.ts:ContentDeduplicationService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:isHttpsUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:normalizedContentType",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:extensionFor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:safePathSegment",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:integer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:positiveInt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "class:backend/apps/worker/src/content/content-image-mirror.service.ts:ContentImageMirrorService",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -41444,6 +41625,13 @@
     },
     {
       "source": "file:backend/apps/worker/src/app.module.ts",
+      "target": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/worker/src/app.module.ts",
       "target": "file:backend/apps/worker/src/content/content-normalizer.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -41506,6 +41694,13 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "file:backend/apps/worker/src/content/content-source.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/worker/src/content/content-import.service.ts",
       "target": "file:backend/apps/worker/src/prisma.service.ts",
       "type": "imports",
@@ -41529,6 +41724,13 @@
     {
       "source": "file:backend/apps/worker/src/content/content-import.service.ts",
       "target": "file:backend/apps/worker/src/content/content-normalizer.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -42735,6 +42937,7 @@
         "file:backend/apps/worker/src/app.module.ts",
         "file:backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
         "file:backend/apps/worker/src/content/content-deduplication.service.ts",
+        "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
         "file:backend/apps/worker/src/content/content-import.service.ts",
         "file:backend/apps/worker/src/content/content-normalizer.service.ts",
         "file:backend/apps/worker/src/content/content-source.types.ts",

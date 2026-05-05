@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { maskAdvCakeSecrets } from './advcake-ticketland.adapter';
 import { dayKey, eventDuplicateMatch } from './content-deduplication.service';
 import { ContentNormalizerService } from './content-normalizer.service';
+import { ContentImageMirrorService } from './content-image-mirror.service';
 import { ExternalSourceRegistry } from './external-source.registry';
 import type {
   ExternalRawItem,
@@ -99,6 +100,7 @@ export class ContentImportService {
     private readonly prismaService: PrismaService,
     private readonly normalizer: ContentNormalizerService,
     private readonly registry: ExternalSourceRegistry,
+    @Optional() private readonly imageMirror?: ContentImageMirrorService,
   ) {}
 
   async runImport(input: ContentImportInput) {
@@ -232,20 +234,23 @@ export class ContentImportService {
               this.normalizer.normalize(rawItem),
               duplicateCache,
             );
-            const publicStatus = normalized.publicStatusOverride ?? publicStatusFor(normalized.item);
-            await this.upsertItem(input.sourceId, input.runId, normalized.item, publicStatus);
+            const item = this.imageMirror
+              ? await this.imageMirror.mirrorExternalImage(normalized.item)
+              : normalized.item;
+            const publicStatus = normalized.publicStatusOverride ?? publicStatusFor(item);
+            await this.upsertItem(input.sourceId, input.runId, item, publicStatus);
             normalizedCount += 1;
             if (publicStatus === PUBLIC_STATUS_PUBLISHED) {
               publishedCount += 1;
             }
-            if (normalized.item.priceMode === 'paid') {
+            if (item.priceMode === 'paid') {
               paidCount += 1;
-            } else if (normalized.item.priceMode === 'free') {
+            } else if (item.priceMode === 'free') {
               freeCount += 1;
             } else {
               unknownPriceCount += 1;
             }
-            if (normalized.item.lat == null || normalized.item.lng == null) {
+            if (item.lat == null || item.lng == null) {
               missingCoordsCount += 1;
             }
           } catch {

@@ -59,6 +59,7 @@ Affiche:
 - Public affiche list/detail use narrow `select` and must not read `ExternalContentItem.raw` in the public request path.
 - Query params include `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `featured`, `q`, `cursor`, `limit`.
 - Paid public ticket events come from `advcake_ticketland` and use external `actionUrl`. Unknown price is not exposed as free.
+- Affiche `imageUrl` should normally be a mirrored S3/CDN URL created by the worker during import. If mirroring fails, the worker keeps the source image URL as fallback.
 - KudaGo places stay outside affiche and should continue through places/search/route flows.
 
 Chats:

@@ -76,9 +76,11 @@ Public routing:
 - Scheduled content import interval defaults to four hours, `CONTENT_IMPORT_INTERVAL_MS=14400000`.
 - Default scheduled content sources are `kudago,timepad,advcake_ticketland`. Overpass code remains available for explicit/manual import, but it is not in the default scheduled source list.
 - Manual admin import creates `ExternalImportRun.status=pending_manual`; worker scans those runs and performs KudaGo, Timepad, AdvCake Ticketland or explicit Overpass fetches outside the API request path.
+- External content import mirrors imported image URLs to S3 under `external-content/...` and stores the resulting `S3_CDN_ENDPOINT` public URL back in `ExternalContentItem.imageUrl` when mirroring succeeds. If image download or S3 write fails, import keeps the source image URL and does not fail the run.
 - Manual admin route generation creates `GeneratedRouteDraftBatch.status=pending_manual`; worker scans those batches and performs OpenRouter generation outside the API request path.
 - If OpenRouter returns invalid JSON, an empty route or times out, worker saves a deterministic fallback review draft from a nearby imported candidate cluster instead of leaving the run failed when enough candidates exist. Place-only fallback uses a larger place pool and picks different categories inside one walkable area.
 - Source env: `KUDAGO_BASE_URL`, `TIMEPAD_BASE_URL`, `TIMEPAD_API_TOKEN`, `OVERPASS_BASE_URL`, `ADVCAKE_API_PASS`, `ADVCAKE_BASE_URL`, `ADVCAKE_TICKETLAND_OFFER_ID`, `ADVCAKE_TICKETLAND_WEBSITES`, `ADVCAKE_FEED_FORMAT`, `ADVCAKE_FEED_MAX_BYTES`. The real AdvCake pass must stay only in env and must not be written to code, docs, tests or logs. `ADVCAKE_TICKETLAND_OFFER_ID=663` is the combined AdvCake offer for `ticketland.ru | live.mts.ru`.
+- External image mirror env: `CONTENT_IMPORT_IMAGE_MAX_BYTES`, `CONTENT_IMPORT_IMAGE_TIMEOUT_MS`. Only HTTPS images are mirrored.
 - Route aggregation schedule env: `CONTENT_IMPORT_INTERVAL_MS`, `CONTENT_IMPORT_CITIES`, `CONTENT_IMPORT_SOURCES`, `CONTENT_MANUAL_IMPORT_INTERVAL_MS`, `CONTENT_MANUAL_GENERATION_INTERVAL_MS`, `CONTENT_ROUTE_GENERATION_INTERVAL_MS`, `CONTENT_ROUTE_GENERATION_MAX_DRAFTS_PER_CITY`, `CONTENT_ROUTE_GENERATION_STALE_RUNNING_MS`.
 
 Event types:
@@ -125,6 +127,7 @@ Uses:
 - chat attachments and voice
 - story media
 - poster covers
+- imported external content images
 
 Flow:
 
