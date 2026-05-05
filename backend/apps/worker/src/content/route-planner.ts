@@ -121,7 +121,8 @@ export function buildRouteSkeletons(
 ): PlannedRoute[] {
   const timezone = input.timezone ?? DEFAULT_TIMEZONE;
   const candidates = normalizeCandidates(rawCandidates)
-    .filter((candidate) => candidateFitsBudget(candidate, input.budget));
+    .filter((candidate) => candidateFitsBudget(candidate, input.budget))
+    .filter((candidate) => candidateFitsMoodBudget(candidate, input));
   const routes: PlannedRoute[] = [];
   const anchors = selectAnchors(input.mood, candidates);
 
@@ -245,6 +246,16 @@ export function validateRouteDraft(
     }
     resolvedSteps.push({ step, candidate, index });
     totalPriceFrom += candidate.priceFrom ?? 0;
+
+    if (budget === 'free' && !candidateFitsBudget(candidate, 'free')) {
+      issues.push({
+        severity: 'error',
+        code: 'budget_item_not_free',
+        message: 'Free route contains a paid or unknown-price step',
+        stepIndex: index,
+        externalContentItemId: id,
+      });
+    }
 
     if (number(step.lat) == null || number(step.lng) == null) {
       issues.push({
@@ -1469,11 +1480,35 @@ function candidateFitsBudget(candidate: PlanningCandidate, budget: string | null
   ) {
     return false;
   }
-  if (candidate.contentKind === 'event' && budget === 'free') {
-    return candidate.priceMode === 'free' || candidate.priceFrom === 0;
+  if (budget === 'free') {
+    return isExplicitlyFreeCandidate(candidate);
   }
   const limit = budget == null ? null : budgetLimitFor(budget);
   return limit == null || (candidate.priceFrom ?? 0) <= limit;
+}
+
+function candidateFitsMoodBudget(candidate: PlanningCandidate, input: RoutePlannerInput) {
+  if (input.mood !== 'outdoor' || input.budget !== 'free') {
+    return true;
+  }
+  if (isOutdoorFreeCategory(candidate.normalizedCategory)) {
+    return true;
+  }
+  return isHospitalityCategory(candidate.normalizedCategory) && isExplicitlyFreeCandidate(candidate);
+}
+
+function isOutdoorFreeCategory(category: string) {
+  return (
+    category === 'walk' ||
+    category === 'outdoor' ||
+    category === 'bike' ||
+    category === 'sport' ||
+    category === 'adventure'
+  );
+}
+
+function isExplicitlyFreeCandidate(candidate: PlanningCandidate) {
+  return candidate.priceMode === 'free' || candidate.priceFrom === 0;
 }
 
 function budgetLimitFor(budget: string) {

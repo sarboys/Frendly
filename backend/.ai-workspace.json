@@ -1,0 +1,34 @@
+{
+  "name": "frendly-backend",
+  "groups": [
+    "frendly"
+  ],
+  "share": [
+    "package.json",
+    "README.md",
+    {
+      "path": "pnpm-workspace.yaml",
+      "label": "backend-workspace"
+    },
+    {
+      "path": "tsconfig.base.json",
+      "label": "backend-tsconfig"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "label": "prisma-schema"
+    },
+    {
+      "path": "packages/contracts/src/index.ts",
+      "label": "backend-contracts"
+    },
+    {
+      "path": "apps/api/src/app.module.ts",
+      "label": "backend-api-module"
+    },
+    {
+      "path": "Dockerfile",
+      "label": "backend-dockerfile"
+    }
+  ]
+}

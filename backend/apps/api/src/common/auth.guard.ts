@@ -50,6 +50,11 @@ export class AuthGuard implements CanActivate {
       select: {
         userId: true,
         revokedAt: true,
+        user: {
+          select: {
+            status: true,
+          },
+        },
       },
     });
 
@@ -58,6 +63,9 @@ export class AuthGuard implements CanActivate {
         `Rejected access token: requestId=${request.context.requestId} userId=${payload.userId} sessionId=${payload.sessionId} reason=stale_session`,
       );
       throw new ApiError(401, 'stale_access_token', 'Access token is stale');
+    }
+    if (session.user.status === 'suspended') {
+      throw new ApiError(403, 'user_suspended', 'User account is suspended');
     }
 
     request.context.userId = payload.userId;

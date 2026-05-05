@@ -60,6 +60,42 @@ describe('route planner', () => {
     ]));
   });
 
+  it('does not use unknown-price indoor places for free outdoor routes', () => {
+    const candidates = [
+      place('park-1', 'Парк у воды', 'park', 55.760, 37.620, 0),
+      place('bike-1', 'Велопрокат у парка', 'bicycle_rental', 55.761, 37.621, 0),
+      place('restaurant-1', 'Ресторан Урюк', 'restaurant', 55.762, 37.622, null),
+      place('karaoke-1', 'Караоке на Семеновской', 'entertainment', 55.763, 37.623, null),
+    ];
+
+    const routes = buildRouteSkeletons(
+      { city: 'Москва', mood: 'outdoor', budget: 'free', timezone: 'Europe/Moscow', maxDrafts: 1 },
+      candidates,
+    );
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0]?.totalPriceFrom).toBe(0);
+    expect(routes[0]?.steps.map((step) => step.externalContentItemId)).toEqual(['park-1', 'bike-1']);
+
+    const validation = validateRouteDraft(
+      {
+        title: 'Бесплатный ресторан',
+        description: 'Ресторан с неизвестной ценой не должен проходить free.',
+        steps: [
+          { externalContentItemId: 'park-1', timeLabel: '19:00', endTimeLabel: '19:30', walkMin: 0, lat: 55.760, lng: 37.620 },
+          { externalContentItemId: 'restaurant-1', timeLabel: '19:45', endTimeLabel: '20:45', walkMin: 8, lat: 55.762, lng: 37.622 },
+        ],
+      },
+      candidates,
+      'Europe/Moscow',
+      'free',
+    );
+    expect(validation.status).toBe('invalid');
+    expect(validation.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'budget_item_not_free', stepIndex: 1 }),
+    ]));
+  });
+
   it('creates social routes around standup or quiz instead of generic culture', () => {
     const routes = buildRouteSkeletons(
       { city: 'Москва', mood: 'social', budget: 'low', timezone: 'Europe/Moscow', maxDrafts: 1 },
@@ -276,7 +312,7 @@ function place(
   category: string,
   lat: number,
   lng: number,
-  priceFrom: number,
+  priceFrom: number | null,
 ) {
   return {
     id,

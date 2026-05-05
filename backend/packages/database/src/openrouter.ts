@@ -49,7 +49,7 @@ export class OpenRouterClientError extends Error {
 }
 
 const DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1';
-const DEFAULT_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
+const DEFAULT_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
 const DEFAULT_TIMEOUT_MS = 180_000;
 
 export class OpenRouterClient {

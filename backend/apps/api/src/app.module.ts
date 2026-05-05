@@ -1,9 +1,13 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthController } from './controllers/auth.controller';
+import { AdminAfficheController } from './controllers/admin-affiche.controller';
+import { AdminCommunitiesController } from './controllers/admin-communities.controller';
 import { AdminAuthController } from './controllers/admin-auth.controller';
 import { AdminEveningController } from './controllers/admin-evening.controller';
+import { AdminMeetupsController } from './controllers/admin-meetups.controller';
 import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
+import { AdminUsersController } from './controllers/admin-users.controller';
 import { AfficheController } from './controllers/affiche.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { ChatsController } from './controllers/chats.controller';
@@ -39,11 +43,15 @@ import { AdminTokenGuard } from './common/admin-token.guard';
 import { PartnerAuthGuard } from './common/partner-auth.guard';
 import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
+import { AdminAfficheService } from './services/admin-affiche.service';
+import { AdminCommunitiesService } from './services/admin-communities.service';
 import { AdminAuthService } from './services/admin-auth.service';
 import { AdminEveningAnalyticsService } from './services/admin-evening-analytics.service';
 import { AdminEveningAiService } from './services/admin-evening-ai.service';
 import { AdminEveningRouteService } from './services/admin-evening-route.service';
+import { AdminMeetupsService } from './services/admin-meetups.service';
 import { AdminRouteReviewService } from './services/admin-route-review.service';
+import { AdminUsersService } from './services/admin-users.service';
 import { AdminVenueService } from './services/admin-venue.service';
 import { AfficheService } from './services/affiche.service';
 import { AfterDarkService } from './services/after-dark.service';
@@ -84,9 +92,13 @@ import { VerificationService } from './services/verification.service';
 
 @Module({
   controllers: [
+    AdminAfficheController,
+    AdminCommunitiesController,
     AdminEveningController,
+    AdminMeetupsController,
     AdminAuthController,
     AdminPartnerAccountsController,
+    AdminUsersController,
     AfficheController,
     AfterDarkController,
     AuthController,
@@ -121,10 +133,14 @@ import { VerificationService } from './services/verification.service';
     AdminTokenGuard,
     AdminAuditInterceptor,
     PartnerAuthGuard,
+    AdminAfficheService,
+    AdminCommunitiesService,
     AdminEveningAnalyticsService,
     AdminEveningAiService,
     AdminEveningRouteService,
+    AdminMeetupsService,
     AdminRouteReviewService,
+    AdminUsersService,
     AdminVenueService,
     AfficheService,
     AfterDarkService,
