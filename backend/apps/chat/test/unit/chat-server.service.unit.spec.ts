@@ -7,6 +7,7 @@ jest.mock('@big-break/database', () => {
     ...actual,
     createRedisPublisher: () => ({
       publish: mockRedisPublish,
+      on: jest.fn(),
       quit: jest.fn().mockResolvedValue(undefined),
     }),
     createRedisSubscriber: () => ({
