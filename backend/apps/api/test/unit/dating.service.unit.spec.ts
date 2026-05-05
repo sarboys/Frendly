@@ -518,6 +518,9 @@ describe('DatingService unit', () => {
           userName: 'Никита',
         }),
       }),
+      select: {
+        id: true,
+      },
     });
     expect(outboxCreateMany).toHaveBeenCalledWith({
       data: [
@@ -615,6 +618,9 @@ describe('DatingService unit', () => {
       data: expect.objectContaining({
         dedupeKey: 'dating_like:user-sonya:user-me',
       }),
+      select: {
+        id: true,
+      },
     });
     expect(outboxCreateMany).not.toHaveBeenCalled();
   });

@@ -283,12 +283,7 @@ describe('PeopleService unit', () => {
         user: {
           findUnique: userFindUnique,
         },
-        userFollow: {
-          count: jest.fn().mockResolvedValue(0),
-        },
-        profileReaction: {
-          count: jest.fn().mockResolvedValue(0),
-        },
+        ...makeSocialClient(),
       },
     } as any);
 
@@ -385,20 +380,34 @@ describe('PeopleService unit', () => {
         user: {
           findUnique: userFindUnique,
         },
-        userFollow: {
-          count: jest.fn().mockResolvedValue(12),
-          findUnique: jest.fn().mockResolvedValue({ id: 'follow-1' }),
-        },
-        profileReaction: {
-          count: jest
-            .fn()
-            .mockResolvedValueOnce(34)
-            .mockResolvedValueOnce(5),
-          findMany: jest.fn().mockResolvedValue([
-            { kind: 'like' },
-            { kind: 'super_like' },
-          ]),
-        },
+        ...makeSocialClient({
+          userFollow: {
+            groupBy: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-peer', _count: { _all: 12 } },
+            ]),
+            findMany: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-peer' },
+            ]),
+          },
+          profileReaction: {
+            groupBy: jest.fn().mockResolvedValue([
+              {
+                targetUserId: 'user-peer',
+                kind: 'like',
+                _count: { _all: 34 },
+              },
+              {
+                targetUserId: 'user-peer',
+                kind: 'super_like',
+                _count: { _all: 5 },
+              },
+            ]),
+            findMany: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-peer', kind: 'like' },
+              { targetUserId: 'user-peer', kind: 'super_like' },
+            ]),
+          },
+        }),
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
         },
@@ -436,17 +445,20 @@ describe('PeopleService unit', () => {
         profileReaction: {
           upsert: jest.fn().mockResolvedValue({}),
           create,
+          groupBy: jest.fn().mockResolvedValue([]),
           count: jest
             .fn()
             .mockResolvedValueOnce(1)
             .mockResolvedValueOnce(1),
           findMany: jest.fn().mockResolvedValue([
-            { kind: 'like' },
-            { kind: 'super_like' },
+            { targetUserId: 'user-peer', kind: 'like' },
+            { targetUserId: 'user-peer', kind: 'super_like' },
           ]),
         },
         userFollow: {
+          groupBy: jest.fn().mockResolvedValue([]),
           count: jest.fn().mockResolvedValue(0),
+          findMany: jest.fn().mockResolvedValue([]),
           findUnique: jest.fn().mockResolvedValue(null),
         },
       },
