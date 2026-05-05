@@ -11,6 +11,7 @@ jest.mock('@big-break/database', () => ({
   },
   buildPublicAssetUrl: jest.fn((key: string) => `/media/${key}`),
   createRedisPublisher: jest.fn(() => ({
+    on: jest.fn(),
     quit: jest.fn().mockResolvedValue(undefined),
   })),
   createS3Client: jest.fn(() => ({
