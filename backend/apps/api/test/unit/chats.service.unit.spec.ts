@@ -297,7 +297,11 @@ describe('ChatsService unit', () => {
       new Date('2026-04-24T10:00:00.000Z'),
     ) as any;
     chat.event.sourcePoster = {
+      id: 'poster-1',
+      priceFrom: 1200,
       ticketUrl: 'https://tickets.example/show',
+      provider: 'Kassir',
+      venue: 'Каро',
     };
     chat.members = [
       {
@@ -327,6 +331,113 @@ describe('ChatsService unit', () => {
     expect(result.items[0]).toMatchObject({
       id: 'chat-poster',
       ticketUrl: 'https://tickets.example/show',
+      ticketSourceKind: 'poster',
+      ticketSourceId: 'poster-1',
+      ticketPriceFrom: 1200,
+      ticketProvider: 'Kassir',
+      ticketVenue: 'Каро',
+    });
+  });
+
+  it('maps paid affiche ticket summary for meetup chats', async () => {
+    const chat = makeChatListItem(
+      'chat-affiche',
+      new Date('2026-04-24T10:00:00.000Z'),
+    ) as any;
+    chat.event.sourceExternalContentItem = {
+      id: 'affiche-1',
+      priceFrom: 2500,
+      priceMode: 'paid',
+      actionUrl: 'https://affiliate.example/show',
+      sourceProvider: 'Ticketland',
+      venueName: 'Live Arena',
+    };
+    chat.members = [
+      {
+        userId: 'user-me',
+        user: {
+          id: 'user-me',
+          displayName: 'Ты',
+          online: true,
+        },
+      },
+    ];
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([chat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-affiche',
+      ticketUrl: 'https://affiliate.example/show',
+      ticketSourceKind: 'affiche',
+      ticketSourceId: 'affiche-1',
+      ticketPriceFrom: 2500,
+      ticketProvider: 'Ticketland',
+      ticketVenue: 'Live Arena',
+    });
+  });
+
+  it('does not expose ticket summary for free affiche meetup chats', async () => {
+    const chat = makeChatListItem(
+      'chat-affiche-free',
+      new Date('2026-04-24T10:00:00.000Z'),
+    ) as any;
+    chat.event.sourceExternalContentItem = {
+      id: 'affiche-free',
+      priceFrom: 0,
+      priceMode: 'free',
+      actionUrl: 'https://free.example/show',
+      sourceProvider: 'KudaGo',
+      venueName: 'Гараж',
+    };
+    chat.members = [
+      {
+        userId: 'user-me',
+        user: {
+          id: 'user-me',
+          displayName: 'Ты',
+          online: true,
+        },
+      },
+    ];
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([chat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-affiche-free',
+      ticketUrl: null,
+      ticketSourceKind: null,
+      ticketSourceId: null,
+      ticketPriceFrom: null,
+      ticketProvider: null,
+      ticketVenue: null,
     });
   });
 

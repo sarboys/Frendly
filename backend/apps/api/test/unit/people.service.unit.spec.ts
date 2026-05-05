@@ -194,6 +194,12 @@ describe('PeopleService unit', () => {
         user: {
           findUnique: userFindUnique,
         },
+        userFollow: {
+          count: jest.fn().mockResolvedValue(0),
+        },
+        profileReaction: {
+          count: jest.fn().mockResolvedValue(0),
+        },
       },
     } as any);
 
@@ -254,6 +260,152 @@ describe('PeopleService unit', () => {
           },
         },
       },
+    });
+  });
+
+  it('returns social counts and viewer flags with a person profile', async () => {
+    const userFindUnique = jest.fn().mockResolvedValue({
+      id: 'user-peer',
+      displayName: 'Аня',
+      online: true,
+      verified: false,
+      profile: {
+        age: 27,
+        birthDate: null,
+        gender: 'female',
+        city: 'Москва',
+        area: 'Центр',
+        bio: 'Кино и кофе',
+        vibe: 'Спокойно',
+        rating: 0,
+        meetupCount: 0,
+        avatarUrl: null,
+        photos: [],
+      },
+      onboarding: {
+        interests: ['кино'],
+        intent: 'dating',
+      },
+      settings: {
+        discoverable: true,
+        showAge: true,
+      },
+    });
+    const service = new PeopleService({
+      client: {
+        user: {
+          findUnique: userFindUnique,
+        },
+        userFollow: {
+          count: jest.fn().mockResolvedValue(12),
+          findUnique: jest.fn().mockResolvedValue({ id: 'follow-1' }),
+        },
+        profileReaction: {
+          count: jest
+            .fn()
+            .mockResolvedValueOnce(34)
+            .mockResolvedValueOnce(5),
+          findMany: jest.fn().mockResolvedValue([
+            { kind: 'like' },
+            { kind: 'super_like' },
+          ]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.getPersonProfile('user-me', 'user-peer'),
+    ).resolves.toMatchObject({
+      id: 'user-peer',
+      social: {
+        followers: 12,
+        likes: 34,
+        superLikes: 5,
+        iFollow: true,
+        iLike: true,
+        iSuper: true,
+      },
+    });
+  });
+
+  it('keeps profile like and super-like as independent reactions', async () => {
+    const create = jest.fn().mockResolvedValue({});
+    const service = new PeopleService({
+      client: {
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            settings: { discoverable: true },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        profileReaction: {
+          upsert: jest.fn().mockResolvedValue({}),
+          create,
+          count: jest
+            .fn()
+            .mockResolvedValueOnce(1)
+            .mockResolvedValueOnce(1),
+          findMany: jest.fn().mockResolvedValue([
+            { kind: 'like' },
+            { kind: 'super_like' },
+          ]),
+        },
+        userFollow: {
+          count: jest.fn().mockResolvedValue(0),
+          findUnique: jest.fn().mockResolvedValue(null),
+        },
+      },
+    } as any);
+
+    await service.setProfileReaction('user-me', 'user-peer', 'like');
+    await service.setProfileReaction('user-me', 'user-peer', 'super_like');
+
+    expect((service as any).prismaService.client.profileReaction.upsert)
+      .toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          where: {
+            actorUserId_targetUserId_kind: {
+              actorUserId: 'user-me',
+              targetUserId: 'user-peer',
+              kind: 'like',
+            },
+          },
+        }),
+      );
+    expect((service as any).prismaService.client.profileReaction.upsert)
+      .toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          where: {
+            actorUserId_targetUserId_kind: {
+              actorUserId: 'user-me',
+              targetUserId: 'user-peer',
+              kind: 'super_like',
+            },
+          },
+        }),
+      );
+  });
+
+  it('rejects profile social actions on yourself', async () => {
+    const service = new PeopleService({ client: {} } as any);
+
+    await expect(
+      service.setFollow('user-me', 'user-me', true),
+    ).rejects.toMatchObject({
+      code: 'self_social_action_not_allowed',
+    });
+    await expect(
+      service.setProfileReaction('user-me', 'user-me', 'like'),
+    ).rejects.toMatchObject({
+      code: 'self_social_action_not_allowed',
     });
   });
 

@@ -68,7 +68,21 @@ export class ChatsService {
             afterDarkGlow: true,
             sourcePoster: {
               select: {
+                id: true,
+                priceFrom: true,
                 ticketUrl: true,
+                provider: true,
+                venue: true,
+              },
+            },
+            sourceExternalContentItem: {
+              select: {
+                id: true,
+                priceFrom: true,
+                priceMode: true,
+                actionUrl: true,
+                sourceProvider: true,
+                venueName: true,
               },
             },
             liveState: {
@@ -208,6 +222,7 @@ export class ChatsService {
 
           const eventTime = chat.event ? formatEventTime(chat.event.startsAt) : '';
           const parts = eventTime.split('·');
+          const ticket = this.mapTicketSummary(chat.event);
           const memberProfiles = chat.members
             .filter((entry) => !blockedUserIds.has(entry.userId))
             .map((entry) => ({
@@ -237,7 +252,7 @@ export class ChatsService {
               chat.event?.isAfterDark ?? chat.sourceEvent?.isAfterDark ?? false,
               chat.event?.afterDarkGlow ?? chat.sourceEvent?.afterDarkGlow ?? null,
             ),
-            ticketUrl: chat.event?.sourcePoster?.ticketUrl ?? null,
+            ...ticket,
             ...this.mapEveningChatPhase(chat),
           };
         }
@@ -271,6 +286,61 @@ export class ChatsService {
           hasMore && page.length > 0
               ? this.encodeChatListCursor(page[page.length - 1]!)
               : null,
+    };
+  }
+
+  private mapTicketSummary(event?: {
+    sourcePoster?: {
+      id: string;
+      priceFrom: number;
+      ticketUrl: string;
+      provider: string;
+      venue: string;
+    } | null;
+    sourceExternalContentItem?: {
+      id: string;
+      priceFrom?: number | null;
+      priceMode?: string | null;
+      actionUrl?: string | null;
+      sourceProvider?: string | null;
+      venueName?: string | null;
+    } | null;
+  } | null) {
+    const poster = event?.sourcePoster;
+    if (poster && poster.priceFrom > 0 && poster.ticketUrl.trim().length > 0) {
+      return {
+        ticketUrl: poster.ticketUrl,
+        ticketSourceKind: 'poster',
+        ticketSourceId: poster.id,
+        ticketPriceFrom: poster.priceFrom,
+        ticketProvider: poster.provider,
+        ticketVenue: poster.venue,
+      };
+    }
+
+    const affiche = event?.sourceExternalContentItem;
+    if (
+      affiche?.priceMode === 'paid' &&
+      (affiche.priceFrom ?? 0) > 0 &&
+      (affiche.actionUrl ?? '').trim().length > 0
+    ) {
+      return {
+        ticketUrl: affiche.actionUrl,
+        ticketSourceKind: 'affiche',
+        ticketSourceId: affiche.id,
+        ticketPriceFrom: affiche.priceFrom ?? null,
+        ticketProvider: affiche.sourceProvider ?? null,
+        ticketVenue: affiche.venueName ?? null,
+      };
+    }
+
+    return {
+      ticketUrl: null,
+      ticketSourceKind: null,
+      ticketSourceId: null,
+      ticketPriceFrom: null,
+      ticketProvider: null,
+      ticketVenue: null,
     };
   }
 

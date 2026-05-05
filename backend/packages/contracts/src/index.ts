@@ -269,6 +269,24 @@ export interface AdminEveningRouteRevisionStepInput {
   ticketProvider?: string | null;
 }
 
+export interface ProfileSocialDto {
+  followers: number;
+  likes: number;
+  superLikes: number;
+  iFollow: boolean;
+  iLike: boolean;
+  iSuper: boolean;
+}
+
+export interface MeetupChatTicketDto {
+  ticketUrl: string | null;
+  ticketSourceKind: 'poster' | 'affiche' | null;
+  ticketSourceId: string | null;
+  ticketPriceFrom: number | null;
+  ticketProvider: string | null;
+  ticketVenue: string | null;
+}
+
 export interface AdminEveningRouteRevisionInput {
   title: string;
   vibe: string;

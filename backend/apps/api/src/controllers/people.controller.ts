@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { PeopleService } from '../services/people.service';
 
@@ -26,6 +26,58 @@ export class PeopleController {
     @Param('userId') userId: string,
   ) {
     return this.peopleService.getPersonProfile(currentUser.userId, userId);
+  }
+
+  @Get(':userId/social')
+  getSocial(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('userId') userId: string,
+  ) {
+    return this.peopleService.getProfileSocial(currentUser.userId, userId);
+  }
+
+  @Put(':userId/follow')
+  follow(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('userId') userId: string,
+  ) {
+    return this.peopleService.setFollow(currentUser.userId, userId, true);
+  }
+
+  @Delete(':userId/follow')
+  unfollow(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('userId') userId: string,
+  ) {
+    return this.peopleService.setFollow(currentUser.userId, userId, false);
+  }
+
+  @Put(':userId/reactions/:kind')
+  setReaction(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('userId') userId: string,
+    @Param('kind') kind: string,
+  ) {
+    return this.peopleService.setProfileReaction(
+      currentUser.userId,
+      userId,
+      this.peopleService.normalizeProfileReactionKind(kind),
+      true,
+    );
+  }
+
+  @Delete(':userId/reactions/:kind')
+  removeReaction(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('userId') userId: string,
+    @Param('kind') kind: string,
+  ) {
+    return this.peopleService.setProfileReaction(
+      currentUser.userId,
+      userId,
+      this.peopleService.normalizeProfileReactionKind(kind),
+      false,
+    );
   }
 
   @Post(':userId/direct-chat')

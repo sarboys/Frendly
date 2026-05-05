@@ -5,6 +5,7 @@ import {
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
+import { ProfileReactionKind } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
 import { normalizeSearchQuery } from '../common/search-query';
@@ -13,6 +14,15 @@ import { PrismaService } from './prisma.service';
 type PeopleCursor = {
   id: string;
   displayName: string;
+};
+
+type ProfileSocialSnapshot = {
+  followers: number;
+  likes: number;
+  superLikes: number;
+  iFollow: boolean;
+  iLike: boolean;
+  iSuper: boolean;
 };
 
 @Injectable()
@@ -316,6 +326,8 @@ export class PeopleService {
 
     const profile = mapBasicProfile(user);
 
+    const social = await this.getProfileSocialSnapshot(currentUserId, userId);
+
     return {
       ...profile,
       age:
@@ -328,11 +340,205 @@ export class PeopleService {
             )
           : [],
       intent: user.onboarding?.intent,
+      social,
     };
+  }
+
+  async getProfileSocial(
+    currentUserId: string,
+    targetUserId: string,
+  ): Promise<ProfileSocialSnapshot> {
+    await this.assertSocialTargetVisible(currentUserId, targetUserId, {
+      allowSelf: true,
+    });
+    return this.getProfileSocialSnapshot(currentUserId, targetUserId);
+  }
+
+  async setFollow(
+    currentUserId: string,
+    targetUserId: string,
+    follow: boolean,
+  ): Promise<ProfileSocialSnapshot> {
+    await this.assertSocialTargetVisible(currentUserId, targetUserId);
+
+    if (follow) {
+      await this.prismaService.client.userFollow.upsert({
+        where: {
+          followerUserId_targetUserId: {
+            followerUserId: currentUserId,
+            targetUserId,
+          },
+        },
+        update: {},
+        create: {
+          followerUserId: currentUserId,
+          targetUserId,
+        },
+      });
+    } else {
+      await this.prismaService.client.userFollow.deleteMany({
+        where: {
+          followerUserId: currentUserId,
+          targetUserId,
+        },
+      });
+    }
+
+    return this.getProfileSocialSnapshot(currentUserId, targetUserId);
+  }
+
+  async setProfileReaction(
+    currentUserId: string,
+    targetUserId: string,
+    kind: ProfileReactionKind,
+    active = true,
+  ): Promise<ProfileSocialSnapshot> {
+    await this.assertSocialTargetVisible(currentUserId, targetUserId);
+
+    if (active) {
+      await this.prismaService.client.profileReaction.upsert({
+        where: {
+          actorUserId_targetUserId_kind: {
+            actorUserId: currentUserId,
+            targetUserId,
+            kind,
+          },
+        },
+        update: {},
+        create: {
+          actorUserId: currentUserId,
+          targetUserId,
+          kind,
+        },
+      });
+    } else {
+      await this.prismaService.client.profileReaction.deleteMany({
+        where: {
+          actorUserId: currentUserId,
+          targetUserId,
+          kind,
+        },
+      });
+    }
+
+    return this.getProfileSocialSnapshot(currentUserId, targetUserId);
+  }
+
+  normalizeProfileReactionKind(raw: string): ProfileReactionKind {
+    if (raw === 'like') {
+      return ProfileReactionKind.like;
+    }
+    if (raw === 'super_like' || raw === 'super-like' || raw === 'super') {
+      return ProfileReactionKind.super_like;
+    }
+    throw new ApiError(
+      400,
+      'invalid_profile_reaction_kind',
+      'Invalid profile reaction kind',
+    );
   }
 
   private async getBlockedUserIds(userId: string) {
     return loadBlockedUserIds(this.prismaService.client, userId);
+  }
+
+  private async assertSocialTargetVisible(
+    currentUserId: string,
+    targetUserId: string,
+    options: { allowSelf?: boolean } = {},
+  ) {
+    if (currentUserId === targetUserId && options.allowSelf !== true) {
+      throw new ApiError(
+        400,
+        'self_social_action_not_allowed',
+        'Cannot apply social action to yourself',
+      );
+    }
+
+    if (currentUserId !== targetUserId) {
+      const blockedUserIds = await this.getBlockedUserIds(currentUserId);
+      if (blockedUserIds.has(targetUserId)) {
+        throw new ApiError(404, 'user_not_found', 'User not found');
+      }
+    }
+
+    const target = await this.prismaService.client.user.findUnique({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        settings: {
+          select: {
+            discoverable: true,
+          },
+        },
+      },
+    });
+
+    if (!target) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
+    }
+    if (
+      currentUserId !== targetUserId &&
+      target.settings?.discoverable === false
+    ) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
+    }
+  }
+
+  private async getProfileSocialSnapshot(
+    currentUserId: string,
+    targetUserId: string,
+  ): Promise<ProfileSocialSnapshot> {
+    const [
+      followers,
+      likes,
+      superLikes,
+      follow,
+      reactions,
+    ] = await Promise.all([
+      this.prismaService.client.userFollow.count({
+        where: { targetUserId },
+      }),
+      this.prismaService.client.profileReaction.count({
+        where: { targetUserId, kind: ProfileReactionKind.like },
+      }),
+      this.prismaService.client.profileReaction.count({
+        where: { targetUserId, kind: ProfileReactionKind.super_like },
+      }),
+      currentUserId === targetUserId
+        ? Promise.resolve(null)
+        : this.prismaService.client.userFollow.findUnique({
+            where: {
+              followerUserId_targetUserId: {
+                followerUserId: currentUserId,
+                targetUserId,
+              },
+            },
+            select: { id: true },
+          }),
+      currentUserId === targetUserId
+        ? Promise.resolve([])
+        : this.prismaService.client.profileReaction.findMany({
+            where: {
+              actorUserId: currentUserId,
+              targetUserId,
+              kind: {
+                in: [ProfileReactionKind.like, ProfileReactionKind.super_like],
+              },
+            },
+            select: { kind: true },
+          }),
+    ]);
+    const activeKinds = new Set(reactions.map((entry) => entry.kind));
+
+    return {
+      followers,
+      likes,
+      superLikes,
+      iFollow: follow != null,
+      iLike: activeKinds.has(ProfileReactionKind.like),
+      iSuper: activeKinds.has(ProfileReactionKind.super_like),
+    };
   }
 
   private isDirectChatDuplicateError(error: unknown) {

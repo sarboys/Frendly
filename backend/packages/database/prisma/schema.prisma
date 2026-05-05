@@ -107,6 +107,11 @@ enum DatingActionKind {
   super_like
 }
 
+enum ProfileReactionKind {
+  like
+  super_like
+}
+
 enum EventAccessMode {
   open
   request
@@ -289,6 +294,10 @@ model User {
   authAuditEvents                    AuthAuditEvent[]
   datingActionsSent                  DatingAction[]              @relation("DatingActionActor")
   datingActionsReceived              DatingAction[]              @relation("DatingActionTarget")
+  followsSent                         UserFollow[]                @relation("UserFollowFollower")
+  followsReceived                     UserFollow[]                @relation("UserFollowTarget")
+  profileReactionsSent                ProfileReaction[]           @relation("ProfileReactionActor")
+  profileReactionsReceived            ProfileReaction[]           @relation("ProfileReactionTarget")
   eveningStepActions                 UserEveningStepAction[]
   hostedEveningSessions              EveningSession[]            @relation("EveningSessionHost")
   eveningSessionParticipants         EveningSessionParticipant[]
@@ -1669,6 +1678,33 @@ model DatingAction {
   @@index([targetUserId, action, actorUserId])
   @@index([actorUserId, action, createdAt])
   @@index([actorUserId, action, updatedAt, targetUserId])
+}
+
+model UserFollow {
+  id             String   @id @default(cuid())
+  followerUserId String
+  targetUserId   String
+  createdAt      DateTime @default(now())
+  followerUser   User     @relation("UserFollowFollower", fields: [followerUserId], references: [id], onDelete: Cascade)
+  targetUser     User     @relation("UserFollowTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([followerUserId, targetUserId])
+  @@index([targetUserId, createdAt])
+  @@index([followerUserId, createdAt])
+}
+
+model ProfileReaction {
+  id           String              @id @default(cuid())
+  actorUserId  String
+  targetUserId String
+  kind         ProfileReactionKind
+  createdAt    DateTime            @default(now())
+  actorUser    User                @relation("ProfileReactionActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  targetUser   User                @relation("ProfileReactionTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([actorUserId, targetUserId, kind])
+  @@index([targetUserId, kind, createdAt])
+  @@index([actorUserId, targetUserId])
 }
 
 model Community {

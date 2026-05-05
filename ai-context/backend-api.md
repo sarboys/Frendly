@@ -68,6 +68,18 @@ Chats:
 - `GET /chats/:chatId/messages`
 - `POST /chats/:chatId/read`
 - Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
+- Meetup chat list items expose paid ticket summary from the linked source. Legacy `Poster` uses `sourcePoster.ticketUrl`, `priceFrom`, `provider` and `venue`; public Affiche uses `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.
+
+People:
+
+- `GET /people/:userId`
+- `GET /people/:userId/social`
+- `PUT /people/:userId/follow`
+- `DELETE /people/:userId/follow`
+- `PUT /people/:userId/reactions/:kind`
+- `DELETE /people/:userId/reactions/:kind`
+- `POST /people/:userId/direct-chat`
+- Public profile responses include `social` with follower, like, super-like counts and viewer flags. Profile social actions are independent from dating actions. Backend rejects follow, like and super-like on yourself.
 
 Evening:
 
@@ -147,6 +159,8 @@ Admin Evening route review:
 - Nearby event list without PostGIS uses two-phase loading: light candidate rows with ids and coordinates first, then full list includes only for the selected page ids. Optional PostGIS candidate scan stays behind `ENABLE_POSTGIS_EVENT_FEED=true`; it must apply the same key public feed filters before returning candidate ids, including canceled state, visibility, gender visibility, date window, route flags, text query, lifestyle, gender, access and price.
 - Mobile remote search keeps grouped search limits bounded instead of requesting 20 items per group.
 - Chat list member previews are bounded and block-aware. Meetup previews include `memberProfiles` so clients do not use display names as ids.
+- Profile social snapshots are local to a profile request or explicit `/people/:userId/social` request. Do not hydrate profile social for every list row unless the endpoint explicitly returns a bounded preview.
+- Meetup ticket summary is part of chat summary. Mobile must not fetch poster or affiche detail just to render the chat buy-ticket block.
 - Chat history hides blocked `replyTo` previews.
 - Cursors carry sort keys plus id when possible.
 - Direct upload complete is idempotent by object key, owner, kind and target.

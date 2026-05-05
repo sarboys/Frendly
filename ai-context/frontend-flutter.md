@@ -70,8 +70,11 @@ Use this file for Flutter behavior, state and performance rules.
 - Affiche detail can open Create Meetup through `/create?afficheEventId=<id>`. `CreateMeetupScreen` loads the event detail, prefills title, description, date, place, price and coordinates, then sends `afficheEventId` to `POST /events`. It must not combine affiche source with poster or route source.
 - Evening route steps can include `ticketUrl`, `ticketSourceCode` and `ticketProvider`. `EveningPlanScreen` opens HTTPS ticket URLs with `url_launcher` external mode before marking the ticket as bought.
 - Meetup chat participants use `memberProfiles.userId` for profile and direct-chat actions. Do not route by display name from `members`.
+- User profiles render `BbSocialActions.full` from `shared/widgets/bb_social_actions.dart`. It uses `ProfileData.social` for the first frame and `profileSocialProvider(userId)` for scoped optimistic follow, like and super-like actions.
+- Reuse `BbSocialActions.compact` or `BbSocialActions.row` only when a list already has bounded social data for that user. Do not start one social request per visible list item.
+- Meetup chat paid ticket CTA is rendered from `MeetupChat` ticket summary fields under the pinned meetup card. It supports legacy Poster and public Affiche sources and opens `ticketUrl` through `url_launcher` external mode.
 - Evening route catalog mirrors `front/src/components/bigbreak/screens/Routes.tsx`.
-- Global system overlays live in `shared/widgets/bb_system_overlays.dart`: admin-ready announcement banner state, city-limit toast, and chat members sheet.
+- Global system overlays live in `shared/widgets/bb_system_overlays.dart`: admin-ready announcement banner state, city-limit toast, and chat members sheet. Announcement banners use a card surface, left severity stripe, soft icon tile and CTA with arrow.
 
 ## State and network
 
