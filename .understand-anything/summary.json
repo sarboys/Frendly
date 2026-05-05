@@ -1,0 +1,63 @@
+{
+  "project": {
+    "name": "Frendly backend-mobile-admin",
+    "description": "Focused graph for backend, mobile Flutter app, admin app, business logic, and their runtime/deploy links."
+  },
+  "filesAnalyzed": 597,
+  "fileCategories": {
+    "infra": 16,
+    "config": 31,
+    "code": 486,
+    "markup": 1,
+    "data": 59,
+    "docs": 3,
+    "script": 1
+  },
+  "nodeTypes": {
+    "service": 19,
+    "pipeline": 31,
+    "config": 31,
+    "file": 487,
+    "function": 689,
+    "class": 131,
+    "table": 376,
+    "schema": 1,
+    "document": 3,
+    "domain": 7,
+    "flow": 12,
+    "step": 65
+  },
+  "edgeTypes": {
+    "contains": 1171,
+    "imports": 602,
+    "contains_flow": 12,
+    "flow_step": 65,
+    "cross_domain": 8
+  },
+  "layers": [
+    "Business Logic",
+    "Admin React",
+    "Backend API",
+    "Backend Realtime",
+    "Backend Shared",
+    "Backend Worker",
+    "Database",
+    "Deploy",
+    "Mobile Flutter",
+    "Root",
+    "Shared Contracts",
+    "Telegram Relay"
+  ],
+  "tourSteps": 5,
+  "businessLogic": {
+    "domains": 7,
+    "flows": 12,
+    "steps": 65,
+    "domainGraphPath": "/Users/sergeypolyakov/MyApp/.understand-anything/domain-graph.json"
+  },
+  "review": {
+    "issues": [],
+    "warnings": []
+  },
+  "outputPath": "/Users/sergeypolyakov/MyApp/.understand-anything/knowledge-graph.json"
+}

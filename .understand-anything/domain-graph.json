@@ -1,0 +1,2257 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Frendly Business Logic",
+    "description": "Business domain map for backend, mobile, and admin flows.",
+    "languages": [
+      "css",
+      "dart",
+      "docker-compose",
+      "dockerfile",
+      "javascript",
+      "json",
+      "makefile",
+      "markdown",
+      "prisma",
+      "shell",
+      "sql",
+      "toml",
+      "typescript",
+      "yaml"
+    ],
+    "frameworks": [
+      "Flutter",
+      "NestJS",
+      "Prisma",
+      "React",
+      "Vite"
+    ],
+    "analyzedAt": "2026-05-05T10:09:49.390Z",
+    "gitCommitHash": "d7391854b125f8f581a4d47a39e06d3cfa2428d0"
+  },
+  "nodes": [
+    {
+      "id": "domain:identity-and-session",
+      "type": "domain",
+      "name": "Identity and Session",
+      "summary": "Handles phone login, Telegram login, social login, token refresh, logout, and current user lookup.",
+      "tags": [
+        "auth",
+        "session",
+        "user"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "User",
+          "Session",
+          "PhoneOtpChallenge",
+          "TelegramLoginSession",
+          "ExternalAuthAccount",
+          "AdminUser",
+          "PartnerAccount"
+        ],
+        "businessRules": [
+          "A user needs a valid session token for protected mobile API calls.",
+          "Phone OTP, Telegram, Google, and Yandex login all converge into user/session creation.",
+          "Admin and partner accounts use separate auth flows from regular users."
+        ],
+        "crossDomainInteractions": [
+          "Profile and onboarding",
+          "Events and evening routes",
+          "Chat and realtime",
+          "Admin operations"
+        ]
+      }
+    },
+    {
+      "id": "domain:events-and-meetups",
+      "type": "domain",
+      "name": "Events and Meetups",
+      "summary": "Covers event discovery, event creation, join requests, invites, participation, check-in, live meetup state, after-party, and feedback.",
+      "tags": [
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "Event",
+          "EventParticipant",
+          "EventJoinRequest",
+          "EventAttendance",
+          "EventLiveState",
+          "EventFeedback",
+          "Chat"
+        ],
+        "businessRules": [
+          "Event lists filter blocked users and apply access, lifestyle, price, gender, date, and geo constraints.",
+          "Capacity is checked before joining or approving requests.",
+          "Hosts can approve requests, reject requests, start live state, finish live state, and manually check in participants."
+        ],
+        "crossDomainInteractions": [
+          "Chat and realtime",
+          "Safety and trust",
+          "Media and stories",
+          "Notifications"
+        ]
+      }
+    },
+    {
+      "id": "domain:evening-routes-and-sessions",
+      "type": "domain",
+      "name": "Evening Routes and Sessions",
+      "summary": "Handles route templates, route recommendation, session launch, session join flow, step check-ins, partner offer codes, after-party feedback, and route completion.",
+      "tags": [
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "EveningRouteTemplate",
+          "EveningRoute",
+          "EveningRouteStep",
+          "EveningSession",
+          "EveningSessionParticipant",
+          "EveningJoinRequest",
+          "PartnerOfferCode"
+        ],
+        "businessRules": [
+          "Route options are selected by goal, mood, budget, format, and area.",
+          "Session privacy controls whether joining is open, request based, or invite based.",
+          "Partner offer codes are issued per user, session, step, and offer."
+        ],
+        "crossDomainInteractions": [
+          "Admin operations",
+          "Chat and realtime",
+          "Partner portal",
+          "Worker automation"
+        ]
+      }
+    },
+    {
+      "id": "domain:chat-and-realtime",
+      "type": "domain",
+      "name": "Chat and Realtime",
+      "summary": "Owns meetup chats, direct chats, message history, unread counts, read state, WebSocket auth, queued mobile commands, message attachments, and realtime fanout.",
+      "tags": [
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "Chat",
+          "ChatMember",
+          "Message",
+          "MessageAttachment",
+          "RealtimeEvent",
+          "OutboxEvent"
+        ],
+        "businessRules": [
+          "Users can only read chats they belong to.",
+          "Blocked users are filtered from chat previews and message history.",
+          "Mobile queues outgoing commands when the socket is unavailable and restores them after reconnect."
+        ],
+        "crossDomainInteractions": [
+          "Events and meetups",
+          "Evening routes",
+          "Media uploads",
+          "Worker outbox"
+        ]
+      }
+    },
+    {
+      "id": "domain:profile-discovery-and-social",
+      "type": "domain",
+      "name": "Profile Discovery and Social",
+      "summary": "Covers profile editing, onboarding, public user profiles, people discovery, dating discovery, likes, matches, communities, stories, posters, and shares.",
+      "tags": [
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "Profile",
+          "ProfilePhoto",
+          "Onboarding",
+          "DatingProfile",
+          "DatingAction",
+          "Match",
+          "Community",
+          "Story",
+          "Poster",
+          "Share"
+        ],
+        "businessRules": [
+          "Discovery excludes blocked users and respects viewer state.",
+          "Dating actions produce likes, skips, or matches depending on reciprocal state.",
+          "Profile media and public share links are mediated through backend ownership checks."
+        ],
+        "crossDomainInteractions": [
+          "Identity and session",
+          "Events and meetups",
+          "Media uploads",
+          "Safety and trust"
+        ]
+      }
+    },
+    {
+      "id": "domain:safety-trust-and-notifications",
+      "type": "domain",
+      "name": "Safety Trust and Notifications",
+      "summary": "Handles safety preferences, trusted contacts, reports, user blocks, SOS, verification, notifications, push tokens, and background delivery.",
+      "tags": [
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entities": [
+          "SafetySettings",
+          "TrustedContact",
+          "Report",
+          "UserBlock",
+          "SosEvent",
+          "Verification",
+          "Notification",
+          "PushToken"
+        ],
+        "businessRules": [
+          "Blocked users are filtered from discovery, events, and chat views.",
+          "Push tokens are registered per user/device and can be removed by token or device id.",
+          "Reports and SOS actions preserve user context for review and support."
+        ],
+        "crossDomainInteractions": [
+          "Events and meetups",
+          "Chat and realtime",
+          "Profile discovery",
+          "Worker delivery"
+        ]
+      }
+    },
+    {
+      "id": "domain:admin-and-partner-operations",
+      "type": "domain",
+      "name": "Admin and Partner Operations",
+      "summary": "Covers admin login, partner account approval, route template management, venue and offer management, partner portal meetups, community content, posters, and featured requests.",
+      "tags": [
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "AdminUser",
+          "PartnerAccount",
+          "Partner",
+          "Venue",
+          "PartnerOffer",
+          "EveningRouteTemplate",
+          "Poster",
+          "FeaturedRequest"
+        ],
+        "businessRules": [
+          "Partner accounts can be approved, rejected, or suspended by admins.",
+          "Evening route templates can be drafted, revised, published, or archived.",
+          "Partner content goes through create, update, submit, archive, and review states."
+        ],
+        "crossDomainInteractions": [
+          "Evening routes",
+          "Events and meetups",
+          "Profile discovery",
+          "Partner offer codes"
+        ]
+      }
+    },
+    {
+      "id": "flow:phone-and-social-login",
+      "type": "flow",
+      "name": "Phone and Social Login",
+      "summary": "User authenticates with phone OTP, Telegram, Google, Yandex, or test shortcut, then receives access and refresh tokens.",
+      "tags": [
+        "business-flow",
+        "auth",
+        "session",
+        "user"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "POST /auth/phone/request, POST /auth/phone/verify, POST /auth/telegram/verify, POST /auth/google/verify, POST /auth/yandex/verify",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:event-discovery",
+      "type": "flow",
+      "name": "Event Discovery",
+      "summary": "Mobile requests event lists with filters, search, geo bounds, and pagination. Backend filters blocked users and maps events into cards.",
+      "tags": [
+        "business-flow",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "GET /events",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:meetup-join-and-live",
+      "type": "flow",
+      "name": "Meetup Join and Live",
+      "summary": "User joins or requests access to an event, host reviews requests, participants check in, and the meetup moves through live and after-party states.",
+      "tags": [
+        "business-flow",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "POST /events/:eventId/join, POST /host/requests/:requestId/approve, POST /events/:eventId/check-in/confirm",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:evening-route-session",
+      "type": "flow",
+      "name": "Evening Route Session",
+      "summary": "User resolves a route, launches a session, guests join, steps are checked in or advanced, and the route finishes with after-party state.",
+      "tags": [
+        "business-flow",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "POST /evening/routes/resolve, POST /evening/routes/:routeId/launch, POST /evening/sessions/:sessionId/start",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:partner-offer-code",
+      "type": "flow",
+      "name": "Partner Offer Code",
+      "summary": "An evening session step can issue a partner offer code, check code status, and activate public codes.",
+      "tags": [
+        "business-flow",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "POST /evening/sessions/:sessionId/steps/:stepId/offers/:offerId/code",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:message-sync",
+      "type": "flow",
+      "name": "Message Sync",
+      "summary": "Mobile opens a chat, loads history through REST, sends commands over WebSocket, stores offline commands, and marks messages read.",
+      "tags": [
+        "business-flow",
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "GET /chats/:chatId/messages and WebSocket chat commands",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:profile-and-onboarding",
+      "type": "flow",
+      "name": "Profile and Onboarding",
+      "summary": "User completes onboarding, edits profile fields, uploads photos, and exposes a viewer-safe profile to other users.",
+      "tags": [
+        "business-flow",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "GET /onboarding/me, PUT /onboarding/me, PATCH /profile/me",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:dating-match",
+      "type": "flow",
+      "name": "Dating Match",
+      "summary": "Users browse dating profiles, review likes, send dating actions, and receive matches when actions become reciprocal.",
+      "tags": [
+        "business-flow",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "GET /dating/discover, GET /dating/likes, POST /dating/actions",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:safety-and-blocking",
+      "type": "flow",
+      "name": "Safety and Blocking",
+      "summary": "User configures safety data, manages trusted contacts, reports incidents, blocks users, and can fire SOS.",
+      "tags": [
+        "business-flow",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "GET /safety/me, POST /reports, POST /blocks, POST /safety/sos",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:push-notification-delivery",
+      "type": "flow",
+      "name": "Push Notification Delivery",
+      "summary": "Mobile registers push tokens, backend stores them, worker reads outbox events, and providers dispatch push messages.",
+      "tags": [
+        "business-flow",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "POST /push-tokens and worker outbox loop",
+        "entryType": "event"
+      }
+    },
+    {
+      "id": "flow:admin-route-template-lifecycle",
+      "type": "flow",
+      "name": "Admin Route Template Lifecycle",
+      "summary": "Admin creates evening route templates, edits steps, publishes, archives, revises, and can generate AI drafts.",
+      "tags": [
+        "business-flow",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "GET/POST/PATCH /admin/evening/route-templates and /admin/evening/ai",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "flow:partner-content-operations",
+      "type": "flow",
+      "name": "Partner Content Operations",
+      "summary": "Partner portal manages meetups, communities, posters, media, and featured requests while admin manages partner account status.",
+      "tags": [
+        "business-flow",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Partner portal and admin partner account endpoints",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:phone-and-social-login:collect-login-input",
+      "type": "step",
+      "name": "Collect login input",
+      "summary": "Phone, Telegram, Google, or Yandex data is accepted by AuthController.",
+      "tags": [
+        "business-step",
+        "auth",
+        "session",
+        "user"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
+      "lineRange": [
+        77,
+        168
+      ]
+    },
+    {
+      "id": "step:phone-and-social-login:validate-identity-proof",
+      "type": "step",
+      "name": "Validate identity proof",
+      "summary": "AuthService, TelegramAuthService, or SocialAuthService validates the submitted proof.",
+      "tags": [
+        "business-step",
+        "auth",
+        "session",
+        "user"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/auth.service.ts",
+      "lineRange": [
+        65,
+        439
+      ]
+    },
+    {
+      "id": "step:phone-and-social-login:find-or-create-user",
+      "type": "step",
+      "name": "Find or create user",
+      "summary": "The backend links the verified identity to a user record.",
+      "tags": [
+        "business-step",
+        "auth",
+        "session",
+        "user"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/auth.service.ts",
+      "lineRange": [
+        574,
+        617
+      ]
+    },
+    {
+      "id": "step:phone-and-social-login:create-session",
+      "type": "step",
+      "name": "Create session",
+      "summary": "A session record and token pair are created for the client.",
+      "tags": [
+        "business-step",
+        "auth",
+        "session",
+        "user"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/auth.service.ts",
+      "lineRange": [
+        618,
+        699
+      ]
+    },
+    {
+      "id": "step:phone-and-social-login:bootstrap-mobile-session",
+      "type": "step",
+      "name": "Bootstrap mobile session",
+      "summary": "Mobile stores tokens and loads the current user through BackendRepository.",
+      "tags": [
+        "business-step",
+        "auth",
+        "session",
+        "user"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/shared/data/backend_repository.dart",
+      "lineRange": [
+        197,
+        300
+      ]
+    },
+    {
+      "id": "step:event-discovery:request-filtered-list",
+      "type": "step",
+      "name": "Request filtered list",
+      "summary": "EventsController reads filter, search, geo, date, and pagination query params.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/controllers/events.controller.ts",
+      "lineRange": [
+        9,
+        47
+      ]
+    },
+    {
+      "id": "step:event-discovery:build-query-constraints",
+      "type": "step",
+      "name": "Build query constraints",
+      "summary": "EventsService resolves blocked users, viewer gender, filters, cursor, and geo query.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        94,
+        175
+      ]
+    },
+    {
+      "id": "step:event-discovery:load-and-order-events",
+      "type": "step",
+      "name": "Load and order events",
+      "summary": "Events are loaded through Prisma and optional PostGIS candidates, then ordered and paginated.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        176,
+        284
+      ]
+    },
+    {
+      "id": "step:event-discovery:map-event-cards",
+      "type": "step",
+      "name": "Map event cards",
+      "summary": "Event summaries include participant state, attendance, live state, and viewer-specific fields.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        176,
+        284
+      ]
+    },
+    {
+      "id": "step:event-discovery:render-mobile-surfaces",
+      "type": "step",
+      "name": "Render mobile surfaces",
+      "summary": "Mobile fetches events through BackendRepository and shows tonight, map, search, and event detail screens.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/shared/data/backend_repository.dart",
+      "lineRange": [
+        358,
+        409
+      ]
+    },
+    {
+      "id": "step:meetup-join-and-live:join-or-request",
+      "type": "step",
+      "name": "Join or request",
+      "summary": "EventsController routes direct join and join-request calls to EventsService.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/controllers/events.controller.ts",
+      "lineRange": [
+        54,
+        66
+      ]
+    },
+    {
+      "id": "step:meetup-join-and-live:enforce-capacity-and-access",
+      "type": "step",
+      "name": "Enforce capacity and access",
+      "summary": "EventsService validates blocked users, capacity, event status, and request state.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        428,
+        680
+      ]
+    },
+    {
+      "id": "step:meetup-join-and-live:host-reviews-requests",
+      "type": "step",
+      "name": "Host reviews requests",
+      "summary": "HostService approves or rejects join requests from the host dashboard.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/host.service.ts",
+      "lineRange": [
+        372,
+        557
+      ]
+    },
+    {
+      "id": "step:meetup-join-and-live:confirm-check-in",
+      "type": "step",
+      "name": "Confirm check-in",
+      "summary": "EventsService validates check-in data and writes attendance state.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        1508,
+        1612
+      ]
+    },
+    {
+      "id": "step:meetup-join-and-live:run-live-and-after-party",
+      "type": "step",
+      "name": "Run live and after-party",
+      "summary": "Live meetup and after-party data are exposed after check-in and meetup progress.",
+      "tags": [
+        "business-step",
+        "events",
+        "meetups",
+        "host"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        1613,
+        1779
+      ]
+    },
+    {
+      "id": "step:evening-route-session:resolve-route",
+      "type": "step",
+      "name": "Resolve route",
+      "summary": "EveningService validates goal, mood, budget, format, area, then selects a route candidate.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        98,
+        114
+      ]
+    },
+    {
+      "id": "step:evening-route-session:launch-route",
+      "type": "step",
+      "name": "Launch route",
+      "summary": "EveningService creates a session and prepares route state for the host.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        358,
+        484
+      ]
+    },
+    {
+      "id": "step:evening-route-session:join-session",
+      "type": "step",
+      "name": "Join session",
+      "summary": "Session privacy rules decide whether joining is immediate, request based, or blocked.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        660,
+        882
+      ]
+    },
+    {
+      "id": "step:evening-route-session:check-in-and-progress-steps",
+      "type": "step",
+      "name": "Check in and progress steps",
+      "summary": "Participants check in to route steps, then host or user advances, skips, or finishes.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        1103,
+        1173
+      ]
+    },
+    {
+      "id": "step:evening-route-session:after-party-and-feedback",
+      "type": "step",
+      "name": "After-party and feedback",
+      "summary": "Finished sessions expose after-party data and accept feedback/photos.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        1237,
+        1384
+      ]
+    },
+    {
+      "id": "step:evening-route-session:mobile-route-screens",
+      "type": "step",
+      "name": "Mobile route screens",
+      "summary": "Flutter screens load route/session state and drive the evening UI.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
+      "lineRange": [
+        1,
+        200
+      ]
+    },
+    {
+      "id": "step:partner-offer-code:request-code",
+      "type": "step",
+      "name": "Request code",
+      "summary": "EveningController accepts session, step, and offer ids for the current user.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/controllers/evening.controller.ts",
+      "lineRange": [
+        172,
+        186
+      ]
+    },
+    {
+      "id": "step:partner-offer-code:issue-code",
+      "type": "step",
+      "name": "Issue code",
+      "summary": "PartnerOfferCodeService checks access and creates a code for the user and offer.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-offer-code.service.ts",
+      "lineRange": [
+        70,
+        153
+      ]
+    },
+    {
+      "id": "step:partner-offer-code:read-code-status",
+      "type": "step",
+      "name": "Read code status",
+      "summary": "The user can query code status from the authenticated evening API.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-offer-code.service.ts",
+      "lineRange": [
+        154,
+        188
+      ]
+    },
+    {
+      "id": "step:partner-offer-code:activate-public-code",
+      "type": "step",
+      "name": "Activate public code",
+      "summary": "Public code activation validates and marks the code as used.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-offer-code.service.ts",
+      "lineRange": [
+        189,
+        260
+      ]
+    },
+    {
+      "id": "step:partner-offer-code:show-qr-in-mobile",
+      "type": "step",
+      "name": "Show QR in mobile",
+      "summary": "Mobile route screens include partner offer QR entry points.",
+      "tags": [
+        "business-step",
+        "evening",
+        "routes",
+        "partners"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
+      "lineRange": [
+        1,
+        200
+      ]
+    },
+    {
+      "id": "step:message-sync:load-chat-list",
+      "type": "step",
+      "name": "Load chat list",
+      "summary": "ChatsService lists meetup or direct chats for the current user and filters blocked users.",
+      "tags": [
+        "business-step",
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/chats.service.ts",
+      "lineRange": [
+        29,
+        450
+      ]
+    },
+    {
+      "id": "step:message-sync:load-messages",
+      "type": "step",
+      "name": "Load messages",
+      "summary": "ChatsService returns paginated message history with attachments and sender data.",
+      "tags": [
+        "business-step",
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/chats.service.ts",
+      "lineRange": [
+        451,
+        545
+      ]
+    },
+    {
+      "id": "step:message-sync:connect-socket",
+      "type": "step",
+      "name": "Connect socket",
+      "summary": "ChatSocketClient opens WebSocket auth and reconnect recovery on mobile.",
+      "tags": [
+        "business-step",
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
+      "lineRange": [
+        90,
+        321
+      ]
+    },
+    {
+      "id": "step:message-sync:send-queued-command",
+      "type": "step",
+      "name": "Send queued command",
+      "summary": "Mobile persists outgoing commands and restores them after reconnect.",
+      "tags": [
+        "business-step",
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
+      "lineRange": [
+        509,
+        581
+      ]
+    },
+    {
+      "id": "step:message-sync:fan-out-realtime-events",
+      "type": "step",
+      "name": "Fan out realtime events",
+      "summary": "ChatServerService handles live commands and broadcasts updates.",
+      "tags": [
+        "business-step",
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/chat/src/chat-server.service.ts",
+      "lineRange": [
+        1,
+        220
+      ]
+    },
+    {
+      "id": "step:message-sync:mark-read",
+      "type": "step",
+      "name": "Mark read",
+      "summary": "REST and socket state update read cursor and unread counts.",
+      "tags": [
+        "business-step",
+        "chat",
+        "websocket",
+        "messages"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/chats.service.ts",
+      "lineRange": [
+        546,
+        620
+      ]
+    },
+    {
+      "id": "step:profile-and-onboarding:load-onboarding",
+      "type": "step",
+      "name": "Load onboarding",
+      "summary": "OnboardingService loads current onboarding state and session data.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/onboarding.service.ts",
+      "lineRange": [
+        163,
+        189
+      ]
+    },
+    {
+      "id": "step:profile-and-onboarding:validate-contact-availability",
+      "type": "step",
+      "name": "Validate contact availability",
+      "summary": "Onboarding can check phone/contact availability before saving.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/onboarding.service.ts",
+      "lineRange": [
+        190,
+        249
+      ]
+    },
+    {
+      "id": "step:profile-and-onboarding:save-onboarding",
+      "type": "step",
+      "name": "Save onboarding",
+      "summary": "OnboardingService persists profile and preference data.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/onboarding.service.ts",
+      "lineRange": [
+        250,
+        330
+      ]
+    },
+    {
+      "id": "step:profile-and-onboarding:update-profile",
+      "type": "step",
+      "name": "Update profile",
+      "summary": "ProfileService updates current user's profile fields.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/profile.service.ts",
+      "lineRange": [
+        56,
+        84
+      ]
+    },
+    {
+      "id": "step:profile-and-onboarding:manage-photos",
+      "type": "step",
+      "name": "Manage photos",
+      "summary": "ProfileService handles avatar and profile photo upload, ordering, primary photo, and delete.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/profile.service.ts",
+      "lineRange": [
+        85,
+        420
+      ]
+    },
+    {
+      "id": "step:profile-and-onboarding:mobile-onboarding-ui",
+      "type": "step",
+      "name": "Mobile onboarding UI",
+      "summary": "Flutter onboarding collects contact, birthday, location, and preferences.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
+      "lineRange": [
+        153,
+        222
+      ]
+    },
+    {
+      "id": "step:dating-match:list-discover-cards",
+      "type": "step",
+      "name": "List discover cards",
+      "summary": "DatingService loads eligible profiles for the viewer.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/dating.service.ts",
+      "lineRange": [
+        130,
+        211
+      ]
+    },
+    {
+      "id": "step:dating-match:list-incoming-likes",
+      "type": "step",
+      "name": "List incoming likes",
+      "summary": "DatingService returns users who liked the viewer.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/dating.service.ts",
+      "lineRange": [
+        212,
+        278
+      ]
+    },
+    {
+      "id": "step:dating-match:record-action",
+      "type": "step",
+      "name": "Record action",
+      "summary": "DatingService saves like, skip, or other action and computes match result.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/dating.service.ts",
+      "lineRange": [
+        279,
+        360
+      ]
+    },
+    {
+      "id": "step:dating-match:show-mobile-swipe-flow",
+      "type": "step",
+      "name": "Show mobile swipe flow",
+      "summary": "DatingScreen sends user action from the mobile card UI.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/features/dating/presentation/dating_screen.dart",
+      "lineRange": [
+        460,
+        520
+      ]
+    },
+    {
+      "id": "step:dating-match:list-matches",
+      "type": "step",
+      "name": "List matches",
+      "summary": "MatchesService exposes current matches.",
+      "tags": [
+        "business-step",
+        "profile",
+        "discovery",
+        "social"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/matches.service.ts",
+      "lineRange": [
+        16,
+        80
+      ]
+    },
+    {
+      "id": "step:safety-and-blocking:load-safety-state",
+      "type": "step",
+      "name": "Load safety state",
+      "summary": "SafetyService returns current safety settings and trusted contacts.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/safety.service.ts",
+      "lineRange": [
+        13,
+        92
+      ]
+    },
+    {
+      "id": "step:safety-and-blocking:manage-trusted-contacts",
+      "type": "step",
+      "name": "Manage trusted contacts",
+      "summary": "SafetyService creates and deletes trusted contacts.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/safety.service.ts",
+      "lineRange": [
+        93,
+        156
+      ]
+    },
+    {
+      "id": "step:safety-and-blocking:create-report",
+      "type": "step",
+      "name": "Create report",
+      "summary": "SafetyService records reports from the current user.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/safety.service.ts",
+      "lineRange": [
+        157,
+        282
+      ]
+    },
+    {
+      "id": "step:safety-and-blocking:block-user",
+      "type": "step",
+      "name": "Block user",
+      "summary": "SafetyService creates blocks that other domains use for filtering.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/safety.service.ts",
+      "lineRange": [
+        283,
+        352
+      ]
+    },
+    {
+      "id": "step:safety-and-blocking:fire-sos",
+      "type": "step",
+      "name": "Fire SOS",
+      "summary": "SafetyService creates an SOS event with current user context.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/safety.service.ts",
+      "lineRange": [
+        353,
+        410
+      ]
+    },
+    {
+      "id": "step:safety-and-blocking:mobile-safety-hub",
+      "type": "step",
+      "name": "Mobile safety hub",
+      "summary": "SafetyHubScreen exposes settings, reports, blocks, and SOS UI.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/features/safety/presentation/safety_hub_screen.dart",
+      "lineRange": [
+        138,
+        293
+      ]
+    },
+    {
+      "id": "step:push-notification-delivery:register-token",
+      "type": "step",
+      "name": "Register token",
+      "summary": "NotificationsService stores push token and device metadata.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/notifications.service.ts",
+      "lineRange": [
+        150,
+        208
+      ]
+    },
+    {
+      "id": "step:push-notification-delivery:create-outbox-event",
+      "type": "step",
+      "name": "Create outbox event",
+      "summary": "Business services create outbox events for async delivery.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/packages/database/src/outbox.ts",
+      "lineRange": [
+        1,
+        120
+      ]
+    },
+    {
+      "id": "step:push-notification-delivery:poll-worker",
+      "type": "step",
+      "name": "Poll worker",
+      "summary": "WorkerService reads and processes outbox events.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/worker/src/worker.service.ts",
+      "lineRange": [
+        164,
+        260
+      ]
+    },
+    {
+      "id": "step:push-notification-delivery:dispatch-provider",
+      "type": "step",
+      "name": "Dispatch provider",
+      "summary": "Push providers send platform-specific push messages.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/worker/src/push.providers.ts",
+      "lineRange": [
+        1,
+        120
+      ]
+    },
+    {
+      "id": "step:push-notification-delivery:receive-on-mobile",
+      "type": "step",
+      "name": "Receive on mobile",
+      "summary": "Mobile push token service keeps device token state in sync.",
+      "tags": [
+        "business-step",
+        "safety",
+        "trust",
+        "notifications"
+      ],
+      "complexity": "moderate",
+      "filePath": "mobile/lib/app/core/device/app_push_token_service.dart",
+      "lineRange": [
+        1,
+        160
+      ]
+    },
+    {
+      "id": "step:admin-route-template-lifecycle:create-brief",
+      "type": "step",
+      "name": "Create brief",
+      "summary": "AdminEveningAiService creates a route generation brief.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/admin-evening-ai.service.ts",
+      "lineRange": [
+        66,
+        104
+      ]
+    },
+    {
+      "id": "step:admin-route-template-lifecycle:generate-drafts",
+      "type": "step",
+      "name": "Generate drafts",
+      "summary": "AdminEveningAiService generates candidate route drafts from the brief.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/admin-evening-ai.service.ts",
+      "lineRange": [
+        105,
+        199
+      ]
+    },
+    {
+      "id": "step:admin-route-template-lifecycle:convert-draft",
+      "type": "step",
+      "name": "Convert draft",
+      "summary": "A generated draft can become a route template.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/admin-evening-ai.service.ts",
+      "lineRange": [
+        200,
+        260
+      ]
+    },
+    {
+      "id": "step:admin-route-template-lifecycle:edit-template",
+      "type": "step",
+      "name": "Edit template",
+      "summary": "AdminEveningRouteService creates, updates, and revises templates.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/admin-evening-route.service.ts",
+      "lineRange": [
+        34,
+        134
+      ]
+    },
+    {
+      "id": "step:admin-route-template-lifecycle:publish-or-archive",
+      "type": "step",
+      "name": "Publish or archive",
+      "summary": "AdminEveningRouteService moves templates into published or archived state.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/admin-evening-route.service.ts",
+      "lineRange": [
+        135,
+        219
+      ]
+    },
+    {
+      "id": "step:admin-route-template-lifecycle:admin-ui",
+      "type": "step",
+      "name": "Admin UI",
+      "summary": "Admin EveningRoutes page and RouteStepEditor drive this workflow.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "admin/src/admin/pages/EveningRoutes.tsx",
+      "lineRange": [
+        1,
+        220
+      ]
+    },
+    {
+      "id": "step:partner-content-operations:review-partner-account",
+      "type": "step",
+      "name": "Review partner account",
+      "summary": "PartnerAuthService and admin partner controllers approve, reject, or suspend partner accounts.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-auth.service.ts",
+      "lineRange": [
+        171,
+        252
+      ]
+    },
+    {
+      "id": "step:partner-content-operations:create-partner-meetup",
+      "type": "step",
+      "name": "Create partner meetup",
+      "summary": "PartnerPortalService creates and updates meetups owned by the partner.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-portal.service.ts",
+      "lineRange": [
+        34,
+        231
+      ]
+    },
+    {
+      "id": "step:partner-content-operations:review-join-requests",
+      "type": "step",
+      "name": "Review join requests",
+      "summary": "PartnerPortalService lists and reviews meetup join requests.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-portal.service.ts",
+      "lineRange": [
+        263,
+        351
+      ]
+    },
+    {
+      "id": "step:partner-content-operations:manage-community-content",
+      "type": "step",
+      "name": "Manage community content",
+      "summary": "PartnerPortalService creates communities, news, and media.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-portal.service.ts",
+      "lineRange": [
+        352,
+        538
+      ]
+    },
+    {
+      "id": "step:partner-content-operations:manage-posters-and-featured-requests",
+      "type": "step",
+      "name": "Manage posters and featured requests",
+      "summary": "PartnerPortalService creates, submits, updates, and archives poster and featured request content.",
+      "tags": [
+        "business-step",
+        "admin",
+        "partner",
+        "operations"
+      ],
+      "complexity": "moderate",
+      "filePath": "backend/apps/api/src/services/partner-portal.service.ts",
+      "lineRange": [
+        539,
+        690
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "domain:identity-and-session",
+      "target": "flow:phone-and-social-login",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:events-and-meetups",
+      "target": "flow:event-discovery",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:events-and-meetups",
+      "target": "flow:meetup-join-and-live",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:evening-routes-and-sessions",
+      "target": "flow:evening-route-session",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:evening-routes-and-sessions",
+      "target": "flow:partner-offer-code",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:chat-and-realtime",
+      "target": "flow:message-sync",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:profile-discovery-and-social",
+      "target": "flow:profile-and-onboarding",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:profile-discovery-and-social",
+      "target": "flow:dating-match",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:safety-trust-and-notifications",
+      "target": "flow:safety-and-blocking",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:safety-trust-and-notifications",
+      "target": "flow:push-notification-delivery",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:admin-and-partner-operations",
+      "target": "flow:admin-route-template-lifecycle",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:admin-and-partner-operations",
+      "target": "flow:partner-content-operations",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:phone-and-social-login",
+      "target": "step:phone-and-social-login:collect-login-input",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:phone-and-social-login",
+      "target": "step:phone-and-social-login:validate-identity-proof",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:phone-and-social-login",
+      "target": "step:phone-and-social-login:find-or-create-user",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:phone-and-social-login",
+      "target": "step:phone-and-social-login:create-session",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:phone-and-social-login",
+      "target": "step:phone-and-social-login:bootstrap-mobile-session",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:event-discovery",
+      "target": "step:event-discovery:request-filtered-list",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:event-discovery",
+      "target": "step:event-discovery:build-query-constraints",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:event-discovery",
+      "target": "step:event-discovery:load-and-order-events",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:event-discovery",
+      "target": "step:event-discovery:map-event-cards",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:event-discovery",
+      "target": "step:event-discovery:render-mobile-surfaces",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:meetup-join-and-live",
+      "target": "step:meetup-join-and-live:join-or-request",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:meetup-join-and-live",
+      "target": "step:meetup-join-and-live:enforce-capacity-and-access",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:meetup-join-and-live",
+      "target": "step:meetup-join-and-live:host-reviews-requests",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:meetup-join-and-live",
+      "target": "step:meetup-join-and-live:confirm-check-in",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:meetup-join-and-live",
+      "target": "step:meetup-join-and-live:run-live-and-after-party",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:evening-route-session",
+      "target": "step:evening-route-session:resolve-route",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:evening-route-session",
+      "target": "step:evening-route-session:launch-route",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:evening-route-session",
+      "target": "step:evening-route-session:join-session",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:evening-route-session",
+      "target": "step:evening-route-session:check-in-and-progress-steps",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:evening-route-session",
+      "target": "step:evening-route-session:after-party-and-feedback",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:evening-route-session",
+      "target": "step:evening-route-session:mobile-route-screens",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:partner-offer-code",
+      "target": "step:partner-offer-code:request-code",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:partner-offer-code",
+      "target": "step:partner-offer-code:issue-code",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:partner-offer-code",
+      "target": "step:partner-offer-code:read-code-status",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:partner-offer-code",
+      "target": "step:partner-offer-code:activate-public-code",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:partner-offer-code",
+      "target": "step:partner-offer-code:show-qr-in-mobile",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:message-sync",
+      "target": "step:message-sync:load-chat-list",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:message-sync",
+      "target": "step:message-sync:load-messages",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:message-sync",
+      "target": "step:message-sync:connect-socket",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:message-sync",
+      "target": "step:message-sync:send-queued-command",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:message-sync",
+      "target": "step:message-sync:fan-out-realtime-events",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:message-sync",
+      "target": "step:message-sync:mark-read",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:profile-and-onboarding",
+      "target": "step:profile-and-onboarding:load-onboarding",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:profile-and-onboarding",
+      "target": "step:profile-and-onboarding:validate-contact-availability",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:profile-and-onboarding",
+      "target": "step:profile-and-onboarding:save-onboarding",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:profile-and-onboarding",
+      "target": "step:profile-and-onboarding:update-profile",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:profile-and-onboarding",
+      "target": "step:profile-and-onboarding:manage-photos",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:profile-and-onboarding",
+      "target": "step:profile-and-onboarding:mobile-onboarding-ui",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:dating-match",
+      "target": "step:dating-match:list-discover-cards",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:dating-match",
+      "target": "step:dating-match:list-incoming-likes",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:dating-match",
+      "target": "step:dating-match:record-action",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:dating-match",
+      "target": "step:dating-match:show-mobile-swipe-flow",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:dating-match",
+      "target": "step:dating-match:list-matches",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:safety-and-blocking",
+      "target": "step:safety-and-blocking:load-safety-state",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:safety-and-blocking",
+      "target": "step:safety-and-blocking:manage-trusted-contacts",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:safety-and-blocking",
+      "target": "step:safety-and-blocking:create-report",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:safety-and-blocking",
+      "target": "step:safety-and-blocking:block-user",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:safety-and-blocking",
+      "target": "step:safety-and-blocking:fire-sos",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:safety-and-blocking",
+      "target": "step:safety-and-blocking:mobile-safety-hub",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:push-notification-delivery",
+      "target": "step:push-notification-delivery:register-token",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:push-notification-delivery",
+      "target": "step:push-notification-delivery:create-outbox-event",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:push-notification-delivery",
+      "target": "step:push-notification-delivery:poll-worker",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:push-notification-delivery",
+      "target": "step:push-notification-delivery:dispatch-provider",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:push-notification-delivery",
+      "target": "step:push-notification-delivery:receive-on-mobile",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:admin-route-template-lifecycle",
+      "target": "step:admin-route-template-lifecycle:create-brief",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:admin-route-template-lifecycle",
+      "target": "step:admin-route-template-lifecycle:generate-drafts",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:admin-route-template-lifecycle",
+      "target": "step:admin-route-template-lifecycle:convert-draft",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:admin-route-template-lifecycle",
+      "target": "step:admin-route-template-lifecycle:edit-template",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:admin-route-template-lifecycle",
+      "target": "step:admin-route-template-lifecycle:publish-or-archive",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:admin-route-template-lifecycle",
+      "target": "step:admin-route-template-lifecycle:admin-ui",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:partner-content-operations",
+      "target": "step:partner-content-operations:review-partner-account",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:partner-content-operations",
+      "target": "step:partner-content-operations:create-partner-meetup",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:partner-content-operations",
+      "target": "step:partner-content-operations:review-join-requests",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:partner-content-operations",
+      "target": "step:partner-content-operations:manage-community-content",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:partner-content-operations",
+      "target": "step:partner-content-operations:manage-posters-and-featured-requests",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:identity-and-session",
+      "target": "domain:events-and-meetups",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Authenticated users browse, create, and join events."
+    },
+    {
+      "source": "domain:identity-and-session",
+      "target": "domain:chat-and-realtime",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Chat socket and REST history require current user identity."
+    },
+    {
+      "source": "domain:events-and-meetups",
+      "target": "domain:chat-and-realtime",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Meetup participation creates or exposes meetup chat context."
+    },
+    {
+      "source": "domain:evening-routes-and-sessions",
+      "target": "domain:chat-and-realtime",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Evening routes can share step actions and session context into chat."
+    },
+    {
+      "source": "domain:admin-and-partner-operations",
+      "target": "domain:evening-routes-and-sessions",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Admin route templates and partner offers feed the user evening route flow."
+    },
+    {
+      "source": "domain:safety-trust-and-notifications",
+      "target": "domain:events-and-meetups",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Blocks and reports affect event visibility, participation, and review flows."
+    },
+    {
+      "source": "domain:safety-trust-and-notifications",
+      "target": "domain:chat-and-realtime",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Blocks and unread/push delivery shape chat visibility and notifications."
+    },
+    {
+      "source": "domain:profile-discovery-and-social",
+      "target": "domain:events-and-meetups",
+      "type": "cross_domain",
+      "direction": "forward",
+      "weight": 0.6,
+      "description": "Profiles, stories, posters, and shares enrich event discovery and detail pages."
+    }
+  ],
+  "layers": [],
+  "tour": []
+}

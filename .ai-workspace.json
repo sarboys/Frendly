@@ -1,0 +1,42 @@
+{
+  "name": "frendly-root",
+  "groups": [
+    "frendly"
+  ],
+  "share": [
+    "Makefile",
+    "README.md",
+    {
+      "path": "project_map.md",
+      "label": "project-map"
+    },
+    {
+      "path": "AGENTS.md",
+      "label": "agent-rules"
+    },
+    {
+      "path": "docs",
+      "label": "project-docs"
+    },
+    {
+      "path": "compose.yaml",
+      "label": "local-compose"
+    },
+    {
+      "path": "compose.prod.yml",
+      "label": "prod-compose"
+    },
+    {
+      "path": "compose.telegram-relay.yml",
+      "label": "telegram-relay-compose"
+    },
+    {
+      "path": "deploy/nginx/frendly.conf",
+      "label": "nginx-routing"
+    },
+    {
+      "path": "ai-context",
+      "label": "ai-context"
+    }
+  ]
+}
