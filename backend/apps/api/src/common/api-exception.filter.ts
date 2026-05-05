@@ -25,6 +25,17 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof HttpException) {
+      const uploadError = this.mapUploadFileSizeError(exception, request);
+      if (uploadError) {
+        const payload: ApiErrorPayload = {
+          code: uploadError.code,
+          message: uploadError.message,
+          requestId,
+        };
+        response.status(uploadError.statusCode).json(payload);
+        return;
+      }
+
       const payload: ApiErrorPayload = {
         code: 'http_error',
         message: exception.message,
@@ -42,5 +53,25 @@ export class ApiExceptionFilter implements ExceptionFilter {
     };
 
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json(payload);
+  }
+
+  private mapUploadFileSizeError(
+    exception: HttpException,
+    request: Request,
+  ): { statusCode: number; code: string; message: string } | null {
+    if (exception.getStatus() !== HttpStatus.PAYLOAD_TOO_LARGE) {
+      return null;
+    }
+
+    const path = request.path ?? request.url;
+    if (path === '/uploads/chat-attachment/file') {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        code: 'chat_attachment_too_large',
+        message: 'Attachment is too large',
+      };
+    }
+
+    return null;
   }
 }
