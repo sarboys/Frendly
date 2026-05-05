@@ -278,6 +278,14 @@ export interface ProfileSocialDto {
   iSuper: boolean;
 }
 
+export interface MeetupChatMemberProfileDto {
+  userId: string;
+  name: string;
+  online: boolean;
+  isCurrentUser: boolean;
+  social: ProfileSocialDto;
+}
+
 export interface MeetupChatTicketDto {
   ticketUrl: string | null;
   ticketSourceKind: 'poster' | 'affiche' | null;

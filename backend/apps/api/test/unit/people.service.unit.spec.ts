@@ -20,6 +20,18 @@ describe('PeopleService unit', () => {
       showAge: true,
     },
   });
+  const makeSocialClient = (overrides: any = {}) => ({
+    userFollow: {
+      groupBy: jest.fn().mockResolvedValue([]),
+      findMany: jest.fn().mockResolvedValue([]),
+      ...overrides.userFollow,
+    },
+    profileReaction: {
+      groupBy: jest.fn().mockResolvedValue([]),
+      findMany: jest.fn().mockResolvedValue([]),
+      ...overrides.profileReaction,
+    },
+  });
 
   it('caps people search query before building contains filters', async () => {
     const userFindMany = jest.fn().mockResolvedValue([]);
@@ -89,6 +101,7 @@ describe('PeopleService unit', () => {
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
         },
+        ...makeSocialClient(),
       },
     } as any);
 
@@ -107,6 +120,81 @@ describe('PeopleService unit', () => {
         }),
       }),
     );
+  });
+
+  it('adds bounded social previews to people summaries', async () => {
+    const userFindMany = jest.fn().mockResolvedValue([
+      makePerson('user-anna', 'Аня'),
+      makePerson('user-boris', 'Борис'),
+    ]);
+    const service = new PeopleService({
+      client: {
+        onboardingPreferences: {
+          findUnique: jest.fn().mockResolvedValue({
+            interests: [],
+          }),
+        },
+        user: {
+          findMany: userFindMany,
+          findUnique: jest.fn(),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        ...makeSocialClient({
+          userFollow: {
+            groupBy: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-anna', _count: { _all: 7 } },
+            ]),
+            findMany: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-anna' },
+            ]),
+          },
+          profileReaction: {
+            groupBy: jest.fn().mockResolvedValue([
+              {
+                targetUserId: 'user-anna',
+                kind: 'like',
+                _count: { _all: 12 },
+              },
+              {
+                targetUserId: 'user-anna',
+                kind: 'super_like',
+                _count: { _all: 2 },
+              },
+            ]),
+            findMany: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-anna', kind: 'like' },
+            ]),
+          },
+        }),
+      },
+    } as any);
+
+    const result = await service.listPeople('user-me', {});
+
+    expect(result.items[0]).toMatchObject({
+      id: 'user-anna',
+      social: {
+        followers: 7,
+        likes: 12,
+        superLikes: 2,
+        iFollow: true,
+        iLike: true,
+        iSuper: false,
+      },
+    });
+    expect(result.items[1]).toMatchObject({
+      id: 'user-boris',
+      social: {
+        followers: 0,
+        likes: 0,
+        superLikes: 0,
+        iFollow: false,
+        iLike: false,
+        iSuper: false,
+      },
+    });
   });
 
   it('uses people cursor payload without reading the cursor user again', async () => {
@@ -134,6 +222,7 @@ describe('PeopleService unit', () => {
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
         },
+        ...makeSocialClient(),
       },
     } as any);
 
@@ -428,6 +517,7 @@ describe('PeopleService unit', () => {
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
         },
+        ...makeSocialClient(),
       },
     } as any);
 
@@ -463,6 +553,7 @@ describe('PeopleService unit', () => {
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),
         },
+        ...makeSocialClient(),
       },
     } as any);
 

@@ -50,6 +50,18 @@ describe('ChatsService unit', () => {
     attachments: [],
     replyTo: null,
   });
+  const makeSocialClient = (overrides: any = {}) => ({
+    userFollow: {
+      groupBy: jest.fn().mockResolvedValue([]),
+      findMany: jest.fn().mockResolvedValue([]),
+      ...overrides.userFollow,
+    },
+    profileReaction: {
+      groupBy: jest.fn().mockResolvedValue([]),
+      findMany: jest.fn().mockResolvedValue([]),
+      ...overrides.profileReaction,
+    },
+  });
 
   afterEach(() => {
     delete process.env.CHAT_UNREAD_COUNTER_READS;
@@ -374,6 +386,7 @@ describe('ChatsService unit', () => {
         chatMember: {
           findMany: jest.fn().mockResolvedValue([]),
         },
+        ...makeSocialClient(),
       },
     } as any);
 
@@ -425,6 +438,7 @@ describe('ChatsService unit', () => {
         chatMember: {
           findMany: jest.fn().mockResolvedValue([]),
         },
+        ...makeSocialClient(),
       },
     } as any);
 
@@ -476,6 +490,33 @@ describe('ChatsService unit', () => {
         chatMember: {
           findMany: jest.fn().mockResolvedValue([]),
         },
+        ...makeSocialClient({
+          userFollow: {
+            groupBy: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-sonya', _count: { _all: 5 } },
+            ]),
+            findMany: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-sonya' },
+            ]),
+          },
+          profileReaction: {
+            groupBy: jest.fn().mockResolvedValue([
+              {
+                targetUserId: 'user-sonya',
+                kind: 'like',
+                _count: { _all: 9 },
+              },
+              {
+                targetUserId: 'user-sonya',
+                kind: 'super_like',
+                _count: { _all: 1 },
+              },
+            ]),
+            findMany: jest.fn().mockResolvedValue([
+              { targetUserId: 'user-sonya', kind: 'super_like' },
+            ]),
+          },
+        }),
       },
     } as any);
 
@@ -495,6 +536,14 @@ describe('ChatsService unit', () => {
           name: 'Соня М',
           online: false,
           isCurrentUser: false,
+          social: {
+            followers: 5,
+            likes: 9,
+            superLikes: 1,
+            iFollow: true,
+            iLike: false,
+            iSuper: true,
+          },
         },
       ],
     });

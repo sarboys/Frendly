@@ -8,6 +8,10 @@ import { ChatKind, Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { formatEventTime, formatRelativeTime, mapMessage } from '../common/presenters';
+import {
+  emptyProfileSocialPreview,
+  loadProfileSocialPreviews,
+} from '../common/profile-social-preview';
 import { PrismaService } from './prisma.service';
 
 const CHAT_MEMBER_PREVIEW_LIMIT = 8;
@@ -200,6 +204,16 @@ export class ChatsService {
       page.map((chat) => chat.id),
       blockedUserIds,
     );
+    const socialByUserId =
+      kind === 'meetup'
+        ? await loadProfileSocialPreviews(
+            this.prismaService.client,
+            userId,
+            page.flatMap((chat) =>
+              chat.members.map((entry) => entry.user.id),
+            ),
+          )
+        : new Map();
 
     const items = (
       await Promise.all(
@@ -230,6 +244,9 @@ export class ChatsService {
               name: entry.user.displayName,
               online: entry.user.online ?? false,
               isCurrentUser: entry.userId === userId,
+              social:
+                socialByUserId.get(entry.user.id) ??
+                emptyProfileSocialPreview(),
             }));
 
           return {

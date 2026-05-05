@@ -8,6 +8,10 @@ import {
 import { ProfileReactionKind } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
+import {
+  emptyProfileSocialPreview,
+  loadProfileSocialPreviews,
+} from '../common/profile-social-preview';
 import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
 
@@ -153,6 +157,11 @@ export class PeopleService {
     const selfInterests = new Set(Array.isArray(self?.interests) ? (self?.interests as string[]) : []);
     const hasMore = people.length > take;
     const page = hasMore ? people.slice(0, take) : people;
+    const socialByUserId = await loadProfileSocialPreviews(
+      this.prismaService.client,
+      userId,
+      page.map((person) => person.id),
+    );
     const mapped = page.map((person) => {
       const interests = Array.isArray(person.onboarding?.interests) ? (person.onboarding?.interests as string[]) : [];
       const common = interests.filter((interest) => selfInterests.has(interest));
@@ -179,6 +188,7 @@ export class PeopleService {
         avatarUrl: primaryPhoto?.url ?? person.profile?.avatarUrl ?? null,
         primaryPhoto,
         photos,
+        social: socialByUserId.get(person.id) ?? emptyProfileSocialPreview(),
       };
     });
 
