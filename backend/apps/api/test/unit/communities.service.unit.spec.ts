@@ -480,7 +480,7 @@ describe('CommunitiesService unit', () => {
 
     expect(communityFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           news: expect.objectContaining({ take: 3 }),
           meetups: expect.objectContaining({
             take: 10,
@@ -578,7 +578,7 @@ describe('CommunitiesService unit', () => {
 
     expect(communityFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           meetups: expect.objectContaining({
             take: 2,
             where: {

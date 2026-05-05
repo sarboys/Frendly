@@ -72,7 +72,7 @@ describe('AfterDarkService', () => {
 
     expect(eventFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           host: {
             select: {
               verified: true,
@@ -247,7 +247,7 @@ describe('AfterDarkService', () => {
 
     expect(eventFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           host: {
             select: {
               id: true,

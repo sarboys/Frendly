@@ -265,7 +265,7 @@ describe('ChatsService unit', () => {
 
     expect(chatFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           eveningSession: expect.objectContaining({
             select: expect.not.objectContaining({
               participants: expect.anything(),
@@ -291,7 +291,7 @@ describe('ChatsService unit', () => {
         }),
       }),
     );
-    expect(chatFindMany.mock.calls[0]?.[0].include.eveningSession.select._count)
+    expect(chatFindMany.mock.calls[0]?.[0].select.eveningSession.select._count)
       .toEqual({
         select: {
           participants: {

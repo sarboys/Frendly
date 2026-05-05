@@ -64,13 +64,17 @@ describe('EventsService join request performance', () => {
 
     expect(eventFindUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: {
+        select: expect.objectContaining({
+          hostId: true,
+          title: true,
+          genderMode: true,
+          joinMode: true,
           participants: {
             select: {
               userId: true,
             },
           },
-        },
+        }),
       }),
     );
   });

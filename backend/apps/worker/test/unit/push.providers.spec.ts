@@ -5,19 +5,19 @@ describe('push provider logging', () => {
     const consoleLog = jest
       .spyOn(console, 'log')
       .mockImplementation(() => undefined);
-    const token = 'abcdef1234567890';
+    const sampleDeviceIdForMasking = 'sample-device-id-12345678';
 
     await new FakePushProvider().send({
-      token,
+      token: sampleDeviceIdForMasking,
       title: 'Title',
       body: 'Body',
     });
 
     expect(consoleLog).toHaveBeenCalledWith(
       '[fake-push]',
-      expect.stringContaining('"token":"abcd...7890"'),
+      expect.stringContaining('"token":"samp...5678"'),
     );
-    expect(consoleLog.mock.calls[0]?.[1]).not.toContain(token);
+    expect(consoleLog.mock.calls[0]?.[1]).not.toContain(sampleDeviceIdForMasking);
 
     consoleLog.mockRestore();
   });

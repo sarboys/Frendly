@@ -172,7 +172,7 @@ describe('EventsService unit', () => {
 
     expect(eventFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           participants: expect.objectContaining({
             take: 6,
           }),
@@ -317,7 +317,7 @@ describe('EventsService unit', () => {
 
     expect(eventFindUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           host: {
             select: {
               id: true,
@@ -455,13 +455,13 @@ describe('EventsService unit', () => {
     const result = await service.getLiveMeetup('user-me', 'event-1');
     const liveEventQuery = eventFindUnique.mock.calls[1][0];
 
-    expect(liveEventQuery.include.stories).toBeUndefined();
-    expect(liveEventQuery.include.participants.where).toEqual({
+    expect(liveEventQuery.select.stories).toBeUndefined();
+    expect(liveEventQuery.select.participants.where).toEqual({
       userId: {
         notIn: ['blocked-author'],
       },
     });
-    expect(liveEventQuery.include.participants.select).toEqual({
+    expect(liveEventQuery.select.participants.select).toEqual({
       userId: true,
       user: {
         select: {
@@ -477,7 +477,7 @@ describe('EventsService unit', () => {
         },
       },
     });
-    expect(liveEventQuery.include.attendances).toEqual({
+    expect(liveEventQuery.select.attendances).toEqual({
       where: {
         userId: {
           notIn: ['blocked-author'],
@@ -488,13 +488,13 @@ describe('EventsService unit', () => {
         status: true,
       },
     });
-    expect(liveEventQuery.include.liveState).toEqual({
+    expect(liveEventQuery.select.liveState).toEqual({
       select: {
         status: true,
         startedAt: true,
       },
     });
-    expect(liveEventQuery.include.chat).toEqual({
+    expect(liveEventQuery.select.chat).toEqual({
       select: {
         id: true,
       },
@@ -555,7 +555,7 @@ describe('EventsService unit', () => {
     await service.getCheckIn('user-me', 'event-1');
 
     const checkInQuery = eventFindUnique.mock.calls[1][0];
-    expect(checkInQuery.include.participants.select).toEqual({
+    expect(checkInQuery.select.participants.select).toEqual({
       userId: true,
       user: {
         select: {
@@ -571,7 +571,7 @@ describe('EventsService unit', () => {
         },
       },
     });
-    expect(checkInQuery.include.attendances.select).toEqual({
+    expect(checkInQuery.select.attendances.select).toEqual({
       userId: true,
       status: true,
     });
@@ -617,7 +617,7 @@ describe('EventsService unit', () => {
     await service.getAfterParty('user-me', 'event-1');
 
     const afterPartyQuery = eventFindUnique.mock.calls[1][0];
-    expect(afterPartyQuery.include.participants.select).toEqual({
+    expect(afterPartyQuery.select.participants.select).toEqual({
       userId: true,
       user: {
         select: {
@@ -630,12 +630,12 @@ describe('EventsService unit', () => {
         },
       },
     });
-    expect(afterPartyQuery.include.feedbacks.select).toEqual({
+    expect(afterPartyQuery.select.feedbacks.select).toEqual({
       vibe: true,
       hostRating: true,
       note: true,
     });
-    expect(afterPartyQuery.include.favorites.select).toEqual({
+    expect(afterPartyQuery.select.favorites.select).toEqual({
       targetUserId: true,
     });
   });
@@ -754,7 +754,7 @@ describe('EventsService unit', () => {
             in: ['event-near', 'event-far'],
           },
         },
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           participants: expect.any(Object),
           joinRequests: expect.any(Object),
           attendances: expect.any(Object),
@@ -1914,7 +1914,7 @@ describe('EventsService unit', () => {
     });
     const feedbackEventQuery = eventFindUnique.mock.calls[1][0];
 
-    expect(feedbackEventQuery.include.participants).toBeUndefined();
+    expect(feedbackEventQuery.select.participants).toBeUndefined();
     expect(participantFindMany).toHaveBeenCalledWith({
       where: {
         eventId: 'event-1',

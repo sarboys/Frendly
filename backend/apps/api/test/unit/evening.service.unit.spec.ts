@@ -1952,7 +1952,7 @@ describe('EveningService unit', () => {
           ]),
         }),
       }),
-      include: expect.any(Object),
+      select: expect.any(Object),
     });
     expect(result).toMatchObject({
       sessionId: 'evening-session-new',

@@ -168,7 +168,7 @@ describe('HostService unit', () => {
     expect(eventFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 2,
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           participants: expect.objectContaining({
             where: {
               userId: {
@@ -204,7 +204,7 @@ describe('HostService unit', () => {
         }),
       }),
     );
-    expect(eventFindMany.mock.calls[0]?.[0].include).toEqual(
+    expect(eventFindMany.mock.calls[0]?.[0].select).toEqual(
       expect.not.objectContaining({
         joinRequests: expect.anything(),
       }),
@@ -540,7 +540,7 @@ describe('HostService unit', () => {
 
     expect(eventFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           participants: expect.objectContaining({
             where: {
               userId: {

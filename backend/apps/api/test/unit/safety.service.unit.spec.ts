@@ -427,6 +427,13 @@ describe('SafetyService unit', () => {
         recipientsCount: 2,
         status: 'queued',
       }),
+      select: {
+        id: true,
+        eventId: true,
+        recipientsCount: true,
+        status: true,
+        createdAt: true,
+      },
     });
     expect(outboxCreateMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
