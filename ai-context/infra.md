@@ -167,7 +167,7 @@ Flow:
 - Landing deploy: `scripts/deploy-landing.sh`.
 - Landing workflow: `landing/.github/workflows/deploy.yml`.
 - Production app path: `/opt/frendly`.
-- Deploy script uses `flock` lock before Docker cleanup and compose recreate.
+- Deploy workflow and script discard tracked local changes in server checkouts before switching to the target branch, then use `flock` before Docker cleanup and compose recreate.
 - Landing repo syncs from `https://github.com/sarboys/frendly_landing.git`.
 
 ## Checks

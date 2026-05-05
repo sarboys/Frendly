@@ -30,6 +30,8 @@ fi
 
 cd "$APP_DIR"
 git fetch origin "$BRANCH"
+git reset --hard
+git clean -fd
 git checkout -B "$BRANCH" "origin/$BRANCH"
 
 if [ -n "$TARGET_SHA" ]; then
@@ -75,6 +77,8 @@ fi
 
 cd "$LANDING_DIR"
 git fetch origin "$LANDING_BRANCH"
+git reset --hard
+git clean -fd
 git checkout -B "$LANDING_BRANCH" "origin/$LANDING_BRANCH"
 
 if [ -n "$LANDING_TARGET_SHA" ]; then
@@ -109,6 +113,8 @@ fi
 
 cd "$ADMIN_DIR"
 git fetch origin "$ADMIN_BRANCH"
+git reset --hard
+git clean -fd
 git checkout -B "$ADMIN_BRANCH" "origin/$ADMIN_BRANCH"
 
 if [ -n "$ADMIN_TARGET_SHA" ]; then
