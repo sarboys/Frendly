@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "f4a3558fe4c8254b86dd517195077c2273666247",
-  "generatedAt": "2026-05-05T11:39:35.611Z",
+  "gitCommitHash": "04c5bc510f26ba06c3c858c59877b004037b8472",
+  "generatedAt": "2026-05-05T12:27:31.069Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -17830,7 +17830,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "f6b0a325ed405aea984cbadf7f758b00c06f518d744de014c085b66222f47f07",
+      "contentHash": "1090c2c73b0f6e9a418dd0d3df1981b18a65058123972d88e5ba10b72330e8a6",
       "functions": [
         {
           "name": "safeJson",

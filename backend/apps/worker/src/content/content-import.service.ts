@@ -21,7 +21,7 @@ export type ContentImportInput = {
   to: Date;
 };
 
-const DEFAULT_IMPORT_TIMEOUT_MS = 120_000;
+const DEFAULT_IMPORT_TIMEOUT_MS = 600_000;
 const SOURCE_CITY_CODES: Record<ExternalSourceCode, Record<string, string>> = {
   kudago: {
     'Москва': 'msk',
