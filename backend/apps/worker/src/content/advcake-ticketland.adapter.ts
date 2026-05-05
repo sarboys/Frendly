@@ -38,6 +38,9 @@ const CATEGORY_MAP: Record<string, string> = {
   'кино': 'cinema',
   'фестивали': 'festival',
   'фестиваль': 'festival',
+  'спорт': 'sport',
+  'спортивные события': 'sport',
+  'спортивное событие': 'sport',
 };
 
 export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {

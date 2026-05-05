@@ -183,6 +183,22 @@ describe('content source adapters', () => {
     expect(items[0]?.startsAt?.toISOString()).toBe('2026-05-05T16:00:00.000Z');
   });
 
+  it('maps Ticketland sport offers to the affiche sport category', async () => {
+    process.env.ADVCAKE_API_PASS = 'fake-pass';
+    const adapter = new AdvCakeTicketlandAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ feeds: [{ format: 'yml', url: 'https://feeds.advcake.ru/yml-feed' }] }) as any)
+      .mockResolvedValueOnce(textResponse(ticketlandYml({
+        typePrefix: 'Спорт',
+        title: 'ЦСКА - Локомотив. Матч 2',
+      })) as any);
+
+    const items = await adapter.fetchItems(fetchInput());
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.category).toBe('sport');
+  });
+
   it('filters AdvCake offers by city, date and required fields', async () => {
     process.env.ADVCAKE_API_PASS = 'fake-pass';
     const adapter = new AdvCakeTicketlandAdapter();
@@ -295,7 +311,12 @@ function timepadEvent(id: number, startsAt: string) {
   };
 }
 
-function ticketlandYml(options: { extraOffers?: string; url?: string } = {}) {
+function ticketlandYml(options: {
+  extraOffers?: string;
+  title?: string;
+  typePrefix?: string;
+  url?: string;
+} = {}) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <yml_catalog>
   <shop>
@@ -305,10 +326,10 @@ function ticketlandYml(options: { extraOffers?: string; url?: string } = {}) {
         <picture>https://api.live.mts.ru/web-api/v3/image-scaling/?ScalingFactor=2&amp;Url=https%3A%2F%2Fmedia.ticketland.ru%2Fimages%2F250x250%2F24%2F16%2Fimage.png</picture>
         <price>1500</price>
         <currencyId>RUB</currencyId>
-        <model>Большой стендап</model>
+        <model>${options.title ?? 'Большой стендап'}</model>
         <vendor>Клуб</vendor>
         <categoryId>10</categoryId>
-        <typePrefix>Комедии</typePrefix>
+        <typePrefix>${options.typePrefix ?? 'Комедии'}</typePrefix>
         <region>Москва</region>
         <date>2026-05-05 19:00:00</date>
         <description>&lt;p&gt;Описание &amp;amp; детали&lt;/p&gt;</description>
