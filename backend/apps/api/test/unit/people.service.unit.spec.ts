@@ -311,6 +311,7 @@ describe('PeopleService unit', () => {
             vibe: true,
             rating: true,
             meetupCount: true,
+            avatarAssetId: true,
             avatarUrl: true,
             photos: {
               select: {

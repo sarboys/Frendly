@@ -159,6 +159,7 @@ Important notes:
 - Use shared image/media widgets, not raw `Image.network` on hot screens.
 - Current static check found network images centralized in shared widgets.
 - Profiles: `BbProfilePhotoImage`, `BbProfilePhotoGallery`. They set bounded memory and disk cache dimensions. Keep usage profiles and scoped cache keys when adding profile images.
+- Profile photo and avatar URLs from backend are stable `/media/:assetId` paths resolved through `resolveBackendUrl`, not direct CDN URLs.
 - Avatars: `BbAvatar` uses size scoped cache keys and avatar-sized decode/cache buckets. Use it for list/chat/profile avatars instead of raw cached images.
 - Chat images: `BbChatAttachmentImage`. It resolves local files before remote URLs and uses displayed-size decode/cache buckets for memory, file and network sources.
 - Brand marks: use `BbBrandIcon`. It points to the compact JPEG brand asset and sets bounded decode dimensions by widget size and device pixel ratio.

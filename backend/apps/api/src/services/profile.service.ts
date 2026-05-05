@@ -2,6 +2,7 @@ import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
+  buildMediaProxyPath,
   buildPublicAssetUrl,
   createPresignedUpload,
   createS3Client,
@@ -242,7 +243,7 @@ export class ProfileService {
         where: { userId },
         data: {
           avatarAssetId: asset.id,
-          avatarUrl: asset.publicUrl,
+          avatarUrl: buildMediaProxyPath(asset.id),
         },
       });
 
@@ -252,11 +253,11 @@ export class ProfileService {
     return {
       assetId: result.asset.id,
       status: result.asset.status,
-      url: result.asset.publicUrl,
+      url: buildMediaProxyPath(result.asset.id),
       media: mapMediaResource(result.asset, {
         visibility: 'public',
-        url: result.asset.publicUrl,
-        downloadUrl: result.asset.publicUrl,
+        url: buildMediaProxyPath(result.asset.id),
+        downloadUrl: buildMediaProxyPath(result.asset.id),
       }),
       photo: mapProfilePhoto(result.photo),
     };
@@ -303,7 +304,7 @@ export class ProfileService {
     return {
       assetId: next.asset.id,
       status: next.asset.status,
-      url: next.asset.publicUrl,
+      url: buildMediaProxyPath(next.asset.id),
       photo: mapProfilePhoto(next.photo),
     };
   }
@@ -349,7 +350,7 @@ export class ProfileService {
     return {
       assetId: next.asset.id,
       status: next.asset.status,
-      url: next.asset.publicUrl,
+      url: buildMediaProxyPath(next.asset.id),
       photo: mapProfilePhoto(next.photo),
     };
   }
@@ -594,6 +595,7 @@ export class ProfileService {
             vibe: true,
             rating: true,
             meetupCount: true,
+            avatarAssetId: true,
             avatarUrl: true,
             photos: {
               select: {
@@ -658,7 +660,7 @@ export class ProfileService {
       data: {
         avatarAssetId: firstPhoto?.mediaAssetId ?? null,
         avatarUrl: firstPhoto != null
-            ? firstPhoto.mediaAsset.publicUrl ?? null
+            ? buildMediaProxyPath(firstPhoto.mediaAssetId)
             : null,
       },
     });
@@ -672,7 +674,7 @@ export class ProfileService {
       where: { userId },
       data: {
         avatarAssetId: asset.id,
-        avatarUrl: asset.publicUrl,
+        avatarUrl: buildMediaProxyPath(asset.id),
       },
     });
   }
@@ -759,11 +761,12 @@ export class ProfileService {
     },
   ) {
     const next = await this.loadExistingProfilePhoto(userId, asset);
+    const photo = mapProfilePhoto(next.photo);
     return {
       assetId: next.asset.id,
       status: next.asset.status,
-      url: next.asset.publicUrl,
-      photo: mapProfilePhoto(next.photo),
+      url: photo.url,
+      photo,
     };
   }
 

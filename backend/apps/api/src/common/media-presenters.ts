@@ -93,16 +93,16 @@ export function mapProfilePhoto(
     >;
   },
 ) {
+  const url = buildMediaProxyPath(photo.mediaAsset.id);
   const media = mapMediaResource(photo.mediaAsset, {
     visibility: 'public',
-    url: photo.mediaAsset.publicUrl ?? buildMediaProxyPath(photo.mediaAsset.id),
-    downloadUrl:
-      photo.mediaAsset.publicUrl ?? buildMediaProxyPath(photo.mediaAsset.id),
+    url,
+    downloadUrl: url,
   });
 
   return {
     id: photo.id,
-    url: media.url,
+    url,
     order: photo.sortOrder,
     media,
   };

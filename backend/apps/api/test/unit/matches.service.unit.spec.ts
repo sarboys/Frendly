@@ -109,7 +109,7 @@ describe('MatchesService unit', () => {
     );
     expect(result.items[0]).toMatchObject({
       userId: 'peer-1',
-      avatarUrl: 'https://cdn.test/photo-1.jpg',
+      avatarUrl: '/media/asset-1',
       photos: expect.any(Array),
       eventId: null,
       eventTitle: 'Взаимная симпатия',

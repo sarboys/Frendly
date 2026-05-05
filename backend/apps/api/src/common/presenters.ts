@@ -9,7 +9,7 @@ import {
   Profile,
   User,
 } from '@prisma/client';
-import { buildMessagePreview } from '@big-break/database';
+import { buildMediaProxyPath, buildMessagePreview } from '@big-break/database';
 import { mapMediaAsset, mapProfilePhoto } from './media-presenters';
 
 export { mapMediaAsset, mapProfilePhoto } from './media-presenters';
@@ -171,6 +171,7 @@ type BasicProfileUser = Pick<User, 'id' | 'displayName' | 'verified' | 'online'>
         | 'rating'
         | 'meetupCount'
         | 'avatarUrl'
+        | 'avatarAssetId'
       > & {
         photos?: BasicProfilePhoto[];
       })
@@ -199,7 +200,11 @@ export function mapBasicProfile(user: BasicProfileUser) {
     vibe: user.profile?.vibe ?? null,
     rating: user.profile?.rating ?? 0,
     meetupCount: user.profile?.meetupCount ?? 0,
-    avatarUrl: photos[0]?.url ?? user.profile?.avatarUrl ?? null,
+    avatarUrl:
+      photos[0]?.url ??
+      (user.profile?.avatarAssetId
+        ? buildMediaProxyPath(user.profile.avatarAssetId)
+        : user.profile?.avatarUrl ?? null),
     photos,
   };
 }

@@ -166,6 +166,7 @@ Admin Evening route review:
 - Cursors carry sort keys plus id when possible.
 - Direct upload complete is idempotent by object key, owner, kind and target.
 - Private media download checks chat membership, event participation and blocks.
+- Profile photo and avatar payloads expose stable `/media/:assetId` URLs, not stored CDN URLs. The media endpoint can redirect S3 assets to a fresh signed URL, so profile screens are not coupled to a stale CDN URL in DB.
 - Dating, people, host, notifications and safety services use narrow selects on hot paths.
 - `getBlockedUserIds` from `@big-break/database` is the shared hidden-user helper.
 - Evening lifecycle writes system chat messages with `kind=system`.

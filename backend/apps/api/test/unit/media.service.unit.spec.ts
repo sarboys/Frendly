@@ -114,6 +114,41 @@ describe('MediaService', () => {
     expect(s3Send).not.toHaveBeenCalled();
   });
 
+  it('redirects public S3 avatars to a signed url instead of the stored CDN url', async () => {
+    const s3Send = jest.fn();
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-1',
+          status: 'ready',
+          ownerId: 'user-owner',
+          kind: 'avatar',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'avatars/user-owner/avatar.jpg',
+          publicUrl: 'https://cdn.example.com/broken/avatar.jpg',
+          mimeType: 'image/jpeg',
+          byteSize: 100,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+    (service as any).s3 = { send: s3Send };
+
+    const media = await service.getAsset('asset-1');
+
+    expect(media).toEqual(
+      expect.objectContaining({
+        redirectUrl: expect.stringContaining('X-Amz-Signature='),
+        cacheControl: 'public, max-age=31536000, immutable',
+      }),
+    );
+    expect((media as any).redirectUrl).not.toBe(
+      'https://cdn.example.com/broken/avatar.jpg',
+    );
+    expect(s3Send).not.toHaveBeenCalled();
+  });
+
   it('denies direct chat media download when the peer is blocked', async () => {
     const client = {
       mediaAsset: {

@@ -71,13 +71,9 @@ export class MediaService {
     }
 
     if (process.env.MEDIA_PROXY_STREAMING_ENABLED !== 'true') {
-      const redirectUrl =
-        this.isPublicKind(asset.kind) && asset.publicUrl != null
-          ? asset.publicUrl
-          : (await createPresignedDownload(asset.objectKey)).url;
-
+      const signed = await createPresignedDownload(asset.objectKey);
       return {
-        redirectUrl,
+        redirectUrl: signed.url,
         cacheControl,
       };
     }

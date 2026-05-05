@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-05T12:27:30.770Z",
-    "gitCommitHash": "04c5bc510f26ba06c3c858c59877b004037b8472"
+    "analyzedAt": "2026-05-05T12:59:15.781Z",
+    "gitCommitHash": "a3cf672f3bcf7732efa0e53cce6c57c57c4e3005"
   },
   "nodes": [
     {
@@ -8105,8 +8105,8 @@
       "name": "mapBasicProfile",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        180,
-        205
+        181,
+        210
       ],
       "summary": "mapBasicProfile in presenters.ts.",
       "tags": [
@@ -8122,8 +8122,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        207,
-        218
+        212,
+        223
       ],
       "summary": "calculateAge in presenters.ts.",
       "tags": [
@@ -8139,8 +8139,8 @@
       "name": "mapUserPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        220,
-        232
+        225,
+        237
       ],
       "summary": "mapUserPreview in presenters.ts.",
       "tags": [
@@ -8156,8 +8156,8 @@
       "name": "mapAttendanceStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        234,
-        238
+        239,
+        243
       ],
       "summary": "mapAttendanceStatus in presenters.ts.",
       "tags": [
@@ -8173,8 +8173,8 @@
       "name": "mapJoinRequestStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        240,
-        244
+        245,
+        249
       ],
       "summary": "mapJoinRequestStatus in presenters.ts.",
       "tags": [
@@ -8190,8 +8190,8 @@
       "name": "mapLiveStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        246,
-        248
+        251,
+        253
       ],
       "summary": "mapLiveStatus in presenters.ts.",
       "tags": [
@@ -8207,8 +8207,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        276,
-        331
+        281,
+        336
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -10928,7 +10928,7 @@
       "filePath": "backend/apps/api/src/services/media.service.ts",
       "lineRange": [
         29,
-        426
+        422
       ],
       "summary": "MediaService in media.service.ts.",
       "tags": [
@@ -11376,7 +11376,7 @@
       "filePath": "backend/apps/api/src/services/people.service.ts",
       "lineRange": [
         33,
-        597
+        598
       ],
       "summary": "PeopleService in people.service.ts.",
       "tags": [
@@ -11495,8 +11495,8 @@
       "name": "ProfileService",
       "filePath": "backend/apps/api/src/services/profile.service.ts",
       "lineRange": [
-        44,
-        906
+        45,
+        909
       ],
       "summary": "ProfileService in profile.service.ts.",
       "tags": [

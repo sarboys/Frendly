@@ -42,12 +42,11 @@ describe('media integration', () => {
     await app.close();
   });
 
-  const expectDirectPublicUrl = (value: string) => {
-    expect(value).toMatch(/^(https?:\/\/|data:)/);
-    expect(value).not.toMatch(/^\/media\//);
+  const expectMediaProxyPath = (value: string) => {
+    expect(value).toMatch(/^\/media\/[^/]+$/);
   };
 
-  it('keeps public avatar media on direct urls across upload and profile payloads', async () => {
+  it('keeps public avatar media on proxy urls across upload and profile payloads', async () => {
     const avatarUpload = await request(app.getHttpServer())
       .post('/profile/me/avatar/file')
       .set('authorization', `Bearer ${accessToken}`)
@@ -57,7 +56,7 @@ describe('media integration', () => {
       })
       .expect(201);
 
-    expectDirectPublicUrl(avatarUpload.body.url as string);
+    expectMediaProxyPath(avatarUpload.body.url as string);
     expect(avatarUpload.body.media).toMatchObject({
       visibility: 'public',
       url: avatarUpload.body.url,
@@ -76,7 +75,7 @@ describe('media integration', () => {
       })
       .expect(201);
 
-    expectDirectPublicUrl(photoUpload.body.photo.url as string);
+    expectMediaProxyPath(photoUpload.body.photo.url as string);
     expect(photoUpload.body.photo.media).toMatchObject({
       visibility: 'public',
       url: photoUpload.body.photo.url,
@@ -91,7 +90,7 @@ describe('media integration', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expectDirectPublicUrl(profileResponse.body.avatarUrl as string);
+    expectMediaProxyPath(profileResponse.body.avatarUrl as string);
     expect(profileResponse.body.photos).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

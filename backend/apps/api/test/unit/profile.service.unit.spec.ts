@@ -52,6 +52,7 @@ describe('ProfileService', () => {
             vibe: true,
             rating: true,
             meetupCount: true,
+            avatarAssetId: true,
             avatarUrl: true,
             photos: {
               select: {
@@ -185,7 +186,7 @@ describe('ProfileService', () => {
       where: { userId: 'user-me' },
       data: {
         avatarAssetId: 'avatar-asset-existing',
-        avatarUrl: 'https://cdn.example.com/avatars/user-me/avatar.png',
+        avatarUrl: '/media/avatar-asset-existing',
       },
     });
   });
@@ -236,11 +237,13 @@ describe('ProfileService', () => {
     expect(result).toMatchObject({
       assetId: 'asset-existing',
       status: 'ready',
-      url: 'https://cdn.example.com/avatars/user-me/photo.png',
+      url: '/media/asset-existing',
       photo: {
         id: 'photo-existing',
+        url: '/media/asset-existing',
         media: {
           id: 'asset-existing',
+          url: '/media/asset-existing',
         },
       },
     });

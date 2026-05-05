@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "04c5bc510f26ba06c3c858c59877b004037b8472",
-  "generatedAt": "2026-05-05T12:27:31.069Z",
+  "gitCommitHash": "a3cf672f3bcf7732efa0e53cce6c57c57c4e3005",
+  "generatedAt": "2026-05-05T12:59:16.796Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -9720,7 +9720,7 @@
     },
     "backend/apps/api/src/common/media-presenters.ts": {
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
-      "contentHash": "85cbcf144a4250beade23d4dae04691f182d262b0ca183c5b52c8b78dfc796f0",
+      "contentHash": "a28e8bd9d1b02e33f6bee6f46603a59f8bccdba7b05c93450963b12ef6cabf98",
       "functions": [
         {
           "name": "resolveMediaVisibility",
@@ -9885,7 +9885,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "db444398db1d2c379624a76519a54187ef70676b546fb6054f12fabe26d53f3c",
+      "contentHash": "46baafb4e0111b5d120ebb06714b6a75b0320238443ae9e58a3627f76c63722d",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -9935,7 +9935,7 @@
             "user"
           ],
           "exported": true,
-          "lineCount": 26
+          "lineCount": 30
         },
         {
           "name": "calculateAge",
@@ -10007,6 +10007,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
+            "buildMediaProxyPath",
             "buildMessagePreview"
           ]
         },
@@ -10031,7 +10032,7 @@
         "mapLiveStatus",
         "mapEventSummary"
       ],
-      "totalLines": 332,
+      "totalLines": 337,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -14873,7 +14874,7 @@
     },
     "backend/apps/api/src/services/media.service.ts": {
       "filePath": "backend/apps/api/src/services/media.service.ts",
-      "contentHash": "6045809149c5507682e8f1aa4c17162848e794b1506590de6d0a97498e5fc3c2",
+      "contentHash": "b5a0372166078af8c59114767c64a0acdaf7c1ec92d9195b9f217b052fef49c5",
       "functions": [],
       "classes": [
         {
@@ -14895,7 +14896,7 @@
             "s3"
           ],
           "exported": true,
-          "lineCount": 398
+          "lineCount": 394
         }
       ],
       "imports": [
@@ -14949,7 +14950,7 @@
       "exports": [
         "MediaService"
       ],
-      "totalLines": 427,
+      "totalLines": 423,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/notifications.service.ts": {
@@ -15575,7 +15576,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "113e038a700e47eb12934b1723f8d7d4931a97d7d69f70371dd58957129c2637",
+      "contentHash": "7a009a1a128ef7cba5c4eb73a3c1b2e573d6836df3cc7a76818668e3fcbb632e",
       "functions": [],
       "classes": [
         {
@@ -15600,7 +15601,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 565
+          "lineCount": 566
         }
       ],
       "imports": [
@@ -15661,7 +15662,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 598,
+      "totalLines": 599,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -15854,7 +15855,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "0977ce0e03019b710cde5cadc525d08c27944028478f9efec82fe78db3bf1353",
+      "contentHash": "f339c7833446015bfdc9dcfad0bd15085a3e2ea9dbdf3f7f828c189acf2e235e",
       "functions": [],
       "classes": [
         {
@@ -15898,7 +15899,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 863
+          "lineCount": 865
         }
       ],
       "imports": [
@@ -15924,6 +15925,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
+            "buildMediaProxyPath",
             "buildPublicAssetUrl",
             "createPresignedUpload",
             "createS3Client",
@@ -15967,7 +15969,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 907,
+      "totalLines": 910,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
