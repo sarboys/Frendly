@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "f4d59e4dc10a58a64cbc8f48678f2fe94885ce88",
-  "generatedAt": "2026-05-05T13:09:56.496Z",
+  "gitCommitHash": "d9b193831d9b7d83b02342442ebc1522becfdb27",
+  "generatedAt": "2026-05-05T13:28:25.194Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -10704,7 +10704,7 @@
     },
     "backend/apps/api/src/controllers/affiche.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/affiche.controller.ts",
-      "contentHash": "3e7315fe3002719856a97c8a0936751b744d2af7b1506af90af489afaba75f63",
+      "contentHash": "0e8f60837e6a4eb29c9b90059ae18c58a7cedc047977d5e2f400439281b43d8d",
       "functions": [],
       "classes": [
         {
@@ -10712,11 +10712,12 @@
           "methods": [
             "constructor",
             "listEvents",
-            "getEvent"
+            "getEvent",
+            "getImage"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 13
+          "lineCount": 23
         }
       ],
       "imports": [
@@ -10726,7 +10727,14 @@
             "Controller",
             "Get",
             "Param",
-            "Query"
+            "Query",
+            "Res"
+          ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "Response"
           ]
         },
         {
@@ -10745,7 +10753,7 @@
       "exports": [
         "AfficheController"
       ],
-      "totalLines": 20,
+      "totalLines": 31,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/after-dark.controller.ts": {
@@ -13505,7 +13513,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "153fd6d85eeb77a333aceead50b0280d8ab8a767b3187a798bc6476a5a683e95",
+      "contentHash": "4d83b8edb02bfa02c147c86bf23e0b03c5a9b6886a363cf38e616ac043ef1cca",
       "functions": [
         {
           "name": "oneDayRange",
@@ -13523,6 +13531,7 @@
             "constructor",
             "listEvents",
             "getEvent",
+            "getImageRedirect",
             "buildWhere",
             "parsePriceMode",
             "parseBoolean",
@@ -13531,6 +13540,7 @@
             "buildCursorWhere",
             "encodeEventCursor",
             "mapEvent",
+            "mapImageUrl",
             "parseLimit",
             "optionalDate",
             "dateFromUnknown",
@@ -13541,7 +13551,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 246
+          "lineCount": 273
         }
       ],
       "imports": [
@@ -13561,8 +13571,10 @@
         {
           "source": "@big-break/database",
           "specifiers": [
+            "createPresignedDownload",
             "decodeCursor",
-            "encodeCursor"
+            "encodeCursor",
+            "objectKeyFromPublicAssetUrl"
           ]
         },
         {
@@ -13593,7 +13605,7 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 306,
+      "totalLines": 338,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
@@ -21177,7 +21189,7 @@
     },
     "backend/packages/database/src/s3.d.ts": {
       "filePath": "backend/packages/database/src/s3.d.ts",
-      "contentHash": "15f4517830fbfa5cba8646885deba5e07e00e740f580614cea257e7f3f0508aa",
+      "contentHash": "5ab8bfb89747d1f4eb79a626cf62e307f7b3cbf59a91ddcfaef064b51dddf7e9",
       "functions": [],
       "classes": [],
       "imports": [
@@ -21189,7 +21201,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 24,
+      "totalLines": 31,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/s3.js": {
@@ -21233,7 +21245,7 @@
     },
     "backend/packages/database/src/s3.ts": {
       "filePath": "backend/packages/database/src/s3.ts",
-      "contentHash": "393a18fc6987900609b861c68b61928ef78dcd795d9a944202d92326ab6c1ea6",
+      "contentHash": "acb2e41700d59e8eb9e33241cfe201e4188f4eeb000e0ca810fb6b7d0e1e0674",
       "functions": [
         {
           "name": "optionalEnv",
@@ -21314,6 +21326,15 @@
           "lineCount": 8
         },
         {
+          "name": "objectKeyFromPublicAssetUrl",
+          "params": [
+            "assetUrl"
+          ],
+          "returnType": "string | null",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
           "name": "buildMediaProxyPath",
           "params": [
             "assetId"
@@ -21321,6 +21342,34 @@
           "returnType": "string",
           "exported": true,
           "lineCount": 3
+        },
+        {
+          "name": "objectKeyFromEndpointUrl",
+          "params": [
+            "assetUrl",
+            "endpoint",
+            "prefix"
+          ],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 37
+        },
+        {
+          "name": "trimSlashes",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "decodeObjectKey",
+          "params": [
+            "value"
+          ],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 8
         }
       ],
       "classes": [],
@@ -21348,9 +21397,10 @@
         "createPresignedUpload",
         "createPresignedDownload",
         "buildPublicAssetUrl",
+        "objectKeyFromPublicAssetUrl",
         "buildMediaProxyPath"
       ],
-      "totalLines": 182,
+      "totalLines": 250,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/seed-data.d.ts": {

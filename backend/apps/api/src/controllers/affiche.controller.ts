@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { Public } from '../common/public.decorator';
 import { AfficheService } from '../services/affiche.service';
 
@@ -15,5 +16,15 @@ export class AfficheController {
   @Get('events/:eventId')
   getEvent(@Param('eventId') eventId: string) {
     return this.afficheService.getEvent(eventId);
+  }
+
+  @Get('images')
+  async getImage(
+    @Query('key') key: string | undefined,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const image = await this.afficheService.getImageRedirect(key);
+    response.setHeader('Cache-Control', image.cacheControl);
+    response.redirect(307, image.redirectUrl);
   }
 }

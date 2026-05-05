@@ -1,4 +1,8 @@
-import { buildPublicAssetUrl, getS3Config } from '../../src/s3';
+import {
+  buildPublicAssetUrl,
+  getS3Config,
+  objectKeyFromPublicAssetUrl,
+} from '../../src/s3';
 
 const S3_ENV_KEYS = [
   'S3_ENDPOINT',
@@ -80,6 +84,42 @@ describe('getS3Config', () => {
     expect(buildPublicAssetUrl('avatars/user-me/photo.png')).toBe(
       'https://cdn.frendly.tech/avatars/user-me/photo.png',
     );
+  });
+
+  it('extracts object keys from configured CDN URLs', () => {
+    for (const key of S3_ENV_KEYS) {
+      delete process.env[key];
+    }
+
+    process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
+    process.env.S3_SECRET_KEY = 'secret';
+    process.env.S3_BUCKET = 'frendly-backet';
+    process.env.S3_PUBLIC_ENDPOINT = 'https://s3.twcstorage.ru';
+    process.env.S3_CDN_ENDPOINT = 'https://cdn.frendly.tech';
+
+    expect(
+      objectKeyFromPublicAssetUrl(
+        'https://cdn.frendly.tech/external-content/advcake_ticketland/image.jpg',
+      ),
+    ).toBe('external-content/advcake_ticketland/image.jpg');
+  });
+
+  it('extracts object keys from public S3 URLs with bucket prefix', () => {
+    for (const key of S3_ENV_KEYS) {
+      delete process.env[key];
+    }
+
+    process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
+    process.env.S3_SECRET_KEY = 'secret';
+    process.env.S3_BUCKET = 'frendly-backet';
+    process.env.S3_PUBLIC_ENDPOINT = 'https://s3.twcstorage.ru';
+    process.env.S3_CDN_ENDPOINT = '';
+
+    expect(
+      objectKeyFromPublicAssetUrl(
+        'https://s3.twcstorage.ru/frendly-backet/external-content/advcake_ticketland/image.jpg',
+      ),
+    ).toBe('external-content/advcake_ticketland/image.jpg');
   });
 
   it('ignores an empty CDN endpoint', () => {

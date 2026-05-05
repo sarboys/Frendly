@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-05T13:09:56.280Z",
-    "gitCommitHash": "f4d59e4dc10a58a64cbc8f48678f2fe94885ce88"
+    "analyzedAt": "2026-05-05T13:28:24.956Z",
+    "gitCommitHash": "d9b193831d9b7d83b02342442ebc1522becfdb27"
   },
   "nodes": [
     {
@@ -8665,8 +8665,8 @@
       "name": "AfficheController",
       "filePath": "backend/apps/api/src/controllers/affiche.controller.ts",
       "lineRange": [
-        7,
-        19
+        8,
+        30
       ],
       "summary": "AfficheController in affiche.controller.ts.",
       "tags": [
@@ -10290,8 +10290,8 @@
       "name": "oneDayRange",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        294,
-        305
+        326,
+        337
       ],
       "summary": "oneDayRange in affiche.service.ts.",
       "tags": [
@@ -10307,8 +10307,8 @@
       "name": "AfficheService",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        47,
-        292
+        52,
+        324
       ],
       "summary": "AfficheService in affiche.service.ts.",
       "tags": [
@@ -24319,7 +24319,7 @@
       "type": "file",
       "name": "s3.ts",
       "filePath": "backend/packages/database/src/s3.ts",
-      "summary": "s3.ts contains 11 functions.",
+      "summary": "s3.ts contains 15 functions.",
       "tags": [
         "backend",
         "code",
@@ -24498,15 +24498,83 @@
       "complexity": "moderate"
     },
     {
+      "id": "function:backend/packages/database/src/s3.ts:objectKeyFromPublicAssetUrl",
+      "type": "function",
+      "name": "objectKeyFromPublicAssetUrl",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        179,
+        194
+      ],
+      "summary": "objectKeyFromPublicAssetUrl in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "function:backend/packages/database/src/s3.ts:buildMediaProxyPath",
       "type": "function",
       "name": "buildMediaProxyPath",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        179,
-        181
+        196,
+        198
       ],
       "summary": "buildMediaProxyPath in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3.ts:objectKeyFromEndpointUrl",
+      "type": "function",
+      "name": "objectKeyFromEndpointUrl",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        200,
+        236
+      ],
+      "summary": "objectKeyFromEndpointUrl in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3.ts:trimSlashes",
+      "type": "function",
+      "name": "trimSlashes",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        238,
+        240
+      ],
+      "summary": "trimSlashes in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3.ts:decodeObjectKey",
+      "type": "function",
+      "name": "decodeObjectKey",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        242,
+        249
+      ],
+      "summary": "decodeObjectKey in s3.ts.",
       "tags": [
         "backend",
         "function",
@@ -37446,7 +37514,35 @@
     },
     {
       "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:objectKeyFromPublicAssetUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
       "target": "function:backend/packages/database/src/s3.ts:buildMediaProxyPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:objectKeyFromEndpointUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:trimSlashes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:decodeObjectKey",
       "type": "contains",
       "direction": "forward",
       "weight": 1

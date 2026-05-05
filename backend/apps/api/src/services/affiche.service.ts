@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { AfficheEventDto, AfficheEventListDto } from '@big-break/contracts';
-import { decodeCursor, encodeCursor } from '@big-break/database';
+import {
+  createPresignedDownload,
+  decodeCursor,
+  encodeCursor,
+  objectKeyFromPublicAssetUrl,
+} from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { normalizeSearchQuery } from '../common/search-query';
@@ -83,6 +88,19 @@ export class AfficheService {
       throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
     }
     return this.mapEvent(item);
+  }
+
+  async getImageRedirect(objectKey: unknown) {
+    const key = this.optionalText(objectKey);
+    if (!key || !key.startsWith('external-content/')) {
+      throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
+    }
+
+    const signed = await createPresignedDownload(key);
+    return {
+      redirectUrl: signed.url,
+      cacheControl: 'public, max-age=300',
+    };
   }
 
   private buildWhere(query: Record<string, unknown>, city: string): Prisma.ExternalContentItemWhereInput {
@@ -217,7 +235,7 @@ export class AfficheService {
       priceFrom: item.priceFrom ?? null,
       priceMode: item.priceMode === 'free' || item.priceMode === 'paid' ? item.priceMode : 'unknown',
       currency: item.currency ?? null,
-      imageUrl: item.imageUrl ?? null,
+      imageUrl: this.mapImageUrl(item.imageUrl),
       provider: item.sourceProvider ?? item.source?.name ?? null,
       sourceCode: item.source?.code ?? null,
       actionUrl: item.actionUrl ?? item.sourceUrl ?? null,
@@ -225,6 +243,20 @@ export class AfficheService {
       isAffiliate: item.isAffiliate === true,
       tags: Array.isArray(item.tags) ? item.tags.filter((tag: unknown): tag is string => typeof tag === 'string') : [],
     };
+  }
+
+  private mapImageUrl(imageUrl: string | null) {
+    const trimmed = imageUrl?.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const objectKey = objectKeyFromPublicAssetUrl(trimmed);
+    if (!objectKey?.startsWith('external-content/')) {
+      return trimmed;
+    }
+
+    return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
   }
 
   private parseLimit(value: unknown) {

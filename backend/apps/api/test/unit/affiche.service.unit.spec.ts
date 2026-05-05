@@ -1,6 +1,21 @@
 import { AfficheService } from '../../src/services/affiche.service';
 
 describe('AfficheService', () => {
+  const originalEnv = { ...process.env };
+
+  afterEach(() => {
+    for (const key of [
+      'S3_ACCESS_KEY',
+      'S3_SECRET_KEY',
+      'S3_BUCKET',
+      'S3_PUBLIC_ENDPOINT',
+      'S3_CDN_ENDPOINT',
+    ]) {
+      delete process.env[key];
+    }
+    Object.assign(process.env, originalEnv);
+  });
+
   it('lists only public event content and applies filters', async () => {
     const findMany = jest.fn().mockResolvedValue([
       afficheItem({
@@ -88,6 +103,51 @@ describe('AfficheService', () => {
     const findFirstArgs = findFirst.mock.calls[0][0];
     expect(findFirstArgs).not.toHaveProperty('include');
     expect(findFirstArgs.select).not.toHaveProperty('raw');
+  });
+
+  it('maps mirrored S3 event images to stable API proxy paths', async () => {
+    process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
+    process.env.S3_SECRET_KEY = 'secret';
+    process.env.S3_BUCKET = 'frendly-backet';
+    process.env.S3_PUBLIC_ENDPOINT = 'https://s3.twcstorage.ru';
+    process.env.S3_CDN_ENDPOINT = 'https://cdn.frendly.tech';
+
+    const findMany = jest.fn().mockResolvedValue([
+      afficheItem({
+        imageUrl:
+          'https://cdn.frendly.tech/external-content/advcake_ticketland/image.jpg',
+      }),
+    ]);
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findMany,
+        },
+      },
+    } as any);
+
+    const result = await service.listEvents({ city: 'Москва', limit: '1' });
+
+    expect(result.items[0]?.imageUrl).toBe(
+      '/affiche/images?key=external-content%2Fadvcake_ticketland%2Fimage.jpg',
+    );
+  });
+
+  it('keeps third-party event image URLs unchanged', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      afficheItem({ imageUrl: 'https://ticketland.ru/image.jpg' }),
+    ]);
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findMany,
+        },
+      },
+    } as any);
+
+    const result = await service.listEvents({ city: 'Москва', limit: '1' });
+
+    expect(result.items[0]?.imageUrl).toBe('https://ticketland.ru/image.jpg');
   });
 });
 

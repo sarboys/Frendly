@@ -176,6 +176,74 @@ export function buildPublicAssetUrl(objectKey: string): string {
   return `${config.publicEndpoint}/${config.bucket}/${objectKey}`;
 }
 
+export function objectKeyFromPublicAssetUrl(assetUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(assetUrl);
+  } catch {
+    return null;
+  }
+
+  const config = getS3Config();
+  return (
+    (optionalEnv('S3_CDN_ENDPOINT')
+      ? objectKeyFromEndpointUrl(parsed, config.cdnEndpoint)
+      : null) ??
+    objectKeyFromEndpointUrl(parsed, config.publicEndpoint, config.bucket)
+  );
+}
+
 export function buildMediaProxyPath(assetId: string): string {
   return `/media/${assetId}`;
+}
+
+function objectKeyFromEndpointUrl(
+  assetUrl: URL,
+  endpoint: string,
+  prefix?: string,
+): string | null {
+  let endpointUrl: URL;
+  try {
+    endpointUrl = new URL(endpoint);
+  } catch {
+    return null;
+  }
+
+  if (assetUrl.origin !== endpointUrl.origin) {
+    return null;
+  }
+
+  const endpointPath = trimSlashes(endpointUrl.pathname);
+  const requiredPrefix = [endpointPath, prefix]
+    .filter((part): part is string => Boolean(part))
+    .map(trimSlashes)
+    .filter(Boolean)
+    .join('/');
+  const assetPath = trimSlashes(assetUrl.pathname);
+  if (!assetPath) {
+    return null;
+  }
+
+  if (!requiredPrefix) {
+    return decodeObjectKey(assetPath);
+  }
+
+  if (assetPath === requiredPrefix || !assetPath.startsWith(`${requiredPrefix}/`)) {
+    return null;
+  }
+
+  return decodeObjectKey(assetPath.slice(requiredPrefix.length + 1));
+}
+
+function trimSlashes(value: string) {
+  return value.replace(/^\/+|\/+$/g, '');
+}
+
+function decodeObjectKey(value: string): string | null {
+  try {
+    const decoded = decodeURIComponent(value);
+    return decoded.length > 0 ? decoded : null;
+  } catch {
+    return value.length > 0 ? value : null;
+  }
 }
