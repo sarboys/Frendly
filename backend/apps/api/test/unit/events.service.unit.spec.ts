@@ -1518,11 +1518,12 @@ describe('EventsService unit', () => {
   });
 
   it('creates an event from a published affiche item', async () => {
+    const futureAfficheStartsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const eventCreate = jest.fn().mockResolvedValue({
       id: 'event-created',
       title: 'Большой стендап',
       emoji: '🎭',
-      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      startsAt: futureAfficheStartsAt,
       place: 'Клуб, Тверская 1, Москва',
     });
     const tx = {
@@ -1541,7 +1542,7 @@ describe('EventsService unit', () => {
       venueName: 'Клуб',
       address: 'Тверская 1',
       city: 'Москва',
-      startsAt: new Date('2026-05-05T16:00:00.000Z'),
+      startsAt: futureAfficheStartsAt,
       lat: 55.75,
       lng: 37.61,
     });
