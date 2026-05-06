@@ -470,6 +470,43 @@ describe('ContentImportService', () => {
       }),
     }));
   });
+
+  it('fails stale running manual runs before processing pending imports', async () => {
+    const runUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const runFindMany = jest.fn().mockResolvedValue([]);
+    const service = new ContentImportService(
+      {
+        client: {
+          externalImportRun: {
+            updateMany: runUpdateMany,
+            findMany: runFindMany,
+            update: jest.fn(),
+          },
+        },
+      } as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'advcake_ticketland',
+        fetchItems: jest.fn(),
+      }),
+    );
+
+    await service.processPendingManualRuns();
+
+    expect(runUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        status: 'running',
+        startedAt: expect.objectContaining({ lt: expect.any(Date) }),
+      }),
+      data: expect.objectContaining({
+        status: 'failed',
+        errorCode: 'content_import_interrupted',
+      }),
+    }));
+    expect(runFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { status: 'pending_manual' },
+    }));
+  });
 });
 
 function prismaMock(options: {

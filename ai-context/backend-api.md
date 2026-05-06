@@ -144,6 +144,7 @@ Admin Evening route review:
 - `GET /admin/evening/route-review/sources`
 - Admin content filters include `city`, `source`, `contentKind`, `priceMode`, `category`, `publicStatus`, `hasCoords`, `dateFrom`, `dateTo`.
 - Admin import runs expose `publishedCount`, `paidCount`, `freeCount`, `unknownPriceCount`, `missingCoordsCount`.
+- Worker fails stale `running` external import runs before processing the manual import queue, so interrupted imports do not stay stuck in admin forever.
 - Admin content rows expose source, content kind, venue, image, action url, action kind, price mode, affiliate flag, public status and coordinates presence.
 - Admin content actions support publish, hide, reject, stale, force-free and force-paid. Rows also expose route planner blocked reason and a compact raw summary.
 

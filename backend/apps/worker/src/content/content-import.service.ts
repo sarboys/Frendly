@@ -151,6 +151,7 @@ export class ContentImportService {
   }
 
   async processPendingManualRuns(limit = 10) {
+    await this.failStaleRunningRuns();
     const runs = await this.prismaService.client.externalImportRun.findMany({
       where: { status: 'pending_manual' },
       select: {
@@ -183,6 +184,34 @@ export class ContentImportService {
         city: run.city,
         from,
         to,
+      });
+    }
+  }
+
+  private async failStaleRunningRuns() {
+    const staleAfterMs = Math.max(
+      this.timeoutMs + 60_000,
+      positiveInt(process.env.CONTENT_IMPORT_STALE_RUNNING_MS, 0),
+    );
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - staleAfterMs);
+    const result = await this.prismaService.client.externalImportRun.updateMany({
+      where: {
+        status: 'running',
+        startedAt: { lt: cutoff },
+      },
+      data: {
+        status: 'failed',
+        errorCode: 'content_import_interrupted',
+        errorMessage:
+          'Content import was interrupted or exceeded stale running timeout. Start a new import run.',
+        finishedAt: now,
+      },
+    });
+    if (result.count > 0) {
+      console.warn('[content-import] stale running runs failed', {
+        count: result.count,
+        staleAfterMs,
       });
     }
   }
