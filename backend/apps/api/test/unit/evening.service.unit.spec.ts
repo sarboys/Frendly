@@ -141,6 +141,62 @@ describe('EveningService unit', () => {
     });
   });
 
+  it('uses a free text prompt to complete missing route filters', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      routeFixture({
+        id: 'r-center-social',
+        goal: 'newfriends',
+        mood: 'social',
+        budget: 'low',
+        format: 'bar',
+        area: 'Центр',
+      }),
+      routeFixture({
+        id: 'r-patriki-date',
+        goal: 'date',
+        mood: 'date',
+        budget: 'mid',
+        format: 'bar',
+        area: 'Патриаршие',
+      }),
+    ]);
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findMany,
+            findUnique: jest.fn(),
+            findFirst: jest.fn(),
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+    );
+
+    const result = await service.resolveRoute('user-me', {
+      prompt: 'Свидание у Патриков с вином до 2к',
+    });
+
+    expect(result.id).toBe('r-patriki-date');
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { goal: 'date' },
+            { mood: 'date' },
+            { budget: 'mid' },
+            { format: 'bar' },
+          ]),
+        }),
+      }),
+    );
+  });
+
   it('rejects perk usage when the step has no perk', async () => {
     const service = new EveningService(
       {

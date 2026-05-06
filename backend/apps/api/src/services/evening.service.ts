@@ -198,14 +198,37 @@ export class EveningService {
   }
 
   async resolveRoute(userId: string, body: Record<string, unknown>) {
-    const goal = this.parseOption(body.goal, EVENING_GOALS, 'invalid_evening_goal');
-    const mood = this.parseOption(body.mood, EVENING_MOODS, 'invalid_evening_mood');
-    const budget = this.parseOption(body.budget, EVENING_BUDGETS, 'invalid_evening_budget');
-    const format = this.parseOption(body.format, EVENING_FORMATS, 'invalid_evening_format');
-    this.parseOption(body.area, EVENING_AREAS, 'invalid_evening_area');
+    const hints = this.parsePromptHints(body.prompt);
+    const goal =
+      this.parseOption(body.goal, EVENING_GOALS, 'invalid_evening_goal') ??
+      hints.goal;
+    const mood =
+      this.parseOption(body.mood, EVENING_MOODS, 'invalid_evening_mood') ??
+      hints.mood;
+    const budget =
+      this.parseOption(body.budget, EVENING_BUDGETS, 'invalid_evening_budget') ??
+      hints.budget;
+    const format =
+      this.parseOption(body.format, EVENING_FORMATS, 'invalid_evening_format') ??
+      hints.format;
+    const area =
+      this.parseOption(body.area, EVENING_AREAS, 'invalid_evening_area') ??
+      hints.area;
 
-    const routes = await this.findRouteCandidates({ goal, mood, budget, format });
-    const selected = this.pickBestRoute(routes, { goal, mood, budget, format });
+    const routes = await this.findRouteCandidates({
+      goal,
+      mood,
+      budget,
+      format,
+      area,
+    });
+    const selected = this.pickBestRoute(routes, {
+      goal,
+      mood,
+      budget,
+      format,
+      area,
+    });
 
     if (!selected) {
       throw new ApiError(404, 'evening_route_not_found', 'Evening route not found');
@@ -1661,6 +1684,7 @@ export class EveningService {
     mood: string | null;
     budget: string | null;
     format: string | null;
+    area: string | null;
   }): Promise<EveningRouteWithSteps[]> {
     const or: Prisma.EveningRouteWhereInput[] = [];
     if (params.goal) {
@@ -1701,6 +1725,7 @@ export class EveningService {
       mood: string | null;
       budget: string | null;
       format: string | null;
+      area: string | null;
     },
   ) {
     return [...routes].sort((left, right) => {
@@ -1724,13 +1749,15 @@ export class EveningService {
       mood: string | null;
       budget: string | null;
       format: string | null;
+      area: string | null;
     },
   ) {
     return (
       (params.goal && route.goal === params.goal ? 4 : 0) +
       (params.mood && route.mood === params.mood ? 3 : 0) +
       (params.budget && route.budget === params.budget ? 2 : 0) +
-      (params.format && route.format === params.format ? 1 : 0)
+      (params.format && route.format === params.format ? 1 : 0) +
+      (params.area && this.routeMatchesArea(route.area, params.area) ? 2 : 0)
     );
   }
 
@@ -2584,6 +2611,190 @@ export class EveningService {
     };
   }
 
+  private parsePromptHints(value: unknown): {
+    goal: string | null;
+    mood: string | null;
+    budget: string | null;
+    format: string | null;
+    area: string | null;
+  } {
+    if (typeof value !== 'string') {
+      return {
+        goal: null,
+        mood: null,
+        budget: null,
+        format: null,
+        area: null,
+      };
+    }
+
+    const text = normalizeEveningPrompt(value);
+    if (!text) {
+      return {
+        goal: null,
+        mood: null,
+        budget: null,
+        format: null,
+        area: null,
+      };
+    }
+
+    return {
+      goal: this.inferPromptGoal(text),
+      mood: this.inferPromptMood(text),
+      budget: this.inferPromptBudget(text),
+      format: this.inferPromptFormat(text),
+      area: this.inferPromptArea(text),
+    };
+  }
+
+  private inferPromptGoal(text: string) {
+    if (hasPromptTerm(text, ['after dark', 'афтердарк', '18+', 'закрыт'])) {
+      return 'afterdark';
+    }
+    if (hasPromptTerm(text, ['свидан', 'двоих', 'романт'])) {
+      return 'date';
+    }
+    if (hasPromptTerm(text, ['компан', 'друзьями', 'большая'])) {
+      return 'company';
+    }
+    if (hasPromptTerm(text, ['тихий', 'сам', 'один', 'без алкоголя'])) {
+      return 'quiet';
+    }
+    if (hasPromptTerm(text, ['новые друзья', 'новых людей', 'знакомств'])) {
+      return 'newfriends';
+    }
+    return null;
+  }
+
+  private inferPromptMood(text: string) {
+    if (hasPromptTerm(text, ['after dark', 'афтердарк', '18+', 'приват'])) {
+      return 'afterdark';
+    }
+    if (hasPromptTerm(text, ['тихий', 'спокой', 'уют', 'без алкоголя'])) {
+      return 'chill';
+    }
+    if (hasPromptTerm(text, ['свидан', 'романт', 'двоих'])) {
+      return 'date';
+    }
+    if (hasPromptTerm(text, ['танц', 'драйв', 'огонь', 'вечерин'])) {
+      return 'wild';
+    }
+    if (hasPromptTerm(text, ['знакомств', 'новых людей', 'компан'])) {
+      return 'social';
+    }
+    return null;
+  }
+
+  private inferPromptBudget(text: string) {
+    if (hasPromptTerm(text, ['бесплат', 'free', 'до 500'])) {
+      return 'free';
+    }
+    if (
+      hasPromptTerm(text, [
+        'до 3000',
+        'до 3к',
+        'до 2к',
+        'до 2000',
+        '1500 3000',
+        'средн',
+      ])
+    ) {
+      return 'mid';
+    }
+    if (
+      hasPromptTerm(text, [
+        'до 1500',
+        'до 1к',
+        'до 1000',
+        'недорог',
+        'лайт',
+        'дешев',
+      ])
+    ) {
+      return 'low';
+    }
+    if (
+      hasPromptTerm(text, [
+        'не считаю',
+        'без лимита',
+        'дорого',
+        'премиум',
+        '3000+',
+        '3к+',
+      ])
+    ) {
+      return 'high';
+    }
+    return null;
+  }
+
+  private inferPromptFormat(text: string) {
+    if (hasPromptTerm(text, ['бар', 'вино', 'вином', 'коктейл'])) {
+      return 'bar';
+    }
+    if (hasPromptTerm(text, ['стендап', 'концерт', 'шоу', 'спектакл'])) {
+      return 'show';
+    }
+    if (hasPromptTerm(text, ['актив', 'бег', 'спорт', 'квест', 'прогулк'])) {
+      return 'active';
+    }
+    if (hasPromptTerm(text, ['музе', 'культур', 'театр', 'выстав'])) {
+      return 'culture';
+    }
+    if (hasPromptTerm(text, ['смеш', 'разное', 'любой формат'])) {
+      return 'mixed';
+    }
+    return null;
+  }
+
+  private inferPromptArea(text: string) {
+    if (hasPromptTerm(text, ['патрик', 'патриарш'])) {
+      return 'patriki';
+    }
+    if (hasPromptTerm(text, ['чистые', 'пруды', 'покровк'])) {
+      return 'chistye';
+    }
+    if (hasPromptTerm(text, ['горького', 'парк горького'])) {
+      return 'gorky';
+    }
+    if (hasPromptTerm(text, ['курск', 'курская'])) {
+      return 'kursk';
+    }
+    if (hasPromptTerm(text, ['центр', 'центре', 'центральн'])) {
+      return 'center';
+    }
+    if (hasPromptTerm(text, ['не важно', 'любой район', 'где угодно'])) {
+      return 'any';
+    }
+    return null;
+  }
+
+  private routeMatchesArea(routeArea: string, area: string) {
+    if (area === 'any') {
+      return true;
+    }
+    const normalized = normalizeEveningPrompt(routeArea);
+    return this.areaTerms(area).some((term) => normalized.includes(term));
+  }
+
+  private areaTerms(area: string) {
+    switch (area) {
+      case 'center':
+        return ['центр', 'центральн'];
+      case 'patriki':
+        return ['патрик', 'патриарш'];
+      case 'chistye':
+        return ['чистые', 'пруды', 'покровк'];
+      case 'gorky':
+        return ['горького', 'парк горького'];
+      case 'kursk':
+        return ['курск', 'курская'];
+      default:
+        return [area];
+    }
+  }
+
   private parseOption<T extends ReadonlyArray<{ key: string }>>(
     value: unknown,
     options: T,
@@ -2657,4 +2868,18 @@ export class EveningService {
       subscription.renewsAt.getTime() > now
     );
   }
+}
+
+function normalizeEveningPrompt(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}+]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
+}
+
+function hasPromptTerm(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(normalizeEveningPrompt(term)));
 }

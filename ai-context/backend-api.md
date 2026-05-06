@@ -102,6 +102,7 @@ Evening:
 - `POST /evening/sessions/:sessionId/start`
 - `POST /evening/sessions/:sessionId/finish`
 - step check-in, advance, skip and offer code endpoints live under `/evening/sessions/:sessionId/steps/*`.
+- `POST /evening/routes/resolve` accepts structured `goal`, `mood`, `budget`, `format`, `area` and optional free text `prompt`. Prompt is parsed on the API side into the same option keys and only fills missing structured fields.
 
 Uploads and media:
 
