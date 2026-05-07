@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, Param, Query, Res } from '@nestjs/common';
+import { Controller, Get, Headers, Param, Query, Res, StreamableFile } from '@nestjs/common';
 import { Response } from 'express';
 import { Public } from '../common/public.decorator';
 import { AfficheService } from '../services/affiche.service';
@@ -36,7 +36,6 @@ export class AfficheController {
     if (image.contentLength != null) {
       response.setHeader('Content-Length', image.contentLength);
     }
-    image.stream.on('error', (error) => response.destroy(error));
-    image.stream.pipe(response);
+    return new StreamableFile(image.stream);
   }
 }
