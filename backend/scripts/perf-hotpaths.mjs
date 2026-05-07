@@ -108,6 +108,39 @@ async function measureDatingDiscover(args) {
   printStats('dating-discover', timings);
 }
 
+async function measureHttpEndpoint(args, defaults) {
+  const api = required(args, 'api').replace(/\/$/, '');
+  const requests = numberArg(args, 'requests', 100);
+  const concurrency = numberArg(args, 'concurrency', 10);
+  const path = args.path ?? defaults.path;
+  const method = args.method ?? defaults.method ?? 'GET';
+  const token = args.token;
+  const timings = [];
+
+  if (defaults.requireToken && !token) {
+    throw new Error('Missing --token');
+  }
+
+  await runPool(requests, concurrency, async () => {
+    const startedAt = performance.now();
+    const response = await fetch(`${api}${path}`, {
+      method,
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (method.toUpperCase() !== 'HEAD') {
+      await response.arrayBuffer();
+    }
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} from ${path}`);
+    }
+    timings.push(performance.now() - startedAt);
+  });
+
+  printStats(defaults.name, timings);
+}
+
 function waitForSocketMessage(socket, predicate, timeoutMs = DEFAULT_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -323,6 +356,10 @@ async function measureBroadcastFanout(args) {
 function printUsage() {
   console.log(`Usage:
   node backend/scripts/perf-hotpaths.mjs dating --api http://127.0.0.1:3000 --token TOKEN --requests 100 --concurrency 10
+  node backend/scripts/perf-hotpaths.mjs affiche --api http://127.0.0.1:3000 --requests 100 --concurrency 10
+  node backend/scripts/perf-hotpaths.mjs routes --api http://127.0.0.1:3000 --token TOKEN --requests 100 --concurrency 10
+  node backend/scripts/perf-hotpaths.mjs chat-history --api http://127.0.0.1:3000 --token TOKEN --chat-id CHAT --requests 100 --concurrency 10
+  node backend/scripts/perf-hotpaths.mjs media-head --api http://127.0.0.1:3000 --path /media/ASSET --token TOKEN --requests 100 --concurrency 10
   node backend/scripts/perf-hotpaths.mjs chat-send --ws ws://127.0.0.1:3001 --token TOKEN --chat-id p1 --messages 100
   node backend/scripts/perf-hotpaths.mjs fanout --ws ws://127.0.0.1:3001 --sender-token TOKEN --subscriber-token TOKEN --chat-id p1 --subscribers 100 --runs 20`);
 }
@@ -332,6 +369,38 @@ async function main() {
 
   if (scenario === 'dating') {
     await measureDatingDiscover(args);
+    return;
+  }
+  if (scenario === 'affiche') {
+    await measureHttpEndpoint(args, {
+      name: 'affiche-events',
+      path: '/affiche/events?city=%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0&limit=18',
+    });
+    return;
+  }
+  if (scenario === 'routes') {
+    await measureHttpEndpoint(args, {
+      name: 'route-templates',
+      path: '/evening/route-templates?city=%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0&limit=20',
+      requireToken: true,
+    });
+    return;
+  }
+  if (scenario === 'chat-history') {
+    const chatId = required(args, 'chat-id');
+    await measureHttpEndpoint(args, {
+      name: 'chat-history',
+      path: `/chats/${encodeURIComponent(chatId)}/messages?limit=20`,
+      requireToken: true,
+    });
+    return;
+  }
+  if (scenario === 'media-head') {
+    await measureHttpEndpoint(args, {
+      name: 'media-head',
+      path: args.path ?? '/health',
+      method: 'HEAD',
+    });
     return;
   }
   if (scenario === 'chat-send') {

@@ -46,6 +46,7 @@ const PUBLIC_STATUS_HIDDEN = 'hidden';
 const PUBLIC_STATUS_STALE = 'stale';
 const STALE_GRACE_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DUPLICATE_PRELOAD_LIMIT = 1000;
+const DEFAULT_IMAGE_BACKFILL_LIMIT = 50;
 
 type DuplicateCandidateCache = Map<string, Promise<EventDuplicateCandidate[]>>;
 
@@ -186,6 +187,71 @@ export class ContentImportService {
         to,
       });
     }
+  }
+
+  async backfillMirroredImages(
+    input: { city?: string; limit?: number } = {},
+  ) {
+    if (!this.imageMirror) {
+      return { scanned: 0, mirrored: 0 };
+    }
+
+    const take = boundedPositiveInt(
+      input.limit,
+      positiveInt(
+        process.env.CONTENT_IMPORT_IMAGE_BACKFILL_BATCH_SIZE,
+        DEFAULT_IMAGE_BACKFILL_LIMIT,
+      ),
+      500,
+    );
+    const rows = await this.prismaService.client.externalContentItem.findMany({
+      where: {
+        contentKind: 'event',
+        publicStatus: PUBLIC_STATUS_PUBLISHED,
+        imageUrl: { not: null },
+        ...(input.city ? { city: input.city } : {}),
+      },
+      select: {
+        id: true,
+        sourceItemId: true,
+        imageUrl: true,
+        source: {
+          select: {
+            code: true,
+          },
+        },
+      },
+      orderBy: [{ importedAt: 'desc' }, { id: 'asc' }],
+      take,
+    });
+
+    let mirrored = 0;
+    for (const row of rows) {
+      const nextUrl = await this.imageMirror.mirrorImageUrl({
+        sourceCode: row.source.code,
+        sourceItemId: row.sourceItemId,
+        imageUrl: row.imageUrl,
+      });
+      if (!nextUrl || nextUrl === row.imageUrl) {
+        continue;
+      }
+
+      await this.prismaService.client.externalContentItem.update({
+        where: { id: row.id },
+        data: { imageUrl: nextUrl },
+      });
+      mirrored += 1;
+    }
+
+    if (rows.length > 0) {
+      console.info('[content-import] image backfill completed', {
+        city: input.city ?? null,
+        scanned: rows.length,
+        mirrored,
+      });
+    }
+
+    return { scanned: rows.length, mirrored };
   }
 
   private async failStaleRunningRuns() {
@@ -706,6 +772,15 @@ function mergeRaw(raw: unknown, enrichment: Record<string, unknown>) {
 function positiveInt(value: unknown, fallback: number) {
   const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function boundedPositiveInt(
+  value: number | undefined,
+  fallback: number,
+  max: number,
+) {
+  const parsed = typeof value === 'number' ? value : fallback;
+  return Math.max(1, Math.min(Math.trunc(parsed), max));
 }
 
 function object(value: unknown): Record<string, unknown> | null {

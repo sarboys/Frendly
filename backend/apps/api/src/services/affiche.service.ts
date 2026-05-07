@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { AfficheEventDto, AfficheEventListDto } from '@big-break/contracts';
 import {
+  buildPublicAssetUrl,
   createPresignedDownload,
   decodeCursor,
   encodeCursor,
@@ -64,6 +65,11 @@ type AfficheImageStream = {
   etag: string;
 };
 
+const AFFICHE_IMAGE_PROXY_CACHE_SECONDS = 86_400;
+const AFFICHE_IMAGE_PROXY_STALE_SECONDS = 604_800;
+const AFFICHE_MIRRORED_IMAGE_CACHE_CONTROL =
+  'public, max-age=31536000, immutable';
+
 @Injectable()
 export class AfficheService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -117,9 +123,12 @@ export class AfficheService {
       throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
     }
 
-    const imageSource = key?.startsWith('external-content/') ? key : proxiedUrl!;
+    const mirroredImage = key?.startsWith('external-content/') === true;
+    const imageSource = mirroredImage ? key! : proxiedUrl!;
     const etag = this.buildImageEtag(imageSource);
-    const cacheControl = 'public, max-age=300';
+    const cacheControl = mirroredImage
+      ? AFFICHE_MIRRORED_IMAGE_CACHE_CONTROL
+      : this.proxyImageCacheControl();
     if (this.isFreshRequest(etag, ifNoneMatch)) {
       return {
         notModified: true,
@@ -133,17 +142,29 @@ export class AfficheService {
       : { url: proxiedUrl! };
     let upstream: Response;
     try {
-      upstream = await fetch(signed.url);
+      upstream = await fetch(
+        signed.url,
+        mirroredImage
+          ? undefined
+          : {
+              headers: this.externalImageFetchHeaders(),
+            },
+      );
     } catch {
       throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
     }
     if (!upstream.ok || !upstream.body) {
       throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
     }
+    const mimeType =
+      upstream.headers.get('content-type') ?? 'application/octet-stream';
+    if (!mimeType.toLowerCase().startsWith('image/')) {
+      throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
+    }
 
     return {
       stream: Readable.fromWeb(upstream.body as any),
-      mimeType: upstream.headers.get('content-type') ?? 'application/octet-stream',
+      mimeType,
       contentLength: this.parseContentLength(upstream.headers.get('content-length')),
       cacheControl,
       etag,
@@ -151,7 +172,7 @@ export class AfficheService {
   }
 
   async getImageRedirect(objectKey: unknown, ifNoneMatch?: string) {
-    return this.getImage(objectKey, ifNoneMatch);
+    return this.getImage(objectKey, undefined, ifNoneMatch);
   }
 
   private buildImageEtag(objectKey: string) {
@@ -324,13 +345,50 @@ export class AfficheService {
       return null;
     }
 
-    const objectKey = objectKeyFromPublicAssetUrl(trimmed);
+    const objectKey = this.publicAssetObjectKeyFromUrl(trimmed);
     if (!objectKey?.startsWith('external-content/')) {
       const proxiedUrl = this.safeExternalImageUrl(trimmed);
       return proxiedUrl ? `/affiche/images?url=${encodeURIComponent(proxiedUrl)}` : trimmed;
     }
 
-    return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
+    return buildPublicAssetUrl(objectKey);
+  }
+
+  private publicAssetObjectKeyFromUrl(url: string) {
+    try {
+      return objectKeyFromPublicAssetUrl(url);
+    } catch {
+      return null;
+    }
+  }
+
+  private proxyImageCacheControl() {
+    const maxAge = this.positiveInteger(
+      process.env.AFFICHE_IMAGE_PROXY_CACHE_SECONDS,
+      AFFICHE_IMAGE_PROXY_CACHE_SECONDS,
+    );
+    const stale = this.positiveInteger(
+      process.env.AFFICHE_IMAGE_PROXY_STALE_SECONDS,
+      AFFICHE_IMAGE_PROXY_STALE_SECONDS,
+    );
+    return `public, max-age=${maxAge}, stale-while-revalidate=${stale}`;
+  }
+
+  private externalImageFetchHeaders() {
+    return {
+      accept: 'image/avif,image/webp,image/*,*/*;q=0.8',
+      'user-agent':
+        process.env.AFFICHE_IMAGE_PROXY_USER_AGENT ??
+        'FrendlyImageProxy/1.0 (+https://frendly.tech)',
+    };
+  }
+
+  private positiveInteger(value: string | undefined, fallback: number) {
+    if (!value) {
+      return fallback;
+    }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
   }
 
   private safeExternalImageUrl(value: unknown) {

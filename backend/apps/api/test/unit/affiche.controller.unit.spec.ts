@@ -9,7 +9,7 @@ describe('AfficheController', () => {
         stream: Readable.from(['image-bytes']),
         mimeType: 'image/jpeg',
         contentLength: 11,
-        cacheControl: 'public, max-age=300',
+        cacheControl: 'public, max-age=86400, stale-while-revalidate=604800',
         etag: 'W/"affiche-image-test"',
       }),
     };

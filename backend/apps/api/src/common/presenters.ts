@@ -10,6 +10,7 @@ import {
   User,
 } from '@prisma/client';
 import {
+  buildPublicAssetUrl,
   buildMediaProxyPath,
   buildMessagePreview,
   objectKeyFromPublicAssetUrl,
@@ -362,5 +363,5 @@ function mapExternalContentImageUrl(
     return trimmed;
   }
 
-  return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
+  return buildPublicAssetUrl(objectKey);
 }

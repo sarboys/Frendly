@@ -106,7 +106,7 @@ describe('AfficheService', () => {
     expect(findFirstArgs.select).not.toHaveProperty('raw');
   });
 
-  it('maps mirrored S3 event images to stable API proxy paths', async () => {
+  it('maps mirrored S3 event images to CDN URLs', async () => {
     process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
     process.env.S3_SECRET_KEY = 'secret';
     process.env.S3_BUCKET = 'frendly-backet';
@@ -130,7 +130,7 @@ describe('AfficheService', () => {
     const result = await service.listEvents({ city: 'Москва', limit: '1' });
 
     expect(result.items[0]?.imageUrl).toBe(
-      '/affiche/images?key=external-content%2Fadvcake_ticketland%2Fimage.jpg',
+      'https://cdn.frendly.tech/external-content/advcake_ticketland/image.jpg',
     );
   });
 
@@ -181,7 +181,7 @@ describe('AfficheService', () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(image).toMatchObject({
-      cacheControl: 'public, max-age=300',
+      cacheControl: 'public, max-age=31536000, immutable',
       etag: expect.stringContaining('affiche-image-'),
       mimeType: 'image/jpeg',
       contentLength: 11,
@@ -209,9 +209,14 @@ describe('AfficheService', () => {
 
     const image = await service.getImage(undefined, imageUrl);
 
-    expect(fetchSpy).toHaveBeenCalledWith(imageUrl);
+    expect(fetchSpy).toHaveBeenCalledWith(imageUrl, {
+      headers: expect.objectContaining({
+        accept: expect.stringContaining('image/'),
+        'user-agent': expect.stringContaining('FrendlyImageProxy'),
+      }),
+    });
     expect(image).toMatchObject({
-      cacheControl: 'public, max-age=300',
+      cacheControl: 'public, max-age=86400, stale-while-revalidate=604800',
       etag: expect.stringContaining('affiche-image-'),
       mimeType: 'image/jpeg',
       contentLength: 11,

@@ -11,7 +11,17 @@ import type { NormalizedExternalContentItem } from './content-source.types';
 
 const DEFAULT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const DEFAULT_IMAGE_TIMEOUT_MS = 15_000;
+const DEFAULT_IMAGE_RETRY_COUNT = 2;
+const DEFAULT_IMAGE_RETRY_DELAY_MS = 250;
 const IMAGE_MIRROR_PREFIX = 'external-content';
+const DEFAULT_IMAGE_USER_AGENT =
+  'FrendlyContentImporter/1.0 (+https://frendly.tech)';
+
+export interface MirrorImageInput {
+  sourceCode: string;
+  sourceItemId: string;
+  imageUrl?: string | null;
+}
 
 @Injectable()
 export class ContentImageMirrorService {
@@ -20,34 +30,79 @@ export class ContentImageMirrorService {
   async mirrorExternalImage(
     item: NormalizedExternalContentItem,
   ): Promise<NormalizedExternalContentItem> {
-    const imageUrl = item.imageUrl?.trim();
-    if (!imageUrl || !isHttpsUrl(imageUrl) || this.isOwnAssetUrl(imageUrl)) {
+    const mirroredUrl = await this.mirrorImageUrl(item);
+    if (!mirroredUrl || mirroredUrl === item.imageUrl) {
       return item;
     }
 
+    return {
+      ...item,
+      imageUrl: mirroredUrl,
+    };
+  }
+
+  async mirrorImageUrl(input: MirrorImageInput): Promise<string | null> {
+    const imageUrl = input.imageUrl?.trim();
+    if (!imageUrl || !isHttpsUrl(imageUrl) || this.isOwnAssetUrl(imageUrl)) {
+      return imageUrl ?? null;
+    }
+
+    const fetchUrl = sourceImageUrl(imageUrl);
     try {
-      const image = await this.downloadImage(imageUrl);
+      const image = await this.downloadImage(fetchUrl);
       if (!image) {
-        return item;
+        return imageUrl;
       }
 
-      const objectKey = this.objectKey(item, imageUrl, image.contentType);
+      const objectKey = this.objectKey(input, fetchUrl, image.contentType);
       await this.putIfMissing(objectKey, image);
-      return {
-        ...item,
-        imageUrl: buildPublicAssetUrl(objectKey),
-      };
+      return buildPublicAssetUrl(objectKey);
     } catch (caught) {
       console.warn('[content-import] image mirror failed', {
-        sourceCode: item.sourceCode,
-        sourceItemId: item.sourceItemId,
+        sourceCode: input.sourceCode,
+        sourceItemId: input.sourceItemId,
+        imageHost: imageHost(fetchUrl),
         reason: caught instanceof Error ? caught.message : 'unknown',
       });
-      return item;
+      return imageUrl;
     }
   }
 
   private async downloadImage(url: string) {
+    const retries = positiveInt(
+      process.env.CONTENT_IMPORT_IMAGE_RETRY_COUNT,
+      DEFAULT_IMAGE_RETRY_COUNT,
+    );
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const image = await this.downloadImageOnce(url);
+        if (image) {
+          return image;
+        }
+      } catch (caught) {
+        lastError = caught;
+      }
+
+      if (attempt < retries) {
+        await sleep(
+          positiveInt(
+            process.env.CONTENT_IMPORT_IMAGE_RETRY_DELAY_MS,
+            DEFAULT_IMAGE_RETRY_DELAY_MS,
+          ),
+        );
+      }
+    }
+
+    if (lastError instanceof Error) {
+      throw lastError;
+    }
+
+    return null;
+  }
+
+  private async downloadImageOnce(url: string) {
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
@@ -56,14 +111,22 @@ export class ContentImageMirrorService {
     timeout.unref?.();
 
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, {
+        headers: {
+          accept: 'image/avif,image/webp,image/*,*/*;q=0.8',
+          'user-agent':
+            process.env.CONTENT_IMPORT_IMAGE_USER_AGENT ??
+            DEFAULT_IMAGE_USER_AGENT,
+        },
+        signal: controller.signal,
+      });
       if (!response.ok) {
-        return null;
+        throw new Error(`image_fetch_http_${response.status}`);
       }
 
       const contentType = normalizedContentType(response.headers.get('content-type'));
       if (!contentType) {
-        return null;
+        throw new Error('image_fetch_invalid_content_type');
       }
 
       const maxBytes = positiveInt(
@@ -72,12 +135,14 @@ export class ContentImageMirrorService {
       );
       const contentLength = integer(response.headers.get('content-length'));
       if (contentLength != null && contentLength > maxBytes) {
-        return null;
+        throw new Error('image_fetch_too_large');
       }
 
       const bytes = Buffer.from(await response.arrayBuffer());
       if (bytes.byteLength === 0 || bytes.byteLength > maxBytes) {
-        return null;
+        throw new Error(
+          bytes.byteLength === 0 ? 'image_fetch_empty' : 'image_fetch_too_large',
+        );
       }
 
       return { bytes, contentType };
@@ -116,7 +181,7 @@ export class ContentImageMirrorService {
   }
 
   private objectKey(
-    item: NormalizedExternalContentItem,
+    item: MirrorImageInput,
     imageUrl: string,
     contentType: string,
   ) {
@@ -202,4 +267,33 @@ function positiveInt(value: string | undefined, fallback: number) {
   }
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function sourceImageUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    if (
+      parsed.hostname === 'api.live.mts.ru' &&
+      parsed.pathname.includes('/image-scaling/')
+    ) {
+      const nested = parsed.searchParams.get('Url');
+      if (nested && isHttpsUrl(nested)) {
+        return nested;
+      }
+    }
+  } catch {}
+
+  return value;
+}
+
+function imageHost(value: string) {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return 'invalid';
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -1,7 +1,10 @@
-import { Controller, Get, Headers, Param, Query, Res, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Header, Headers, Param, Query, Res, StreamableFile } from '@nestjs/common';
 import { Response } from 'express';
 import { Public } from '../common/public.decorator';
 import { AfficheService } from '../services/affiche.service';
+
+const AFFICHE_EVENTS_CACHE_CONTROL =
+  'public, max-age=30, stale-while-revalidate=300';
 
 @Public()
 @Controller('affiche')
@@ -9,6 +12,7 @@ export class AfficheController {
   constructor(private readonly afficheService: AfficheService) {}
 
   @Get('events')
+  @Header('Cache-Control', AFFICHE_EVENTS_CACHE_CONTROL)
   listEvents(@Query() query: Record<string, unknown>) {
     return this.afficheService.listEvents(query);
   }

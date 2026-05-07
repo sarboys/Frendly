@@ -34,6 +34,7 @@ const DEFAULT_CONTENT_IMPORT_INTERVAL_MS = 4 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_CONTENT_IMAGE_BACKFILL_BATCH_SIZE = 50;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -119,6 +120,12 @@ export class WorkerService implements OnModuleDestroy {
   );
   private readonly contentImportEnabled =
     process.env.CONTENT_IMPORT_ENABLED === 'true';
+  private readonly contentImageBackfillEnabled =
+    process.env.CONTENT_IMPORT_IMAGE_BACKFILL_ENABLED === 'true';
+  private readonly contentImageBackfillBatchSize = this.resolvePositiveInteger(
+    process.env.CONTENT_IMPORT_IMAGE_BACKFILL_BATCH_SIZE,
+    DEFAULT_CONTENT_IMAGE_BACKFILL_BATCH_SIZE,
+  );
   private readonly contentImportIntervalMs = this.resolvePositiveInteger(
     process.env.CONTENT_IMPORT_INTERVAL_MS,
     DEFAULT_CONTENT_IMPORT_INTERVAL_MS,
@@ -1422,6 +1429,12 @@ export class WorkerService implements OnModuleDestroy {
           from,
           to,
         });
+        if (this.contentImageBackfillEnabled) {
+          await this.contentImportService.backfillMirroredImages({
+            city,
+            limit: this.contentImageBackfillBatchSize,
+          });
+        }
       }
     } finally {
       this.contentImportRunning = false;
