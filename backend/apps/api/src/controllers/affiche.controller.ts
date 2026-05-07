@@ -21,10 +21,11 @@ export class AfficheController {
   @Get('images')
   async getImage(
     @Query('key') key: string | undefined,
+    @Query('url') url: string | undefined,
     @Headers('if-none-match') ifNoneMatch: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const image = await this.afficheService.getImage(key, ifNoneMatch);
+    const image = await this.afficheService.getImage(key, url, ifNoneMatch);
     response.setHeader('Cache-Control', image.cacheControl);
     response.setHeader('ETag', image.etag);
     if ('notModified' in image) {

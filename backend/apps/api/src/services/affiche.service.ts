@@ -108,14 +108,17 @@ export class AfficheService {
 
   async getImage(
     objectKey: unknown,
+    externalUrl?: unknown,
     ifNoneMatch?: string,
   ): Promise<AfficheImageNotModified | AfficheImageStream> {
     const key = this.optionalText(objectKey);
-    if (!key || !key.startsWith('external-content/')) {
+    const proxiedUrl = this.safeExternalImageUrl(externalUrl);
+    if ((!key || !key.startsWith('external-content/')) && !proxiedUrl) {
       throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
     }
 
-    const etag = this.buildImageEtag(key);
+    const imageSource = key?.startsWith('external-content/') ? key : proxiedUrl!;
+    const etag = this.buildImageEtag(imageSource);
     const cacheControl = 'public, max-age=300';
     if (this.isFreshRequest(etag, ifNoneMatch)) {
       return {
@@ -125,7 +128,9 @@ export class AfficheService {
       };
     }
 
-    const signed = await createPresignedDownload(key);
+    const signed = key?.startsWith('external-content/')
+      ? await createPresignedDownload(key)
+      : { url: proxiedUrl! };
     let upstream: Response;
     try {
       upstream = await fetch(signed.url);
@@ -321,10 +326,35 @@ export class AfficheService {
 
     const objectKey = objectKeyFromPublicAssetUrl(trimmed);
     if (!objectKey?.startsWith('external-content/')) {
-      return trimmed;
+      const proxiedUrl = this.safeExternalImageUrl(trimmed);
+      return proxiedUrl ? `/affiche/images?url=${encodeURIComponent(proxiedUrl)}` : trimmed;
     }
 
     return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
+  }
+
+  private safeExternalImageUrl(value: unknown) {
+    const raw = this.optionalText(value);
+    if (!raw) {
+      return null;
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      return null;
+    }
+    if (parsed.protocol !== 'https:') {
+      return null;
+    }
+    const allowedHosts = new Set([
+      'api.live.mts.ru',
+      'media.ticketland.ru',
+      'kudago.com',
+      'static.kudago.com',
+      'img.kudago.com',
+    ]);
+    return allowedHosts.has(parsed.hostname) ? parsed.toString() : null;
   }
 
   private parseLimit(value: unknown) {

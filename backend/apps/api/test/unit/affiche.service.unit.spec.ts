@@ -134,9 +134,12 @@ describe('AfficheService', () => {
     );
   });
 
-  it('keeps third-party event image URLs unchanged', async () => {
+  it('maps safe third-party event image URLs to API proxy paths', async () => {
     const findMany = jest.fn().mockResolvedValue([
-      afficheItem({ imageUrl: 'https://ticketland.ru/image.jpg' }),
+      afficheItem({
+        imageUrl:
+          'https://api.live.mts.ru/web-api/v3/image-scaling/?ScalingFactor=4&Url=https%3A%2F%2Fmedia.ticketland.ru%2Fimage.jpg',
+      }),
     ]);
     const service = new AfficheService({
       client: {
@@ -148,7 +151,9 @@ describe('AfficheService', () => {
 
     const result = await service.listEvents({ city: 'Москва', limit: '1' });
 
-    expect(result.items[0]?.imageUrl).toBe('https://ticketland.ru/image.jpg');
+    expect(result.items[0]?.imageUrl).toBe(
+      '/affiche/images?url=https%3A%2F%2Fapi.live.mts.ru%2Fweb-api%2Fv3%2Fimage-scaling%2F%3FScalingFactor%3D4%26Url%3Dhttps%253A%252F%252Fmedia.ticketland.ru%252Fimage.jpg',
+    );
   });
 
   it('streams mirrored affiche images through the API proxy', async () => {
@@ -175,6 +180,36 @@ describe('AfficheService', () => {
     const image = await service.getImage('external-content/item.jpg');
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(image).toMatchObject({
+      cacheControl: 'public, max-age=300',
+      etag: expect.stringContaining('affiche-image-'),
+      mimeType: 'image/jpeg',
+      contentLength: 11,
+    });
+    expect('stream' in image).toBe(true);
+  });
+
+  it('streams safe third-party affiche images through the API proxy', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response('image-bytes', {
+        status: 200,
+        headers: {
+          'content-type': 'image/jpeg',
+          'content-length': '11',
+        },
+      }) as any,
+    );
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {},
+      },
+    } as any);
+    const imageUrl =
+      'https://api.live.mts.ru/web-api/v3/image-scaling/?ScalingFactor=4&Url=https%3A%2F%2Fmedia.ticketland.ru%2Fimage.jpg';
+
+    const image = await service.getImage(undefined, imageUrl);
+
+    expect(fetchSpy).toHaveBeenCalledWith(imageUrl);
     expect(image).toMatchObject({
       cacheControl: 'public, max-age=300',
       etag: expect.stringContaining('affiche-image-'),

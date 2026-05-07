@@ -23,6 +23,7 @@ describe('AfficheController', () => {
     const result = await controller.getImage(
       'external-content/item.jpg',
       undefined,
+      undefined,
       response,
     );
 
