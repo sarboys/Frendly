@@ -106,6 +106,11 @@ const eventListSummarySelect = {
   visibilityMode: true,
   joinMode: true,
   hostId: true,
+  sourceExternalContentItem: {
+    select: {
+      imageUrl: true,
+    },
+  },
 } satisfies Prisma.EventSelect;
 
 const eventMessageMediaAssetSelect = {

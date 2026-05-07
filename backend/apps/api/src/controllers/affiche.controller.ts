@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import { Controller, Get, Headers, Param, Query, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { Public } from '../common/public.decorator';
 import { AfficheService } from '../services/affiche.service';
@@ -21,10 +21,22 @@ export class AfficheController {
   @Get('images')
   async getImage(
     @Query('key') key: string | undefined,
+    @Headers('if-none-match') ifNoneMatch: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const image = await this.afficheService.getImageRedirect(key);
+    const image = await this.afficheService.getImage(key, ifNoneMatch);
     response.setHeader('Cache-Control', image.cacheControl);
-    response.redirect(307, image.redirectUrl);
+    response.setHeader('ETag', image.etag);
+    if ('notModified' in image) {
+      response.status(304).end();
+      return;
+    }
+
+    response.setHeader('Content-Type', image.mimeType);
+    if (image.contentLength != null) {
+      response.setHeader('Content-Length', image.contentLength);
+    }
+    image.stream.on('error', (error) => response.destroy(error));
+    image.stream.pipe(response);
   }
 }

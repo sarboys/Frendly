@@ -7,6 +7,8 @@ import {
   objectKeyFromPublicAssetUrl,
 } from '@big-break/database';
 import { Prisma } from '@prisma/client';
+import { createHash } from 'crypto';
+import { Readable } from 'node:stream';
 import { ApiError } from '../common/api-error';
 import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
@@ -47,6 +49,20 @@ const afficheEventSelect = {
 type AfficheEventRecord = Prisma.ExternalContentItemGetPayload<{
   select: typeof afficheEventSelect;
 }>;
+
+type AfficheImageNotModified = {
+  notModified: true;
+  cacheControl: string;
+  etag: string;
+};
+
+type AfficheImageStream = {
+  stream: Readable;
+  mimeType: string;
+  contentLength: number | null;
+  cacheControl: string;
+  etag: string;
+};
 
 @Injectable()
 export class AfficheService {
@@ -90,17 +106,69 @@ export class AfficheService {
     return this.mapEvent(item);
   }
 
-  async getImageRedirect(objectKey: unknown) {
+  async getImage(
+    objectKey: unknown,
+    ifNoneMatch?: string,
+  ): Promise<AfficheImageNotModified | AfficheImageStream> {
     const key = this.optionalText(objectKey);
     if (!key || !key.startsWith('external-content/')) {
       throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
     }
 
+    const etag = this.buildImageEtag(key);
+    const cacheControl = 'public, max-age=300';
+    if (this.isFreshRequest(etag, ifNoneMatch)) {
+      return {
+        notModified: true,
+        cacheControl,
+        etag,
+      };
+    }
+
     const signed = await createPresignedDownload(key);
+    let upstream: Response;
+    try {
+      upstream = await fetch(signed.url);
+    } catch {
+      throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
+    }
+    if (!upstream.ok || !upstream.body) {
+      throw new ApiError(404, 'affiche_image_not_found', 'Affiche image not found');
+    }
+
     return {
-      redirectUrl: signed.url,
-      cacheControl: 'public, max-age=300',
+      stream: Readable.fromWeb(upstream.body as any),
+      mimeType: upstream.headers.get('content-type') ?? 'application/octet-stream',
+      contentLength: this.parseContentLength(upstream.headers.get('content-length')),
+      cacheControl,
+      etag,
     };
+  }
+
+  async getImageRedirect(objectKey: unknown, ifNoneMatch?: string) {
+    return this.getImage(objectKey, ifNoneMatch);
+  }
+
+  private buildImageEtag(objectKey: string) {
+    const hash = createHash('sha1').update(objectKey).digest('hex').slice(0, 16);
+    return `W/"affiche-image-${hash}"`;
+  }
+
+  private isFreshRequest(etag: string, ifNoneMatch?: string) {
+    return (
+      ifNoneMatch
+        ?.split(',')
+        .map((value) => value.trim())
+        .some((value) => value === '*' || value === etag) ?? false
+    );
+  }
+
+  private parseContentLength(value: string | null) {
+    if (!value) {
+      return null;
+    }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
   }
 
   private buildWhere(query: Record<string, unknown>, city: string): Prisma.ExternalContentItemWhereInput {

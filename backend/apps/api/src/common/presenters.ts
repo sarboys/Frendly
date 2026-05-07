@@ -9,7 +9,11 @@ import {
   Profile,
   User,
 } from '@prisma/client';
-import { buildMediaProxyPath, buildMessagePreview } from '@big-break/database';
+import {
+  buildMediaProxyPath,
+  buildMessagePreview,
+  objectKeyFromPublicAssetUrl,
+} from '@big-break/database';
 import { mapMediaAsset, mapProfilePhoto } from './media-presenters';
 
 export { mapMediaAsset, mapProfilePhoto } from './media-presenters';
@@ -276,6 +280,9 @@ type EventSummaryInput = Pick<
 > & {
   latitude?: number | null;
   longitude?: number | null;
+  sourceExternalContentItem?: {
+    imageUrl: string | null;
+  } | null;
 };
 
 export function mapEventSummary(params: {
@@ -311,6 +318,7 @@ export function mapEventSummary(params: {
     startsAtIso: event.startsAt.toISOString(),
     place: event.place,
     distance: `${event.distanceKm.toFixed(1)} км`,
+    imageUrl: mapExternalContentImageUrl(event.sourceExternalContentItem),
     latitude: event.latitude ?? null,
     longitude: event.longitude ?? null,
     attendees: attendeePreview.slice(0, 5).map((participant) => participant.user.displayName),
@@ -333,4 +341,26 @@ export function mapEventSummary(params: {
     liveStatus: mapLiveStatus(liveState),
     isHost: event.hostId === currentUserId,
   };
+}
+
+function mapExternalContentImageUrl(
+  source?: { imageUrl: string | null } | null,
+) {
+  const trimmed = source?.imageUrl?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  let objectKey: string | null = null;
+  try {
+    objectKey = objectKeyFromPublicAssetUrl(trimmed);
+  } catch {
+    objectKey = null;
+  }
+
+  if (!objectKey?.startsWith('external-content/')) {
+    return trimmed;
+  }
+
+  return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
 }

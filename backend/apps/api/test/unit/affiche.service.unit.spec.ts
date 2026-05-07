@@ -4,6 +4,7 @@ describe('AfficheService', () => {
   const originalEnv = { ...process.env };
 
   afterEach(() => {
+    jest.restoreAllMocks();
     for (const key of [
       'S3_ACCESS_KEY',
       'S3_SECRET_KEY',
@@ -148,6 +149,39 @@ describe('AfficheService', () => {
     const result = await service.listEvents({ city: 'Москва', limit: '1' });
 
     expect(result.items[0]?.imageUrl).toBe('https://ticketland.ru/image.jpg');
+  });
+
+  it('streams mirrored affiche images through the API proxy', async () => {
+    process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
+    process.env.S3_SECRET_KEY = 'secret';
+    process.env.S3_BUCKET = 'frendly-backet';
+    process.env.S3_PUBLIC_ENDPOINT = 'https://s3.twcstorage.ru';
+    process.env.S3_CDN_ENDPOINT = 'https://cdn.frendly.tech';
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response('image-bytes', {
+        status: 200,
+        headers: {
+          'content-type': 'image/jpeg',
+          'content-length': '11',
+        },
+      }) as any,
+    );
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {},
+      },
+    } as any);
+
+    const image = await service.getImage('external-content/item.jpg');
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(image).toMatchObject({
+      cacheControl: 'public, max-age=300',
+      etag: expect.stringContaining('affiche-image-'),
+      mimeType: 'image/jpeg',
+      contentLength: 11,
+    });
+    expect('stream' in image).toBe(true);
   });
 });
 

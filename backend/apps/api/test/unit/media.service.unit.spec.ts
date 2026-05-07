@@ -12,6 +12,8 @@ async function readStream(stream: NodeJS.ReadableStream) {
 }
 
 describe('MediaService', () => {
+  const mediaUpdatedAt = new Date('2026-05-07T10:00:00.000Z');
+
   afterEach(() => {
     delete process.env.MEDIA_PROXY_STREAMING_ENABLED;
   });
@@ -31,6 +33,7 @@ describe('MediaService', () => {
           publicUrl: `data:text/plain;base64,${payload}`,
           mimeType: 'text/plain',
           byteSize: 10,
+          updatedAt: mediaUpdatedAt,
         }),
       },
     };
@@ -59,6 +62,7 @@ describe('MediaService', () => {
           publicUrl: `data:text/plain;base64,${payload}`,
           mimeType: 'text/plain',
           byteSize: 10,
+          updatedAt: mediaUpdatedAt,
         }),
       },
     };
@@ -87,6 +91,7 @@ describe('MediaService', () => {
           publicUrl: null,
           mimeType: 'audio/mp4',
           byteSize: 100,
+          updatedAt: mediaUpdatedAt,
         }),
       },
       session: {
@@ -129,6 +134,7 @@ describe('MediaService', () => {
           publicUrl: 'https://cdn.example.com/broken/avatar.jpg',
           mimeType: 'image/jpeg',
           byteSize: 100,
+          updatedAt: mediaUpdatedAt,
         }),
       },
     };
@@ -147,6 +153,41 @@ describe('MediaService', () => {
       'https://cdn.example.com/broken/avatar.jpg',
     );
     expect(s3Send).not.toHaveBeenCalled();
+  });
+
+  it('returns not modified for fresh public media cache validators', async () => {
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-1',
+          status: 'ready',
+          ownerId: 'user-owner',
+          kind: 'avatar',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'avatars/user-owner/avatar.jpg',
+          publicUrl: 'https://cdn.example.com/avatar.jpg',
+          mimeType: 'image/jpeg',
+          byteSize: 100,
+          updatedAt: mediaUpdatedAt,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+
+    const media = await service.getAsset(
+      'asset-1',
+      undefined,
+      undefined,
+      `W/"media-asset-1-100-${mediaUpdatedAt.getTime()}"`,
+    );
+
+    expect(media).toEqual({
+      notModified: true,
+      cacheControl: 'public, max-age=31536000, immutable',
+      etag: `W/"media-asset-1-100-${mediaUpdatedAt.getTime()}"`,
+      lastModified: mediaUpdatedAt.toUTCString(),
+    });
   });
 
   it('denies direct chat media download when the peer is blocked', async () => {

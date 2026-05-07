@@ -16,6 +16,8 @@ type MediaStreamDelivery = {
   stream: Readable;
   mimeType: string;
   cacheControl: string;
+  etag: string;
+  lastModified: string;
   contentLength: number;
   contentRange: string | null;
 };
@@ -23,6 +25,15 @@ type MediaStreamDelivery = {
 type MediaRedirectDelivery = {
   redirectUrl: string;
   cacheControl: string;
+  etag: string;
+  lastModified: string;
+};
+
+type MediaNotModifiedDelivery = {
+  notModified: true;
+  cacheControl: string;
+  etag: string;
+  lastModified: string;
 };
 
 @Injectable()
@@ -35,7 +46,11 @@ export class MediaService {
     assetId: string,
     rangeHeader?: string,
     authorizationHeader?: string,
-  ): Promise<MediaStreamDelivery | MediaRedirectDelivery> {
+    ifNoneMatch?: string,
+    ifModifiedSince?: string,
+  ): Promise<
+    MediaStreamDelivery | MediaRedirectDelivery | MediaNotModifiedDelivery
+  > {
     const asset = await this.prismaService.client.mediaAsset.findUnique({
       where: { id: assetId },
       select: {
@@ -49,6 +64,7 @@ export class MediaService {
         mimeType: true,
         byteSize: true,
         publicUrl: true,
+        updatedAt: true,
       },
     });
 
@@ -57,6 +73,17 @@ export class MediaService {
     }
 
     const cacheControl = await this.resolveCachePolicy(asset, authorizationHeader);
+    const cacheMetadata = this.buildCacheMetadata(asset);
+    if (
+      rangeHeader == null &&
+      this.isFreshRequest(cacheMetadata, ifNoneMatch, ifModifiedSince)
+    ) {
+      return {
+        notModified: true,
+        cacheControl,
+        ...cacheMetadata,
+      };
+    }
 
     const requestedRange = this.parseRange(rangeHeader, asset.byteSize);
     const inlineAsset = this.tryReadInlineAsset(asset.publicUrl, requestedRange);
@@ -65,6 +92,7 @@ export class MediaService {
         stream: inlineAsset.stream,
         mimeType: inlineAsset.mimeType,
         cacheControl,
+        ...cacheMetadata,
         contentLength: inlineAsset.contentLength,
         contentRange: inlineAsset.contentRange,
       };
@@ -75,6 +103,7 @@ export class MediaService {
       return {
         redirectUrl: signed.url,
         cacheControl,
+        ...cacheMetadata,
       };
     }
 
@@ -101,6 +130,7 @@ export class MediaService {
       stream: object.Body as unknown as Readable,
       mimeType: asset.mimeType,
       cacheControl,
+      ...cacheMetadata,
       contentLength: end - start + 1,
       contentRange:
           requestedRange == null
@@ -174,6 +204,42 @@ export class MediaService {
 
   private isPublicKind(kind: string) {
     return kind === 'avatar' || kind === 'poster_cover';
+  }
+
+  private buildCacheMetadata(asset: {
+    id: string;
+    byteSize: number;
+    updatedAt: Date;
+  }) {
+    return {
+      etag: `W/"media-${asset.id}-${asset.byteSize}-${asset.updatedAt.getTime()}"`,
+      lastModified: asset.updatedAt.toUTCString(),
+    };
+  }
+
+  private isFreshRequest(
+    media: { etag: string; lastModified: string },
+    ifNoneMatch?: string,
+    ifModifiedSince?: string,
+  ) {
+    if (ifNoneMatch != null) {
+      return ifNoneMatch
+        .split(',')
+        .map((value) => value.trim())
+        .some((value) => value === '*' || value === media.etag);
+    }
+
+    if (ifModifiedSince == null) {
+      return false;
+    }
+
+    const requestTime = Date.parse(ifModifiedSince);
+    const mediaTime = Date.parse(media.lastModified);
+    return (
+      Number.isFinite(requestTime) &&
+      Number.isFinite(mediaTime) &&
+      mediaTime <= requestTime
+    );
   }
 
   private async resolveAssetAccess(

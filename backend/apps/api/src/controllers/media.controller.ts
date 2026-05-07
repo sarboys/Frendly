@@ -21,6 +21,8 @@ export class MediaController {
   async getMedia(
     @Param('assetId') assetId: string,
     @Headers('range') rangeHeader: string | undefined,
+    @Headers('if-none-match') ifNoneMatch: string | undefined,
+    @Headers('if-modified-since') ifModifiedSince: string | undefined,
     @Headers('authorization') authorizationHeader: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -28,15 +30,27 @@ export class MediaController {
       assetId,
       rangeHeader,
       authorizationHeader,
+      ifNoneMatch,
+      ifModifiedSince,
     );
+    response.setHeader('Cache-Control', media.cacheControl);
+    response.setHeader('ETag', media.etag);
+    response.setHeader('Last-Modified', media.lastModified);
+    if (media.cacheControl.startsWith('private')) {
+      response.setHeader('Vary', 'Authorization');
+    }
+
+    if ('notModified' in media) {
+      response.status(304).end();
+      return;
+    }
+
     if ('redirectUrl' in media) {
-      response.setHeader('Cache-Control', media.cacheControl);
       response.redirect(307, media.redirectUrl);
       return;
     }
 
     response.setHeader('Content-Type', media.mimeType);
-    response.setHeader('Cache-Control', media.cacheControl);
     response.setHeader('Accept-Ranges', 'bytes');
     response.setHeader('Content-Length', String(media.contentLength));
     if (media.contentRange != null) {
