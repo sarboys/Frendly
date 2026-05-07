@@ -24,7 +24,7 @@ describe('presenters', () => {
     Object.assign(process.env, originalEnv);
   });
 
-  it('maps owned external content images to CDN URLs for event cards', () => {
+  it('maps owned external content images to API proxy paths for event cards', () => {
     const summary = mapEventSummary({
       event: {
         id: 'event-1',
@@ -58,7 +58,7 @@ describe('presenters', () => {
     });
 
     expect((summary as any).imageUrl).toBe(
-      'https://cdn.frendly.tech/external-content/advcake_ticketland/offer-1.jpg',
+      '/affiche/images?key=external-content%2Fadvcake_ticketland%2Foffer-1.jpg',
     );
   });
 });

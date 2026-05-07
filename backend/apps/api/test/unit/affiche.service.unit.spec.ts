@@ -106,7 +106,7 @@ describe('AfficheService', () => {
     expect(findFirstArgs.select).not.toHaveProperty('raw');
   });
 
-  it('maps mirrored S3 event images to CDN URLs', async () => {
+  it('maps mirrored S3 event images to API proxy paths', async () => {
     process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
     process.env.S3_SECRET_KEY = 'secret';
     process.env.S3_BUCKET = 'frendly-backet';
@@ -130,7 +130,7 @@ describe('AfficheService', () => {
     const result = await service.listEvents({ city: 'Москва', limit: '1' });
 
     expect(result.items[0]?.imageUrl).toBe(
-      'https://cdn.frendly.tech/external-content/advcake_ticketland/image.jpg',
+      '/affiche/images?key=external-content%2Fadvcake_ticketland%2Fimage.jpg',
     );
   });
 

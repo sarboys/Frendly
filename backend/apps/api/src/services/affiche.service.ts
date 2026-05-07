@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { AfficheEventDto, AfficheEventListDto } from '@big-break/contracts';
 import {
-  buildPublicAssetUrl,
   createPresignedDownload,
   decodeCursor,
   encodeCursor,
@@ -351,7 +350,7 @@ export class AfficheService {
       return proxiedUrl ? `/affiche/images?url=${encodeURIComponent(proxiedUrl)}` : trimmed;
     }
 
-    return buildPublicAssetUrl(objectKey);
+    return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
   }
 
   private publicAssetObjectKeyFromUrl(url: string) {
