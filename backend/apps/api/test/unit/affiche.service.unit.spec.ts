@@ -209,7 +209,7 @@ describe('AfficheService', () => {
 
     const image = await service.getImage(undefined, imageUrl);
 
-    expect(fetchSpy).toHaveBeenCalledWith(imageUrl, {
+    expect(fetchSpy).toHaveBeenCalledWith('https://media.ticketland.ru/image.jpg', {
       headers: expect.objectContaining({
         accept: expect.stringContaining('image/'),
         'user-agent': expect.stringContaining('FrendlyImageProxy'),

@@ -137,13 +137,13 @@ export class AfficheService {
       };
     }
 
-    const signed = key?.startsWith('external-content/')
+    const fetchTarget = key?.startsWith('external-content/')
       ? await createPresignedDownload(key)
-      : { url: proxiedUrl! };
+      : { url: this.externalImageFetchUrl(proxiedUrl!) };
     let upstream: Response;
     try {
       upstream = await fetch(
-        signed.url,
+        fetchTarget.url,
         mirroredImage
           ? undefined
           : {
@@ -381,6 +381,29 @@ export class AfficheService {
         process.env.AFFICHE_IMAGE_PROXY_USER_AGENT ??
         'FrendlyImageProxy/1.0 (+https://frendly.tech)',
     };
+  }
+
+  private externalImageFetchUrl(url: string) {
+    const nestedUrl = this.nestedMtsLiveImageUrl(url);
+    return nestedUrl ?? url;
+  }
+
+  private nestedMtsLiveImageUrl(url: string) {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return null;
+    }
+    if (
+      parsed.hostname !== 'api.live.mts.ru' ||
+      !parsed.pathname.includes('/image-scaling/')
+    ) {
+      return null;
+    }
+
+    const nested = this.safeExternalImageUrl(parsed.searchParams.get('Url'));
+    return nested?.startsWith('https://media.ticketland.ru/') ? nested : null;
   }
 
   private positiveInteger(value: string | undefined, fallback: number) {
