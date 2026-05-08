@@ -1,11 +1,7 @@
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
+import { overpassBboxForCity, timezoneForCity } from './supported-cities';
 
 const DEFAULT_OVERPASS_QUERY_TIMEOUT_SECONDS = 120;
-
-const CITY_BBOX: Record<string, string> = {
-  'Москва': '55.55,37.35,55.95,37.95',
-  'Санкт-Петербург': '59.75,30.05,60.10,30.65',
-};
 
 const TAGS = [
   ['amenity', 'cafe'],
@@ -33,7 +29,7 @@ export class OverpassAdapter implements ExternalSourceAdapter {
   private readonly baseUrl = process.env.OVERPASS_BASE_URL ?? 'https://overpass-api.de/api/interpreter';
 
   async fetchItems(input: ExternalSourceFetchInput): Promise<ExternalRawItem[]> {
-    const bbox = CITY_BBOX[input.city];
+    const bbox = overpassBboxForCity(input.city);
     if (!bbox) {
       return [];
     }
@@ -74,7 +70,7 @@ export class OverpassAdapter implements ExternalSourceAdapter {
         sourceUrl: `https://www.openstreetmap.org/${type}/${id}`,
         contentKind: 'place',
         city,
-        timezone: 'Europe/Moscow',
+        timezone: timezoneForCity(city),
         title: name,
         description: text(tags.description) ?? text(tags.opening_hours),
         category,

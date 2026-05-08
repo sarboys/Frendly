@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
+import { isSupportedTicketlandCity, timezoneForCity } from './supported-cities';
 
 const DEFAULT_BASE_URL = 'https://api.advcake.com';
 const DEFAULT_OFFER_ID = '663';
@@ -8,7 +9,6 @@ const DEFAULT_FEED_FORMAT = 'yml';
 const DEFAULT_MAX_FEED_BYTES = 60 * 1024 * 1024;
 const OFFER_BATCH_SIZE = 100;
 const TICKETLAND_PROVIDER = 'Ticketland / MTS Live';
-const SUPPORTED_CITIES = ['Москва', 'Санкт-Петербург'];
 
 const CATEGORY_MAP: Record<string, string> = {
   'комедии': 'comedy',
@@ -196,7 +196,7 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
     if (!id || !title || !region || !startsAt || priceFrom == null || !actionUrl || !isAllowedActionUrl(actionUrl)) {
       return [];
     }
-    if (!SUPPORTED_CITIES.includes(region) || region !== input.city) {
+    if (!isSupportedTicketlandCity(region) || region !== input.city) {
       return [];
     }
     if (startsAt < input.from || startsAt > input.to) {
@@ -216,7 +216,7 @@ export class AdvCakeTicketlandAdapter implements ExternalSourceAdapter {
       sourceUrl: actionUrl,
       contentKind: 'event',
       city: region,
-      timezone: 'Europe/Moscow',
+      timezone: timezoneForCity(region),
       title,
       description,
       category,

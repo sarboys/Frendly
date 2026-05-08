@@ -12,6 +12,7 @@ import {
 import { Prisma } from '@prisma/client';
 import Redis from 'ioredis';
 import type { ExternalSourceCode } from './content/content-source.types';
+import { SUPPORTED_RUSSIA_MILLION_CITY_NAMES } from './content/supported-cities';
 import { ContentImportService } from './content/content-import.service';
 import { RouteDraftGenerationService } from './content/route-draft-generation.service';
 import { ApnsPushProvider, FakePushProvider, FcmPushProvider, PushProvider } from './push.providers';
@@ -1470,7 +1471,7 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   private resolveContentCities() {
-    return csv(process.env.CONTENT_IMPORT_CITIES) ?? ['Москва', 'Санкт-Петербург'];
+    return csv(process.env.CONTENT_IMPORT_CITIES) ?? SUPPORTED_RUSSIA_MILLION_CITY_NAMES;
   }
 
   private resolveContentSources(): ExternalSourceCode[] {

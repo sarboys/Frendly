@@ -68,6 +68,7 @@ export type NormalizedExternalContentItem = {
 export type ExternalSourceFetchInput = {
   city: string;
   cityCode: string;
+  timezone: string;
   from: Date;
   to: Date;
   signal: AbortSignal;

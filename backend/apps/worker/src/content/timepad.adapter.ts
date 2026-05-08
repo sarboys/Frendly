@@ -1,4 +1,5 @@
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
+import { timezoneForCity } from './supported-cities';
 
 const PAGE_SIZE = 100;
 const DEFAULT_MAX_PAGES_PER_ENDPOINT = 1000;
@@ -75,7 +76,7 @@ export class TimepadAdapter implements ExternalSourceAdapter {
         sourceUrl: text(item.url),
         contentKind: 'event',
         city,
-        timezone: 'Europe/Moscow',
+        timezone: timezoneForCity(city),
         title,
         description: text(item.description),
         category: firstCategory(item.categories) ?? 'lecture',

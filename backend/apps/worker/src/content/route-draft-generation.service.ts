@@ -7,6 +7,7 @@ import {
   validateRouteDraft,
   type RoutePlannerCandidate,
 } from './route-planner';
+import { SUPPORTED_RUSSIA_MILLION_CITY_NAMES } from './supported-cities';
 
 type GeneratedRoute = {
   title?: unknown;
@@ -286,7 +287,7 @@ export class RouteDraftGenerationService {
   }
 
   async runScheduledGeneration() {
-    const cities = csv(process.env.CONTENT_IMPORT_CITIES) ?? ['Москва', 'Санкт-Петербург'];
+    const cities = csv(process.env.CONTENT_IMPORT_CITIES) ?? SUPPORTED_RUSSIA_MILLION_CITY_NAMES;
     const maxDrafts = positiveInt(process.env.CONTENT_ROUTE_GENERATION_MAX_DRAFTS_PER_CITY, 12);
     for (const city of cities) {
       for (const mood of ['calm', 'social', 'date', 'culture', 'active', 'outdoor']) {

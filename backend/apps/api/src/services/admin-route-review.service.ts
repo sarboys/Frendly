@@ -22,6 +22,24 @@ type SourceCode = (typeof VALID_SOURCES)[number];
 const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
 const DEFAULT_FORMAT = 'evening_route';
+const CITY_TIMEZONES: Record<string, string> = {
+  'Москва': 'Europe/Moscow',
+  'Санкт-Петербург': 'Europe/Moscow',
+  'Новосибирск': 'Asia/Novosibirsk',
+  'Екатеринбург': 'Asia/Yekaterinburg',
+  'Казань': 'Europe/Moscow',
+  'Нижний Новгород': 'Europe/Moscow',
+  'Красноярск': 'Asia/Krasnoyarsk',
+  'Челябинск': 'Asia/Yekaterinburg',
+  'Самара': 'Europe/Samara',
+  'Уфа': 'Asia/Yekaterinburg',
+  'Ростов-на-Дону': 'Europe/Moscow',
+  'Краснодар': 'Europe/Moscow',
+  'Омск': 'Asia/Omsk',
+  'Воронеж': 'Europe/Moscow',
+  'Пермь': 'Asia/Yekaterinburg',
+  'Волгоград': 'Europe/Volgograd',
+};
 
 const SOURCE_INFO: Record<SourceCode, { name: string; kind: string; baseUrl: string }> = {
   kudago: {
@@ -334,7 +352,7 @@ export class AdminRouteReviewService {
     const run = await this.prismaService.client.generatedRouteDraftBatch.create({
       data: {
         city,
-        timezone: 'Europe/Moscow',
+        timezone: timezoneForCity(city),
         area: this.optionalText(input.area),
         mood,
         budget,
@@ -692,6 +710,10 @@ export class AdminRouteReviewService {
   private requiredDateToIso(value: Date) {
     return value.toISOString();
   }
+}
+
+function timezoneForCity(city: string) {
+  return CITY_TIMEZONES[city] ?? 'Europe/Moscow';
 }
 
 function sourceConfig(code: SourceCode) {

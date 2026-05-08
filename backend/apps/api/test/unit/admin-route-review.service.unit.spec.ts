@@ -230,6 +230,51 @@ describe('AdminRouteReviewService', () => {
     expect(result.status).toBe('pending_manual');
     expect(result.draftCount).toBe(0);
   });
+
+  it('uses city timezone for manual route generation runs', async () => {
+    const batchCreate = jest.fn().mockResolvedValue({
+      id: 'batch-1',
+      city: 'Екатеринбург',
+      timezone: 'Asia/Yekaterinburg',
+      area: null,
+      mood: 'calm',
+      budget: 'low',
+      audience: 'friends',
+      format: 'evening_route',
+      source: 'aggregation',
+      status: 'pending_manual',
+      promptVersion: 'aggregation-route-review-v1',
+      requestJson: { maxDrafts: 1, requestedBy: 'admin' },
+      responseJson: null,
+      errorCode: null,
+      errorMessage: null,
+      createdAt: new Date('2026-05-04T10:00:00.000Z'),
+      finishedAt: null,
+      _count: { drafts: 0 },
+    });
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          generatedRouteDraftBatch: { create: batchCreate },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.createGenerationRun({
+      city: 'Екатеринбург',
+      mood: 'calm',
+      budget: 'low',
+      maxDrafts: 1,
+    });
+
+    expect(batchCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        city: 'Екатеринбург',
+        timezone: 'Asia/Yekaterinburg',
+      }),
+    }));
+  });
 });
 
 function reviewDraft(overrides: Record<string, unknown> = {}) {

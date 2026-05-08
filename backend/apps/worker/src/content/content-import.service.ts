@@ -6,6 +6,7 @@ import { dayKey, eventDuplicateMatch } from './content-deduplication.service';
 import { ContentNormalizerService } from './content-normalizer.service';
 import { ContentImageMirrorService } from './content-image-mirror.service';
 import { ExternalSourceRegistry } from './external-source.registry';
+import { cityCodesForSource, timezoneForCity } from './supported-cities';
 import type {
   ExternalRawItem,
   ExternalSourceAdapter,
@@ -22,25 +23,6 @@ export type ContentImportInput = {
 };
 
 const DEFAULT_IMPORT_TIMEOUT_MS = 600_000;
-const SOURCE_CITY_CODES: Record<ExternalSourceCode, Record<string, string>> = {
-  kudago: {
-    'Москва': 'msk',
-    'Санкт-Петербург': 'spb',
-  },
-  timepad: {
-    'Москва': 'Москва',
-    'Санкт-Петербург': 'Санкт-Петербург',
-  },
-  overpass: {
-    'Москва': 'Москва',
-    'Санкт-Петербург': 'Санкт-Петербург',
-  },
-  advcake_ticketland: {
-    'Москва': 'Москва',
-    'Санкт-Петербург': 'Санкт-Петербург',
-  },
-};
-
 const PUBLIC_STATUS_PUBLISHED = 'published';
 const PUBLIC_STATUS_HIDDEN = 'hidden';
 const PUBLIC_STATUS_STALE = 'stale';
@@ -116,14 +98,14 @@ export class ContentImportService {
           kind: sourceInfo.kind,
           baseUrl: sourceInfo.baseUrl,
           status: 'active',
-          cityCodes: SOURCE_CITY_CODES[sourceInfo.code] as Prisma.InputJsonValue,
+          cityCodes: cityCodesForSource(sourceInfo.code) as Prisma.InputJsonValue,
           config: safeJson(sourceInfo.config ?? {}),
         },
         update: {
           name: sourceInfo.name,
           kind: sourceInfo.kind,
           baseUrl: sourceInfo.baseUrl,
-          cityCodes: SOURCE_CITY_CODES[sourceInfo.code] as Prisma.InputJsonValue,
+          cityCodes: cityCodesForSource(sourceInfo.code) as Prisma.InputJsonValue,
           config: safeJson(sourceInfo.config ?? {}),
         },
       });
@@ -316,7 +298,8 @@ export class ContentImportService {
       });
       const fetchInput = {
         city: input.city,
-        cityCode: SOURCE_CITY_CODES[input.sourceCode]?.[input.city] ?? input.city,
+        cityCode: cityCodesForSource(input.sourceCode)[input.city] ?? input.city,
+        timezone: timezoneForCity(input.city),
         from: input.from,
         to: input.to,
         signal: controller.signal,

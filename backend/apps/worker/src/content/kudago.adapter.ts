@@ -1,9 +1,5 @@
 import type { ExternalRawItem, ExternalSourceAdapter, ExternalSourceFetchInput } from './content-source.types';
-
-const KUDAGO_CITY_CODES: Record<string, string> = {
-  'Москва': 'msk',
-  'Санкт-Петербург': 'spb',
-};
+import { kudagoCityCode, timezoneForCity } from './supported-cities';
 
 const PAGE_SIZE = 100;
 const DEFAULT_MAX_PAGES_PER_ENDPOINT = 1000;
@@ -73,7 +69,10 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
   }
 
   async *fetchBatches(input: ExternalSourceFetchInput): AsyncIterable<ExternalRawItem[]> {
-    const cityCode = KUDAGO_CITY_CODES[input.city] ?? input.cityCode;
+    const cityCode = kudagoCityCode(input.city);
+    if (!cityCode) {
+      return;
+    }
     yield* this.fetchEvents(input, cityCode);
     yield* this.fetchPlaces(input, cityCode);
   }
@@ -126,7 +125,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
         sourceUrl: text(item.site_url),
         contentKind: 'event',
         city,
-        timezone: 'Europe/Moscow',
+        timezone: timezoneForCity(city),
         title,
         description: text(item.description),
         category: firstString(item.categories) ?? 'concert',
@@ -159,7 +158,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
         sourceUrl: text(item.site_url),
         contentKind: 'place',
         city,
-        timezone: 'Europe/Moscow',
+        timezone: timezoneForCity(city),
         title,
         description: null,
         category: firstString(item.categories) ?? 'place',

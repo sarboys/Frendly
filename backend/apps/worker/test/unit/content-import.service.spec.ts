@@ -74,6 +74,13 @@ describe('ContentImportService', () => {
 
     expect(sourceCreate).toHaveBeenCalledWith(expect.objectContaining({
       where: { code: 'kudago' },
+      create: expect.objectContaining({
+        cityCodes: expect.objectContaining({
+          'Казань': 'kzn',
+          'Новосибирск': 'nsk',
+          'Краснодар': 'krd',
+        }),
+      }),
     }));
     expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
       where: { sourceId_sourceItemId: { sourceId: 'source-1', sourceItemId: 'place-1' } },

@@ -116,6 +116,16 @@ describe('content source adapters', () => {
     expect(placeCategories).not.toContain('animal-shelters');
   });
 
+  it('uses KudaGo location codes for supported million-plus cities', async () => {
+    const adapter = new KudaGoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ results: [] }) as any);
+
+    await adapter.fetchItems(fetchInput({ city: 'Казань', cityCode: 'kzn' }));
+
+    const urls = fetchMock.mock.calls.map((call) => new URL(String(call[0])));
+    expect(urls.every((url) => url.searchParams.get('location') === 'kzn')).toBe(true);
+  });
+
   it('loads all Timepad pages until the selected period ends', async () => {
     process.env.TIMEPAD_API_TOKEN = 'test-token';
     const adapter = new TimepadAdapter();
@@ -199,6 +209,25 @@ describe('content source adapters', () => {
     expect(items[0]?.category).toBe('sport');
   });
 
+  it('keeps Ticketland offers for supported million-plus city regions', async () => {
+    process.env.ADVCAKE_API_PASS = 'fake-pass';
+    const adapter = new AdvCakeTicketlandAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ feeds: [{ format: 'yml', url: 'https://feeds.advcake.ru/yml-feed' }] }) as any)
+      .mockResolvedValueOnce(textResponse(ticketlandYml({
+        region: 'Казань',
+        title: 'Казанский концерт',
+      })) as any);
+
+    const items = await adapter.fetchItems(fetchInput({ city: 'Казань', cityCode: 'kzn' }));
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      city: 'Казань',
+      title: 'Казанский концерт',
+    });
+  });
+
   it('filters AdvCake offers by city, date and required fields', async () => {
     process.env.ADVCAKE_API_PASS = 'fake-pass';
     const adapter = new AdvCakeTicketlandAdapter();
@@ -251,12 +280,31 @@ describe('content source adapters', () => {
     expect(headers.Accept).toBe('application/json');
     expect(headers['User-Agent']).toBe('FrendlyRouteImporter/1.0');
   });
+
+  it('runs Overpass imports for million-plus cities outside Moscow and Saint Petersburg', async () => {
+    const adapter = new OverpassAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ elements: [] }) as any);
+
+    await adapter.fetchItems(fetchInput({ city: 'Пермь', cityCode: 'Пермь' }));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = fetchMock.mock.calls[0]?.[1]?.body as URLSearchParams;
+    expect(body.get('data')).toContain('57.85,55.80,58.10,56.45');
+  });
 });
 
-function fetchInput() {
+function fetchInput(overrides: Partial<ReturnType<typeof fetchInputBase>> = {}) {
+  return {
+    ...fetchInputBase(),
+    ...overrides,
+  };
+}
+
+function fetchInputBase() {
   return {
     city: 'Москва',
     cityCode: 'msk',
+    timezone: 'Europe/Moscow',
     from: new Date('2026-05-04T00:00:00.000Z'),
     to: new Date('2026-06-03T00:00:00.000Z'),
     signal: new AbortController().signal,
@@ -313,6 +361,7 @@ function timepadEvent(id: number, startsAt: string) {
 
 function ticketlandYml(options: {
   extraOffers?: string;
+  region?: string;
   title?: string;
   typePrefix?: string;
   url?: string;
@@ -330,7 +379,7 @@ function ticketlandYml(options: {
         <vendor>Клуб</vendor>
         <categoryId>10</categoryId>
         <typePrefix>${options.typePrefix ?? 'Комедии'}</typePrefix>
-        <region>Москва</region>
+        <region>${options.region ?? 'Москва'}</region>
         <date>2026-05-05 19:00:00</date>
         <description>&lt;p&gt;Описание &amp;amp; детали&lt;/p&gt;</description>
         <age>18+</age>
