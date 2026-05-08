@@ -65,7 +65,7 @@ Landing
 - `backend/apps/worker/src/`: worker loop.
 - `backend/packages/database/`: Prisma, JWT, Redis, S3, outbox.
 - `backend/packages/contracts/src/index.ts`: DTO and WebSocket contracts.
-- `front/src/components/bigbreak/`: visual reference.
+- `front/src/pages/v5/` and `front/src/pages/HomeV5.tsx`: visual reference.
 - `landing/src/`: landing app.
 
 ## Core flows

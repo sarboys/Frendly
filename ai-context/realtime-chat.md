@@ -126,6 +126,10 @@ Voice:
 
 Private media download checks membership and blocks before signed URL.
 
+Flutter `AppAttachmentService` coalesces in-flight signed download URL requests and keeps a four-minute local TTL cache by `downloadUrlPath` or media asset id. Chat thread warmup uses the same service for recent ready voice and image attachments, so private media playback and image widgets should stay on this path to avoid duplicate `/media/:id/download-url` calls while scrolling.
+
+`GET /media/:assetId` supports `ETag` and `Last-Modified`. Fresh conditional requests return `304` before S3 streaming or signed URL generation, while private media still uses `Cache-Control: private, max-age=300`.
+
 ## Evening realtime
 
 - Session-linked meetup chats expose `sessionId`, `privacy`, `joinedCount`, `maxGuests`, `hostName`, `area`.

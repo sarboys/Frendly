@@ -135,6 +135,10 @@ Yandex native bridge:
 - Auth endpoints use `skipAuthHeader` and `skipAuthRefresh`.
 - On 401, client refreshes once and retries.
 - Refresh 401 clears tokens.
+- Flutter bootstrap, refresh and settings sync compare the current access/refresh tokens before writing or clearing state after async `/me`, `/auth/refresh` or settings responses. Late responses from an old session must not overwrite a fresh login or logout.
+- Flutter token storage write/delete operations are serialized inside `AuthTokensController`, so logout, refresh and fresh login cannot reorder persisted secure storage state.
+- Flutter session replacement uses a generation guard after runtime cleanup. An older login flow must not write `currentUserId` after a newer login flow starts.
+- Settings logout captures the current user id and access/refresh token snapshot before push-token delete, backend logout and local cleanup awaits. It rechecks that snapshot before clearing auth state or navigating to `/welcome`.
 - Router sends guests to public auth flow.
 - Incomplete setup redirects to `/onboarding`.
 

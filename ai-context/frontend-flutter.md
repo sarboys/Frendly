@@ -56,30 +56,51 @@ Use this file for Flutter behavior, state and performance rules.
 
 ## Feature notes
 
-- Splash uses the Frendly 4-act intro: pulse, interest orbit, route formation, brand reveal.
-- Search results are grouped as meetups, evenings, routes, posters and affiche.
-- Search separates discovery and remote search modes. During remote search it must not watch `eventsProvider('nearby')` or `peopleProvider`.
-- Search remote results use an `autoDispose` family provider so old query/filter result states are released after the screen stops listening.
-- Search date filter is `yyyy-mm-dd` or `any` and counts as an active filter.
+- Splash mirrors `front/src/pages/v5/Splash.tsx`: liquid orange drop, blob reveal, Frendly wordmark and final compact `Fr` mark before auth routing.
+- Welcome mirrors `front/src/pages/v5/Welcome.tsx`: orange Fr logo tile, centered editorial title/subtitle, bottom primary CTA, SMS login button, social auth row and terms copy.
+- Onboarding is a 7-step v5 flow: intent/profile, city and area, interests, vibe, birthday, contact, permissions. If auth requires a missing contact, keep that contact step first so backend completion rules still pass.
+- Paywall mirrors `front/src/pages/v5/Paywall.tsx`: terracotta FRENDLY+ pill, feature list, yearly/monthly cards and fixed subscribe CTA.
+- Mobile no longer has a full screen `/search` route. Header search entry points use reusable `showV5SearchModal(BuildContext context)` from `features/tonight/presentation/v5_search_modal.dart`.
+- V5 search modal keeps recent queries in `SharedPreferences` and routes static result types to `/tonight`, `/communities`, `/dating`, `/routes` and `/affiche`.
+- Mobile grouped remote search ignores backend `posters` payloads.
 - `BackendRepository` is the shared REST mapping boundary.
 - Affiche uses a separate `AfficheEvent` model under `shared/models`, because imported paid events may have no address or coordinates. `BackendRepository` owns `fetchAfficheEvents` and `fetchAfficheEventDetail`.
 - Chat local state is scoped by chat id.
 - Tonight location can be overridden manually through `manualLocationProvider`. Nearby event feed and city-limited Tonight entries must prefer manual coordinates/city before device GPS.
-- Debounced Yandex place search in onboarding, Tonight manual location and Create Meetup place picker must guard `mounted`, catch search errors, and clear loading only for the current query.
+- Debounced Yandex place search in onboarding, Tonight manual location and Create Meetup place picker must capture map/location services before async waits, guard `mounted`, catch search errors, and clear loading only for the current query.
 - Map viewport events use an `autoDispose` family provider because query keys change with camera center/bounds.
-- Tonight shows an affiche rail for the current manual city. The rail "all" action opens `/affiche`, not the legacy posters feed. Search shows an affiche results block. KudaGo places must not be mixed into these event rails.
-- Tonight poster preview loads featured posters only as a fallback when Affiche data is empty or failed.
-- Tonight people preview is placed in a lazy sliver item so `peopleProvider` is not watched during initial top-screen build.
+- Tonight first tab mirrors linked `front/src/pages/HomeV5.tsx`, not the old Tonight feed. It renders brand header, hero, radar, gathering, dating, affiche, routes, pulse, metrics, `Твоё в Frendly` links and AI voice CTA. The gathering rail is a snapping V5 carousel backed by `GET /events`; `Смотреть все` opens `/meetups`. Dating preview cards open `/dating`, not the public user profile route.
+- Meetups list at `/meetups` mirrors `front/src/pages/v5/Meetups.tsx`: V5 warm page, search, quick `Когда` chips, sort controls, filter sheet for categories, time of day, atmosphere, radius and access, and event cards backed by `GET /events`.
+- Host dashboard at `/host` mirrors `front/src/pages/v5/Host.tsx`: V5 hero metric, stat cards, create CTA, real join requests with approve/reject actions, and tabs for upcoming, past and draft meetups backed by `/host/dashboard`.
+- V5 dark actions use the terracotta accent `#D08A63`: CTA buttons, active bottom nav, active chips, chat mine bubbles, FAB and snackbars. Home header uses the orange Fr logo asset and opens V5 city picker/search/AI create from the header controls. City picker uses a warm blurred modal with region/city rows, live geolocation detection, Yandex suggestions and manual save. Shared V5 bottom nav always uses the `Клубы` label for the communities tab and a 56px create FAB at `right: 20`, `bottom: 96` on Home.
+- V5 Home, Chats and Map search controls open the shared V5 search modal, not a full Search screen. It keeps the blurred dimmed surface underneath, starts on `Всё`, autofocuses the search field, keeps recent queries in `SharedPreferences`, and routes results by type.
+- V5 map screen mirrors `front/src/pages/v5/Radar.tsx` while keeping real `YandexMap`: warm Yandex style, paper/topography overlay, V5 top controls, black active map chips, right map controls, bottom nearby sheet and local V5 bottom nav. Back falls through to `/tonight` when the map was opened as a root route. Event points are backend-driven through `GET /events`; do not show fake radar pins/cards when backend data is empty.
+- AI Create lives at `AppRoute.aiCreate` (`/ai-create`) and mirrors `front/src/pages/v5/AICreate.tsx`: prompt, templates, vibes, time, budget, group size and a generated 3-step plan that can continue into Create Meetup.
+- AI Voice lives at `AppRoute.aiVoice` (`/ai-voice`) and mirrors `front/src/pages/v5/AIVoice.tsx`: pulsing mic, dictated prompt, route preview and nearby people.
+- Create Meetup mirrors `front/src/pages/v5/CreateMeetup.tsx`: sticky V5 header, terracotta mode tabs, live preview with `Brix · Покровка 12`, title/icon, when/where, attach, vibe, capacity including fixed dating capacity, lifestyle, price chips with v5 range separators, access, gender, description, AI helper, visibility and fixed bottom CTA.
+- Tonight affiche preview uses `afficheEventsProvider` for the current manual city and opens `/affiche`. Do not fall back to posters on this HomeV5 surface.
+- Full Affiche screen at `/affiche` mirrors `front/src/pages/v5/Posters.tsx` but uses real `AfficheEvent` data: V5 warm page, back header, search pill, category chips, 2-column event grid and V5 card styling. The filter sheet has date range chips, time of day, multi-category choice, 0-30 km radius and price, with active count on the filter button and empty state. Affiche detail mirrors `front/src/pages/v5/PosterDetail.tsx`: V5 ticket card, perforation, info tiles, together callout and fixed bottom CTAs.
+- Tonight dating preview uses `peopleProvider` in v5 gradient cards. Do not bring back the old avatar tile rail.
+- Dating screen mirrors `front/src/pages/v5/Dating.tsx`: header has only back, title and filter; no `Date` header button. Discover cards use prompt, tags, follow/like social row and the three V5 actions. Tabs, like actions and match/chat pills use the terracotta V5 accent. Incoming likes send a dating `like` action for one-tap match/chat.
+- Communities tab is the V5 clubs surface and mirrors `front/src/pages/v5/Clubs.tsx`: search and filter pill, Frendly+ hero, stats, initials tiles, private/premium/unread badges, media and online meta, next meetup strip and filter sheet count.
+- Community detail mirrors `front/src/pages/v5/ClubDetail.tsx`: V5 back/share header, hero with initials, privacy/premium badges, stats, join/exit plus open-chat actions, terracotta tabs, separate news/social sections, V5 meetup cards and member rows.
+- Chats tab mirrors `front/src/pages/v5/Chats.tsx`: editorial header with only search action, search launcher, active rail, `Все / Встречи / Дейтинг / Личные` chips, mixed all-chat list, terracotta unread counters, v5 fallback rows when backend chats are empty, and terracotta AI launch CTA.
 - Affiche UI lives under `features/affiche/presentation`. Prices are rendered from the backend label semantics as rubles, without `k` abbreviations. Event images must go through shared `BbExternalEventImage` with `rail`, `card` or `hero` usage profiles, stable URL plus profile cache keys and fixed cache buckets. `AfficheEvent.fromJson` resolves relative backend image proxy paths before they reach image widgets. The detail screen opens paid ticket `actionUrl` through `url_launcher` with `LaunchMode.externalApplication`; free events use a non-buy CTA.
+- Meetup event summaries can include `imageUrl` from linked Affiche content. `Event.fromJson` resolves relative backend image proxy paths, and Tonight gathering cards render that URL through `BbExternalEventImage` before falling back to emoji gradients.
 - Affiche detail address tiles open a bottom sheet with external map choices. Keep Google Maps and Yandex Maps as URL launches, not embedded maps.
-- Affiche detail can open Create Meetup through `/create?afficheEventId=<id>`. `CreateMeetupScreen` loads the event detail, prefills title, description, date, place, price and coordinates, then sends `afficheEventId` to `POST /events`. It must not combine affiche source with poster or route source.
+- Affiche detail can open Create Meetup through `/create?afficheEventId=<id>`. `CreateMeetupScreen` loads the event detail, prefills title, description, date, place, price and coordinates, then sends `afficheEventId` to `POST /events`. It must not combine affiche source with route source.
 - Evening route steps can include `ticketUrl`, `ticketSourceCode` and `ticketProvider`. `EveningPlanScreen` opens HTTPS ticket URLs with `url_launcher` external mode before marking the ticket as bought.
 - Meetup chat participants use `memberProfiles.userId` for profile and direct-chat actions. Do not route by display name from `members`.
+- Own profile at `/profile` mirrors `front/src/pages/v5/Profile.tsx`: V5 header, hero, social counters, Frendly+ card, intent, vibe, interests, about and history. Do not add the old lower action cards back to this screen.
+- Settings mirrors `front/src/pages/v5/Settings.tsx`: management header with italic account accent, account, notifications, privacy, appearance and support groups, V5 switches, logout pill and version footer. Do not show internal testing access toggles on this user-facing screen.
 - User profiles render `BbSocialActions.full` from `shared/widgets/bb_social_actions.dart`. It uses `ProfileData.social` for the first frame and `profileSocialProvider(userId)` for scoped optimistic follow, like and super-like actions.
 - Per-user profile and social providers are auto-disposed by user id after profile/report screens stop listening.
 - Reuse `BbSocialActions.compact` or `BbSocialActions.row` only when a list already has bounded social data for that user. Do not start one social request per visible list item.
+- Meetup detail at `AppRoute.eventDetail` (`/event/:eventId`) mirrors `front/src/pages/v5/MeetupDetail.tsx`: hero card, when/where/going/duration tiles, verified host with rating, host quote, 3-step program, attendee rail, mini map, conditions, partner perk, Safe Walk and sticky bottom CTA. Join, request, leave and chat navigation still use existing backend flows.
 - Meetup chat paid ticket CTA is rendered from `MeetupChat` ticket summary fields under the pinned meetup card. It supports legacy Poster and public Affiche sources and opens `ticketUrl` through `url_launcher` external mode.
-- Evening route catalog mirrors `front/src/components/bigbreak/screens/Routes.tsx`.
+- Meetup chat can show a compact sticky meetup capsule under the header after scrolling. Keep the main pinned card and all REST/WebSocket chat behavior intact.
+- Streak, memory map and perks live at `/streak`, `/memory-map` and `/perks`; they are v5 visual surfaces linked from Home under `Твоё в Frendly`.
+- Evening route catalog mirrors `front/src/pages/v5/Routes.tsx`.
 - Global system overlays live in `shared/widgets/bb_system_overlays.dart`: admin-ready announcement banner state, city-limit toast, and chat members sheet. Announcement banners use a card surface, left severity stripe, soft icon tile and CTA with arrow.
 - Dating discover and likes providers are auto-disposed. Discover does not watch `datingLikesProvider`; likes are loaded only when the likes tab is active.
 - Stories progress ticker stops after the last story completes and must not restart from build unless the user moves to another story.
@@ -92,7 +113,7 @@ Use this file for Flutter behavior, state and performance rules.
 - `authTokensProvider` stores token state and refresh flow.
 - `chatRealtimeSyncProvider` subscribes to known chat ids. Root queues it after the first frame and only for a stable authenticated user id.
 - Chat local state lives in local providers scoped by chat id.
-- Chat attachment and location sends guard `mounted` after native picker, GPS and reverse-geocode awaits before reading providers again.
+- Chat attachment and location sends capture permission, picker, map and chat controller references before native picker, GPS and reverse-geocode awaits, then guard `mounted` before UI changes.
 - Chat thread and voice playback auto-dispose controllers guard async state writes after network/audio awaits. Chat thread reply scrolling also guards `mounted` and `ScrollController.hasClients` after frame waits.
 - Main lists and badges are in `shared/data/app_providers.dart`.
 - Notification list and unread count providers return empty state when there is no auth token.
@@ -101,13 +122,18 @@ Use this file for Flutter behavior, state and performance rules.
 - `authBootstrapProvider` skips `/profile/me` when `replaceAuthenticatedSession` already set `currentUserIdProvider` after a fresh login. Cold app start still validates saved tokens through `/profile/me`.
 
 `ApiClient` adds bearer token, refreshes once on 401 and clears tokens on refresh failure.
+It deduplicates concurrent identical GET requests without cancel tokens. The dedupe key includes method, URL, query and auth scope, so same URL requests from different sessions are not coalesced. Use `extra['skipRequestDeduplication'] = true` only when a GET must bypass coalescing.
+Auto-disposed feed and detail providers should pass `CancelToken` to repository methods when the repository supports it. Event detail, Affiche detail, Dating discover/likes, After Dark feed/detail, evening session/template detail, community feed/detail/media, person profile/social, check-in/live/after-party, host, verification, safety, stories and matches cancel stale requests on provider dispose.
 Auth retry preserves per-request Dio options and timeout values.
+Release mobile builds should use HTTPS-only backend traffic. Android cleartext is allowed only in debug/profile manifests, and iOS keeps arbitrary ATS loads disabled while local networking stays allowed.
 
 Affiche provider notes:
 
 - `afficheEventsProvider` is keyed by `AfficheEventsQuery` with city, date/date range, price mode, source, category and featured.
-- `afficheEventsProvider` and `posterFeedProvider` are auto-disposed by filter/query key, because picker/search filters can create many short-lived keys.
+- `afficheEventsProvider` is auto-disposed by filter/query key, because picker/search filters can create many short-lived keys.
+- Public Affiche feed/detail providers do not wait for `authBootstrapProvider`; they are public reads and should open before private session validation finishes.
 - Full Affiche screen uses `afficheEventsPagedProvider`, first page around one viewport and next pages by scroll threshold. Keep previous page visible during filter refresh.
+- Full Affiche screen keeps only a compact filter summary above the list. Date, price and category controls open in a modal bottom sheet with a fixed apply button.
 - Affiche pagination must be triggered from the screen `ScrollController` listener, not from `ListView.itemBuilder`, so Riverpod state is not changed during build.
 - Unknown-price events are not shown as free. Address and coordinates are optional in UI.
 
@@ -135,24 +161,28 @@ Curated route flow:
 
 ```text
 Routes catalog
-  -> EveningPlan
-  -> LaunchEveningSheet with launch=1 from "Создать встречу"
+  -> RouteDetail
+  -> CreateEveningSession with launch=1 from "Запустить"
+  -> EveningPlan auto-open launch sheet
   -> MeetupChat after publish
 ```
 
 Important notes:
 
-- Route catalog mirrors `front/src/components/bigbreak/screens/Routes.tsx`.
+- Route catalog mirrors `front/src/pages/v5/Routes.tsx`: V5 header, search pill, mood chips, count line, lazy cards, local V5 bottom nav, no extra city strip, no featured/rest split, and no AI builder prompt at the bottom.
 - Published route templates come from backend and use local fallback data for parity.
-- Route catalog cards use `routeId` and open `/evening-plan/:routeId`; create CTA opens `/evening-plan/:routeId?launch=1`.
+- Route catalog cards open `/routes/:templateId`; `Запустить` opens `/routes/:templateId?launch=1`, so the v5 detail can switch the CTA copy before launch.
+- Route detail mirrors `front/src/pages/v5/RouteDetail.tsx`: warm background, `Маршрут вечера` header with share, v5 hero card, metric tiles, budget row, savings pill, `Шаги вечера` emoji timeline with v5 time separators, one sticky launch CTA above the local V5 bottom nav. Its CTA opens `/routes/:templateId/create` and then `EveningPlanScreen` auto-opens the launch sheet. Do not bring back the old gradient `Frendly Plan` header or dense action timeline.
 - Route catalog builds the main list lazily. Do not replace it with `ListView(children:)` when adding route cards.
-- Legacy `/routes/:templateId` and `/routes/:templateId/create` entry points resolve the template to `routeId` and render the same `EveningPlanScreen`, with `autoOpenLaunch` for create. They pass the fetched template detail as `initialRoute` so generated routes do not flash local fallback mocks before the route API hydrates.
-- Create meetup has icon-only source actions under `Где`: poster, partner, route. Route selection lives in `features/create_meetup/presentation/widgets/route_picker_sheet.dart` and sends either `routeId` or a custom route payload.
+- `/routes/:templateId/create` still resolves the template to `routeId` and renders `EveningPlanScreen` with `autoOpenLaunch`. It passes the fetched template detail as `initialRoute` so generated routes do not flash local fallback mocks before the route API hydrates.
+- Create meetup mirrors `front/src/pages/v5/CreateMeetup.tsx`: mode tabs, live preview with `Brix · Покровка 12`, title plus lucide icon, icon rail, where/when, attach actions, vibe, price range separators and settings. Active V5 controls and publish CTA use terracotta `#D08A63`. Route selection lives in `features/create_meetup/presentation/widgets/route_picker_sheet.dart` and sends either `routeId` or a custom route payload.
 - Event host edit opens `CreateMeetupScreen` through `/create?editEventId=<eventId>`, reusing event detail data to prefill title, place, date, capacity, description, and chips.
+- Meetup chat mirrors `front/src/pages/v5/ChatRoom.tsx`: V5 top bar, pinned plan card, ticket strip, external bubble timestamps, voice bubble styling and plus/input/send/mic composer with `Сообщение…`. Host edit opens a V5 modal with title/place/date/capacity fields, save action and a full-window link to `/create?editEventId=<eventId>`.
 - Launch seeds local meetup chat summary before opening chat.
 - Invite links use `/evening-preview/:sessionId?inviteToken=...`.
-- QR issue happens only on tap and polling runs only inside `PartnerOfferQrScreen`.
+- QR issue happens only on tap and polling runs only inside `PartnerOfferQrScreen`. The QR screen cancels the in-flight offer status GET on dispose.
 - Auto mode advances from backend worker and refreshes through `chat.updated`.
+- EveningBuilder mirrors the React AI chat UI with editable step pills, quick prompts, free text composer and typing state. Quick prompts and free text are sent to `POST /evening/routes/resolve` as `prompt` together with the selected structured answers. The builder cancels backend options and route resolve requests on dispose, and reset cancels an in-flight route resolve.
 
 ## Media rules
 
@@ -162,11 +192,22 @@ Important notes:
 - Profile photo and avatar URLs from backend are stable `/media/:assetId` paths resolved through `resolveBackendUrl`, not direct CDN URLs.
 - Avatars: `BbAvatar` uses size scoped cache keys and avatar-sized decode/cache buckets. Use it for list/chat/profile avatars instead of raw cached images.
 - Chat images: `BbChatAttachmentImage`. It resolves local files before remote URLs and uses displayed-size decode/cache buckets for memory, file and network sources.
+- `AppMediaPrewarmService` warms a small bounded set of external event and profile images with the same cache keys as the widgets. Use it for first-screen Affiche cards, Tonight rail images and the next Dating cards. Keep concurrency low and limits explicit.
+- Private chat media signed download URLs are coalesced in-flight and cached for four minutes in `AppAttachmentService`, keyed by `downloadUrlPath` or media asset id. Keep this path for chat image and voice reuse so repeated widgets do not issue duplicate `/media/:id/download-url` calls.
+- Chat thread warmup covers recent ready voice attachments and recent ready image attachments through `AppAttachmentService.warmCache`, not by direct network image reads.
 - Brand marks: use `BbBrandIcon`. It points to the compact JPEG brand asset and sets bounded decode dimensions by widget size and device pixel ratio.
 - Local profile photo previews in add/edit profile flows must keep bounded decode hints for both width and height.
 - Add/edit profile photo upload, primary-photo and delete flows keep busy-state cleanup and show a short failure message instead of letting upload errors escape.
 - Voice: `BbVoiceMessage`, `ChatVoicePlaybackController`.
 - Voice uploads use the shared presigned upload helper so local files can stream from disk instead of loading the whole recording into memory.
+- Chat text, edit, delete, location, attachment and voice sends capture socket/repository/notifiers before awaits, then only rollback or mutate local thread state if the controller is still mounted. Do not cancel user-started uploads on screen dispose without a product decision.
+- Chat message actions and microphone permission prompts capture chat controllers or permission services before awaits and avoid local cleanup after the screen is unmounted.
+- Meetup chat direct-chat open, live start and join-request actions guard `mounted` after backend awaits before navigation, invalidation or local UI cleanup.
+- Chat pending attachments should prefer local file path over local bytes. Keep `localBytes` only for in-memory files without a path so image/file previews do not duplicate upload bytes in heap.
+- Native image picking limits camera/gallery images to 1600 px on the longest side with quality 90 and no full metadata request. Keep this for profile, chat and after-party uploads so full-resolution photos do not hit upload, storage and CDN paths.
+- Chat composer photo/file/location actions capture `replyTo` before native picker or GPS awaits and clear the reply only after a mounted guard, only if it is still the same reply. Do not let a late attachment/location send clear a new reply selected by the user.
+- Chat voice sends should follow the same reply rule: capture `replyTo` before `sendVoiceMessage`, then clear only if that reply is still current.
+- Add-photo multi-select upload should stop starting the next profile photo upload after the screen unmounts. Do not remove already completed backend uploads.
 - Upload heavy bytes through presigned upload when possible.
 
 ## Visual parity
@@ -175,6 +216,7 @@ Important notes:
 - Theme tokens: `AppColors`, `AppTextStyles`, `AppSpacing`, `AppRadii`, `AppShadows`, `AppTheme`.
 - Fonts: `Sora`, `Manrope`.
 - Parity tests: `mobile/test/features/parity/`.
+- Desktop fake phone preview in `app/app.dart` lets the screen render under the fake status bar and injects a 44px top `MediaQuery` safe area. Keep the status bar overlay transparent so each screen background fills the whole phone when scrolling or overscrolling.
 
 ## Performance notes
 
@@ -185,21 +227,49 @@ Important notes:
 - Profile state shares onboarding data through `onboardingProvider` instead of fetching `/onboarding/me` separately.
 - Authenticated startup shares the first `/profile/me` response with `profileProvider` through a one-use cache.
 - Fresh login avoids a redundant bootstrap `/profile/me` because the auth response already provided the current user id.
-- Root theme starts from local `SharedPreferences`. Remote `settingsProvider` sync into `appThemeModeProvider` is queued after the first frame and only for a stable authenticated user id.
+- Tonight prefetches route templates for the active manual city through the provider cache, so opening Routes from Home should reuse the hydrated response.
+- Auth bootstrap and token refresh must compare the current access/refresh tokens before writing or clearing session state after `/profile/me` or `/auth/refresh` awaits. Persisted token write/delete operations are serialized so logout, refresh and fresh login cannot reorder secure storage state. Session replacement uses a generation guard after runtime cleanup so an older login flow cannot overwrite a newer one.
+- Root theme starts from local `SharedPreferences`. Remote `settingsProvider` sync into `appThemeModeProvider` is queued after the first frame and only for a stable authenticated user id. Settings sync compares both user id and access/refresh token snapshot after awaits before writing permission preferences.
 - Root chat realtime sync is queued after the first frame so socket connect and chat-list provider listeners do not start inside the authenticated root build. Root triggers one rebuild after starting it so bottom navigation can attach to chat badge providers.
-- Remote search results are auto-disposed by query/filter key to avoid retaining old search states.
 - Map viewport event results are auto-disposed by viewport key to avoid retaining old pan/zoom states.
-- Poster and Affiche filtered feeds are auto-disposed by query/filter key.
-- User profile and profile social states are auto-disposed by user id.
-- Screen-scoped detail providers keyed by id are auto-disposed after detail screens stop listening. Poster, Affiche and community detail providers should not watch feed providers just to reuse cache, because direct detail opens can otherwise trigger hidden feed requests. Screen-only providers such as host dashboard, verification, safety hub, matches and After Dark events are auto-disposed. Keep global feeds, badges, settings, subscription state and catalogs cached unless there is a measured retention issue.
-- Poster picker search is debounced before watching `posterFeedProvider`, matching other remote search surfaces.
+- Affiche filtered feeds are auto-disposed by query/filter key.
+- User profile and profile social states are auto-disposed by user id and cancel stale profile/social GET requests on dispose or replaced load.
+- Screen-scoped detail providers keyed by id are auto-disposed after detail screens stop listening. Affiche and community detail providers should not watch feed providers just to reuse cache, because direct detail opens can otherwise trigger hidden feed requests. Screen-only providers such as host dashboard, verification, safety hub, matches and After Dark events are auto-disposed. Evening Plan cancels its post-frame backend route GET on dispose. Evening After Party cancels snapshot and pre-upload session GET requests on dispose. Keep global feeds, badges, settings, subscription state and catalogs cached unless there is a measured retention issue.
+- Affiche and Affiche picker search fields should not call `setState()` on every raw character before debounce. Keep raw text in `TextEditingController`, then update provider query only after debounce and only when the trimmed query changes.
 - Dating discover/likes data is auto-disposed after the screen stops listening. Dating likes are lazy-loaded only when the user opens the likes tab.
+- Tonight metrics are decorative and must not watch chat, session or people providers. Pass already loaded cheap values from the parent or use static fallback values.
+- Meetup chat typing indicator uses one parent `AnimationController` for the three dots. Do not add per-dot controllers for this small repeated animation.
 - Meetup chats render through a lazy `ListView.builder`; do not revert to eager `ListView(children: [...])` for long chat sections.
-- Profile lower action cards own their matches and After Dark provider watches. Keep profile hero data independent from lower-block provider state.
 - Create Meetup should watch subscription state only in dating mode and After Dark access only in afterdark mode. Regular meetup creation must not start those access checks.
 - Evening Plan should watch subscription state only when the route is premium and no premium flag was passed in. Regular routes should not start subscription checks.
 - Post-frame callbacks that read providers, focus nodes, controllers, timers or navigation state must guard `mounted` before touching widget state.
 - UI flows that await native pickers, geolocation, uploads, creates, publish actions, notification actions, safety actions, user block actions or logout should guard `mounted` before later `ref`, `context`, `Navigator` or `setState` use.
+- Safety, settings, verification, host dashboard and profile photo action flows capture repository/services/notifiers and `ProviderContainer` before backend or native awaits, then guard `mounted` before invalidation, navigation, snackbar or local UI cleanup.
+- First-run auth, permissions and add-photo flows capture backend repository, session controller, permission/push/media services and photo draft notifiers before native or backend awaits. Permission prompts should use request generation guards so a stale OS response cannot overwrite a newer tile state.
+- CTA flows with optimistic state, subscription actions, After Dark joins and community publish capture repository/local notifiers before awaits and only invalidate, roll back, show snackbars or navigate after a mounted guard.
+- Invalidate-heavy CTA flows should capture `ProviderContainer` before backend, bottom sheet, native picker or GPS awaits, then call `container.invalidate(...)` only after a mounted guard. This keeps notifications invites, paywall, event join/leave/request, check-in, evening live, meetup live/join requests, dating actions, After Dark join, add-photo, safety, verification and community publish paths off widget `ref` after async boundaries.
+- Share card and native fallback paths should guard `mounted` after external share, `launchUrl`, canvas capture and clipboard copy awaits before snackbar or copied-state updates. Chat copy and invite copy paths should use explicit post-copy guards, not rely only on snackbar helper guards.
+- Map and check-in location helpers capture location service before GPS awaits and return without UI work after unmount.
+- Evening preview, publish, live sync, partner QR and after-party upload flows capture backend repository, `ProviderContainer` or media picker before sheet/native/backend awaits and guard mounted before navigation, chat-cache writes or invalidation.
+- Evening Plan publish should capture `ProviderContainer` before the launch sheet and backend publish await, then use it for chat cache and session invalidation only after `mounted` and `context.mounted` guards.
+- Settings logout should capture current user id plus access/refresh token snapshot before push-token delete, backend logout and local cleanup awaits, then recheck the snapshot before clearing auth state or navigating.
+- Root post-frame theme sync, session cleanup, QR polling, after-party snapshot and onboarding debounce callbacks should capture futures/services/controllers before awaits, then use mounted and cancel-token guards before touching UI state.
+- Delayed timers, composer callbacks and post-frame callbacks that navigate or show snackbars should check both `mounted` and `context.mounted`. Capture services and callbacks before timer or async dispatch callbacks when possible instead of reading providers or widget callbacks inside the delayed callback.
+- Chat mark-read post-frame callbacks should capture the chat controller before scheduling the callback, then only call `markRead()` after a `mounted` guard.
+- Bottom-sheet external map fallbacks should pop the sheet with sheet context, then show fallback snackbars through the still-mounted root screen context.
+- Onboarding contact validation must guard `mounted` before advancing to the next step after the backend check. Delayed overlay timers should guard `mounted` before calling widget callbacks.
+- Provider and controller async paths should not use `await ref.read(...)` directly. Capture repository, futures, services or notifiers before awaiting, then rely on mounted or cancel-token guards where the provider is auto-disposed.
+- Feature providers that await auth/bootstrap or subscription state should capture `BackendRepository` and dependent futures before the first await. Dating, After Dark and Communities feeds follow this pattern.
+- Shared app providers should capture `authBootstrapProvider.future`, repositories, cancel tokens and location services before awaits. Community detail fallback should stay backend-backed through `BackendRepository`, not by starting hidden UI provider work after a failed detail request.
+- Root settings theme sync should capture auth/current-user controllers before awaiting settings. Root chat realtime sync should ignore late socket connect completion after provider dispose.
+- Root post-frame theme and realtime sync should capture auth/current-user controllers plus the provider container before scheduling, then avoid widget `ref` reads inside the callback.
+- Debounced Yandex place search should guard with the current timer identity before and after `searchPlaces`, so an already-started stale request cannot write suggestions after a newer query.
+- Map viewport query and fit callbacks should use generation guards around async camera/location work, so stale camera moves or filter changes cannot write old map queries or move the viewport later.
+- Multi-step UI timer chains such as AI Voice should use a run generation guard before `setState`, navigation or snackbar work.
+- Multiline `await ref.read(...)` is also banned. Direct-chat CTA, report, SOS, check-in and chat attachment actions should capture repository or services before await, then guard UI work with `mounted` or `context.mounted`.
+- Chat history mapping should capture current user id before the REST history request, so `mine` flags are not computed from a later session.
+- Tonight local search overlay should reuse `sharedPreferencesProvider` through one captured future instead of calling `SharedPreferences.getInstance()` for each recent-search action.
+- Session cleanup should capture reset notifiers before persisted storage, private media cache or permission preference awaits, then write the captured notifier states after cleanup.
 - Settings logout captures repository, auth notifiers and the app session controller before async work, then clears session/cache without reading `ref` after awaits.
 - Settings logout calls shared session runtime cleanup. Session runtime clear coalesces overlapping cleanup requests, resets evening route overrides, and invalidates Affiche, evening session/route, profile social and community media provider families along with chat, onboarding, notifications and photo draft state.
 - Chat summary providers and evening route template detail/session providers are auto-disposed by id after their screens stop listening.

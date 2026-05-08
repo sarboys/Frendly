@@ -59,7 +59,8 @@ Affiche:
 - Public affiche list/detail use narrow `select` and must not read `ExternalContentItem.raw` in the public request path.
 - Query params include `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `featured`, `q`, `cursor`, `limit`.
 - Paid public ticket events come from `advcake_ticketland` and use external `actionUrl`. Unknown price is not exposed as free.
-- Affiche `imageUrl` should normally be a mirrored S3/CDN URL created by the worker during import. Public API responses rewrite owned mirrored `external-content/...` URLs to stable `/affiche/images?key=...` proxy paths that redirect to short-lived signed S3 downloads. If mirroring fails, the worker keeps the source image URL as fallback.
+- Affiche `imageUrl` should normally point to a mirrored S3 object created by the worker during import. Public API responses expose owned mirrored `external-content/...` objects through `/affiche/images?key=...`, so Flutter Web gets API CORS while clients still receive immutable image cache headers. If mirroring fails, the worker keeps the source image URL as fallback and API can expose it through `/affiche/images?url=...` only for allowed HTTPS hosts.
+- `GET /affiche/images` is the public image proxy for owned mirrored images, allowed third-party fallbacks and legacy key reads. Mirrored images use immutable one-year cache headers, while third-party fallback proxy reads use `max-age` plus `stale-while-revalidate` from env.
 - KudaGo places stay outside affiche and should continue through places/search/route flows.
 
 Chats:
@@ -153,6 +154,7 @@ Admin Evening route review:
 
 - Event joins are idempotent for existing participants.
 - `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates. It also accepts `afficheEventId` for creating a meetup from a published affiche event; `posterId`, `afficheEventId` and route selection are mutually exclusive.
+- Event list and detail summaries expose `imageUrl` from linked public Affiche content, so meetups created from `afficheEventId` can reuse the same external event image.
 - `GET /events` and `GET /posters` accept `date=yyyy-mm-dd` for one-day filtering.
 - `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
 - `GET /evening/route-templates` list uses summary payload only: route summary fields, first 4 steps and bounded partner offer preview. Template detail loads full steps separately.
@@ -169,6 +171,7 @@ Admin Evening route review:
 - Direct upload complete is idempotent by object key, owner, kind and target.
 - Private media download checks chat membership, event participation and blocks.
 - Profile photo and avatar payloads expose stable `/media/:assetId` URLs, not stored CDN URLs. The media endpoint can redirect S3 assets to a fresh signed URL, so profile screens are not coupled to a stale CDN URL in DB.
+- `GET /media/:assetId` sets `ETag` and `Last-Modified`. Fresh `If-None-Match` or `If-Modified-Since` requests return `304` before S3 streaming or signed URL generation. Private media keeps `Cache-Control: private, max-age=300` and adds `Vary: Authorization`.
 - Dating, people, host, notifications and safety services use narrow selects on hot paths.
 - `getBlockedUserIds` from `@big-break/database` is the shared hidden-user helper.
 - Evening lifecycle writes system chat messages with `kind=system`.

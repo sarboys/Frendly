@@ -103,7 +103,8 @@ Public:
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.
 - Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`. The generated `Event.geo` column and GiST index are enabled by `db:postgis:event-geo`, not by normal Prisma deploy, so do not make it the production default unless that rollout step is guaranteed. Geo cursors must use the same effective distance that sorted the page.
 - Evening analytics admin filters use `EveningAnalyticsEvent.venueId + name + createdAt + id`.
-- Public affiche reads use `ExternalContentItem.publicStatus + city + startsAt + id` and filters `contentKind=event`, `priceMode in (free, paid)`.
+- Public affiche reads use partial `ExternalContentItem` indexes on `city + startsAt + id`, plus category, price and featured variants, filtered by `contentKind=event`, `publicStatus=published`, non-rejected moderation and `priceMode in (free, paid)`.
+- Public affiche search uses trigram indexes on `title`, `venueName` and `address`; keep `pg_trgm` available in migrations and hot-path index scripts.
 - Admin content review uses `ExternalContentItem.city + startsAt + priceMode + contentKind + moderationStatus + sourceId` plus `sourceId + priceMode + importedAt + id`.
 
 ## Commands

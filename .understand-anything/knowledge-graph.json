@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-05T13:28:24.956Z",
-    "gitCommitHash": "d9b193831d9b7d83b02342442ebc1522becfdb27"
+    "analyzedAt": "2026-05-08T05:00:45.767Z",
+    "gitCommitHash": "a68ad64f2526521fa5a4a63998d1b39affe65b65"
   },
   "nodes": [
     {
@@ -7942,6 +7942,36 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/apps/api/src/common/normalize-request-url.ts",
+      "type": "file",
+      "name": "normalize-request-url.ts",
+      "filePath": "backend/apps/api/src/common/normalize-request-url.ts",
+      "summary": "normalize-request-url.ts contains 1 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/normalize-request-url.ts:normalizeDuplicateSlashesInPath",
+      "type": "function",
+      "name": "normalizeDuplicateSlashesInPath",
+      "filePath": "backend/apps/api/src/common/normalize-request-url.ts",
+      "lineRange": [
+        1,
+        12
+      ],
+      "summary": "normalizeDuplicateSlashesInPath in normalize-request-url.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:backend/apps/api/src/common/pagination.ts",
       "type": "file",
       "name": "pagination.ts",
@@ -8006,13 +8036,13 @@
       "type": "file",
       "name": "presenters.ts",
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "summary": "presenters.ts contains 12 functions.",
+      "summary": "presenters.ts contains 13 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:formatRelativeTime",
@@ -8020,8 +8050,8 @@
       "name": "formatRelativeTime",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        17,
-        35
+        21,
+        39
       ],
       "summary": "formatRelativeTime in presenters.ts.",
       "tags": [
@@ -8029,7 +8059,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:formatEventTime",
@@ -8037,8 +8067,8 @@
       "name": "formatEventTime",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        37,
-        54
+        41,
+        58
       ],
       "summary": "formatEventTime in presenters.ts.",
       "tags": [
@@ -8046,7 +8076,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapMessage",
@@ -8054,8 +8084,8 @@
       "name": "mapMessage",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        87,
-        106
+        91,
+        110
       ],
       "summary": "mapMessage in presenters.ts.",
       "tags": [
@@ -8063,7 +8093,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:resolveSystemMessageKind",
@@ -8071,8 +8101,8 @@
       "name": "resolveSystemMessageKind",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        108,
-        122
+        112,
+        126
       ],
       "summary": "resolveSystemMessageKind in presenters.ts.",
       "tags": [
@@ -8080,7 +8110,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapReplyPreview",
@@ -8088,8 +8118,8 @@
       "name": "mapReplyPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        124,
-        149
+        128,
+        153
       ],
       "summary": "mapReplyPreview in presenters.ts.",
       "tags": [
@@ -8097,7 +8127,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapBasicProfile",
@@ -8105,8 +8135,8 @@
       "name": "mapBasicProfile",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        181,
-        210
+        185,
+        214
       ],
       "summary": "mapBasicProfile in presenters.ts.",
       "tags": [
@@ -8114,7 +8144,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:calculateAge",
@@ -8122,8 +8152,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        212,
-        223
+        216,
+        227
       ],
       "summary": "calculateAge in presenters.ts.",
       "tags": [
@@ -8131,7 +8161,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapUserPreview",
@@ -8139,8 +8169,8 @@
       "name": "mapUserPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        225,
-        237
+        229,
+        241
       ],
       "summary": "mapUserPreview in presenters.ts.",
       "tags": [
@@ -8148,7 +8178,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapAttendanceStatus",
@@ -8156,8 +8186,8 @@
       "name": "mapAttendanceStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        239,
-        243
+        243,
+        247
       ],
       "summary": "mapAttendanceStatus in presenters.ts.",
       "tags": [
@@ -8165,7 +8195,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapJoinRequestStatus",
@@ -8173,8 +8203,8 @@
       "name": "mapJoinRequestStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        245,
-        249
+        249,
+        253
       ],
       "summary": "mapJoinRequestStatus in presenters.ts.",
       "tags": [
@@ -8182,7 +8212,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapLiveStatus",
@@ -8190,8 +8220,8 @@
       "name": "mapLiveStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        251,
-        253
+        255,
+        257
       ],
       "summary": "mapLiveStatus in presenters.ts.",
       "tags": [
@@ -8199,7 +8229,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/common/presenters.ts:mapEventSummary",
@@ -8207,8 +8237,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        281,
-        336
+        288,
+        344
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -8216,7 +8246,24 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/presenters.ts:mapExternalContentImageUrl",
+      "type": "function",
+      "name": "mapExternalContentImageUrl",
+      "filePath": "backend/apps/api/src/common/presenters.ts",
+      "lineRange": [
+        346,
+        366
+      ],
+      "summary": "mapExternalContentImageUrl in presenters.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/api/src/common/profile-social-preview.ts",
@@ -8665,8 +8712,8 @@
       "name": "AfficheController",
       "filePath": "backend/apps/api/src/controllers/affiche.controller.ts",
       "lineRange": [
-        8,
-        30
+        11,
+        46
       ],
       "summary": "AfficheController in affiche.controller.ts.",
       "tags": [
@@ -9179,7 +9226,7 @@
       "filePath": "backend/apps/api/src/controllers/media.controller.ts",
       "lineRange": [
         8,
-        48
+        62
       ],
       "summary": "MediaController in media.controller.ts.",
       "tags": [
@@ -9688,8 +9735,8 @@
       "name": "bootstrap",
       "filePath": "backend/apps/api/src/main.ts",
       "lineRange": [
-        6,
-        28
+        8,
+        34
       ],
       "summary": "bootstrap in main.ts.",
       "tags": [
@@ -10282,7 +10329,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/affiche.service.ts:oneDayRange",
@@ -10290,8 +10337,8 @@
       "name": "oneDayRange",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        326,
-        337
+        504,
+        515
       ],
       "summary": "oneDayRange in affiche.service.ts.",
       "tags": [
@@ -10299,7 +10346,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "class:backend/apps/api/src/services/affiche.service.ts:AfficheService",
@@ -10307,8 +10354,8 @@
       "name": "AfficheService",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        52,
-        324
+        73,
+        502
       ],
       "summary": "AfficheService in affiche.service.ts.",
       "tags": [
@@ -10316,7 +10363,7 @@
         "class",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/api/src/services/after-dark.service.ts",
@@ -10746,11 +10793,45 @@
       "type": "file",
       "name": "evening.service.ts",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "summary": "evening.service.ts contains 1 classes.",
+      "summary": "evening.service.ts contains 1 classes, 2 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:normalizeEveningPrompt",
+      "type": "function",
+      "name": "normalizeEveningPrompt",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        2873,
+        2881
+      ],
+      "summary": "normalizeEveningPrompt in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:hasPromptTerm",
+      "type": "function",
+      "name": "hasPromptTerm",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        2883,
+        2885
+      ],
+      "summary": "hasPromptTerm in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
       ],
       "complexity": "complex"
     },
@@ -10761,7 +10842,7 @@
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
         184,
-        2660
+        2871
       ],
       "summary": "EveningService in evening.service.ts.",
       "tags": [
@@ -10820,8 +10901,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3436,
-        3455
+        3441,
+        3460
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -10837,8 +10918,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        150,
-        3434
+        155,
+        3439
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -10927,8 +11008,8 @@
       "name": "MediaService",
       "filePath": "backend/apps/api/src/services/media.service.ts",
       "lineRange": [
-        29,
-        422
+        40,
+        488
       ],
       "summary": "MediaService in media.service.ts.",
       "tags": [
@@ -12914,7 +12995,7 @@
       "type": "file",
       "name": "content-image-mirror.service.ts",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
-      "summary": "content-image-mirror.service.ts contains 1 classes, 6 functions.",
+      "summary": "content-image-mirror.service.ts contains 1 classes, 9 functions.",
       "tags": [
         "backend",
         "code",
@@ -12928,8 +13009,8 @@
       "name": "isHttpsUrl",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        154,
-        161
+        219,
+        226
       ],
       "summary": "isHttpsUrl in content-image-mirror.service.ts.",
       "tags": [
@@ -12945,8 +13026,8 @@
       "name": "normalizedContentType",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        163,
-        166
+        228,
+        231
       ],
       "summary": "normalizedContentType in content-image-mirror.service.ts.",
       "tags": [
@@ -12962,8 +13043,8 @@
       "name": "extensionFor",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        168,
-        181
+        233,
+        246
       ],
       "summary": "extensionFor in content-image-mirror.service.ts.",
       "tags": [
@@ -12979,8 +13060,8 @@
       "name": "safePathSegment",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        183,
-        189
+        248,
+        254
       ],
       "summary": "safePathSegment in content-image-mirror.service.ts.",
       "tags": [
@@ -12996,8 +13077,8 @@
       "name": "integer",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        191,
-        197
+        256,
+        262
       ],
       "summary": "integer in content-image-mirror.service.ts.",
       "tags": [
@@ -13013,10 +13094,61 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        199,
-        205
+        264,
+        270
       ],
       "summary": "positiveInt in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:sourceImageUrl",
+      "type": "function",
+      "name": "sourceImageUrl",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        272,
+        287
+      ],
+      "summary": "sourceImageUrl in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:imageHost",
+      "type": "function",
+      "name": "imageHost",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        289,
+        295
+      ],
+      "summary": "imageHost in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:sleep",
+      "type": "function",
+      "name": "sleep",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        297,
+        299
+      ],
+      "summary": "sleep in content-image-mirror.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -13030,8 +13162,8 @@
       "name": "ContentImageMirrorService",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        17,
-        152
+        27,
+        217
       ],
       "summary": "ContentImageMirrorService in content-image-mirror.service.ts.",
       "tags": [
@@ -13046,7 +13178,7 @@
       "type": "file",
       "name": "content-import.service.ts",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "summary": "content-import.service.ts contains 1 classes, 12 functions.",
+      "summary": "content-import.service.ts contains 1 classes, 13 functions.",
       "tags": [
         "backend",
         "code",
@@ -13060,8 +13192,8 @@
       "name": "safeJson",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        608,
-        613
+        703,
+        708
       ],
       "summary": "safeJson in content-import.service.ts.",
       "tags": [
@@ -13077,8 +13209,8 @@
       "name": "dayBounds",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        615,
-        620
+        710,
+        715
       ],
       "summary": "dayBounds in content-import.service.ts.",
       "tags": [
@@ -13094,8 +13226,8 @@
       "name": "duplicateCacheKey",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        622,
-        629
+        717,
+        724
       ],
       "summary": "duplicateCacheKey in content-import.service.ts.",
       "tags": [
@@ -13111,8 +13243,8 @@
       "name": "itemsPerSecond",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        631,
-        636
+        726,
+        731
       ],
       "summary": "itemsPerSecond in content-import.service.ts.",
       "tags": [
@@ -13128,8 +13260,8 @@
       "name": "enrichItemFromDuplicate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        638,
-        664
+        733,
+        759
       ],
       "summary": "enrichItemFromDuplicate in content-import.service.ts.",
       "tags": [
@@ -13145,8 +13277,8 @@
       "name": "mergeRaw",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        666,
-        675
+        761,
+        770
       ],
       "summary": "mergeRaw in content-import.service.ts.",
       "tags": [
@@ -13162,10 +13294,27 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        677,
-        680
+        772,
+        775
       ],
       "summary": "positiveInt in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:boundedPositiveInt",
+      "type": "function",
+      "name": "boundedPositiveInt",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        777,
+        784
+      ],
+      "summary": "boundedPositiveInt in content-import.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -13179,8 +13328,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        682,
-        684
+        786,
+        788
       ],
       "summary": "object in content-import.service.ts.",
       "tags": [
@@ -13196,8 +13345,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        686,
-        692
+        790,
+        796
       ],
       "summary": "parseDate in content-import.service.ts.",
       "tags": [
@@ -13213,8 +13362,8 @@
       "name": "publicStatusFor",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        694,
-        713
+        798,
+        817
       ],
       "summary": "publicStatusFor in content-import.service.ts.",
       "tags": [
@@ -13230,8 +13379,8 @@
       "name": "contentImportFailure",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        715,
-        722
+        819,
+        826
       ],
       "summary": "contentImportFailure in content-import.service.ts.",
       "tags": [
@@ -13247,8 +13396,8 @@
       "name": "maskKnownSecrets",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        724,
-        732
+        828,
+        836
       ],
       "summary": "maskKnownSecrets in content-import.service.ts.",
       "tags": [
@@ -13264,8 +13413,8 @@
       "name": "ContentImportService",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        96,
-        606
+        97,
+        701
       ],
       "summary": "ContentImportService in content-import.service.ts.",
       "tags": [
@@ -15473,8 +15622,8 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        1670,
-        1676
+        1683,
+        1689
       ],
       "summary": "csv in worker.service.ts.",
       "tags": [
@@ -15490,8 +15639,8 @@
       "name": "WorkerService",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        49,
-        1668
+        50,
+        1681
       ],
       "summary": "WorkerService in worker.service.ts.",
       "tags": [
@@ -16008,8 +16157,8 @@
       "name": "main",
       "filePath": "backend/packages/database/prisma/create-hot-path-indexes.ts",
       "lineRange": [
-        100,
-        113
+        128,
+        141
       ],
       "summary": "main in create-hot-path-indexes.ts.",
       "tags": [
@@ -22325,6 +22474,138 @@
       "complexity": "moderate"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "summary": "migration.sql contains 7 definitions.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_feed_idx",
+      "type": "table",
+      "name": "ExternalContentItem_affiche_feed_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "lineRange": [
+        3,
+        3
+      ],
+      "summary": "index: ExternalContentItem_affiche_feed_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_category_feed_idx",
+      "type": "table",
+      "name": "ExternalContentItem_affiche_category_feed_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "lineRange": [
+        10,
+        10
+      ],
+      "summary": "index: ExternalContentItem_affiche_category_feed_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_price_feed_idx",
+      "type": "table",
+      "name": "ExternalContentItem_affiche_price_feed_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "lineRange": [
+        17,
+        17
+      ],
+      "summary": "index: ExternalContentItem_affiche_price_feed_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_featured_feed_idx",
+      "type": "table",
+      "name": "ExternalContentItem_affiche_featured_feed_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "lineRange": [
+        24,
+        24
+      ],
+      "summary": "index: ExternalContentItem_affiche_featured_feed_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_title_trgm_idx",
+      "type": "table",
+      "name": "ExternalContentItem_title_trgm_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "lineRange": [
+        32,
+        32
+      ],
+      "summary": "index: ExternalContentItem_title_trgm_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_venueName_trgm_idx",
+      "type": "table",
+      "name": "ExternalContentItem_venueName_trgm_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "lineRange": [
+        36,
+        36
+      ],
+      "summary": "index: ExternalContentItem_venueName_trgm_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_address_trgm_idx",
+      "type": "table",
+      "name": "ExternalContentItem_address_trgm_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "lineRange": [
+        40,
+        40
+      ],
+      "summary": "index: ExternalContentItem_address_trgm_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -24959,7 +25240,7 @@
       "type": "file",
       "name": "perf-hotpaths.mjs",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
-      "summary": "perf-hotpaths.mjs contains 17 functions.",
+      "summary": "perf-hotpaths.mjs contains 18 functions.",
       "tags": [
         "backend",
         "code",
@@ -25087,13 +25368,30 @@
       "complexity": "complex"
     },
     {
+      "id": "function:backend/scripts/perf-hotpaths.mjs:measureHttpEndpoint",
+      "type": "function",
+      "name": "measureHttpEndpoint",
+      "filePath": "backend/scripts/perf-hotpaths.mjs",
+      "lineRange": [
+        111,
+        142
+      ],
+      "summary": "measureHttpEndpoint in perf-hotpaths.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "function:backend/scripts/perf-hotpaths.mjs:waitForSocketMessage",
       "type": "function",
       "name": "waitForSocketMessage",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        111,
-        140
+        144,
+        173
       ],
       "summary": "waitForSocketMessage in perf-hotpaths.mjs.",
       "tags": [
@@ -25109,8 +25407,8 @@
       "name": "getWebSocketCtor",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        142,
-        158
+        175,
+        191
       ],
       "summary": "getWebSocketCtor in perf-hotpaths.mjs.",
       "tags": [
@@ -25126,8 +25424,8 @@
       "name": "addSocketListener",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        160,
-        166
+        193,
+        199
       ],
       "summary": "addSocketListener in perf-hotpaths.mjs.",
       "tags": [
@@ -25143,8 +25441,8 @@
       "name": "removeSocketListener",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        168,
-        174
+        201,
+        207
       ],
       "summary": "removeSocketListener in perf-hotpaths.mjs.",
       "tags": [
@@ -25160,8 +25458,8 @@
       "name": "openSocket",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        176,
-        196
+        209,
+        229
       ],
       "summary": "openSocket in perf-hotpaths.mjs.",
       "tags": [
@@ -25177,8 +25475,8 @@
       "name": "connectChatSocket",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        198,
-        211
+        231,
+        244
       ],
       "summary": "connectChatSocket in perf-hotpaths.mjs.",
       "tags": [
@@ -25194,8 +25492,8 @@
       "name": "measureChatSend",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        213,
-        246
+        246,
+        279
       ],
       "summary": "measureChatSend in perf-hotpaths.mjs.",
       "tags": [
@@ -25211,8 +25509,8 @@
       "name": "measureBroadcastFanout",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        248,
-        321
+        281,
+        354
       ],
       "summary": "measureBroadcastFanout in perf-hotpaths.mjs.",
       "tags": [
@@ -25228,8 +25526,8 @@
       "name": "printUsage",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        323,
-        328
+        356,
+        365
       ],
       "summary": "printUsage in perf-hotpaths.mjs.",
       "tags": [
@@ -25245,8 +25543,8 @@
       "name": "main",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        330,
-        348
+        367,
+        417
       ],
       "summary": "main in perf-hotpaths.mjs.",
       "tags": [
@@ -25401,7 +25699,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/app/core/device/app_haptic_service.dart",
@@ -25441,6 +25739,19 @@
         "dart"
       ],
       "complexity": "moderate"
+    },
+    {
+      "id": "file:mobile/lib/app/core/device/app_media_prewarm_service.dart",
+      "type": "file",
+      "name": "app_media_prewarm_service.dart",
+      "filePath": "mobile/lib/app/core/device/app_media_prewarm_service.dart",
+      "summary": "app_media_prewarm_service.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "file:mobile/lib/app/core/device/app_permission_preferences.dart",
@@ -25557,7 +25868,7 @@
         "code",
         "dart"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/app/core/network/chat_socket_client.dart",
@@ -25622,7 +25933,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "file:mobile/lib/app/session/app_session_controller.dart",
@@ -25726,7 +26037,7 @@
         "code",
         "dart"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/features/add_photo/presentation/add_photo_screen.dart",
@@ -25791,7 +26102,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/features/affiche/presentation/affiche_filters.dart",
@@ -25903,6 +26214,32 @@
       "name": "after_party_screen.dart",
       "filePath": "mobile/lib/features/after_party/presentation/after_party_screen.dart",
       "summary": "after_party_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:mobile/lib/features/ai_create/presentation/ai_create_screen.dart",
+      "type": "file",
+      "name": "ai_create_screen.dart",
+      "filePath": "mobile/lib/features/ai_create/presentation/ai_create_screen.dart",
+      "summary": "ai_create_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:mobile/lib/features/ai_voice/presentation/ai_voice_screen.dart",
+      "type": "file",
+      "name": "ai_voice_screen.dart",
+      "filePath": "mobile/lib/features/ai_voice/presentation/ai_voice_screen.dart",
+      "summary": "ai_voice_screen.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -26090,7 +26427,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/features/communities/presentation/community_widgets.dart",
@@ -26207,7 +26544,7 @@
         "code",
         "dart"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/features/dating/presentation/dating_screen.dart",
@@ -26280,19 +26617,6 @@
       "name": "evening_edit_state.dart",
       "filePath": "mobile/lib/features/evening_plan/presentation/evening_edit_state.dart",
       "summary": "evening_edit_state.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile/lib/features/evening_plan/presentation/evening_hero_card.dart",
-      "type": "file",
-      "name": "evening_hero_card.dart",
-      "filePath": "mobile/lib/features/evening_plan/presentation/evening_hero_card.dart",
-      "summary": "evening_hero_card.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -26392,19 +26716,6 @@
       "complexity": "simple"
     },
     {
-      "id": "file:mobile/lib/features/evening_routes/presentation/evening_nearest_sessions.dart",
-      "type": "file",
-      "name": "evening_nearest_sessions.dart",
-      "filePath": "mobile/lib/features/evening_routes/presentation/evening_nearest_sessions.dart",
-      "summary": "evening_nearest_sessions.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
       "id": "file:mobile/lib/features/evening_routes/presentation/evening_route_card.dart",
       "type": "file",
       "name": "evening_route_card.dart",
@@ -26415,7 +26726,7 @@
         "code",
         "dart"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
@@ -26428,20 +26739,7 @@
         "code",
         "dart"
       ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile/lib/features/evening_routes/presentation/evening_route_step_list.dart",
-      "type": "file",
-      "name": "evening_route_step_list.dart",
-      "filePath": "mobile/lib/features/evening_routes/presentation/evening_route_step_list.dart",
-      "summary": "evening_route_step_list.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/features/evening_routes/presentation/evening_route_template_plan_mapper.dart",
@@ -26574,6 +26872,32 @@
       "complexity": "complex"
     },
     {
+      "id": "file:mobile/lib/features/meetups/presentation/meetups_screen.dart",
+      "type": "file",
+      "name": "meetups_screen.dart",
+      "filePath": "mobile/lib/features/meetups/presentation/meetups_screen.dart",
+      "summary": "meetups_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:mobile/lib/features/memory_map/presentation/memory_map_screen.dart",
+      "type": "file",
+      "name": "memory_map_screen.dart",
+      "filePath": "mobile/lib/features/memory_map/presentation/memory_map_screen.dart",
+      "summary": "memory_map_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "file:mobile/lib/features/notifications/presentation/notifications_screen.dart",
       "type": "file",
       "name": "notifications_screen.dart",
@@ -26613,17 +26937,17 @@
       "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/features/people/presentation/people_screen.dart",
+      "id": "file:mobile/lib/features/perks/presentation/perks_screen.dart",
       "type": "file",
-      "name": "people_screen.dart",
-      "filePath": "mobile/lib/features/people/presentation/people_screen.dart",
-      "summary": "people_screen.dart is a code file for mobile.",
+      "name": "perks_screen.dart",
+      "filePath": "mobile/lib/features/perks/presentation/perks_screen.dart",
+      "summary": "perks_screen.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/features/permissions/presentation/permissions_screen.dart",
@@ -26665,58 +26989,6 @@
       "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/features/posters/presentation/poster_detail_screen.dart",
-      "type": "file",
-      "name": "poster_detail_screen.dart",
-      "filePath": "mobile/lib/features/posters/presentation/poster_detail_screen.dart",
-      "summary": "poster_detail_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/posters/presentation/posters_screen.dart",
-      "type": "file",
-      "name": "posters_screen.dart",
-      "filePath": "mobile/lib/features/posters/presentation/posters_screen.dart",
-      "summary": "posters_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/posters/presentation/widgets/poster_card.dart",
-      "type": "file",
-      "name": "poster_card.dart",
-      "filePath": "mobile/lib/features/posters/presentation/widgets/poster_card.dart",
-      "summary": "poster_card.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/posters/presentation/widgets/poster_picker_sheet.dart",
-      "type": "file",
-      "name": "poster_picker_sheet.dart",
-      "filePath": "mobile/lib/features/posters/presentation/widgets/poster_picker_sheet.dart",
-      "summary": "poster_picker_sheet.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
       "id": "file:mobile/lib/features/profile/presentation/profile_screen.dart",
       "type": "file",
       "name": "profile_screen.dart",
@@ -26748,32 +27020,6 @@
       "name": "safety_hub_screen.dart",
       "filePath": "mobile/lib/features/safety/presentation/safety_hub_screen.dart",
       "summary": "safety_hub_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/search/presentation/search_providers.dart",
-      "type": "file",
-      "name": "search_providers.dart",
-      "filePath": "mobile/lib/features/search/presentation/search_providers.dart",
-      "summary": "search_providers.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/search/presentation/search_screen.dart",
-      "type": "file",
-      "name": "search_screen.dart",
-      "filePath": "mobile/lib/features/search/presentation/search_screen.dart",
-      "summary": "search_screen.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -26834,6 +27080,19 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:mobile/lib/features/streak/presentation/streak_screen.dart",
+      "type": "file",
+      "name": "streak_screen.dart",
+      "filePath": "mobile/lib/features/streak/presentation/streak_screen.dart",
+      "summary": "streak_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "file:mobile/lib/features/telegram_auth/presentation/telegram_auth_screen.dart",
       "type": "file",
       "name": "telegram_auth_screen.dart",
@@ -26865,6 +27124,19 @@
       "name": "tonight_screen.dart",
       "filePath": "mobile/lib/features/tonight/presentation/tonight_screen.dart",
       "summary": "tonight_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:mobile/lib/features/tonight/presentation/v5_search_modal.dart",
+      "type": "file",
+      "name": "v5_search_modal.dart",
+      "filePath": "mobile/lib/features/tonight/presentation/v5_search_modal.dart",
+      "summary": "v5_search_modal.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -27133,19 +27405,6 @@
       "complexity": "moderate"
     },
     {
-      "id": "file:mobile/lib/shared/models/event_filters.dart",
-      "type": "file",
-      "name": "event_filters.dart",
-      "filePath": "mobile/lib/shared/models/event_filters.dart",
-      "summary": "event_filters.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "file:mobile/lib/shared/models/event.dart",
       "type": "file",
       "name": "event.dart",
@@ -27300,19 +27559,6 @@
         "dart"
       ],
       "complexity": "simple"
-    },
-    {
-      "id": "file:mobile/lib/shared/models/poster.dart",
-      "type": "file",
-      "name": "poster.dart",
-      "filePath": "mobile/lib/shared/models/poster.dart",
-      "summary": "poster.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/shared/models/profile.dart",
@@ -27536,19 +27782,6 @@
       "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/shared/widgets/bb_chip.dart",
-      "type": "file",
-      "name": "bb_chip.dart",
-      "filePath": "mobile/lib/shared/widgets/bb_chip.dart",
-      "summary": "bb_chip.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "file:mobile/lib/shared/widgets/bb_composer.dart",
       "type": "file",
       "name": "bb_composer.dart",
@@ -27560,19 +27793,6 @@
         "dart"
       ],
       "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/shared/widgets/bb_event_card.dart",
-      "type": "file",
-      "name": "bb_event_card.dart",
-      "filePath": "mobile/lib/shared/widgets/bb_event_card.dart",
-      "summary": "bb_event_card.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/shared/widgets/bb_external_event_image.dart",
@@ -27624,7 +27844,7 @@
         "code",
         "dart"
       ],
-      "complexity": "simple"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/shared/widgets/bb_profile_photo_gallery.dart",
@@ -27651,19 +27871,6 @@
         "dart"
       ],
       "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile/lib/shared/widgets/bb_search_bar.dart",
-      "type": "file",
-      "name": "bb_search_bar.dart",
-      "filePath": "mobile/lib/shared/widgets/bb_search_bar.dart",
-      "summary": "bb_search_bar.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
     },
     {
       "id": "file:mobile/lib/shared/widgets/bb_social_actions.dart",
@@ -27705,24 +27912,24 @@
       "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/shared/widgets/bb_voice_message.dart",
+      "id": "file:mobile/lib/shared/widgets/bb_v5_ui.dart",
       "type": "file",
-      "name": "bb_voice_message.dart",
-      "filePath": "mobile/lib/shared/widgets/bb_voice_message.dart",
-      "summary": "bb_voice_message.dart is a code file for mobile.",
+      "name": "bb_v5_ui.dart",
+      "filePath": "mobile/lib/shared/widgets/bb_v5_ui.dart",
+      "summary": "bb_v5_ui.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/shared/widgets/event_filter_sheet.dart",
+      "id": "file:mobile/lib/shared/widgets/bb_voice_message.dart",
       "type": "file",
-      "name": "event_filter_sheet.dart",
-      "filePath": "mobile/lib/shared/widgets/event_filter_sheet.dart",
-      "summary": "event_filter_sheet.dart is a code file for mobile.",
+      "name": "bb_voice_message.dart",
+      "filePath": "mobile/lib/shared/widgets/bb_voice_message.dart",
+      "summary": "bb_voice_message.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -32011,6 +32218,13 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/src/common/normalize-request-url.ts",
+      "target": "function:backend/apps/api/src/common/normalize-request-url.ts:normalizeDuplicateSlashesInPath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/api/src/common/pagination.ts",
       "target": "function:backend/apps/api/src/common/pagination.ts:paginateArray",
       "type": "contains",
@@ -32104,6 +32318,13 @@
     {
       "source": "file:backend/apps/api/src/common/presenters.ts",
       "target": "function:backend/apps/api/src/common/presenters.ts:mapEventSummary",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/presenters.ts",
+      "target": "function:backend/apps/api/src/common/presenters.ts:mapExternalContentImageUrl",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -32817,6 +33038,20 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:normalizeEveningPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:hasPromptTerm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
       "target": "class:backend/apps/api/src/services/evening.service.ts:EveningService",
       "type": "contains",
       "direction": "forward",
@@ -33468,6 +33703,27 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:sourceImageUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:imageHost",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:sleep",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
       "target": "class:backend/apps/worker/src/content/content-image-mirror.service.ts:ContentImageMirrorService",
       "type": "contains",
       "direction": "forward",
@@ -33518,6 +33774,13 @@
     {
       "source": "file:backend/apps/worker/src/content/content-import.service.ts",
       "target": "function:backend/apps/worker/src/content/content-import.service.ts:positiveInt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:boundedPositiveInt",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -36827,6 +37090,55 @@
       "weight": 1
     },
     {
+      "source": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_feed_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_category_feed_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_price_feed_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_featured_feed_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_title_trgm_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_venueName_trgm_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_address_trgm_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/reset-test-users.ts",
       "target": "function:backend/packages/database/prisma/reset-test-users.ts:main",
       "type": "contains",
@@ -37697,6 +38009,13 @@
     {
       "source": "file:backend/scripts/perf-hotpaths.mjs",
       "target": "function:backend/scripts/perf-hotpaths.mjs:measureDatingDiscover",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-hotpaths.mjs",
+      "target": "function:backend/scripts/perf-hotpaths.mjs:measureHttpEndpoint",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -40691,6 +41010,13 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/main.ts",
+      "target": "file:backend/apps/api/src/common/normalize-request-url.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/services/admin-affiche.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
       "type": "imports",
@@ -42879,6 +43205,7 @@
         "file:backend/apps/api/src/common/current-partner.decorator.ts",
         "file:backend/apps/api/src/common/current-user.decorator.ts",
         "file:backend/apps/api/src/common/media-presenters.ts",
+        "file:backend/apps/api/src/common/normalize-request-url.ts",
         "file:backend/apps/api/src/common/pagination.ts",
         "file:backend/apps/api/src/common/partner-auth.guard.ts",
         "file:backend/apps/api/src/common/presenters.ts",
@@ -43439,6 +43766,14 @@
         "index:backend/packages/database/prisma/migrations/20260505133000_profile_social_actions/migration.sql:ProfileReaction_actorUserId_targetUserId_kind_key",
         "index:backend/packages/database/prisma/migrations/20260505133000_profile_social_actions/migration.sql:ProfileReaction_targetUserId_kind_createdAt_idx",
         "index:backend/packages/database/prisma/migrations/20260505133000_profile_social_actions/migration.sql:ProfileReaction_actorUserId_targetUserId_idx",
+        "table:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql",
+        "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_feed_idx",
+        "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_category_feed_idx",
+        "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_price_feed_idx",
+        "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_affiche_featured_feed_idx",
+        "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_title_trgm_idx",
+        "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_venueName_trgm_idx",
+        "index:backend/packages/database/prisma/migrations/20260507120000_affiche_hot_path_indexes/migration.sql:ExternalContentItem_address_trgm_idx",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",
@@ -43521,6 +43856,7 @@
         "file:mobile/lib/app/core/device/app_haptic_service.dart",
         "file:mobile/lib/app/core/device/app_location_service.dart",
         "file:mobile/lib/app/core/device/app_media_picker_service.dart",
+        "file:mobile/lib/app/core/device/app_media_prewarm_service.dart",
         "file:mobile/lib/app/core/device/app_permission_preferences.dart",
         "file:mobile/lib/app/core/device/app_permission_service.dart",
         "file:mobile/lib/app/core/device/app_push_token_service.dart",
@@ -43557,6 +43893,8 @@
         "file:mobile/lib/features/after_dark/presentation/after_dark_style.dart",
         "file:mobile/lib/features/after_dark/presentation/after_dark_verify_screen.dart",
         "file:mobile/lib/features/after_party/presentation/after_party_screen.dart",
+        "file:mobile/lib/features/ai_create/presentation/ai_create_screen.dart",
+        "file:mobile/lib/features/ai_voice/presentation/ai_voice_screen.dart",
         "file:mobile/lib/features/chat_location/presentation/chat_location_screen.dart",
         "file:mobile/lib/features/chats/presentation/chat_thread_providers.dart",
         "file:mobile/lib/features/chats/presentation/chat_thread_screen.dart",
@@ -43586,7 +43924,6 @@
         "file:mobile/lib/features/evening_plan/presentation/evening_builder_screen.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_edit_screen.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_edit_state.dart",
-        "file:mobile/lib/features/evening_plan/presentation/evening_hero_card.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_live_meetup_screen.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_plan_data.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_plan_screen.dart",
@@ -43594,10 +43931,8 @@
         "file:mobile/lib/features/evening_plan/presentation/evening_share_card_screen.dart",
         "file:mobile/lib/features/evening_routes/data/evening_route_template_fallbacks.dart",
         "file:mobile/lib/features/evening_routes/presentation/create_evening_session_screen.dart",
-        "file:mobile/lib/features/evening_routes/presentation/evening_nearest_sessions.dart",
         "file:mobile/lib/features/evening_routes/presentation/evening_route_card.dart",
         "file:mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
-        "file:mobile/lib/features/evening_routes/presentation/evening_route_step_list.dart",
         "file:mobile/lib/features/evening_routes/presentation/evening_route_template_plan_mapper.dart",
         "file:mobile/lib/features/evening_routes/presentation/evening_routes_screen.dart",
         "file:mobile/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
@@ -43608,29 +43943,27 @@
         "file:mobile/lib/features/map/presentation/map_screen.dart",
         "file:mobile/lib/features/match/presentation/match_screen.dart",
         "file:mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart",
+        "file:mobile/lib/features/meetups/presentation/meetups_screen.dart",
+        "file:mobile/lib/features/memory_map/presentation/memory_map_screen.dart",
         "file:mobile/lib/features/notifications/presentation/notifications_screen.dart",
         "file:mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
         "file:mobile/lib/features/paywall/presentation/paywall_screen.dart",
-        "file:mobile/lib/features/people/presentation/people_screen.dart",
+        "file:mobile/lib/features/perks/presentation/perks_screen.dart",
         "file:mobile/lib/features/permissions/presentation/permissions_screen.dart",
         "file:mobile/lib/features/personal_chat/presentation/personal_chat_screen.dart",
         "file:mobile/lib/features/phone_auth/presentation/phone_auth_screen.dart",
-        "file:mobile/lib/features/posters/presentation/poster_detail_screen.dart",
-        "file:mobile/lib/features/posters/presentation/posters_screen.dart",
-        "file:mobile/lib/features/posters/presentation/widgets/poster_card.dart",
-        "file:mobile/lib/features/posters/presentation/widgets/poster_picker_sheet.dart",
         "file:mobile/lib/features/profile/presentation/profile_screen.dart",
         "file:mobile/lib/features/report/presentation/report_screen.dart",
         "file:mobile/lib/features/safety/presentation/safety_hub_screen.dart",
-        "file:mobile/lib/features/search/presentation/search_providers.dart",
-        "file:mobile/lib/features/search/presentation/search_screen.dart",
         "file:mobile/lib/features/settings/presentation/settings_screen.dart",
         "file:mobile/lib/features/share_card/presentation/share_card_screen.dart",
         "file:mobile/lib/features/splash/presentation/splash_screen.dart",
         "file:mobile/lib/features/stories/presentation/stories_screen.dart",
+        "file:mobile/lib/features/streak/presentation/streak_screen.dart",
         "file:mobile/lib/features/telegram_auth/presentation/telegram_auth_screen.dart",
         "file:mobile/lib/features/tonight/presentation/tonight_providers.dart",
         "file:mobile/lib/features/tonight/presentation/tonight_screen.dart",
+        "file:mobile/lib/features/tonight/presentation/v5_search_modal.dart",
         "file:mobile/lib/features/user_profile/presentation/user_profile_screen.dart",
         "file:mobile/lib/features/verification/presentation/verification_screen.dart",
         "file:mobile/lib/features/welcome/application/social_auth_controller.dart",
@@ -43651,7 +43984,6 @@
         "file:mobile/lib/shared/models/evening_session.dart",
         "file:mobile/lib/shared/models/event_check_in.dart",
         "file:mobile/lib/shared/models/event_detail.dart",
-        "file:mobile/lib/shared/models/event_filters.dart",
         "file:mobile/lib/shared/models/event.dart",
         "file:mobile/lib/shared/models/host_dashboard.dart",
         "file:mobile/lib/shared/models/live_meetup.dart",
@@ -43664,7 +43996,6 @@
         "file:mobile/lib/shared/models/partner_offer_code.dart",
         "file:mobile/lib/shared/models/person_summary.dart",
         "file:mobile/lib/shared/models/personal_chat.dart",
-        "file:mobile/lib/shared/models/poster.dart",
         "file:mobile/lib/shared/models/profile.dart",
         "file:mobile/lib/shared/models/public_share.dart",
         "file:mobile/lib/shared/models/recorded_voice_draft.dart",
@@ -43682,21 +44013,18 @@
         "file:mobile/lib/shared/widgets/bb_brand_icon.dart",
         "file:mobile/lib/shared/widgets/bb_chat_attachment_image.dart",
         "file:mobile/lib/shared/widgets/bb_chat_bubble.dart",
-        "file:mobile/lib/shared/widgets/bb_chip.dart",
         "file:mobile/lib/shared/widgets/bb_composer.dart",
-        "file:mobile/lib/shared/widgets/bb_event_card.dart",
         "file:mobile/lib/shared/widgets/bb_external_event_image.dart",
         "file:mobile/lib/shared/widgets/bb_message_actions_sheet.dart",
         "file:mobile/lib/shared/widgets/bb_phone_number_field.dart",
         "file:mobile/lib/shared/widgets/bb_pinned_meetup_card.dart",
         "file:mobile/lib/shared/widgets/bb_profile_photo_gallery.dart",
         "file:mobile/lib/shared/widgets/bb_profile_photo_image.dart",
-        "file:mobile/lib/shared/widgets/bb_search_bar.dart",
         "file:mobile/lib/shared/widgets/bb_social_actions.dart",
         "file:mobile/lib/shared/widgets/bb_swipeable_message.dart",
         "file:mobile/lib/shared/widgets/bb_system_overlays.dart",
+        "file:mobile/lib/shared/widgets/bb_v5_ui.dart",
         "file:mobile/lib/shared/widgets/bb_voice_message.dart",
-        "file:mobile/lib/shared/widgets/event_filter_sheet.dart",
         "config:mobile/pubspec.yaml",
         "document:mobile/README.md"
       ]

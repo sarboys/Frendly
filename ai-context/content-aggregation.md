@@ -481,5 +481,4 @@ Mobile:
 - `mobile/lib/shared/data/backend_repository.dart`
 - `mobile/lib/shared/data/app_providers.dart`
 - `mobile/lib/features/affiche/`
-- `mobile/lib/features/search/presentation/search_screen.dart`
 - `mobile/lib/features/tonight/presentation/tonight_screen.dart`

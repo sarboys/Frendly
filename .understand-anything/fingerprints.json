@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "d9b193831d9b7d83b02342442ebc1522becfdb27",
-  "generatedAt": "2026-05-05T13:28:25.194Z",
+  "gitCommitHash": "a68ad64f2526521fa5a4a63998d1b39affe65b65",
+  "generatedAt": "2026-05-08T05:00:45.984Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -9792,6 +9792,27 @@
       "totalLines": 110,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/common/normalize-request-url.ts": {
+      "filePath": "backend/apps/api/src/common/normalize-request-url.ts",
+      "contentHash": "38de808e01d3f467bca8e8bd42f8eee9772312f026c3e61618323cd05b02a2b5",
+      "functions": [
+        {
+          "name": "normalizeDuplicateSlashesInPath",
+          "params": [
+            "rawUrl"
+          ],
+          "exported": true,
+          "lineCount": 12
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "normalizeDuplicateSlashesInPath"
+      ],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/common/pagination.ts": {
       "filePath": "backend/apps/api/src/common/pagination.ts",
       "contentHash": "469cab7029860338f037849da3d9ea2a5fc68f691b7c46e55aa5297310bb05c6",
@@ -9885,7 +9906,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "46baafb4e0111b5d120ebb06714b6a75b0320238443ae9e58a3627f76c63722d",
+      "contentHash": "687df5edd155a2c213efd7c482140ae51caae203e75b3155dc410190414312f6",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -9985,7 +10006,15 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 56
+          "lineCount": 57
+        },
+        {
+          "name": "mapExternalContentImageUrl",
+          "params": [
+            "source"
+          ],
+          "exported": false,
+          "lineCount": 21
         }
       ],
       "classes": [],
@@ -10008,7 +10037,8 @@
           "source": "@big-break/database",
           "specifiers": [
             "buildMediaProxyPath",
-            "buildMessagePreview"
+            "buildMessagePreview",
+            "objectKeyFromPublicAssetUrl"
           ]
         },
         {
@@ -10032,7 +10062,7 @@
         "mapLiveStatus",
         "mapEventSummary"
       ],
-      "totalLines": 337,
+      "totalLines": 367,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -10704,7 +10734,7 @@
     },
     "backend/apps/api/src/controllers/affiche.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/affiche.controller.ts",
-      "contentHash": "0e8f60837e6a4eb29c9b90059ae18c58a7cedc047977d5e2f400439281b43d8d",
+      "contentHash": "f96c9039ae063bce2df9b661516c19429b6e1e68014b3691e1dae96de6b3d331",
       "functions": [],
       "classes": [
         {
@@ -10717,7 +10747,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 23
+          "lineCount": 36
         }
       ],
       "imports": [
@@ -10726,9 +10756,12 @@
           "specifiers": [
             "Controller",
             "Get",
+            "Header",
+            "Headers",
             "Param",
             "Query",
-            "Res"
+            "Res",
+            "StreamableFile"
           ]
         },
         {
@@ -10753,7 +10786,7 @@
       "exports": [
         "AfficheController"
       ],
-      "totalLines": 31,
+      "totalLines": 47,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/after-dark.controller.ts": {
@@ -11503,7 +11536,7 @@
     },
     "backend/apps/api/src/controllers/media.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/media.controller.ts",
-      "contentHash": "28c4daeb1524e8e158b020bb3e0b482a4c13522864f422e0280cf4f92293e6b5",
+      "contentHash": "eeddb4be50b10a253bc275d4010edd36b8f8775999437679e5347b0742218c59",
       "functions": [],
       "classes": [
         {
@@ -11515,7 +11548,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 41
+          "lineCount": 55
         }
       ],
       "imports": [
@@ -11558,7 +11591,7 @@
       "exports": [
         "MediaController"
       ],
-      "totalLines": 49,
+      "totalLines": 63,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/notifications.controller.ts": {
@@ -12436,13 +12469,13 @@
     },
     "backend/apps/api/src/main.ts": {
       "filePath": "backend/apps/api/src/main.ts",
-      "contentHash": "40541aa6f395f9c0b467854b27469574a247cc104b104b3e5e34d2574fe5f77d",
+      "contentHash": "dbfc18e6f2585eb09b6d1fee0f21f3d89e8bc2549e64128bfa3a961a34b2c8be",
       "functions": [
         {
           "name": "bootstrap",
           "params": [],
           "exported": false,
-          "lineCount": 23
+          "lineCount": 27
         }
       ],
       "classes": [],
@@ -12468,10 +12501,24 @@
           "specifiers": [
             "ValidationPipe"
           ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "NextFunction",
+            "Request",
+            "Response"
+          ]
+        },
+        {
+          "source": "./common/normalize-request-url",
+          "specifiers": [
+            "normalizeDuplicateSlashesInPath"
+          ]
         }
       ],
       "exports": [],
-      "totalLines": 34,
+      "totalLines": 40,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-affiche.service.ts": {
@@ -13513,7 +13560,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "4d83b8edb02bfa02c147c86bf23e0b03c5a9b6886a363cf38e616ac043ef1cca",
+      "contentHash": "c74f88a00af2eca7c8036fb77628c43d5b120938d768f4aa5a2ab02c54e5684f",
       "functions": [
         {
           "name": "oneDayRange",
@@ -13531,7 +13578,11 @@
             "constructor",
             "listEvents",
             "getEvent",
+            "getImage",
             "getImageRedirect",
+            "buildImageEtag",
+            "isFreshRequest",
+            "parseContentLength",
             "buildWhere",
             "parsePriceMode",
             "parseBoolean",
@@ -13541,6 +13592,13 @@
             "encodeEventCursor",
             "mapEvent",
             "mapImageUrl",
+            "publicAssetObjectKeyFromUrl",
+            "proxyImageCacheControl",
+            "externalImageFetchHeaders",
+            "externalImageFetchUrl",
+            "nestedMtsLiveImageUrl",
+            "positiveInteger",
+            "safeExternalImageUrl",
             "parseLimit",
             "optionalDate",
             "dateFromUnknown",
@@ -13551,7 +13609,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 273
+          "lineCount": 430
         }
       ],
       "imports": [
@@ -13584,6 +13642,18 @@
           ]
         },
         {
+          "source": "crypto",
+          "specifiers": [
+            "createHash"
+          ]
+        },
+        {
+          "source": "node:stream",
+          "specifiers": [
+            "Readable"
+          ]
+        },
+        {
           "source": "../common/api-error",
           "specifiers": [
             "ApiError"
@@ -13605,7 +13675,7 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 338,
+      "totalLines": 516,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
@@ -14404,8 +14474,26 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "56a2bef58c59469dcbaefacd351eaf7399704fbaed1c411d71e70911838ba00d",
-      "functions": [],
+      "contentHash": "80c7dca276606318649417cecdd2bb61f789b831b3c57ec3eec5a8a4039dd6a5",
+      "functions": [
+        {
+          "name": "normalizeEveningPrompt",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "hasPromptTerm",
+          "params": [
+            "text",
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
       "classes": [
         {
           "name": "EveningService",
@@ -14467,6 +14555,14 @@
             "loadStep",
             "buildSharePreview",
             "mapActionResponse",
+            "parsePromptHints",
+            "inferPromptGoal",
+            "inferPromptMood",
+            "inferPromptBudget",
+            "inferPromptFormat",
+            "inferPromptArea",
+            "routeMatchesArea",
+            "areaTerms",
             "parseOption",
             "assertRouteUnlocked",
             "parseLaunchMode",
@@ -14475,7 +14571,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 2477
+          "lineCount": 2688
         }
       ],
       "imports": [
@@ -14532,7 +14628,7 @@
       "exports": [
         "EveningService"
       ],
-      "totalLines": 2661,
+      "totalLines": 2886,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/event-capacity.ts": {
@@ -14572,7 +14668,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "f77c338bc076c89d9f8d3cbde5061f6bf5c3e3ee1f4dbfcb3cd3387b14ef2d67",
+      "contentHash": "868f047e3cab300fcf4308cfd746935e873a3b4aeea2a386a94dccb8401d5008",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14736,7 +14832,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3456,
+      "totalLines": 3461,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -14886,7 +14982,7 @@
     },
     "backend/apps/api/src/services/media.service.ts": {
       "filePath": "backend/apps/api/src/services/media.service.ts",
-      "contentHash": "b5a0372166078af8c59114767c64a0acdaf7c1ec92d9195b9f217b052fef49c5",
+      "contentHash": "15f2dc0e55e948d8563984fa9f78d84b9b3af716d65a44da6641c967fdaeab62",
       "functions": [],
       "classes": [
         {
@@ -14897,6 +14993,8 @@
             "getDownloadUrl",
             "resolveCachePolicy",
             "isPublicKind",
+            "buildCacheMetadata",
+            "isFreshRequest",
             "resolveAssetAccess",
             "assertChatMediaBlockAccess",
             "assertStoryMediaBlockAccess",
@@ -14908,7 +15006,7 @@
             "s3"
           ],
           "exported": true,
-          "lineCount": 394
+          "lineCount": 449
         }
       ],
       "imports": [
@@ -14962,7 +15060,7 @@
       "exports": [
         "MediaService"
       ],
-      "totalLines": 423,
+      "totalLines": 489,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/notifications.service.ts": {
@@ -17729,7 +17827,7 @@
     },
     "backend/apps/worker/src/content/content-image-mirror.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
-      "contentHash": "b7f4ff8392ae5e0e48b8adc2ad4364cb6e1479700610b041b6ff25b28c5ea145",
+      "contentHash": "3364a89afd236ad8eb46724e5317768c36a3097c55ed62393ae0a6bedfc69544",
       "functions": [
         {
           "name": "isHttpsUrl",
@@ -17779,6 +17877,30 @@
           ],
           "exported": false,
           "lineCount": 7
+        },
+        {
+          "name": "sourceImageUrl",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "imageHost",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "sleep",
+          "params": [
+            "ms"
+          ],
+          "exported": false,
+          "lineCount": 3
         }
       ],
       "classes": [
@@ -17786,7 +17908,9 @@
           "name": "ContentImageMirrorService",
           "methods": [
             "mirrorExternalImage",
+            "mirrorImageUrl",
             "downloadImage",
+            "downloadImageOnce",
             "putIfMissing",
             "objectKey",
             "isOwnAssetUrl",
@@ -17796,7 +17920,7 @@
             "s3"
           ],
           "exported": true,
-          "lineCount": 136
+          "lineCount": 191
         }
       ],
       "imports": [
@@ -17839,12 +17963,12 @@
       "exports": [
         "ContentImageMirrorService"
       ],
-      "totalLines": 206,
+      "totalLines": 300,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "1090c2c73b0f6e9a418dd0d3df1981b18a65058123972d88e5ba10b72330e8a6",
+      "contentHash": "0fd413ccff67dd11864658c48635955dbdc32d32a5ae0c51fab8cb8af4a9dd86",
       "functions": [
         {
           "name": "safeJson",
@@ -17910,6 +18034,16 @@
           "lineCount": 4
         },
         {
+          "name": "boundedPositiveInt",
+          "params": [
+            "value",
+            "fallback",
+            "max"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
           "name": "object",
           "params": [
             "value"
@@ -17958,6 +18092,8 @@
             "constructor",
             "runImport",
             "processPendingManualRuns",
+            "backfillMirroredImages",
+            "failStaleRunningRuns",
             "executeRun",
             "fetchItemBatches",
             "upsertItem",
@@ -17972,7 +18108,7 @@
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 511
+          "lineCount": 605
         }
       ],
       "imports": [
@@ -18040,7 +18176,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 733,
+      "totalLines": 837,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
@@ -19478,7 +19614,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "22dcfb393e0a1d0373af65521218517550879064afedf36d8c37834cae1ad528",
+      "contentHash": "b09bbcc54ab740b7e726c395a7a8bed49189187262dc8f3c5d646c80276a27da",
       "functions": [
         {
           "name": "csv",
@@ -19573,6 +19709,8 @@
             "eveningAutoAdvanceIntervalMs",
             "eveningAutoAdvanceBatchSize",
             "contentImportEnabled",
+            "contentImageBackfillEnabled",
+            "contentImageBackfillBatchSize",
             "contentImportIntervalMs",
             "contentManualImportIntervalMs",
             "contentManualGenerationIntervalMs",
@@ -19585,7 +19723,7 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 1620
+          "lineCount": 1632
         }
       ],
       "imports": [
@@ -19663,7 +19801,7 @@
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 1677,
+      "totalLines": 1690,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {
@@ -19783,7 +19921,7 @@
     },
     "backend/packages/database/prisma/create-hot-path-indexes.ts": {
       "filePath": "backend/packages/database/prisma/create-hot-path-indexes.ts",
-      "contentHash": "c1096fac21424d3bf99502cfe4d1b53c725ec103434fb21d2a4a5f25ae6eff02",
+      "contentHash": "05b0a97439784d0e268a04ad7d69db46099e92f85141e182ec58558e16d393db",
       "functions": [
         {
           "name": "main",
@@ -19809,7 +19947,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 123,
+      "totalLines": 151,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/enable-postgis-event-geo.ts": {
@@ -21620,7 +21758,7 @@
     },
     "backend/scripts/perf-hotpaths.mjs": {
       "filePath": "backend/scripts/perf-hotpaths.mjs",
-      "contentHash": "2501d30eecf0ad1f4edb6b1cff455c4ea4e3ee55abc92edca1402fe62c56a7c3",
+      "contentHash": "1482d3f5edc9c7883cce61290f5c81adcbde8ea08e9059c4fdbef5ccefef375d",
       "functions": [
         {
           "name": "parseArgs",
@@ -21684,6 +21822,15 @@
           ],
           "exported": false,
           "lineCount": 24
+        },
+        {
+          "name": "measureHttpEndpoint",
+          "params": [
+            "args",
+            "defaults"
+          ],
+          "exported": false,
+          "lineCount": 32
         },
         {
           "name": "waitForSocketMessage",
@@ -21758,13 +21905,13 @@
           "name": "printUsage",
           "params": [],
           "exported": false,
-          "lineCount": 6
+          "lineCount": 10
         },
         {
           "name": "main",
           "params": [],
           "exported": false,
-          "lineCount": 19
+          "lineCount": 51
         }
       ],
       "classes": [],
@@ -21777,7 +21924,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 354,
+      "totalLines": 423,
       "hasStructuralAnalysis": true
     },
     "Makefile": {
