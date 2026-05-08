@@ -2,10 +2,16 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ApiAppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import type { NextFunction, Request, Response } from 'express';
+import { normalizeDuplicateSlashesInPath } from './common/normalize-request-url';
 
 async function bootstrap() {
   const app = await NestFactory.create(ApiAppModule);
   app.enableShutdownHooks();
+  app.use((request: Request, _response: Response, next: NextFunction) => {
+    request.url = normalizeDuplicateSlashesInPath(request.url) ?? request.url;
+    next();
+  });
   const corsOrigin = process.env.CORS_ORIGIN
     ?.split(',')
     .map((value) => value.trim())
