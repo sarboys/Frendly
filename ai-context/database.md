@@ -123,13 +123,13 @@ cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 
 Seed file: `backend/packages/database/prisma/seed.ts`.
 
-It seeds users, events, chats, posters, communities, After Dark and Evening demo data. Curated Evening seed includes a test partner, Moscow venues, active offer, published route template and route revision. Upcoming event and poster dates shift forward relative to the current UTC day.
+Seed no longer inserts demo data. It only cleans legacy deterministic demo rows from the old seed by known IDs, including demo users, events, posters, communities, chats, Evening routes, test partner, venues and offer. Running `db:seed` must not create mock users, mock events or mock routes.
 
 ## When changing schema
 
 1. Update `schema.prisma`.
 2. Add migration.
-3. Update seed if demo data changes.
+3. Update seed only if legacy demo cleanup identifiers change.
 4. Run Prisma generate.
 5. Update services, contracts and tests if API shape changed.
 6. For string status fields, prefer DB check constraints when the field stays a Prisma `String`.

@@ -69,7 +69,7 @@ Use this file for Flutter behavior, state and performance rules.
 - Tonight location can be overridden manually through `manualLocationProvider`. Nearby event feed and city-limited Tonight entries must prefer manual coordinates/city before device GPS.
 - Debounced Yandex place search in onboarding, Tonight manual location and Create Meetup place picker must capture map/location services before async waits, guard `mounted`, catch search errors, and clear loading only for the current query.
 - Map viewport events use an `autoDispose` family provider because query keys change with camera center/bounds.
-- Tonight first tab mirrors linked `front/src/pages/HomeV5.tsx`, not the old Tonight feed. It renders brand header, hero, radar, gathering, dating, affiche, routes, pulse, metrics, `Твоё в Frendly` links and AI voice CTA. The gathering rail is a snapping V5 carousel backed by `GET /events`; `Смотреть все` opens `/meetups`. Dating preview cards open `/dating`, not the public user profile route.
+- Tonight first tab mirrors linked `front/src/pages/HomeV5.tsx`, not the old Tonight feed. It renders brand header, hero, radar, gathering, dating, affiche, routes, pulse, metrics, `Твоё в Frendly` links and AI voice CTA. The gathering rail is a snapping V5 carousel backed by `GET /events`; `Смотреть все` opens `/meetups`. Dating preview cards open `/dating`, not the public user profile route. Home route preview cards are backed by `eveningRouteTemplatesProvider` and open `/routes/:templateId`; do not hardcode route previews here.
 - Meetups list at `/meetups` mirrors `front/src/pages/v5/Meetups.tsx`: V5 warm page, search, quick `Когда` chips, sort controls, filter sheet for categories, time of day, atmosphere, radius and access, and event cards backed by `GET /events`.
 - Host dashboard at `/host` mirrors `front/src/pages/v5/Host.tsx`: V5 hero metric, stat cards, create CTA, real join requests with approve/reject actions, and tabs for upcoming, past and draft meetups backed by `/host/dashboard`.
 - V5 dark actions use the terracotta accent `#D08A63`: CTA buttons, active bottom nav, active chips, chat mine bubbles, FAB and snackbars. Home header uses the orange Fr logo asset and opens V5 city picker/search/AI create from the header controls. City picker uses a warm blurred modal with region/city rows, live geolocation detection, Yandex suggestions and manual save. Shared V5 bottom nav always uses the `Клубы` label for the communities tab and a 56px create FAB at `right: 20`, `bottom: 96` on Home.
@@ -169,8 +169,8 @@ Routes catalog
 
 Important notes:
 
-- Route catalog mirrors `front/src/pages/v5/Routes.tsx`: V5 header, search pill, mood chips, count line, lazy cards, local V5 bottom nav, no extra city strip, no featured/rest split, and no AI builder prompt at the bottom.
-- Published route templates come from backend and use local fallback data for parity.
+- Route catalog mirrors `front/src/pages/v5/Routes.tsx`: V5 header, search pill, mood chips, count line, lazy cards, AppShell V5 bottom nav, no extra city strip, no featured/rest split, and no AI builder prompt at the bottom.
+- Published route templates come from backend only. Runtime must not replace empty API responses or request errors with local demo routes.
 - Route catalog cards open `/routes/:templateId`; `Запустить` opens `/routes/:templateId?launch=1`, so the v5 detail can switch the CTA copy before launch.
 - Route detail mirrors `front/src/pages/v5/RouteDetail.tsx`: warm background, `Маршрут вечера` header with share, v5 hero card, metric tiles, budget row, savings pill, `Шаги вечера` emoji timeline with v5 time separators, one sticky launch CTA above the local V5 bottom nav. Its CTA opens `/routes/:templateId/create` and then `EveningPlanScreen` auto-opens the launch sheet. Do not bring back the old gradient `Frendly Plan` header or dense action timeline.
 - Route catalog builds the main list lazily. Do not replace it with `ListView(children:)` when adding route cards.
@@ -227,7 +227,7 @@ Important notes:
 - Profile state shares onboarding data through `onboardingProvider` instead of fetching `/onboarding/me` separately.
 - Authenticated startup shares the first `/profile/me` response with `profileProvider` through a one-use cache.
 - Fresh login avoids a redundant bootstrap `/profile/me` because the auth response already provided the current user id.
-- Tonight prefetches route templates for the active manual city through the provider cache, so opening Routes from Home should reuse the hydrated response.
+- Tonight reads route templates for the active manual city through the provider cache, so Home route previews and opening Routes reuse the same hydrated response.
 - Auth bootstrap and token refresh must compare the current access/refresh tokens before writing or clearing session state after `/profile/me` or `/auth/refresh` awaits. Persisted token write/delete operations are serialized so logout, refresh and fresh login cannot reorder secure storage state. Session replacement uses a generation guard after runtime cleanup so an older login flow cannot overwrite a newer one.
 - Root theme starts from local `SharedPreferences`. Remote `settingsProvider` sync into `appThemeModeProvider` is queued after the first frame and only for a stable authenticated user id. Settings sync compares both user id and access/refresh token snapshot after awaits before writing permission preferences.
 - Root chat realtime sync is queued after the first frame so socket connect and chat-list provider listeners do not start inside the authenticated root build. Root triggers one rebuild after starting it so bottom navigation can attach to chat badge providers.

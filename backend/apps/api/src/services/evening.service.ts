@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { OUTBOX_EVENT_TYPES, seededEveningRoutes } from '@big-break/database';
+import { OUTBOX_EVENT_TYPES } from '@big-break/database';
 import { randomBytes } from 'crypto';
 import { ApiError } from '../common/api-error';
 import { mapMessage } from '../common/presenters';
@@ -1601,82 +1601,10 @@ export class EveningService {
   }
 
   private async loadEveningRouteTemplate(routeId: string) {
-    const route = await this.prismaService.client.eveningRoute.findUnique({
+    return this.prismaService.client.eveningRoute.findUnique({
       where: { id: routeId },
       select: eveningRouteWithStepsSelect,
     });
-
-    if (route) {
-      return route;
-    }
-
-    return this.createSeededEveningRouteTemplate(routeId);
-  }
-
-  private async createSeededEveningRouteTemplate(routeId: string) {
-    const seededRoute = seededEveningRoutes.find((route) => route.id === routeId);
-    if (!seededRoute) {
-      return null;
-    }
-
-    try {
-      return await this.prismaService.client.eveningRoute.create({
-        data: {
-          id: seededRoute.id,
-          title: seededRoute.title,
-          vibe: seededRoute.vibe,
-          blurb: seededRoute.blurb,
-          totalPriceFrom: seededRoute.totalPriceFrom,
-          totalSavings: seededRoute.totalSavings,
-          durationLabel: seededRoute.durationLabel,
-          area: seededRoute.area,
-          goal: seededRoute.goal,
-          mood: seededRoute.mood,
-          budget: seededRoute.budget,
-          format: seededRoute.format,
-          premium: seededRoute.premium ?? false,
-          recommendedFor: seededRoute.recommendedFor ?? null,
-          hostsCount: seededRoute.hostsCount,
-          chatId: null,
-          steps: {
-            create: seededRoute.steps.map((step, index) => ({
-              id: step.id,
-              sortOrder: index,
-              timeLabel: step.timeLabel,
-              endTimeLabel: step.endTimeLabel ?? null,
-              kind: step.kind,
-              title: step.title,
-              venue: step.venue,
-              address: step.address,
-              emoji: step.emoji,
-              distanceLabel: step.distanceLabel,
-              walkMin: step.walkMin ?? null,
-              perk: step.perk ?? null,
-              perkShort: step.perkShort ?? null,
-              ticketPrice: step.ticketPrice ?? null,
-              ticketCommission: step.ticketCommission ?? null,
-              sponsored: step.sponsored ?? false,
-              premium: step.premium ?? false,
-              partnerId: step.partnerId ?? null,
-              description: step.description ?? null,
-              vibeTag: step.vibeTag ?? null,
-              lat: step.lat,
-              lng: step.lng,
-            })),
-          },
-        },
-        select: eveningRouteWithStepsSelect,
-      });
-    } catch (error) {
-      if ((error as { code?: string }).code === 'P2002') {
-        return this.prismaService.client.eveningRoute.findUnique({
-          where: { id: routeId },
-          select: eveningRouteWithStepsSelect,
-        });
-      }
-
-      throw error;
-    }
   }
 
   private async findRouteCandidates(params: {

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "a68ad64f2526521fa5a4a63998d1b39affe65b65",
-  "generatedAt": "2026-05-08T05:00:45.984Z",
+  "gitCommitHash": "36c2e62764b060246f4ed780c98023f8b05a9c65",
+  "generatedAt": "2026-05-08T06:56:21.767Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14474,7 +14474,7 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "80c7dca276606318649417cecdd2bb61f789b831b3c57ec3eec5a8a4039dd6a5",
+      "contentHash": "1cf3055a20f335a9d9b8bf630a2b547266127e41b4cd465e903c51dc495c2002",
       "functions": [
         {
           "name": "normalizeEveningPrompt",
@@ -14521,7 +14521,6 @@
             "addAfterPartyPhoto",
             "finishRoute",
             "loadEveningRouteTemplate",
-            "createSeededEveningRouteTemplate",
             "findRouteCandidates",
             "pickBestRoute",
             "scoreRoute",
@@ -14571,7 +14570,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 2688
+          "lineCount": 2616
         }
       ],
       "imports": [
@@ -14590,8 +14589,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
-            "OUTBOX_EVENT_TYPES",
-            "seededEveningRoutes"
+            "OUTBOX_EVENT_TYPES"
           ]
         },
         {
@@ -14628,7 +14626,7 @@
       "exports": [
         "EveningService"
       ],
-      "totalLines": 2886,
+      "totalLines": 2814,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/event-capacity.ts": {
@@ -20092,13 +20090,13 @@
     },
     "backend/packages/database/prisma/seed.ts": {
       "filePath": "backend/packages/database/prisma/seed.ts",
-      "contentHash": "e588376ec0f321d5563204d0e424bc99e9fcdf815ebe173c978bed3558ed9797",
+      "contentHash": "ed8be5c8f15daf5849e755993df5bd6e48a4e2f96106ec6475b5980d91b0d81a",
       "functions": [
         {
           "name": "main",
           "params": [],
           "exported": false,
-          "lineCount": 1123
+          "lineCount": 168
         }
       ],
       "classes": [],
@@ -20111,7 +20109,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 1263,
+      "totalLines": 279,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/verify-chat-unread-counts.ts": {
@@ -20901,32 +20899,22 @@
     },
     "backend/packages/database/src/index.d.ts": {
       "filePath": "backend/packages/database/src/index.d.ts",
-      "contentHash": "fba5c46fb5227c63c558231bb6db5eab307263980302abbc24da9b9d4e2673d9",
+      "contentHash": "d724a6bf8e261102563e914d4c48bb46fb8582430c7b70eff83532cf0604a96e",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 10,
-      "hasStructuralAnalysis": true
-    },
-    "backend/packages/database/src/index.js": {
-      "filePath": "backend/packages/database/src/index.js",
-      "contentHash": "ee82ea85ffbf4743538d6315457d0c36be649a0296744bcdee0bc49e61d899de",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 26,
+      "totalLines": 9,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/index.ts": {
       "filePath": "backend/packages/database/src/index.ts",
-      "contentHash": "86259d309b5967bfe80411a5382f31973963ba4d3be63f873d61fc183be1443c",
+      "contentHash": "d3c581fb4f639684e5acdc3fef62efebbf61a2778d86ee6d8d01689b410f27b3",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 19,
+      "totalLines": 18,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/openrouter.ts": {
@@ -21539,41 +21527,6 @@
         "buildMediaProxyPath"
       ],
       "totalLines": 250,
-      "hasStructuralAnalysis": true
-    },
-    "backend/packages/database/src/seed-data.d.ts": {
-      "filePath": "backend/packages/database/src/seed-data.d.ts",
-      "contentHash": "0bfe8c7e2d640a27190a8f5c3058ab2609839b8d05b7f3456f707ffa834d9a7a",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 38,
-      "hasStructuralAnalysis": true
-    },
-    "backend/packages/database/src/seed-data.js": {
-      "filePath": "backend/packages/database/src/seed-data.js",
-      "contentHash": "410e6595c0b362a1e9b3145f78ee1092b12a7055286343fe5e2136443b0e6cb6",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 343,
-      "hasStructuralAnalysis": true
-    },
-    "backend/packages/database/src/seed-data.ts": {
-      "filePath": "backend/packages/database/src/seed-data.ts",
-      "contentHash": "92d951a2c9bd518b26a53d5978207b765d2d3eb5b3d1d6e69221f64bac93fb38",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [
-        "seededUsers",
-        "seededEvents",
-        "seededPosters",
-        "seededEveningRoutes"
-      ],
-      "totalLines": 1329,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/seed-dates.ts": {

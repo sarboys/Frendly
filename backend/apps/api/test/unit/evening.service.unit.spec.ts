@@ -1967,23 +1967,9 @@ describe('EveningService unit', () => {
     expect(result.phase).toBe('scheduled');
   });
 
-  it('creates canonical route template before launch when production seed is missing', async () => {
-    const routeCreate = jest.fn().mockResolvedValue(
-      routeFixture({
-        chatId: null,
-      }),
-    );
-    const chatCreate = jest.fn().mockResolvedValue({
-      id: 'evening-chat-new',
-    });
-    const sessionCreate = jest.fn().mockResolvedValue({
-      id: 'evening-session-new',
-      chatId: 'evening-chat-new',
-      privacy: 'open',
-      capacity: 10,
-      phase: 'scheduled',
-      mode: 'hybrid',
-    });
+  it('does not create demo route data when a route is missing', async () => {
+    const routeCreate = jest.fn();
+    const transaction = jest.fn();
     const service = new EveningService(
       {
         client: {
@@ -1994,49 +1980,21 @@ describe('EveningService unit', () => {
           userSubscription: {
             findFirst: jest.fn().mockResolvedValue(null),
           },
-          $transaction: jest.fn((callback) =>
-            callback({
-              chat: { create: chatCreate },
-              eveningSession: { create: sessionCreate },
-              eveningSessionParticipant: { upsert: jest.fn() },
-              eveningSessionStepState: { createMany: jest.fn() },
-              chatMember: { upsert: jest.fn() },
-              message: {
-                findUnique: jest.fn().mockResolvedValue(null),
-                create: jest.fn().mockResolvedValue({ id: 'sys-publish' }),
-              },
-              realtimeEvent: { create: jest.fn().mockResolvedValue({ id: 11 }) },
-              outboxEvent: { createMany: jest.fn() },
-            }),
-          ),
+          $transaction: transaction,
         },
       } as any,
     );
 
-    const result = await service.launchRoute('user-me', 'r-cozy-circle', {
-      privacy: 'open',
-    });
-
-    expect(routeCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        id: 'r-cozy-circle',
-        chatId: null,
-        steps: expect.objectContaining({
-          create: expect.arrayContaining([
-            expect.objectContaining({
-              id: 's1-1',
-              title: 'Аперитив в Brix Wine',
-            }),
-          ]),
-        }),
+    await expect(
+      service.launchRoute('user-me', 'r-cozy-circle', {
+        privacy: 'open',
       }),
-      select: expect.any(Object),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'evening_route_not_found',
     });
-    expect(result).toMatchObject({
-      sessionId: 'evening-session-new',
-      chatId: 'evening-chat-new',
-      phase: 'scheduled',
-    });
+    expect(routeCreate).not.toHaveBeenCalled();
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it('keeps legacy route finish endpoint tied to route chat', async () => {

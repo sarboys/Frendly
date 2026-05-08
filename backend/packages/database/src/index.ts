@@ -13,6 +13,5 @@ export * from './push-providers';
 export * from './pubsub';
 export * from './retention-cleanup';
 export * from './s3';
-export * from './seed-data';
 export * from './telegram-auth';
 export * from './user-blocks';

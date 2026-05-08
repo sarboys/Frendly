@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-08T05:00:45.767Z",
-    "gitCommitHash": "a68ad64f2526521fa5a4a63998d1b39affe65b65"
+    "analyzedAt": "2026-05-08T06:56:21.562Z",
+    "gitCommitHash": "36c2e62764b060246f4ed780c98023f8b05a9c65"
   },
   "nodes": [
     {
@@ -10807,8 +10807,8 @@
       "name": "normalizeEveningPrompt",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
-        2873,
-        2881
+        2801,
+        2809
       ],
       "summary": "normalizeEveningPrompt in evening.service.ts.",
       "tags": [
@@ -10824,8 +10824,8 @@
       "name": "hasPromptTerm",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
-        2883,
-        2885
+        2811,
+        2813
       ],
       "summary": "hasPromptTerm in evening.service.ts.",
       "tags": [
@@ -10842,7 +10842,7 @@
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
         184,
-        2871
+        2799
       ],
       "summary": "EveningService in evening.service.ts.",
       "tags": [
@@ -22689,7 +22689,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:backend/packages/database/prisma/seed.ts:main",
@@ -22697,8 +22697,8 @@
       "name": "main",
       "filePath": "backend/packages/database/prisma/seed.ts",
       "lineRange": [
-        130,
-        1252
+        101,
+        268
       ],
       "summary": "main in seed.ts.",
       "tags": [
@@ -22706,7 +22706,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "file:backend/packages/database/prisma/verify-chat-unread-counts.ts",
@@ -23917,19 +23917,6 @@
       "complexity": "simple"
     },
     {
-      "id": "file:backend/packages/database/src/index.js",
-      "type": "file",
-      "name": "index.js",
-      "filePath": "backend/packages/database/src/index.js",
-      "summary": "index.js is a code file for backend.",
-      "tags": [
-        "backend",
-        "code",
-        "javascript"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "file:backend/packages/database/src/index.ts",
       "type": "file",
       "name": "index.ts",
@@ -24862,45 +24849,6 @@
         "structure"
       ],
       "complexity": "moderate"
-    },
-    {
-      "id": "file:backend/packages/database/src/seed-data.d.ts",
-      "type": "file",
-      "name": "seed-data.d.ts",
-      "filePath": "backend/packages/database/src/seed-data.d.ts",
-      "summary": "seed-data.d.ts is a code file for backend.",
-      "tags": [
-        "backend",
-        "code",
-        "typescript"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:backend/packages/database/src/seed-data.js",
-      "type": "file",
-      "name": "seed-data.js",
-      "filePath": "backend/packages/database/src/seed-data.js",
-      "summary": "seed-data.js is a code file for backend.",
-      "tags": [
-        "backend",
-        "code",
-        "javascript"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:backend/packages/database/src/seed-data.ts",
-      "type": "file",
-      "name": "seed-data.ts",
-      "filePath": "backend/packages/database/src/seed-data.ts",
-      "summary": "seed-data.ts is a code file for backend.",
-      "tags": [
-        "backend",
-        "code",
-        "typescript"
-      ],
-      "complexity": "complex"
     },
     {
       "id": "file:backend/packages/database/src/seed-dates.ts",
@@ -43799,7 +43747,6 @@
         "file:backend/packages/database/src/cursor.ts",
         "file:backend/packages/database/src/hot-query-explain.ts",
         "file:backend/packages/database/src/index.d.ts",
-        "file:backend/packages/database/src/index.js",
         "file:backend/packages/database/src/index.ts",
         "file:backend/packages/database/src/openrouter.ts",
         "file:backend/packages/database/src/outbox.d.ts",
@@ -43813,9 +43760,6 @@
         "file:backend/packages/database/src/s3.d.ts",
         "file:backend/packages/database/src/s3.js",
         "file:backend/packages/database/src/s3.ts",
-        "file:backend/packages/database/src/seed-data.d.ts",
-        "file:backend/packages/database/src/seed-data.js",
-        "file:backend/packages/database/src/seed-data.ts",
         "file:backend/packages/database/src/seed-dates.ts",
         "file:backend/packages/database/src/telegram-auth.ts",
         "file:backend/packages/database/src/user-blocks.ts",
