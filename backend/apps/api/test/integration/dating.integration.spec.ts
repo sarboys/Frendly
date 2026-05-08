@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { buildDirectChatKey, buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
+import { seedIntegrationTestData } from './seed-test-data';
 
 jest.setTimeout(30000);
 
@@ -31,6 +32,7 @@ describe('dating api flows', () => {
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = moduleRef.get(PrismaService).client;
+    await seedIntegrationTestData(prisma);
 
     accessToken = (
       await request(app.getHttpServer())

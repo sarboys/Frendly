@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-08T06:56:21.562Z",
-    "gitCommitHash": "36c2e62764b060246f4ed780c98023f8b05a9c65"
+    "analyzedAt": "2026-05-08T07:54:15.334Z",
+    "gitCommitHash": "ac3493ba89197ad9309e1ee8791a72c4cad05818"
   },
   "nodes": [
     {
@@ -11946,6 +11946,49 @@
         "typescript"
       ],
       "complexity": "simple"
+    },
+    {
+      "id": "file:backend/apps/api/test/integration/fixtures/seed-data.ts",
+      "type": "file",
+      "name": "seed-data.ts",
+      "filePath": "backend/apps/api/test/integration/fixtures/seed-data.ts",
+      "summary": "seed-data.ts is a code file for backend.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/apps/api/test/integration/seed-test-data.ts",
+      "type": "file",
+      "name": "seed-test-data.ts",
+      "filePath": "backend/apps/api/test/integration/seed-test-data.ts",
+      "summary": "seed-test-data.ts contains 1 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/test/integration/seed-test-data.ts:seedIntegrationTestData",
+      "type": "function",
+      "name": "seedIntegrationTestData",
+      "filePath": "backend/apps/api/test/integration/seed-test-data.ts",
+      "lineRange": [
+        128,
+        1250
+      ],
+      "summary": "seedIntegrationTestData in seed-test-data.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/api/test/setup-env.ts",
@@ -33307,6 +33350,13 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/test/integration/seed-test-data.ts",
+      "target": "function:backend/apps/api/test/integration/seed-test-data.ts:seedIntegrationTestData",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/chat/src/app.module.ts",
       "target": "class:backend/apps/chat/src/app.module.ts:ChatAppModule",
       "type": "contains",
@@ -43248,6 +43298,8 @@
         "file:backend/apps/api/src/services/uploads.service.ts",
         "file:backend/apps/api/src/services/verification.service.ts",
         "file:backend/apps/api/src/types/express-multer.ts",
+        "file:backend/apps/api/test/integration/fixtures/seed-data.ts",
+        "file:backend/apps/api/test/integration/seed-test-data.ts",
         "file:backend/apps/api/test/setup-env.ts",
         "config:backend/apps/api/tsconfig.json"
       ]

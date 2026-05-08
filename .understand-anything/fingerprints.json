@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "36c2e62764b060246f4ed780c98023f8b05a9c65",
-  "generatedAt": "2026-05-08T06:56:21.767Z",
+  "gitCommitHash": "ac3493ba89197ad9309e1ee8791a72c4cad05818",
+  "generatedAt": "2026-05-08T07:54:16.033Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -16866,6 +16866,49 @@
       "imports": [],
       "exports": [],
       "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/test/integration/fixtures/seed-data.ts": {
+      "filePath": "backend/apps/api/test/integration/fixtures/seed-data.ts",
+      "contentHash": "a7c4a1fa16d6374785ac35170adcaefbc58ebe3a84be426bac9fe5c2c54ae776",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "seededUsers",
+        "seededEvents",
+        "seededPosters",
+        "seededEveningRoutes"
+      ],
+      "totalLines": 1329,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/test/integration/seed-test-data.ts": {
+      "filePath": "backend/apps/api/test/integration/seed-test-data.ts",
+      "contentHash": "a4229105a9158e8fa59318e0b91d6e28dd8f1050e2c440f76568bb400c48b38f",
+      "functions": [
+        {
+          "name": "seedIntegrationTestData",
+          "params": [
+            "prisma"
+          ],
+          "exported": true,
+          "lineCount": 1123
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "PrismaClient"
+          ]
+        }
+      ],
+      "exports": [
+        "seedIntegrationTestData"
+      ],
+      "totalLines": 1252,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/test/setup-env.ts": {
