@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
+import { seedIntegrationTestData } from './seed-test-data';
 
 jest.setTimeout(30000);
 
@@ -21,6 +22,7 @@ describe('communities api flows', () => {
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = moduleRef.get(PrismaService).client;
+    await seedIntegrationTestData(prisma);
 
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/dev/login')

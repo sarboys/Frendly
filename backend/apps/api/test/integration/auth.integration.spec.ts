@@ -10,6 +10,7 @@ import {
   SocialIdentityVerifier,
   VerifiedSocialIdentity,
 } from '../../src/services/social-identity-verifier.service';
+import { seedIntegrationTestData } from './seed-test-data';
 
 jest.setTimeout(30000);
 
@@ -40,6 +41,7 @@ describe('auth flows', () => {
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = moduleRef.get(PrismaService).client;
+    await seedIntegrationTestData(prisma);
   });
 
   afterAll(async () => {
