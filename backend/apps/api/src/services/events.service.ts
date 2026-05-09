@@ -486,7 +486,10 @@ export class EventsService {
       (participant) => !blockedUserIds.has(participant.userId),
     );
     const attendeePreview = visibleParticipants
-      .filter((participant) => participant.userId !== userId)
+      .filter(
+        (participant) =>
+          participant.userId !== userId && participant.userId !== event.hostId,
+      )
       .slice(0, EVENT_DETAIL_ATTENDEE_LIMIT);
     const hasChatAccess =
       event.hostId === userId ||
@@ -2233,20 +2236,31 @@ export class EventsService {
               lte: geoBounds.east,
             },
           },
-          { hostId: userId },
           {
-            participants: {
-              some: {
-                userId,
+            AND: [
+              {
+                OR: [{ latitude: null }, { longitude: null }],
               },
-            },
-          },
-          {
-            attendances: {
-              some: {
-                userId,
+              {
+                OR: [
+                  { hostId: userId },
+                  {
+                    participants: {
+                      some: {
+                        userId,
+                      },
+                    },
+                  },
+                  {
+                    attendances: {
+                      some: {
+                        userId,
+                      },
+                    },
+                  },
+                ],
               },
-            },
+            ],
           },
         ],
       });
@@ -2424,7 +2438,7 @@ export class EventsService {
     const radiusKm =
       params.radiusKm == null || !Number.isFinite(params.radiusKm)
         ? 20
-        : Math.max(0.2, Math.min(params.radiusKm, 100));
+        : Math.max(0.2, Math.min(params.radiusKm, 150));
     const radiusMeters = radiusKm * 1000;
     const candidateLimit = this.listTake(params.take, params.geoQuery);
     const now = new Date();
@@ -2686,7 +2700,7 @@ export class EventsService {
     const radiusKm =
       params.radiusKm == null || !Number.isFinite(params.radiusKm)
         ? 20
-        : Math.max(0.2, Math.min(params.radiusKm, 100));
+        : Math.max(0.2, Math.min(params.radiusKm, 150));
 
     return {
       center,

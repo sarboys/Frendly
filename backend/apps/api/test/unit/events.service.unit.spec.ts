@@ -154,23 +154,142 @@ describe('EventsService unit', () => {
             lte: expect.any(Number),
           }),
         }),
-        { hostId: 'user-me' },
         {
-          participants: {
-            some: {
-              userId: 'user-me',
+          AND: [
+            {
+              OR: [{ latitude: null }, { longitude: null }],
             },
-          },
-        },
-        {
-          attendances: {
-            some: {
-              userId: 'user-me',
+            {
+              OR: [
+                { hostId: 'user-me' },
+                {
+                  participants: {
+                    some: {
+                      userId: 'user-me',
+                    },
+                  },
+                },
+                {
+                  attendances: {
+                    some: {
+                      userId: 'user-me',
+                    },
+                  },
+                },
+              ],
             },
-          },
+          ],
         },
       ],
     });
+  });
+
+  it('does not let viewer-owned coordinate events bypass geo radius', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 59.9386,
+      longitude: 30.3141,
+      radiusKm: 50,
+    } as any);
+
+    const where = eventFindMany.mock.calls[0][0].where as any;
+    const geoCondition = where.AND.find(
+      (condition: any) =>
+        Array.isArray(condition.OR) &&
+        condition.OR.some((item: any) => item.latitude?.gte != null),
+    );
+
+    expect(geoCondition.OR).not.toEqual(
+      expect.arrayContaining([{ hostId: 'user-me' }]),
+    );
+    expect(geoCondition.OR).toEqual(
+      expect.arrayContaining([
+        {
+          AND: [
+            {
+              OR: [{ latitude: null }, { longitude: null }],
+            },
+            {
+              OR: [
+                { hostId: 'user-me' },
+                {
+                  participants: {
+                    some: {
+                      userId: 'user-me',
+                    },
+                  },
+                },
+                {
+                  attendances: {
+                    some: {
+                      userId: 'user-me',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+  });
+
+  it('caps geo radius at 150km for event feed bounds', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 55.75,
+      longitude: 37.61,
+      radiusKm: 240,
+    } as any);
+
+    const where = eventFindMany.mock.calls[0][0].where as any;
+    const geoCondition = where.AND.find(
+      (condition: any) =>
+        Array.isArray(condition.OR) &&
+        condition.OR.some((item: any) => item.latitude?.gte != null),
+    );
+    const coordinateCondition = geoCondition.OR[0];
+
+    expect(coordinateCondition.latitude.gte).toBeCloseTo(54.4029, 3);
+    expect(coordinateCondition.latitude.lte).toBeCloseTo(57.0971, 3);
   });
 
   it('limits participant preview in event feed queries', async () => {
@@ -206,6 +325,12 @@ describe('EventsService unit', () => {
         liveState: null,
       },
     ]);
+    const participantGroupBy = jest.fn().mockResolvedValue([
+      {
+        eventId: 'event-1',
+        _count: { _all: 20 },
+      },
+    ]);
     const service = new EventsService(
       {
         client: {
@@ -218,12 +343,7 @@ describe('EventsService unit', () => {
           },
           eventParticipant: {
             findMany: jest.fn().mockResolvedValue([]),
-            groupBy: jest.fn().mockResolvedValue([
-              {
-                eventId: 'event-1',
-                _count: { _all: 20 },
-              },
-            ]),
+            groupBy: participantGroupBy,
           },
           userBlock: {
             findMany: jest.fn().mockResolvedValue([]),
@@ -238,12 +358,21 @@ describe('EventsService unit', () => {
     expect(eventFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
+          capacity: true,
           participants: expect.objectContaining({
             take: 6,
           }),
         }),
       }),
     );
+    expect(participantGroupBy).toHaveBeenCalledWith({
+      by: ['eventId'],
+      where: {
+        eventId: { in: ['event-1'] },
+        userId: { notIn: [] },
+      },
+      _count: { _all: true },
+    });
   });
 
   it('uses event list cursor payload without reading the cursor event again', async () => {
@@ -461,6 +590,77 @@ describe('EventsService unit', () => {
     expect(result.joined).toBe(true);
     expect(result.chatId).toBe('chat-1');
     expect(result.attendees).toHaveLength(24);
+  });
+
+  it('excludes host from event detail attendee preview', async () => {
+    const eventFindUnique = jest.fn().mockResolvedValue(
+      eventFixture({
+        id: 'event-host-preview',
+        title: 'Встреча с хостом',
+        description: 'Хост уже показан отдельной карточкой',
+        partnerName: null,
+        partnerOffer: null,
+        participants: [
+          {
+            userId: 'host-1',
+            user: {
+              id: 'host-1',
+              displayName: 'Host',
+              profile: { avatarUrl: null },
+            },
+          },
+          {
+            userId: 'guest-1',
+            user: {
+              id: 'guest-1',
+              displayName: 'Guest',
+              profile: { avatarUrl: null },
+            },
+          },
+        ],
+        host: {
+          id: 'host-1',
+          displayName: 'Host',
+          verified: true,
+          profile: {
+            rating: 4.8,
+            meetupCount: 12,
+            avatarUrl: null,
+          },
+        },
+        chat: { id: 'chat-1' },
+      }),
+    );
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'female' }),
+          },
+          event: {
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'ep-viewer' }),
+            count: jest.fn().mockResolvedValue(2),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.getEventDetail('user-me', 'event-host-preview');
+
+    expect(result.attendees).toEqual([
+      {
+        id: 'guest-1',
+        displayName: 'Guest',
+        avatarUrl: null,
+      },
+    ]);
   });
 
   it('counts live meetup stories without loading every story row', async () => {
@@ -844,20 +1044,31 @@ describe('EventsService unit', () => {
             lte: expect.any(Number),
           }),
         }),
-        { hostId: 'user-me' },
         {
-          participants: {
-            some: {
-              userId: 'user-me',
+          AND: [
+            {
+              OR: [{ latitude: null }, { longitude: null }],
             },
-          },
-        },
-        {
-          attendances: {
-            some: {
-              userId: 'user-me',
+            {
+              OR: [
+                { hostId: 'user-me' },
+                {
+                  participants: {
+                    some: {
+                      userId: 'user-me',
+                    },
+                  },
+                },
+                {
+                  attendances: {
+                    some: {
+                      userId: 'user-me',
+                    },
+                  },
+                },
+              ],
             },
-          },
+          ],
         },
       ],
     });
@@ -1114,6 +1325,93 @@ describe('EventsService unit', () => {
         ]),
       }),
     );
+  });
+
+  it('keeps duplicate pending join requests idempotent', async () => {
+    const notificationCreate = jest.fn();
+    const notificationFindUnique = jest
+      .fn()
+      .mockResolvedValue({ id: 'notif-existing' });
+    const requestUpsert = jest.fn().mockResolvedValue({
+      id: 'req-1',
+      eventId: 'event-1',
+      userId: 'guest-1',
+      status: 'pending',
+      note: 'Обновил сообщение',
+      compatibilityScore: 61,
+      createdAt: new Date('2026-04-24T12:00:00.000Z'),
+    });
+    const tx = {
+      eventJoinRequest: {
+        upsert: requestUpsert,
+      },
+      notification: {
+        create: notificationCreate,
+        findUnique: notificationFindUnique,
+      },
+      outboxEvent: {
+        createMany: jest.fn(),
+      },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'event-1',
+              title: 'Закрытый ужин',
+              hostId: 'host-1',
+              genderMode: 'all',
+              joinMode: 'request',
+              participants: [],
+            }),
+          },
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'req-1',
+              eventId: 'event-1',
+              userId: 'guest-1',
+              status: 'pending',
+            }),
+          },
+          user: {
+            findUnique: jest
+              .fn()
+              .mockResolvedValue({ id: 'guest-1', displayName: 'Гость' }),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.createJoinRequest('guest-1', 'event-1', {
+      note: 'Обновил сообщение',
+    });
+
+    expect(result.status).toBe('pending');
+    expect(requestUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          note: 'Обновил сообщение',
+        }),
+        create: expect.objectContaining({
+          status: 'pending',
+        }),
+      }),
+    );
+    expect(notificationFindUnique).toHaveBeenCalledWith({
+      where: { dedupeKey: 'event_join_request:event-1:guest-1' },
+      select: { id: true },
+    });
+    expect(notificationCreate).not.toHaveBeenCalled();
   });
 
   it('does not reopen a join request that was reviewed during request refresh', async () => {

@@ -197,6 +197,44 @@ describe('EveningService unit', () => {
     );
   });
 
+  it('accepts legacy friends format as mixed route format', async () => {
+    const findMany = jest.fn().mockResolvedValue([routeFixture()]);
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findMany,
+            findUnique: jest.fn(),
+            findFirst: jest.fn(),
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+    );
+
+    const result = await service.resolveRoute('user-me', {
+      goal: 'newfriends',
+      mood: 'social',
+      budget: 'low',
+      format: 'friends',
+      prompt: 'Новые друзья и кофе',
+    });
+
+    expect(result.id).toBe('r-cozy-circle');
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([{ format: 'mixed' }]),
+        }),
+      }),
+    );
+  });
+
   it('rejects perk usage when the step has no perk', async () => {
     const service = new EveningService(
       {

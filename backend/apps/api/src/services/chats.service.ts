@@ -123,6 +123,12 @@ interface MessageCursor {
   createdAt: Date;
 }
 
+interface ChatListMemberState {
+  unreadCount: number;
+  isPinned: boolean;
+  pinnedAt: Date | null;
+}
+
 @Injectable()
 export class ChatsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -299,10 +305,9 @@ export class ChatsService {
     });
     const hasMore = chats.length > take;
     const page = hasMore ? chats.slice(0, take) : chats;
-    const unreadByChatId = await this.getUnreadCountsByChat(
+    const memberStateByChatId = await this.getChatListMemberStates(
       userId,
       page.map((chat) => chat.id),
-      blockedUserIds,
     );
     const socialByUserId =
       kind === 'meetup'
@@ -327,7 +332,9 @@ export class ChatsService {
               })),
             })
           : '';
-        const unread = unreadByChatId.get(chat.id) ?? 0;
+        const memberState = memberStateByChatId.get(chat.id);
+        const unread = memberState?.unreadCount ?? 0;
+        const isPinned = memberState?.isPinned ?? false;
 
         if (kind === 'meetup') {
           if (chat.event?.hostId && blockedUserIds.has(chat.event.hostId)) {
@@ -360,6 +367,7 @@ export class ChatsService {
             lastAuthor: lastMessage?.sender.displayName ?? '',
             lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
             unread,
+            isPinned,
             members: memberProfiles.map((entry) => entry.name),
             memberProfiles,
             typing: false,
@@ -386,6 +394,7 @@ export class ChatsService {
           lastMessage: lastMessagePreview,
           lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
           unread,
+          isPinned,
           online: peer?.online ?? false,
           fromMeetup:
             chat.sourceEvent?.hostId != null &&
@@ -396,6 +405,7 @@ export class ChatsService {
       }),
       )
     ).filter((item): item is NonNullable<typeof item> => item != null);
+    items.sort((left, right) => Number(right.isPinned) - Number(left.isPinned));
 
     return {
       items,
@@ -404,6 +414,77 @@ export class ChatsService {
               ? this.encodeChatListCursor(page[page.length - 1]!)
               : null,
     };
+  }
+
+  async setPinned(userId: string, chatId: string, isPinned: boolean) {
+    try {
+      const member = await this.prismaService.client.chatMember.update({
+        where: {
+          chatId_userId: {
+            chatId,
+            userId,
+          },
+        },
+        data: {
+          isPinned,
+          pinnedAt: isPinned ? new Date() : null,
+        },
+        select: {
+          chatId: true,
+          isPinned: true,
+          pinnedAt: true,
+        },
+      });
+
+      return {
+        id: member.chatId,
+        isPinned: member.isPinned,
+        pinnedAt: member.pinnedAt?.toISOString() ?? null,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new ApiError(404, 'chat_not_found', 'Chat not found');
+      }
+      throw error;
+    }
+  }
+
+  private async getChatListMemberStates(
+    userId: string,
+    chatIds: string[],
+  ): Promise<Map<string, ChatListMemberState>> {
+    if (chatIds.length === 0) {
+      return new Map();
+    }
+
+    const members = await this.prismaService.client.chatMember.findMany({
+      where: {
+        userId,
+        chatId: {
+          in: chatIds,
+        },
+      },
+      select: {
+        chatId: true,
+        unreadCount: true,
+        isPinned: true,
+        pinnedAt: true,
+      },
+    });
+
+    return new Map(
+      members.map((member) => [
+        member.chatId,
+        {
+          unreadCount: member.unreadCount,
+          isPinned: member.isPinned,
+          pinnedAt: member.pinnedAt,
+        },
+      ]),
+    );
   }
 
   private mapTicketSummary(event?: {

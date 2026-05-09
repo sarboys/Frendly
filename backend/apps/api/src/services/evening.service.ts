@@ -38,6 +38,16 @@ const EVENING_FORMATS = [
   { key: 'mixed', emoji: '🎲', label: 'Смешать все' },
 ] as const;
 
+const EVENING_FORMAT_ALIASES: Partial<Record<
+  string,
+  (typeof EVENING_FORMATS)[number]['key']
+>> = {
+  friend: 'mixed',
+  friends: 'mixed',
+  newfriends: 'mixed',
+  social: 'mixed',
+};
+
 const EVENING_AREAS = [
   { key: 'center', emoji: '🏛️', label: 'Центр' },
   { key: 'patriki', emoji: '🦢', label: 'Патриаршие' },
@@ -209,7 +219,7 @@ export class EveningService {
       this.parseOption(body.budget, EVENING_BUDGETS, 'invalid_evening_budget') ??
       hints.budget;
     const format =
-      this.parseOption(body.format, EVENING_FORMATS, 'invalid_evening_format') ??
+      this.parseEveningFormat(body.format) ??
       hints.format;
     const area =
       this.parseOption(body.area, EVENING_AREAS, 'invalid_evening_area') ??
@@ -2737,6 +2747,17 @@ export class EveningService {
     }
 
     return value;
+  }
+
+  private parseEveningFormat(value: unknown) {
+    if (typeof value === 'string') {
+      const alias = EVENING_FORMAT_ALIASES[normalizeEveningPrompt(value)];
+      if (alias != null) {
+        return alias;
+      }
+    }
+
+    return this.parseOption(value, EVENING_FORMATS, 'invalid_evening_format');
   }
 
   private async assertRouteUnlocked(

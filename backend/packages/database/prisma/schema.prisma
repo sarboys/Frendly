@@ -1846,6 +1846,8 @@ model ChatMember {
   lastReadMessageId String?
   lastReadAt        DateTime?
   unreadCount       Int       @default(0)
+  isPinned          Boolean   @default(false)
+  pinnedAt          DateTime?
   chat              Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1853,6 +1855,7 @@ model ChatMember {
   @@index([chatId, id])
   @@index([userId])
   @@index([userId, chatId])
+  @@index([userId, isPinned, pinnedAt])
 }
 
 model Message {

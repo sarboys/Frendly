@@ -51,4 +51,17 @@ export class ChatsController {
   ) {
     return this.chatsService.markRead(currentUser.userId, chatId, body.messageId ?? '');
   }
+
+  @Post(':chatId/pin')
+  setPinned(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('chatId') chatId: string,
+    @Body() body: { isPinned?: boolean; pinned?: boolean },
+  ) {
+    return this.chatsService.setPinned(
+      currentUser.userId,
+      chatId,
+      body.isPinned ?? body.pinned ?? true,
+    );
+  }
 }

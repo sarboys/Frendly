@@ -912,4 +912,128 @@ describe('CommunitiesService unit', () => {
       code: 'community_owner_required',
     });
   });
+
+  it('joins public community and chat in one transaction', async () => {
+    const communityFindFirst = jest.fn().mockResolvedValue({
+      id: 'community-1',
+      chatId: 'community-1-chat',
+      privacy: 'public',
+      createdById: 'owner-user',
+    });
+    const communityMemberUpsert = jest.fn().mockResolvedValue({});
+    const chatMemberUpsert = jest.fn().mockResolvedValue({});
+    const client = {
+      community: {
+        findFirst: communityFindFirst,
+      },
+      $transaction: jest.fn((callback) =>
+        callback({
+          communityMember: {
+            upsert: communityMemberUpsert,
+          },
+          chatMember: {
+            upsert: chatMemberUpsert,
+          },
+        }),
+      ),
+    };
+    const service = new CommunitiesService(
+      { client } as any,
+      {} as any,
+    );
+    const getCommunity = jest
+      .spyOn(service, 'getCommunity')
+      .mockResolvedValue({ id: 'community-1', joined: true } as any);
+
+    const result = await service.joinCommunity('user-me', 'community-1');
+
+    expect(result).toEqual({ id: 'community-1', joined: true });
+    expect(communityFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'community-1',
+      },
+      select: {
+        id: true,
+        chatId: true,
+        privacy: true,
+        createdById: true,
+      },
+    });
+    expect(communityMemberUpsert).toHaveBeenCalledWith({
+      where: {
+        communityId_userId: {
+          communityId: 'community-1',
+          userId: 'user-me',
+        },
+      },
+      create: {
+        communityId: 'community-1',
+        userId: 'user-me',
+        role: 'member',
+      },
+      update: {},
+    });
+    expect(chatMemberUpsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'community-1-chat',
+          userId: 'user-me',
+        },
+      },
+      create: {
+        chatId: 'community-1-chat',
+        userId: 'user-me',
+      },
+      update: {},
+    });
+    expect(getCommunity).toHaveBeenCalledWith('user-me', 'community-1');
+  });
+
+  it('leaves public community and chat for non-owner member', async () => {
+    const communityFindFirst = jest.fn().mockResolvedValue({
+      id: 'community-1',
+      chatId: 'community-1-chat',
+      createdById: 'owner-user',
+    });
+    const communityMemberDeleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const chatMemberDeleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const client = {
+      community: {
+        findFirst: communityFindFirst,
+      },
+      $transaction: jest.fn((callback) =>
+        callback({
+          communityMember: {
+            deleteMany: communityMemberDeleteMany,
+          },
+          chatMember: {
+            deleteMany: chatMemberDeleteMany,
+          },
+        }),
+      ),
+    };
+    const service = new CommunitiesService(
+      { client } as any,
+      {} as any,
+    );
+    const getCommunity = jest
+      .spyOn(service, 'getCommunity')
+      .mockResolvedValue({ id: 'community-1', joined: false } as any);
+
+    const result = await service.leaveCommunity('user-me', 'community-1');
+
+    expect(result).toEqual({ id: 'community-1', joined: false });
+    expect(communityMemberDeleteMany).toHaveBeenCalledWith({
+      where: {
+        communityId: 'community-1',
+        userId: 'user-me',
+      },
+    });
+    expect(chatMemberDeleteMany).toHaveBeenCalledWith({
+      where: {
+        chatId: 'community-1-chat',
+        userId: 'user-me',
+      },
+    });
+  });
 });

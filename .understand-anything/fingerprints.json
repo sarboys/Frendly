@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "ac3493ba89197ad9309e1ee8791a72c4cad05818",
-  "generatedAt": "2026-05-08T07:54:16.033Z",
+  "gitCommitHash": "5dca7dc439f74c2a52c19799aa101c2e0db223cc",
+  "generatedAt": "2026-05-09T14:18:11.614Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -668,9 +668,31 @@
       "totalLines": 181,
       "hasStructuralAnalysis": true
     },
+    "admin/src/admin/evening/cities.ts": {
+      "filePath": "admin/src/admin/evening/cities.ts",
+      "contentHash": "4ab05adb57f59ec5d580dc18f716126b87f51101e45af858850c14102c34a767",
+      "functions": [
+        {
+          "name": "getAdminCityTimezone",
+          "params": [
+            "city"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "ADMIN_RUSSIA_MILLION_CITIES",
+        "getAdminCityTimezone"
+      ],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
     "admin/src/admin/evening/components/AiBriefForm.tsx": {
       "filePath": "admin/src/admin/evening/components/AiBriefForm.tsx",
-      "contentHash": "739965c9cb8ee27d5813053e0f1b84d3cead29b5885a84bccc635345c9fc2de5",
+      "contentHash": "59f34847d4c2cb5f6fb28af8dd8ef35736be7c428d2988c64b142391172b20d3",
       "functions": [
         {
           "name": "AiBriefForm",
@@ -678,7 +700,7 @@
             "{\n  defaultCity,\n  defaultArea,\n  isSubmitting,\n  onSubmit,\n}"
           ],
           "exported": true,
-          "lineCount": 117
+          "lineCount": 123
         },
         {
           "name": "Field",
@@ -703,6 +725,7 @@
           "source": "react",
           "specifiers": [
             "FormEvent",
+            "useEffect",
             "useState"
           ]
         },
@@ -731,16 +754,28 @@
           ]
         },
         {
+          "source": "../cities",
+          "specifiers": [
+            "getAdminCityTimezone"
+          ]
+        },
+        {
           "source": "../types",
           "specifiers": [
             "AiBriefInput"
+          ]
+        },
+        {
+          "source": "./CitySelect",
+          "specifiers": [
+            "CitySelect"
           ]
         }
       ],
       "exports": [
         "AiBriefForm"
       ],
-      "totalLines": 146,
+      "totalLines": 154,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/evening/components/AiDraftList.tsx": {
@@ -817,6 +852,34 @@
       "totalLines": 33,
       "hasStructuralAnalysis": true
     },
+    "admin/src/admin/evening/components/CitySelect.tsx": {
+      "filePath": "admin/src/admin/evening/components/CitySelect.tsx",
+      "contentHash": "731bb260033fd5be2ef283ead27de9172bb64c344c39f39b40e5fe7385b52ba6",
+      "functions": [
+        {
+          "name": "CitySelect",
+          "params": [
+            "{ label, value, onChange, required }"
+          ],
+          "exported": true,
+          "lineCount": 17
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../cities",
+          "specifiers": [
+            "ADMIN_RUSSIA_MILLION_CITIES"
+          ]
+        }
+      ],
+      "exports": [
+        "CitySelect"
+      ],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
     "admin/src/admin/evening/components/OfferForm.tsx": {
       "filePath": "admin/src/admin/evening/components/OfferForm.tsx",
       "contentHash": "5f52d2db9e8db99b91d099a5d6f50aec89909e241a0318bff39e6f7c12adf616",
@@ -883,7 +946,7 @@
     },
     "admin/src/admin/evening/components/PartnerForm.tsx": {
       "filePath": "admin/src/admin/evening/components/PartnerForm.tsx",
-      "contentHash": "5721ec75d68e91bf09f555a73a3643b16d0d4ec12014907123518c74c4892a6c",
+      "contentHash": "22d23348ecda11e7a67f2037b8845bc7de70b992f254266869ac8cfe36fe7c02",
       "functions": [
         {
           "name": "PartnerForm",
@@ -891,7 +954,7 @@
             "{ onSubmit, error, isSaving }"
           ],
           "exported": true,
-          "lineCount": 61
+          "lineCount": 59
         },
         {
           "name": "Field",
@@ -934,12 +997,18 @@
           "specifiers": [
             "PartnerInput"
           ]
+        },
+        {
+          "source": "./CitySelect",
+          "specifiers": [
+            "CitySelect"
+          ]
         }
       ],
       "exports": [
         "PartnerForm"
       ],
-      "totalLines": 81,
+      "totalLines": 80,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/evening/components/PartnerOfferAnalytics.tsx": {
@@ -1186,15 +1255,15 @@
     },
     "admin/src/admin/evening/components/RouteReviewDraftCard.tsx": {
       "filePath": "admin/src/admin/evening/components/RouteReviewDraftCard.tsx",
-      "contentHash": "c89b2bbe61ea01361ce42405c7868f986f00376c4a45e4460bc998e8daf83acd",
+      "contentHash": "f2d871f3dda2503efb4c3ff35d6abaea7a92b42086f172147b9fe81683a18a80",
       "functions": [
         {
           "name": "RouteReviewDraftCard",
           "params": [
-            "{\r\n  draft,\r\n  isBusy,\r\n  onApprove,\r\n  onReject,\r\n  onConvert,\r\n  onPublish,\r\n}"
+            "{\n  draft,\n  isBusy,\n  onAccept,\n  onReject,\n  onRegenerate,\n}"
           ],
           "exported": true,
-          "lineCount": 106
+          "lineCount": 91
         }
       ],
       "classes": [],
@@ -1245,7 +1314,7 @@
       "exports": [
         "RouteReviewDraftCard"
       ],
-      "totalLines": 124,
+      "totalLines": 108,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/evening/components/RouteReviewFilters.tsx": {
@@ -1368,7 +1437,7 @@
     },
     "admin/src/admin/evening/components/VenueForm.tsx": {
       "filePath": "admin/src/admin/evening/components/VenueForm.tsx",
-      "contentHash": "3f4de5cc3424396d028ff8f5cce91d91bf7d5e20da180d3163eb0634335ce82c",
+      "contentHash": "c69e5bd3cd44a48b907ff7e0cb881909a797f3f2189d1b1b219fc620fa2e6943",
       "functions": [
         {
           "name": "VenueForm",
@@ -1376,7 +1445,7 @@
             "{ partners, onSubmit, error, isSaving }"
           ],
           "exported": true,
-          "lineCount": 134
+          "lineCount": 140
         },
         {
           "name": "Field",
@@ -1415,17 +1484,29 @@
           ]
         },
         {
+          "source": "../cities",
+          "specifiers": [
+            "getAdminCityTimezone"
+          ]
+        },
+        {
           "source": "../types",
           "specifiers": [
             "PartnerDto",
             "VenueInput"
+          ]
+        },
+        {
+          "source": "./CitySelect",
+          "specifiers": [
+            "CitySelect"
           ]
         }
       ],
       "exports": [
         "VenueForm"
       ],
-      "totalLines": 155,
+      "totalLines": 163,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/evening/routeReviewApi.ts": {
@@ -3048,13 +3129,13 @@
     },
     "admin/src/admin/pages/EveningRoutes.tsx": {
       "filePath": "admin/src/admin/pages/EveningRoutes.tsx",
-      "contentHash": "86fb17eb7607617bea48a755229275fd44dd4397c03c34e0a75d4ded0dfc8842",
+      "contentHash": "a216ccb25a23606395550511c79a46f8ffaac2bbdb8771b264557fc529445e20",
       "functions": [
         {
           "name": "AdminEveningRoutes",
           "params": [],
           "exported": true,
-          "lineCount": 196
+          "lineCount": 193
         },
         {
           "name": "errorMessage",
@@ -3127,6 +3208,12 @@
           ]
         },
         {
+          "source": "../evening/cities",
+          "specifiers": [
+            "getAdminCityTimezone"
+          ]
+        },
+        {
           "source": "../evening/components/AiBriefForm",
           "specifiers": [
             "AiBriefForm"
@@ -3136,6 +3223,12 @@
           "source": "../evening/components/AiDraftList",
           "specifiers": [
             "AiDraftList"
+          ]
+        },
+        {
+          "source": "../evening/components/CitySelect",
+          "specifiers": [
+            "CitySelect"
           ]
         },
         {
@@ -3162,7 +3255,7 @@
       "exports": [
         "AdminEveningRoutes"
       ],
-      "totalLines": 227,
+      "totalLines": 226,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Featured.tsx": {
@@ -4662,13 +4755,13 @@
     },
     "admin/src/admin/pages/RouteReviewQueue.tsx": {
       "filePath": "admin/src/admin/pages/RouteReviewQueue.tsx",
-      "contentHash": "479e4e756eae8066dd6f3f1e66e314ed7b81a932524c1ce534c03f7ad8ebb678",
+      "contentHash": "b56eed5aef2df66533710ef44557a137665a785b8490fbb3208366357ef59254",
       "functions": [
         {
           "name": "RouteReviewQueue",
           "params": [],
           "exported": true,
-          "lineCount": 671
+          "lineCount": 667
         },
         {
           "name": "errorMessage",
@@ -4725,9 +4818,9 @@
           ]
         },
         {
-          "source": "../evening/components/RouteReviewFilters",
+          "source": "../evening/components/CitySelect",
           "specifiers": [
-            "RouteReviewFilters"
+            "CitySelect"
           ]
         },
         {
@@ -4767,7 +4860,7 @@
       "exports": [
         "RouteReviewQueue"
       ],
-      "totalLines": 716,
+      "totalLines": 712,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Settings.tsx": {
@@ -9720,7 +9813,7 @@
     },
     "backend/apps/api/src/common/media-presenters.ts": {
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
-      "contentHash": "a28e8bd9d1b02e33f6bee6f46603a59f8bccdba7b05c93450963b12ef6cabf98",
+      "contentHash": "cf72ddcfd747121b52df281aa6db068b91f7fdbde807477293c05ed2579e93e6",
       "functions": [
         {
           "name": "resolveMediaVisibility",
@@ -9764,7 +9857,31 @@
             "photo"
           ],
           "exported": true,
-          "lineCount": 29
+          "lineCount": 31
+        },
+        {
+          "name": "mapMediaVariants",
+          "params": [
+            "raw"
+          ],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "mapMediaVariant",
+          "params": [
+            "raw"
+          ],
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "stringOrNull",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 5
         }
       ],
       "classes": [],
@@ -9787,9 +9904,10 @@
         "buildMediaCacheKey",
         "mapMediaResource",
         "mapMediaAsset",
-        "mapProfilePhoto"
+        "mapProfilePhoto",
+        "mapMediaVariants"
       ],
-      "totalLines": 110,
+      "totalLines": 169,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/normalize-request-url.ts": {
@@ -9906,7 +10024,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "687df5edd155a2c213efd7c482140ae51caae203e75b3155dc410190414312f6",
+      "contentHash": "126f8e2a445075b82f829162d25d1e2dcaa9414c43b5b27ef81f729b5058eb4a",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -9932,7 +10050,7 @@
             "message"
           ],
           "exported": true,
-          "lineCount": 20
+          "lineCount": 29
         },
         {
           "name": "resolveSystemMessageKind",
@@ -10006,7 +10124,7 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 57
+          "lineCount": 60
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -10062,7 +10180,7 @@
         "mapLiveStatus",
         "mapEventSummary"
       ],
-      "totalLines": 367,
+      "totalLines": 387,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -11012,7 +11130,7 @@
     },
     "backend/apps/api/src/controllers/chats.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
-      "contentHash": "1b093afcf569d6cd95bf89292e97d5c4dc80c370b0c9a8bdee07f4a0d69d5274",
+      "contentHash": "12a9bfd3afc83beb1e7be888db3d34fafd0f08d6d939502c1436c3e29d0b3f02",
       "functions": [],
       "classes": [
         {
@@ -11022,11 +11140,12 @@
             "listMeetupChats",
             "listPersonalChats",
             "getMessages",
-            "markRead"
+            "markRead",
+            "setPinned"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 49
+          "lineCount": 62
         }
       ],
       "imports": [
@@ -11057,12 +11176,12 @@
       "exports": [
         "ChatsController"
       ],
-      "totalLines": 55,
+      "totalLines": 68,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/communities.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/communities.controller.ts",
-      "contentHash": "a55efdad68c531ca75bd6f56f982d72dcd063324039654a020ad6daf61246e78",
+      "contentHash": "6cf5620273b7096690abd0f7f9b6c9bfc3577c55e2d89f84212f8f383c9c3529",
       "functions": [],
       "classes": [
         {
@@ -11072,12 +11191,14 @@
             "listCommunities",
             "listCommunityMedia",
             "getCommunity",
+            "joinCommunity",
+            "leaveCommunity",
             "createCommunityNews",
             "createCommunity"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 66
+          "lineCount": 88
         }
       ],
       "imports": [
@@ -11086,6 +11207,7 @@
           "specifiers": [
             "Body",
             "Controller",
+            "Delete",
             "Get",
             "Headers",
             "Param",
@@ -11109,7 +11231,7 @@
       "exports": [
         "CommunitiesController"
       ],
-      "totalLines": 72,
+      "totalLines": 94,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/dating.controller.ts": {
@@ -13255,15 +13377,23 @@
     },
     "backend/apps/api/src/services/admin-route-review.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-route-review.service.ts",
-      "contentHash": "2dc99c89c339296c0b18cd60b945ced24a450bb757baee9e44cb18c1963e3658",
+      "contentHash": "2d8c388b9862b759bd67e73329ebadbff3d161441ca73734bde309a124a1db85",
       "functions": [
+        {
+          "name": "timezoneForCity",
+          "params": [
+            "city"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
         {
           "name": "sourceConfig",
           "params": [
             "code"
           ],
           "exported": false,
-          "lineCount": 10
+          "lineCount": 21
         },
         {
           "name": "contentModerationData",
@@ -13331,7 +13461,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 646
+          "lineCount": 651
         }
       ],
       "imports": [
@@ -13380,7 +13510,7 @@
       "exports": [
         "AdminRouteReviewService"
       ],
-      "totalLines": 753,
+      "totalLines": 796,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-users.service.ts": {
@@ -13560,7 +13690,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "c74f88a00af2eca7c8036fb77628c43d5b120938d768f4aa5a2ab02c54e5684f",
+      "contentHash": "3fd4b63c6d9a996d00563fa980935bb535987b38c6b8a6be9d09ce2044a8755a",
       "functions": [
         {
           "name": "oneDayRange",
@@ -13592,6 +13722,7 @@
             "encodeEventCursor",
             "mapEvent",
             "mapImageUrl",
+            "mapImageVariants",
             "publicAssetObjectKeyFromUrl",
             "proxyImageCacheControl",
             "externalImageFetchHeaders",
@@ -13609,7 +13740,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 430
+          "lineCount": 474
         }
       ],
       "imports": [
@@ -13623,7 +13754,8 @@
           "source": "@big-break/contracts",
           "specifiers": [
             "AfficheEventDto",
-            "AfficheEventListDto"
+            "AfficheEventListDto",
+            "MediaVariantDto"
           ]
         },
         {
@@ -13675,7 +13807,7 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 516,
+      "totalLines": 565,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
@@ -13777,7 +13909,7 @@
     },
     "backend/apps/api/src/services/auth.service.ts": {
       "filePath": "backend/apps/api/src/services/auth.service.ts",
-      "contentHash": "ef5d88fc06d1c304316b823390a623cdd9babc0effa642b442ce39515e953382",
+      "contentHash": "2eb256947332bfc1165318f3aa5c5ecc3c23bd922f6883d41e60f83d672f5270",
       "functions": [],
       "classes": [
         {
@@ -13805,11 +13937,10 @@
             "buildRegistrationPreset"
           ],
           "properties": [
-            "logger",
-            "testPhoneShortcutNumbers"
+            "logger"
           ],
           "exported": true,
-          "lineCount": 850
+          "lineCount": 840
         }
       ],
       "imports": [
@@ -13837,6 +13968,7 @@
           "source": "@big-break/database",
           "specifiers": [
             "maskPhoneNumber",
+            "isSeededTestAccountPhoneNumber",
             "signAccessToken",
             "signRefreshToken",
             "verifyRefreshToken"
@@ -13874,12 +14006,12 @@
       "exports": [
         "AuthService"
       ],
-      "totalLines": 887,
+      "totalLines": 878,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "8e4deebd2a8fb3934eeffedfb55194534b94565e739de267934de658b6d2a994",
+      "contentHash": "ff857eb64c97c4090d68de77c8eeeba9787f5b8a1cf77d9342eed739789a8338",
       "functions": [],
       "classes": [
         {
@@ -13887,6 +14019,8 @@
           "methods": [
             "constructor",
             "listChats",
+            "setPinned",
+            "getChatListMemberStates",
             "mapTicketSummary",
             "mapEveningChatPhase",
             "phaseFromSession",
@@ -13913,7 +14047,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 886
+          "lineCount": 961
         }
       ],
       "imports": [
@@ -13970,12 +14104,12 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 990,
+      "totalLines": 1094,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
       "filePath": "backend/apps/api/src/services/communities.service.ts",
-      "contentHash": "082233bb085e13ffa86a064e928351d1b56b9469c9f59134e0b1a46da1df6f5f",
+      "contentHash": "6cae703f13b820b03d92a48cb1f92ec427501fd417b96f326d608fef33dcdc4f",
       "functions": [],
       "classes": [
         {
@@ -13985,6 +14119,8 @@
             "listCommunities",
             "getCommunity",
             "listCommunityMedia",
+            "joinCommunity",
+            "leaveCommunity",
             "createCommunityNews",
             "createCommunity",
             "communitySelect",
@@ -14022,7 +14158,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 984
+          "lineCount": 1084
         }
       ],
       "imports": [
@@ -14077,12 +14213,12 @@
       "exports": [
         "CommunitiesService"
       ],
-      "totalLines": 1022,
+      "totalLines": 1122,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "a6f872394f738181a2d7fd2db6f5bda90a0e1284bccc9cdb84300f2218822c32",
+      "contentHash": "f82dfd602d2b773f5d711dcfa650754495239a564b761a7209d08c387c9ca2f6",
       "functions": [],
       "classes": [
         {
@@ -14092,8 +14228,9 @@
             "listDiscover",
             "listLikes",
             "recordAction",
-            "assertDatingUnlocked",
-            "premiumSubscriptionWhere",
+            "requireFrendlyPlus",
+            "ensureSuperLikeQuota",
+            "currentUtcDayWindow",
             "mapDatingProfile",
             "deriveDistanceLabel",
             "extractInterests",
@@ -14108,7 +14245,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 508
+          "lineCount": 530
         }
       ],
       "imports": [
@@ -14122,8 +14259,7 @@
           "source": "@prisma/client",
           "specifiers": [
             "DatingActionKind",
-            "Prisma",
-            "User"
+            "Prisma"
           ]
         },
         {
@@ -14169,7 +14305,7 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 631,
+      "totalLines": 657,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -14373,7 +14509,7 @@
     },
     "backend/apps/api/src/services/evening-route-template.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-route-template.service.ts",
-      "contentHash": "24d818e63f3438fe906b18bd80a63eb1eb45e1177077231e15aee7186671799f",
+      "contentHash": "283a9721ed59b5bac7fbf5d9b5e5c96b2f2ff4ce2ef2f99463c2a01512ea8840",
       "functions": [],
       "classes": [
         {
@@ -14399,11 +14535,12 @@
             "createSystemMessage",
             "parseLimit",
             "optionalText",
+            "normalizeCityParam",
             "dateToIso"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 762
+          "lineCount": 801
         }
       ],
       "imports": [
@@ -14469,12 +14606,12 @@
       "exports": [
         "EveningRouteTemplateService"
       ],
-      "totalLines": 915,
+      "totalLines": 954,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "1cf3055a20f335a9d9b8bf630a2b547266127e41b4cd465e903c51dc495c2002",
+      "contentHash": "29202a90818c0bb7eb39f8657876897624a8542c1dbc465e6640fd8c88fc27ab",
       "functions": [
         {
           "name": "normalizeEveningPrompt",
@@ -14563,6 +14700,7 @@
             "routeMatchesArea",
             "areaTerms",
             "parseOption",
+            "parseEveningFormat",
             "assertRouteUnlocked",
             "parseLaunchMode",
             "parseStartDelay",
@@ -14570,7 +14708,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 2616
+          "lineCount": 2627
         }
       ],
       "imports": [
@@ -14626,7 +14764,7 @@
       "exports": [
         "EveningService"
       ],
-      "totalLines": 2814,
+      "totalLines": 2835,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/event-capacity.ts": {
@@ -14666,7 +14804,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "868f047e3cab300fcf4308cfd746935e873a3b4aeea2a386a94dccb8401d5008",
+      "contentHash": "431cc208fa865fc76e79a40ae98e1df3970276ac5f6c5eafc8b1fbf1ed2a4235",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14727,7 +14865,6 @@
             "assertParticipant",
             "calculateCompatibilityScore",
             "markInviteNotificationsRead",
-            "assertDatingUnlocked",
             "assertAfterDarkUnlocked",
             "parseEventRouteSelection",
             "parseEventRouteStep",
@@ -14743,7 +14880,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3285
+          "lineCount": 3321
         }
       ],
       "imports": [
@@ -14830,7 +14967,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3461,
+      "totalLines": 3497,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -14926,7 +15063,7 @@
     },
     "backend/apps/api/src/services/matches.service.ts": {
       "filePath": "backend/apps/api/src/services/matches.service.ts",
-      "contentHash": "9f64b5d887bc913c73d0660bc85bf6377fe634dcff542f8d5242c4fe35200316",
+      "contentHash": "dae21aeff0e4ae1765f4b79ed651d3b139c9f594e3a2ea59e5987e47ea243850",
       "functions": [],
       "classes": [
         {
@@ -14941,7 +15078,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 229
+          "lineCount": 230
         }
       ],
       "imports": [
@@ -14975,7 +15112,7 @@
       "exports": [
         "MatchesService"
       ],
-      "totalLines": 248,
+      "totalLines": 249,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/media.service.ts": {
@@ -15684,7 +15821,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "7a009a1a128ef7cba5c4eb73a3c1b2e573d6836df3cc7a76818668e3fcbb632e",
+      "contentHash": "71b2f135e2050f418073c191eac371fcaf3dab4fd24efd2acd4aad9e07ce1c1c",
       "functions": [],
       "classes": [
         {
@@ -15709,7 +15846,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 566
+          "lineCount": 568
         }
       ],
       "imports": [
@@ -15770,7 +15907,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 599,
+      "totalLines": 601,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -15963,7 +16100,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "f339c7833446015bfdc9dcfad0bd15085a3e2ea9dbdf3f7f828c189acf2e235e",
+      "contentHash": "86d5f81405978bf3d4cc20c46b266424ed45b72cf517ff8d1a7fd81dad005ed7",
       "functions": [],
       "classes": [
         {
@@ -16007,7 +16144,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 865
+          "lineCount": 903
         }
       ],
       "imports": [
@@ -16038,7 +16175,8 @@
             "createPresignedUpload",
             "createS3Client",
             "createS3RequestOptions",
-            "getS3Config"
+            "getS3Config",
+            "OUTBOX_EVENT_TYPES"
           ]
         },
         {
@@ -16077,7 +16215,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 910,
+      "totalLines": 951,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -17519,7 +17657,7 @@
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
-      "contentHash": "64c33f4ab30a6b56593a66c65d12863629d9c9b0f45999f0bdf22dcaaa9f920e",
+      "contentHash": "28472c38deec80089927f92e0d34b8c8ae905f3023d5459c6a3e689850b6f956",
       "functions": [
         {
           "name": "maskAdvCakeSecrets",
@@ -17757,6 +17895,13 @@
             "ExternalSourceAdapter",
             "ExternalSourceFetchInput"
           ]
+        },
+        {
+          "source": "./supported-cities",
+          "specifiers": [
+            "isSupportedTicketlandCity",
+            "timezoneForCity"
+          ]
         }
       ],
       "exports": [
@@ -17868,7 +18013,7 @@
     },
     "backend/apps/worker/src/content/content-image-mirror.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
-      "contentHash": "3364a89afd236ad8eb46724e5317768c36a3097c55ed62393ae0a6bedfc69544",
+      "contentHash": "6290b60a7904fd6b90b1beef4dee672d24d8065e663143ab8af02661f257cd63",
       "functions": [
         {
           "name": "isHttpsUrl",
@@ -17950,6 +18095,8 @@
           "methods": [
             "mirrorExternalImage",
             "mirrorImageUrl",
+            "mirrorImageAsset",
+            "tryCreateVariants",
             "downloadImage",
             "downloadImageOnce",
             "putIfMissing",
@@ -17961,7 +18108,7 @@
             "s3"
           ],
           "exported": true,
-          "lineCount": 191
+          "lineCount": 216
         }
       ],
       "imports": [
@@ -17999,17 +18146,24 @@
           "specifiers": [
             "NormalizedExternalContentItem"
           ]
+        },
+        {
+          "source": "../media/image-variants",
+          "specifiers": [
+            "AFFICHE_IMAGE_VARIANT_SPECS",
+            "createImageVariants"
+          ]
         }
       ],
       "exports": [
         "ContentImageMirrorService"
       ],
-      "totalLines": 300,
+      "totalLines": 334,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "0fd413ccff67dd11864658c48635955dbdc32d32a5ae0c51fab8cb8af4a9dd86",
+      "contentHash": "bbcd7f9cb3661a9d458ad9129f93fac2e71f3083ce7e2c7d31eba812a50733fe",
       "functions": [
         {
           "name": "safeJson",
@@ -18107,7 +18261,7 @@
             "item"
           ],
           "exported": false,
-          "lineCount": 20
+          "lineCount": 31
         },
         {
           "name": "contentImportFailure",
@@ -18124,6 +18278,23 @@
           ],
           "exported": false,
           "lineCount": 9
+        },
+        {
+          "name": "maskTomestoSecrets",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "countTomestoHiddenReason",
+          "params": [
+            "item",
+            "counts"
+          ],
+          "exported": false,
+          "lineCount": 14
         }
       ],
       "classes": [
@@ -18149,7 +18320,7 @@
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 605
+          "lineCount": 622
         }
       ],
       "imports": [
@@ -18204,6 +18375,13 @@
           ]
         },
         {
+          "source": "./supported-cities",
+          "specifiers": [
+            "cityCodesForSource",
+            "timezoneForCity"
+          ]
+        },
+        {
           "source": "./content-source.types",
           "specifiers": [
             "ExternalRawItem",
@@ -18217,12 +18395,12 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 837,
+      "totalLines": 866,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
-      "contentHash": "072049a3d23cfe0a1064356b7ad923b4bd403f4b647bfcdb28df00bec1c9aaa4",
+      "contentHash": "604c2fe798f04d72d86d4559535321fd108b7f3a93033afcc38c171cabc1b35c",
       "functions": [
         {
           "name": "normalizeTitle",
@@ -18332,22 +18510,22 @@
         "ContentNormalizerService",
         "normalizeTitle"
       ],
-      "totalLines": 203,
+      "totalLines": 206,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-source.types.ts": {
       "filePath": "backend/apps/worker/src/content/content-source.types.ts",
-      "contentHash": "68c03bc68faafedece61697bd5d416565ffb9499c726ba51ba2ae1aa73595c16",
+      "contentHash": "829dfe6062e8623d4b5fe9f78d013c8a1870705279b3cba42b00fcf74e69b906",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 89,
+      "totalLines": 91,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/external-source.registry.ts": {
       "filePath": "backend/apps/worker/src/content/external-source.registry.ts",
-      "contentHash": "aefa90692746699426577692f0f1009478e1a14bb220ab0c179947001d32b46a",
+      "contentHash": "093ed651e8c99e8038bede1cda6e154cbfb73e851c2021736166d89bcd8fe44d",
       "functions": [],
       "classes": [
         {
@@ -18363,7 +18541,7 @@
             "adapters"
           ],
           "exported": true,
-          "lineCount": 29
+          "lineCount": 30
         }
       ],
       "imports": [
@@ -18398,6 +18576,12 @@
           ]
         },
         {
+          "source": "./tomesto.adapter",
+          "specifiers": [
+            "TomestoAdapter"
+          ]
+        },
+        {
           "source": "./content-source.types",
           "specifiers": [
             "ExternalSourceAdapter",
@@ -18409,12 +18593,12 @@
       "exports": [
         "ExternalSourceRegistry"
       ],
-      "totalLines": 74,
+      "totalLines": 93,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/kudago.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
-      "contentHash": "85758641b818018e15b1c956025537bdf0ab6836338af0ccebdf6be9872584a0",
+      "contentHash": "c870670007690be60026274baf72091a91d110af6959cf6349c6604e51442545",
       "functions": [
         {
           "name": "fetchJson",
@@ -18517,7 +18701,7 @@
             "baseUrl"
           ],
           "exported": true,
-          "lineCount": 118
+          "lineCount": 121
         }
       ],
       "imports": [
@@ -18528,17 +18712,24 @@
             "ExternalSourceAdapter",
             "ExternalSourceFetchInput"
           ]
+        },
+        {
+          "source": "./supported-cities",
+          "specifiers": [
+            "kudagoCityCode",
+            "timezoneForCity"
+          ]
         }
       ],
       "exports": [
         "KudaGoAdapter"
       ],
-      "totalLines": 273,
+      "totalLines": 272,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/overpass.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/overpass.adapter.ts",
-      "contentHash": "953d36cbd65441b8bd25900ef2b369349eba0e5bb5ab589770be0ef4c8704a2d",
+      "contentHash": "ca495e294313d6ec862088d837ee1905edc1e5b3cad40262c8ed64aed0f84b3e",
       "functions": [
         {
           "name": "buildQuery",
@@ -18623,17 +18814,24 @@
             "ExternalSourceAdapter",
             "ExternalSourceFetchInput"
           ]
+        },
+        {
+          "source": "./supported-cities",
+          "specifiers": [
+            "overpassBboxForCity",
+            "timezoneForCity"
+          ]
         }
       ],
       "exports": [
         "OverpassAdapter"
       ],
-      "totalLines": 147,
+      "totalLines": 143,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/route-draft-generation.service.ts": {
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "contentHash": "a2915114ee23fe97e19f0c17a5462c761ac302e04089c28aa5d1c4f99e27308d",
+      "contentHash": "a8b3a0c7cc99bf47c23f8a1bd6935e6c5e9cbe1a04640011b1971127994d4c84",
       "functions": [
         {
           "name": "hasUsableStepCount",
@@ -18670,7 +18868,7 @@
             "input"
           ],
           "exported": false,
-          "lineCount": 54
+          "lineCount": 55
         },
         {
           "name": "uniqueCandidates",
@@ -18687,6 +18885,15 @@
           ],
           "exported": false,
           "lineCount": 7
+        },
+        {
+          "name": "placeMatchesArea",
+          "params": [
+            "place",
+            "preferredArea"
+          ],
+          "exported": false,
+          "lineCount": 13
         },
         {
           "name": "geoBucket",
@@ -18808,7 +19015,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 502
+          "lineCount": 503
         }
       ],
       "imports": [
@@ -18844,17 +19051,23 @@
             "validateRouteDraft",
             "RoutePlannerCandidate"
           ]
+        },
+        {
+          "source": "./supported-cities",
+          "specifiers": [
+            "SUPPORTED_RUSSIA_MILLION_CITY_NAMES"
+          ]
         }
       ],
       "exports": [
         "RouteDraftGenerationService"
       ],
-      "totalLines": 787,
+      "totalLines": 804,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/route-planner.ts": {
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
-      "contentHash": "9b7e2e66ff65c1721804478737b9843db54068613f0193f002a972be1d865634",
+      "contentHash": "e43734fba70e533b44f603cdb6aa74d250348b626155eae2f0bca3202823dc76",
       "functions": [
         {
           "name": "buildRouteSkeletons",
@@ -19094,7 +19307,7 @@
             "category"
           ],
           "exported": false,
-          "lineCount": 110
+          "lineCount": 116
         },
         {
           "name": "sameVenueCluster",
@@ -19282,7 +19495,7 @@
             "budget"
           ],
           "exported": false,
-          "lineCount": 13
+          "lineCount": 16
         },
         {
           "name": "candidateFitsMoodBudget",
@@ -19332,12 +19545,79 @@
         "buildRouteSkeletons",
         "validateRouteDraft"
       ],
-      "totalLines": 1521,
+      "totalLines": 1531,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/worker/src/content/supported-cities.ts": {
+      "filePath": "backend/apps/worker/src/content/supported-cities.ts",
+      "contentHash": "b0df58721d8b62cbd93102214dcfb58457cdcdb8c4dc1f1b99e0d21f1e68198d",
+      "functions": [
+        {
+          "name": "timezoneForCity",
+          "params": [
+            "city"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "kudagoCityCode",
+          "params": [
+            "city"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "overpassBboxForCity",
+          "params": [
+            "city"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "isSupportedTicketlandCity",
+          "params": [
+            "city"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "cityCodesForSource",
+          "params": [
+            "sourceCode"
+          ],
+          "returnType": "Record<string, string>",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./content-source.types",
+          "specifiers": [
+            "ExternalSourceCode"
+          ]
+        }
+      ],
+      "exports": [
+        "SUPPORTED_RUSSIA_MILLION_CITIES",
+        "SUPPORTED_RUSSIA_MILLION_CITY_NAMES",
+        "timezoneForCity",
+        "kudagoCityCode",
+        "overpassBboxForCity",
+        "isSupportedTicketlandCity",
+        "cityCodesForSource"
+      ],
+      "totalLines": 57,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/timepad.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/timepad.adapter.ts",
-      "contentHash": "2670535628d7c1218bc050c38755e66f39ec18d5929bd469ee1c6338537bdb2a",
+      "contentHash": "bb01cebdc06f1d6853af514bf7ccfdceea68fe973d4d04537135798b782b0f0a",
       "functions": [
         {
           "name": "values",
@@ -19439,12 +19719,478 @@
             "ExternalSourceAdapter",
             "ExternalSourceFetchInput"
           ]
+        },
+        {
+          "source": "./supported-cities",
+          "specifiers": [
+            "timezoneForCity"
+          ]
         }
       ],
       "exports": [
         "TimepadAdapter"
       ],
-      "totalLines": 168,
+      "totalLines": 169,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/worker/src/content/tomesto.adapter.ts": {
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "contentHash": "846badcf26e0da84e6076baaa14802c401679156e87892c50a6b630d44c72bb4",
+      "functions": [
+        {
+          "name": "isDetailPath",
+          "params": [
+            "url",
+            "kind"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "stripHash",
+          "params": [
+            "url"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "canonicalUrl",
+          "params": [
+            "$",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "slugFromUrl",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "firstText",
+          "params": [
+            "$",
+            "selectors"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "collectTexts",
+          "params": [
+            "$",
+            "selectors"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "meta",
+          "params": [
+            "$",
+            "name"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "shortDescription",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "cleanText",
+          "params": [
+            "value",
+            "maxLength"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "coordinates",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "jsonLdObjects",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "collectJsonObjects",
+          "params": [
+            "value",
+            "output"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "placeCategory",
+          "params": [
+            "labels"
+          ],
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "averageCheck",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "visiblePrice",
+          "params": [
+            "$"
+          ],
+          "returnType": "{ priceFrom: number | null; priceMode: ExternalPriceMode }",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "rating",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "metroLabels",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "featureLabels",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "cuisineLabels",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "setLabels",
+          "params": [
+            "$",
+            "sourceUrl"
+          ],
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "sourceUpdatedText",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "compactPageText",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "buildPlaceTaxonomy",
+          "params": [
+            "input"
+          ],
+          "returnType": "TomestoTaxonomy",
+          "exported": false,
+          "lineCount": 35
+        },
+        {
+          "name": "taxonomyTags",
+          "params": [
+            "taxonomy"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "normalizeFeature",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "extractImageUrl",
+          "params": [
+            "$",
+            "sourceUrl"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "firstDateWindow",
+          "params": [
+            "$",
+            "from",
+            "to"
+          ],
+          "returnType": "ParsedDateWindow",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "dateWindows",
+          "params": [
+            "$"
+          ],
+          "returnType": "ParsedDateWindow[]",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "parseDate",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "eventCategory",
+          "params": [
+            "category",
+            "title"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "ensureTrailingSlash",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeRefQuery",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "safeQuery",
+          "params": [
+            "url"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "dateKey",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "text",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "number",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "positiveNumber",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "positiveInt",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "nonNegativeInt",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "object",
+          "params": [
+            "value"
+          ],
+          "returnType": "Record<string, unknown> | null",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "delay",
+          "params": [
+            "ms"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeToken",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "normalizeSlug",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "transliterate",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 41
+        },
+        {
+          "name": "dedupe",
+          "params": [
+            "values"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "isString",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "emptyTaxonomyCounts",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "countTaxonomyTags",
+          "params": [
+            "tags",
+            "counts"
+          ],
+          "exported": false,
+          "lineCount": 11
+        }
+      ],
+      "classes": [
+        {
+          "name": "TomestoAdapter",
+          "methods": [
+            "fetchItems",
+            "fetchBatches",
+            "discoverDetailUrls",
+            "fetchPlaceBatches",
+            "fetchTimedBatches",
+            "listUrl",
+            "fetchHtml",
+            "extractDetailUrls",
+            "safeTomestoUrl",
+            "parsePlace",
+            "parseTimedItem",
+            "actionUrl"
+          ],
+          "properties": [
+            "code",
+            "baseUrl",
+            "refQuery",
+            "maxPages",
+            "requestDelayMs",
+            "windowDays",
+            "importImages"
+          ],
+          "exported": true,
+          "lineCount": 443
+        }
+      ],
+      "imports": [
+        {
+          "source": "cheerio",
+          "specifiers": [
+            "* as cheerio"
+          ]
+        },
+        {
+          "source": "./content-source.types",
+          "specifiers": [
+            "ExternalPriceMode",
+            "ExternalRawItem",
+            "ExternalSourceAdapter",
+            "ExternalSourceFetchInput"
+          ]
+        }
+      ],
+      "exports": [
+        "TomestoAdapter"
+      ],
+      "totalLines": 1099,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {
@@ -19515,6 +20261,61 @@
       ],
       "exports": [],
       "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/worker/src/media/image-variants.ts": {
+      "filePath": "backend/apps/worker/src/media/image-variants.ts",
+      "contentHash": "cc8d38128e1ae68955a9d3967230dbdb414e5677a1309e1d64b5a161cfb8b22d",
+      "functions": [
+        {
+          "name": "createImageVariants",
+          "params": [
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "variantObjectKey",
+          "params": [
+            "sourceObjectKey",
+            "variantKey"
+          ],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@aws-sdk/client-s3",
+          "specifiers": [
+            "PutObjectCommand",
+            "S3Client"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "buildPublicAssetUrl",
+            "createS3RequestOptions",
+            "getS3Config"
+          ]
+        },
+        {
+          "source": "sharp",
+          "specifiers": [
+            "sharp"
+          ]
+        }
+      ],
+      "exports": [
+        "PROFILE_IMAGE_VARIANT_SPECS",
+        "AFFICHE_IMAGE_VARIANT_SPECS",
+        "createImageVariants",
+        "variantObjectKey"
+      ],
+      "totalLines": 86,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/prisma.service.ts": {
@@ -19655,12 +20456,20 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "b09bbcc54ab740b7e726c395a7a8bed49189187262dc8f3c5d646c80276a27da",
+      "contentHash": "568e0ed04fcb189fbf304d9b6c45631201455acb428f210ab23bd2d48c1197bb",
       "functions": [
         {
           "name": "csv",
           "params": [
             "raw"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "streamToBuffer",
+          "params": [
+            "stream"
           ],
           "exported": false,
           "lineCount": 7
@@ -19686,6 +20495,7 @@
             "claimNextEvent",
             "handleFailure",
             "handleMediaFinalize",
+            "tryCreateMediaVariants",
             "handlePushDispatch",
             "isUserHidden",
             "handleNotificationCreate",
@@ -19757,6 +20567,7 @@
             "contentManualGenerationIntervalMs",
             "contentRouteGenerationEnabled",
             "contentRouteGenerationIntervalMs",
+            "tomestoWindowDays",
             "redis",
             "s3",
             "fakePushProvider",
@@ -19764,13 +20575,14 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 1632
+          "lineCount": 1692
         }
       ],
       "imports": [
         {
           "source": "@aws-sdk/client-s3",
           "specifiers": [
+            "GetObjectCommand",
             "HeadObjectCommand"
           ]
         },
@@ -19812,6 +20624,12 @@
           ]
         },
         {
+          "source": "./content/supported-cities",
+          "specifiers": [
+            "SUPPORTED_RUSSIA_MILLION_CITY_NAMES"
+          ]
+        },
+        {
           "source": "./content/content-import.service",
           "specifiers": [
             "ContentImportService"
@@ -19821,6 +20639,13 @@
           "source": "./content/route-draft-generation.service",
           "specifiers": [
             "RouteDraftGenerationService"
+          ]
+        },
+        {
+          "source": "./media/image-variants",
+          "specifiers": [
+            "PROFILE_IMAGE_VARIANT_SPECS",
+            "createImageVariants"
           ]
         },
         {
@@ -19837,12 +20662,18 @@
           "specifiers": [
             "PrismaService"
           ]
+        },
+        {
+          "source": "node:stream",
+          "specifiers": [
+            "Readable"
+          ]
         }
       ],
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 1690,
+      "totalLines": 1765,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {
@@ -19877,12 +20708,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "93d71dcd351d84d4a9c3627f410e5bc77428be951985f5aec0b9eaee064faba2",
+      "contentHash": "ae99406e60d15c79d9a92deaf1cd6e4d81a3fb8b4377be158b4d672e6941d59e",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1008,
+      "totalLines": 1010,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {
@@ -20100,7 +20931,7 @@
     },
     "backend/packages/database/prisma/reset-test-users.ts": {
       "filePath": "backend/packages/database/prisma/reset-test-users.ts",
-      "contentHash": "5a7b02919efba6f7128bc9e6d61174fae860b2ebd257d9b8c0501402bf1892a3",
+      "contentHash": "096f6d8d5b52716c742924752c3f1aac784842b9407a8736a1bf6c896c6f63c0",
       "functions": [
         {
           "name": "main",
@@ -20125,10 +20956,160 @@
           "specifiers": [
             "PrismaClient"
           ]
+        },
+        {
+          "source": "../src/test-accounts",
+          "specifiers": [
+            "TEST_ACCOUNT_PHONE_NUMBERS"
+          ]
         }
       ],
       "exports": [],
-      "totalLines": 229,
+      "totalLines": 223,
+      "hasStructuralAnalysis": true
+    },
+    "backend/packages/database/prisma/seed-test-accounts.ts": {
+      "filePath": "backend/packages/database/prisma/seed-test-accounts.ts",
+      "contentHash": "3f0c2a1e715690587518f829636b0488e009159977457abc97fcfd90bd9a0abb",
+      "functions": [
+        {
+          "name": "buildTestAccountsSeedPlan",
+          "params": [
+            "now"
+          ],
+          "returnType": "TestAccountsSeedPlan",
+          "exported": true,
+          "lineCount": 76
+        },
+        {
+          "name": "seedTestAccounts",
+          "params": [
+            "prisma",
+            "now"
+          ],
+          "exported": true,
+          "lineCount": 252
+        },
+        {
+          "name": "deleteTestAccounts",
+          "params": [
+            "prisma"
+          ],
+          "exported": true,
+          "lineCount": 196
+        },
+        {
+          "name": "buildInterests",
+          "params": [
+            "index"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "buildEventDraft",
+          "params": [
+            "input"
+          ],
+          "returnType": "TestEventDraft",
+          "exported": false,
+          "lineCount": 45
+        },
+        {
+          "name": "buildPhotoDraft",
+          "params": [
+            "input"
+          ],
+          "returnType": "TestPhotoDraft",
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "buildSvgDataUrl",
+          "params": [
+            "input"
+          ],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "buildMediaVariants",
+          "params": [
+            "publicUrl",
+            "cacheKey"
+          ],
+          "returnType": "Prisma.InputJsonValue",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "startOfMoscowDayUtc",
+          "params": [
+            "now"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "moscowWallTimeUtc",
+          "params": [
+            "moscowDayStartUtc",
+            "dayOffset",
+            "hour",
+            "minute"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "escapeSvg",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "whenNonEmpty",
+          "params": [
+            "values",
+            "build"
+          ],
+          "returnType": "R[]",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 24
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma",
+            "PrismaClient",
+            "UserGender"
+          ]
+        },
+        {
+          "source": "../src/test-accounts",
+          "specifiers": [
+            "TEST_ACCOUNT_PHONE_NUMBERS",
+            "buildSeededTestAccountIds"
+          ]
+        }
+      ],
+      "exports": [
+        "buildTestAccountsSeedPlan",
+        "seedTestAccounts",
+        "deleteTestAccounts"
+      ],
+      "totalLines": 838,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/seed.ts": {
@@ -20952,12 +21933,12 @@
     },
     "backend/packages/database/src/index.ts": {
       "filePath": "backend/packages/database/src/index.ts",
-      "contentHash": "d3c581fb4f639684e5acdc3fef62efebbf61a2778d86ee6d8d01689b410f27b3",
+      "contentHash": "ae88c5dcbecd8c72bee2e94b2d10c3f44d886948318969a69e258ad86836b7ff",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 18,
+      "totalLines": 19,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/openrouter.ts": {
@@ -21728,6 +22709,37 @@
         "maskPhoneNumber"
       ],
       "totalLines": 95,
+      "hasStructuralAnalysis": true
+    },
+    "backend/packages/database/src/test-accounts.ts": {
+      "filePath": "backend/packages/database/src/test-accounts.ts",
+      "contentHash": "2b9e34245e56f28ec441c40adafbbb600b0456f465123b12eef69e6427029dc0",
+      "functions": [
+        {
+          "name": "isSeededTestAccountPhoneNumber",
+          "params": [
+            "phoneNumber"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "buildSeededTestAccountIds",
+          "params": [],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "TEST_ACCOUNT_PHONE_NUMBERS",
+        "isSeededTestAccountPhoneNumber",
+        "buildSeededTestAccountIds"
+      ],
+      "totalLines": 20,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/user-blocks.ts": {
