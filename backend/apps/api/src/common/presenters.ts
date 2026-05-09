@@ -75,7 +75,9 @@ type MessagePresenterInput = Pick<
   'id' | 'chatId' | 'senderId' | 'text' | 'clientMessageId' | 'createdAt'
 > & {
   sender: Pick<User, 'displayName'> & {
-    profile?: Pick<Profile, 'avatarUrl'> | null;
+    profile?: (Pick<Profile, 'avatarUrl'> & {
+      photos?: BasicProfilePhoto[];
+    }) | null;
   };
   replyTo?: (Pick<Message, 'id' | 'senderId' | 'text'> & {
     sender: Pick<User, 'displayName'>;
@@ -93,12 +95,21 @@ export function mapMessage(
 ) {
   const systemKind = resolveSystemMessageKind(message.clientMessageId);
   const isSystem = systemKind != null;
+  const senderAvatarPhoto = isSystem
+    ? null
+    : ((message.sender.profile?.photos ?? [])
+        .filter((photo) => photo.mediaAsset.publicUrl)
+        .sort((left, right) => left.sortOrder - right.sortOrder)
+        .map((photo) => mapProfilePhoto(photo))[0] ?? null);
   return {
     id: message.id,
     chatId: message.chatId,
     senderId: message.senderId,
     senderName: isSystem ? 'Frendly' : message.sender.displayName,
-    senderAvatarUrl: isSystem ? null : message.sender.profile?.avatarUrl ?? null,
+    senderAvatarUrl: isSystem
+      ? null
+      : senderAvatarPhoto?.url ?? message.sender.profile?.avatarUrl ?? null,
+    senderAvatarVariants: senderAvatarPhoto?.variants ?? {},
     text: message.text,
     clientMessageId: message.clientMessageId,
     createdAt: message.createdAt.toISOString(),
@@ -157,7 +168,13 @@ type BasicProfilePhoto = {
   sortOrder: number;
   mediaAsset: Pick<
     MediaAsset,
-    'id' | 'kind' | 'mimeType' | 'byteSize' | 'durationMs' | 'publicUrl'
+    | 'id'
+    | 'kind'
+    | 'mimeType'
+    | 'byteSize'
+    | 'durationMs'
+    | 'publicUrl'
+    | 'variants'
   >;
 };
 

@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { AfficheEventDto, AfficheEventListDto } from '@big-break/contracts';
+import type {
+  AfficheEventDto,
+  AfficheEventListDto,
+  MediaVariantDto,
+} from '@big-break/contracts';
 import {
   createPresignedDownload,
   decodeCursor,
@@ -35,6 +39,7 @@ const afficheEventSelect = {
   priceMode: true,
   currency: true,
   imageUrl: true,
+  imageVariants: true,
   sourceProvider: true,
   sourceUrl: true,
   actionUrl: true,
@@ -329,6 +334,7 @@ export class AfficheService {
       priceMode: item.priceMode === 'free' || item.priceMode === 'paid' ? item.priceMode : 'unknown',
       currency: item.currency ?? null,
       imageUrl: this.mapImageUrl(item.imageUrl),
+      imageVariants: this.mapImageVariants(item.imageVariants),
       provider: item.sourceProvider ?? item.source?.name ?? null,
       sourceCode: item.source?.code ?? null,
       actionUrl: item.actionUrl ?? item.sourceUrl ?? null,
@@ -351,6 +357,49 @@ export class AfficheService {
     }
 
     return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
+  }
+
+  private mapImageVariants(raw: unknown): Record<string, MediaVariantDto> {
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+      return {};
+    }
+
+    const variants: Record<string, MediaVariantDto> = {};
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+        continue;
+      }
+      const variant = value as Record<string, unknown>;
+      const url = this.mapImageUrl(
+        typeof variant.url === 'string' ? variant.url : null,
+      );
+      const downloadUrl = this.mapImageUrl(
+        typeof variant.downloadUrl === 'string'
+          ? variant.downloadUrl
+          : typeof variant.url === 'string'
+            ? variant.url
+            : null,
+      );
+      if (url == null && downloadUrl == null) {
+        continue;
+      }
+
+      variants[key] = {
+        url,
+        downloadUrl,
+        mimeType:
+          typeof variant.mimeType === 'string' ? variant.mimeType.trim() : null,
+        byteSize:
+          typeof variant.byteSize === 'number' && Number.isFinite(variant.byteSize)
+            ? Math.max(0, Math.trunc(variant.byteSize))
+            : null,
+        cacheKey:
+          typeof variant.cacheKey === 'string' ? variant.cacheKey.trim() : null,
+        expiresAt:
+          typeof variant.expiresAt === 'string' ? variant.expiresAt.trim() : null,
+      };
+    }
+    return variants;
   }
 
   private publicAssetObjectKeyFromUrl(url: string) {

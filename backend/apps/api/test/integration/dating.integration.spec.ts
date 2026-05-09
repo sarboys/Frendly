@@ -160,45 +160,7 @@ describe('dating api flows', () => {
     await app.close();
   });
 
-  it('requires active frendly+ for dating discover', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/dating/discover')
-      .set('authorization', `Bearer ${markAccessToken}`)
-      .expect(403);
-
-    expect(response.body.code).toBe('dating_locked');
-  });
-
-  it('lists only discoverable premium profiles in dating discover', async () => {
-    await prisma.userSubscription.createMany({
-      data: [
-        {
-          id: 'dating-sub-me',
-          userId: 'user-me',
-          plan: 'year',
-          status: 'active',
-          startedAt: new Date('2026-04-18T08:00:00.000Z'),
-          renewsAt: new Date('2027-04-18T08:00:00.000Z'),
-        },
-        {
-          id: 'dating-sub-sonya',
-          userId: 'user-sonya',
-          plan: 'month',
-          status: 'active',
-          startedAt: new Date('2026-04-18T08:00:00.000Z'),
-          renewsAt: new Date('2026-05-18T08:00:00.000Z'),
-        },
-        {
-          id: 'dating-sub-oleg',
-          userId: 'user-oleg',
-          plan: 'month',
-          status: 'trial',
-          startedAt: new Date('2026-04-18T08:00:00.000Z'),
-          trialEndsAt: new Date('2026-04-25T08:00:00.000Z'),
-        },
-      ],
-    });
-
+  it('lists discoverable dating profiles without frendly+', async () => {
     const response = await request(app.getHttpServer())
       .get('/dating/discover')
       .set('authorization', `Bearer ${accessToken}`)
@@ -226,28 +188,7 @@ describe('dating api flows', () => {
     );
   });
 
-  it('returns incoming likes for premium user', async () => {
-    await prisma.userSubscription.createMany({
-      data: [
-        {
-          id: 'dating-sub-me',
-          userId: 'user-me',
-          plan: 'year',
-          status: 'active',
-          startedAt: new Date('2026-04-18T08:00:00.000Z'),
-          renewsAt: new Date('2027-04-18T08:00:00.000Z'),
-        },
-        {
-          id: 'dating-sub-sonya',
-          userId: 'user-sonya',
-          plan: 'month',
-          status: 'active',
-          startedAt: new Date('2026-04-18T08:00:00.000Z'),
-          renewsAt: new Date('2026-05-18T08:00:00.000Z'),
-        },
-      ],
-    });
-
+  it('returns incoming likes without frendly+', async () => {
     await request(app.getHttpServer())
       .post('/dating/actions')
       .set('authorization', `Bearer ${sonyaAccessToken}`)
@@ -267,27 +208,6 @@ describe('dating api flows', () => {
   });
 
   it('returns match plus direct chat after mutual like', async () => {
-    await prisma.userSubscription.createMany({
-      data: [
-        {
-          id: 'dating-sub-me',
-          userId: 'user-me',
-          plan: 'year',
-          status: 'active',
-          startedAt: new Date('2026-04-18T08:00:00.000Z'),
-          renewsAt: new Date('2027-04-18T08:00:00.000Z'),
-        },
-        {
-          id: 'dating-sub-sonya',
-          userId: 'user-sonya',
-          plan: 'month',
-          status: 'active',
-          startedAt: new Date('2026-04-18T08:00:00.000Z'),
-          renewsAt: new Date('2026-05-18T08:00:00.000Z'),
-        },
-      ],
-    });
-
     await request(app.getHttpServer())
       .post('/dating/actions')
       .set('authorization', `Bearer ${sonyaAccessToken}`)
@@ -345,27 +265,6 @@ describe('dating api flows', () => {
     });
 
     try {
-      await prisma.userSubscription.createMany({
-        data: [
-          {
-            id: 'dating-media-sub-me',
-            userId: 'user-me',
-            plan: 'year',
-            status: 'active',
-            startedAt: new Date('2026-04-18T08:00:00.000Z'),
-            renewsAt: new Date('2027-04-18T08:00:00.000Z'),
-          },
-          {
-            id: 'dating-media-sub-sonya',
-            userId: 'user-sonya',
-            plan: 'month',
-            status: 'active',
-            startedAt: new Date('2026-04-18T08:00:00.000Z'),
-            renewsAt: new Date('2026-05-18T08:00:00.000Z'),
-          },
-        ],
-      });
-
       const discoverResponse = await request(app.getHttpServer())
         .get('/dating/discover')
         .set('authorization', `Bearer ${accessToken}`)
@@ -419,17 +318,10 @@ describe('dating api flows', () => {
       await prisma.mediaAsset.deleteMany({
         where: { id: asset.id },
       });
-      await prisma.userSubscription.deleteMany({
-        where: {
-          id: {
-            in: ['dating-media-sub-me', 'dating-media-sub-sonya'],
-          },
-        },
-      });
     }
   });
 
-  it('blocks dating mode event creation without frendly+', async () => {
+  it('creates dating mode event without frendly+', async () => {
     const response = await request(app.getHttpServer())
       .post('/events')
       .set('authorization', `Bearer ${markAccessToken}`)
@@ -445,23 +337,17 @@ describe('dating api flows', () => {
         priceMode: 'host_pays',
         inviteeUserId: 'user-sonya',
       })
-      .expect(403);
+      .expect(201);
 
-    expect(response.body.code).toBe('dating_locked');
+    const event = await prisma.event.findUnique({
+      where: { id: response.body.id },
+    });
+
+    expect(event?.isDate).toBe(true);
+    expect(event?.capacity).toBe(2);
   });
 
   it('normalizes dating mode event fields on create', async () => {
-    await prisma.userSubscription.create({
-      data: {
-        id: 'dating-sub-me',
-        userId: 'user-me',
-        plan: 'year',
-        status: 'active',
-        startedAt: new Date('2026-04-18T08:00:00.000Z'),
-        renewsAt: new Date('2027-04-18T08:00:00.000Z'),
-      },
-    });
-
     const response = await request(app.getHttpServer())
       .post('/events')
       .set('authorization', `Bearer ${accessToken}`)

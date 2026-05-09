@@ -1019,6 +1019,7 @@ model ExternalContentItem {
   currency         String?
   venueName        String?
   imageUrl         String?
+  imageVariants    Json?
   actionUrl        String?
   actionKind       String?
   priceMode        String    @default("unknown")
@@ -1900,6 +1901,7 @@ model MediaAsset {
   waveform                Float[]                  @default([])
   originalFileName        String
   publicUrl               String?
+  variants                Json                     @default("{}")
   error                   String?
   chatId                  String?
   createdAt               DateTime                 @default(now())

@@ -1,4 +1,4 @@
-import { HeadObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   OUTBOX_EVENT_TYPES,
@@ -15,8 +15,13 @@ import type { ExternalSourceCode } from './content/content-source.types';
 import { SUPPORTED_RUSSIA_MILLION_CITY_NAMES } from './content/supported-cities';
 import { ContentImportService } from './content/content-import.service';
 import { RouteDraftGenerationService } from './content/route-draft-generation.service';
+import {
+  PROFILE_IMAGE_VARIANT_SPECS,
+  createImageVariants,
+} from './media/image-variants';
 import { ApnsPushProvider, FakePushProvider, FcmPushProvider, PushProvider } from './push.providers';
 import { PrismaService } from './prisma.service';
+import { Readable } from 'node:stream';
 
 const PROCESSING_STALE_AFTER_MS = 60_000;
 const DEFAULT_MAX_EVENTS_PER_RUN = 25;
@@ -591,6 +596,7 @@ export class WorkerService implements OnModuleDestroy {
       where: { id: payload.assetId },
       select: {
         id: true,
+        kind: true,
         bucket: true,
         objectKey: true,
         chatId: true,
@@ -609,11 +615,14 @@ export class WorkerService implements OnModuleDestroy {
       createS3RequestOptions(),
     );
 
+    const variants = await this.tryCreateMediaVariants(asset);
+
     await this.prismaService.client.mediaAsset.update({
       where: { id: asset.id },
       data: {
         status: 'ready',
         publicUrl: buildPublicAssetUrl(asset.objectKey),
+        ...(Object.keys(variants).length > 0 ? { variants } : {}),
       },
     });
 
@@ -637,6 +646,42 @@ export class WorkerService implements OnModuleDestroy {
           assetId: asset.id,
         },
       });
+    }
+  }
+
+  private async tryCreateMediaVariants(asset: {
+    kind: string;
+    bucket: string;
+    objectKey: string;
+  }) {
+    if (asset.kind !== 'avatar') {
+      return {};
+    }
+
+    try {
+      const object = await this.s3.send(
+        new GetObjectCommand({
+          Bucket: asset.bucket,
+          Key: asset.objectKey,
+        }),
+        createS3RequestOptions(),
+      );
+      if (!object.Body) {
+        return {};
+      }
+      const sourceBytes = await streamToBuffer(object.Body as unknown as Readable);
+      return await createImageVariants({
+        s3: this.s3,
+        sourceBytes,
+        sourceObjectKey: asset.objectKey,
+        specs: PROFILE_IMAGE_VARIANT_SPECS,
+      });
+    } catch (caught) {
+      console.warn('[worker] media variants failed', {
+        objectKey: asset.objectKey,
+        reason: caught instanceof Error ? caught.message : 'unknown',
+      });
+      return {};
     }
   }
 
@@ -1687,4 +1732,12 @@ function csv(raw: string | undefined) {
   }
   const values = raw.split(',').map((item) => item.trim()).filter(Boolean);
   return values.length > 0 ? values : null;
+}
+
+async function streamToBuffer(stream: Readable) {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
 }

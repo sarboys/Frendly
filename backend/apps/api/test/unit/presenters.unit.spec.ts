@@ -1,4 +1,8 @@
-import { mapEventSummary } from '../../src/common/presenters';
+import {
+  mapEventSummary,
+  mapMessage,
+  mapProfilePhoto,
+} from '../../src/common/presenters';
 
 describe('presenters', () => {
   const originalEnv = { ...process.env };
@@ -59,6 +63,95 @@ describe('presenters', () => {
 
     expect((summary as any).imageUrl).toBe(
       '/affiche/images?key=external-content%2Fadvcake_ticketland%2Foffer-1.jpg',
+    );
+  });
+
+  it('maps profile photo media variants to proxy urls', () => {
+    const photo = mapProfilePhoto({
+      id: 'photo-1',
+      sortOrder: 0,
+      mediaAsset: {
+        id: 'asset-1',
+        kind: 'avatar',
+        mimeType: 'image/jpeg',
+        byteSize: 2048,
+        durationMs: null,
+        publicUrl: 'https://cdn.frendly.tech/avatars/user-me/photo.jpg',
+        variants: {
+          avatar: {
+            url: '/media/asset-1/variants/avatar',
+            downloadUrl: '/media/asset-1/variants/avatar',
+            mimeType: 'image/webp',
+            byteSize: 4200,
+            cacheKey: 'media-asset-1-avatar',
+          },
+          card: {
+            url: '/media/asset-1/variants/card',
+            downloadUrl: '/media/asset-1/variants/card',
+            mimeType: 'image/webp',
+            byteSize: 18000,
+            cacheKey: 'media-asset-1-card',
+          },
+        },
+      },
+    } as any);
+
+    expect((photo as any).media.variants.avatar).toMatchObject({
+      url: '/media/asset-1/variants/avatar',
+      downloadUrl: '/media/asset-1/variants/avatar',
+      mimeType: 'image/webp',
+      byteSize: 4200,
+      cacheKey: 'media-asset-1-avatar',
+    });
+    expect((photo as any).variants.card.url).toBe(
+      '/media/asset-1/variants/card',
+    );
+  });
+
+  it('maps chat sender avatar variants from primary profile photo', () => {
+    const message = mapMessage({
+      id: 'message-1',
+      chatId: 'chat-1',
+      senderId: 'user-anya',
+      sender: {
+        displayName: 'Аня',
+        profile: {
+          avatarUrl: '/media/legacy-avatar',
+          photos: [
+            {
+              id: 'photo-1',
+              sortOrder: 0,
+              mediaAsset: {
+                id: 'asset-1',
+                kind: 'avatar',
+                mimeType: 'image/jpeg',
+                byteSize: 2048,
+                durationMs: null,
+                publicUrl: 'https://cdn.frendly.tech/avatars/user/photo.jpg',
+                variants: {
+                  avatar: {
+                    url: 'https://cdn.frendly.tech/avatars/user/photo__avatar.webp',
+                    downloadUrl:
+                      'https://cdn.frendly.tech/avatars/user/photo__avatar.webp',
+                    mimeType: 'image/webp',
+                    byteSize: 4200,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+      text: 'Привет',
+      clientMessageId: 'client-1',
+      createdAt: new Date('2026-05-08T10:00:00.000Z'),
+      replyTo: null,
+      attachments: [],
+    } as any);
+
+    expect((message as any).senderAvatarUrl).toBe('/media/asset-1');
+    expect((message as any).senderAvatarVariants.avatar.url).toBe(
+      'https://cdn.frendly.tech/avatars/user/photo__avatar.webp',
     );
   });
 });

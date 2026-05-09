@@ -36,6 +36,22 @@ const chatReplyAttachmentSelect = {
   },
 } satisfies Prisma.MessageAttachmentSelect;
 
+const chatSenderProfilePhotoSelect = {
+  id: true,
+  sortOrder: true,
+  mediaAsset: {
+    select: {
+      id: true,
+      kind: true,
+      mimeType: true,
+      byteSize: true,
+      durationMs: true,
+      publicUrl: true,
+      variants: true,
+    },
+  },
+} satisfies Prisma.ProfilePhotoSelect;
+
 const chatListLastMessageSelect = {
   text: true,
   createdAt: true,
@@ -62,6 +78,13 @@ const chatMessageSelect = {
       profile: {
         select: {
           avatarUrl: true,
+          photos: {
+            orderBy: {
+              sortOrder: 'asc',
+            },
+            take: 1,
+            select: chatSenderProfilePhotoSelect,
+          },
         },
       },
     },

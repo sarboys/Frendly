@@ -27,9 +27,6 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await expect(service.listDiscover('user-me')).resolves.toEqual({
@@ -77,9 +74,6 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await service.listDiscover('user-me');
@@ -129,9 +123,6 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await service.listLikes('user-me');
@@ -184,9 +175,6 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await service.listDiscover('user-me');
@@ -224,9 +212,6 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await service.listDiscover('user-me');
@@ -268,9 +253,6 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await service.listDiscover('user-me');
@@ -303,6 +285,7 @@ describe('DatingService unit', () => {
                       byteSize: true,
                       durationMs: true,
                       publicUrl: true,
+                      variants: true,
                     },
                   },
                 },
@@ -347,6 +330,7 @@ describe('DatingService unit', () => {
                           byteSize: true,
                           durationMs: true,
                           publicUrl: true,
+                          variants: true,
                         },
                       },
                     },
@@ -401,9 +385,6 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     const resultPromise = service.recordAction('user-me', {
@@ -496,9 +477,6 @@ describe('DatingService unit', () => {
         client,
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await service.recordAction('user-me', {
@@ -599,9 +577,6 @@ describe('DatingService unit', () => {
         client,
       } as any,
       {} as any,
-      {
-        hasPremiumAccess: jest.fn().mockResolvedValue(true),
-      } as any,
     );
 
     await expect(

@@ -161,6 +161,32 @@ describe('EveningRouteTemplateService unit', () => {
     ]);
   });
 
+  it('normalizes Moscow location labels before querying public templates', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const service = new EveningRouteTemplateService(
+      {
+        client: {
+          eveningRouteTemplate: {
+            findMany,
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+    );
+
+    await service.listRouteTemplates({
+      city: 'г. Москва, Чистые пруды',
+    });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          city: 'Москва',
+        }),
+      }),
+    );
+  });
+
   it('hides archived templates defensively', async () => {
     const service = new EveningRouteTemplateService(
       {

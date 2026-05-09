@@ -160,7 +160,7 @@ export class EveningRouteTemplateService {
     params: Record<string, unknown> = {},
     userId?: string | null,
   ) {
-    const city = this.optionalText(params.city) ?? 'Москва';
+    const city = this.normalizeCityParam(params.city) ?? 'Москва';
     const query = normalizeSearchQuery(this.optionalText(params.q) ?? undefined);
     const templates =
       await this.prismaService.client.eveningRouteTemplate.findMany({
@@ -906,6 +906,45 @@ export class EveningRouteTemplateService {
     }
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private normalizeCityParam(value: unknown) {
+    const raw = this.optionalText(value);
+    if (!raw) {
+      return null;
+    }
+
+    const normalized = raw
+      .toLowerCase()
+      .replaceAll('ё', 'е')
+      .replaceAll(/[^a-zа-я0-9]+/g, ' ')
+      .trim();
+    if (/(^|\s)(москва|moscow)(\s|$)/.test(normalized)) {
+      return 'Москва';
+    }
+    if (
+      normalized.includes('санкт петербург') ||
+      normalized.includes('saint petersburg') ||
+      normalized.includes('st petersburg') ||
+      /(^|\s)(спб|питер)(\s|$)/.test(normalized)
+    ) {
+      return 'Санкт-Петербург';
+    }
+
+    const city = raw
+      .split(',')
+      .map((part) =>
+        part
+          .trim()
+          .replace(/^\d{5,6}\s*/, '')
+          .replace(/^(г\.?|город)\s+/i, ''),
+      )
+      .find((part) => {
+        const lower = part.toLowerCase();
+        return part.length > 0 && lower !== 'россия' && lower !== 'russia';
+      });
+
+    return city ?? raw;
   }
 
   private dateToIso(value: Date | null | undefined) {

@@ -325,6 +325,7 @@ describe('PeopleService unit', () => {
                     byteSize: true,
                     durationMs: true,
                     publicUrl: true,
+                    variants: true,
                   },
                 },
               },

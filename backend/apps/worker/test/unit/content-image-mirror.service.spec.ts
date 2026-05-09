@@ -1,6 +1,10 @@
 import { ContentImageMirrorService } from '../../src/content/content-image-mirror.service';
 
 const mockS3Send = jest.fn();
+const tinyPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+  'base64',
+);
 
 jest.mock('@big-break/database', () => ({
   buildPublicAssetUrl: (objectKey: string) =>
@@ -85,5 +89,46 @@ describe('ContentImageMirrorService', () => {
     expect(result).toMatch(
       /^https:\/\/cdn\.frendly\.tech\/external-content\/kudago\/event-1-/,
     );
+  });
+
+  it('returns rail, card and hero variants for imported event images', async () => {
+    process.env.CONTENT_IMPORT_IMAGE_RETRY_DELAY_MS = '1';
+    mockS3Send.mockRejectedValueOnce(new Error('missing')).mockResolvedValue({});
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(tinyPng, {
+        status: 200,
+        headers: {
+          'content-type': 'image/png',
+          'content-length': `${tinyPng.byteLength}`,
+        },
+      }) as any,
+    );
+    const service = new ContentImageMirrorService();
+
+    const result = await service.mirrorExternalImage({
+      sourceCode: 'kudago',
+      sourceItemId: 'event-variants',
+      imageUrl: 'https://static.kudago.com/image.png',
+    } as any);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(result.imageUrl).toMatch(
+      /^https:\/\/cdn\.frendly\.tech\/external-content\/kudago\/event-variants-/,
+    );
+    expect(result.imageVariants).toMatchObject({
+      rail: {
+        url: expect.stringContaining('__rail.webp'),
+        mimeType: 'image/webp',
+        byteSize: expect.any(Number),
+      },
+      card: {
+        url: expect.stringContaining('__card.webp'),
+        mimeType: 'image/webp',
+      },
+      hero: {
+        url: expect.stringContaining('__hero.webp'),
+        mimeType: 'image/webp',
+      },
+    });
   });
 });

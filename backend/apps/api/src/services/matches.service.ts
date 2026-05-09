@@ -128,6 +128,7 @@ export class MatchesService {
                           byteSize: true,
                           durationMs: true,
                           publicUrl: true,
+                          variants: true,
                         },
                       },
                     },

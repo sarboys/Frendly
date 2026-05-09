@@ -584,6 +584,7 @@ export interface AfficheEventDto {
   priceMode: 'free' | 'paid' | 'unknown';
   currency: string | null;
   imageUrl: string | null;
+  imageVariants: Record<string, MediaVariantDto>;
   provider: string | null;
   sourceCode: string | null;
   actionUrl: string | null;
@@ -883,6 +884,7 @@ export interface ChatMessageDto {
   senderId: string;
   senderName: string;
   senderAvatarUrl?: string | null;
+  senderAvatarVariants?: Record<string, MediaVariantDto>;
   text: string;
   clientMessageId: string;
   createdAt: string;

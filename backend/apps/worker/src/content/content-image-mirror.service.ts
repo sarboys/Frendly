@@ -8,6 +8,10 @@ import {
 } from '@big-break/database';
 import { createHash } from 'crypto';
 import type { NormalizedExternalContentItem } from './content-source.types';
+import {
+  AFFICHE_IMAGE_VARIANT_SPECS,
+  createImageVariants,
+} from '../media/image-variants';
 
 const DEFAULT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const DEFAULT_IMAGE_TIMEOUT_MS = 15_000;
@@ -23,6 +27,11 @@ export interface MirrorImageInput {
   imageUrl?: string | null;
 }
 
+type MirroredImageAsset = {
+  imageUrl: string | null;
+  imageVariants: Record<string, unknown>;
+};
+
 @Injectable()
 export class ContentImageMirrorService {
   private s3: S3Client | null = null;
@@ -30,33 +39,41 @@ export class ContentImageMirrorService {
   async mirrorExternalImage(
     item: NormalizedExternalContentItem,
   ): Promise<NormalizedExternalContentItem> {
-    const mirroredUrl = await this.mirrorImageUrl(item);
-    if (!mirroredUrl || mirroredUrl === item.imageUrl) {
+    const mirrored = await this.mirrorImageAsset(item);
+    if (!mirrored.imageUrl || mirrored.imageUrl === item.imageUrl) {
       return item;
     }
 
     return {
       ...item,
-      imageUrl: mirroredUrl,
+      imageUrl: mirrored.imageUrl,
+      imageVariants: mirrored.imageVariants,
     };
   }
 
   async mirrorImageUrl(input: MirrorImageInput): Promise<string | null> {
+    return (await this.mirrorImageAsset(input)).imageUrl;
+  }
+
+  private async mirrorImageAsset(input: MirrorImageInput): Promise<MirroredImageAsset> {
     const imageUrl = input.imageUrl?.trim();
     if (!imageUrl || !isHttpsUrl(imageUrl) || this.isOwnAssetUrl(imageUrl)) {
-      return imageUrl ?? null;
+      return { imageUrl: imageUrl ?? null, imageVariants: {} };
     }
 
     const fetchUrl = sourceImageUrl(imageUrl);
     try {
       const image = await this.downloadImage(fetchUrl);
       if (!image) {
-        return imageUrl;
+        return { imageUrl, imageVariants: {} };
       }
 
       const objectKey = this.objectKey(input, fetchUrl, image.contentType);
       await this.putIfMissing(objectKey, image);
-      return buildPublicAssetUrl(objectKey);
+      return {
+        imageUrl: buildPublicAssetUrl(objectKey),
+        imageVariants: await this.tryCreateVariants(objectKey, image.bytes),
+      };
     } catch (caught) {
       console.warn('[content-import] image mirror failed', {
         sourceCode: input.sourceCode,
@@ -64,7 +81,24 @@ export class ContentImageMirrorService {
         imageHost: imageHost(fetchUrl),
         reason: caught instanceof Error ? caught.message : 'unknown',
       });
-      return imageUrl;
+      return { imageUrl, imageVariants: {} };
+    }
+  }
+
+  private async tryCreateVariants(objectKey: string, bytes: Buffer) {
+    try {
+      return await createImageVariants({
+        s3: this.s3Client(),
+        sourceBytes: bytes,
+        sourceObjectKey: objectKey,
+        specs: AFFICHE_IMAGE_VARIANT_SPECS,
+      });
+    } catch (caught) {
+      console.warn('[content-import] image variants failed', {
+        objectKey,
+        reason: caught instanceof Error ? caught.message : 'unknown',
+      });
+      return {};
     }
   }
 

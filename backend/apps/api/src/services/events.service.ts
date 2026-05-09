@@ -983,10 +983,6 @@ export class EventsService {
     const isDatingMode = mode === 'dating';
     const isAfterDarkMode = mode === 'afterdark';
 
-    if (isDatingMode) {
-      await this.assertDatingUnlocked(userId);
-    }
-
     if (isAfterDarkMode) {
       await this.assertAfterDarkUnlocked(userId);
     }
@@ -3077,13 +3073,6 @@ export class EventsService {
         readAt: new Date(),
       },
     });
-  }
-
-  private async assertDatingUnlocked(userId: string) {
-    const allowed = await this.subscriptionService.hasPremiumAccess(userId);
-    if (!allowed) {
-      throw new ApiError(403, 'dating_locked', 'Dating is available only for Frendly+');
-    }
   }
 
   private async assertAfterDarkUnlocked(userId: string) {

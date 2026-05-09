@@ -66,6 +66,7 @@ describe('ProfileService', () => {
                     byteSize: true,
                     durationMs: true,
                     publicUrl: true,
+                    variants: true,
                   },
                 },
               },
@@ -256,6 +257,7 @@ describe('ProfileService', () => {
         kind: true,
         status: true,
         publicUrl: true,
+        variants: true,
       },
     });
     expect(client.profilePhoto.findUnique).toHaveBeenCalledWith({
@@ -272,6 +274,7 @@ describe('ProfileService', () => {
             byteSize: true,
             durationMs: true,
             publicUrl: true,
+            variants: true,
           },
         },
       },
@@ -554,6 +557,7 @@ describe('ProfileService', () => {
           byteSize: true,
           durationMs: true,
           publicUrl: true,
+          variants: true,
         },
       }),
     );
@@ -570,6 +574,7 @@ describe('ProfileService', () => {
               byteSize: true,
               durationMs: true,
               publicUrl: true,
+              variants: true,
             },
           },
         },
@@ -643,6 +648,7 @@ describe('ProfileService', () => {
           id: true,
           status: true,
           publicUrl: true,
+          variants: true,
         },
       }),
     );
@@ -659,6 +665,7 @@ describe('ProfileService', () => {
               byteSize: true,
               durationMs: true,
               publicUrl: true,
+              variants: true,
             },
           },
         },

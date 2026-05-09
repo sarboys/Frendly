@@ -53,6 +53,7 @@ export type NormalizedExternalContentItem = {
   currency: string | null;
   venueName: string | null;
   imageUrl: string | null;
+  imageVariants?: Record<string, unknown> | null;
   actionUrl: string | null;
   actionKind: string | null;
   priceMode: ExternalPriceMode;

@@ -8,6 +8,7 @@ import {
   createS3Client,
   createS3RequestOptions,
   getS3Config,
+  OUTBOX_EVENT_TYPES,
 } from '@big-break/database';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
@@ -32,6 +33,7 @@ const PROFILE_PHOTO_MEDIA_SELECT = {
   byteSize: true,
   durationMs: true,
   publicUrl: true,
+  variants: true,
 } satisfies Prisma.MediaAssetSelect;
 const EXISTING_AVATAR_ASSET_SELECT = {
   id: true,
@@ -39,6 +41,7 @@ const EXISTING_AVATAR_ASSET_SELECT = {
   kind: true,
   status: true,
   publicUrl: true,
+  variants: true,
 } satisfies Prisma.MediaAssetSelect;
 
 @Injectable()
@@ -214,8 +217,20 @@ export class ProfileService {
           byteSize: true,
           durationMs: true,
           publicUrl: true,
+          variants: true,
         },
       });
+
+      if (!BYPASS_S3_UPLOAD) {
+        await tx.outboxEvent.create({
+          data: {
+            type: OUTBOX_EVENT_TYPES.mediaFinalize,
+            payload: {
+              assetId: asset.id,
+            },
+          },
+        });
+      }
 
       const photo = await tx.profilePhoto.create({
         data: {
@@ -234,6 +249,7 @@ export class ProfileService {
               byteSize: true,
               durationMs: true,
               publicUrl: true,
+              variants: true,
             },
           },
         },
@@ -609,6 +625,7 @@ export class ProfileService {
                     byteSize: true,
                     durationMs: true,
                     publicUrl: true,
+                    variants: true,
                   },
                 },
               },
@@ -691,7 +708,7 @@ export class ProfileService {
     },
   ) {
     try {
-      return await this.prismaService.client.mediaAsset.create({
+      const asset = await this.prismaService.client.mediaAsset.create({
         data: {
           ownerId: userId,
           kind: 'avatar',
@@ -704,6 +721,17 @@ export class ProfileService {
           publicUrl: input.publicUrl,
         },
       });
+      if (!BYPASS_S3_UPLOAD) {
+        await this.prismaService.client.outboxEvent.create({
+          data: {
+            type: OUTBOX_EVENT_TYPES.mediaFinalize,
+            payload: {
+              assetId: asset.id,
+            },
+          },
+        });
+      }
+      return asset;
     } catch (error) {
       if (!this.isUniqueConstraintError(error)) {
         throw error;
@@ -860,8 +888,20 @@ export class ProfileService {
           id: true,
           status: true,
           publicUrl: true,
+          variants: true,
         },
       });
+
+      if (!BYPASS_S3_UPLOAD) {
+        await tx.outboxEvent.create({
+          data: {
+            type: OUTBOX_EVENT_TYPES.mediaFinalize,
+            payload: {
+              assetId: asset.id,
+            },
+          },
+        });
+      }
 
       await this.lockProfilePhotoOrder(tx, userId);
 
@@ -888,6 +928,7 @@ export class ProfileService {
               byteSize: true,
               durationMs: true,
               publicUrl: true,
+              variants: true,
             },
           },
         },

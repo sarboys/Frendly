@@ -10,7 +10,6 @@ import { ApiError } from '../common/api-error';
 import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 import { PeopleService } from './people.service';
-import { SubscriptionService } from './subscription.service';
 
 const _positiveDatingActions = new Set<DatingActionKind>(['like', 'super_like']);
 type DatingGender = 'male' | 'female';
@@ -22,6 +21,7 @@ const DATING_PROFILE_PHOTO_MEDIA_SELECT = {
   byteSize: true,
   durationMs: true,
   publicUrl: true,
+  variants: true,
 } satisfies Prisma.MediaAssetSelect;
 const DATING_PROFILE_PHOTO_SELECT = {
   id: true,
@@ -93,6 +93,7 @@ type DatingProfileUser = {
         byteSize: number;
         durationMs: number | null;
         publicUrl: string | null;
+        variants?: unknown;
       };
     }>;
   } | null;
@@ -124,15 +125,12 @@ export class DatingService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly peopleService: PeopleService,
-    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async listDiscover(
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
-    await this.assertDatingUnlocked(userId);
-
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -161,9 +159,6 @@ export class DatingService {
           is: {
             discoverable: true,
           },
-        },
-        subscriptions: {
-          some: this.premiumSubscriptionWhere(),
         },
         datingActionsReceived: {
           none: {
@@ -213,8 +208,6 @@ export class DatingService {
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
-    await this.assertDatingUnlocked(userId);
-
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -245,9 +238,6 @@ export class DatingService {
               discoverable: true,
             },
           },
-          subscriptions: {
-            some: this.premiumSubscriptionWhere(),
-          },
         },
       },
       select: {
@@ -277,8 +267,6 @@ export class DatingService {
   }
 
   async recordAction(userId: string, body: Record<string, unknown>) {
-    await this.assertDatingUnlocked(userId);
-
     const targetUserId =
       typeof body.targetUserId === 'string' ? body.targetUserId.trim() : '';
     const action = this.parseAction(body.action);
@@ -306,9 +294,6 @@ export class DatingService {
             is: {
               discoverable: true,
             },
-          },
-          subscriptions: {
-            some: this.premiumSubscriptionWhere(),
           },
         },
         select: DATING_USER_CARD_SELECT,
@@ -390,40 +375,6 @@ export class DatingService {
             reciprocal != null && _positiveDatingActions.has(reciprocal.action),
         },
       ),
-    };
-  }
-
-  private async assertDatingUnlocked(userId: string) {
-    const allowed = await this.subscriptionService.hasPremiumAccess(userId);
-    if (!allowed) {
-      throw new ApiError(403, 'dating_locked', 'Dating is available only for Frendly+');
-    }
-  }
-
-  private premiumSubscriptionWhere(): Prisma.UserSubscriptionWhereInput {
-    const now = new Date();
-
-    return {
-      OR: [
-        {
-          status: 'trial',
-          trialEndsAt: {
-            gt: now,
-          },
-        },
-        {
-          status: 'active',
-          renewsAt: {
-            gt: now,
-          },
-        },
-        {
-          status: 'canceled',
-          renewsAt: {
-            gt: now,
-          },
-        },
-      ],
     };
   }
 
