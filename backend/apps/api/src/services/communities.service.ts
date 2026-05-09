@@ -179,6 +179,106 @@ export class CommunitiesService {
     };
   }
 
+  async joinCommunity(userId: string, communityId: string) {
+    const community = await this.prismaService.client.community.findFirst({
+      where: {
+        id: communityId,
+      },
+      select: {
+        id: true,
+        chatId: true,
+        privacy: true,
+        createdById: true,
+      },
+    });
+
+    if (!community) {
+      throw new ApiError(404, 'community_not_found', 'Community not found');
+    }
+
+    if (community.privacy === CommunityPrivacy.private) {
+      throw new ApiError(
+        409,
+        'community_join_request_required',
+        'Community join request is required',
+      );
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.communityMember.upsert({
+        where: {
+          communityId_userId: {
+            communityId: community.id,
+            userId,
+          },
+        },
+        create: {
+          communityId: community.id,
+          userId,
+          role: 'member',
+        },
+        update: {},
+      });
+      await tx.chatMember.upsert({
+        where: {
+          chatId_userId: {
+            chatId: community.chatId,
+            userId,
+          },
+        },
+        create: {
+          chatId: community.chatId,
+          userId,
+        },
+        update: {},
+      });
+    });
+
+    return this.getCommunity(userId, community.id);
+  }
+
+  async leaveCommunity(userId: string, communityId: string) {
+    const community = await this.prismaService.client.community.findFirst({
+      where: {
+        id: communityId,
+      },
+      select: {
+        id: true,
+        chatId: true,
+        createdById: true,
+      },
+    });
+
+    if (!community) {
+      throw new ApiError(404, 'community_not_found', 'Community not found');
+    }
+
+    if (community.createdById === userId) {
+      throw new ApiError(
+        400,
+        'community_owner_cannot_leave',
+        'Community owner cannot leave the community',
+      );
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.communityMember.deleteMany({
+        where: {
+          communityId: community.id,
+          userId,
+        },
+      });
+      await tx.chatMember.deleteMany({
+        where: {
+          chatId: community.chatId,
+          userId,
+        },
+      });
+    });
+
+    return this.getCommunity(userId, community.id);
+  }
+
   async createCommunityNews(
     userId: string,
     communityId: string,

@@ -1,5 +1,9 @@
 import { DatingService } from '../../src/services/dating.service';
 
+const plusAccess = {
+  hasPremiumAccess: jest.fn().mockResolvedValue(true),
+};
+
 describe('DatingService unit', () => {
   it('does not load all prior dating actions before discover query', async () => {
     const datingActionFindMany = jest.fn().mockImplementation(() => {
@@ -27,6 +31,7 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
+      plusAccess as any,
     );
 
     await expect(service.listDiscover('user-me')).resolves.toEqual({
@@ -74,6 +79,7 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
+      plusAccess as any,
     );
 
     await service.listDiscover('user-me');
@@ -123,6 +129,9 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
     );
 
     await service.listLikes('user-me');
@@ -146,6 +155,44 @@ describe('DatingService unit', () => {
         }),
       }),
     );
+  });
+
+  it('rejects incoming likes without Frendly+', async () => {
+    const datingActionFindMany = jest.fn();
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              profile: {
+                gender: 'female',
+              },
+              onboarding: {
+                gender: 'female',
+                interests: [],
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: datingActionFindMany,
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+    );
+
+    await expect(service.listLikes('user-me')).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'frendly_plus_required',
+    });
+    expect(datingActionFindMany).not.toHaveBeenCalled();
   });
 
   it('does not match stale onboarding gender when profile gender conflicts', async () => {
@@ -175,6 +222,7 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
+      plusAccess as any,
     );
 
     await service.listDiscover('user-me');
@@ -212,6 +260,7 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
+      plusAccess as any,
     );
 
     await service.listDiscover('user-me');
@@ -253,6 +302,9 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
     );
 
     await service.listDiscover('user-me');
@@ -385,6 +437,7 @@ describe('DatingService unit', () => {
         },
       } as any,
       {} as any,
+      plusAccess as any,
     );
 
     const resultPromise = service.recordAction('user-me', {
@@ -419,6 +472,139 @@ describe('DatingService unit', () => {
       ok: true,
       action: 'pass',
       matched: false,
+    });
+  });
+
+  it('rejects a second free super like in the UTC day', async () => {
+    const upsert = jest.fn();
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              displayName: 'Никита',
+              profile: {
+                gender: 'male',
+              },
+              onboarding: {
+                gender: 'male',
+                interests: [],
+              },
+            }),
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'user-sonya',
+              displayName: 'Соня',
+              verified: true,
+              online: true,
+              profile: {
+                age: 26,
+                area: 'Замоскворечье',
+                bio: 'Люблю тихие ужины.',
+                vibe: 'Спокойно',
+                avatarUrl: null,
+                photos: [],
+              },
+              onboarding: {
+                interests: [],
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            count: jest.fn().mockResolvedValue(1),
+            upsert,
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+    );
+
+    await expect(
+      service.recordAction('user-me', {
+        targetUserId: 'user-sonya',
+        action: 'super_like',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 402,
+      code: 'super_like_limit_reached',
+    });
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('returns remaining premium super likes after a super like', async () => {
+    const datingActionFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ action: 'like' })
+      .mockResolvedValueOnce(null);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              displayName: 'Никита',
+              profile: {
+                gender: 'male',
+              },
+              onboarding: {
+                gender: 'male',
+                interests: [],
+              },
+            }),
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'user-sonya',
+              displayName: 'Соня',
+              verified: true,
+              online: true,
+              profile: {
+                age: 26,
+                area: 'Замоскворечье',
+                bio: 'Люблю тихие ужины.',
+                vibe: 'Спокойно',
+                avatarUrl: null,
+                photos: [],
+              },
+              onboarding: {
+                interests: [],
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findUnique: datingActionFindUnique,
+            count: jest.fn().mockResolvedValue(14),
+            upsert: jest.fn().mockResolvedValue({}),
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+    );
+
+    await expect(
+      service.recordAction('user-me', {
+        targetUserId: 'user-sonya',
+        action: 'super_like',
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      action: 'super_like',
+      superLikeQuota: {
+        limit: 15,
+        remaining: 0,
+        premium: true,
+      },
     });
   });
 
@@ -477,6 +663,7 @@ describe('DatingService unit', () => {
         client,
       } as any,
       {} as any,
+      plusAccess as any,
     );
 
     await service.recordAction('user-me', {
@@ -577,6 +764,7 @@ describe('DatingService unit', () => {
         client,
       } as any,
       {} as any,
+      plusAccess as any,
     );
 
     await expect(

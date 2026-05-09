@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DatingActionKind, Prisma, User } from '@prisma/client';
+import { DatingActionKind, Prisma } from '@prisma/client';
 import {
   OUTBOX_EVENT_TYPES,
   decodeCursor,
@@ -10,9 +10,12 @@ import { ApiError } from '../common/api-error';
 import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 import { PeopleService } from './people.service';
+import { SubscriptionService } from './subscription.service';
 
 const _positiveDatingActions = new Set<DatingActionKind>(['like', 'super_like']);
 type DatingGender = 'male' | 'female';
+const FREE_SUPER_LIKE_DAILY_LIMIT = 1;
+const PLUS_SUPER_LIKE_DAILY_LIMIT = 15;
 const DATING_PROFILE_PHOTO_LIMIT = 6;
 const DATING_PROFILE_PHOTO_MEDIA_SELECT = {
   id: true,
@@ -125,6 +128,7 @@ export class DatingService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly peopleService: PeopleService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async listDiscover(
@@ -208,6 +212,8 @@ export class DatingService {
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
+    await this.requireFrendlyPlus(userId);
+
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -313,6 +319,11 @@ export class DatingService {
       throw new ApiError(404, 'dating_user_not_found', 'Dating user not found');
     }
 
+    const superLikeQuota =
+      action === 'super_like'
+        ? await this.ensureSuperLikeQuota(userId, previousAction?.action)
+        : null;
+
     await this.prismaService.client.datingAction.upsert({
       where: {
         actorUserId_targetUserId: {
@@ -367,6 +378,7 @@ export class DatingService {
       action,
       matched,
       chatId: chat?.id ?? null,
+      superLikeQuota,
       peer: this.mapDatingProfile(
         targetUser,
         this.extractInterests(self?.onboarding?.interests),
@@ -376,6 +388,69 @@ export class DatingService {
         },
       ),
     };
+  }
+
+  private async requireFrendlyPlus(userId: string) {
+    const hasPremium = await this.subscriptionService.hasPremiumAccess(userId);
+    if (!hasPremium) {
+      throw new ApiError(
+        403,
+        'frendly_plus_required',
+        'Frendly Plus is required',
+      );
+    }
+  }
+
+  private async ensureSuperLikeQuota(
+    userId: string,
+    previousAction?: DatingActionKind,
+  ) {
+    const window = this.currentUtcDayWindow();
+    const premium = await this.subscriptionService.hasPremiumAccess(userId);
+    const limit = premium
+      ? PLUS_SUPER_LIKE_DAILY_LIMIT
+      : FREE_SUPER_LIKE_DAILY_LIMIT;
+    const used = await this.prismaService.client.datingAction.count({
+      where: {
+        actorUserId: userId,
+        action: 'super_like',
+        updatedAt: {
+          gte: window.start,
+          lt: window.end,
+        },
+      },
+    });
+    const alreadySuperLiked = previousAction === 'super_like';
+
+    if (!alreadySuperLiked && used >= limit) {
+      throw new ApiError(
+        402,
+        'super_like_limit_reached',
+        'Daily super like limit reached',
+      );
+    }
+
+    const usedAfterAction = alreadySuperLiked ? used : used + 1;
+    return {
+      limit,
+      remaining: Math.max(0, limit - usedAfterAction),
+      premium,
+      resetAt: window.end.toISOString(),
+    };
+  }
+
+  private currentUtcDayWindow() {
+    const now = new Date();
+    const start = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+      ),
+    );
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    return { start, end };
   }
 
   private mapDatingProfile(

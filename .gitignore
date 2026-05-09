@@ -4,9 +4,11 @@
 .superpowers/
 AGENTS.md
 .vscode/
+.idea/
 front/
 mobile/
 admin/
+landing/
 docs/*
 !docs/backend_performance_audit.md
 *.html

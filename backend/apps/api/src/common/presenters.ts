@@ -325,7 +325,10 @@ export function mapEventSummary(params: {
     attendance,
     liveState,
   } = params;
-  const attendeePreview = participants.filter((participant) => participant.userId !== currentUserId);
+  const attendeePreview = participants.filter(
+    (participant) =>
+      participant.userId !== currentUserId && participant.userId !== event.hostId,
+  );
 
   return {
     id: event.id,

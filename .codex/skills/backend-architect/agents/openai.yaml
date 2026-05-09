@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Architect"
+  short_description: "Backend architecture and API design"
+  default_prompt: "Use -architect for API, database, auth, performance, or backend architecture work."

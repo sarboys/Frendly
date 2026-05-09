@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flutter Mobile App Dev"
+  short_description: "Flutter mobile app development"
+  default_prompt: "Use -mobile-app-dev for Flutter widgets, navigation, state, performance, or mobile architecture work."

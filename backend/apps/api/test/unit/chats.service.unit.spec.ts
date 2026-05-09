@@ -258,6 +258,9 @@ describe('ChatsService unit', () => {
             },
           ]),
         },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
       },
     } as any);
 
@@ -348,6 +351,117 @@ describe('ChatsService unit', () => {
       ticketPriceFrom: 1200,
       ticketProvider: 'Kassir',
       ticketVenue: 'Каро',
+    });
+  });
+
+  it('exposes pinned state and sorts pinned chats first', async () => {
+    const newerChat = makeChatListItem(
+      'chat-newer',
+      new Date('2026-04-24T12:00:00.000Z'),
+    ) as any;
+    const pinnedChat = makeChatListItem(
+      'chat-pinned',
+      new Date('2026-04-23T10:00:00.000Z'),
+    ) as any;
+    const chatMemberFindMany = jest.fn().mockResolvedValue([
+      {
+        chatId: 'chat-newer',
+        unreadCount: 0,
+        isPinned: false,
+        pinnedAt: null,
+      },
+      {
+        chatId: 'chat-pinned',
+        unreadCount: 2,
+        isPinned: true,
+        pinnedAt: new Date('2026-04-24T13:00:00.000Z'),
+      },
+    ]);
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([newerChat, pinnedChat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: chatMemberFindMany,
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(result.items.map((item) => item.id)).toEqual([
+      'chat-pinned',
+      'chat-newer',
+    ]);
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-pinned',
+      isPinned: true,
+      unread: 2,
+    });
+    expect(result.items[1]).toMatchObject({
+      id: 'chat-newer',
+      isPinned: false,
+      unread: 0,
+    });
+    expect(chatMemberFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-me',
+        chatId: {
+          in: ['chat-newer', 'chat-pinned'],
+        },
+      },
+      select: {
+        chatId: true,
+        unreadCount: true,
+        isPinned: true,
+        pinnedAt: true,
+      },
+    });
+  });
+
+  it('updates pinned state for the current chat member', async () => {
+    const update = jest.fn().mockResolvedValue({
+      chatId: 'chat-1',
+      isPinned: true,
+      pinnedAt: new Date('2026-04-24T13:00:00.000Z'),
+    });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          update,
+        },
+      },
+    } as any);
+
+    const result = await service.setPinned('user-me', 'chat-1', true);
+
+    expect(update).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'chat-1',
+          userId: 'user-me',
+        },
+      },
+      data: {
+        isPinned: true,
+        pinnedAt: expect.any(Date),
+      },
+      select: {
+        chatId: true,
+        isPinned: true,
+        pinnedAt: true,
+      },
+    });
+    expect(result).toEqual({
+      id: 'chat-1',
+      isPinned: true,
+      pinnedAt: '2026-04-24T13:00:00.000Z',
     });
   });
 
@@ -573,6 +687,9 @@ describe('ChatsService unit', () => {
           findUnique: chatFindUnique,
         },
         userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
           findMany: jest.fn().mockResolvedValue([]),
         },
         $queryRaw: jest.fn().mockResolvedValue([]),

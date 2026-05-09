@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Reviewer"
+  short_description: "Review code quality and security"
+  default_prompt: "Use -reviewer to review recent code changes for quality, security, tests, and maintainability."

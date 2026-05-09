@@ -1,0 +1,4 @@
+interface:
+  display_name: "UX Researcher"
+  short_description: "Lean UX research and validation"
+  default_prompt: "Use -researcher for user research, journey maps, personas, usability testing, or design validation."

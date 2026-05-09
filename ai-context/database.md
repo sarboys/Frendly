@@ -56,6 +56,7 @@ Chat and realtime:
 
 - `Chat`, `ChatMember`, `Message`, `MessageAttachment`, `RealtimeEvent`.
 - `ChatMember.unreadCount` stores materialized unread count.
+- `ChatMember.isPinned` and `pinnedAt` store per-user chat pin state for meetup and direct chat lists.
 - Evening chat summary is denormalized on `Chat`: `meetupPhase`, `meetupMode`, `currentStep`, `meetupStartsAt`, `meetupEndsAt`.
 
 Media:
@@ -95,10 +96,11 @@ Public:
 ## Hot paths
 
 - Chat unread reads `ChatMember.unreadCount` by default. Set `CHAT_UNREAD_COUNTER_READS=false` for the filtered COUNT fallback.
+- Chat list pin reads use `ChatMember.userId + isPinned + pinnedAt` and sort pinned rows above normal recency in the API response.
 - Community unread fallback keeps the DB `UserBlock` visibility filter in SQL.
 - Incoming dating likes use `DatingAction.targetUserId + action + actorUserId`.
 - `/matches` reads reciprocal positive `DatingAction` rows, not event favorites.
-- Dating matches need `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes.
+- Dating matches and daily super-like quota reads need `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes. Super-like quota counts rows for the current UTC day.
 - Profile social counts use `UserFollow.targetUserId`, `ProfileReaction.targetUserId + kind` and viewer state uses actor plus target. `ProfileReaction` is unique by `actorUserId + targetUserId + kind`, so like and super-like can both exist for one viewer.
 - `db:perf:hot-queries` covers reciprocal dating matches, bounded push token dispatch reads, public Affiche list/search/price filters, and route generation ExternalContentItem event/place scans.
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.

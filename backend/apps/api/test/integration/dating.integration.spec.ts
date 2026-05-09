@@ -24,6 +24,19 @@ describe('dating api flows', () => {
     return date.toISOString();
   };
 
+  const grantPlus = (userId: string, id: string) =>
+    prisma.userSubscription.create({
+      data: {
+        id,
+        userId,
+        plan: 'month',
+        status: 'active',
+        startedAt: new Date('2026-05-01T00:00:00.000Z'),
+        renewsAt: new Date('2026-06-01T00:00:00.000Z'),
+        trialEndsAt: null,
+      },
+    });
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ApiAppModule],
@@ -188,12 +201,21 @@ describe('dating api flows', () => {
     );
   });
 
-  it('returns incoming likes without frendly+', async () => {
+  it('requires Frendly+ for incoming likes and returns them for Plus users', async () => {
     await request(app.getHttpServer())
       .post('/dating/actions')
       .set('authorization', `Bearer ${sonyaAccessToken}`)
       .send({ targetUserId: 'user-me', action: 'like' })
       .expect(201);
+
+    const lockedResponse = await request(app.getHttpServer())
+      .get('/dating/likes')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(403);
+
+    expect(lockedResponse.body.code).toBe('frendly_plus_required');
+
+    await grantPlus('user-me', 'dating-plus-user-me-likes');
 
     const response = await request(app.getHttpServer())
       .get('/dating/likes')
@@ -301,6 +323,8 @@ describe('dating api flows', () => {
         .set('authorization', `Bearer ${sonyaAccessToken}`)
         .send({ targetUserId: 'user-me', action: 'like' })
         .expect(201);
+
+      await grantPlus('user-me', 'dating-plus-user-me-photo-likes');
 
       const likesResponse = await request(app.getHttpServer())
         .get('/dating/likes')

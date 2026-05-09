@@ -69,8 +69,22 @@ Chats:
 - `GET /chats/personal`
 - `GET /chats/:chatId/messages`
 - `POST /chats/:chatId/read`
+- `POST /chats/:chatId/pin` with `{ isPinned }` toggles the current user's pinned state for that chat.
+- Chat list items expose `isPinned`; pinned items are returned before normal recency ordering.
 - Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
 - Meetup chat list items expose paid ticket summary from the linked source. Legacy `Poster` uses `sourcePoster.ticketUrl`, `priceFrom`, `provider` and `venue`; public Affiche uses `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.
+
+Communities:
+
+- `GET /communities`
+- `GET /communities/:communityId`
+- `POST /communities/:communityId/join`
+- `DELETE /communities/:communityId/join`
+- `GET /communities/:communityId/media`
+- `POST /communities/:communityId/news`
+- `POST /communities`
+- Public community join writes both `CommunityMember` and `ChatMember` in one transaction and returns a fresh community detail payload. Leaving removes both memberships for non-owner members. Private communities reject direct join with `community_join_request_required`.
+- `POST /communities` requires Frendly+ access. Non-plus users get `403 community_plus_required`.
 
 People:
 
@@ -103,7 +117,7 @@ Evening:
 - `POST /evening/sessions/:sessionId/start`
 - `POST /evening/sessions/:sessionId/finish`
 - step check-in, advance, skip and offer code endpoints live under `/evening/sessions/:sessionId/steps/*`.
-- `POST /evening/routes/resolve` accepts structured `goal`, `mood`, `budget`, `format`, `area` and optional free text `prompt`. Prompt is parsed on the API side into the same option keys and only fills missing structured fields.
+- `POST /evening/routes/resolve` accepts structured `goal`, `mood`, `budget`, `format`, `area` and optional free text `prompt`. Prompt is parsed on the API side into the same option keys and only fills missing structured fields. Legacy AI clients may send `format=friends`, `format=friend`, `format=newfriends` or `format=social`; API treats them as `format=mixed`.
 
 Uploads and media:
 
@@ -160,15 +174,18 @@ Admin Evening route review:
 - `GET /evening/route-templates` list uses summary payload only: route summary fields, first 4 steps and bounded partner offer preview. Template detail loads full steps separately.
 - Direct joins lock the event row and check capacity inside the transaction.
 - Join request review must not reset a reviewed request back to pending.
+- Duplicate pending event join requests are idempotent: the note can refresh, the request stays pending and host notifications stay deduped by event and user.
 - Event detail uses bounded previews and separate counts.
-- Nearby event list without PostGIS uses two-phase loading: light candidate rows with ids and coordinates first, then full list includes only for the selected page ids. Optional PostGIS candidate scan stays behind `ENABLE_POSTGIS_EVENT_FEED=true`; it must apply the same key public feed filters before returning candidate ids, including canceled state, visibility, gender visibility, date window, route flags, text query, lifestyle, gender, access and price.
+- Nearby event list without PostGIS uses two-phase loading: light candidate rows with ids and coordinates first, then full list includes only for the selected page ids. Geo bounds are strict for events that have coordinates, including viewer-owned, joined and attended events; those viewer-specific exceptions only bypass bounds when the event has no coordinates. Optional PostGIS candidate scan stays behind `ENABLE_POSTGIS_EVENT_FEED=true`; it must apply the same key public feed filters before returning candidate ids, including canceled state, visibility, gender visibility, date window, route flags, text query, lifestyle, gender, access and price.
 - Mobile remote search keeps grouped search limits bounded instead of requesting 20 items per group.
 - Chat list member previews are bounded and block-aware. Meetup previews include `memberProfiles` so clients do not use display names as ids.
 - Profile social snapshots are local to a profile request or explicit `/people/:userId/social` request. Do not hydrate profile social for every list row unless the endpoint explicitly returns a bounded preview.
 - Meetup ticket summary is part of chat summary. Mobile must not fetch poster or affiche detail just to render the chat buy-ticket block.
 - Chat history hides blocked `replyTo` previews.
 - Cursors carry sort keys plus id when possible.
-- Dating endpoints `/dating/discover`, `/dating/likes` and `/dating/actions` are available to all authenticated users. Do not gate dating profiles, incoming likes, actions or `POST /events` with `mode=dating` behind Frendly+.
+- Dating discover remains available to all authenticated users. Do not gate dating profiles or `POST /events` with `mode=dating` behind Frendly+.
+- `GET /dating/likes` requires Frendly+ access. Non-plus users get `403 frendly_plus_required`.
+- `POST /dating/actions` remains available to all authenticated users, but `super_like` has a daily UTC quota: free users get 1 per day, Frendly+ users get 15 per day. Limit errors return `402 super_like_limit_reached`. Successful super-like responses can include `superLikeQuota` with `limit`, `remaining`, `premium` and `resetAt`.
 - Direct upload complete is idempotent by object key, owner, kind and target.
 - Private media download checks chat membership, event participation and blocks.
 - Profile photo and avatar payloads expose stable `/media/:assetId` URLs, not stored CDN URLs. The media endpoint can redirect S3 assets to a fresh signed URL, so profile screens are not coupled to a stale CDN URL in DB.

@@ -35,6 +35,8 @@ Use this for WebSocket, chat sync, unread, typing, messages, attachments and Eve
 
 On reconnect, authenticate, resend queued commands, resubscribe known chat ids and request sync from stored cursor.
 
+Chat lists also expose per-user `isPinned`. Mobile toggles it through `POST /chats/:chatId/pin`, updates the row optimistically, then refetches the list.
+
 ## App-level sync
 
 `chatRealtimeSyncProvider` starts after auth.
