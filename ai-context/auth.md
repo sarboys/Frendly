@@ -79,7 +79,7 @@ Admin protected auth:
 - Production delivery uses `PHONE_OTP_DELIVERY_WEBHOOK_URL`.
 - Delivery timeout: `PHONE_OTP_DELIVERY_TIMEOUT_MS`, default 5 seconds.
 - Test shortcut endpoint is behind `ENABLE_TEST_PHONE_SHORTCUTS=true`.
-- Seeded test numbers: `+71111111111` through `+77777777777`.
+- Seeded test numbers are exactly 10 repeated-digit phones: `+70000000000`, `+71111111111`, `+72222222222`, `+73333333333`, `+74444444444`, `+75555555555`, `+76666666666`, `+77777777777`, `+78888888888`, `+79999999999`.
 
 ## Telegram auth
 

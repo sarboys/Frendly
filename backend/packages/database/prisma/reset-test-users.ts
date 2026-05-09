@@ -1,15 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import { TEST_ACCOUNT_PHONE_NUMBERS } from '../src/test-accounts';
 
 const prisma = new PrismaClient();
 
-const testPhoneNumbers = [
-  '+71111111111',
-  '+72222222222',
-  '+73333333333',
-  '+74444444444',
-  '+75555555555',
-  '+76666666666',
-] as const;
+const testPhoneNumbers = TEST_ACCOUNT_PHONE_NUMBERS;
 
 async function main() {
   const users = await prisma.user.findMany({
