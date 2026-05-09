@@ -14,4 +14,5 @@ export * from './pubsub';
 export * from './retention-cleanup';
 export * from './s3';
 export * from './telegram-auth';
+export * from './test-accounts';
 export * from './user-blocks';

@@ -18,6 +18,8 @@
     "db:postgis:event-geo": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/enable-postgis-event-geo.ts",
     "db:perf:hot-queries": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/explain-hot-queries.ts",
     "db:reset:test-users": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/reset-test-users.ts",
+    "db:seed:test-accounts": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/seed-test-accounts.ts seed",
+    "db:delete:test-accounts": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/seed-test-accounts.ts delete",
     "predb:seed": "pnpm prisma:generate",
     "db:seed": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/seed.ts"
   },

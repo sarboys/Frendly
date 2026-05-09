@@ -118,6 +118,8 @@ cd backend && pnpm --filter @big-break/database db:backfill:chat-unread
 cd backend && pnpm --filter @big-break/database db:verify:chat-unread
 cd backend && pnpm --filter @big-break/database db:cleanup:retention
 cd backend && pnpm --filter @big-break/database db:perf:hot-queries
+cd backend && pnpm --filter @big-break/database db:seed:test-accounts
+cd backend && pnpm --filter @big-break/database db:delete:test-accounts
 ```
 
 ## Seed
@@ -125,6 +127,8 @@ cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 Seed file: `backend/packages/database/prisma/seed.ts`.
 
 Seed no longer inserts demo data. It only cleans legacy deterministic demo rows from the old seed by known IDs, including demo users, events, posters, communities, chats, Evening routes, test partner, venues and offer. Running `db:seed` must not create mock users, mock events or mock routes.
+
+Test account data is separate from `db:seed`: `backend/packages/database/prisma/seed-test-accounts.ts` creates or deletes the 10 repeated-digit phone accounts, their profiles, photos, Frendly Plus subscriptions, hosted Moscow meetups and test clubs.
 
 ## When changing schema
 

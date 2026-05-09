@@ -3,6 +3,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { TokenPair } from '@big-break/contracts';
 import {
   maskPhoneNumber,
+  isSeededTestAccountPhoneNumber,
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
@@ -41,16 +42,6 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     private readonly phoneOtpService: PhoneOtpService,
   ) {}
-
-  private static readonly testPhoneShortcutNumbers = new Set<string>([
-    '+71111111111',
-    '+72222222222',
-    '+73333333333',
-    '+74444444444',
-    '+75555555555',
-    '+76666666666',
-    '+77777777777',
-  ]);
 
   async createDevSession(userId = 'user-me'): Promise<TokenPair> {
     if (!this.isDevAuthEnabled()) {
@@ -410,7 +401,7 @@ export class AuthService {
       );
     }
 
-    if (!AuthService.testPhoneShortcutNumbers.has(normalized)) {
+    if (!isSeededTestAccountPhoneNumber(normalized)) {
       this.logger.warn(
         `Rejected test phone shortcut: phone=${maskPhoneNumber(normalized)} reason=not_configured`,
       );
