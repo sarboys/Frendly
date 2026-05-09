@@ -2222,14 +2222,33 @@ export class EventsService {
 
     if (geoBounds != null) {
       conditions.push({
-        latitude: {
-          gte: geoBounds.south,
-          lte: geoBounds.north,
-        },
-        longitude: {
-          gte: geoBounds.west,
-          lte: geoBounds.east,
-        },
+        OR: [
+          {
+            latitude: {
+              gte: geoBounds.south,
+              lte: geoBounds.north,
+            },
+            longitude: {
+              gte: geoBounds.west,
+              lte: geoBounds.east,
+            },
+          },
+          { hostId: userId },
+          {
+            participants: {
+              some: {
+                userId,
+              },
+            },
+          },
+          {
+            attendances: {
+              some: {
+                userId,
+              },
+            },
+          },
+        ],
       });
     }
 
@@ -2487,13 +2506,15 @@ export class EventsService {
       FROM (
         SELECT
           e."id" AS event_id,
-          ST_Distance(
-            e."geo",
-            ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography
-          ) / 1000 AS distance_km
+          CASE
+            WHEN e."geo" IS NOT NULL THEN ST_Distance(
+              e."geo",
+              ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography
+            ) / 1000
+            ELSE COALESCE(e."distanceKm", ${radiusKm})
+          END AS distance_km
         FROM "Event" e
-        WHERE e."geo" IS NOT NULL
-          AND e."canceledAt" IS NULL
+        WHERE e."canceledAt" IS NULL
           AND e."isAfterDark" = false
           ${visibilityFilter}
           ${genderVisibilityFilter}
@@ -2505,10 +2526,22 @@ export class EventsService {
           ${accessFilter}
           ${priceFilter}
           ${blockedHostFilter}
-          AND ST_DWithin(
-            e."geo",
-            ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography,
-            ${radiusMeters}
+          AND (
+            (
+              e."geo" IS NOT NULL
+              AND ST_DWithin(
+                e."geo",
+                ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography,
+                ${radiusMeters}
+              )
+            )
+            OR (
+              e."geo" IS NULL
+              AND (
+                e."hostId" = ${params.userId}
+                OR ${participantOrAttendanceVisibility}
+              )
+            )
           )
       ) candidate
       ${cursorFilter}
