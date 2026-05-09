@@ -1242,7 +1242,7 @@ describe('core api flows', () => {
     expect(openEventResponse.body.joined).toBe(false);
     expect(openEventResponse.body.chatId).toBeNull();
     expect(openEventResponse.body.host.id).toBe('user-sonya');
-    expect(openEventResponse.body.attendees.length).toBeGreaterThan(0);
+    expect(openEventResponse.body.attendees).toEqual([]);
 
     const createResponse = await request(app.getHttpServer())
       .post('/events')

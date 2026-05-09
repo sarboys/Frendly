@@ -175,7 +175,7 @@ Admin Evening route review:
 - Direct joins lock the event row and check capacity inside the transaction.
 - Join request review must not reset a reviewed request back to pending.
 - Duplicate pending event join requests are idempotent: the note can refresh, the request stays pending and host notifications stay deduped by event and user.
-- Event detail uses bounded previews and separate counts.
+- Event detail uses bounded previews and separate counts. `attendees` preview excludes the host because the host is exposed in the separate `host` block.
 - Nearby event list without PostGIS uses two-phase loading: light candidate rows with ids and coordinates first, then full list includes only for the selected page ids. Geo bounds are strict for events that have coordinates, including viewer-owned, joined and attended events; those viewer-specific exceptions only bypass bounds when the event has no coordinates. Optional PostGIS candidate scan stays behind `ENABLE_POSTGIS_EVENT_FEED=true`; it must apply the same key public feed filters before returning candidate ids, including canceled state, visibility, gender visibility, date window, route flags, text query, lifestyle, gender, access and price.
 - Mobile remote search keeps grouped search limits bounded instead of requesting 20 items per group.
 - Chat list member previews are bounded and block-aware. Meetup previews include `memberProfiles` so clients do not use display names as ids.
