@@ -398,6 +398,7 @@ export class RouteDraftGenerationService {
         title: item.title,
         summary: item.shortSummary,
         category: item.category,
+        tags: Array.isArray(item.tags) ? item.tags : [],
         address: item.address,
         lat: item.lat,
         lng: item.lng,
@@ -614,14 +615,15 @@ function buildFallbackRoute(input: RouteDraftGenerationInput, candidates: any[])
 function balancePlaceCandidates<T extends {
   id: string;
   area?: string | null;
+  tags?: unknown;
   category?: string | null;
   lat?: number | null;
   lng?: number | null;
 }>(places: T[], input: RouteDraftGenerationInput) {
   const preferredArea = normalizeArea(input.area);
   const sorted = [...places].sort((left, right) => {
-    const leftArea = preferredArea != null && normalizeArea(left.area) === preferredArea ? 0 : 1;
-    const rightArea = preferredArea != null && normalizeArea(right.area) === preferredArea ? 0 : 1;
+    const leftArea = preferredArea != null && placeMatchesArea(left, preferredArea) ? 0 : 1;
+    const rightArea = preferredArea != null && placeMatchesArea(right, preferredArea) ? 0 : 1;
     if (leftArea !== rightArea) {
       return leftArea - rightArea;
     }
@@ -683,6 +685,20 @@ function normalizeArea(value: string | null | undefined) {
   }
   const normalized = value.trim().toLowerCase().replace(/\s+/g, ' ');
   return normalized.length > 0 ? normalized : null;
+}
+
+function placeMatchesArea(
+  place: { area?: string | null; tags?: unknown },
+  preferredArea: string,
+) {
+  if (normalizeArea(place.area) === preferredArea) {
+    return true;
+  }
+  const tags = Array.isArray(place.tags) ? place.tags.filter((tag): tag is string => typeof tag === 'string') : [];
+  if (preferredArea === 'центр' || preferredArea === 'center') {
+    return tags.includes('area:center');
+  }
+  return tags.includes(`area:${preferredArea.replace(/\s+/g, '_')}`);
 }
 
 function geoBucket(value: { lat?: number | null; lng?: number | null }) {

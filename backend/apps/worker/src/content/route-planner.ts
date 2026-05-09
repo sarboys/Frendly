@@ -5,6 +5,7 @@ export type RoutePlannerCandidate = {
   title: string;
   shortSummary?: string | null;
   category: string;
+  tags?: string[] | null;
   address?: string | null;
   lat?: number | null;
   lng?: number | null;
@@ -1073,11 +1074,17 @@ function explicitCategoryFromSource(category: string) {
   if (normalized === 'restaurant' || normalized === 'food') {
     return 'food';
   }
+  if (normalized === 'bistro') {
+    return 'food';
+  }
   if (normalized === 'cafe' || normalized === 'coffee') {
     return 'cafe';
   }
-  if (normalized === 'bar' || normalized === 'pub') {
+  if (normalized === 'bar' || normalized === 'pub' || normalized === 'gastropub') {
     return 'bar';
+  }
+  if (normalized === 'karaoke') {
+    return 'active';
   }
   if (normalized === 'quest' || normalized === 'quests') {
     return 'quest';
@@ -1482,6 +1489,9 @@ function candidateFitsBudget(candidate: PlanningCandidate, budget: string | null
   }
   if (budget === 'free') {
     return isExplicitlyFreeCandidate(candidate);
+  }
+  if (budget === 'low' && Array.isArray(candidate.tags) && candidate.tags.includes('budget:cheap')) {
+    return true;
   }
   const limit = budget == null ? null : budgetLimitFor(budget);
   return limit == null || (candidate.priceFrom ?? 0) <= limit;

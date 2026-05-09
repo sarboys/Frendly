@@ -39,6 +39,9 @@ const SOURCE_CITY_CODES: Record<ExternalSourceCode, Record<string, string>> = {
     'Москва': 'Москва',
     'Санкт-Петербург': 'Санкт-Петербург',
   },
+  tomesto: {
+    'Москва': 'moskva',
+  },
 };
 
 const PUBLIC_STATUS_PUBLISHED = 'published';
@@ -302,6 +305,11 @@ export class ContentImportService {
     let freeCount = 0;
     let unknownPriceCount = 0;
     let missingCoordsCount = 0;
+    const tomestoHiddenCounts = {
+      eventDefaultDisabled: 0,
+      promoSurfaceMissing: 0,
+      unknownPrice: 0,
+    };
     const rssBefore = process.memoryUsage().rss;
     const startedAt = Date.now();
     const duplicateCache: DuplicateCandidateCache = new Map();
@@ -333,6 +341,9 @@ export class ContentImportService {
               ? await this.imageMirror.mirrorExternalImage(normalized.item)
               : normalized.item;
             const publicStatus = normalized.publicStatusOverride ?? publicStatusFor(item);
+            if (item.sourceCode === 'tomesto' && publicStatus === PUBLIC_STATUS_HIDDEN) {
+              countTomestoHiddenReason(item, tomestoHiddenCounts);
+            }
             await this.upsertItem(input.sourceId, input.runId, item, publicStatus);
             normalizedCount += 1;
             if (publicStatus === PUBLIC_STATUS_PUBLISHED) {
@@ -399,6 +410,12 @@ export class ContentImportService {
         durationMs,
         itemsPerSecond: itemsPerSecond(fetchedCount, durationMs),
       });
+      if (input.sourceCode === 'tomesto' && Object.values(tomestoHiddenCounts).some((count) => count > 0)) {
+        console.info('[content-import] tomesto hidden counts', {
+          runId: input.runId,
+          ...tomestoHiddenCounts,
+        });
+      }
     } catch (caught) {
       const failure = contentImportFailure(caught);
       const durationMs = Date.now() - startedAt;
@@ -799,6 +816,17 @@ function publicStatusFor(item: NormalizedExternalContentItem) {
   if (item.contentKind === 'place') {
     return PUBLIC_STATUS_PUBLISHED;
   }
+  if (item.sourceCode === 'tomesto') {
+    if (object(item.raw)?.kind === 'promo') {
+      return PUBLIC_STATUS_HIDDEN;
+    }
+    if (process.env.TOMESTO_PUBLIC_EVENTS_ENABLED !== 'true') {
+      return PUBLIC_STATUS_HIDDEN;
+    }
+    return item.priceMode === 'free' || item.priceMode === 'paid'
+      ? PUBLIC_STATUS_PUBLISHED
+      : PUBLIC_STATUS_HIDDEN;
+  }
   if (item.priceMode === 'unknown') {
     return PUBLIC_STATUS_HIDDEN;
   }
@@ -818,7 +846,7 @@ function publicStatusFor(item: NormalizedExternalContentItem) {
 
 function contentImportFailure(caught: unknown) {
   const rawMessage = caught instanceof Error ? caught.message : 'Content import failed';
-  const masked = maskKnownSecrets(maskAdvCakeSecrets(rawMessage));
+  const masked = maskKnownSecrets(maskTomestoSecrets(maskAdvCakeSecrets(rawMessage)));
   return {
     code: masked.slice(0, 120) || 'content_import_failed',
     message: masked.slice(0, 500) || 'Content import failed',
@@ -827,10 +855,29 @@ function contentImportFailure(caught: unknown) {
 
 function maskKnownSecrets(value: string) {
   let masked = value;
-  for (const secret of [process.env.TIMEPAD_API_TOKEN, process.env.ADVCAKE_API_PASS]) {
+  for (const secret of [process.env.TIMEPAD_API_TOKEN, process.env.ADVCAKE_API_PASS, process.env.TOMESTO_REF_QUERY]) {
     if (typeof secret === 'string' && secret.length > 0) {
       masked = masked.split(secret).join('***');
     }
   }
   return masked;
+}
+
+function maskTomestoSecrets(value: string) {
+  return value.replace(/([?&](?:ref|utm_[^=]+|partner|aff|affiliate)=)[^&\s]+/gi, '$1***');
+}
+
+function countTomestoHiddenReason(
+  item: NormalizedExternalContentItem,
+  counts: { eventDefaultDisabled: number; promoSurfaceMissing: number; unknownPrice: number },
+) {
+  if (object(item.raw)?.kind === 'promo') {
+    counts.promoSurfaceMissing += 1;
+    return;
+  }
+  if (item.priceMode === 'unknown') {
+    counts.unknownPrice += 1;
+    return;
+  }
+  counts.eventDefaultDisabled += 1;
 }

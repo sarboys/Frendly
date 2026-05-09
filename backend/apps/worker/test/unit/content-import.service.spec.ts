@@ -5,6 +5,8 @@ import type { ExternalSourceAdapter } from '../../src/content/content-source.typ
 describe('ContentImportService', () => {
   const originalAdvCakePass = process.env.ADVCAKE_API_PASS;
   const originalIncludeUnmonetizedPaid = process.env.CONTENT_IMPORT_INCLUDE_UNMONETIZED_PAID;
+  const originalTomestoPublicEventsEnabled = process.env.TOMESTO_PUBLIC_EVENTS_ENABLED;
+  const originalTomestoRefQuery = process.env.TOMESTO_REF_QUERY;
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -17,6 +19,16 @@ describe('ContentImportService', () => {
       delete process.env.CONTENT_IMPORT_INCLUDE_UNMONETIZED_PAID;
     } else {
       process.env.CONTENT_IMPORT_INCLUDE_UNMONETIZED_PAID = originalIncludeUnmonetizedPaid;
+    }
+    if (originalTomestoPublicEventsEnabled == null) {
+      delete process.env.TOMESTO_PUBLIC_EVENTS_ENABLED;
+    } else {
+      process.env.TOMESTO_PUBLIC_EVENTS_ENABLED = originalTomestoPublicEventsEnabled;
+    }
+    if (originalTomestoRefQuery == null) {
+      delete process.env.TOMESTO_REF_QUERY;
+    } else {
+      process.env.TOMESTO_REF_QUERY = originalTomestoRefQuery;
     }
   });
 
@@ -507,6 +519,205 @@ describe('ContentImportService', () => {
       where: { status: 'pending_manual' },
     }));
   });
+
+  it('imports Tomesto places as published and keeps taxonomy tags', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const runUpdate = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-tomesto', code: 'tomesto' },
+        itemUpsert,
+        runUpdate,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'tomesto',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawPlace({
+            sourceCode: 'tomesto',
+            sourceItemId: 'place:cafe-one',
+            tags: ['area:center', 'occasion:food', 'budget:cheap', 'metro:teatralnaya'],
+            raw: {
+              taxonomy: {
+                area: ['center'],
+                occasion: ['food'],
+                budget: ['cheap'],
+                metro: ['teatralnaya'],
+              },
+            },
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['tomesto'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-06-03T00:00:00.000Z'),
+    });
+
+    expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceItemId: 'place:cafe-one',
+        contentKind: 'place',
+        publicStatus: 'published',
+        tags: expect.arrayContaining(['area:center', 'occasion:food', 'budget:cheap', 'metro:teatralnaya']),
+        raw: expect.objectContaining({
+          taxonomy: expect.objectContaining({
+            area: ['center'],
+            occasion: ['food'],
+            budget: ['cheap'],
+          }),
+        }),
+      }),
+    }));
+    expect(runUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        publishedCount: 1,
+        unknownPriceCount: 1,
+      }),
+    }));
+  });
+
+  it('keeps Tomesto events and promos hidden by default and records counters', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const runUpdate = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-tomesto', code: 'tomesto' },
+        itemUpsert,
+        runUpdate,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'tomesto',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawEvent({
+            sourceCode: 'tomesto',
+            sourceItemId: 'event:food:dinner',
+            priceFrom: 1200,
+            priceMode: 'paid',
+            lat: 55.75,
+            lng: 37.61,
+          }),
+          rawEvent({
+            sourceCode: 'tomesto',
+            sourceItemId: 'event:free:tasting',
+            priceFrom: 0,
+            priceMode: 'free',
+            lat: 55.76,
+            lng: 37.62,
+          }),
+          rawEvent({
+            sourceCode: 'tomesto',
+            sourceItemId: 'promo:birthday:discount',
+            category: 'promo',
+            priceFrom: null,
+            priceMode: 'unknown',
+            lat: null,
+            lng: null,
+            raw: { kind: 'promo' },
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['tomesto'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-06-03T00:00:00.000Z'),
+    });
+
+    const statuses = itemUpsert.mock.calls.map((call) => call[0].create.publicStatus);
+    expect(statuses).toEqual(['hidden', 'hidden', 'hidden']);
+    expect(runUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        publishedCount: 0,
+        paidCount: 1,
+        freeCount: 1,
+        unknownPriceCount: 1,
+        missingCoordsCount: 1,
+      }),
+    }));
+  });
+
+  it('publishes known-price Tomesto events only when the public flag is enabled', async () => {
+    process.env.TOMESTO_PUBLIC_EVENTS_ENABLED = 'true';
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-tomesto', code: 'tomesto' },
+        itemUpsert,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'tomesto',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawEvent({
+            sourceCode: 'tomesto',
+            sourceItemId: 'event:food:dinner',
+            priceFrom: 1200,
+            priceMode: 'paid',
+          }),
+          rawEvent({
+            sourceCode: 'tomesto',
+            sourceItemId: 'event:unknown:dinner',
+            priceFrom: null,
+            priceMode: 'unknown',
+          }),
+          rawEvent({
+            sourceCode: 'tomesto',
+            sourceItemId: 'promo:birthday:discount',
+            category: 'promo',
+            priceFrom: 500,
+            priceMode: 'paid',
+            raw: { kind: 'promo' },
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['tomesto'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-06-03T00:00:00.000Z'),
+    });
+
+    const statuses = itemUpsert.mock.calls.map((call) => call[0].create.publicStatus);
+    expect(statuses).toEqual(['published', 'hidden', 'hidden']);
+  });
+
+  it('masks Tomesto ref query secrets in import failures', async () => {
+    process.env.TOMESTO_REF_QUERY = 'ref=secret-ref&utm_source=frendly';
+    const runUpdate = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-tomesto', code: 'tomesto' },
+        runUpdate,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'tomesto',
+        fetchItems: jest.fn().mockRejectedValue(
+          new Error('https://tomesto.ru/moskva/events/dinner?ref=secret-ref&utm_source=frendly failed'),
+        ),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['tomesto'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-06-03T00:00:00.000Z'),
+    });
+
+    const failedUpdate = runUpdate.mock.calls.find((call) => call[0].data.status === 'failed')?.[0];
+    expect(failedUpdate.data.errorMessage).toContain('ref=***');
+    expect(failedUpdate.data.errorMessage).not.toContain('secret-ref');
+  });
 });
 
 function prismaMock(options: {
@@ -559,6 +770,25 @@ function rawEvent(overrides: Record<string, unknown> = {}) {
     title: 'Событие',
     category: 'concert',
     startsAt: new Date('2026-05-05T16:00:00.000Z'),
+    raw: {},
+    ...overrides,
+  } as any;
+}
+
+function rawPlace(overrides: Record<string, unknown> = {}) {
+  return {
+    sourceCode: 'tomesto',
+    sourceItemId: 'place:cafe-one',
+    contentKind: 'place',
+    city: 'Москва',
+    timezone: 'Europe/Moscow',
+    title: 'Кафе Центр',
+    category: 'restaurant',
+    address: 'Москва, Тверская, 1',
+    lat: 55.75,
+    lng: 37.61,
+    priceFrom: null,
+    priceMode: 'unknown',
     raw: {},
     ...overrides,
   } as any;

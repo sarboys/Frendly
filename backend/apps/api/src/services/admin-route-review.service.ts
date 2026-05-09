@@ -17,7 +17,7 @@ import { ApiError } from '../common/api-error';
 import { AdminEveningRouteService } from './admin-evening-route.service';
 import { PrismaService } from './prisma.service';
 
-const VALID_SOURCES = ['kudago', 'timepad', 'overpass', 'advcake_ticketland'] as const;
+const VALID_SOURCES = ['kudago', 'timepad', 'overpass', 'advcake_ticketland', 'tomesto'] as const;
 type SourceCode = (typeof VALID_SOURCES)[number];
 const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
@@ -43,6 +43,11 @@ const SOURCE_INFO: Record<SourceCode, { name: string; kind: string; baseUrl: str
     name: 'AdvCake Ticketland',
     kind: 'affiliate_events',
     baseUrl: process.env.ADVCAKE_BASE_URL ?? 'https://api.advcake.com',
+  },
+  tomesto: {
+    name: 'ТоМесто',
+    kind: 'affiliate_places_events_promos',
+    baseUrl: process.env.TOMESTO_BASE_URL ?? 'https://tomesto.ru',
   },
 };
 
@@ -257,6 +262,11 @@ export class AdminRouteReviewService {
           },
         },
         include: { source: { select: { code: true } } },
+      });
+      console.info('[admin-route-review] import run created', {
+        runId: run.id,
+        sourceCode: code,
+        city,
       });
       items.push(this.mapImportRun(run));
     }
@@ -695,14 +705,25 @@ export class AdminRouteReviewService {
 }
 
 function sourceConfig(code: SourceCode) {
-  if (code !== 'advcake_ticketland') {
-    return {};
+  if (code === 'advcake_ticketland') {
+    return {
+      offerId: process.env.ADVCAKE_TICKETLAND_OFFER_ID ?? '663',
+      websites: process.env.ADVCAKE_TICKETLAND_WEBSITES ?? 'ticketland.ru,live.mts.ru',
+      feedFormat: process.env.ADVCAKE_FEED_FORMAT ?? 'yml',
+    };
   }
-  return {
-    offerId: process.env.ADVCAKE_TICKETLAND_OFFER_ID ?? '663',
-    websites: process.env.ADVCAKE_TICKETLAND_WEBSITES ?? 'ticketland.ru,live.mts.ru',
-    feedFormat: process.env.ADVCAKE_FEED_FORMAT ?? 'yml',
-  };
+  if (code === 'tomesto') {
+    return {
+      moscowOnly: true,
+      defaultEnabled: false,
+      importImages: process.env.TOMESTO_IMPORT_IMAGES === 'true',
+      publicEventsEnabled: process.env.TOMESTO_PUBLIC_EVENTS_ENABLED === 'true',
+      requestDelayMs: process.env.TOMESTO_REQUEST_DELAY_MS ?? '1000',
+      maxPages: process.env.TOMESTO_MAX_PAGES ?? '200',
+      windowDays: process.env.TOMESTO_WINDOW_DAYS ?? '30',
+    };
+  }
+  return {};
 }
 
 function contentModerationData(action: string) {
