@@ -108,6 +108,71 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('keeps viewer-owned events without coordinates eligible in geo feed', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+      latitude: 55.75,
+      longitude: 37.61,
+      radiusKm: 5,
+    } as any);
+
+    const where = eventFindMany.mock.calls[0][0].where as any;
+    const geoCondition = where.AND.find(
+      (condition: any) =>
+        Array.isArray(condition.OR) &&
+        condition.OR.some((item: any) => item.latitude?.gte != null),
+    );
+
+    expect(geoCondition).toEqual({
+      OR: [
+        expect.objectContaining({
+          latitude: expect.objectContaining({
+            gte: expect.any(Number),
+            lte: expect.any(Number),
+          }),
+          longitude: expect.objectContaining({
+            gte: expect.any(Number),
+            lte: expect.any(Number),
+          }),
+        }),
+        { hostId: 'user-me' },
+        {
+          participants: {
+            some: {
+              userId: 'user-me',
+            },
+          },
+        },
+        {
+          attendances: {
+            some: {
+              userId: 'user-me',
+            },
+          },
+        },
+      ],
+    });
+  });
+
   it('limits participant preview in event feed queries', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([
       {
@@ -762,8 +827,13 @@ describe('EventsService unit', () => {
         }),
       }),
     );
-    expect(where.AND).toEqual(
-      expect.arrayContaining([
+    const geoCondition = where.AND.find(
+      (condition: any) =>
+        Array.isArray(condition.OR) &&
+        condition.OR.some((item: any) => item.latitude?.gte != null),
+    );
+    expect(geoCondition).toEqual({
+      OR: [
         expect.objectContaining({
           latitude: expect.objectContaining({
             gte: expect.any(Number),
@@ -774,8 +844,23 @@ describe('EventsService unit', () => {
             lte: expect.any(Number),
           }),
         }),
-      ]),
-    );
+        { hostId: 'user-me' },
+        {
+          participants: {
+            some: {
+              userId: 'user-me',
+            },
+          },
+        },
+        {
+          attendances: {
+            some: {
+              userId: 'user-me',
+            },
+          },
+        },
+      ],
+    });
     expect(result.items.map((item: any) => item.id)).toEqual([
       'event-near',
       'event-far',
@@ -862,6 +947,8 @@ describe('EventsService unit', () => {
             .map((part) => part.strings.join(' ')),
         ].join(' ');
     expect(postgisSql).toContain('ST_DWithin');
+    expect(postgisSql).toContain('e."geo" IS NULL');
+    expect(postgisSql).toContain('e."distanceKm"');
     expect(postgisSql).toContain('e."canceledAt" IS NULL');
     expect(postgisSql).toContain('e."isAfterDark" = false');
     expect(postgisSql).toContain('e."startsAt" >=');
