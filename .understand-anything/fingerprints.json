@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "5dca7dc439f74c2a52c19799aa101c2e0db223cc",
-  "generatedAt": "2026-05-09T14:18:11.614Z",
+  "gitCommitHash": "7787e199c2db3db7177e4356d4cfbbb4f824a935",
+  "generatedAt": "2026-05-09T14:22:38.252Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -10024,7 +10024,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "126f8e2a445075b82f829162d25d1e2dcaa9414c43b5b27ef81f729b5058eb4a",
+      "contentHash": "00af8edcbe2506e7cfd91da5376ddeb0245163337375fc780b987703fc764e99",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -11130,7 +11130,7 @@
     },
     "backend/apps/api/src/controllers/chats.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
-      "contentHash": "12a9bfd3afc83beb1e7be888db3d34fafd0f08d6d939502c1436c3e29d0b3f02",
+      "contentHash": "4c50ed315262e4163fceb5720cafef59e51f872150f39b455f88267d1b94a9b5",
       "functions": [],
       "classes": [
         {
@@ -11181,7 +11181,7 @@
     },
     "backend/apps/api/src/controllers/communities.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/communities.controller.ts",
-      "contentHash": "6cf5620273b7096690abd0f7f9b6c9bfc3577c55e2d89f84212f8f383c9c3529",
+      "contentHash": "9bd57285ad70959e017602a28e609c560d6fb98bc8ecd88004759cf85e566230",
       "functions": [],
       "classes": [
         {
@@ -14011,7 +14011,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "ff857eb64c97c4090d68de77c8eeeba9787f5b8a1cf77d9342eed739789a8338",
+      "contentHash": "d1941a83d82555ce8adb255db4cea7308d55989be888c44ccb746a93514254b1",
       "functions": [],
       "classes": [
         {
@@ -14109,7 +14109,7 @@
     },
     "backend/apps/api/src/services/communities.service.ts": {
       "filePath": "backend/apps/api/src/services/communities.service.ts",
-      "contentHash": "6cae703f13b820b03d92a48cb1f92ec427501fd417b96f326d608fef33dcdc4f",
+      "contentHash": "a648226da58c25fe2ff76effdfd40fc5e5917e3397a1705b36f7aadf35f870c4",
       "functions": [],
       "classes": [
         {
@@ -14218,7 +14218,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "f82dfd602d2b773f5d711dcfa650754495239a564b761a7209d08c387c9ca2f6",
+      "contentHash": "7d982914bad13d93d604386d3ec642734d9757eed8cb660fcbcea222d3f31733",
       "functions": [],
       "classes": [
         {
@@ -14611,7 +14611,7 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "29202a90818c0bb7eb39f8657876897624a8542c1dbc465e6640fd8c88fc27ab",
+      "contentHash": "26f61839cd3ea6d4475689ae05ef645863e6098c2ad7056d5345aa3234c53f60",
       "functions": [
         {
           "name": "normalizeEveningPrompt",
@@ -14804,7 +14804,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "431cc208fa865fc76e79a40ae98e1df3970276ac5f6c5eafc8b1fbf1ed2a4235",
+      "contentHash": "102effe016e4bc53b0b3e1bee0706c996fa94efe6682b8b57080aa8ee92fd07f",
       "functions": [
         {
           "name": "emojiForCategory",
