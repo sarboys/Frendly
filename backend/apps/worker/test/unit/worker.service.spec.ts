@@ -47,6 +47,9 @@ describe('worker outbox recovery', () => {
     delete process.env.WORKER_PUSH_TOKEN_BATCH_SIZE;
     delete process.env.WORKER_RETENTION_CLEANUP_ENABLED;
     delete process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS;
+    delete process.env.CONTENT_IMPORT_CITIES;
+    delete process.env.CONTENT_IMPORT_SOURCES;
+    delete process.env.TOMESTO_WINDOW_DAYS;
   });
 
   it('runs startup scans through the safe scheduled runner', async () => {
@@ -408,6 +411,53 @@ describe('worker outbox recovery', () => {
         }),
       }),
     });
+  });
+
+  it('does not include Tomesto in default scheduled content sources', async () => {
+    const consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => undefined);
+    const service = new WorkerService({
+      client: {},
+    } as any);
+
+    const sources = (service as any).resolveContentSources();
+
+    expect(sources).toEqual(['kudago', 'timepad', 'advcake_ticketland']);
+    expect(sources).not.toContain('tomesto');
+    consoleDebug.mockRestore();
+    await service.onModuleDestroy();
+  });
+
+  it('runs scheduled Tomesto import with its own 30 day window', async () => {
+    process.env.CONTENT_IMPORT_CITIES = 'Москва';
+    process.env.CONTENT_IMPORT_SOURCES = 'kudago,tomesto';
+    process.env.TOMESTO_WINDOW_DAYS = '30';
+    const consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => undefined);
+    const contentImportService = {
+      runImport: jest.fn().mockResolvedValue([]),
+      backfillMirroredImages: jest.fn().mockResolvedValue({ scanned: 0, mirrored: 0 }),
+    };
+    const service = new WorkerService(
+      { client: {} } as any,
+      contentImportService as any,
+    );
+
+    await (service as any).runContentImportScan();
+
+    expect(contentImportService.runImport).toHaveBeenCalledTimes(2);
+    expect(contentImportService.runImport).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      city: 'Москва',
+      sources: ['kudago'],
+    }));
+    expect(contentImportService.runImport).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      city: 'Москва',
+      sources: ['tomesto'],
+    }));
+    const defaultCall = contentImportService.runImport.mock.calls[0]?.[0];
+    const tomestoCall = contentImportService.runImport.mock.calls[1]?.[0];
+    expect(daysBetween(defaultCall.from, defaultCall.to)).toBe(14);
+    expect(daysBetween(tomestoCall.from, tomestoCall.to)).toBe(30);
+    consoleDebug.mockRestore();
+    await service.onModuleDestroy();
   });
 
   it('auto-advances due Frendly Evening sessions and publishes chat update', async () => {
@@ -1655,3 +1705,7 @@ describe('worker outbox recovery', () => {
     });
   });
 });
+
+function daysBetween(from: Date, to: Date) {
+  return Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
+}

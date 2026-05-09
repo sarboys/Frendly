@@ -1,4 +1,4 @@
-export type ExternalSourceCode = 'kudago' | 'timepad' | 'overpass' | 'advcake_ticketland';
+export type ExternalSourceCode = 'kudago' | 'timepad' | 'overpass' | 'advcake_ticketland' | 'tomesto';
 
 export type ExternalPriceMode = 'free' | 'paid' | 'unknown';
 

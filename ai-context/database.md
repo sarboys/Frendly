@@ -45,6 +45,7 @@ Frendly Evening:
 - Route aggregation: `ExternalContentSource`, `ExternalImportRun`, `ExternalContentItem`, `GeneratedRouteDraftBatch`, `GeneratedRouteReviewDraft`, `GeneratedRouteDraftStep`. Manual imports and route generations use `pending_manual` statuses that worker scans outside the API request path.
 - `ExternalImportRun` stores import counters for admin health: `publishedCount`, `paidCount`, `freeCount`, `unknownPriceCount`, `missingCoordsCount`.
 - `ExternalContentItem` separates imported events and places through `contentKind`. Public affiche fields include `venueName`, `imageUrl`, `actionUrl`, `actionKind`, `priceMode`, `isAffiliate`, `sourceProvider`, `placeKind`, `lastSeenAt`, `publicStatus`.
+- Tomesto uses the same `ExternalContentSource`, `ExternalImportRun` and `ExternalContentItem` models. Places store route-builder taxonomy in `tags`, for example `area:center`, `occasion:food`, `budget:cheap`, `metro:*`, `feature:*`, `set:*`, and a compact `raw.taxonomy`. Reviews and menu text are not stored.
 - `priceMode=free` means exact external price `0`; `unknown` must not be treated as free. `publicStatus` gates public affiche and route candidate visibility.
 - Dedupe enrichment can be stored in `ExternalContentItem.raw.enrichment`, including source code, source item id, duplicate key, confidence and fields copied from the matched item.
 - `EveningRouteStep` can store external ticket metadata as `ticketUrl`, `ticketSourceCode` and `ticketProvider`. This is for external affiliate checkout only, not in-app payment.

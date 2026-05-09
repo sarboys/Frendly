@@ -2,9 +2,13 @@ import { AdvCakeTicketlandAdapter } from '../../src/content/advcake-ticketland.a
 import { KudaGoAdapter } from '../../src/content/kudago.adapter';
 import { OverpassAdapter } from '../../src/content/overpass.adapter';
 import { TimepadAdapter } from '../../src/content/timepad.adapter';
+import { TomestoAdapter } from '../../src/content/tomesto.adapter';
 
 const originalTimepadToken = process.env.TIMEPAD_API_TOKEN;
 const originalAdvCakePass = process.env.ADVCAKE_API_PASS;
+const originalTomestoRefQuery = process.env.TOMESTO_REF_QUERY;
+const originalTomestoRequestDelayMs = process.env.TOMESTO_REQUEST_DELAY_MS;
+const originalTomestoImportImages = process.env.TOMESTO_IMPORT_IMAGES;
 
 describe('content source adapters', () => {
   afterEach(() => {
@@ -18,6 +22,21 @@ describe('content source adapters', () => {
       delete process.env.ADVCAKE_API_PASS;
     } else {
       process.env.ADVCAKE_API_PASS = originalAdvCakePass;
+    }
+    if (originalTomestoRefQuery == null) {
+      delete process.env.TOMESTO_REF_QUERY;
+    } else {
+      process.env.TOMESTO_REF_QUERY = originalTomestoRefQuery;
+    }
+    if (originalTomestoRequestDelayMs == null) {
+      delete process.env.TOMESTO_REQUEST_DELAY_MS;
+    } else {
+      process.env.TOMESTO_REQUEST_DELAY_MS = originalTomestoRequestDelayMs;
+    }
+    if (originalTomestoImportImages == null) {
+      delete process.env.TOMESTO_IMPORT_IMAGES;
+    } else {
+      process.env.TOMESTO_IMPORT_IMAGES = originalTomestoImportImages;
     }
   });
 
@@ -291,6 +310,117 @@ describe('content source adapters', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body as URLSearchParams;
     expect(body.get('data')).toContain('57.85,55.80,58.10,56.45');
   });
+
+  it('loads Tomesto Moscow pages, skips unsafe links, parses details and appends ref query', async () => {
+    process.env.TOMESTO_REF_QUERY = 'utm_source=frendly&ref=unit';
+    process.env.TOMESTO_REQUEST_DELAY_MS = '0';
+    const adapter = new TomestoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/moskva/places') {
+        return textResponse(`
+          <a href="/moskva/places/cafe-one">place</a>
+          <a href="/moskva/places/cafe-one/reservations/new">bad</a>
+          <a href="/moskva/places/favorite">favorite</a>
+          <a href="/moskva/places/cafe-one/occurrences/1">occurrence</a>
+        `);
+      }
+      if (url.pathname === '/moskva/places/page/2') {
+        return textResponse('<a href="/moskva/places/cafe-one">duplicate</a>');
+      }
+      if (url.pathname === '/moskva/events') {
+        expect(url.searchParams.get('date_from')).toBe('2026-05-04');
+        expect(url.searchParams.get('date_to')).toBe('2026-06-03');
+        return textResponse('<a href="/moskva/events/standup-night">event</a>');
+      }
+      if (url.pathname === '/moskva/events/page/2') {
+        return textResponse('');
+      }
+      if (url.pathname === '/moskva/promos') {
+        return textResponse('<a href="/moskva/promos/birthday-sale">promo</a>');
+      }
+      if (url.pathname === '/moskva/promos/page/2') {
+        return textResponse('');
+      }
+      if (url.pathname === '/moskva/places/cafe-one') {
+        return textResponse(tomestoPlaceHtml());
+      }
+      if (url.pathname === '/moskva/events/standup-night') {
+        return textResponse(tomestoEventHtml());
+      }
+      if (url.pathname === '/moskva/promos/birthday-sale') {
+        return textResponse(tomestoPromoHtml());
+      }
+      throw new Error(`unexpected_url_${url.pathname}`);
+    });
+
+    const items = await adapter.fetchItems(fetchInput({ cityCode: 'moskva' }));
+
+    expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).not.toContain('/moskva/places/cafe-one/reservations/new');
+    expect(items).toHaveLength(3);
+    expect(items[0]).toMatchObject({
+      sourceCode: 'tomesto',
+      sourceItemId: 'place:cafe-one',
+      contentKind: 'place',
+      city: 'Москва',
+      title: 'Кафе Центр',
+      address: 'Москва, Тверская, 1',
+      lat: 55.7601,
+      lng: 37.6187,
+      priceFrom: 900,
+      imageUrl: null,
+      actionKind: 'affiliate_booking',
+      isAffiliate: true,
+      sourceProvider: 'ТоМесто',
+      raw: expect.objectContaining({
+        taxonomy: expect.objectContaining({
+          metro: ['teatralnaya'],
+          features: expect.arrayContaining(['business_lunch', 'summer_terrace']),
+        }),
+      }),
+    });
+    expect(items[0]?.tags).toEqual(expect.arrayContaining([
+      'area:center',
+      'occasion:food',
+      'budget:cheap',
+      'metro:teatralnaya',
+      'feature:business_lunch',
+      'feature:summer_terrace',
+      'set:nedorogie-restorany-v-tsentre',
+    ]));
+    expect(items[0]?.actionUrl).toBe('https://tomesto.ru/moskva/places/cafe-one?existing=1&utm_source=frendly&ref=unit');
+    expect(items[1]).toMatchObject({
+      sourceItemId: 'event:stendap:standup-night',
+      contentKind: 'event',
+      title: 'Стендап вечер',
+      venueName: 'Клуб',
+      category: 'comedy',
+      priceFrom: 1200,
+      priceMode: 'paid',
+    });
+    expect(items[1]?.startsAt?.toISOString()).toBe('2026-05-12T16:00:00.000Z');
+    expect(items[2]).toMatchObject({
+      sourceItemId: 'promo:birthday:birthday-sale',
+      contentKind: 'event',
+      category: 'promo',
+      raw: expect.objectContaining({ kind: 'promo' }),
+    });
+  });
+
+  it('returns no Tomesto items outside Moscow and logs a warning', async () => {
+    process.env.TOMESTO_REQUEST_DELAY_MS = '0';
+    const adapter = new TomestoAdapter();
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(textResponse('') as any);
+
+    const items = await adapter.fetchItems(fetchInput({ city: 'Санкт-Петербург', cityCode: 'spb' }));
+
+    expect(items).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith('[tomesto] skipped unsupported city', expect.objectContaining({
+      city: 'Санкт-Петербург',
+    }));
+  });
 });
 
 function fetchInput(overrides: Partial<ReturnType<typeof fetchInputBase>> = {}) {
@@ -357,6 +487,66 @@ function timepadEvent(id: number, startsAt: string) {
     },
     categories: [{ name: 'outdoor' }],
   };
+}
+
+function tomestoPlaceHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/places/cafe-one?existing=1">
+        <meta name="description" content="Короткое описание места">
+      </head>
+      <body>
+        <h1>Кафе Центр</h1>
+        <a class="place-category" href="/moskva/places/restorany">Ресторан</a>
+        <a href="/moskva/places/nedorogie-restorany-v-tsentre">Подборка</a>
+        <div itemprop="address">Москва, Тверская, 1</div>
+        <div class="average-check">Средний чек 900 руб</div>
+        <span data-metro="Театральная"></span>
+        <ul class="features">
+          <li>Бизнес-ланч</li>
+          <li>Летняя веранда</li>
+        </ul>
+        <script type="application/ld+json">
+          {"@type":"Restaurant","geo":{"latitude":55.7601,"longitude":37.6187},"aggregateRating":{"ratingValue":"4.7"}}
+        </script>
+      </body>
+    </html>
+  `;
+}
+
+function tomestoEventHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/events/standup-night">
+        <meta name="description" content="Смешной вечер в центре">
+      </head>
+      <body>
+        <h1>Стендап вечер</h1>
+        <a class="event-category" href="/moskva/events/stendap">Стендап</a>
+        <div class="venue"><a>Клуб</a></div>
+        <time datetime="2026-05-12T19:00:00+03:00">12 мая</time>
+        <div class="price">от 1200 руб</div>
+      </body>
+    </html>
+  `;
+}
+
+function tomestoPromoHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/promos/birthday-sale">
+      </head>
+      <body>
+        <h1>Скидка на день рождения</h1>
+        <a class="promo-category" href="/moskva/promos/birthday">birthday</a>
+        <div class="promo-place"><a>Кафе Центр</a></div>
+        <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
+      </body>
+    </html>
+  `;
 }
 
 function ticketlandYml(options: {

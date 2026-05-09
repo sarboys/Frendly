@@ -1,6 +1,10 @@
 import { AdminRouteReviewService } from '../../src/services/admin-route-review.service';
 
 describe('AdminRouteReviewService', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('moves drafts through approve, convert and publish without direct auto publish', async () => {
     const draftUpdate = jest
       .fn()
@@ -274,6 +278,77 @@ describe('AdminRouteReviewService', () => {
         timezone: 'Asia/Yekaterinburg',
       }),
     }));
+  });
+
+  it('creates a pending manual import run for Tomesto', async () => {
+    const sourceUpsert = jest.fn().mockResolvedValue({ id: 'source-tomesto' });
+    const runCreate = jest.fn().mockResolvedValue({
+      id: 'run-tomesto',
+      sourceId: 'source-tomesto',
+      source: { code: 'tomesto' },
+      city: 'Москва',
+      status: 'pending_manual',
+      startedAt: new Date('2026-05-04T10:00:00.000Z'),
+      finishedAt: null,
+      fetchedCount: 0,
+      normalizedCount: 0,
+      skippedCount: 0,
+      errorCode: null,
+      errorMessage: null,
+    });
+    jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          externalContentSource: { upsert: sourceUpsert },
+          externalImportRun: { create: runCreate },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.createImportRuns({
+      city: 'Москва',
+      from: '2026-05-04T00:00:00.000Z',
+      to: '2026-06-03T00:00:00.000Z',
+      sources: ['tomesto'],
+    });
+
+    expect(sourceUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { code: 'tomesto' },
+      create: expect.objectContaining({
+        code: 'tomesto',
+        name: 'ТоМесто',
+        kind: 'affiliate_places_events_promos',
+        baseUrl: 'https://tomesto.ru',
+        status: 'active',
+      }),
+    }));
+    expect(runCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceId: 'source-tomesto',
+        city: 'Москва',
+        status: 'pending_manual',
+      }),
+    }));
+    expect(result.items[0]).toEqual(expect.objectContaining({
+      id: 'run-tomesto',
+      sourceCode: 'tomesto',
+      status: 'pending_manual',
+    }));
+  });
+
+  it('rejects invalid manual import sources', async () => {
+    const service = new AdminRouteReviewService({ client: {} } as any, {} as any);
+
+    await expect(service.createImportRuns({
+      city: 'Москва',
+      from: '2026-05-04T00:00:00.000Z',
+      to: '2026-06-03T00:00:00.000Z',
+      sources: ['unknown'],
+    })).rejects.toMatchObject({
+      code: 'content_import_source_invalid',
+    });
   });
 });
 

@@ -41,6 +41,7 @@ const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_IMAGE_BACKFILL_BATCH_SIZE = 50;
+const DEFAULT_TOMESTO_WINDOW_DAYS = 30;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -149,6 +150,10 @@ export class WorkerService implements OnModuleDestroy {
   private readonly contentRouteGenerationIntervalMs = this.resolvePositiveInteger(
     process.env.CONTENT_ROUTE_GENERATION_INTERVAL_MS,
     DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS,
+  );
+  private readonly tomestoWindowDays = this.resolvePositiveInteger(
+    process.env.TOMESTO_WINDOW_DAYS,
+    DEFAULT_TOMESTO_WINDOW_DAYS,
   );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
@@ -1468,13 +1473,26 @@ export class WorkerService implements OnModuleDestroy {
     try {
       const from = new Date();
       const to = new Date(from.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const sources = this.resolveContentSources();
+      const tomestoSources = sources.filter((source) => source === 'tomesto');
+      const defaultWindowSources = sources.filter((source) => source !== 'tomesto');
       for (const city of this.resolveContentCities()) {
-        await this.contentImportService.runImport({
-          city,
-          sources: this.resolveContentSources(),
-          from,
-          to,
-        });
+        if (defaultWindowSources.length > 0) {
+          await this.contentImportService.runImport({
+            city,
+            sources: defaultWindowSources,
+            from,
+            to,
+          });
+        }
+        if (tomestoSources.length > 0) {
+          await this.contentImportService.runImport({
+            city,
+            sources: tomestoSources,
+            from,
+            to: new Date(from.getTime() + this.tomestoWindowDays * 24 * 60 * 60 * 1000),
+          });
+        }
         if (this.contentImageBackfillEnabled) {
           await this.contentImportService.backfillMirroredImages({
             city,
@@ -1521,12 +1539,15 @@ export class WorkerService implements OnModuleDestroy {
 
   private resolveContentSources(): ExternalSourceCode[] {
     const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'timepad', 'advcake_ticketland'];
-    return requested.filter((source): source is ExternalSourceCode =>
+    const resolved = requested.filter((source): source is ExternalSourceCode =>
       source === 'kudago' ||
       source === 'timepad' ||
       source === 'overpass' ||
-      source === 'advcake_ticketland',
+      source === 'advcake_ticketland' ||
+      source === 'tomesto',
     );
+    console.debug('[content-import] resolved source list', { requested, resolved });
+    return resolved;
   }
 
   private async enqueueEventStartingNotifications() {
