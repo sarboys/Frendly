@@ -71,7 +71,6 @@ Important query params:
 - `/create?inviteeUserId=<id>`
 - `/create?communityId=<id>`
 - `/create?mode=dating`
-- `/create?mode=afterdark`
 - `/publish`
 - `/sos`
 - `/routes/new`
@@ -105,7 +104,6 @@ Important query params:
 - Evening: `features/evening_plan/presentation/`, `features/evening_routes/presentation/`.
 - Communities: `features/communities/presentation/`.
 - Dating: `features/dating/presentation/`.
-- After Dark: `features/after_dark/presentation/`.
 - Profile/settings: `features/profile/`, `features/edit_profile/`, `features/settings/`, `features/verification/`.
 - Safety: `features/safety/presentation/safety_hub_screen.dart`, `features/report/presentation/report_screen.dart`.
 

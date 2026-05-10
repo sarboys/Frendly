@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-10T11:37:02.308Z",
-    "gitCommitHash": "5e490f14793d01581b129aa58c250aa29937eb96"
+    "analyzedAt": "2026-05-10T12:20:15.856Z",
+    "gitCommitHash": "b8362e504ae46e3687f326358f6bf7425478a483"
   },
   "nodes": [
     {
@@ -27650,97 +27650,6 @@
       "complexity": "moderate"
     },
     {
-      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_event_screen.dart",
-      "type": "file",
-      "name": "after_dark_event_screen.dart",
-      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_event_screen.dart",
-      "summary": "after_dark_event_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_models.dart",
-      "type": "file",
-      "name": "after_dark_models.dart",
-      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_models.dart",
-      "summary": "after_dark_models.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_paywall_screen.dart",
-      "type": "file",
-      "name": "after_dark_paywall_screen.dart",
-      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_paywall_screen.dart",
-      "summary": "after_dark_paywall_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_providers.dart",
-      "type": "file",
-      "name": "after_dark_providers.dart",
-      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_providers.dart",
-      "summary": "after_dark_providers.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_screen.dart",
-      "type": "file",
-      "name": "after_dark_screen.dart",
-      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_screen.dart",
-      "summary": "after_dark_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_style.dart",
-      "type": "file",
-      "name": "after_dark_style.dart",
-      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_style.dart",
-      "summary": "after_dark_style.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_verify_screen.dart",
-      "type": "file",
-      "name": "after_dark_verify_screen.dart",
-      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_verify_screen.dart",
-      "summary": "after_dark_verify_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
       "id": "file:mobile/lib/features/after_party/presentation/after_party_screen.dart",
       "type": "file",
       "name": "after_party_screen.dart",
@@ -46259,13 +46168,6 @@
         "file:mobile/lib/features/affiche/presentation/affiche_event_picker_sheet.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_events_screen.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_filters.dart",
-        "file:mobile/lib/features/after_dark/presentation/after_dark_event_screen.dart",
-        "file:mobile/lib/features/after_dark/presentation/after_dark_models.dart",
-        "file:mobile/lib/features/after_dark/presentation/after_dark_paywall_screen.dart",
-        "file:mobile/lib/features/after_dark/presentation/after_dark_providers.dart",
-        "file:mobile/lib/features/after_dark/presentation/after_dark_screen.dart",
-        "file:mobile/lib/features/after_dark/presentation/after_dark_style.dart",
-        "file:mobile/lib/features/after_dark/presentation/after_dark_verify_screen.dart",
         "file:mobile/lib/features/after_party/presentation/after_party_screen.dart",
         "file:mobile/lib/features/ai_create/presentation/ai_create_screen.dart",
         "file:mobile/lib/features/ai_voice/presentation/ai_voice_screen.dart",
