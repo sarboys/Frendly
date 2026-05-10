@@ -101,7 +101,7 @@ Use this file for Flutter behavior, state and performance rules.
 - Own profile at `/profile` mirrors `front/src/pages/v5/Profile.tsx`: V5 header, hero, social counters, Frendly+ card, intent, vibe, interests, about and history. Do not add the old lower action cards back to this screen.
 - Own profile includes V5 quick entries for verification, SOS and notifications. The notifications row uses `notificationUnreadCountProvider`; do not hardcode the badge.
 - Settings mirrors `front/src/pages/v5/Settings.tsx`: management header with italic account accent, account, notifications, privacy, appearance and support groups, V5 switches, logout pill and version footer. Do not show internal testing access toggles on this user-facing screen.
-- Public user profiles at `/user/:userId` use `BbV5Scaffold`, the shared V5 cards and `BbProfilePhotoGallery`. They keep the fixed invite/direct-chat actions and V5 moderation sheet.
+- Public user profiles at `/user/:userId` use the same `ProfileV5Content` layout as the main own profile, with public actions layered on top: shared V5 cards, `BbProfilePhotoGallery`, fixed invite/direct-chat actions, social actions and V5 moderation sheet.
 - User profiles render `BbSocialActions.full` from `shared/widgets/bb_social_actions.dart`. It uses `ProfileData.social` for the first frame and `profileSocialProvider(userId)` for scoped optimistic follow, like and super-like actions.
 - Per-user profile and social providers are auto-disposed by user id after profile/report screens stop listening.
 - Reuse `BbSocialActions.compact` or `BbSocialActions.row` only when a list already has bounded social data for that user. Do not start one social request per visible list item.

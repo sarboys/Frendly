@@ -167,6 +167,7 @@ Admin Evening route review:
 ## Important behavior
 
 - Event joins are idempotent for existing participants.
+- Requestable private meetup detail can be opened by exact event id for a non-member, with `chatId=null`, so mobile can render the join-request form. Private meetups still stay out of public lists unless the viewer is host, participant, attended before, or otherwise has viewer-specific access.
 - `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates. It also accepts `afficheEventId` for creating a meetup from a published affiche event; `posterId`, `afficheEventId` and route selection are mutually exclusive.
 - Event list and detail summaries expose `imageUrl` from linked public Affiche content, so meetups created from `afficheEventId` can reuse the same external event image.
 - Event list and detail summaries expose paid ticket summary from linked Poster or public Affiche source: `ticketUrl`, `ticketSourceKind`, `ticketSourceId`, `ticketPriceFrom`, `ticketProvider`, `ticketVenue`. Free Affiche sources keep these fields null.

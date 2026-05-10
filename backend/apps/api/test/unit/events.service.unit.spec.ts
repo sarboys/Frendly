@@ -697,6 +697,62 @@ describe('EventsService unit', () => {
     ]);
   });
 
+  it('shows requestable private event detail before guest joins', async () => {
+    const eventFindUnique = jest.fn().mockResolvedValue(
+      eventFixture({
+        id: 'event-request-private',
+        title: 'Закрытый ужин',
+        description: 'Можно отправить заявку',
+        partnerName: null,
+        partnerOffer: null,
+        visibilityMode: 'friends',
+        accessMode: 'request',
+        joinMode: 'request',
+        host: {
+          id: 'host-1',
+          displayName: 'Host',
+          verified: true,
+          profile: {
+            rating: 4.8,
+            meetupCount: 12,
+            avatarUrl: null,
+          },
+        },
+        chat: { id: 'chat-1' },
+      }),
+    );
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'female' }),
+          },
+          event: {
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            count: jest.fn().mockResolvedValue(1),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.getEventDetail(
+      'guest-1',
+      'event-request-private',
+    );
+
+    expect(result.joined).toBe(false);
+    expect(result.joinMode).toBe('request');
+    expect(result.joinRequestStatus).toBeNull();
+    expect(result.chatId).toBeNull();
+  });
+
   it('counts live meetup stories without loading every story row', async () => {
     const eventFindUnique = jest
       .fn()

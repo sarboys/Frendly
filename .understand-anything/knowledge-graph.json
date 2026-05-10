@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-10T12:20:15.856Z",
-    "gitCommitHash": "b8362e504ae46e3687f326358f6bf7425478a483"
+    "analyzedAt": "2026-05-10T15:51:55.857Z",
+    "gitCommitHash": "d22327e8f81a8ace5778e8fe35f1e0322a50adab"
   },
   "nodes": [
     {
@@ -11046,8 +11046,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3555,
-        3574
+        3559,
+        3578
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11064,7 +11064,7 @@
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
         170,
-        3553
+        3557
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -28674,7 +28674,7 @@
         "code",
         "dart"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/features/verification/presentation/verification_screen.dart",

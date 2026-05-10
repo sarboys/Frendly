@@ -3438,6 +3438,7 @@ export class EventsService {
       hostId: string;
       genderMode: string;
       visibilityMode: string;
+      joinMode: string;
       participants: Array<{ userId: string }>;
       attendances: Array<{
         userId: string;
@@ -3477,10 +3478,13 @@ export class EventsService {
       return true;
     }
 
+    if (event.joinMode === 'request') {
+      return true;
+    }
+
     return event.joinRequests.some(
       (request) =>
         request.userId === userId &&
-        request.reviewedById === event.hostId &&
         (request.status === 'pending' || request.status === 'approved'),
     );
   }

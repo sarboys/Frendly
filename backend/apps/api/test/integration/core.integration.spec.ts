@@ -1680,7 +1680,7 @@ describe('core api flows', () => {
     }
   });
 
-  it('hides private event details from non-members', async () => {
+  it('shows requestable private event details to non-members without chat access', async () => {
     const createResponse = await request(app.getHttpServer())
       .post('/events')
       .set('authorization', `Bearer ${accessToken}`)
@@ -1698,12 +1698,15 @@ describe('core api flows', () => {
       })
       .expect(201);
 
-    const hiddenResponse = await request(app.getHttpServer())
+    const detailResponse = await request(app.getHttpServer())
       .get(`/events/${createResponse.body.id}`)
-      .set('authorization', `Bearer ${peerAccessToken}`);
+      .set('authorization', `Bearer ${peerAccessToken}`)
+      .expect(200);
 
-    expect(hiddenResponse.status).toBe(404);
-    expect(hiddenResponse.body.code).toBe('event_not_found');
+    expect(detailResponse.body.id).toBe(createResponse.body.id);
+    expect(detailResponse.body.joined).toBe(false);
+    expect(detailResponse.body.joinMode).toBe('request');
+    expect(detailResponse.body.chatId).toBeNull();
   });
 
   it('keeps private event visible after approved member leaves it', async () => {
