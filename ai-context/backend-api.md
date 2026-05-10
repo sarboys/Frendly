@@ -171,10 +171,12 @@ Admin Evening route review:
 - Event list and detail summaries expose `imageUrl` from linked public Affiche content, so meetups created from `afficheEventId` can reuse the same external event image.
 - Event list and detail summaries expose paid ticket summary from linked Poster or public Affiche source: `ticketUrl`, `ticketSourceKind`, `ticketSourceId`, `ticketPriceFrom`, `ticketProvider`, `ticketVenue`. Free Affiche sources keep these fields null.
 - `GET /events` and `GET /posters` accept `date=yyyy-mm-dd` for one-day filtering.
+- `GET /events` keeps recently started meetups visible in discovery for 3 hours, including nearby, calm, newcomers and date feeds. This prevents a just-started meetup from disappearing while users switch accounts or open the feed.
 - `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
 - `GET /evening/route-templates` list uses summary payload only: route summary fields, first 4 steps and bounded partner offer preview. Template detail loads full steps separately.
 - Direct joins lock the event row and check capacity inside the transaction.
-- Join request review must not reset a reviewed request back to pending.
+- `POST /events/:eventId/join-request` keeps duplicate pending requests idempotent. If the previous request was `canceled` or `rejected`, the same request row is reopened as `pending`, review fields are cleared and the host gets a fresh notification.
+- Concurrent join request review must not reset an approved request back to pending.
 - Duplicate pending event join requests are idempotent: the note can refresh, the request stays pending and host notifications stay deduped by event and user.
 - Event detail uses bounded previews and separate counts. `attendees` preview excludes the host because the host is exposed in the separate `host` block.
 - Nearby event list without PostGIS uses two-phase loading: light candidate rows with ids and coordinates first, then full list includes only for the selected page ids. Geo bounds are strict for events that have coordinates, including viewer-owned, joined and attended events; those viewer-specific exceptions only bypass bounds when the event has no coordinates. Optional PostGIS candidate scan stays behind `ENABLE_POSTGIS_EVENT_FEED=true`; it must apply the same key public feed filters before returning candidate ids, including canceled state, visibility, gender visibility, date window, route flags, text query, lifestyle, gender, access and price.

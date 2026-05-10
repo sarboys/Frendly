@@ -701,14 +701,12 @@ export class EventsService {
         },
       },
       select: {
+        id: true,
         status: true,
       },
     });
 
-    if (
-      existingRequest != null &&
-      existingRequest.status !== 'pending'
-    ) {
+    if (existingRequest?.status === 'approved') {
       throw new ApiError(
         409,
         'join_request_already_reviewed',
@@ -725,35 +723,93 @@ export class EventsService {
       );
     }
     const compatibilityScore = await this.calculateCompatibilityScore(userId, event);
+    const reopenableRequest =
+      existingRequest != null &&
+      (existingRequest.status === 'rejected' || existingRequest.status === 'canceled')
+        ? existingRequest
+        : null;
 
     const request = await this.prismaService.client.$transaction(async (tx) => {
-      const next = await tx.eventJoinRequest.upsert({
-        where: {
-          eventId_userId: {
+      let next: {
+        id: string;
+        eventId: string;
+        status: string;
+        note: string | null;
+        compatibilityScore: number;
+        createdAt: Date;
+      } | null;
+
+      if (reopenableRequest != null) {
+        const reopened = await tx.eventJoinRequest.updateMany({
+          where: {
+            id: reopenableRequest.id,
+            status: reopenableRequest.status,
+          },
+          data: {
+            status: 'pending',
+            note,
+            compatibilityScore,
+            reviewedById: null,
+            reviewedAt: null,
+          },
+        });
+
+        if (reopened.count === 0) {
+          throw new ApiError(
+            409,
+            'join_request_already_reviewed',
+            'Join request is already reviewed',
+          );
+        }
+
+        next = await tx.eventJoinRequest.findUnique({
+          where: { id: reopenableRequest.id },
+          select: {
+            id: true,
+            eventId: true,
+            status: true,
+            note: true,
+            compatibilityScore: true,
+            createdAt: true,
+          },
+        });
+      } else {
+        next = await tx.eventJoinRequest.upsert({
+          where: {
+            eventId_userId: {
+              eventId,
+              userId,
+            },
+          },
+          update: {
+            note,
+            compatibilityScore,
+          },
+          create: {
             eventId,
             userId,
+            note,
+            status: 'pending',
+            compatibilityScore,
           },
-        },
-        update: {
-          note,
-          compatibilityScore,
-        },
-        create: {
-          eventId,
-          userId,
-          note,
-          status: 'pending',
-          compatibilityScore,
-        },
-        select: {
-          id: true,
-          eventId: true,
-          status: true,
-          note: true,
-          compatibilityScore: true,
-          createdAt: true,
-        },
-      });
+          select: {
+            id: true,
+            eventId: true,
+            status: true,
+            note: true,
+            compatibilityScore: true,
+            createdAt: true,
+          },
+        });
+      }
+
+      if (next == null) {
+        throw new ApiError(
+          404,
+          'join_request_not_found',
+          'Join request not found',
+        );
+      }
 
       if (next.status !== 'pending') {
         throw new ApiError(
@@ -763,16 +819,18 @@ export class EventsService {
         );
       }
 
-      const notificationDedupeKey = `event_join_request:${eventId}:${userId}`;
+      const baseNotificationDedupeKey = `event_join_request:${eventId}:${userId}`;
       const existingNotification = await tx.notification.findUnique({
-        where: { dedupeKey: notificationDedupeKey },
+        where: { dedupeKey: baseNotificationDedupeKey },
         select: { id: true },
       });
 
-      if (existingNotification != null) {
+      if (existingNotification != null && reopenableRequest == null) {
         return next;
       }
 
+      const notificationDedupeKey =
+        existingNotification == null ? baseNotificationDedupeKey : null;
       const notification = await tx.notification.create({
         data: {
           userId: event.hostId,
@@ -2170,31 +2228,32 @@ export class EventsService {
       AND: conditions,
     };
     const now = new Date();
+    const recentStartBoundary = this.recentEventStartBoundary(now);
 
     switch (filter) {
       case 'now':
         conditions.push({
           startsAt: {
-            gte: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+            gte: recentStartBoundary,
             lte: new Date(now.getTime() + 3 * 60 * 60 * 1000),
           },
         });
         break;
       case 'calm':
-        conditions.push({ startsAt: { gte: now } });
+        conditions.push({ startsAt: { gte: recentStartBoundary } });
         conditions.push({ isCalm: true });
         break;
       case 'newcomers':
-        conditions.push({ startsAt: { gte: now } });
+        conditions.push({ startsAt: { gte: recentStartBoundary } });
         conditions.push({ isNewcomers: true });
         break;
       case 'date':
-        conditions.push({ startsAt: { gte: now } });
+        conditions.push({ startsAt: { gte: recentStartBoundary } });
         conditions.push({ isDate: true });
         break;
       case 'nearby':
       default:
-        conditions.push({ startsAt: { gte: now } });
+        conditions.push({ startsAt: { gte: recentStartBoundary } });
         break;
     }
 
@@ -2599,12 +2658,16 @@ export class EventsService {
 
     if (filter === 'now') {
       return Prisma.sql`
-        AND e."startsAt" >= ${new Date(now.getTime() - 3 * 60 * 60 * 1000)}
+        AND e."startsAt" >= ${this.recentEventStartBoundary(now)}
         AND e."startsAt" <= ${new Date(now.getTime() + 3 * 60 * 60 * 1000)}
       `;
     }
 
-    return Prisma.sql`AND e."startsAt" >= ${now}`;
+    return Prisma.sql`AND e."startsAt" >= ${this.recentEventStartBoundary(now)}`;
+  }
+
+  private recentEventStartBoundary(now: Date) {
+    return new Date(now.getTime() - 3 * 60 * 60 * 1000);
   }
 
   private postgisRouteFilter(filter?: EventFilter) {

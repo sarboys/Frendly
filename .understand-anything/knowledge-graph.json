@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-10T10:38:44.160Z",
-    "gitCommitHash": "cfa4142792c11115b8ca61ca214c5766fdf5ac2e"
+    "analyzedAt": "2026-05-10T11:37:02.308Z",
+    "gitCommitHash": "5e490f14793d01581b129aa58c250aa29937eb96"
   },
   "nodes": [
     {
@@ -11046,8 +11046,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3492,
-        3511
+        3555,
+        3574
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11064,7 +11064,7 @@
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
         170,
-        3490
+        3553
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -29288,6 +29288,19 @@
       "complexity": "simple"
     },
     {
+      "id": "file:mobile/lib/shared/utils/event_time_labels.dart",
+      "type": "file",
+      "name": "event_time_labels.dart",
+      "filePath": "mobile/lib/shared/utils/event_time_labels.dart",
+      "summary": "event_time_labels.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:mobile/lib/shared/utils/location_label.dart",
       "type": "file",
       "name": "location_label.dart",
@@ -46372,6 +46385,7 @@
         "file:mobile/lib/shared/models/tokens.dart",
         "file:mobile/lib/shared/models/user_settings.dart",
         "file:mobile/lib/shared/models/verification_state.dart",
+        "file:mobile/lib/shared/utils/event_time_labels.dart",
         "file:mobile/lib/shared/utils/location_label.dart",
         "file:mobile/lib/shared/utils/voice_metrics.dart",
         "file:mobile/lib/shared/widgets/async_value_view.dart",

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "cfa4142792c11115b8ca61ca214c5766fdf5ac2e",
-  "generatedAt": "2026-05-10T10:38:44.587Z",
+  "gitCommitHash": "5e490f14793d01581b129aa58c250aa29937eb96",
+  "generatedAt": "2026-05-10T11:37:02.743Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14813,7 +14813,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "14c6884f8f804dd926609d64620b28cb6a727b549064a7e0d4b21450d3d62b9b",
+      "contentHash": "a067efb3af02f0833fd62f3398eb654fbb26b20ce4f6de92f2b1e7a59bd301e1",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14852,6 +14852,7 @@
             "listTake",
             "loadPostgisEventCandidates",
             "postgisStartsAtFilter",
+            "recentEventStartBoundary",
             "postgisRouteFilter",
             "postgisSearchFilter",
             "postgisPriceFilter",
@@ -14889,7 +14890,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3321
+          "lineCount": 3384
         }
       ],
       "imports": [
@@ -14976,7 +14977,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3512,
+      "totalLines": 3575,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {

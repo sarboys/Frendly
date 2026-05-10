@@ -2391,7 +2391,7 @@ describe('core api flows', () => {
     expect(declineRealtimePublish).not.toBeNull();
   });
 
-  it('does not allow reopening a canceled join request immediately', async () => {
+  it('allows reopening a canceled join request', async () => {
     const createResponse = await request(app.getHttpServer())
       .post('/events')
       .set('authorization', `Bearer ${accessToken}`)
@@ -2424,10 +2424,11 @@ describe('core api flows', () => {
     const secondCreate = await request(app.getHttpServer())
       .post(`/events/${eventId}/join-request`)
       .set('authorization', `Bearer ${peerAccessToken}`)
-      .send({ note: 'И еще раз' });
+      .send({ note: 'И еще раз' })
+      .expect(201);
 
-    expect(secondCreate.status).toBe(409);
-    expect(secondCreate.body.code).toBe('join_request_already_reviewed');
+    expect(secondCreate.body.status).toBe('pending');
+    expect(secondCreate.body.note).toBe('И еще раз');
   });
 
   it('rejects too long join request note on server', async () => {
