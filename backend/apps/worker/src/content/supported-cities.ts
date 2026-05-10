@@ -4,11 +4,12 @@ type SupportedCity = {
   name: string;
   timezone: string;
   kudagoCode?: string;
+  tomestoCode?: string;
   overpassBbox: string;
 };
 
 export const SUPPORTED_RUSSIA_MILLION_CITIES: readonly SupportedCity[] = [
-  { name: 'Москва', timezone: 'Europe/Moscow', kudagoCode: 'msk', overpassBbox: '55.55,37.35,55.95,37.95' },
+  { name: 'Москва', timezone: 'Europe/Moscow', kudagoCode: 'msk', tomestoCode: 'moskva', overpassBbox: '55.55,37.35,55.95,37.95' },
   { name: 'Санкт-Петербург', timezone: 'Europe/Moscow', kudagoCode: 'spb', overpassBbox: '59.75,30.05,60.10,30.65' },
   { name: 'Новосибирск', timezone: 'Asia/Novosibirsk', kudagoCode: 'nsk', overpassBbox: '54.80,82.70,55.15,83.20' },
   { name: 'Екатеринбург', timezone: 'Asia/Yekaterinburg', kudagoCode: 'ekb', overpassBbox: '56.70,60.35,56.95,60.85' },
@@ -50,6 +51,13 @@ export function cityCodesForSource(sourceCode: ExternalSourceCode): Record<strin
       SUPPORTED_RUSSIA_MILLION_CITIES
         .filter((city) => city.kudagoCode)
         .map((city) => [city.name, city.kudagoCode as string]),
+    );
+  }
+  if (sourceCode === 'tomesto') {
+    return Object.fromEntries(
+      SUPPORTED_RUSSIA_MILLION_CITIES
+        .filter((city) => city.tomestoCode)
+        .map((city) => [city.name, city.tomestoCode as string]),
     );
   }
   return Object.fromEntries(SUPPORTED_RUSSIA_MILLION_CITIES.map((city) => [city.name, city.name]));

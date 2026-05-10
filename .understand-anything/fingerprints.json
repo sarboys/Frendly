@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "9ea6c41f87f7534b619542e251b94261b5dabf31",
-  "generatedAt": "2026-05-09T14:30:40.146Z",
+  "gitCommitHash": "d953c008c8fc76a62ed27897546f05133e099107",
+  "generatedAt": "2026-05-10T06:49:15.067Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -19550,7 +19550,7 @@
     },
     "backend/apps/worker/src/content/supported-cities.ts": {
       "filePath": "backend/apps/worker/src/content/supported-cities.ts",
-      "contentHash": "b0df58721d8b62cbd93102214dcfb58457cdcdb8c4dc1f1b99e0d21f1e68198d",
+      "contentHash": "789d0aa9e263cbd78dd5264fe67f9b5806c07d0cc311272df463d1ec23fa811f",
       "functions": [
         {
           "name": "timezoneForCity",
@@ -19591,7 +19591,7 @@
           ],
           "returnType": "Record<string, string>",
           "exported": true,
-          "lineCount": 10
+          "lineCount": 17
         }
       ],
       "classes": [],
@@ -19612,7 +19612,7 @@
         "isSupportedTicketlandCity",
         "cityCodesForSource"
       ],
-      "totalLines": 57,
+      "totalLines": 65,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/timepad.adapter.ts": {

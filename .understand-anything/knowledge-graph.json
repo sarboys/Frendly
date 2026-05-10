@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-09T14:30:39.705Z",
-    "gitCommitHash": "9ea6c41f87f7534b619542e251b94261b5dabf31"
+    "analyzedAt": "2026-05-10T06:49:14.565Z",
+    "gitCommitHash": "d953c008c8fc76a62ed27897546f05133e099107"
   },
   "nodes": [
     {
@@ -15456,8 +15456,8 @@
       "name": "timezoneForCity",
       "filePath": "backend/apps/worker/src/content/supported-cities.ts",
       "lineRange": [
-        31,
-        33
+        32,
+        34
       ],
       "summary": "timezoneForCity in supported-cities.ts.",
       "tags": [
@@ -15473,8 +15473,8 @@
       "name": "kudagoCityCode",
       "filePath": "backend/apps/worker/src/content/supported-cities.ts",
       "lineRange": [
-        35,
-        37
+        36,
+        38
       ],
       "summary": "kudagoCityCode in supported-cities.ts.",
       "tags": [
@@ -15490,8 +15490,8 @@
       "name": "overpassBboxForCity",
       "filePath": "backend/apps/worker/src/content/supported-cities.ts",
       "lineRange": [
-        39,
-        41
+        40,
+        42
       ],
       "summary": "overpassBboxForCity in supported-cities.ts.",
       "tags": [
@@ -15507,8 +15507,8 @@
       "name": "isSupportedTicketlandCity",
       "filePath": "backend/apps/worker/src/content/supported-cities.ts",
       "lineRange": [
-        43,
-        45
+        44,
+        46
       ],
       "summary": "isSupportedTicketlandCity in supported-cities.ts.",
       "tags": [
@@ -15524,8 +15524,8 @@
       "name": "cityCodesForSource",
       "filePath": "backend/apps/worker/src/content/supported-cities.ts",
       "lineRange": [
-        47,
-        56
+        48,
+        64
       ],
       "summary": "cityCodesForSource in supported-cities.ts.",
       "tags": [

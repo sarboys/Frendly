@@ -460,6 +460,59 @@ describe('worker outbox recovery', () => {
     await service.onModuleDestroy();
   });
 
+  it('generates profile image variants during media finalize', async () => {
+    const mediaAssetUpdate = jest.fn().mockResolvedValue({});
+    const prismaService = {
+      client: {
+        mediaAsset: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'asset-profile-1',
+            kind: 'avatar',
+            bucket: 'frendly-backet',
+            objectKey: 'avatars/user-me/photo.png',
+            chatId: null,
+          }),
+          update: mediaAssetUpdate,
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+    (service as any).s3 = {
+      send: jest
+        .fn()
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ Body: Readable.from([tinyPng]) })
+        .mockResolvedValue({}),
+    };
+
+    await (service as any).handleMediaFinalize({
+      assetId: 'asset-profile-1',
+    });
+
+    expect(mediaAssetUpdate).toHaveBeenCalledWith({
+      where: { id: 'asset-profile-1' },
+      data: expect.objectContaining({
+        publicUrl: '/media/avatars/user-me/photo.png',
+        variants: expect.objectContaining({
+          avatar: expect.objectContaining({
+            url: '/media/avatars/user-me/photo__avatar.webp',
+            mimeType: 'image/webp',
+            byteSize: expect.any(Number),
+          }),
+          card: expect.objectContaining({
+            url: '/media/avatars/user-me/photo__card.webp',
+          }),
+          hero: expect.objectContaining({
+            url: '/media/avatars/user-me/photo__hero.webp',
+          }),
+          fullscreen: expect.objectContaining({
+            url: '/media/avatars/user-me/photo__fullscreen.webp',
+          }),
+        }),
+      }),
+    });
+  });
+
   it('auto-advances due Frendly Evening sessions and publishes chat update', async () => {
     const route = {
       id: 'r-cozy-circle',
