@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mobile App Builder"
+  short_description: "Native and cross-platform mobile builds"
+  default_prompt: "Use -app-builder for native iOS, Android, React Native, Flutter, mobile performance, or platform integration work."

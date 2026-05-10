@@ -169,6 +169,7 @@ Admin Evening route review:
 - Event joins are idempotent for existing participants.
 - `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates. It also accepts `afficheEventId` for creating a meetup from a published affiche event; `posterId`, `afficheEventId` and route selection are mutually exclusive.
 - Event list and detail summaries expose `imageUrl` from linked public Affiche content, so meetups created from `afficheEventId` can reuse the same external event image.
+- Event list and detail summaries expose paid ticket summary from linked Poster or public Affiche source: `ticketUrl`, `ticketSourceKind`, `ticketSourceId`, `ticketPriceFrom`, `ticketProvider`, `ticketVenue`. Free Affiche sources keep these fields null.
 - `GET /events` and `GET /posters` accept `date=yyyy-mm-dd` for one-day filtering.
 - `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
 - `GET /evening/route-templates` list uses summary payload only: route summary fields, first 4 steps and bounded partner offer preview. Template detail loads full steps separately.

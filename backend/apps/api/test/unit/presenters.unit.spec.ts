@@ -66,6 +66,102 @@ describe('presenters', () => {
     );
   });
 
+  it('maps paid affiche tickets to event summaries', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-ticket',
+        title: 'Идем на концерт',
+        emoji: '🎵',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Клуб',
+        distanceKm: 1.2,
+        latitude: null,
+        longitude: null,
+        capacity: 8,
+        vibe: 'Спокойно',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'fixed',
+        priceAmountFrom: 1500,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        sourceExternalContentItem: {
+          id: 'affiche-1',
+          imageUrl: null,
+          priceFrom: 1500,
+          priceMode: 'paid',
+          actionUrl: 'https://tickets.example/show',
+          sourceProvider: 'Ticketland',
+          venueName: 'Live Arena',
+        },
+      } as any,
+      participants: [],
+      currentUserId: 'user-me',
+    });
+
+    expect(summary).toMatchObject({
+      ticketUrl: 'https://tickets.example/show',
+      ticketSourceKind: 'affiche',
+      ticketSourceId: 'affiche-1',
+      ticketPriceFrom: 1500,
+      ticketProvider: 'Ticketland',
+      ticketVenue: 'Live Arena',
+    });
+  });
+
+  it('does not map free affiche tickets to event summaries', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-free',
+        title: 'Бесплатная выставка',
+        emoji: '🎵',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Галерея',
+        distanceKm: 1.2,
+        latitude: null,
+        longitude: null,
+        capacity: 8,
+        vibe: 'Спокойно',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'free',
+        priceAmountFrom: null,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        sourceExternalContentItem: {
+          id: 'affiche-free',
+          imageUrl: null,
+          priceFrom: 0,
+          priceMode: 'free',
+          actionUrl: 'https://tickets.example/free',
+          sourceProvider: 'KudaGo',
+          venueName: 'Гараж',
+        },
+      } as any,
+      participants: [],
+      currentUserId: 'user-me',
+    });
+
+    expect(summary).toMatchObject({
+      ticketUrl: null,
+      ticketSourceKind: null,
+      ticketSourceId: null,
+      ticketPriceFrom: null,
+      ticketProvider: null,
+      ticketVenue: null,
+    });
+  });
+
   it('maps profile photo media variants to proxy urls', () => {
     const photo = mapProfilePhoto({
       id: 'photo-1',

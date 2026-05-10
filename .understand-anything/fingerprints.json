@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "5a1c99db9250380a68fd9d5efb8f7957cd551018",
-  "generatedAt": "2026-05-10T07:24:29.656Z",
+  "gitCommitHash": "cfa4142792c11115b8ca61ca214c5766fdf5ac2e",
+  "generatedAt": "2026-05-10T10:38:44.587Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -10024,7 +10024,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "00af8edcbe2506e7cfd91da5376ddeb0245163337375fc780b987703fc764e99",
+      "contentHash": "b3084338fa2faacb3ebff7c9cfc25de03190b9ae412eb81e486f9073054297b1",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10119,12 +10119,20 @@
           "lineCount": 3
         },
         {
+          "name": "mapEventTicketSummary",
+          "params": [
+            "event"
+          ],
+          "exported": true,
+          "lineCount": 55
+        },
+        {
           "name": "mapEventSummary",
           "params": [
             "params"
           ],
           "exported": true,
-          "lineCount": 60
+          "lineCount": 61
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -10178,9 +10186,10 @@
         "mapAttendanceStatus",
         "mapJoinRequestStatus",
         "mapLiveStatus",
+        "mapEventTicketSummary",
         "mapEventSummary"
       ],
-      "totalLines": 387,
+      "totalLines": 457,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -14804,7 +14813,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "102effe016e4bc53b0b3e1bee0706c996fa94efe6682b8b57080aa8ee92fd07f",
+      "contentHash": "14c6884f8f804dd926609d64620b28cb6a727b549064a7e0d4b21450d3d62b9b",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14967,7 +14976,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3497,
+      "totalLines": 3512,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {

@@ -297,10 +297,79 @@ type EventSummaryInput = Pick<
 > & {
   latitude?: number | null;
   longitude?: number | null;
+  sourcePoster?: {
+    id: string;
+    priceFrom: number;
+    ticketUrl: string;
+    provider: string;
+    venue: string;
+  } | null;
   sourceExternalContentItem?: {
+    id?: string | null;
     imageUrl: string | null;
+    priceFrom?: number | null;
+    priceMode?: string | null;
+    actionUrl?: string | null;
+    sourceProvider?: string | null;
+    venueName?: string | null;
   } | null;
 };
+
+export function mapEventTicketSummary(event?: {
+  sourcePoster?: {
+    id: string;
+    priceFrom: number;
+    ticketUrl: string;
+    provider: string;
+    venue: string;
+  } | null;
+  sourceExternalContentItem?: {
+    id?: string | null;
+    priceFrom?: number | null;
+    priceMode?: string | null;
+    actionUrl?: string | null;
+    sourceProvider?: string | null;
+    venueName?: string | null;
+  } | null;
+} | null) {
+  const poster = event?.sourcePoster;
+  if (poster && poster.priceFrom > 0 && poster.ticketUrl.trim().length > 0) {
+    return {
+      ticketUrl: poster.ticketUrl,
+      ticketSourceKind: 'poster',
+      ticketSourceId: poster.id,
+      ticketPriceFrom: poster.priceFrom,
+      ticketProvider: poster.provider,
+      ticketVenue: poster.venue,
+    };
+  }
+
+  const affiche = event?.sourceExternalContentItem;
+  if (
+    affiche?.id &&
+    affiche.priceMode === 'paid' &&
+    (affiche.priceFrom ?? 0) > 0 &&
+    (affiche.actionUrl ?? '').trim().length > 0
+  ) {
+    return {
+      ticketUrl: affiche.actionUrl,
+      ticketSourceKind: 'affiche',
+      ticketSourceId: affiche.id,
+      ticketPriceFrom: affiche.priceFrom ?? null,
+      ticketProvider: affiche.sourceProvider ?? null,
+      ticketVenue: affiche.venueName ?? null,
+    };
+  }
+
+  return {
+    ticketUrl: null,
+    ticketSourceKind: null,
+    ticketSourceId: null,
+    ticketPriceFrom: null,
+    ticketProvider: null,
+    ticketVenue: null,
+  };
+}
 
 export function mapEventSummary(params: {
   event: EventSummaryInput;
@@ -360,6 +429,7 @@ export function mapEventSummary(params: {
     attendanceStatus: mapAttendanceStatus(attendance),
     liveStatus: mapLiveStatus(liveState),
     isHost: event.hostId === currentUserId,
+    ...mapEventTicketSummary(event),
   };
 }
 

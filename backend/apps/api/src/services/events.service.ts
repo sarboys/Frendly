@@ -106,9 +106,24 @@ const eventListSummarySelect = {
   visibilityMode: true,
   joinMode: true,
   hostId: true,
+  sourcePoster: {
+    select: {
+      id: true,
+      priceFrom: true,
+      ticketUrl: true,
+      provider: true,
+      venue: true,
+    },
+  },
   sourceExternalContentItem: {
     select: {
+      id: true,
       imageUrl: true,
+      priceFrom: true,
+      priceMode: true,
+      actionUrl: true,
+      sourceProvider: true,
+      venueName: true,
     },
   },
 } satisfies Prisma.EventSelect;

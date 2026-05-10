@@ -28,7 +28,8 @@ Use this for boot files, routes and app starts.
 `mobile/lib/app/app.dart`:
 
 - builds `MaterialApp.router`
-- wires theme, router, session clear and realtime sync
+- wires theme, router and session clear
+- does not start chat realtime or `/settings/me` on authenticated startup
 
 `mobile/lib/app/core/config/backend_config.dart`:
 
@@ -71,6 +72,9 @@ Important query params:
 - `/create?communityId=<id>`
 - `/create?mode=dating`
 - `/create?mode=afterdark`
+- `/publish`
+- `/sos`
+- `/routes/new`
 - `/evening-plan/:routeId?launch=1`
 - `/evening-live/:routeId?mode=auto|manual|hybrid`
 
@@ -79,7 +83,7 @@ Important query params:
 - HTTP: `mobile/lib/app/core/network/api_client.dart`.
 - Repository: `mobile/lib/shared/data/backend_repository.dart`.
 - WebSocket: `mobile/lib/app/core/network/chat_socket_client.dart`.
-- App realtime sync: `chatRealtimeSyncProvider` in `mobile/lib/shared/data/app_providers.dart`.
+- App realtime sync: `chatRealtimeSyncProvider` in `mobile/lib/shared/data/app_providers.dart`, started by `ChatsScreen` after chats are opened.
 
 ## Flutter features
 
