@@ -836,6 +836,7 @@ describe('ChatsService unit', () => {
     resolveMessages([]);
 
     await expect(resultPromise).resolves.toEqual({
+      currentUserId: 'user-me',
       items: [],
       nextCursor: null,
       lastEventId: '7',

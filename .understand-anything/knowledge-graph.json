@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-10T06:49:14.565Z",
-    "gitCommitHash": "d953c008c8fc76a62ed27897546f05133e099107"
+    "analyzedAt": "2026-05-10T07:24:29.216Z",
+    "gitCommitHash": "5a1c99db9250380a68fd9d5efb8f7957cd551018"
   },
   "nodes": [
     {
@@ -10573,7 +10573,7 @@
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
         133,
-        1093
+        1094
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [

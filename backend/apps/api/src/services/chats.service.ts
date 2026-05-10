@@ -790,6 +790,7 @@ export class ChatsService {
       .reverse()
       .map((message) => mapMessage(message));
     return {
+      currentUserId: userId,
       items: mapped,
       nextCursor:
         hasMore && page.length > 0
