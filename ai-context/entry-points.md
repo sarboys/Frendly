@@ -62,6 +62,7 @@ Important query params:
 
 - `/phone` and `/phone-auth`
 - `/ai-voice`
+- `/after-dark`
 - `/streak`
 - `/memory-map`
 - `/perks`
@@ -96,6 +97,7 @@ Important query params:
 - Memory map: `features/memory_map/presentation/memory_map_screen.dart`.
 - Perks: `features/perks/presentation/perks_screen.dart`.
 - AI voice: `features/ai_voice/presentation/ai_voice_screen.dart`.
+- After Dark: `features/after_dark/presentation/after_dark_screen.dart`.
 - Create meetup: `features/create_meetup/presentation/create_meetup_screen.dart`.
 - Host dashboard: `features/host_dashboard/presentation/host_dashboard_screen.dart`.
 - Chat hub: `features/chats/presentation/chats_screen.dart`.

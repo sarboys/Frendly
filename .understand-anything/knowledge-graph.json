@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-10T15:51:55.857Z",
-    "gitCommitHash": "d22327e8f81a8ace5778e8fe35f1e0322a50adab"
+    "analyzedAt": "2026-05-11T05:22:50.600Z",
+    "gitCommitHash": "c6e3369360ff08849be152f326e987ff2d7f5ce4"
   },
   "nodes": [
     {
@@ -27650,6 +27650,19 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:mobile/lib/features/after_dark/presentation/after_dark_screen.dart",
+      "type": "file",
+      "name": "after_dark_screen.dart",
+      "filePath": "mobile/lib/features/after_dark/presentation/after_dark_screen.dart",
+      "summary": "after_dark_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "file:mobile/lib/features/after_party/presentation/after_party_screen.dart",
       "type": "file",
       "name": "after_party_screen.dart",
@@ -28349,7 +28362,7 @@
         "code",
         "dart"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart",
@@ -29442,6 +29455,19 @@
         "dart"
       ],
       "complexity": "complex"
+    },
+    {
+      "id": "file:mobile/lib/shared/widgets/bb_v5_promo.dart",
+      "type": "file",
+      "name": "bb_v5_promo.dart",
+      "filePath": "mobile/lib/shared/widgets/bb_v5_promo.dart",
+      "summary": "bb_v5_promo.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/shared/widgets/bb_v5_ui.dart",
@@ -46168,6 +46194,7 @@
         "file:mobile/lib/features/affiche/presentation/affiche_event_picker_sheet.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_events_screen.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_filters.dart",
+        "file:mobile/lib/features/after_dark/presentation/after_dark_screen.dart",
         "file:mobile/lib/features/after_party/presentation/after_party_screen.dart",
         "file:mobile/lib/features/ai_create/presentation/ai_create_screen.dart",
         "file:mobile/lib/features/ai_voice/presentation/ai_voice_screen.dart",
@@ -46306,6 +46333,7 @@
         "file:mobile/lib/shared/widgets/bb_social_actions.dart",
         "file:mobile/lib/shared/widgets/bb_swipeable_message.dart",
         "file:mobile/lib/shared/widgets/bb_system_overlays.dart",
+        "file:mobile/lib/shared/widgets/bb_v5_promo.dart",
         "file:mobile/lib/shared/widgets/bb_v5_ui.dart",
         "file:mobile/lib/shared/widgets/bb_voice_message.dart",
         "config:mobile/pubspec.yaml",

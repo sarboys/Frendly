@@ -4,6 +4,23 @@
 
 Цель: перенести UI во Flutter близко к TSX, сохранить текущие API, модели и рабочие сценарии.
 
+## Source Check For New V5 Wave
+
+- [x] Проверить `front/src/pages/v5/_promo.tsx`.
+  - Comment: file is missing in current workspace. `rg --files front/src/pages/v5` and `ls front/src/pages/v5` do not show it. Migration uses the user-provided description for the first Flutter pass, then needs exact TSX once the file appears.
+
+- [x] Проверить `front/src/pages/v5/AfterDark.tsx`.
+  - Comment: file is missing in current workspace. There is an older reference at `front/src/components/bigbreak/screens/AfterDark.tsx`, but it is not the requested source.
+
+- [x] Проверить `front/src/pages/v5/EveningFlow.tsx`.
+  - Comment: file is missing in current workspace. Existing Flutter has separate evening screens: `EveningPreviewScreen`, `EveningLiveMeetupScreen`, `EveningAfterPartyScreen`, `EveningShareCardScreen`.
+
+- [x] Проверить `front/src/pages/v5/Match.tsx`.
+  - Comment: file is missing in current workspace. There is an older reference at `front/src/components/bigbreak/screens/Match.tsx`, while Flutter already has `MatchScreen`.
+
+- [x] Проверить routes in `front/src/App.tsx`.
+  - Comment: current `front/src/App.tsx` has no `/v5/after-dark`, `/v5/evening/:id`, `/v5/match`, `/v5/ideas` routes. These routes are treated as requested target routes from the task text.
+
 ## Правила
 
 - Backend API не меняем.
@@ -13,6 +30,36 @@
 - Новые экраны читают существующие Riverpod providers и `BackendRepository`.
 
 ## Screen Mapping
+
+- [x] `AfterDark.tsx` -> `mobile/lib/features/after_dark/presentation/after_dark_screen.dart`
+  - Flutter route: add `AppRoute.afterDark`, path `/after-dark`.
+  - Entry points: `TonightScreen` header gets a round purple moon action. `CreateMeetupScreen` After Dark mode opens this screen instead of staying as a passive tab.
+  - Data/state: static launch teaser state only, no backend API change. User tap on `Уведомить` can show local UI feedback.
+  - UI mapping: dark moody full screen, violet and magenta ambient glow, pink-violet badge, locked teaser card, six feature cards, enabled `Уведомить`, disabled `Скоро`.
+  - Comment: done. Added dark moody Flutter screen, `/after-dark` route, Home moon entry point, Create Meetup purple After Dark tab entry, local notify state, and no backend API changes. Exact TSX source is still missing from `front/src/pages/v5`, so this is based on the task description plus shared v5 tokens.
+
+- [ ] `EveningFlow.tsx` -> `mobile/lib/features/evening_flow/presentation/evening_flow_screen.dart`
+  - Flutter route: add `AppRoute.eveningFlow`, path `/evening/:sessionId`.
+  - Entry points: event join and meetup chat evening start should open the unified flow when a session id exists. Existing route, live and after-party screens stay available until this screen reaches full parity.
+  - Data/state: `eveningSessionProvider(sessionId)`, `eveningSessionsProvider`, `BackendRepository.startEveningSession`, `checkInEveningStep`, `advanceEveningStep`, `skipEveningStep`, `finishEveningSession`, `fetchEveningAfterParty`, `saveEveningAfterPartyFeedback`.
+  - API: no backend changes. Missing voting and token reward data must use existing fields or remain visual-only until backend supports it.
+  - UI mapping: tabs `route / checkin / live / after / share / end`, timeline, geo check-in panel, live panel, after-party vote panel, share summary card, rating and token result.
+  - Comment: pending.
+
+- [x] `Match.tsx` -> `mobile/lib/features/match/presentation/match_screen.dart`
+  - Flutter route: keep `AppRoute.match`, path `/match/:userId`.
+  - Entry points: dating mutual like should route here with `userId`; if backend returns `chatId`, preserve direct chat path from the matched state.
+  - Data/state: `matchesProvider`, `BackendRepository.createOrGetDirectChat`, existing `DatingProfileData.matched`.
+  - API: no backend changes.
+  - UI mapping: fullscreen match moment, warm animated avatar convergence, score, common interests, primary `Написать`, secondary `Пригласить на встречу`.
+  - Comment: done. Existing real `matchesProvider` flow kept. Fixed bottom actions now include `Написать` through existing direct chat API and `Пригласить на встречу` through `/create?inviteeUserId=<id>`. Full avatar convergence animation is still pending until exact TSX source is available.
+
+- [x] Promo style from `_promo.tsx` -> shared Flutter promo widgets in `mobile/lib/shared/widgets/bb_v5_promo.dart`
+  - Flutter usages: Home gathering carousel, Chats active rail and chat list promoted rows, Meetups promoted cards.
+  - Data/state: `tokenWalletProvider.promoted`, existing promoted ids.
+  - API: no backend changes.
+  - UI mapping: gold gradient, glow, ribbon, badge, pulse, note, light background wash.
+  - Comment: done. Added shared gold promo badge, frame, ribbon, pulse and note. Home gathering cards, Chats active rail and mixed chat rows, and Meetups promoted badges now use the shared promo style with existing promoted ids.
 
 - [x] `Notifications.tsx` -> `mobile/lib/features/notifications/presentation/notifications_screen.dart`
   - Flutter route: `AppRoute.notifications`, path `/notifications`.
