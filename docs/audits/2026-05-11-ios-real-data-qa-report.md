@@ -3068,6 +3068,13 @@ Impact:
 - A public club chat is reachable before membership.
 - Users can bypass the intended join gate.
 
+Fixed candidate 2026-05-12:
+
+- Added a community detail regression test for `joined=false` and non-owner state.
+- Fixed community detail to show `Открыть чат` only for owners or active members.
+- Tests passed: `cd mobile && flutter test test/features/communities/presentation/communities_screen_test.dart`.
+- XcodeBuildMCP built the app on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`; `frendly:///community/cmp14125v00b2pe1z2eqs2ado` showed `Вступить` and no `Открыть чат` button.
+
 ### IOS-QA-016: Affiche create prefill shifts event time to device timezone
 
 Severity: medium.

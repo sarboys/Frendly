@@ -1202,13 +1202,26 @@ XcodeBuildMCP snapshot for frendly:///dating showed action labels at y 742 and b
 XcodeBuildMCP snapshot also showed AXLabel Фильтры дейтинга and the backend discover card Пользователь 1111.
 ```
 
-- [ ] **Step 7.4: Fix community chat membership guard**
+- [x] **Step 7.4: Fix community chat membership guard**
 
 Expected behavior:
 
 ```text
 Private or member-only community chat cannot open before backend membership is active.
 Show join or request state instead of chat.
+```
+
+Fixed status 2026-05-12:
+
+```text
+IOS-QA-015 fixed candidate.
+Added RED widget coverage for a non-member community detail screen with joined=false.
+Fixed CommunityDetailScreen to show Open chat only for owners or active members.
+
+Verification:
+cd mobile && flutter test test/features/communities/presentation/communities_screen_test.dart
+XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+XcodeBuildMCP snapshot for frendly:///community/cmp14125v00b2pe1z2eqs2ado showed Вступить and no Открыть чат button.
 ```
 
 - [ ] **Step 7.5: Run tests and real-data check**
