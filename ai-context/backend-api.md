@@ -70,7 +70,7 @@ Chats:
 - `GET /chats/:chatId/messages`
 - `POST /chats/:chatId/read`
 - `POST /chats/:chatId/pin` with `{ isPinned }` toggles the current user's pinned state for that chat.
-- Chat list items expose `isPinned`; pinned items are returned before normal recency ordering.
+- Chat list items expose `lastMessageId` and `isPinned`; pinned items are returned before normal recency ordering.
 - Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
 - Meetup chat list items expose paid ticket summary from the linked source. Legacy `Poster` uses `sourcePoster.ticketUrl`, `priceFrom`, `provider` and `venue`; public Affiche uses `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.
 

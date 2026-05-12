@@ -2788,6 +2788,12 @@ Impact:
 - In the Stage 23 retest, even a fresh row after relaunch did not open near the latest unread message.
 - Stage 24 shows the backend read path works; the remaining risk is iOS read command, read target, or runtime list state.
 
+Fixed candidate 2026-05-12:
+
+- Added chat list `lastMessageId` to the backend response so mobile can mark the latest unread summary message even when the thread opens on older history.
+- Mobile now uses the unread row summary message id before falling back to the latest loaded incoming message.
+- Verification: XcodeBuildMCP on iPhone 17 Pro iOS 26.5, Guest C, fresh realtime meetup message `QA realtime unread 2026-05-12T04:15:30Z` from Host E. The Chats row updated, opening the meetup cleared the unread badge, backend `/chats/meetups` returned unread `0`.
+
 ### IOS-QA-012: Public profile header and body can show different users
 
 Severity: high.
@@ -3288,6 +3294,11 @@ docs/audits/2026-05-11-ios-stage28-personal-unread-row-stale.jpg
 docs/audits/2026-05-11-ios-stage28-personal-unread-cold-relaunch-row-fresh-unread.jpg
 ```
 
+Fixed candidate 2026-05-12:
+
+- App-level realtime now patches meetup and personal row preview from `message.created` and preserves fresh unread state from `unread.updated`.
+- Verification: XcodeBuildMCP showed the meetup row update to `QA realtime unread 2026-05-12T04:15:30Z` without relaunch. Direct row updated to `444444` after send and return to Chats.
+
 ### IOS-QA-020: Personal direct chat opening visible latest message does not clear unread
 
 Severity: medium.
@@ -3375,6 +3386,11 @@ Impact:
 - A user can open and see the newest personal message, but the unread count stays active.
 - This can keep bottom tab and chat row badges stale.
 - It is broader than IOS-QA-011 because the latest direct message was visible.
+
+Fixed candidate 2026-05-12:
+
+- Chat thread now marks the latest known unread summary message id, or the latest loaded incoming message when summary id is unavailable.
+- Verification: `flutter test test/features/chats/presentation/` passed, including the stale history unread case. XcodeBuildMCP direct chat send and open flow kept backend unread at `0` and row preview updated to `444444`.
 
 ### IOS-QA-021: Direct chat file picker can return without sending selected txt and zip files
 
@@ -3922,6 +3938,11 @@ Impact:
 - The sender can believe a direct message was sent while backend still has no record.
 - The message can disappear after reopening, then reappear and persist only after app restart.
 - Delivery state is misleading while the local queue is pending.
+
+Fixed candidate 2026-05-12:
+
+- `ChatSocketClient.sendMessage` now persists and flushes the outgoing command during the same session after connect and clears it on the matching realtime echo.
+- Verification: `flutter test test/app/core/network/chat_socket_client_test.dart` passed. XcodeBuildMCP direct chat sent `444444`, the bubble appeared immediately, backend `/chats/personal` returned latest message `444444` without relaunch.
 
 ### IOS-QA-030: Direct chat incoming message profile action does not open profile
 

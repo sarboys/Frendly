@@ -574,7 +574,7 @@ Expected:
 Outbox, mark-read, personal rows and meetup rows tests pass.
 ```
 
-- [ ] **Step 3.6: Real-data verification**
+- [x] **Step 3.6: Real-data verification**
 
 Use XcodeBuildMCP plus backend curl:
 
@@ -596,10 +596,18 @@ IOS-QA-011, 019, 020 and 029 are fixed candidates.
 Status 2026-05-12:
 
 ```text
-Blocked for fresh simulator verification. XcodeBuildMCP build_run_sim and flutter build ios --simulator both fail before compiling app code because xcodebuild cannot find destination iPhone 17 Pro A195A8F2-DCEB-4B12-9377-8F1D6294F072 for Runner. The simulator is booted and visible in simctl as iOS 26.4, but Xcode reports only ineligible iOS 26.5 device destinations for the Runner scheme.
+Verified on iPhone 17 Pro iOS 26.5 E1D49F3C-4690-408C-859C-EAB274D963C7 after installing the new simulator. Built and installed Debug Runner.app with production backend https://api.frendly.tech and placeholder MapKit key for chat-only verification.
+
+Direct send: Guest C sent 444444 in cmp1gufto00djpe1zda834izn. Bubble appeared immediately and backend /chats/personal returned latest 444444 without relaunch.
+
+Realtime row: Host E sent QA realtime unread 2026-05-12T04:15:30Z to cmp10vn8m005npe1z534n9mm6 over production WebSocket. Guest C Chats row updated without relaunch.
+
+Meetup unread: opening the updated meetup row cleared the unread badge in iOS and backend /chats/meetups returned unread 0.
+
+Note: production backend currently does not return lastMessageId yet. The backend contract is implemented locally and pnpm --filter @big-break/api build passes, but deployed backend needs the same change for cold REST rows that have stale history.
 ```
 
-- [ ] **Step 3.7: Update graph and commit**
+- [x] **Step 3.7: Update graph and commit**
 
 Run:
 

@@ -907,6 +907,7 @@ describe('core api flows', () => {
 
       const chat = response.body.items.find((item: { id: string }) => item.id === 'p1');
       expect(chat.lastMessage).toBe('Голосовое сообщение');
+      expect(chat.lastMessageId).toBe(messageId);
 
       const messagesResponse = await request(app.getHttpServer())
         .get('/chats/p1/messages')
