@@ -1167,6 +1167,19 @@ Filter controls must expose labels and selected states.
 Composer voice button in direct chat must not start recording while text exists.
 ```
 
+Partial status 2026-05-12:
+
+```text
+IOS-QA-013 fixed candidate only.
+Added RED widget coverage for BbComposer with existing text and mic tap.
+Fixed BbComposer to block voice recording while trimmed text exists.
+Verification:
+cd mobile && flutter test test/shared/widgets/bb_composer_test.dart
+XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+XcodeBuildMCP opened frendly:///personal/cmp1gufto00djpe1zda834izn, entered text, tapped the mic area, and no recording UI appeared.
+Step 7.3 stays open for IOS-QA-014, IOS-QA-023 and IOS-QA-024.
+```
+
 - [ ] **Step 7.4: Fix community chat membership guard**
 
 Expected behavior:

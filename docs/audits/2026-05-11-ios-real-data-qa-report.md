@@ -2948,6 +2948,13 @@ Impact:
 
 - Users can accidentally record and send voice while trying to send typed text.
 
+Fixed candidate 2026-05-12:
+
+- Added a composer regression test that enters text, taps the mic side action, and verifies microphone permission plus recorder start are not called.
+- Fixed `BbComposer._startVoiceRecording` to return early when trimmed text exists.
+- Tests passed: `cd mobile && flutter test test/shared/widgets/bb_composer_test.dart`.
+- XcodeBuildMCP built the app on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`; in `frendly:///personal/cmp1gufto00djpe1zda834izn`, after text was entered and the mic area was tapped, no recording UI appeared.
+
 ### IOS-QA-014: Dating action row is covered by the bottom navigation
 
 Severity: medium.
