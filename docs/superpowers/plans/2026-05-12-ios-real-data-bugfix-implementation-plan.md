@@ -1253,7 +1253,7 @@ Fixed the remaining Task 7 verification regressions in the chat suite before clo
 Meetup live chat header now keeps LIVE status instead of replacing it with member count.
 Meetup chat member avatar has the expected accessibility/test key.
 Meetup paid ticket block again shows Купить билет · от 2 500 ₽ plus provider and venue metadata.
-Attachment sheet again exposes Что прикрепить and Локацию.
+Attachment sheet again exposes Что прикрепить and Геолокация.
 Typing indicator test no longer waits for a repeating animation to settle.
 
 Verification:
@@ -1318,6 +1318,30 @@ Expected:
 ```text
 No failures.
 If a full suite is too slow, record exact partial commands and why.
+```
+
+Status 2026-05-12:
+
+```text
+cd mobile && flutter analyze
+Result: passed, No issues found.
+
+cd mobile && flutter test
+Result: failed, 582 total with 33 failures.
+Failure groups include stale splash/app smoke copy, auth token persistence expectation, community composer label expectation, edit profile thumbnail count, evening builder and plan fixture expectations, remaining rollout placeholders, brand icon asset expectation and theme token expectations.
+One failure from this session was fixed by reverting the shared composer location label back to Геолокация and updating the detail chat test to match it.
+
+cd backend && pnpm --filter @big-break/api test:unit
+Result: passed, 49 suites and 321 tests.
+
+cd backend && pnpm --filter @big-break/api build
+Result: passed.
+
+bash scripts/update-understand-graph.sh
+Result: passed, filesAnalyzed 604, warnings 0.
+
+node scripts/ua-query.test.mjs
+Result: passed.
 ```
 
 - [ ] **Step 8.2: Run real-data smoke**

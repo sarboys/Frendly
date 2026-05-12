@@ -8759,3 +8759,58 @@ cd mobile && flutter test test/features/parity/notifications_and_profile_screen_
 cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart
 cd mobile && flutter test test/features/parity/people_and_chats_screen_test.dart
 ```
+
+## 2026-05-12 Task 8 Final Verification Attempt
+
+Automated checks:
+
+```text
+cd mobile && flutter analyze
+```
+
+Status: passed, `No issues found`.
+
+```text
+cd mobile && flutter test
+```
+
+Status: failed, `582` tests ran with `33` failures.
+
+Failure groups observed:
+
+- stale splash and app smoke expectations.
+- auth token persistence expectation in `auth_tokens_controller_test.dart`.
+- older community composer label expectation, fixed in current session by keeping the shared label `Геолокация`.
+- edit profile thumbnail count expectation.
+- evening builder and evening plan fixture expectations.
+- remaining rollout placeholder expectations.
+- brand icon asset expectation.
+- theme token expectations.
+
+```text
+cd backend && pnpm --filter @big-break/api test:unit
+```
+
+Status: passed, `49` suites and `321` tests.
+
+```text
+cd backend && pnpm --filter @big-break/api build
+```
+
+Status: passed.
+
+```text
+bash scripts/update-understand-graph.sh
+node scripts/ua-query.test.mjs
+```
+
+Status: both passed. Graph update reported `filesAnalyzed 604` and `warnings 0`.
+
+XcodeBuildMCP:
+
+```text
+iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072
+Build log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T08-53-57-669Z_pid69930_e9d38637.log
+```
+
+Status: build and launch passed. Home showed `Вторник · 12 мая`.
