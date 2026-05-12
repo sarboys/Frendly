@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "c6e3369360ff08849be152f326e987ff2d7f5ce4",
-  "generatedAt": "2026-05-11T05:22:51.091Z",
+  "gitCommitHash": "938c0a446e66f96ec0dd03f7085eb292a9d1100a",
+  "generatedAt": "2026-05-12T11:39:03.945Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -11477,7 +11477,7 @@
     },
     "backend/apps/api/src/controllers/host.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/host.controller.ts",
-      "contentHash": "13202ee690a37bf2ca430b55df6234404c45da2feb3f91b1be72d39c69754c14",
+      "contentHash": "1582ac74e736d2a837e9294e2aaf2156f88801cc83ed681ce9c11171dbb41266",
       "functions": [],
       "classes": [
         {
@@ -11486,6 +11486,7 @@
             "constructor",
             "getDashboard",
             "getHostedEvent",
+            "updateHostedEvent",
             "approveRequest",
             "rejectRequest",
             "manualCheckIn",
@@ -11494,7 +11495,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 68
+          "lineCount": 77
         }
       ],
       "imports": [
@@ -11505,6 +11506,7 @@
             "Controller",
             "Get",
             "Param",
+            "Patch",
             "Post",
             "Query"
           ]
@@ -11525,7 +11527,7 @@
       "exports": [
         "HostController"
       ],
-      "totalLines": 74,
+      "totalLines": 83,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/internal-telegram.controller.ts": {
@@ -14020,7 +14022,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "3793555957e7c3836d1b5e99b5fa0d3a2ae7e7250967f4d0d5b405781e61c6b7",
+      "contentHash": "4b72c4c1a2f636326b0808c343e5e3e5504c19ee815fa5a039824a01f6b28195",
       "functions": [],
       "classes": [
         {
@@ -14056,7 +14058,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 962
+          "lineCount": 964
         }
       ],
       "imports": [
@@ -14113,7 +14115,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1095,
+      "totalLines": 1098,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -14982,7 +14984,7 @@
     },
     "backend/apps/api/src/services/host.service.ts": {
       "filePath": "backend/apps/api/src/services/host.service.ts",
-      "contentHash": "6aac0a7edf32f777587a0e90ccbbeed6f7b0ce1603779b9f4ab465338e352d5a",
+      "contentHash": "3979489f7432e04a461b591790917396bb4f55b9506726854d4945d2a8f2d740",
       "functions": [],
       "classes": [
         {
@@ -14992,6 +14994,7 @@
             "getDashboard",
             "loadDashboardStats",
             "getHostedEvent",
+            "updateHostedEvent",
             "approveRequest",
             "rejectRequest",
             "manualCheckIn",
@@ -15000,6 +15003,19 @@
             "assertHost",
             "mapRequest",
             "getBlockedUserIds",
+            "parseHostedEventUpdate",
+            "requiredText",
+            "requiredDate",
+            "intRange",
+            "optionalInt",
+            "optionalNumber",
+            "optionalCoordinate",
+            "parseLifestyle",
+            "parsePriceMode",
+            "parseAccessMode",
+            "parseGenderMode",
+            "parseVisibilityMode",
+            "parseJoinMode",
             "normalizeLimit",
             "buildEventCursorWhere",
             "buildRequestCursorWhere",
@@ -15012,7 +15028,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 958
+          "lineCount": 1169
         }
       ],
       "imports": [
@@ -15028,6 +15044,12 @@
         {
           "source": "@prisma/client",
           "specifiers": [
+            "EventAccessMode",
+            "EventGenderMode",
+            "EventJoinMode",
+            "EventLifestyle",
+            "EventPriceMode",
+            "EventVisibilityMode",
             "Prisma"
           ]
         },
@@ -15068,7 +15090,7 @@
       "exports": [
         "HostService"
       ],
-      "totalLines": 1013,
+      "totalLines": 1232,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/matches.service.ts": {

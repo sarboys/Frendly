@@ -75,6 +75,7 @@ Important query params:
 - `/publish`
 - `/sos`
 - `/routes/new`
+- `/evening/:eventId`
 - `/evening-plan/:routeId?launch=1`
 - `/evening-live/:routeId?mode=auto|manual|hybrid`
 
@@ -104,6 +105,7 @@ Important query params:
 - Meetup chat: `features/meetup_chat/presentation/meetup_chat_screen.dart`.
 - Personal chat: `features/personal_chat/presentation/personal_chat_screen.dart`.
 - Evening: `features/evening_plan/presentation/`, `features/evening_routes/presentation/`.
+- Unified meetup evening flow: `features/evening_flow/presentation/evening_flow_screen.dart`.
 - Communities: `features/communities/presentation/`.
 - Dating: `features/dating/presentation/`.
 - Profile/settings: `features/profile/`, `features/edit_profile/`, `features/settings/`, `features/verification/`.

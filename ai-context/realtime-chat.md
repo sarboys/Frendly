@@ -105,6 +105,7 @@ Payloads include ids, sender summary, text, `kind`, optional `systemKind`, `repl
 
 - `message.read` verifies the message and blocks before updating `ChatMember`.
 - Read resets `ChatMember.unreadCount` to `0`.
+- Chat list REST items include `lastMessageId`; mobile uses it to clear unread when the latest unread message is not in the loaded thread window.
 - Worker recomputes unread counts and excludes symmetrically blocked senders.
 - Typing events are throttled.
 - `sync.request` reads `RealtimeEvent` by chat id, default limit `100`, max `500`.

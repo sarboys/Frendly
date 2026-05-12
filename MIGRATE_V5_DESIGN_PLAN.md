@@ -7,19 +7,19 @@
 ## Source Check For New V5 Wave
 
 - [x] Проверить `front/src/pages/v5/_promo.tsx`.
-  - Comment: file is missing in current workspace. `rg --files front/src/pages/v5` and `ls front/src/pages/v5` do not show it. Migration uses the user-provided description for the first Flutter pass, then needs exact TSX once the file appears.
+  - Comment: source file exists. Flutter mapping uses `BbV5PromoBadge`, `BbV5PromoFrame`, `BbV5PromoRibbon`, `BbV5PromoPulse`, `BbV5PromoNote` and existing `tokenWalletProvider.promoted`.
 
 - [x] Проверить `front/src/pages/v5/AfterDark.tsx`.
-  - Comment: file is missing in current workspace. There is an older reference at `front/src/components/bigbreak/screens/AfterDark.tsx`, but it is not the requested source.
+  - Comment: source file exists. Flutter route `/after-dark` keeps the dark moody surface, badge, locked teaser, six feature cards, notify action and disabled `Скоро` CTA.
 
 - [x] Проверить `front/src/pages/v5/EveningFlow.tsx`.
-  - Comment: file is missing in current workspace. Existing Flutter has separate evening screens: `EveningPreviewScreen`, `EveningLiveMeetupScreen`, `EveningAfterPartyScreen`, `EveningShareCardScreen`.
+  - Comment: source file exists. Flutter now has a unified event-based evening flow at `/evening/:eventId`, backed by existing event check-in, live meetup and after-party APIs.
 
 - [x] Проверить `front/src/pages/v5/Match.tsx`.
-  - Comment: file is missing in current workspace. There is an older reference at `front/src/components/bigbreak/screens/Match.tsx`, while Flutter already has `MatchScreen`.
+  - Comment: source file exists. Flutter `MatchScreen` now uses fullscreen warm match styling with animated avatar convergence and real `matchesProvider` data.
 
 - [x] Проверить routes in `front/src/App.tsx`.
-  - Comment: current `front/src/App.tsx` has no `/v5/after-dark`, `/v5/evening/:id`, `/v5/match`, `/v5/ideas` routes. These routes are treated as requested target routes from the task text.
+  - Comment: current `front/src/App.tsx` includes `/v5/after-dark`, `/v5/evening/:id`, `/v5/match`, `/v5/ideas`. Flutter maps product routes without the `/v5` prefix.
 
 ## Правила
 
@@ -36,23 +36,29 @@
   - Entry points: `TonightScreen` header gets a round purple moon action. `CreateMeetupScreen` After Dark mode opens this screen instead of staying as a passive tab.
   - Data/state: static launch teaser state only, no backend API change. User tap on `Уведомить` can show local UI feedback.
   - UI mapping: dark moody full screen, violet and magenta ambient glow, pink-violet badge, locked teaser card, six feature cards, enabled `Уведомить`, disabled `Скоро`.
-  - Comment: done. Added dark moody Flutter screen, `/after-dark` route, Home moon entry point, Create Meetup purple After Dark tab entry, local notify state, and no backend API changes. Exact TSX source is still missing from `front/src/pages/v5`, so this is based on the task description plus shared v5 tokens.
+  - Comment: done. Added dark moody Flutter screen, `/after-dark` route, Home moon entry point, Create Meetup purple After Dark tab entry, local notify state, and no backend API changes.
 
-- [ ] `EveningFlow.tsx` -> `mobile/lib/features/evening_flow/presentation/evening_flow_screen.dart`
-  - Flutter route: add `AppRoute.eveningFlow`, path `/evening/:sessionId`.
-  - Entry points: event join and meetup chat evening start should open the unified flow when a session id exists. Existing route, live and after-party screens stay available until this screen reaches full parity.
-  - Data/state: `eveningSessionProvider(sessionId)`, `eveningSessionsProvider`, `BackendRepository.startEveningSession`, `checkInEveningStep`, `advanceEveningStep`, `skipEveningStep`, `finishEveningSession`, `fetchEveningAfterParty`, `saveEveningAfterPartyFeedback`.
-  - API: no backend changes. Missing voting and token reward data must use existing fields or remain visual-only until backend supports it.
-  - UI mapping: tabs `route / checkin / live / after / share / end`, timeline, geo check-in panel, live panel, after-party vote panel, share summary card, rating and token result.
-  - Comment: pending.
+- [x] `EveningFlow.tsx` -> `mobile/lib/features/evening_flow/presentation/evening_flow_screen.dart`
+  - Flutter route: added `AppRoute.eveningFlow`, path `/evening/:eventId`.
+  - Entry points: `EventDetailScreen` keeps the chat icon, but primary joined CTA is now `Начать вечер`; direct join opens the same flow after existing `joinEvent`.
+  - Data/state: `eventDetailProvider(eventId)`, `checkInProvider(eventId)`, `liveMeetupProvider(eventId)`, `afterPartyProvider(eventId)`, `BackendRepository.confirmCheckIn`, `saveAfterParty`.
+  - API: no backend changes. No mock venues are used for after-party voting because current production API does not expose vote options.
+  - UI mapping: tabs `Маршрут / Чек-ин / Live / After / Итог / Финал`, route timeline, check-in panel, live panel, real after-party people/favorites, share summary card and rating save.
+  - Comment: done. Built and tested with `test/features/evening_flow/evening_flow_screen_test.dart` and route tests.
 
 - [x] `Match.tsx` -> `mobile/lib/features/match/presentation/match_screen.dart`
   - Flutter route: keep `AppRoute.match`, path `/match/:userId`.
-  - Entry points: dating mutual like should route here with `userId`; if backend returns `chatId`, preserve direct chat path from the matched state.
+  - Entry points: dating mutual like routes here with `userId`; incoming likes still keep the one-tap matched chat pill.
   - Data/state: `matchesProvider`, `BackendRepository.createOrGetDirectChat`, existing `DatingProfileData.matched`.
   - API: no backend changes.
   - UI mapping: fullscreen match moment, warm animated avatar convergence, score, common interests, primary `Написать`, secondary `Пригласить на встречу`.
-  - Comment: done. Existing real `matchesProvider` flow kept. Fixed bottom actions now include `Написать` through existing direct chat API and `Пригласить на встречу` through `/create?inviteeUserId=<id>`. Full avatar convergence animation is still pending until exact TSX source is available.
+  - Comment: done. Existing real `matchesProvider` flow kept. The screen now uses fullscreen warm background, avatar convergence animation, real score/interests, `Написать`, `Пригласить на встречу`, and `Продолжить смотреть`.
+
+- [ ] `Ideas.tsx` -> no production Flutter screen yet
+  - Flutter route: not added.
+  - Data/state: static roadmap and monetization notes in TSX.
+  - API: no backend contract.
+  - Comment: intentionally not migrated into production UI in this pass, because the source is a draft roadmap screen and would add static non-product content.
 
 - [x] Promo style from `_promo.tsx` -> shared Flutter promo widgets in `mobile/lib/shared/widgets/bb_v5_promo.dart`
   - Flutter usages: Home gathering carousel, Chats active rail and chat list promoted rows, Meetups promoted cards.
@@ -99,14 +105,14 @@
 - [x] `HomeV5.tsx` header entry points -> `mobile/lib/features/tonight/presentation/tonight_screen.dart`
   - Flutter source: `_TonightHeader`.
   - Data/state: `notificationUnreadCountProvider`, existing location providers.
-  - UI mapping: Bell with unread dot opens notifications, red SOS pill opens `/sos`, search and AI stay as is.
-  - Comment: done. Header получил Bell с unread dot и красный SOS entry point.
+  - UI mapping: Bell opens notifications, After Dark opens `/after-dark`, AI opens `/ai-create`, city opens picker. Search and SOS are no longer shown in Home header.
+  - Comment: done. Header keeps Home V5 city, After Dark, notifications and AI entry points. Search was removed from the main page header, SOS moved to the profile header.
 
 - [x] `Profile.tsx` quick actions -> `mobile/lib/features/profile/presentation/profile_screen.dart`
   - Flutter source: `_ProfileContent`.
   - Data/state: `profileProvider`, `notificationUnreadCountProvider`.
-  - UI mapping: `Верификация`, `Кнопка SOS`, `Уведомления` row with unread badge.
-  - Comment: done. Добавлены V5 cards для верификации, SOS и строка уведомлений с реальным unread count.
+  - UI mapping: red SOS icon in the profile header, plus `Верификация`, `Кнопка SOS`, `Уведомления` row with unread badge.
+  - Comment: done. Добавлены header SOS entry, V5 cards для верификации, SOS и строка уведомлений с реальным unread count.
 
 - [x] `CreateMeetup.tsx` entry points -> `mobile/lib/features/create_meetup/presentation/create_meetup_screen.dart`
   - Flutter source: `_buildV5BottomCta`, route picker.
@@ -160,7 +166,9 @@
 ## Verification
 
 - [x] Add or update focused Flutter tests for notifications, safety, create meetup publish flow, route picker and route form.
+- [x] Add focused Flutter tests for `/evening/:eventId` and Dating mutual match navigation.
+  - Comment: added coverage for stage tabs, route registration, mutual match navigation, and preserving saved after-party feedback on final submit.
 - [x] Run targeted Flutter tests.
 - [x] Run `cd mobile && flutter analyze`.
 - [x] Run `bash scripts/update-understand-graph.sh`.
-  - Comment: done. Graph updated successfully, 606 files analyzed, 0 warnings.
+  - Comment: done. Graph updated successfully, 604 files analyzed, 0 warnings.
