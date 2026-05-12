@@ -2370,6 +2370,13 @@ Workaround observed:
 - Full app restart cleared the stale client state.
 - After restart, Guest C onboarding used the expected email.
 
+Fixed candidate 2026-05-12:
+
+- Added a widget regression test that keeps `OnboardingScreen` mounted, switches `currentUserId` from `user-one` to `user-two`, invalidates onboarding data, and verifies the email controller is cleared instead of keeping `first@example.com`.
+- Fixed `OnboardingScreen` to reset local controllers when `currentUserId` changes and to ignore stale onboarding provider values during refresh.
+- Test passed: `cd mobile && flutter test test/features/parity/tonight_onboarding_screen_test.dart --name "onboarding rehydrates contact fields after account switch"`.
+- XcodeBuildMCP built and launched the app on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`; `frendly:///onboarding` opened a fresh Step 1 profile screen without stale contact fields.
+
 ### IOS-QA-003: Onboarding geolocation can get stuck with invalid MapKit key
 
 Severity: medium.
@@ -2407,6 +2414,12 @@ Impact:
 
 - Onboarding location and later place search flows may be unreliable until MapKit key is fixed.
 
+Fixed candidate 2026-05-12:
+
+- Added widget coverage that manual city onboarding save still succeeds when Yandex place search and reverse geocode throw.
+- Test passed: `cd mobile && flutter test test/features/parity/tonight_onboarding_screen_test.dart --name "onboarding saves manual city when yandex search fails"`.
+- XcodeBuildMCP build passed after code changes. First attempt with Flutter `-D` passed to Xcode failed as `invalid option '-D'`; normal `build_run_sim` succeeded.
+
 ### IOS-QA-004: Manual city and Home header location are inconsistent
 
 Severity: medium.
@@ -2424,6 +2437,12 @@ Actual:
 Impact:
 
 - User may not understand which location source drives feed and radar.
+
+Fixed candidate 2026-05-12:
+
+- Added a session regression test that sets `manualLocationProvider`, switches accounts through `replaceAuthenticatedSession`, and verifies the in-memory manual location plus `location.manual.v1` persistence key are cleared.
+- Fixed `AppSessionController` to clear manual location during session runtime cleanup.
+- Test passed: `cd mobile && flutter test test/app/session/app_session_controller_test.dart`.
 
 ### IOS-QA-OBS-001: Yandex MapKit starts with invalid API key
 

@@ -967,7 +967,7 @@ Status 2026-05-12:
 ```text
 Task 5.6 production recheck and QA report were updated after backend deploy.
 Graph update ran successfully.
-Commit: pending in this session.
+Commit: 515948a9 Закрыть проверку редактирования встреч.
 ```
 
 ---
@@ -993,7 +993,7 @@ Test: mobile/test/app/session/app_session_controller_test.dart
 Test: mobile/test/features/onboarding/presentation/onboarding_screen_test.dart
 ```
 
-- [ ] **Step 6.1: Clear onboarding local controllers on account switch**
+- [x] **Step 6.1: Clear onboarding local controllers on account switch**
 
 Implementation target:
 
@@ -1003,7 +1003,14 @@ No previous email, phone, city or area survives logout plus relogin.
 Session runtime cleanup must invalidate onboarding providers and local draft state.
 ```
 
-- [ ] **Step 6.2: Fix city and geolocation state consistency**
+Status 2026-05-12:
+
+```text
+Added RED widget test for a live OnboardingScreen switching from user-one to user-two.
+Fixed OnboardingScreen to reset local controllers when currentUserId changes and to ignore stale onboardingProvider values while refresh is loading.
+```
+
+- [x] **Step 6.2: Fix city and geolocation state consistency**
 
 Implementation target:
 
@@ -1013,7 +1020,15 @@ If MapKit key is invalid, show a visible fallback and allow manual city save.
 Do not block onboarding on failed Yandex map calls.
 ```
 
-- [ ] **Step 6.3: Run tests and real-data check**
+Status 2026-05-12:
+
+```text
+Added RED session test for clearing manualLocationProvider and its SharedPreferences key on account switch.
+Fixed AppSessionController to clear manual location during session runtime cleanup.
+Added widget coverage that manual city onboarding save still works when Yandex search and reverse geocode fail.
+```
+
+- [x] **Step 6.3: Run tests and real-data check**
 
 Run:
 
@@ -1032,7 +1047,22 @@ Verify email field is empty or Guest C only.
 Verify manual city can be saved with invalid Yandex key.
 ```
 
-- [ ] **Step 6.4: Update graph and commit**
+Status 2026-05-12:
+
+```text
+Verification:
+cd mobile && flutter test test/app/session/app_session_controller_test.dart
+cd mobile && flutter test test/features/parity/tonight_onboarding_screen_test.dart --name "onboarding (rehydrates contact fields after account switch|saves manual city when yandex search fails)"
+
+XcodeBuildMCP:
+session_show_defaults confirmed Runner on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+build_run_sim succeeded with log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T07-28-27-031Z_pid9077_93840438.log.
+Opened frendly:///onboarding and snapshot showed fresh Step 1 profile onboarding without stale contact fields.
+
+Note: the planned path mobile/test/features/onboarding/presentation/onboarding_screen_test.dart does not exist in this repo. The onboarding widget tests live in mobile/test/features/parity/tonight_onboarding_screen_test.dart.
+```
+
+- [x] **Step 6.4: Update graph and commit**
 
 Run:
 
@@ -1040,6 +1070,17 @@ Run:
 bash scripts/update-understand-graph.sh
 git add mobile/lib/features/onboarding/presentation/onboarding_screen.dart mobile/lib/app/session/app_session_controller.dart mobile/lib/shared/data/app_providers.dart mobile/lib/shared/data/location_override_provider.dart mobile/test/app/session/app_session_controller_test.dart mobile/test/features/onboarding/presentation/onboarding_screen_test.dart docs/superpowers/plans/2026-05-12-ios-real-data-bugfix-implementation-plan.md .understand-anything
 git commit -m "Исправить состояние онбординга"
+```
+
+Status 2026-05-12:
+
+```text
+Rechecked before commit:
+cd mobile && flutter test test/app/session/app_session_controller_test.dart
+cd mobile && flutter test test/features/parity/tonight_onboarding_screen_test.dart --name "onboarding (rehydrates contact fields after account switch|saves manual city when yandex search fails)"
+
+XcodeBuildMCP defaults were reset to Runner on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+Graph update ran successfully.
 ```
 
 ---
