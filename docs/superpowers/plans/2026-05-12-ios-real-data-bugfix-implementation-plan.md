@@ -856,7 +856,7 @@ XcodeBuildMCP on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072: op
 Note: full create_meetup_screen_test.dart still has older failing cases unrelated to this diff: After Dark segment expectation, hidden geocoding publish call, preset route publish and custom route publish.
 ```
 
-- [ ] **Step 5.5: Run tests**
+- [x] **Step 5.5: Run tests**
 
 Run:
 
@@ -870,6 +870,20 @@ Expected:
 
 ```text
 Create, publish, edit and date invite tests pass.
+```
+
+Status 2026-05-12:
+
+```text
+Added RED coverage for edit startsAt wall-clock parsing after XcodeBuildMCP showed a created event detail at Сегодня · 15:23 but edit mode prefilled Сегодня · 22:23.
+Fixed CreateMeetupScreen edit prefill to keep backend wall-clock startsAtIso instead of applying device timezone.
+Fixed publish submit for manual address and route-backed drafts so it does not wait for fallback device location when no coordinates are known.
+Updated After Dark segment expectation to match current V5 Create Meetup UI.
+Fixed date-dependent backend unit fixture in partner-offer-code.service.spec.ts by injecting deterministic now.
+Verification:
+cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart
+cd mobile && flutter test test/shared/data/backend_repository_test.dart
+cd backend && pnpm --filter @big-break/api test:unit
 ```
 
 - [ ] **Step 5.6: Real-data verification**
@@ -891,6 +905,22 @@ Expected:
 
 ```text
 IOS-QA-007, 009, 010, 016, 027 and 028 are fixed candidates.
+```
+
+Status 2026-05-12:
+
+```text
+XcodeBuildMCP on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+Build succeeded:
+/Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T06-29-25-310Z_pid57191_4712e739.log
+
+Created QA create 1324 from Home FAB with manual address Brix Pokrovka 12.
+Create preview showed Сегодня · 15:23.
+Publish preview showed Сегодня · 15:23.
+Published event detail showed Сегодня · 15:23.
+
+During edit verification, the first build exposed edit prefill shift from 15:23 to 22:23. This was fixed locally and covered by test, but full production edit save was not reverified after rebuild.
+Do not mark IOS-QA-010 as fixed candidate from this status alone.
 ```
 
 - [ ] **Step 5.7: Update graph and commit**

@@ -8600,3 +8600,27 @@ flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart
 ```
 
 Still fails in pre-existing meetup and composer cases unrelated to Task 4. The new document tap case passes.
+
+## 2026-05-12 Task 5 Bugfix Verification
+
+Environment:
+
+```text
+iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072
+Bundle id com.sergeypolyakov.frendly.dev
+Backend https://api.frendly.tech
+Build log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T06-29-25-310Z_pid57191_4712e739.log
+```
+
+IOS-QA-007
+Status: Fixed candidate.
+Evidence: created `QA create 1324` from Home FAB with manual address `Brix Pokrovka 12`. Create preview, publish preview and event detail all showed `Сегодня · 15:23`.
+Tests: `flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart`, `flutter test test/shared/data/backend_repository_test.dart`.
+
+IOS-QA-010
+Status: Not fixed candidate yet.
+Evidence: XcodeBuildMCP exposed an edit prefill shift from `15:23` on event detail to `22:23` in edit mode. Local edit parser was fixed and covered by `edit startsAt parser keeps backend wall clock time`, but production edit save was not reverified after rebuild.
+Tests: `flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart`, `cd backend && pnpm --filter @big-break/api test:unit`.
+
+IOS-QA-009, IOS-QA-016, IOS-QA-027, IOS-QA-028
+Status: Existing fixed candidates from earlier Task 5 checks remain in this report. No new conflicting evidence in this run.
