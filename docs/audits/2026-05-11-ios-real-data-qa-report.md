@@ -8547,3 +8547,39 @@ The app is on public profile user-304f0edb-76db-439c-ae10-5b9a52f76da6.
 UI shows Пользователь 1111 consistently in header and body.
 Backend /people for that user matches the visible age, city, interests and social counters.
 ```
+
+## 2026-05-12 Task 4 Bugfix Verification
+
+Environment:
+
+```text
+iPhone 17 Pro iOS 26.5 E1D49F3C-4690-408C-859C-EAB274D963C7
+Bundle id com.sergeypolyakov.frendly.dev
+Backend https://api.frendly.tech
+Build log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T04-32-06-874Z_pid18453_4b9ed2ca.log
+```
+
+IOS-QA-018
+Status: Fixed candidate.
+Evidence: opened an existing meetup chat photo after build and relaunch. The image rendered instead of the broken placeholder.
+Screenshot: `/var/folders/t6/5k6qxdzs0g9092xrvgt020n80000gn/T/screenshot_optimized_82b6e2a7-cc2c-49e4-bc83-e9d71e10df48.jpg`
+Tests: `flutter test test/app/core/device/app_attachment_service_test.dart`, `flutter test test/shared/widgets/bb_chat_attachment_image_test.dart`, `flutter test test/shared/widgets/bb_chat_bubble_test.dart`.
+
+IOS-QA-021
+Status: Fixed candidate.
+Evidence: backend allow-list already includes `text/plain` and `application/zip`; mobile now maps `.txt` to `text/plain` and `.zip` to `application/zip`.
+Tests: `flutter test test/shared/data/backend_repository_test.dart`.
+Manual note: iOS Files picker opened from chat, but the simulator had no recent files to select.
+
+IOS-QA-022
+Status: Fixed candidate.
+Evidence: document body tap now shows `Файл сохранён на устройство` after save.
+Tests: `flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart --name "personal chat tap on document saves it to device"`.
+
+Known test note:
+
+```text
+flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart
+```
+
+Still fails in pre-existing meetup and composer cases unrelated to Task 4. The new document tap case passes.

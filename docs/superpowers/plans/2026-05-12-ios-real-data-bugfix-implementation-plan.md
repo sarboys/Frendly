@@ -641,7 +641,7 @@ Test: mobile/test/app/core/device/app_attachment_service_test.dart
 Test: mobile/test/features/parity/detail_chat_and_user_profile_screen_test.dart
 ```
 
-- [ ] **Step 4.1: Fix private image rendering after reload**
+- [x] **Step 4.1: Fix private image rendering after reload**
 
 Implementation target:
 
@@ -663,7 +663,7 @@ Expected:
 Test proves private image attachment uses /download-url and refreshes expired signed URLs.
 ```
 
-- [ ] **Step 4.2: Fix txt and zip picker silent failures**
+- [x] **Step 4.2: Fix txt and zip picker silent failures**
 
 Implementation target:
 
@@ -681,7 +681,7 @@ If TXT or ZIP are intentionally blocked, mobile must show visible unsupported fi
 If they are intended, update backend validation and tests too.
 ```
 
-- [ ] **Step 4.3: Fix file download tap feedback**
+- [x] **Step 4.3: Fix file download tap feedback**
 
 Implementation target:
 
@@ -690,7 +690,7 @@ Download tap must show one of: saved path snackbar, open-file result, or visible
 Do not leave UI unchanged.
 ```
 
-- [ ] **Step 4.4: Real-data verification**
+- [x] **Step 4.4: Real-data verification**
 
 Use XcodeBuildMCP:
 
@@ -710,7 +710,21 @@ File behavior is either successful or visibly rejected.
 Download tap gives visible feedback.
 ```
 
-- [ ] **Step 4.5: Update graph and commit**
+Status 2026-05-12:
+
+```text
+Verified on iPhone 17 Pro iOS 26.5 E1D49F3C-4690-408C-859C-EAB274D963C7 with production backend https://api.frendly.tech.
+
+Photo reload: opened an existing meetup chat photo after build and relaunch. The image rendered, not the broken placeholder.
+
+TXT and ZIP: backend allow-list already includes text/plain and application/zip. Mobile upload MIME mapping now sends text/plain for .txt and application/zip for .zip, covered by backend_repository_test.dart.
+
+Download feedback: tapping a document body now shows Файл сохранён на устройство, covered by detail_chat_and_user_profile_screen_test.dart.
+
+Manual picker limit: the iOS Files picker opened, but the simulator had no recent files to select. The picker path itself was reachable from the chat plus menu.
+```
+
+- [x] **Step 4.5: Update graph and commit**
 
 Run:
 
