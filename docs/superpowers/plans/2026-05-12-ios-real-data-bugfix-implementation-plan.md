@@ -1344,6 +1344,27 @@ cd mobile && flutter test --reporter expanded
 Result: failed, 595 total with 20 failures.
 Remaining failures are concentrated in evening_plan tests that still read empty local `eveningRoutes.first` despite the current no-local-static-route contract, plus remaining_rollout placeholder expectations for safety, match and paywall.
 
+Continuation 2026-05-12:
+Updated evening_plan tests to use backend-like route fixtures instead of local static `eveningRoutes`, updated current V5 labels and remaining rollout expectations, and fixed MatchScreen overflow on compact test viewport.
+
+Verification:
+cd mobile && flutter analyze
+Result: passed, No issues found.
+
+cd mobile && flutter test --reporter expanded
+Result: passed, 615 tests.
+
+cd backend && pnpm --filter @big-break/api test:unit
+Result: passed, 49 suites and 321 tests.
+
+cd backend && pnpm --filter @big-break/api build
+Result: passed.
+
+XcodeBuildMCP build_run_sim
+Result: passed on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072, bundle com.sergeypolyakov.frendly.dev.
+Build log: /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T09-36-31-858Z_pid13781_f4f6949d.log
+Screenshot: /var/folders/t6/5k6qxdzs0g9092xrvgt020n80000gn/T/screenshot_optimized_86cb511c-22c1-4add-ab59-41fff1a5d6cd.jpg
+
 cd backend && pnpm --filter @big-break/api test:unit
 Result: passed, 49 suites and 321 tests.
 
