@@ -1331,6 +1331,19 @@ Result: failed, 582 total with 33 failures.
 Failure groups include stale splash/app smoke copy, auth token persistence expectation, community composer label expectation, edit profile thumbnail count, evening builder and plan fixture expectations, remaining rollout placeholders, brand icon asset expectation and theme token expectations.
 One failure from this session was fixed by reverting the shared composer location label back to Геолокация and updating the detail chat test to match it.
 
+Continuation 2026-05-12:
+Fixed the refresh 401 persistence race in AuthTokensController and updated stale V5 smoke, splash, brand icon, theme token and edit profile thumbnail tests.
+
+Verification:
+cd mobile && flutter test test/core/auth_tokens_controller_test.dart
+cd mobile && flutter test test/app_smoke_test.dart test/features/splash/presentation/splash_screen_test.dart test/shared/widgets/bb_brand_icon_test.dart test/theme/app_colors_test.dart
+cd mobile && flutter test test/features/parity/search_edit_profile_screen_test.dart
+
+Fresh full run:
+cd mobile && flutter test --reporter expanded
+Result: failed, 595 total with 20 failures.
+Remaining failures are concentrated in evening_plan tests that still read empty local `eveningRoutes.first` despite the current no-local-static-route contract, plus remaining_rollout placeholder expectations for safety, match and paywall.
+
 cd backend && pnpm --filter @big-break/api test:unit
 Result: passed, 49 suites and 321 tests.
 
