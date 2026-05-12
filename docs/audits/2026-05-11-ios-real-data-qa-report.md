@@ -2553,6 +2553,15 @@ Impact:
 
 - The current user can see actions that belong to public profile viewing, not own profile.
 
+Fixed candidate 2026-05-12:
+
+- Added widget coverage for `/profile` and `/user/:id` where `id == currentUserId`.
+- Fixed own profile to remove the follow and like action row while keeping `Изменить`.
+- Fixed public user profile self route to hide social actions and bottom `Позвать на встречу` or `Написать` CTAs.
+- Tests passed: `cd mobile && flutter test test/features/parity/notifications_and_profile_screen_test.dart`.
+- Regression check passed: `cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart --name "user profile renders social actions from profile snapshot"`.
+- XcodeBuildMCP built the app on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`; `frendly:///profile` snapshot showed `Изменить` and no `Подписаться` button.
+
 ### IOS-QA-007: Create meetup time changes after publish
 
 Severity: high.

@@ -1112,13 +1112,25 @@ Test: mobile/test/features/parity/detail_chat_and_user_profile_screen_test.dart
 Test: mobile/test/features/parity/people_and_chats_screen_test.dart
 ```
 
-- [ ] **Step 7.1: Own profile must not show self social actions**
+- [x] **Step 7.1: Own profile must not show self social actions**
 
 Expected behavior:
 
 ```text
 /profile hides follow, like and super-like actions for current user.
 Public /user/:id keeps actions only when id != currentUserId.
+```
+
+Status 2026-05-12:
+
+```text
+Added RED widget coverage for own /profile and public /user/:id when id equals currentUserId.
+Removed the owner follow/like signal row from ProfileV5Content and hid public social actions plus bottom CTAs on self public route.
+Verification:
+cd mobile && flutter test test/features/parity/notifications_and_profile_screen_test.dart
+cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart --name "user profile renders social actions from profile snapshot"
+XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+XcodeBuildMCP snapshot for frendly:///profile showed Изменить and no Подписаться button.
 ```
 
 - [ ] **Step 7.2: Fix public profile stale body**
