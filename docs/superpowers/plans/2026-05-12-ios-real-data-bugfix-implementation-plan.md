@@ -921,6 +921,21 @@ Published event detail showed Сегодня · 15:23.
 
 During edit verification, the first build exposed edit prefill shift from 15:23 to 22:23. This was fixed locally and covered by test, but full production edit save was not reverified after rebuild.
 Do not mark IOS-QA-010 as fixed candidate from this status alone.
+
+Continuation 2026-05-12:
+XcodeBuildMCP initially picked iOS 26.5 because two iPhone 17 Pro simulators were booted. The 26.5 simulator was shut down, session defaults were reset without simulatorName ambiguity, and all later MCP launch, UI snapshot and tap calls used A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+
+Latest build log:
+/Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T06-36-42-600Z_pid84655_ce9afc59.log
+
+Edit prefill now opens with the same time as event detail. Event detail showed Сегодня · 13:46 and edit mode showed Сегодня · 13:46.
+
+Production backend still returns Cannot PATCH /host/events/ev-9a41831d-a740-4df3-af3c-45dd3079cac8 for Host +72222222222. Local mobile and backend contract tests pass, but production is missing the PATCH endpoint, so IOS-QA-010 stays not fixed candidate.
+
+Verification:
+cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "edit mode saves through repository"
+cd mobile && flutter test test/shared/data/backend_repository_test.dart --name "host event update sends edited fields"
+cd backend/apps/api && NODE_OPTIONS=--experimental-vm-modules pnpm exec jest --config jest.config.js --runInBand test/integration/core.integration.spec.ts -t "lets host update owned meetup fields"
 ```
 
 - [ ] **Step 5.7: Update graph and commit**
