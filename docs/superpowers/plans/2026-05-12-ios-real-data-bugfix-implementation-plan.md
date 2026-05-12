@@ -764,7 +764,7 @@ Test: mobile/test/shared/data/backend_repository_test.dart
 Test if backend changes: backend/apps/api/test/integration/core.integration.spec.ts
 ```
 
-- [ ] **Step 5.1: Fix publish timezone drift**
+- [x] **Step 5.1: Fix publish timezone drift**
 
 Implementation target:
 
@@ -773,6 +773,18 @@ Create screen, publish preview, event detail and list must render the same local
 Audit startsAt.toUtc().toIso8601String() in BackendRepository.
 Confirm backend expects UTC instant or local Moscow time.
 Add a test for Moscow 17:00 staying 17:00 in event detail rendering.
+```
+
+Status 2026-05-12:
+
+```text
+Added RED tests for create event wall-clock serialization, Affiche startsAt prefill from backend timeLabel, and UTC midnight crossing.
+Fixed mobile createEvent and evening route session serialization to preserve selected wall-clock time instead of shifting through device timezone.
+Fixed AfficheEvent startsAt parsing so create prefill uses backend timeLabel.
+Verification:
+cd mobile && flutter test test/shared/data/backend_repository_test.dart test/shared/models/affiche_event_test.dart
+XcodeBuildMCP on iPhone 17 Pro A195A8F2-DCEB-4B12-9377-8F1D6294F072: create preview showed Сегодня · 13:46, published event detail showed Сегодня · 13:46.
+Note: simulator id A195A8F2-DCEB-4B12-9377-8F1D6294F072 is available as iOS 26.4 locally, while iOS 26.5 is booted under E1D49F3C-4690-408C-859C-EAB274D963C7.
 ```
 
 - [ ] **Step 5.2: Implement host edit save**
