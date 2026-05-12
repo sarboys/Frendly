@@ -8814,3 +8814,82 @@ Build log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp
 ```
 
 Status: build and launch passed. Home showed `Вторник · 12 мая`.
+
+## 2026-05-12 Bugfix Verification
+
+Automated checks:
+
+```text
+cd mobile && flutter analyze
+Result: passed, No issues found.
+
+cd mobile && flutter test --reporter expanded
+Result: passed, 615 tests.
+
+cd backend && pnpm --filter @big-break/api test:unit
+Result: passed, 49 suites and 321 tests.
+
+cd backend && pnpm --filter @big-break/api build
+Result: passed.
+
+bash scripts/update-understand-graph.sh
+Result: passed, filesAnalyzed 604, warnings 0.
+
+node scripts/ua-query.test.mjs
+Result: passed.
+```
+
+XcodeBuildMCP:
+
+```text
+iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072
+Bundle id com.sergeypolyakov.frendly.dev
+Backend https://api.frendly.tech
+Build log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T09-49-02-010Z_pid61252_6d193516.log
+Runtime log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/com.sergeypolyakov.frendly.dev_2026-05-12T09-49-34-183Z_helperpid71139_ownerpid61252_2db6e530.log
+Screenshot /var/folders/t6/5k6qxdzs0g9092xrvgt020n80000gn/T/screenshot_optimized_75e62bbc-7d5f-4dea-a82a-5811f12861fc.jpg
+```
+
+Result: build, install, launch, UI snapshot and screenshot passed. Home showed `Вторник · 12 мая`.
+
+Fixed candidates with task evidence:
+
+```text
+IOS-QA-001 Fixed candidate. Evidence: phone auth shortcut tests and Task 1 XcodeBuildMCP check. Commit 45db1537.
+IOS-QA-002 Fixed candidate. Evidence: onboarding account switch tests and Task 6 XcodeBuildMCP check. Commit 1d8e95cc.
+IOS-QA-004 Fixed candidate. Evidence: manual city fallback tests and Task 6 check. Commit 1d8e95cc.
+IOS-QA-006 Fixed candidate. Evidence: own profile XcodeBuildMCP check. Commit 902b31f4.
+IOS-QA-007 Fixed candidate. Evidence: create, publish and detail time match in Task 5. Commit cd77182d.
+IOS-QA-009 Fixed candidate. Evidence: visibility selection no longer blocked in Task 5. Commit 3bef2028.
+IOS-QA-010 Fixed candidate. Evidence: production PATCH returned 200 OK and XcodeBuildMCP edit persisted. Commit 515948a9.
+IOS-QA-011 Fixed candidate. Evidence: meetup unread cleared in realtime check. Commit a6e0a479.
+IOS-QA-012 Fixed candidate. Evidence: stale public profile snapshot test and XcodeBuildMCP profile check. Commit 899f4bec.
+IOS-QA-013 Fixed candidate. Evidence: composer voice blocked while text exists. Commit f655daf2.
+IOS-QA-014 Fixed candidate. Evidence: dating action row clears bottom nav. Commit 6c4d54b4.
+IOS-QA-015 Fixed candidate. Evidence: community detail hides chat for non-member. Commit 0f82c9f4.
+IOS-QA-016 Fixed candidate. Evidence: Affiche prefill and wall-clock tests. Commit cd77182d.
+IOS-QA-018 Fixed candidate. Evidence: private image reload rendered after relaunch. Commit 00abd978.
+IOS-QA-019 Fixed candidate. Evidence: realtime chat row updated without relaunch. Commit a6e0a479.
+IOS-QA-020 Fixed candidate. Evidence: direct unread clears after latest incoming read. Commit a6e0a479.
+IOS-QA-021 Fixed candidate. Evidence: txt and zip MIME mapping covered by repository tests. Commit 00abd978.
+IOS-QA-022 Fixed candidate. Evidence: document tap shows save feedback. Commit 00abd978.
+IOS-QA-023 Fixed candidate. Evidence: Dating discover showed backend card, not Plus gate. Commit 6c4d54b4.
+IOS-QA-024 Fixed candidate. Evidence: filter accessibility labels and selected state covered. Commit 6c4d54b4.
+IOS-QA-025 Fixed candidate. Evidence: direct chat header keeps peer name. Commit 4cf851b6.
+IOS-QA-026 Fixed candidate. Evidence: personal filter row renders without empty hint. Commit 4cf851b6.
+IOS-QA-027 Fixed candidate. Evidence: date invite created event detail. Commit 311974b1.
+IOS-QA-028 Fixed candidate. Evidence: description field accepts focus above CTA. Commit 3bef2028.
+IOS-QA-029 Fixed candidate. Evidence: direct text reached backend without relaunch. Commit a6e0a479.
+IOS-QA-030 Fixed candidate. Evidence: incoming message profile action opens public profile. Commit 45db1537.
+```
+
+Deferred or environment-scoped:
+
+```text
+IOS-QA-003 Deferred. Yandex key and environment behavior remain outside this bugfix branch.
+IOS-QA-005 Deferred. Same Yandex environment scope.
+IOS-QA-008 Deferred. Simulator keyboard layout issue.
+IOS-QA-017 Fixed candidate. Evidence: Home date now shows current date in XcodeBuildMCP snapshot. Commit 45db1537.
+IOS-QA-OBS-001 Deferred. Yandex key environment issue.
+IOS-QA-OBS-002 Deferred. Local shortcut flag setup note.
+```

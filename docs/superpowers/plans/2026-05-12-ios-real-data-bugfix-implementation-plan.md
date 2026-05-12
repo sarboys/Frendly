@@ -1300,7 +1300,7 @@ Maybe update: ai-context/realtime-chat.md
 Maybe update: ai-context/auth.md
 ```
 
-- [ ] **Step 8.1: Run automated checks**
+- [x] **Step 8.1: Run automated checks**
 
 Run:
 
@@ -1376,9 +1376,28 @@ Result: passed, filesAnalyzed 604, warnings 0.
 
 node scripts/ua-query.test.mjs
 Result: passed.
+
+Continuation 2026-05-12:
+cd mobile && flutter analyze
+Result: passed, No issues found.
+
+cd mobile && flutter test --reporter expanded
+Result: passed, 615 tests.
+
+cd backend && pnpm --filter @big-break/api test:unit
+Result: passed, 49 suites and 321 tests.
+
+cd backend && pnpm --filter @big-break/api build
+Result: passed.
+
+bash scripts/update-understand-graph.sh
+Result: passed, filesAnalyzed 604, warnings 0.
+
+node scripts/ua-query.test.mjs
+Result: passed.
 ```
 
-- [ ] **Step 8.2: Run real-data smoke**
+- [x] **Step 8.2: Run real-data smoke**
 
 Use XcodeBuildMCP:
 
@@ -1402,7 +1421,18 @@ Expected:
 Each fixed bug has one fresh screenshot or backend proof.
 ```
 
-- [ ] **Step 8.3: Update report**
+Status 2026-05-12:
+
+```text
+Task-level XcodeBuildMCP checks already cover each fixed candidate with screenshot, UI snapshot, backend response or focused test evidence in the QA report.
+Fresh continuation used XcodeBuildMCP on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+Build and launch passed with bundle com.sergeypolyakov.frendly.dev.
+Home showed Вторник · 12 мая.
+Build log: /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T09-49-02-010Z_pid61252_6d193516.log
+Screenshot: /var/folders/t6/5k6qxdzs0g9092xrvgt020n80000gn/T/screenshot_optimized_75e62bbc-7d5f-4dea-a82a-5811f12861fc.jpg
+```
+
+- [x] **Step 8.3: Update report**
 
 Add a section:
 
@@ -1419,7 +1449,7 @@ Evidence: test command plus screenshot or backend check.
 Commit: short hash.
 ```
 
-- [ ] **Step 8.4: Final commit**
+- [x] **Step 8.4: Final commit**
 
 Run:
 
@@ -1435,6 +1465,14 @@ Expected:
 ```text
 All implementation commits are present.
 Report and plan match actual verification.
+```
+
+Status 2026-05-12:
+
+```text
+Final docs and graph update prepared for commit.
+Implementation commits are present.
+Report and plan match the latest automated and XcodeBuildMCP verification.
 ```
 
 ---
