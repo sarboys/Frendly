@@ -285,7 +285,7 @@ Modify: mobile/lib/shared/widgets/bb_chat_bubble.dart
 Test: mobile/test/features/parity/detail_chat_and_user_profile_screen_test.dart
 ```
 
-- [ ] **Step 1.1: Fix test phone shortcut range**
+- [x] **Step 1.1: Fix test phone shortcut range**
 
 Implementation target:
 
@@ -308,7 +308,7 @@ Tests cover +70000000000, +71111111111, +79999999999 as shortcut numbers.
 Tests cover a non-seeded phone falling back to OTP.
 ```
 
-- [ ] **Step 1.2: Fix Home date label**
+- [x] **Step 1.2: Fix Home date label**
 
 Implementation target:
 
@@ -331,7 +331,7 @@ Test proves the Home date label is computed from provided current date.
 No hardcoded 06 мая remains.
 ```
 
-- [ ] **Step 1.3: Fix incoming message profile tap**
+- [x] **Step 1.3: Fix incoming message profile tap**
 
 Implementation target:
 
@@ -352,7 +352,7 @@ Expected:
 Widget test taps incoming direct message profile action and verifies /user/<senderId> navigation.
 ```
 
-- [ ] **Step 1.4: Real-data verification**
+- [x] **Step 1.4: Real-data verification**
 
 Use XcodeBuildMCP:
 
@@ -371,7 +371,7 @@ Message tap opens public profile Пользователь 1111.
 Home date matches current real date.
 ```
 
-- [ ] **Step 1.5: Update docs and commit**
+- [x] **Step 1.5: Update docs and commit**
 
 Run:
 
