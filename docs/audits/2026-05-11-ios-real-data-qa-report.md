@@ -8705,3 +8705,57 @@ Fixed candidate 2026-05-12:
 
 IOS-QA-009, IOS-QA-016, IOS-QA-027, IOS-QA-028
 Status: Existing fixed candidates from earlier Task 5 checks remain in this report. No new conflicting evidence in this run.
+
+## 2026-05-12 Task 7 Bugfix Verification
+
+Environment:
+
+```text
+iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072
+Bundle id com.sergeypolyakov.frendly.dev
+Backend https://api.frendly.tech
+Build log /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T08-40-40-220Z_pid69930_f9731aa8.log
+```
+
+IOS-QA-006
+Status: Fixed candidate.
+Evidence: own profile showed `Изменить` and did not expose `Подписаться`.
+Tests: `flutter test test/features/parity/notifications_and_profile_screen_test.dart`.
+
+IOS-QA-012
+Status: Fixed candidate.
+Evidence: public profile stale-body regression remains covered by widget test. No new mismatch was visible in this Task 7 run.
+Tests: `flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart`.
+
+IOS-QA-013
+Status: Fixed candidate.
+Evidence: direct chat composer keeps voice blocked while text exists, covered by composer and detail chat tests.
+Tests: `flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart`.
+
+IOS-QA-014
+Status: Fixed candidate.
+Evidence: Dating showed `Пользователь 1111`; action labels were at y 742, bottom nav labels at y 806.
+Tests: `flutter test test/features/parity/people_and_chats_screen_test.dart`.
+
+IOS-QA-015
+Status: Fixed candidate.
+Evidence: community detail for `клуб тест 20260511` showed `Вступить` and no `Открыть чат` before membership.
+Tests: `flutter test test/features/parity/people_and_chats_screen_test.dart`.
+
+IOS-QA-023
+Status: Fixed candidate.
+Evidence: Dating discover showed backend card `Пользователь 1111`, not the Plus gate.
+Tests: `flutter test test/features/parity/people_and_chats_screen_test.dart`.
+
+IOS-QA-024
+Status: Fixed candidate.
+Evidence: Dating filter button exposed AXLabel `Фильтры дейтинга`.
+Tests: `flutter test test/features/parity/people_and_chats_screen_test.dart`.
+
+Task 7 extra verification:
+
+```text
+cd mobile && flutter test test/features/parity/notifications_and_profile_screen_test.dart
+cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart
+cd mobile && flutter test test/features/parity/people_and_chats_screen_test.dart
+```

@@ -1107,6 +1107,9 @@ Modify: mobile/lib/features/user_profile/presentation/user_profile_screen.dart
 Modify: mobile/lib/features/dating/presentation/dating_screen.dart
 Modify: mobile/lib/features/communities/presentation/community_detail_screen.dart
 Modify: mobile/lib/shared/widgets/bb_social_actions.dart
+Modify: mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart
+Modify: mobile/lib/shared/widgets/bb_composer.dart
+Modify: mobile/lib/shared/widgets/bb_pinned_meetup_card.dart
 Test: mobile/test/features/parity/notifications_and_profile_screen_test.dart
 Test: mobile/test/features/parity/detail_chat_and_user_profile_screen_test.dart
 Test: mobile/test/features/parity/people_and_chats_screen_test.dart
@@ -1224,7 +1227,7 @@ XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B
 XcodeBuildMCP snapshot for frendly:///community/cmp14125v00b2pe1z2eqs2ado showed Вступить and no Открыть чат button.
 ```
 
-- [ ] **Step 7.5: Run tests and real-data check**
+- [x] **Step 7.5: Run tests and real-data check**
 
 Run:
 
@@ -1243,14 +1246,44 @@ Open Dating discover as Guest C.
 Open community detail before and after join.
 ```
 
-- [ ] **Step 7.6: Update graph and commit**
+Status 2026-05-12:
+
+```text
+Fixed the remaining Task 7 verification regressions in the chat suite before closing the task.
+Meetup live chat header now keeps LIVE status instead of replacing it with member count.
+Meetup chat member avatar has the expected accessibility/test key.
+Meetup paid ticket block again shows Купить билет · от 2 500 ₽ plus provider and venue metadata.
+Attachment sheet again exposes Что прикрепить and Локацию.
+Typing indicator test no longer waits for a repeating animation to settle.
+
+Verification:
+cd mobile && flutter test test/features/parity/notifications_and_profile_screen_test.dart
+cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart
+cd mobile && flutter test test/features/parity/people_and_chats_screen_test.dart
+
+XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+Build log: /Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T08-40-40-220Z_pid69930_f9731aa8.log.
+Home showed Вторник · 12 мая.
+Own profile showed Изменить and no Подписаться button.
+Dating showed Пользователь 1111 card, action labels at y 742 above bottom nav labels at y 806, and AXLabel Фильтры дейтинга.
+Community detail for клуб тест 20260511 showed Вступить and no Открыть чат button before membership.
+```
+
+- [x] **Step 7.6: Update graph and commit**
 
 Run:
 
 ```bash
 bash scripts/update-understand-graph.sh
-git add mobile/lib/features/profile/presentation/profile_screen.dart mobile/lib/features/user_profile/presentation/user_profile_screen.dart mobile/lib/features/dating/presentation/dating_screen.dart mobile/lib/features/communities/presentation/community_detail_screen.dart mobile/lib/shared/widgets/bb_social_actions.dart mobile/test/features/parity/notifications_and_profile_screen_test.dart mobile/test/features/parity/detail_chat_and_user_profile_screen_test.dart mobile/test/features/parity/people_and_chats_screen_test.dart docs/superpowers/plans/2026-05-12-ios-real-data-bugfix-implementation-plan.md .understand-anything
+git add mobile/lib/features/profile/presentation/profile_screen.dart mobile/lib/features/user_profile/presentation/user_profile_screen.dart mobile/lib/features/dating/presentation/dating_screen.dart mobile/lib/features/communities/presentation/community_detail_screen.dart mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart mobile/lib/shared/widgets/bb_social_actions.dart mobile/lib/shared/widgets/bb_composer.dart mobile/lib/shared/widgets/bb_pinned_meetup_card.dart mobile/test/features/parity/notifications_and_profile_screen_test.dart mobile/test/features/parity/detail_chat_and_user_profile_screen_test.dart mobile/test/features/parity/people_and_chats_screen_test.dart docs/superpowers/plans/2026-05-12-ios-real-data-bugfix-implementation-plan.md docs/audits/2026-05-11-ios-real-data-qa-report.md .understand-anything
 git commit -m "Исправить профиль дейтинг и клубы"
+```
+
+Status 2026-05-12:
+
+```text
+Graph update ran successfully.
+Mobile commit: f664465 Закрыть проверку профиля дейтинга и клубов.
 ```
 
 ---
