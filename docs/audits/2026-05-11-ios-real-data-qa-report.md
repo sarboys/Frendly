@@ -2643,6 +2643,11 @@ Evidence:
 docs/audits/2026-05-11-ios-stage6-private-preview.jpg
 ```
 
+Fixed candidate 2026-05-12:
+
+- Mobile moved `CreateMeetupScreen` fixed bottom CTA out of the Stack overlay and added safe-area-aware bottom reserve for the scroll view.
+- Test passed: `cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "create meetup (keeps bottom fields above fixed CTA|sends request join mode for invite visibility)"`.
+
 Impact:
 
 - Hosts can miss the private visibility setting.
@@ -3861,6 +3866,12 @@ description AXValue after ASCII type_text: empty
 screenshot:
 docs/audits/2026-05-12-ios-stage45-date-invite-description-covered-by-cta.jpg
 ```
+
+Fixed candidate 2026-05-12:
+
+- Mobile moved the fixed invite CTA out of the Stack overlay and added larger bottom reserve for lower fields.
+- Test passed: `cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "create meetup (keeps bottom fields above fixed CTA|sends request join mode for invite visibility)"`.
+- XcodeBuildMCP proof on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`: opened `frendly:///create?mode=dating&inviteeUserId=user-304f0edb-76db-439c-ae10-5b9a52f76da6`, scrolled to `Описание`, tapped the field and `type_text` inserted `abc` through the active Russian keyboard layout as `фис`.
 
 Impact:
 

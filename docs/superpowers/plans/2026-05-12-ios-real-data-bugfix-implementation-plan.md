@@ -811,7 +811,7 @@ cd backend/apps/api && NODE_OPTIONS=--experimental-vm-modules pnpm exec jest --c
 Production https://api.frendly.tech still returns Cannot PATCH /host/events/... because the backend change is not deployed yet, so no QA Fixed candidate was added.
 ```
 
-- [ ] **Step 5.3: Fix fixed CTA coverage**
+- [x] **Step 5.3: Fix fixed CTA coverage**
 
 Implementation target:
 
@@ -820,6 +820,17 @@ Create meetup scroll view must have bottom padding at least fixed CTA height plu
 Fields near bottom must be fully focusable.
 Date invite description must accept focus.
 Visibility options must be fully tappable.
+```
+
+Status 2026-05-12:
+
+```text
+Added RED widget coverage for create meetup bottom fields with iPhone 17 Pro safe area.
+Moved CreateMeetupScreen fixed bottom CTA out of the Stack overlay and gave the ListView a larger safe-area-aware bottom reserve.
+Updated visibility tap test so it verifies По ссылке selection without the CTA stealing the tap.
+Verification:
+cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "create meetup (keeps bottom fields above fixed CTA|sends request join mode for invite visibility)"
+XcodeBuildMCP on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072: opened frendly:///create?mode=dating&inviteeUserId=user-304f0edb-76db-439c-ae10-5b9a52f76da6, scrolled to Описание, tapped the text field and type_text inserted abc through the active Russian keyboard layout as фис.
 ```
 
 - [ ] **Step 5.4: Fix date invite send**
