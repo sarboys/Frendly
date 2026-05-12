@@ -403,7 +403,7 @@ Test: mobile/test/features/parity/detail_chat_and_user_profile_screen_test.dart
 Test: mobile/test/features/parity/people_and_chats_screen_test.dart
 ```
 
-- [ ] **Step 2.1: Preserve peer name after createOrGetDirectChat**
+- [x] **Step 2.1: Preserve peer name after createOrGetDirectChat**
 
 Implementation target:
 
@@ -425,7 +425,7 @@ Expected:
 Opening direct chat from Пользователь 1111 profile shows Пользователь 1111, not Личный чат.
 ```
 
-- [ ] **Step 2.2: Fix personal filter empty state**
+- [x] **Step 2.2: Fix personal filter empty state**
 
 Implementation target:
 
@@ -446,7 +446,7 @@ Expected:
 Personal tab with one backend chat shows one row and no empty hint.
 ```
 
-- [ ] **Step 2.3: Real-data verification**
+- [x] **Step 2.3: Real-data verification**
 
 Use XcodeBuildMCP:
 
@@ -464,7 +464,7 @@ Direct header is Пользователь 1111.
 Personal filter shows the row without empty hint.
 ```
 
-- [ ] **Step 2.4: Update graph and commit**
+- [x] **Step 2.4: Update graph and commit**
 
 Run:
 

@@ -3683,6 +3683,13 @@ Impact:
 - This is inconsistent with earlier direct chat headers that showed the peer name.
 - Opening the same chat from the Personal filter after cold relaunch showed `Пользователь 1111`, so the bug is tied to the profile-created entry state.
 
+Fixed candidate 2026-05-12:
+
+- Profile `Написать` now stores a temporary known personal chat summary with peer id and display name before opening the direct chat.
+- `PersonalChatScreen` uses the known summary until the backend personal chat provider returns the row.
+- Verification: `cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart --name "opening direct chat from profile keeps peer title"` passed.
+- Real-data verification: XcodeBuildMCP opened `frendly:///user/user-304f0edb-76db-439c-ae10-5b9a52f76da6`, tapping `Написать` opened direct chat header `Пользователь 1111`.
+
 ### IOS-QA-026: Personal chat filter can show empty state while backend has a personal chat
 
 Severity: medium.
@@ -3732,6 +3739,13 @@ Impact:
 
 - Users may think no personal chats exist after creating a direct chat from a profile.
 - After relaunch, the row is visible, but the mixed empty hint makes the list state unclear.
+
+Fixed candidate 2026-05-12:
+
+- Chats merges known newly created personal chat summaries into the visible personal chat list for the current session.
+- Personal chat list now renders empty-state copy only when the list is empty.
+- Verification: `cd mobile && flutter test test/features/parity/people_and_chats_screen_test.dart --name "personal tab with one chat hides empty hint"` passed.
+- Real-data verification: XcodeBuildMCP opened Chats, tapped `Личные`, and showed `Пользователь 1111` with no `Личные чаты появляются после встреч.` empty hint.
 
 ### IOS-QA-027: Direct chat date invite send returns to draft without visible result
 
