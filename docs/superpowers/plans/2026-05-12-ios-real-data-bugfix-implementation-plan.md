@@ -886,7 +886,7 @@ cd mobile && flutter test test/shared/data/backend_repository_test.dart
 cd backend && pnpm --filter @big-break/api test:unit
 ```
 
-- [ ] **Step 5.6: Real-data verification**
+- [x] **Step 5.6: Real-data verification**
 
 Use XcodeBuildMCP:
 
@@ -940,9 +940,19 @@ cd backend/apps/api && NODE_OPTIONS=--experimental-vm-modules pnpm exec jest --c
 Production recheck 2026-05-12:
 `PATCH https://api.frendly.tech/host/events/ev-9a41831d-a740-4df3-af3c-45dd3079cac8` as Host `+72222222222` still returns `404 Cannot PATCH /host/events/...`, request id `6bc5c8d8-2052-4710-8d4b-1718776e1838`.
 No mobile changes were made for this gap. IOS-QA-010 stays not fixed candidate until backend production has the host edit endpoint.
+
+Production deployed recheck 2026-05-12:
+Unauthenticated `PATCH /host/events/ev-9a41831d-a740-4df3-af3c-45dd3079cac8` returned `401 auth_required`, request id `c95ec3be-0517-4cc7-943b-c0c723b0fc17`, confirming the route is now deployed.
+Authenticated API patch as Host `+72222222222` returned `200 OK`, request id `d4cfb36c-8b90-4393-b767-51c1daf0ff20`, and `GET /events/:eventId` returned title `QA edit deploy 1405`.
+XcodeBuildMCP on A195A8F2-DCEB-4B12-9377-8F1D6294F072 opened the event detail and showed `QA edit deploy 1405`, then opened edit mode, changed the title to `QA edit deploy 6 1405`, tapped `Сохранить`, returned to detail, and the detail plus API both showed `QA edit deploy 6 1405` with `Сегодня · 13:46`.
+Verification:
+cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "edit mode saves through repository"
+cd mobile && flutter test test/shared/data/backend_repository_test.dart --name "host event update sends edited fields"
+cd backend/apps/api && NODE_OPTIONS=--experimental-vm-modules pnpm exec jest --config jest.config.js --runInBand test/integration/core.integration.spec.ts -t "lets host update owned meetup fields"
+IOS-QA-010 is now Fixed candidate.
 ```
 
-- [ ] **Step 5.7: Update graph and commit**
+- [x] **Step 5.7: Update graph and commit**
 
 Run:
 
@@ -950,6 +960,14 @@ Run:
 bash scripts/update-understand-graph.sh
 git add mobile/lib/features/create_meetup mobile/lib/shared/data/backend_repository.dart mobile/test/features/parity/create_meetup_screen_test.dart mobile/test/shared/data/backend_repository_test.dart backend/apps/api/src/controllers/host.controller.ts backend/apps/api/src/services/host.service.ts backend/apps/api/test/integration/core.integration.spec.ts docs/superpowers/plans/2026-05-12-ios-real-data-bugfix-implementation-plan.md .understand-anything
 git commit -m "Исправить создание и редактирование встреч"
+```
+
+Status 2026-05-12:
+
+```text
+Task 5.6 production recheck and QA report were updated after backend deploy.
+Graph update ran successfully.
+Commit: pending in this session.
 ```
 
 ---
