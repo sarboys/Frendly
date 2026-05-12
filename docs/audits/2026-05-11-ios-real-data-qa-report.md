@@ -2895,6 +2895,14 @@ docs/audits/2026-05-11-ios-stage31-host-a-profile-follow-persisted.jpg
 docs/audits/2026-05-11-ios-stage31-host-a-profile-after-relaunch-follow-persisted.jpg
 ```
 
+Fixed candidate 2026-05-12:
+
+- Added widget coverage for `/user/:id` receiving a stale `ProfileData.id` from another user.
+- Fixed `UserProfileScreen` to ignore mismatched profile snapshots and key the profile content by the loaded profile id.
+- Tests passed: `cd mobile && flutter test test/features/parity/notifications_and_profile_screen_test.dart`.
+- Regression check passed: `cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart --name "user profile renders social actions from profile snapshot"`.
+- XcodeBuildMCP built the app on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`; `frendly:///user/user-304f0edb-76db-439c-ae10-5b9a52f76da6` showed header `Пользователь 1111` with matching public profile body.
+
 ### IOS-QA-013: Direct chat composer can trigger voice recording while text is present
 
 Severity: medium.

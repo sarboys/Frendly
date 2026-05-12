@@ -1133,7 +1133,7 @@ XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B
 XcodeBuildMCP snapshot for frendly:///profile showed Изменить and no Подписаться button.
 ```
 
-- [ ] **Step 7.2: Fix public profile stale body**
+- [x] **Step 7.2: Fix public profile stale body**
 
 Expected behavior:
 
@@ -1141,6 +1141,18 @@ Expected behavior:
 Header, body and social provider must be keyed by the same userId.
 Changing /user/:userId route must reset any previous body snapshot before new data is shown.
 Follow action must persist through /people/:userId/follow.
+```
+
+Status 2026-05-12:
+
+```text
+Added RED widget coverage for a public profile route receiving a stale profile snapshot with another id.
+UserProfileScreen now ignores mismatched profile snapshots and keys ProfileV5Content by profile id.
+Verification:
+cd mobile && flutter test test/features/parity/notifications_and_profile_screen_test.dart
+cd mobile && flutter test test/features/parity/detail_chat_and_user_profile_screen_test.dart --name "user profile renders social actions from profile snapshot"
+XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+XcodeBuildMCP snapshot for frendly:///user/user-304f0edb-76db-439c-ae10-5b9a52f76da6 showed header Пользователь 1111 with matching public body.
 ```
 
 - [ ] **Step 7.3: Fix dating gate and controls**
