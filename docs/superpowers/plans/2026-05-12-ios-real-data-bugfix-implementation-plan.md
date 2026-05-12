@@ -500,7 +500,7 @@ Test: mobile/test/features/chats/presentation/chat_thread_providers_test.dart
 Test: mobile/test/features/parity/people_and_chats_screen_test.dart
 ```
 
-- [ ] **Step 3.1: Add missing tests for socket outbox flush**
+- [x] **Step 3.1: Add missing tests for socket outbox flush**
 
 Test target:
 
@@ -522,7 +522,7 @@ Failing test before implementation if current bug still exists.
 Passing after fix.
 ```
 
-- [ ] **Step 3.2: Fix direct message immediate delivery**
+- [x] **Step 3.2: Fix direct message immediate delivery**
 
 Implementation target:
 
@@ -532,7 +532,7 @@ Do not duplicate messages on reconnect.
 Keep persisted outbox only until message.created ack removes it.
 ```
 
-- [ ] **Step 3.3: Fix read target for visible latest messages**
+- [x] **Step 3.3: Fix read target for visible latest messages**
 
 Implementation target:
 
@@ -548,7 +548,7 @@ Backend control:
 POST /chats/:chatId/read already clears unread when called with latest message id.
 ```
 
-- [ ] **Step 3.4: Fix realtime row previews**
+- [x] **Step 3.4: Fix realtime row previews**
 
 Implementation target:
 
@@ -558,7 +558,7 @@ Do not wait for cold relaunch.
 When active chat marks read, list state must clear unread.
 ```
 
-- [ ] **Step 3.5: Run chat tests**
+- [x] **Step 3.5: Run chat tests**
 
 Run:
 
@@ -591,6 +591,12 @@ Expected:
 
 ```text
 IOS-QA-011, 019, 020 and 029 are fixed candidates.
+```
+
+Status 2026-05-12:
+
+```text
+Blocked for fresh simulator verification. XcodeBuildMCP build_run_sim and flutter build ios --simulator both fail before compiling app code because xcodebuild cannot find destination iPhone 17 Pro A195A8F2-DCEB-4B12-9377-8F1D6294F072 for Runner. The simulator is booted and visible in simctl as iOS 26.4, but Xcode reports only ineligible iOS 26.5 device destinations for the Runner scheme.
 ```
 
 - [ ] **Step 3.7: Update graph and commit**
