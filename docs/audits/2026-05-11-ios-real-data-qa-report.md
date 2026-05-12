@@ -3826,6 +3826,12 @@ Impact:
 - A user can try to invite a direct chat peer to a date and receive no explanation when nothing is created.
 - This blocks the empty-chat conversion path from direct chat to real meetup.
 
+Fixed candidate 2026-05-12:
+
+- Mobile dating invite submit now sends a fallback description when the user leaves the description field empty.
+- Test passed: `cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "date invite uses fallback description"`.
+- Real-data verification: XcodeBuildMCP on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072` opened `frendly:///create?mode=dating&inviteeUserId=user-304f0edb-76db-439c-ae10-5b9a52f76da6`, tapped `Отправить инвайт` with an empty description, and the app navigated to the created event detail `Свидание на двоих`.
+
 ### IOS-QA-028: Date invite description field is partly covered by fixed CTA and does not accept focus
 
 Severity: medium.

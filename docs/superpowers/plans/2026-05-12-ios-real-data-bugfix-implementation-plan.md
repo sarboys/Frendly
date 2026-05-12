@@ -833,7 +833,7 @@ cd mobile && flutter test test/features/create_meetup/presentation/create_meetup
 XcodeBuildMCP on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072: opened frendly:///create?mode=dating&inviteeUserId=user-304f0edb-76db-439c-ae10-5b9a52f76da6, scrolled to Описание, tapped the text field and type_text inserted abc through the active Russian keyboard layout as фис.
 ```
 
-- [ ] **Step 5.4: Fix date invite send**
+- [x] **Step 5.4: Fix date invite send**
 
 Implementation target:
 
@@ -842,6 +842,18 @@ Date invite flow must either create a private dating meetup/invite or show concr
 If description is required, show field error and scroll to the field.
 If backend endpoint is missing, route through existing POST /events with inviteeUserId and dating mode.
 After success, direct chat must get an invite message or navigate to created meetup detail.
+```
+
+Status 2026-05-12:
+
+```text
+Added RED widget test for dating invite with empty description.
+Fixed CreateMeetupScreen dating direct submit to send the same fallback description used by publish drafts instead of an empty string.
+Verification:
+cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "date invite uses fallback description"
+cd mobile && flutter test test/shared/data/backend_repository_test.dart
+XcodeBuildMCP on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072: opened frendly:///create?mode=dating&inviteeUserId=user-304f0edb-76db-439c-ae10-5b9a52f76da6, tapped Отправить инвайт with empty description, and the app navigated to the created event detail Свидание на двоих.
+Note: full create_meetup_screen_test.dart still has older failing cases unrelated to this diff: After Dark segment expectation, hidden geocoding publish call, preset route publish and custom route publish.
 ```
 
 - [ ] **Step 5.5: Run tests**
