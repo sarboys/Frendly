@@ -787,7 +787,7 @@ XcodeBuildMCP on iPhone 17 Pro A195A8F2-DCEB-4B12-9377-8F1D6294F072: create prev
 Note: simulator id A195A8F2-DCEB-4B12-9377-8F1D6294F072 is available as iOS 26.4 locally, while iOS 26.5 is booted under E1D49F3C-4690-408C-859C-EAB274D963C7.
 ```
 
-- [ ] **Step 5.2: Implement host edit save**
+- [x] **Step 5.2: Implement host edit save**
 
 Implementation target:
 
@@ -796,6 +796,19 @@ Edit mode must call a real repository method.
 If backend has no host update endpoint, add one behind host auth check.
 Save must persist title, startsAt, place, capacity, description and visibility fields that edit UI exposes.
 After save, invalidate eventDetailProvider, hostDashboardProvider, chats if card copies depend on event title.
+```
+
+Status 2026-05-12:
+
+```text
+Added RED tests for PATCH /host/events/:eventId, BackendRepository.updateHostedEvent and CreateMeetupScreen edit save.
+Implemented host-owned meetup update in backend HostController/HostService.
+Implemented mobile repository PATCH and edit mode save path with provider invalidation.
+Verification:
+cd mobile && flutter test test/shared/data/backend_repository_test.dart --name "host event update sends edited fields"
+cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "edit mode saves through repository"
+cd backend/apps/api && NODE_OPTIONS=--experimental-vm-modules pnpm exec jest --config jest.config.js --runInBand test/integration/core.integration.spec.ts -t "lets host update owned meetup fields"
+Production https://api.frendly.tech still returns Cannot PATCH /host/events/... because the backend change is not deployed yet, so no QA Fixed candidate was added.
 ```
 
 - [ ] **Step 5.3: Fix fixed CTA coverage**

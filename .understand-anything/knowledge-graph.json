@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-12T04:49:14.038Z",
-    "gitCommitHash": "00abd978bd7402c4a3a24c52a5137fb912c1f52c"
+    "analyzedAt": "2026-05-12T05:16:11.011Z",
+    "gitCommitHash": "0d87e3564c6513b15d754fa49bcb593ab96eb460"
   },
   "nodes": [
     {
@@ -9247,7 +9247,7 @@
       "filePath": "backend/apps/api/src/controllers/host.controller.ts",
       "lineRange": [
         6,
-        73
+        82
       ],
       "summary": "HostController in host.controller.ts.",
       "tags": [
@@ -11093,8 +11093,8 @@
       "name": "HostService",
       "filePath": "backend/apps/api/src/services/host.service.ts",
       "lineRange": [
-        55,
-        1012
+        63,
+        1231
       ],
       "summary": "HostService in host.service.ts.",
       "tags": [

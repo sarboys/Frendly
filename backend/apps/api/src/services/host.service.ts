@@ -4,7 +4,15 @@ import {
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
-import { Prisma } from '@prisma/client';
+import {
+  EventAccessMode,
+  EventGenderMode,
+  EventJoinMode,
+  EventLifestyle,
+  EventPriceMode,
+  EventVisibilityMode,
+  Prisma,
+} from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import {
@@ -392,6 +400,44 @@ export class HostService {
           attendanceByUserId.get(participant.userId)?.checkedInAt?.toISOString() ?? null,
       })),
     };
+  }
+
+  async updateHostedEvent(
+    userId: string,
+    eventId: string,
+    body: Record<string, unknown>,
+  ) {
+    const event = await this.prismaService.client.event.findFirst({
+      where: { id: eventId, hostId: userId },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            participants: true,
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      throw new ApiError(404, 'host_event_not_found', 'Hosted event not found');
+    }
+
+    const data = this.parseHostedEventUpdate(body);
+    if (
+      data.capacity != null &&
+      typeof data.capacity === 'number' &&
+      data.capacity < event._count.participants
+    ) {
+      throw new ApiError(409, 'event_capacity_below_participants', 'Capacity is below participant count');
+    }
+
+    await this.prismaService.client.event.update({
+      where: { id: event.id },
+      data,
+    });
+
+    return this.getHostedEvent(userId, event.id);
   }
 
   async approveRequest(userId: string, requestId: string) {
@@ -866,6 +912,179 @@ export class HostService {
 
   private async getBlockedUserIds(userId: string) {
     return loadBlockedUserIds(this.prismaService.client, userId);
+  }
+
+  private parseHostedEventUpdate(body: Record<string, unknown>) {
+    const title = this.requiredText(body.title, 'host_event_title_required');
+    const description = this.requiredText(body.description, 'host_event_description_required');
+    const emoji = this.requiredText(body.emoji, 'host_event_emoji_required');
+    const vibe = this.requiredText(body.vibe, 'host_event_vibe_required');
+    const place = this.requiredText(body.place, 'host_event_place_required');
+    const startsAt = this.requiredDate(body.startsAt, 'host_event_starts_at_invalid');
+    const capacity = this.intRange(body.capacity, 1, 1000, 'host_event_capacity_invalid');
+    const visibilityMode = this.parseVisibilityMode(body.visibilityMode);
+    const accessMode = this.parseAccessMode(body.accessMode, visibilityMode);
+    const joinMode = this.parseJoinMode(body.joinMode, visibilityMode, accessMode);
+
+    return {
+      title,
+      description,
+      emoji,
+      vibe,
+      place,
+      startsAt,
+      capacity,
+      lifestyle: this.parseLifestyle(body.lifestyle),
+      priceMode: this.parsePriceMode(body.priceMode),
+      priceAmountFrom: this.optionalInt(body.priceAmountFrom),
+      priceAmountTo: this.optionalInt(body.priceAmountTo),
+      accessMode,
+      genderMode: this.parseGenderMode(body.genderMode),
+      visibilityMode,
+      joinMode,
+      distanceKm: this.optionalNumber(body.distanceKm) ?? 1,
+      latitude: this.optionalCoordinate(body.latitude, -90, 90, 'host_event_latitude_invalid'),
+      longitude: this.optionalCoordinate(body.longitude, -180, 180, 'host_event_longitude_invalid'),
+      tone:
+        vibe === 'Активно'
+          ? 'sage'
+          : vibe === 'Свидание'
+            ? 'evening'
+            : 'warm',
+      isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
+      isDate: vibe === 'Свидание',
+    } satisfies Prisma.EventUpdateInput;
+  }
+
+  private requiredText(value: unknown, code: string) {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new ApiError(400, code, 'Text is required');
+    }
+    return value.trim();
+  }
+
+  private requiredDate(value: unknown, code: string) {
+    if (typeof value !== 'string') {
+      throw new ApiError(400, code, 'Date is invalid');
+    }
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) {
+      throw new ApiError(400, code, 'Date is invalid');
+    }
+    return date;
+  }
+
+  private intRange(value: unknown, min: number, max: number, code: string) {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    const intValue = Math.trunc(parsed);
+    if (!Number.isFinite(intValue) || intValue < min || intValue > max) {
+      throw new ApiError(400, code, 'Number is invalid');
+    }
+    return intValue;
+  }
+
+  private optionalInt(value: unknown) {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+    return this.intRange(value, 0, 1_000_000, 'host_event_number_invalid');
+  }
+
+  private optionalNumber(value: unknown) {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+    const parsed = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(parsed)) {
+      throw new ApiError(400, 'host_event_number_invalid', 'Number is invalid');
+    }
+    return parsed;
+  }
+
+  private optionalCoordinate(value: unknown, min: number, max: number, code: string) {
+    const parsed = this.optionalNumber(value);
+    if (parsed == null) {
+      return null;
+    }
+    if (parsed < min || parsed > max) {
+      throw new ApiError(400, code, 'Coordinate is invalid');
+    }
+    return parsed;
+  }
+
+  private parseLifestyle(value: unknown) {
+    if (
+      value === EventLifestyle.zozh ||
+      value === EventLifestyle.neutral ||
+      value === EventLifestyle.anti
+    ) {
+      return value;
+    }
+    return EventLifestyle.neutral;
+  }
+
+  private parsePriceMode(value: unknown) {
+    if (
+      value === EventPriceMode.free ||
+      value === EventPriceMode.fixed ||
+      value === EventPriceMode.from ||
+      value === EventPriceMode.upto ||
+      value === EventPriceMode.range ||
+      value === EventPriceMode.split ||
+      value === EventPriceMode.host_pays ||
+      value === EventPriceMode.fifty_fifty
+    ) {
+      return value;
+    }
+    return EventPriceMode.free;
+  }
+
+  private parseAccessMode(value: unknown, visibilityMode: EventVisibilityMode) {
+    if (
+      value === EventAccessMode.open ||
+      value === EventAccessMode.request ||
+      value === EventAccessMode.free
+    ) {
+      return visibilityMode === EventVisibilityMode.friends
+        ? EventAccessMode.request
+        : value;
+    }
+    return visibilityMode === EventVisibilityMode.friends
+      ? EventAccessMode.request
+      : EventAccessMode.open;
+  }
+
+  private parseGenderMode(value: unknown) {
+    if (
+      value === EventGenderMode.all ||
+      value === EventGenderMode.male ||
+      value === EventGenderMode.female
+    ) {
+      return value;
+    }
+    return EventGenderMode.all;
+  }
+
+  private parseVisibilityMode(value: unknown) {
+    if (value === EventVisibilityMode.friends) {
+      return EventVisibilityMode.friends;
+    }
+    return EventVisibilityMode.public;
+  }
+
+  private parseJoinMode(
+    value: unknown,
+    visibilityMode: EventVisibilityMode,
+    accessMode: EventAccessMode,
+  ) {
+    if (
+      value === EventJoinMode.request ||
+      visibilityMode === EventVisibilityMode.friends ||
+      accessMode === EventAccessMode.request
+    ) {
+      return EventJoinMode.request;
+    }
+    return EventJoinMode.open;
   }
 
   private normalizeLimit(limit?: number) {

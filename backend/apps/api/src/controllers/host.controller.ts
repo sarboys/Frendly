@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { HostService } from '../services/host.service';
 
@@ -28,6 +28,15 @@ export class HostController {
     @Param('eventId') eventId: string,
   ) {
     return this.hostService.getHostedEvent(currentUser.userId, eventId);
+  }
+
+  @Patch('events/:eventId')
+  updateHostedEvent(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('eventId') eventId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.hostService.updateHostedEvent(currentUser.userId, eventId, body);
   }
 
   @Post('requests/:requestId/approve')
