@@ -343,13 +343,16 @@ export class DatingService {
 
     if (
       _positiveDatingActions.has(action) &&
-      (previousAction == null ||
-        !_positiveDatingActions.has(previousAction.action))
+      (action === 'super_like'
+        ? previousAction?.action !== 'super_like'
+        : previousAction == null ||
+          !_positiveDatingActions.has(previousAction.action))
     ) {
       await this.createDatingLikeNotification({
         userId,
         userName: self?.displayName ?? '',
         targetUserId,
+        action,
       });
     }
 
@@ -507,8 +510,12 @@ export class DatingService {
     userId: string;
     userName: string;
     targetUserId: string;
+    action: DatingActionKind;
   }) {
-    const dedupeKey = `dating_like:${params.targetUserId}:${params.userId}`;
+    const isSuperLike = params.action === 'super_like';
+    const notificationAction = isSuperLike ? 'super_like' : 'like';
+    const dedupeKey =
+      `dating_${notificationAction}:${params.targetUserId}:${params.userId}`;
 
     try {
       await this.prismaService.client.$transaction(async (tx) => {
@@ -517,14 +524,22 @@ export class DatingService {
             userId: params.targetUserId,
             actorUserId: params.userId,
             kind: 'like',
-            title: 'Новый лайк',
-            body: 'лайкнул тебя в дейтинге',
+            title: isSuperLike ? 'Суперлайк' : 'Новый лайк',
+            body: isSuperLike
+              ? 'поставил(а) тебе суперлайк в дейтинге'
+              : 'Тебя лайкнули в дейтинге',
             dedupeKey,
-            payload: {
-              userId: params.userId,
-              userName: params.userName,
-              source: 'dating',
-            },
+            payload: isSuperLike
+              ? {
+                  userId: params.userId,
+                  userName: params.userName,
+                  source: 'dating',
+                  action: 'super_like',
+                }
+              : {
+                  source: 'dating',
+                  action: 'like',
+                },
           },
           select: {
             id: true,

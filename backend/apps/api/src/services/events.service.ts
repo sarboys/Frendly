@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { createHmac, randomUUID } from 'node:crypto';
 import {
   OUTBOX_EVENT_TYPES,
+  buildDirectChatKey,
   decodeCursor,
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
@@ -105,6 +106,7 @@ const eventListSummarySelect = {
   genderMode: true,
   visibilityMode: true,
   joinMode: true,
+  isDate: true,
   hostId: true,
   sourcePoster: {
     select: {
@@ -1174,6 +1176,10 @@ export class EventsService {
         ? 'request'
         : 'open';
     const inviteeUserId = typeof body.inviteeUserId === 'string' ? body.inviteeUserId : undefined;
+    const sourceChatId =
+      typeof body.sourceChatId === 'string' && body.sourceChatId.trim().length > 0
+        ? body.sourceChatId.trim()
+        : undefined;
     const communityId =
       typeof body.communityId === 'string' && body.communityId.trim().length > 0
         ? body.communityId.trim()
@@ -1220,6 +1226,10 @@ export class EventsService {
 
     if (inviteeUserId === userId) {
       throw new ApiError(400, 'invalid_invitee', 'Invitee cannot be the host');
+    }
+
+    if (isDatingMode && inviteeUserId == null) {
+      throw new ApiError(400, 'invalid_invitee', 'Dating invitee is required');
     }
 
     if (!Number.isFinite(distanceKm) || distanceKm < 0 || distanceKm > 500) {
@@ -1280,6 +1290,32 @@ export class EventsService {
 
     if (inviteeUserId != null && !inviteeUser) {
       throw new ApiError(404, 'user_not_found', 'Invitee user not found');
+    }
+
+    if (isDatingMode && inviteeUserId != null) {
+      const directKey = buildDirectChatKey(userId, inviteeUserId);
+      const directChat =
+        sourceChatId == null
+          ? null
+          : await this.prismaService.client.chat.findFirst({
+              where: {
+                id: sourceChatId,
+                directKey,
+                kind: 'direct',
+                members: {
+                  some: { userId },
+                },
+              },
+              select: { id: true },
+            });
+
+      if (directChat == null) {
+        throw new ApiError(
+          403,
+          'dating_direct_chat_required',
+          'Dating invite requires an existing direct chat',
+        );
+      }
     }
 
     const community =
@@ -3439,6 +3475,7 @@ export class EventsService {
       genderMode: string;
       visibilityMode: string;
       joinMode: string;
+      isDate?: boolean;
       participants: Array<{ userId: string }>;
       attendances: Array<{
         userId: string;
@@ -3476,6 +3513,10 @@ export class EventsService {
       event.attendances.some((attendance) => attendance.userId === userId);
     if (hasAttendance) {
       return true;
+    }
+
+    if (event.isDate === true) {
+      return false;
     }
 
     if (event.joinMode === 'request') {

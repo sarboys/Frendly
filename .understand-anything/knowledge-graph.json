@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-12T11:39:03.520Z",
-    "gitCommitHash": "938c0a446e66f96ec0dd03f7085eb292a9d1100a"
+    "analyzedAt": "2026-05-12T13:07:30.816Z",
+    "gitCommitHash": "7a8930064df800f943f35a732b747755296c58e5"
   },
   "nodes": [
     {
@@ -10650,7 +10650,7 @@
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
         127,
-        656
+        671
       ],
       "summary": "DatingService in dating.service.ts.",
       "tags": [
@@ -11046,8 +11046,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3559,
-        3578
+        3600,
+        3619
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11063,8 +11063,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        170,
-        3557
+        172,
+        3598
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [

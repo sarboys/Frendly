@@ -543,48 +543,57 @@ describe('DatingService unit', () => {
       .fn()
       .mockResolvedValueOnce({ action: 'like' })
       .mockResolvedValueOnce(null);
+    let client: any;
+    client = {
+      $transaction: jest.fn((callback) => callback(client)),
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-me',
+          displayName: 'Никита',
+          profile: {
+            gender: 'male',
+          },
+          onboarding: {
+            gender: 'male',
+            interests: [],
+          },
+        }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'user-sonya',
+          displayName: 'Соня',
+          verified: true,
+          online: true,
+          profile: {
+            age: 26,
+            area: 'Замоскворечье',
+            bio: 'Люблю тихие ужины.',
+            vibe: 'Спокойно',
+            avatarUrl: null,
+            photos: [],
+          },
+          onboarding: {
+            interests: [],
+          },
+        }),
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      datingAction: {
+        findUnique: datingActionFindUnique,
+        count: jest.fn().mockResolvedValue(14),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      notification: {
+        create: jest.fn().mockResolvedValue({ id: 'notif-super-like' }),
+      },
+      outboxEvent: {
+        createMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
     const service = new DatingService(
       {
-        client: {
-          user: {
-            findUnique: jest.fn().mockResolvedValue({
-              id: 'user-me',
-              displayName: 'Никита',
-              profile: {
-                gender: 'male',
-              },
-              onboarding: {
-                gender: 'male',
-                interests: [],
-              },
-            }),
-            findFirst: jest.fn().mockResolvedValue({
-              id: 'user-sonya',
-              displayName: 'Соня',
-              verified: true,
-              online: true,
-              profile: {
-                age: 26,
-                area: 'Замоскворечье',
-                bio: 'Люблю тихие ужины.',
-                vibe: 'Спокойно',
-                avatarUrl: null,
-                photos: [],
-              },
-              onboarding: {
-                interests: [],
-              },
-            }),
-          },
-          userBlock: {
-            findMany: jest.fn().mockResolvedValue([]),
-          },
-          datingAction: {
-            findUnique: datingActionFindUnique,
-            count: jest.fn().mockResolvedValue(14),
-            upsert: jest.fn().mockResolvedValue({}),
-          },
-        },
+        client,
       } as any,
       {} as any,
       {
@@ -608,7 +617,7 @@ describe('DatingService unit', () => {
     });
   });
 
-  it('creates a central notification when a user receives a dating like', async () => {
+  it('creates a plain central notification when a user receives a dating like', async () => {
     const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-like' });
     const outboxCreateMany = jest.fn().mockResolvedValue({ count: 2 });
     let client: any;
@@ -678,10 +687,10 @@ describe('DatingService unit', () => {
         kind: 'like',
         title: 'Новый лайк',
         dedupeKey: 'dating_like:user-sonya:user-me',
-        payload: expect.objectContaining({
-          userId: 'user-me',
-          userName: 'Никита',
-        }),
+        payload: {
+          source: 'dating',
+          action: 'like',
+        },
       }),
       select: {
         id: true,
@@ -703,6 +712,175 @@ describe('DatingService unit', () => {
           },
         },
       ],
+    });
+  });
+
+  it('creates a dating profile notification when a user receives a super like', async () => {
+    const notificationCreate = jest
+      .fn()
+      .mockResolvedValue({ id: 'notif-super-like' });
+    const outboxCreateMany = jest.fn().mockResolvedValue({ count: 2 });
+    let client: any;
+    client = {
+      $transaction: jest.fn((callback) => callback(client)),
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-me',
+          displayName: 'Никита',
+          profile: {
+            gender: 'male',
+          },
+          onboarding: {
+            gender: 'male',
+            interests: [],
+          },
+        }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'user-sonya',
+          displayName: 'Соня',
+          verified: true,
+          online: true,
+          profile: {
+            age: 26,
+            area: 'Замоскворечье',
+            bio: 'Люблю тихие ужины.',
+            vibe: 'Спокойно',
+            avatarUrl: null,
+            photos: [],
+          },
+          onboarding: {
+            interests: [],
+          },
+        }),
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      datingAction: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue({}),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      notification: {
+        create: notificationCreate,
+      },
+      outboxEvent: {
+        createMany: outboxCreateMany,
+      },
+    };
+    const service = new DatingService(
+      {
+        client,
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    await service.recordAction('user-me', {
+      targetUserId: 'user-sonya',
+      action: 'super_like',
+    });
+
+    expect(notificationCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-sonya',
+        actorUserId: 'user-me',
+        kind: 'like',
+        title: 'Суперлайк',
+        dedupeKey: 'dating_super_like:user-sonya:user-me',
+        payload: {
+          source: 'dating',
+          action: 'super_like',
+          userId: 'user-me',
+          userName: 'Никита',
+        },
+      }),
+      select: {
+        id: true,
+      },
+    });
+  });
+
+  it('creates a super like notification when a dating like is upgraded', async () => {
+    const notificationCreate = jest
+      .fn()
+      .mockResolvedValue({ id: 'notif-super-like' });
+    let client: any;
+    client = {
+      $transaction: jest.fn((callback) => callback(client)),
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-me',
+          displayName: 'Никита',
+          profile: {
+            gender: 'male',
+          },
+          onboarding: {
+            gender: 'male',
+            interests: [],
+          },
+        }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'user-sonya',
+          displayName: 'Соня',
+          verified: true,
+          online: true,
+          profile: {
+            age: 26,
+            area: 'Замоскворечье',
+            bio: 'Люблю тихие ужины.',
+            vibe: 'Спокойно',
+            avatarUrl: null,
+            photos: [],
+          },
+          onboarding: {
+            interests: [],
+          },
+        }),
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      datingAction: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({ action: 'like' })
+          .mockResolvedValueOnce(null),
+        upsert: jest.fn().mockResolvedValue({}),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      notification: {
+        create: notificationCreate,
+      },
+      outboxEvent: {
+        createMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
+    const service = new DatingService(
+      {
+        client,
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    await service.recordAction('user-me', {
+      targetUserId: 'user-sonya',
+      action: 'super_like',
+    });
+
+    expect(notificationCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: 'Суперлайк',
+        dedupeKey: 'dating_super_like:user-sonya:user-me',
+        payload: expect.objectContaining({
+          action: 'super_like',
+          userId: 'user-me',
+        }),
+      }),
+      select: {
+        id: true,
+      },
     });
   });
 

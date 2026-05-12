@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "938c0a446e66f96ec0dd03f7085eb292a9d1100a",
-  "generatedAt": "2026-05-12T11:39:03.945Z",
+  "gitCommitHash": "7a8930064df800f943f35a732b747755296c58e5",
+  "generatedAt": "2026-05-12T13:07:31.040Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -11477,7 +11477,7 @@
     },
     "backend/apps/api/src/controllers/host.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/host.controller.ts",
-      "contentHash": "1582ac74e736d2a837e9294e2aaf2156f88801cc83ed681ce9c11171dbb41266",
+      "contentHash": "be382e73cbcf58a2620b919757482bdd01bcf744af483f1c54c9f7d0346e9baa",
       "functions": [],
       "classes": [
         {
@@ -14022,7 +14022,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "4b72c4c1a2f636326b0808c343e5e3e5504c19ee815fa5a039824a01f6b28195",
+      "contentHash": "2a547361dc721eff9fdf3c2d50e98794f7d734910d970ca6f05dbe7a8ef50a1f",
       "functions": [],
       "classes": [
         {
@@ -14229,7 +14229,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "7d982914bad13d93d604386d3ec642734d9757eed8cb660fcbcea222d3f31733",
+      "contentHash": "c7c48ca5254cfa39c1a4f3584bc17ef73cfbb933a01b48b8bf4bac59d4ae5c46",
       "functions": [],
       "classes": [
         {
@@ -14256,7 +14256,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 530
+          "lineCount": 545
         }
       ],
       "imports": [
@@ -14316,7 +14316,7 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 657,
+      "totalLines": 672,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -14815,7 +14815,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "8dfe56c790df428b4ed11ff8f140f9a4f0e4066a0ef77e1513ed2ad14a129572",
+      "contentHash": "3029c7debe3b02ce5b136c6ab2277f9ee1aa5a3448aea15bdd38fdd512a62fdb",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14892,7 +14892,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3388
+          "lineCount": 3427
         }
       ],
       "imports": [
@@ -14929,6 +14929,7 @@
           "source": "@big-break/database",
           "specifiers": [
             "OUTBOX_EVENT_TYPES",
+            "buildDirectChatKey",
             "decodeCursor",
             "encodeCursor",
             "loadBlockedUserIds"
@@ -14979,12 +14980,12 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3579,
+      "totalLines": 3620,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
       "filePath": "backend/apps/api/src/services/host.service.ts",
-      "contentHash": "3979489f7432e04a461b591790917396bb4f55b9506726854d4945d2a8f2d740",
+      "contentHash": "35c4c8d4355c2a5bb3bd7b8182fcf71e9dd0c7be50215d3c5125e1e648661f48",
       "functions": [],
       "classes": [
         {

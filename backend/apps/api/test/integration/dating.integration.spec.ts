@@ -157,6 +157,7 @@ describe('dating api flows', () => {
       ['user-me', 'user-mark'],
       ['user-sonya', 'user-me'],
       ['user-oleg', 'user-me'],
+      ['user-mark', 'user-sonya'],
     ];
 
     await prisma.chat.deleteMany({
@@ -346,6 +347,11 @@ describe('dating api flows', () => {
   });
 
   it('creates dating mode event without frendly+', async () => {
+    const directChatResponse = await request(app.getHttpServer())
+      .post('/people/user-sonya/direct-chat')
+      .set('authorization', `Bearer ${markAccessToken}`)
+      .expect(201);
+
     const response = await request(app.getHttpServer())
       .post('/events')
       .set('authorization', `Bearer ${markAccessToken}`)
@@ -360,6 +366,7 @@ describe('dating api flows', () => {
         capacity: 8,
         priceMode: 'host_pays',
         inviteeUserId: 'user-sonya',
+        sourceChatId: directChatResponse.body.id,
       })
       .expect(201);
 
@@ -371,7 +378,38 @@ describe('dating api flows', () => {
     expect(event?.capacity).toBe(2);
   });
 
+  it('requires source chat before creating a dating event', async () => {
+    await request(app.getHttpServer())
+      .post('/people/user-sonya/direct-chat')
+      .set('authorization', `Bearer ${markAccessToken}`)
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${markAccessToken}`)
+      .send({
+        mode: 'dating',
+        title: 'Свидание вне чата',
+        description: 'Нельзя создать без личного чата',
+        emoji: '💘',
+        vibe: 'Свидание',
+        place: 'Покровка 7',
+        startsAt: futureIso(1, 18, 30),
+        capacity: 2,
+        priceMode: 'host_pays',
+        inviteeUserId: 'user-sonya',
+      })
+      .expect(403);
+
+    expect(response.body.code).toBe('dating_direct_chat_required');
+  });
+
   it('normalizes dating mode event fields on create', async () => {
+    const directChatResponse = await request(app.getHttpServer())
+      .post('/people/user-sonya/direct-chat')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
     const response = await request(app.getHttpServer())
       .post('/events')
       .set('authorization', `Bearer ${accessToken}`)
@@ -389,6 +427,7 @@ describe('dating api flows', () => {
         joinMode: 'open',
         priceMode: 'host_pays',
         inviteeUserId: 'user-sonya',
+        sourceChatId: directChatResponse.body.id,
       })
       .expect(201);
 
@@ -403,6 +442,60 @@ describe('dating api flows', () => {
     expect(event?.joinMode).toBe('request');
     expect(event?.priceMode).toBe('host_pays');
     expect(event?.vibe).toBe('Свидание');
+  });
+
+  it('keeps dating event hidden from invitee until invite is accepted', async () => {
+    const directChatResponse = await request(app.getHttpServer())
+      .post('/people/user-sonya/direct-chat')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        mode: 'dating',
+        title: 'Закрытое свидание',
+        description: 'Видно только после принятия',
+        emoji: '💘',
+        vibe: 'Свидание',
+        place: 'Покровка 7',
+        startsAt: futureIso(1, 18, 30),
+        capacity: 2,
+        priceMode: 'host_pays',
+        inviteeUserId: 'user-sonya',
+        sourceChatId: directChatResponse.body.id,
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+
+    await request(app.getHttpServer())
+      .get(`/events/${eventId}`)
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .expect(404);
+
+    const notificationsResponse = await request(app.getHttpServer())
+      .get('/notifications')
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .expect(200);
+
+    const inviteNotification = notificationsResponse.body.items.find(
+      (item: { payload?: { invite?: boolean; eventId?: string } }) =>
+        item.payload?.invite === true && item.payload?.eventId === eventId,
+    );
+
+    expect(inviteNotification).toBeDefined();
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/invites/${inviteNotification.payload.requestId}/accept`)
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get(`/events/${eventId}`)
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .expect(200);
   });
 
   it('blocks after dark mode event creation without unlocked access', async () => {
