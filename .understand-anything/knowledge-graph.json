@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-12T13:07:30.816Z",
-    "gitCommitHash": "7a8930064df800f943f35a732b747755296c58e5"
+    "analyzedAt": "2026-05-12T14:40:17.696Z",
+    "gitCommitHash": "fb206ce918b689fb7c4a1b846ce5f70ad15bee01"
   },
   "nodes": [
     {
@@ -11046,8 +11046,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3600,
-        3619
+        3627,
+        3646
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11063,8 +11063,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        172,
-        3598
+        173,
+        3625
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -28583,7 +28583,7 @@
         "code",
         "dart"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/features/stories/presentation/stories_screen.dart",

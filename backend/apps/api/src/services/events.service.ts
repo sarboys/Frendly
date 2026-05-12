@@ -107,6 +107,7 @@ const eventListSummarySelect = {
   visibilityMode: true,
   joinMode: true,
   isDate: true,
+  canceledAt: true,
   hostId: true,
   sourcePoster: {
     select: {
@@ -483,6 +484,10 @@ export class EventsService {
     ]);
 
     if (!event) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
+    if (event.canceledAt != null) {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
@@ -1663,6 +1668,9 @@ export class EventsService {
           select: {
             hostId: true,
             title: true,
+            isDate: true,
+            visibilityMode: true,
+            capacity: true,
             chat: {
               select: { id: true },
             },
@@ -1714,7 +1722,26 @@ export class EventsService {
 
       await this.markInviteNotificationsRead(tx, userId, eventId, requestId);
 
-      if (invite.event.chat != null) {
+      const shouldCancelDatingEvent =
+        invite.event.isDate === true &&
+        invite.event.visibilityMode === 'friends' &&
+        invite.event.capacity === 2;
+
+      if (shouldCancelDatingEvent) {
+        await tx.event.update({
+          where: { id: eventId },
+          data: {
+            canceledAt: new Date(),
+            cancelReason: 'dating_invite_declined',
+          },
+        });
+
+        if (invite.event.chat != null) {
+          await tx.chat.delete({
+            where: { id: invite.event.chat.id },
+          });
+        }
+      } else if (invite.event.chat != null) {
         const message = await tx.message.create({
           data: {
             chatId: invite.event.chat.id,

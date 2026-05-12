@@ -498,6 +498,84 @@ describe('dating api flows', () => {
       .expect(200);
   });
 
+  it('cancels dating event and hides meetup chat when invite is declined', async () => {
+    const directChatResponse = await request(app.getHttpServer())
+      .post('/people/user-sonya/direct-chat')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        mode: 'dating',
+        title: 'Свидание с отказом',
+        description: 'После отказа встреча должна исчезнуть',
+        emoji: '💘',
+        vibe: 'Свидание',
+        place: 'Покровка 7',
+        startsAt: futureIso(1, 18, 30),
+        capacity: 2,
+        priceMode: 'host_pays',
+        inviteeUserId: 'user-sonya',
+        sourceChatId: directChatResponse.body.id,
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+    const meetupChatId = createResponse.body.chatId as string;
+
+    const notificationsResponse = await request(app.getHttpServer())
+      .get('/notifications')
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .expect(200);
+
+    const inviteNotification = notificationsResponse.body.items.find(
+      (item: { payload?: { invite?: boolean; eventId?: string } }) =>
+        item.payload?.invite === true && item.payload?.eventId === eventId,
+    );
+
+    expect(inviteNotification).toBeDefined();
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/invites/${inviteNotification.payload.requestId}/decline`)
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .expect(201);
+
+    const canceledEvent = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { canceledAt: true, cancelReason: true },
+    });
+    expect(canceledEvent?.canceledAt).toBeInstanceOf(Date);
+    expect(canceledEvent?.cancelReason).toBe('dating_invite_declined');
+
+    await request(app.getHttpServer())
+      .get(`/events/${eventId}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .get(`/events/${eventId}`)
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .expect(404);
+
+    const hostEventsResponse = await request(app.getHttpServer())
+      .get('/events?limit=20')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(
+      hostEventsResponse.body.items.some((item: { id: string }) => item.id === eventId),
+    ).toBe(false);
+
+    const hostChatsResponse = await request(app.getHttpServer())
+      .get('/chats/meetups?limit=20')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(
+      hostChatsResponse.body.items.some((item: { id: string }) => item.id === meetupChatId),
+    ).toBe(false);
+  });
+
   it('blocks after dark mode event creation without unlocked access', async () => {
     await prisma.userSubscription.create({
       data: {

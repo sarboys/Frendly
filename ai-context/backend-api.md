@@ -189,6 +189,7 @@ Admin Evening route review:
 - Cursors carry sort keys plus id when possible.
 - Dating discover remains available to all authenticated users. Do not gate dating profiles or `POST /events` with `mode=dating` behind Frendly+.
 - `POST /events` with `mode=dating` requires `inviteeUserId` and `sourceChatId` for an existing direct chat between host and invitee. Dating events stay private: the invitee cannot open event detail until the invite is accepted and they become a participant.
+- Declining a pending dating invite cancels the private dating event with `cancelReason=dating_invite_declined` and removes its meetup chat from user chat lists.
 - `GET /dating/likes` requires Frendly+ access. Non-plus users get `403 frendly_plus_required`.
 - `POST /dating/actions` remains available to all authenticated users, but `super_like` has a daily UTC quota: free users get 1 per day, Frendly+ users get 15 per day. Limit errors return `402 super_like_limit_reached`. Successful super-like responses can include `superLikeQuota` with `limit`, `remaining`, `premium` and `resetAt`.
 - Dating positive actions create central `like` notifications on the first positive action. Plain `like` uses a plain dating payload without actor navigation. `super_like` includes `payload.source=dating`, `payload.action=super_like`, `payload.userId` and `payload.userName` so mobile can open dating on that profile.

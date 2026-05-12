@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "7a8930064df800f943f35a732b747755296c58e5",
-  "generatedAt": "2026-05-12T13:07:31.040Z",
+  "gitCommitHash": "fb206ce918b689fb7c4a1b846ce5f70ad15bee01",
+  "generatedAt": "2026-05-12T14:40:18.134Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14815,7 +14815,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "3029c7debe3b02ce5b136c6ab2277f9ee1aa5a3448aea15bdd38fdd512a62fdb",
+      "contentHash": "f46a9c44d30592d20545528e9160de7dffd812ce4c5e24aadd33998fb43667b4",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14892,7 +14892,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3427
+          "lineCount": 3453
         }
       ],
       "imports": [
@@ -14980,7 +14980,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3620,
+      "totalLines": 3647,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
