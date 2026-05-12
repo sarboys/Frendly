@@ -1155,7 +1155,7 @@ XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B
 XcodeBuildMCP snapshot for frendly:///user/user-304f0edb-76db-439c-ae10-5b9a52f76da6 showed header Пользователь 1111 with matching public body.
 ```
 
-- [ ] **Step 7.3: Fix dating gate and controls**
+- [x] **Step 7.3: Fix dating gate and controls**
 
 Expected behavior:
 
@@ -1178,6 +1178,28 @@ cd mobile && flutter test test/shared/widgets/bb_composer_test.dart
 XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
 XcodeBuildMCP opened frendly:///personal/cmp1gufto00djpe1zda834izn, entered text, tapped the mic area, and no recording UI appeared.
 Step 7.3 stays open for IOS-QA-014, IOS-QA-023 and IOS-QA-024.
+```
+
+Fixed status 2026-05-12:
+
+```text
+IOS-QA-014 fixed candidate.
+Added RED widget coverage for the dating action button bottom edge on iPhone 17 Pro height.
+Changed dating profile photo ratio to keep the action row above the local bottom nav.
+
+IOS-QA-023 verified fixed candidate.
+Existing coverage confirms discover is available without Frendly+ while likes stay locked.
+XcodeBuildMCP opened frendly:///dating and showed Пользователь 1111 card instead of the Plus gate.
+
+IOS-QA-024 fixed candidate.
+Added filter semantics coverage for labels, button roles and selected state.
+Added labeled header filter semantics and semantic filter chips.
+
+Verification:
+cd mobile && flutter test test/features/dating/presentation/dating_screen_test.dart
+XcodeBuildMCP build_run_sim succeeded on iPhone 17 Pro iOS 26.4 A195A8F2-DCEB-4B12-9377-8F1D6294F072.
+XcodeBuildMCP snapshot for frendly:///dating showed action labels at y 742 and bottom nav labels at y 806.
+XcodeBuildMCP snapshot also showed AXLabel Фильтры дейтинга and the backend discover card Пользователь 1111.
 ```
 
 - [ ] **Step 7.4: Fix community chat membership guard**

@@ -3603,6 +3603,13 @@ Impact:
 - Users may not know whether a file was saved, opened or failed.
 - This affects generic file attachments even when the backend media is ready and downloadable.
 
+Fixed candidate 2026-05-12:
+
+- Added a dating layout regression test that checks the bottom edge of the `Лайк` action on iPhone 17 Pro height clears the local bottom nav.
+- Changed the dating profile photo aspect ratio so the action row fits above the nav.
+- Tests passed: `cd mobile && flutter test test/features/dating/presentation/dating_screen_test.dart`.
+- XcodeBuildMCP built the app on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`; in `frendly:///dating`, action labels were at y 742 and bottom nav labels started at y 806.
+
 ### IOS-QA-023: Dating discover can show Plus gate while backend has eligible cards
 
 Severity: medium.
@@ -3654,6 +3661,12 @@ Impact:
 - Non Plus users may be blocked from the whole dating discover flow even when backend has discover cards.
 - This conflicts with the earlier Stage 11 Guest B behavior where discover worked and only incoming likes were locked.
 
+Fixed candidate 2026-05-12:
+
+- Verified existing coverage: `dating is available without Frendly+ subscription` and `dating likes are locked without Frendly+`.
+- Tests passed: `cd mobile && flutter test test/features/dating/presentation/dating_screen_test.dart`.
+- XcodeBuildMCP built the app on iPhone 17 Pro iOS 26.4 `A195A8F2-DCEB-4B12-9377-8F1D6294F072`; `frendly:///dating` showed the backend discover card `Пользователь 1111` instead of a Frendly+ gate.
+
 ### IOS-QA-024: Dating filter controls have weak accessibility semantics
 
 Severity: low.
@@ -3697,6 +3710,14 @@ docs/audits/2026-05-12-ios-stage41-dating-filter-reopen-after-kino.jpg
 Impact:
 
 - Screen reader and automation users cannot clearly identify filter controls or selected filter state.
+
+Fixed candidate 2026-05-12:
+
+- Added widget coverage for the dating filter opener and chips with semantics labels, button roles, tap actions and selected state.
+- Added `Фильтры дейтинга` semantics to the header filter control.
+- Added semantic filter chips for area, time and interest filters while preserving the visual chip labels.
+- Tests passed: `cd mobile && flutter test test/features/dating/presentation/dating_screen_test.dart`.
+- XcodeBuildMCP snapshot for `frendly:///dating` showed the header filter control with `AXLabel` `Фильтры дейтинга`.
 
 ### IOS-QA-025: Direct chat opened from dating profile shows generic title instead of peer name
 
