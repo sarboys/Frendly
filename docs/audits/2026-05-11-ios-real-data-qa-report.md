@@ -8623,6 +8623,7 @@ Evidence: XcodeBuildMCP on A195 reopened edit mode after the local parser fix. E
 Tests: `flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "edit mode saves through repository"`, `flutter test test/shared/data/backend_repository_test.dart --name "host event update sends edited fields"`, `NODE_OPTIONS=--experimental-vm-modules pnpm exec jest --config jest.config.js --runInBand test/integration/core.integration.spec.ts -t "lets host update owned meetup fields"`.
 XcodeBuildMCP: first call picked the duplicate iOS 26.5 simulator while both devices were booted. After shutting down 26.5 and resetting defaults by simulator id, launch, UI snapshot and taps used `A195A8F2-DCEB-4B12-9377-8F1D6294F072`.
 Latest build log: `/Users/sergeypolyakov/Library/Developer/XcodeBuildMCP/workspaces/MyApp-b5f9f3b2a498/logs/build_run_sim_2026-05-12T06-36-42-600Z_pid84655_ce9afc59.log`.
+Production recheck 2026-05-12: `PATCH https://api.frendly.tech/host/events/ev-9a41831d-a740-4df3-af3c-45dd3079cac8` as Host `+72222222222` still returns `404 Cannot PATCH /host/events/...`, request id `6bc5c8d8-2052-4710-8d4b-1718776e1838`. No new Fixed candidate is added for IOS-QA-010.
 
 IOS-QA-009, IOS-QA-016, IOS-QA-027, IOS-QA-028
 Status: Existing fixed candidates from earlier Task 5 checks remain in this report. No new conflicting evidence in this run.

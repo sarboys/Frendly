@@ -936,6 +936,10 @@ Verification:
 cd mobile && flutter test test/features/create_meetup/presentation/create_meetup_screen_test.dart --name "edit mode saves through repository"
 cd mobile && flutter test test/shared/data/backend_repository_test.dart --name "host event update sends edited fields"
 cd backend/apps/api && NODE_OPTIONS=--experimental-vm-modules pnpm exec jest --config jest.config.js --runInBand test/integration/core.integration.spec.ts -t "lets host update owned meetup fields"
+
+Production recheck 2026-05-12:
+`PATCH https://api.frendly.tech/host/events/ev-9a41831d-a740-4df3-af3c-45dd3079cac8` as Host `+72222222222` still returns `404 Cannot PATCH /host/events/...`, request id `6bc5c8d8-2052-4710-8d4b-1718776e1838`.
+No mobile changes were made for this gap. IOS-QA-010 stays not fixed candidate until backend production has the host edit endpoint.
 ```
 
 - [ ] **Step 5.7: Update graph and commit**
