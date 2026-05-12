@@ -53,6 +53,7 @@ const chatSenderProfilePhotoSelect = {
 } satisfies Prisma.ProfilePhotoSelect;
 
 const chatListLastMessageSelect = {
+  id: true,
   text: true,
   createdAt: true,
   sender: {
@@ -363,6 +364,7 @@ export class ChatsService {
             emoji: chat.emoji,
             time: parts[1]?.trim() ?? '',
             status: parts[0]?.trim() ?? '',
+            lastMessageId: lastMessage?.id ?? null,
             lastMessage: lastMessagePreview,
             lastAuthor: lastMessage?.sender.displayName ?? '',
             lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
@@ -391,6 +393,7 @@ export class ChatsService {
           id: chat.id,
           peerUserId: peer.id,
           name: peer?.displayName ?? 'Личный чат',
+          lastMessageId: lastMessage?.id ?? null,
           lastMessage: lastMessagePreview,
           lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
           unread,

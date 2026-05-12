@@ -97,6 +97,7 @@ describe('PartnerOfferCodeService unit', () => {
         },
       } as any,
       { track: jest.fn() } as any,
+      { now: () => new Date('2026-05-10T17:00:00.000Z') },
     );
 
     const first = await service.issueCode(

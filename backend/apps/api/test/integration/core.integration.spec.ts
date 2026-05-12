@@ -907,6 +907,7 @@ describe('core api flows', () => {
 
       const chat = response.body.items.find((item: { id: string }) => item.id === 'p1');
       expect(chat.lastMessage).toBe('Голосовое сообщение');
+      expect(chat.lastMessageId).toBe(messageId);
 
       const messagesResponse = await request(app.getHttpServer())
         .get('/chats/p1/messages')
@@ -2169,6 +2170,72 @@ describe('core api flows', () => {
 
     expect(feedbackResponse.body.saved).toBe(true);
     expect(feedbackResponse.body.favoritesCount).toBe(1);
+  });
+
+  it('lets host update owned meetup fields', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/events')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Ужин до правки',
+        description: 'Старое описание',
+        emoji: '🍝',
+        vibe: 'Уютно',
+        place: 'Солянка 5',
+        startsAt: futureIso(3, 18, 30),
+        capacity: 6,
+        distanceKm: 0.8,
+        joinMode: 'open',
+      })
+      .expect(201);
+
+    const eventId = createResponse.body.id as string;
+    const nextStartsAt = futureIso(4, 19, 15);
+
+    await request(app.getHttpServer())
+      .patch(`/host/events/${eventId}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Ужин после правки',
+        description: 'Новое описание',
+        emoji: '☕',
+        vibe: 'Спокойно',
+        place: 'Покровка 8',
+        startsAt: nextStartsAt,
+        capacity: 8,
+        priceMode: 'fixed',
+        priceAmountFrom: 900,
+        priceAmountTo: 1200,
+        accessMode: 'request',
+        genderMode: 'female',
+        visibilityMode: 'friends',
+        joinMode: 'request',
+      })
+      .expect(200);
+
+    const detailResponse = await request(app.getHttpServer())
+      .get(`/events/${eventId}`)
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(detailResponse.body).toEqual(
+      expect.objectContaining({
+        title: 'Ужин после правки',
+        description: 'Новое описание',
+        emoji: '☕',
+        vibe: 'Спокойно',
+        place: 'Покровка 8',
+        capacity: 8,
+        priceMode: 'fixed',
+        priceAmountFrom: 900,
+        priceAmountTo: 1200,
+        accessMode: 'request',
+        genderMode: 'female',
+        visibilityMode: 'friends',
+        joinMode: 'request',
+      }),
+    );
+    expect(detailResponse.body.startsAtIso).toBe(nextStartsAt);
   });
 
   it('paginates host dashboard requests and events independently', async () => {
