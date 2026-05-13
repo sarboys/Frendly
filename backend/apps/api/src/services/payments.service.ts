@@ -12,7 +12,8 @@ import { SubscriptionService } from './subscription.service';
 import { TbankAcquiringService } from './tbank-acquiring.service';
 import { TokensService } from './tokens.service';
 import {
-  PaymentProduct,
+  type PaymentProduct,
+  type PaymentProductKindValue,
   findPaymentProduct,
   subscriptionProducts,
   tokenPackProducts,
@@ -108,8 +109,8 @@ export class PaymentsService {
         OrderId: order.orderId,
         Description: product.description,
         NotificationURL: this.notificationUrl(),
-        SuccessURL: this.returnUrl('success', order.orderId),
-        FailURL: this.returnUrl('fail', order.orderId),
+        SuccessURL: this.returnUrl('success', order.orderId, product.kind),
+        FailURL: this.returnUrl('fail', order.orderId, product.kind),
         PayType: 'O',
         ...this.receiptPayload(product, buyer),
       });
@@ -317,12 +318,16 @@ export class PaymentsService {
     providerPaymentId: string | null;
     paymentUrl: string | null;
     status: PaymentOrderStatus;
+    productKind: PaymentProductKind;
+    productId: string;
   }) {
     return {
       orderId: order.orderId,
       paymentId: order.providerPaymentId,
       paymentUrl: order.paymentUrl,
       status: order.status,
+      productKind: order.productKind,
+      productId: order.productId,
     };
   }
 
@@ -342,9 +347,17 @@ export class PaymentsService {
     return `${publicApiUrl}/payments/tbank/webhook`;
   }
 
-  private returnUrl(result: 'success' | 'fail', orderId: string) {
+  private returnUrl(
+    result: 'success' | 'fail',
+    orderId: string,
+    productKind: PaymentProductKindValue,
+  ) {
     const scheme = process.env.APP_DEEP_LINK_SCHEME?.trim() || 'frendly';
-    return `${scheme}://payment/${result}?orderId=${encodeURIComponent(orderId)}`;
+    const params = new URLSearchParams({
+      orderId,
+      productKind,
+    });
+    return `${scheme}://payment/${result}?${params.toString()}`;
   }
 
   private receiptPayload(

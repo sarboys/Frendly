@@ -124,7 +124,7 @@ Use this file for Flutter behavior, state and performance rules.
 
 - `apiClientProvider` creates `ApiClient`.
 - `backendRepositoryProvider` maps REST to typed models.
-- Payments use backend catalog and server-side T-Bank init/check. Flutter opens only `paymentUrl`; `frendly://payment/...` only triggers backend check.
+- Payments use backend catalog and server-side T-Bank init/check. Flutter opens only `paymentUrl`; `frendly://payment/...` routes through `/payment/:result`, checks the order, then sends token orders to wallet and subscription orders to paywall.
 - `paymentCatalogProvider` reads `/payments/catalog` and exposes `tbankEnabled`. Paywall and token packs should not hardcode prices except as fallback.
 - Token wallet state is backend-backed through `/tokens/wallet` and `/tokens/promotions`; local `SharedPreferences` is not a balance source.
 - `chatSocketClientProvider` owns WebSocket client.

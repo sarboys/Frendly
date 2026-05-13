@@ -72,6 +72,8 @@ describe('PaymentsService unit', () => {
       providerPaymentId: 'payment-1',
       paymentUrl: 'https://pay.test/form',
       status: 'pending',
+      productKind: 'subscription',
+      productId: 'month',
     });
     tbank.initPayment.mockResolvedValue({
       Success: true,
@@ -90,6 +92,8 @@ describe('PaymentsService unit', () => {
       paymentId: 'payment-1',
       paymentUrl: 'https://pay.test/form',
       status: 'pending',
+      productKind: 'subscription',
+      productId: 'month',
     });
 
     expect(prismaClient.paymentOrder.create).toHaveBeenCalledWith(

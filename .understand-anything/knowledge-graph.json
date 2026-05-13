@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-13T11:52:13.534Z",
-    "gitCommitHash": "ad7b092421373478d555295fe7baaec02d6dfabe"
+    "analyzedAt": "2026-05-13T12:04:07.487Z",
+    "gitCommitHash": "3924cacff9d93538e412396a2b15305f7d6669f4"
   },
   "nodes": [
     {
@@ -11857,8 +11857,8 @@
       "name": "PaymentsService",
       "filePath": "backend/apps/api/src/services/payments.service.ts",
       "lineRange": [
-        31,
-        384
+        32,
+        397
       ],
       "summary": "PaymentsService in payments.service.ts.",
       "tags": [

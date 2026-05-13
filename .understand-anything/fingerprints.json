@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "ad7b092421373478d555295fe7baaec02d6dfabe",
-  "generatedAt": "2026-05-13T11:52:13.769Z",
+  "gitCommitHash": "3924cacff9d93538e412396a2b15305f7d6669f4",
+  "generatedAt": "2026-05-13T12:04:07.721Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -16153,7 +16153,7 @@
     },
     "backend/apps/api/src/services/payments.service.ts": {
       "filePath": "backend/apps/api/src/services/payments.service.ts",
-      "contentHash": "45399e4c43be6c01e54d18b93015677cf92eb69f9a4f57d82d2910d353618d53",
+      "contentHash": "ad8847655c6324baf0e47de983b30aa2e2a6be4ea2a9f55e35cf7a55053bbfa2",
       "functions": [],
       "classes": [
         {
@@ -16177,7 +16177,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 354
+          "lineCount": 366
         }
       ],
       "imports": [
@@ -16236,6 +16236,7 @@
           "source": "./payment-catalog",
           "specifiers": [
             "PaymentProduct",
+            "PaymentProductKindValue",
             "findPaymentProduct",
             "subscriptionProducts",
             "tokenPackProducts",
@@ -16246,7 +16247,7 @@
       "exports": [
         "PaymentsService"
       ],
-      "totalLines": 385,
+      "totalLines": 398,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/people.service.ts": {
