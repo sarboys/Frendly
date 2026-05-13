@@ -56,7 +56,7 @@ Use this file for Flutter behavior, state and performance rules.
 
 ## Feature notes
 
-- Splash mirrors `front/src/pages/v5/Splash.tsx`: liquid orange drop, blob reveal, Frendly wordmark and final compact `Fr` mark before auth routing.
+- Splash mirrors `front/src/pages/v5/Splash.tsx`: six colored avatar dots fly into a circle, show a dashed orbit, central heart, sparkles, Frendly wordmark and `ГОРОД · ЛЮДИ · ВЕЧЕР` caption before auth routing.
 - Welcome mirrors `front/src/pages/v5/Welcome.tsx`: orange Fr logo tile, centered editorial title/subtitle, bottom primary CTA, SMS login button, social auth row and terms copy.
 - Onboarding is a 7-step v5 flow: intent/profile, city and area, interests, vibe, birthday, contact, permissions. If auth requires a missing contact, keep that contact step first so backend completion rules still pass.
 - Paywall mirrors `front/src/pages/v5/Paywall.tsx`: terracotta FRENDLY+ pill, feature list, yearly/monthly cards and fixed subscribe CTA.

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-12T14:40:17.696Z",
-    "gitCommitHash": "fb206ce918b689fb7c4a1b846ce5f70ad15bee01"
+    "analyzedAt": "2026-05-13T03:13:41.726Z",
+    "gitCommitHash": "44e1619877f1b4d9dcd670ce7b6d0953ab5abbef"
   },
   "nodes": [
     {
@@ -28583,7 +28583,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/features/stories/presentation/stories_screen.dart",
