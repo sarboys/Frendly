@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "b07864d32d40862f7a38f1616fb814a7c4010a6e",
-  "generatedAt": "2026-05-13T10:51:53.007Z",
+  "gitCommitHash": "3286422eac13b9eaba2a65a1d760a864bbeb63ed",
+  "generatedAt": "2026-05-13T11:21:31.914Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -8823,7 +8823,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "97d8792e006300046b253ce47168f0ddd3a436c72ec566b802b49486a9f5a3da",
+      "contentHash": "1369937789d9fdf9871da82dadba36e8fd390cd5f7dc2b3ce93b659a0aaf0c79",
       "functions": [],
       "classes": [
         {
@@ -12038,7 +12038,7 @@
     },
     "backend/apps/api/src/controllers/payments.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/payments.controller.ts",
-      "contentHash": "cf0ae9ec6d13bd503e5724076b548cd2e37bf1124ee1195360a6dfec6c6a1397",
+      "contentHash": "bc9d1e5579c91bb4a576dca7b41a6e313e692033bab9fdba33c2d05424e25ae4",
       "functions": [],
       "classes": [
         {
@@ -12594,7 +12594,7 @@
     },
     "backend/apps/api/src/controllers/subscription.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/subscription.controller.ts",
-      "contentHash": "0abcc8e6bbb4018145a18a47e622afab3730eef0ced7672cb1cab26c76469a2b",
+      "contentHash": "72d868d56c4ae75edaa5eb097ef46211f6f01af59459d3e84694a06ea0b4e809",
       "functions": [],
       "classes": [
         {
@@ -12648,7 +12648,7 @@
     },
     "backend/apps/api/src/controllers/tokens.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/tokens.controller.ts",
-      "contentHash": "33c7d1578fc1c484c21ad6d7bd58f48bb02ff7a7e73b5f3ac75fa1997fcddad0",
+      "contentHash": "88e0d18d8edf26de904a4b2af26e5c0a87eaf3a613b84ee9ee59efd8cc46fe72",
       "functions": [],
       "classes": [
         {
@@ -16090,7 +16090,7 @@
     },
     "backend/apps/api/src/services/payment-catalog.ts": {
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
-      "contentHash": "501f309f51758045012d8cc4ec5d986d42c3184182d9b5e78f60df783cca2ffd",
+      "contentHash": "08917bd822f0022b5fd42afee358fa4a2b8eee21c3d6014ffef82dd4ff5e4fda",
       "functions": [
         {
           "name": "findPaymentProduct",
@@ -16153,7 +16153,7 @@
     },
     "backend/apps/api/src/services/payments.service.ts": {
       "filePath": "backend/apps/api/src/services/payments.service.ts",
-      "contentHash": "da978e3f67fe04fa661658a3d282ca2834adc1798561a6b16c87020b825f5a00",
+      "contentHash": "45399e4c43be6c01e54d18b93015677cf92eb69f9a4f57d82d2910d353618d53",
       "functions": [],
       "classes": [
         {
@@ -17295,7 +17295,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "40a20e5dbb4ee59f08987d65f71fe43f96cea3eefbd8303e57a1fffc35228759",
+      "contentHash": "2af44b7729a93b94595e679e401c63359fcfe414ad2cafd03c7b241259924d3a",
       "functions": [],
       "classes": [
         {
@@ -17358,7 +17358,7 @@
     },
     "backend/apps/api/src/services/tbank-acquiring.service.ts": {
       "filePath": "backend/apps/api/src/services/tbank-acquiring.service.ts",
-      "contentHash": "a20347560dce18f819fe891e83a5d416375208220d58405bcacb5140fa98cebb",
+      "contentHash": "4b45f705898fc939691e99a6459c7d212d0de5f9b9678b047e529c4d96dd2408",
       "functions": [
         {
           "name": "positiveInt",
@@ -17521,7 +17521,7 @@
     },
     "backend/apps/api/src/services/tokens.service.ts": {
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
-      "contentHash": "5f5f702372daafd3115237bfcea799257150c477c508b6dc4db642b7dd917f55",
+      "contentHash": "c2db9ec98104f5508fa2f3b00a376a9e45f1e8d8eda8a69a00f9a2b82cd0aab6",
       "functions": [],
       "classes": [
         {
@@ -19576,7 +19576,7 @@
     },
     "backend/apps/worker/src/content/route-draft-generation.service.ts": {
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "contentHash": "d685fa743c14fc5580706b1062b62184f7e6505bc165c25bd5f53406f6d877b8",
+      "contentHash": "3d08f4bc4217f667452f1cc5884c41f817c0af63b4cf798d91e6a9d2d26641e6",
       "functions": [
         {
           "name": "hasUsableStepCount",
