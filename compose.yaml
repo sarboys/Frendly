@@ -78,6 +78,13 @@ services:
       PUSH_PROVIDER: fake
       ENABLE_TEST_PHONE_SHORTCUTS: "true"
       ENABLE_TESTING_ACCESS: "true"
+      PAYMENTS_TBANK_ENABLED: ${PAYMENTS_TBANK_ENABLED:-false}
+      TBANK_TERMINAL_KEY: ${TBANK_TERMINAL_KEY:-}
+      TBANK_PASSWORD: ${TBANK_PASSWORD:-}
+      TBANK_API_URL: ${TBANK_API_URL:-https://securepay.tinkoff.ru}
+      TBANK_NOTIFICATION_URL: ${TBANK_NOTIFICATION_URL:-}
+      APP_DEEP_LINK_SCHEME: ${APP_DEEP_LINK_SCHEME:-frendly}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
       PORT: 3000
     depends_on:
       migrate:

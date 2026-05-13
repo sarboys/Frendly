@@ -339,10 +339,9 @@ export class RouteDraftGenerationService {
         take: MAX_PLACE_CANDIDATES_PER_QUERY,
       }),
     ]);
-    const scopedPlaces = scopeCommercialPlacesToTomesto(places);
-    const tomestoCounts = countTomestoCommercialCategories(scopedPlaces);
+    const tomestoCounts = countTomestoCommercialCategories(places);
     console.info('[route-generation] tomesto commercial candidates', tomestoCounts);
-    const balancedPlaces = balancePlaceCandidates(scopedPlaces, input);
+    const balancedPlaces = balancePlaceCandidates(places, input);
     return uniqueCandidates([...events, ...balancedPlaces]);
   }
 
@@ -685,29 +684,6 @@ function uniqueCandidates<T extends { id: string }>(candidates: T[]) {
   });
 }
 
-function scopeCommercialPlacesToTomesto<T extends {
-  title?: string | null;
-  category?: string | null;
-  placeKind?: string | null;
-  tags?: unknown;
-  source?: { code?: string | null } | null;
-}>(places: T[]) {
-  return places.filter((place) => {
-    if (!isCommercialPlaceCandidate(place)) {
-      return true;
-    }
-    const allowed = place.source?.code === 'tomesto';
-    if (!allowed) {
-      console.debug('[route-generation] filtered non-tomesto commercial place', {
-        title: place.title,
-        category: place.category,
-        source: place.source?.code,
-      });
-    }
-    return allowed;
-  });
-}
-
 function countTomestoCommercialCategories(places: Array<{
   category?: string | null;
   placeKind?: string | null;
@@ -732,14 +708,6 @@ function countTomestoCommercialCategories(places: Array<{
     }
   }
   return counts;
-}
-
-function isCommercialPlaceCandidate(place: {
-  category?: string | null;
-  placeKind?: string | null;
-  tags?: unknown;
-}) {
-  return commercialCategoryKey(place) != null;
 }
 
 function commercialCategoryKey(place: {

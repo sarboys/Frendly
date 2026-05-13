@@ -54,6 +54,14 @@ Public routing:
 - `partner.frendly.tech` -> partner admin.
 - `/ws` on API host -> chat WebSocket.
 
+## T-Bank payments
+
+- T-Bank secrets live only in env: `TBANK_TERMINAL_KEY`, `TBANK_PASSWORD`.
+- Runtime env: `PAYMENTS_TBANK_ENABLED`, `TBANK_API_URL`, `TBANK_NOTIFICATION_URL`, `PUBLIC_API_URL`, `APP_DEEP_LINK_SCHEME`.
+- Optional receipt env: `TBANK_RECEIPT_ENABLED`, `TBANK_RECEIPT_TAXATION`, `TBANK_RECEIPT_TAX`.
+- API is the only service that calls T-Bank. Flutter receives only `paymentUrl` and order status.
+- Keep `PAYMENTS_TBANK_ENABLED=false` until store channel policy and test terminal QA are done.
+
 ## Redis
 
 - Env: `REDIS_URL`.

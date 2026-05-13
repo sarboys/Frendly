@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-13T09:58:06.173Z",
-    "gitCommitHash": "0b519b082b74afcd24bd23d7df2eaf4e1f055c1e"
+    "analyzedAt": "2026-05-13T10:51:51.489Z",
+    "gitCommitHash": "b07864d32d40862f7a38f1616fb814a7c4010a6e"
   },
   "nodes": [
     {
@@ -7622,8 +7622,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        197,
-        201
+        207,
+        211
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -9502,6 +9502,36 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:backend/apps/api/src/controllers/payments.controller.ts",
+      "type": "file",
+      "name": "payments.controller.ts",
+      "filePath": "backend/apps/api/src/controllers/payments.controller.ts",
+      "summary": "payments.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/payments.controller.ts:PaymentsController",
+      "type": "class",
+      "name": "PaymentsController",
+      "filePath": "backend/apps/api/src/controllers/payments.controller.ts",
+      "lineRange": [
+        7,
+        37
+      ],
+      "summary": "PaymentsController in payments.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:backend/apps/api/src/controllers/people.controller.ts",
       "type": "file",
       "name": "people.controller.ts",
@@ -9820,10 +9850,40 @@
       "name": "SubscriptionController",
       "filePath": "backend/apps/api/src/controllers/subscription.controller.ts",
       "lineRange": [
-        6,
-        31
+        7,
+        42
       ],
       "summary": "SubscriptionController in subscription.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/apps/api/src/controllers/tokens.controller.ts",
+      "type": "file",
+      "name": "tokens.controller.ts",
+      "filePath": "backend/apps/api/src/controllers/tokens.controller.ts",
+      "summary": "tokens.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/tokens.controller.ts:TokensController",
+      "type": "class",
+      "name": "TokensController",
+      "filePath": "backend/apps/api/src/controllers/tokens.controller.ts",
+      "lineRange": [
+        6,
+        21
+      ],
+      "summary": "TokensController in tokens.controller.ts.",
       "tags": [
         "backend",
         "class",
@@ -11698,6 +11758,117 @@
       "complexity": "complex"
     },
     {
+      "id": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "type": "file",
+      "name": "payment-catalog.ts",
+      "filePath": "backend/apps/api/src/services/payment-catalog.ts",
+      "summary": "payment-catalog.ts contains 4 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/payment-catalog.ts:findPaymentProduct",
+      "type": "function",
+      "name": "findPaymentProduct",
+      "filePath": "backend/apps/api/src/services/payment-catalog.ts",
+      "lineRange": [
+        138,
+        154
+      ],
+      "summary": "findPaymentProduct in payment-catalog.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/payment-catalog.ts:findSubscriptionProduct",
+      "type": "function",
+      "name": "findSubscriptionProduct",
+      "filePath": "backend/apps/api/src/services/payment-catalog.ts",
+      "lineRange": [
+        156,
+        162
+      ],
+      "summary": "findSubscriptionProduct in payment-catalog.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/payment-catalog.ts:findTokenPackProduct",
+      "type": "function",
+      "name": "findTokenPackProduct",
+      "filePath": "backend/apps/api/src/services/payment-catalog.ts",
+      "lineRange": [
+        164,
+        170
+      ],
+      "summary": "findTokenPackProduct in payment-catalog.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/payment-catalog.ts:findTokenPromotionOption",
+      "type": "function",
+      "name": "findTokenPromotionOption",
+      "filePath": "backend/apps/api/src/services/payment-catalog.ts",
+      "lineRange": [
+        172,
+        178
+      ],
+      "summary": "findTokenPromotionOption in payment-catalog.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/payments.service.ts",
+      "type": "file",
+      "name": "payments.service.ts",
+      "filePath": "backend/apps/api/src/services/payments.service.ts",
+      "summary": "payments.service.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/payments.service.ts:PaymentsService",
+      "type": "class",
+      "name": "PaymentsService",
+      "filePath": "backend/apps/api/src/services/payments.service.ts",
+      "lineRange": [
+        31,
+        384
+      ],
+      "summary": "PaymentsService in payments.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "file:backend/apps/api/src/services/people.service.ts",
       "type": "file",
       "name": "people.service.ts",
@@ -12378,10 +12549,57 @@
       "name": "SubscriptionService",
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
       "lineRange": [
-        14,
-        159
+        17,
+        194
       ],
       "summary": "SubscriptionService in subscription.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "type": "file",
+      "name": "tbank-acquiring.service.ts",
+      "filePath": "backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "summary": "tbank-acquiring.service.ts contains 1 classes, 1 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/tbank-acquiring.service.ts:positiveInt",
+      "type": "function",
+      "name": "positiveInt",
+      "filePath": "backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "lineRange": [
+        158,
+        161
+      ],
+      "summary": "positiveInt in tbank-acquiring.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/tbank-acquiring.service.ts:TbankAcquiringService",
+      "type": "class",
+      "name": "TbankAcquiringService",
+      "filePath": "backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "lineRange": [
+        43,
+        156
+      ],
+      "summary": "TbankAcquiringService in tbank-acquiring.service.ts.",
       "tags": [
         "backend",
         "class",
@@ -12418,6 +12636,36 @@
         "structure"
       ],
       "complexity": "complex"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/tokens.service.ts",
+      "type": "file",
+      "name": "tokens.service.ts",
+      "filePath": "backend/apps/api/src/services/tokens.service.ts",
+      "summary": "tokens.service.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/tokens.service.ts:TokensService",
+      "type": "class",
+      "name": "TokensService",
+      "filePath": "backend/apps/api/src/services/tokens.service.ts",
+      "lineRange": [
+        14,
+        193
+      ],
+      "summary": "TokensService in tokens.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "moderate"
     },
     {
       "id": "file:backend/apps/api/src/services/uploads.service.ts",
@@ -14609,7 +14857,7 @@
       "type": "file",
       "name": "route-draft-generation.service.ts",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "summary": "route-draft-generation.service.ts contains 1 classes, 23 functions.",
+      "summary": "route-draft-generation.service.ts contains 1 classes, 21 functions.",
       "tags": [
         "backend",
         "code",
@@ -14623,8 +14871,8 @@
       "name": "hasUsableStepCount",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        578,
-        581
+        577,
+        580
       ],
       "summary": "hasUsableStepCount in route-draft-generation.service.ts.",
       "tags": [
@@ -14640,8 +14888,8 @@
       "name": "validGeneratedRoutes",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        583,
-        608
+        582,
+        607
       ],
       "summary": "validGeneratedRoutes in route-draft-generation.service.ts.",
       "tags": [
@@ -14657,8 +14905,8 @@
       "name": "buildFallbackRoute",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        610,
-        619
+        609,
+        618
       ],
       "summary": "buildFallbackRoute in route-draft-generation.service.ts.",
       "tags": [
@@ -14674,8 +14922,8 @@
       "name": "balancePlaceCandidates",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        621,
-        675
+        620,
+        674
       ],
       "summary": "balancePlaceCandidates in route-draft-generation.service.ts.",
       "tags": [
@@ -14691,27 +14939,10 @@
       "name": "uniqueCandidates",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        677,
-        686
+        676,
+        685
       ],
       "summary": "uniqueCandidates in route-draft-generation.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:scopeCommercialPlacesToTomesto",
-      "type": "function",
-      "name": "scopeCommercialPlacesToTomesto",
-      "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "lineRange": [
-        688,
-        709
-      ],
-      "summary": "scopeCommercialPlacesToTomesto in route-draft-generation.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -14725,27 +14956,10 @@
       "name": "countTomestoCommercialCategories",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        711,
-        735
+        687,
+        711
       ],
       "summary": "countTomestoCommercialCategories in route-draft-generation.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:isCommercialPlaceCandidate",
-      "type": "function",
-      "name": "isCommercialPlaceCandidate",
-      "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "lineRange": [
-        737,
-        743
-      ],
-      "summary": "isCommercialPlaceCandidate in route-draft-generation.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -14759,8 +14973,8 @@
       "name": "commercialCategoryKey",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        745,
-        773
+        713,
+        741
       ],
       "summary": "commercialCategoryKey in route-draft-generation.service.ts.",
       "tags": [
@@ -14776,8 +14990,8 @@
       "name": "normalizeArea",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        775,
-        781
+        743,
+        749
       ],
       "summary": "normalizeArea in route-draft-generation.service.ts.",
       "tags": [
@@ -14793,8 +15007,8 @@
       "name": "placeMatchesArea",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        783,
-        795
+        751,
+        763
       ],
       "summary": "placeMatchesArea in route-draft-generation.service.ts.",
       "tags": [
@@ -14810,8 +15024,8 @@
       "name": "geoBucket",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        797,
-        802
+        765,
+        770
       ],
       "summary": "geoBucket in route-draft-generation.service.ts.",
       "tags": [
@@ -14827,8 +15041,8 @@
       "name": "durationMinutes",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        804,
-        813
+        772,
+        781
       ],
       "summary": "durationMinutes in route-draft-generation.service.ts.",
       "tags": [
@@ -14844,8 +15058,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        815,
-        821
+        783,
+        789
       ],
       "summary": "text in route-draft-generation.service.ts.",
       "tags": [
@@ -14861,8 +15075,8 @@
       "name": "nullableText",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        823,
-        825
+        791,
+        793
       ],
       "summary": "nullableText in route-draft-generation.service.ts.",
       "tags": [
@@ -14878,8 +15092,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        827,
-        829
+        795,
+        797
       ],
       "summary": "number in route-draft-generation.service.ts.",
       "tags": [
@@ -14895,8 +15109,8 @@
       "name": "int",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        831,
-        834
+        799,
+        802
       ],
       "summary": "int in route-draft-generation.service.ts.",
       "tags": [
@@ -14912,8 +15126,8 @@
       "name": "nullableInt",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        836,
-        839
+        804,
+        807
       ],
       "summary": "nullableInt in route-draft-generation.service.ts.",
       "tags": [
@@ -14929,8 +15143,8 @@
       "name": "dateToIso",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        841,
-        843
+        809,
+        811
       ],
       "summary": "dateToIso in route-draft-generation.service.ts.",
       "tags": [
@@ -14946,8 +15160,8 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        845,
-        851
+        813,
+        819
       ],
       "summary": "csv in route-draft-generation.service.ts.",
       "tags": [
@@ -14963,8 +15177,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        853,
-        860
+        821,
+        828
       ],
       "summary": "positiveInt in route-draft-generation.service.ts.",
       "tags": [
@@ -14980,8 +15194,8 @@
       "name": "routeGenerationFailure",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        862,
-        879
+        830,
+        847
       ],
       "summary": "routeGenerationFailure in route-draft-generation.service.ts.",
       "tags": [
@@ -14997,8 +15211,8 @@
       "name": "emojiForKind",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        881,
-        895
+        849,
+        863
       ],
       "summary": "emojiForKind in route-draft-generation.service.ts.",
       "tags": [
@@ -15015,7 +15229,7 @@
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
         69,
-        576
+        575
       ],
       "summary": "RouteDraftGenerationService in route-draft-generation.service.ts.",
       "tags": [
@@ -24398,6 +24612,291 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "summary": "migration.sql contains 16 definitions.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder",
+      "type": "table",
+      "name": "PaymentOrder",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        14,
+        35
+      ],
+      "summary": "table: PaymentOrder (18 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenWallet",
+      "type": "table",
+      "name": "TokenWallet",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        38,
+        46
+      ],
+      "summary": "table: TokenWallet (5 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry",
+      "type": "table",
+      "name": "TokenLedgerEntry",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        49,
+        58
+      ],
+      "summary": "table: TokenLedgerEntry (6 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion",
+      "type": "table",
+      "name": "TokenPromotion",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        61,
+        72
+      ],
+      "summary": "table: TokenPromotion (8 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_orderId_key",
+      "type": "table",
+      "name": "PaymentOrder_orderId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        75,
+        75
+      ],
+      "summary": "index: PaymentOrder_orderId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_providerPaymentId_key",
+      "type": "table",
+      "name": "PaymentOrder_providerPaymentId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        78,
+        78
+      ],
+      "summary": "index: PaymentOrder_providerPaymentId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_userId_createdAt_idx",
+      "type": "table",
+      "name": "PaymentOrder_userId_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        81,
+        81
+      ],
+      "summary": "index: PaymentOrder_userId_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_status_expiresAt_idx",
+      "type": "table",
+      "name": "PaymentOrder_status_expiresAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        84,
+        84
+      ],
+      "summary": "index: PaymentOrder_status_expiresAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenWallet_userId_key",
+      "type": "table",
+      "name": "TokenWallet_userId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        87,
+        87
+      ],
+      "summary": "index: TokenWallet_userId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_paymentOrderId_key",
+      "type": "table",
+      "name": "TokenLedgerEntry_paymentOrderId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        90,
+        90
+      ],
+      "summary": "index: TokenLedgerEntry_paymentOrderId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_walletId_createdAt_idx",
+      "type": "table",
+      "name": "TokenLedgerEntry_walletId_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        93,
+        93
+      ],
+      "summary": "index: TokenLedgerEntry_walletId_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_reason_createdAt_idx",
+      "type": "table",
+      "name": "TokenLedgerEntry_reason_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        96,
+        96
+      ],
+      "summary": "index: TokenLedgerEntry_reason_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_ledgerEntryId_key",
+      "type": "table",
+      "name": "TokenPromotion_ledgerEntryId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        99,
+        99
+      ],
+      "summary": "index: TokenPromotion_ledgerEntryId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_eventId_expiresAt_idx",
+      "type": "table",
+      "name": "TokenPromotion_eventId_expiresAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        102,
+        102
+      ],
+      "summary": "index: TokenPromotion_eventId_expiresAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_chatId_expiresAt_idx",
+      "type": "table",
+      "name": "TokenPromotion_chatId_expiresAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        105,
+        105
+      ],
+      "summary": "index: TokenPromotion_chatId_expiresAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_userId_expiresAt_idx",
+      "type": "table",
+      "name": "TokenPromotion_userId_expiresAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "lineRange": [
+        108,
+        108
+      ],
+      "summary": "index: TokenPromotion_userId_expiresAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -27853,6 +28352,19 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:mobile/lib/app/core/device/payment_link_service.dart",
+      "type": "file",
+      "name": "payment_link_service.dart",
+      "filePath": "mobile/lib/app/core/device/payment_link_service.dart",
+      "summary": "payment_link_service.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:mobile/lib/app/core/device/social_share_service.dart",
       "type": "file",
       "name": "social_share_service.dart",
@@ -28945,6 +29457,19 @@
       "complexity": "complex"
     },
     {
+      "id": "file:mobile/lib/features/payments/application/payment_return_controller.dart",
+      "type": "file",
+      "name": "payment_return_controller.dart",
+      "filePath": "mobile/lib/features/payments/application/payment_return_controller.dart",
+      "summary": "payment_return_controller.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:mobile/lib/features/paywall/presentation/paywall_screen.dart",
       "type": "file",
       "name": "paywall_screen.dart",
@@ -29569,6 +30094,19 @@
       "complexity": "simple"
     },
     {
+      "id": "file:mobile/lib/shared/models/payments.dart",
+      "type": "file",
+      "name": "payments.dart",
+      "filePath": "mobile/lib/shared/models/payments.dart",
+      "summary": "payments.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:mobile/lib/shared/models/person_summary.dart",
       "type": "file",
       "name": "person_summary.dart",
@@ -29678,6 +30216,19 @@
       "name": "subscription.dart",
       "filePath": "mobile/lib/shared/models/subscription.dart",
       "summary": "subscription.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:mobile/lib/shared/models/token_wallet.dart",
+      "type": "file",
+      "name": "token_wallet.dart",
+      "filePath": "mobile/lib/shared/models/token_wallet.dart",
+      "summary": "token_wallet.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -34746,6 +35297,13 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/src/controllers/payments.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/payments.controller.ts:PaymentsController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/api/src/controllers/people.controller.ts",
       "target": "class:backend/apps/api/src/controllers/people.controller.ts:PeopleController",
       "type": "contains",
@@ -34818,6 +35376,13 @@
     {
       "source": "file:backend/apps/api/src/controllers/subscription.controller.ts",
       "target": "class:backend/apps/api/src/controllers/subscription.controller.ts:SubscriptionController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/tokens.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/tokens.controller.ts:TokensController",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -35404,6 +35969,41 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "target": "function:backend/apps/api/src/services/payment-catalog.ts:findPaymentProduct",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "target": "function:backend/apps/api/src/services/payment-catalog.ts:findSubscriptionProduct",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "target": "function:backend/apps/api/src/services/payment-catalog.ts:findTokenPackProduct",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "target": "function:backend/apps/api/src/services/payment-catalog.ts:findTokenPromotionOption",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payments.service.ts",
+      "target": "class:backend/apps/api/src/services/payments.service.ts:PaymentsService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/api/src/services/people.service.ts",
       "target": "class:backend/apps/api/src/services/people.service.ts:PeopleService",
       "type": "contains",
@@ -35614,8 +36214,29 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "target": "function:backend/apps/api/src/services/tbank-acquiring.service.ts:positiveInt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "target": "class:backend/apps/api/src/services/tbank-acquiring.service.ts:TbankAcquiringService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/api/src/services/telegram-auth.service.ts",
       "target": "class:backend/apps/api/src/services/telegram-auth.service.ts:TelegramAuthService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/tokens.service.ts",
+      "target": "class:backend/apps/api/src/services/tokens.service.ts:TokensService",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -36364,21 +36985,7 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:scopeCommercialPlacesToTomesto",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
       "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:countTomestoCommercialCategories",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:isCommercialPlaceCandidate",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -39891,6 +40498,118 @@
       "weight": 1
     },
     {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenWallet",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_orderId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_providerPaymentId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_userId_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_status_expiresAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenWallet_userId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_paymentOrderId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_walletId_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_reason_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_ledgerEntryId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_eventId_expiresAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_chatId_expiresAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_userId_expiresAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/reset-test-users.ts",
       "target": "function:backend/packages/database/prisma/reset-test-users.ts:main",
       "type": "contains",
@@ -42685,6 +43404,13 @@
     },
     {
       "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/controllers/payments.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/places.controller.ts",
       "type": "imports",
       "direction": "forward",
@@ -42749,6 +43475,13 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/subscription.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/controllers/tokens.controller.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -43035,6 +43768,13 @@
     },
     {
       "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/payments.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/services/places.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -43127,6 +43867,20 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/services/subscription.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/tokens.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -43762,6 +44516,27 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/controllers/payments.controller.ts",
+      "target": "file:backend/apps/api/src/common/current-user.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/payments.controller.ts",
+      "target": "file:backend/apps/api/src/common/public.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/payments.controller.ts",
+      "target": "file:backend/apps/api/src/services/payments.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/controllers/people.controller.ts",
       "target": "file:backend/apps/api/src/common/current-user.decorator.ts",
       "type": "imports",
@@ -43903,7 +44678,28 @@
     },
     {
       "source": "file:backend/apps/api/src/controllers/subscription.controller.ts",
+      "target": "file:backend/apps/api/src/services/payments.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/subscription.controller.ts",
       "target": "file:backend/apps/api/src/services/subscription.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/tokens.controller.ts",
+      "target": "file:backend/apps/api/src/common/current-user.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/tokens.controller.ts",
+      "target": "file:backend/apps/api/src/services/tokens.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -44588,6 +45384,55 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payments.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payments.service.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payments.service.ts",
+      "target": "file:backend/apps/api/src/services/subscription.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payments.service.ts",
+      "target": "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payments.service.ts",
+      "target": "file:backend/apps/api/src/services/tokens.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/payments.service.ts",
+      "target": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/services/people.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
       "type": "imports",
@@ -44848,7 +45693,21 @@
     },
     {
       "source": "file:backend/apps/api/src/services/subscription.service.ts",
+      "target": "file:backend/apps/api/src/services/payment-catalog.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/subscription.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -44870,6 +45729,27 @@
     {
       "source": "file:backend/apps/api/src/services/telegram-auth.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/tokens.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/tokens.service.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/tokens.service.ts",
+      "target": "file:backend/apps/api/src/services/payment-catalog.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -46286,6 +47166,7 @@
         "file:backend/apps/api/src/controllers/onboarding.controller.ts",
         "file:backend/apps/api/src/controllers/partner-auth.controller.ts",
         "file:backend/apps/api/src/controllers/partner-portal.controller.ts",
+        "file:backend/apps/api/src/controllers/payments.controller.ts",
         "file:backend/apps/api/src/controllers/people.controller.ts",
         "file:backend/apps/api/src/controllers/places.controller.ts",
         "file:backend/apps/api/src/controllers/posters.controller.ts",
@@ -46297,6 +47178,7 @@
         "file:backend/apps/api/src/controllers/shares.controller.ts",
         "file:backend/apps/api/src/controllers/stories.controller.ts",
         "file:backend/apps/api/src/controllers/subscription.controller.ts",
+        "file:backend/apps/api/src/controllers/tokens.controller.ts",
         "file:backend/apps/api/src/controllers/uploads.controller.ts",
         "file:backend/apps/api/src/controllers/verification.controller.ts",
         "file:backend/apps/api/src/main.ts",
@@ -46332,6 +47214,8 @@
         "file:backend/apps/api/src/services/partner-auth.service.ts",
         "file:backend/apps/api/src/services/partner-offer-code.service.ts",
         "file:backend/apps/api/src/services/partner-portal.service.ts",
+        "file:backend/apps/api/src/services/payment-catalog.ts",
+        "file:backend/apps/api/src/services/payments.service.ts",
         "file:backend/apps/api/src/services/people.service.ts",
         "file:backend/apps/api/src/services/phone-otp.service.ts",
         "file:backend/apps/api/src/services/places.service.ts",
@@ -46346,7 +47230,9 @@
         "file:backend/apps/api/src/services/social-identity-verifier.service.ts",
         "file:backend/apps/api/src/services/stories.service.ts",
         "file:backend/apps/api/src/services/subscription.service.ts",
+        "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
         "file:backend/apps/api/src/services/telegram-auth.service.ts",
+        "file:backend/apps/api/src/services/tokens.service.ts",
         "file:backend/apps/api/src/services/uploads.service.ts",
         "file:backend/apps/api/src/services/verification.service.ts",
         "file:backend/apps/api/src/types/express-multer.ts",
@@ -46832,6 +47718,23 @@
         "table:backend/packages/database/prisma/migrations/20260508150000_media_image_variants/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260509120000_chat_member_pin/migration.sql",
         "index:backend/packages/database/prisma/migrations/20260509120000_chat_member_pin/migration.sql:ChatMember_userId_isPinned_pinnedAt_idx",
+        "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder",
+        "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenWallet",
+        "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry",
+        "table:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_orderId_key",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_providerPaymentId_key",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_userId_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:PaymentOrder_status_expiresAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenWallet_userId_key",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_paymentOrderId_key",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_walletId_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenLedgerEntry_reason_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_ledgerEntryId_key",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_eventId_expiresAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_chatId_expiresAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_userId_expiresAt_idx",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",
@@ -46919,6 +47822,7 @@
         "file:mobile/lib/app/core/device/app_push_token_service.dart",
         "file:mobile/lib/app/core/device/app_reverse_geocoding_service.dart",
         "file:mobile/lib/app/core/device/app_voice_recorder_service.dart",
+        "file:mobile/lib/app/core/device/payment_link_service.dart",
         "file:mobile/lib/app/core/device/social_share_service.dart",
         "file:mobile/lib/app/core/maps/mapkit_bootstrap.dart",
         "file:mobile/lib/app/core/maps/yandex_map_service.dart",
@@ -47003,6 +47907,7 @@
         "file:mobile/lib/features/memory_map/presentation/memory_map_screen.dart",
         "file:mobile/lib/features/notifications/presentation/notifications_screen.dart",
         "file:mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
+        "file:mobile/lib/features/payments/application/payment_return_controller.dart",
         "file:mobile/lib/features/paywall/presentation/paywall_screen.dart",
         "file:mobile/lib/features/perks/presentation/perks_screen.dart",
         "file:mobile/lib/features/permissions/presentation/permissions_screen.dart",
@@ -47051,6 +47956,7 @@
         "file:mobile/lib/shared/models/onboarding_data.dart",
         "file:mobile/lib/shared/models/paginated_response.dart",
         "file:mobile/lib/shared/models/partner_offer_code.dart",
+        "file:mobile/lib/shared/models/payments.dart",
         "file:mobile/lib/shared/models/person_summary.dart",
         "file:mobile/lib/shared/models/personal_chat.dart",
         "file:mobile/lib/shared/models/profile.dart",
@@ -47060,6 +47966,7 @@
         "file:mobile/lib/shared/models/search_results.dart",
         "file:mobile/lib/shared/models/story.dart",
         "file:mobile/lib/shared/models/subscription.dart",
+        "file:mobile/lib/shared/models/token_wallet.dart",
         "file:mobile/lib/shared/models/tokens.dart",
         "file:mobile/lib/shared/models/user_settings.dart",
         "file:mobile/lib/shared/models/verification_state.dart",

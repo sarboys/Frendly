@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
+import { findSubscriptionProduct, subscriptionProducts } from './payment-catalog';
 import { PrismaService } from './prisma.service';
 
 type CurrentSubscription = {
+  id?: string;
   plan: string;
   status: 'inactive' | 'trial' | 'active' | 'canceled';
   startedAt: Date | null;
@@ -16,24 +19,14 @@ export class SubscriptionService {
 
   getPlans() {
     return {
-      plans: [
-        {
-          id: 'year',
-          label: 'Годовой',
-          priceRub: 4788,
-          priceMonthlyRub: 399,
-          trialDays: 7,
-          badge: '-50%',
-        },
-        {
-          id: 'month',
-          label: 'Месячный',
-          priceRub: 799,
-          priceMonthlyRub: 799,
-          trialDays: 0,
-          badge: null,
-        },
-      ],
+      plans: subscriptionProducts.map((product) => ({
+        id: product.id,
+        label: product.label,
+        priceRub: product.priceRub,
+        priceMonthlyRub: product.priceMonthlyRub,
+        trialDays: product.trialDays,
+        badge: product.badge,
+      })),
     };
   }
 
@@ -85,18 +78,17 @@ export class SubscriptionService {
       return this.mapCurrent(current);
     }
 
+    const product = findSubscriptionProduct(plan);
     const now = new Date();
-    const isYear = plan === 'year';
+    const isTrial = product.id === 'year';
     const subscription = await this.prismaService.client.userSubscription.create({
       data: {
         userId,
-        plan,
-        status: isYear ? 'trial' : 'active',
+        plan: product.id,
+        status: isTrial ? 'trial' : 'active',
         startedAt: now,
-        renewsAt: new Date(
-          now.getTime() + (isYear ? 365 : 30) * 24 * 60 * 60 * 1000,
-        ),
-        trialEndsAt: isYear
+        renewsAt: new Date(now.getTime() + product.durationDays * 24 * 60 * 60 * 1000),
+        trialEndsAt: isTrial
           ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
           : null,
       },
@@ -110,6 +102,49 @@ export class SubscriptionService {
     });
 
     return this.mapCurrent(subscription);
+  }
+
+  async activatePaidSubscription(
+    userId: string,
+    plan: string,
+    _paymentOrderId: string,
+    client: Prisma.TransactionClient = this.prismaService.client,
+  ) {
+    const product = findSubscriptionProduct(plan);
+    const now = new Date(Date.now());
+    const current = await client.userSubscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    const currentStatus = this.resolveStatus(current);
+    const baseTime =
+      current?.renewsAt != null && current.renewsAt.getTime() > now.getTime()
+        ? current.renewsAt.getTime()
+        : now.getTime();
+    const renewsAt = new Date(baseTime + product.durationDays * 24 * 60 * 60 * 1000);
+
+    if (current && (currentStatus === 'trial' || currentStatus === 'active')) {
+      return client.userSubscription.update({
+        where: { id: current.id },
+        data: {
+          plan: product.id,
+          status: 'active',
+          renewsAt,
+          trialEndsAt: null,
+        },
+      });
+    }
+
+    return client.userSubscription.create({
+      data: {
+        userId,
+        plan: product.id,
+        status: 'active',
+        startedAt: now,
+        renewsAt,
+        trialEndsAt: null,
+      },
+    });
   }
 
   async restore(userId: string) {
