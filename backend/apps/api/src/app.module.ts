@@ -25,6 +25,7 @@ import { OnboardingController } from './controllers/onboarding.controller';
 import { PeopleController } from './controllers/people.controller';
 import { PartnerAuthController } from './controllers/partner-auth.controller';
 import { PartnerPortalController } from './controllers/partner-portal.controller';
+import { PaymentsController } from './controllers/payments.controller';
 import { PlacesController } from './controllers/places.controller';
 import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
@@ -35,6 +36,7 @@ import { SettingsController } from './controllers/settings.controller';
 import { SharesController } from './controllers/shares.controller';
 import { StoriesController } from './controllers/stories.controller';
 import { SubscriptionController } from './controllers/subscription.controller';
+import { TokensController } from './controllers/tokens.controller';
 import { UploadsController } from './controllers/uploads.controller';
 import { VerificationController } from './controllers/verification.controller';
 import { ApiExceptionFilter } from './common/api-exception.filter';
@@ -75,6 +77,7 @@ import { PeopleService } from './services/people.service';
 import { PartnerAuthService } from './services/partner-auth.service';
 import { PartnerOfferCodeService } from './services/partner-offer-code.service';
 import { PartnerPortalService } from './services/partner-portal.service';
+import { PaymentsService } from './services/payments.service';
 import { PlacesService } from './services/places.service';
 import { PostersService } from './services/posters.service';
 import { PrismaService } from './services/prisma.service';
@@ -89,6 +92,8 @@ import { StoriesService } from './services/stories.service';
 import { TelegramAuthService } from './services/telegram-auth.service';
 import { PhoneOtpService } from './services/phone-otp.service';
 import { SubscriptionService } from './services/subscription.service';
+import { TbankAcquiringService } from './services/tbank-acquiring.service';
+import { TokensService } from './services/tokens.service';
 import { UploadsService } from './services/uploads.service';
 import { VerificationService } from './services/verification.service';
 
@@ -119,6 +124,7 @@ import { VerificationService } from './services/verification.service';
     PeopleController,
     PartnerAuthController,
     PartnerPortalController,
+    PaymentsController,
     PlacesController,
     PostersController,
     ProfileController,
@@ -129,6 +135,7 @@ import { VerificationService } from './services/verification.service';
     SharesController,
     StoriesController,
     SubscriptionController,
+    TokensController,
     UploadsController,
     VerificationController,
   ],
@@ -168,6 +175,7 @@ import { VerificationService } from './services/verification.service';
     PartnerAuthService,
     PartnerOfferCodeService,
     PartnerPortalService,
+    PaymentsService,
     PlacesService,
     PhoneOtpService,
     PostersService,
@@ -182,6 +190,8 @@ import { VerificationService } from './services/verification.service';
     StoriesService,
     TelegramAuthService,
     SubscriptionService,
+    TbankAcquiringService,
+    TokensService,
     UploadsService,
     VerificationService,
     {

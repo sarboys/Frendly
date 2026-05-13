@@ -206,6 +206,29 @@ enum SubscriptionStatus {
   canceled
 }
 
+enum PaymentProvider {
+  tbank
+}
+
+enum PaymentProductKind {
+  subscription
+  tokens
+}
+
+enum PaymentOrderStatus {
+  pending
+  confirmed
+  failed
+  expired
+  canceled
+}
+
+enum TokenLedgerReason {
+  purchase
+  promotion_spend
+  admin_adjustment
+}
+
 enum TelegramLoginSessionStatus {
   pending_bot
   awaiting_contact
@@ -284,6 +307,9 @@ model User {
   blockedByUsers                     UserBlock[]                 @relation("BlockedByUsers")
   stories                            EventStory[]
   subscriptions                      UserSubscription[]
+  paymentOrders                      PaymentOrder[]
+  tokenWallet                        TokenWallet?
+  tokenPromotions                    TokenPromotion[]
   chatMembers                        ChatMember[]
   createdCommunities                 Community[]                 @relation("CommunityCreator")
   communityMemberships               CommunityMember[]
@@ -604,6 +630,7 @@ model Event {
   favorites         EventFavorite[]
   stories           EventStory[]
   publicShares      PublicShare[]
+  tokenPromotions   TokenPromotion[]
   safetySosAlerts   SafetySosAlert[]
   chat              Chat?
   sourceChats       Chat[]              @relation("ChatSourceEvent")
@@ -1664,6 +1691,76 @@ model UserSubscription {
   @@index([status, trialEndsAt, id])
 }
 
+model PaymentOrder {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          PaymentProvider     @default(tbank)
+  productKind       PaymentProductKind
+  productId         String
+  amountKopecks     Int
+  currency          String              @default("RUB")
+  orderId           String              @unique
+  providerPaymentId String?             @unique
+  paymentUrl        String?
+  status            PaymentOrderStatus  @default(pending)
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  expiresAt         DateTime?
+  rawStatus         String?
+  rawNotification   Json?
+  tokenLedgerEntry  TokenLedgerEntry?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+}
+
+model TokenWallet {
+  id        String             @id @default(cuid())
+  userId    String             @unique
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int                @default(0)
+  entries   TokenLedgerEntry[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+model TokenLedgerEntry {
+  id             String            @id @default(cuid())
+  walletId       String
+  wallet         TokenWallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  paymentOrderId String?           @unique
+  paymentOrder   PaymentOrder?     @relation(fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  amount         Int
+  reason         TokenLedgerReason
+  promotion      TokenPromotion?
+  createdAt      DateTime          @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([reason, createdAt])
+}
+
+model TokenPromotion {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId       String?
+  event         Event?            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  chatId        String?
+  chat          Chat?             @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  optionId      String
+  expiresAt     DateTime
+  ledgerEntryId String            @unique
+  ledgerEntry   TokenLedgerEntry  @relation(fields: [ledgerEntryId], references: [id], onDelete: Cascade)
+  createdAt     DateTime          @default(now())
+
+  @@index([eventId, expiresAt])
+  @@index([chatId, expiresAt])
+  @@index([userId, expiresAt])
+}
+
 model DatingAction {
   id           String           @id @default(cuid())
   actorUserId  String
@@ -1833,6 +1930,7 @@ model Chat {
   eveningRoute   EveningRoute?   @relation("EveningRouteChat")
   eveningSession EveningSession? @relation("EveningSessionChat")
   realtimeEvents RealtimeEvent[]
+  tokenPromotions TokenPromotion[]
 
   @@index([kind, updatedAt, id])
   @@index([kind, meetupPhase, updatedAt, id])

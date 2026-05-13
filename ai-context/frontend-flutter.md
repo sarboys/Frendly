@@ -124,6 +124,9 @@ Use this file for Flutter behavior, state and performance rules.
 
 - `apiClientProvider` creates `ApiClient`.
 - `backendRepositoryProvider` maps REST to typed models.
+- Payments use backend catalog and server-side T-Bank init/check. Flutter opens only `paymentUrl`; `frendly://payment/...` only triggers backend check.
+- `paymentCatalogProvider` reads `/payments/catalog` and exposes `tbankEnabled`. Paywall and token packs should not hardcode prices except as fallback.
+- Token wallet state is backend-backed through `/tokens/wallet` and `/tokens/promotions`; local `SharedPreferences` is not a balance source.
 - `chatSocketClientProvider` owns WebSocket client.
 - `authTokensProvider` stores token state and refresh flow.
 - `chatRealtimeSyncProvider` subscribes to known chat ids. `ChatsScreen` starts it when the chat tab is opened; root must not start chat realtime on authenticated startup.
@@ -131,6 +134,7 @@ Use this file for Flutter behavior, state and performance rules.
 - Chat attachment and location sends capture permission, picker, map and chat controller references before native picker, GPS and reverse-geocode awaits, then guard `mounted` before UI changes.
 - Chat thread and voice playback auto-dispose controllers guard async state writes after network/audio awaits. Chat thread reply scrolling also guards `mounted` and `ScrollController.hasClients` after frame waits.
 - Main lists and badges are in `shared/data/app_providers.dart`.
+- App startup starts a local `app_links` listener for payment returns and invalidates subscription, token wallet and payment catalog state after check.
 - Notification list and unread count providers return empty state when there is no auth token.
 - Notifications screen mirrors `front/src/pages/v5/Notifications.tsx`: V5 warm page, `Все / Приглашения / Чаты` tabs, `Сегодня / Раньше` groups, unread dots and inline invite accept/decline actions. It remains backed by `notificationsProvider` and payload-driven navigation. Dating `like` notifications are plain and do not open a person profile. Dating `super_like` notifications use `payload.source=dating`, `payload.action=super_like`, and `payload.userId` to open `/dating?profileId=<userId>`.
 - `profileProvider` uses `onboardingProvider` for onboarding-derived interests and intent, so profile screens do not trigger a second `/onboarding/me` request while root routing already watches onboarding.

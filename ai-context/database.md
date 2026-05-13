@@ -70,6 +70,8 @@ Communities:
 Safety and monetization:
 
 - `DatingAction`, `UserFollow`, `ProfileReaction`, `TrustedContact`, `SafetySosAlert`, `UserReport`, `UserBlock`, `UserSubscription`.
+- One-time T-Bank payments use `PaymentOrder` with provider `tbank`, product kind `subscription` or `tokens`, unique `orderId`, optional unique provider payment id, amount in kopecks, status, raw status and raw notification.
+- Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`.
 - `UserFollow` stores normal profile subscriptions. `ProfileReaction` stores normal profile likes and super-likes through `ProfileReactionKind`, separate from dating likes.
 
 Notifications and async:
@@ -101,6 +103,8 @@ Public:
 - Incoming dating likes use `DatingAction.targetUserId + action + actorUserId`.
 - `/matches` reads reciprocal positive `DatingAction` rows, not event favorites.
 - Dating matches and daily super-like quota reads need `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes. Super-like quota counts rows for the current UTC day.
+- Payment lookup uses `PaymentOrder.orderId` and `PaymentOrder.userId + createdAt`; pending expiry scans use `PaymentOrder.status + expiresAt`.
+- Active promotions use `TokenPromotion.eventId + expiresAt`, `chatId + expiresAt` and `userId + expiresAt`.
 - Profile social counts use `UserFollow.targetUserId`, `ProfileReaction.targetUserId + kind` and viewer state uses actor plus target. `ProfileReaction` is unique by `actorUserId + targetUserId + kind`, so like and super-like can both exist for one viewer.
 - `db:perf:hot-queries` covers reciprocal dating matches, bounded push token dispatch reads, public Affiche list/search/price filters, and route generation ExternalContentItem event/place scans.
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "0b519b082b74afcd24bd23d7df2eaf4e1f055c1e",
-  "generatedAt": "2026-05-13T09:58:06.401Z",
+  "gitCommitHash": "b07864d32d40862f7a38f1616fb814a7c4010a6e",
+  "generatedAt": "2026-05-13T10:51:53.007Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -8823,7 +8823,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "32165e3f6929386e09cc9bee3962f30b8fc910e89ea6308b36c52acddff20798",
+      "contentHash": "97d8792e006300046b253ce47168f0ddd3a436c72ec566b802b49486a9f5a3da",
       "functions": [],
       "classes": [
         {
@@ -9003,6 +9003,12 @@
           ]
         },
         {
+          "source": "./controllers/payments.controller",
+          "specifiers": [
+            "PaymentsController"
+          ]
+        },
+        {
           "source": "./controllers/places.controller",
           "specifiers": [
             "PlacesController"
@@ -9060,6 +9066,12 @@
           "source": "./controllers/subscription.controller",
           "specifiers": [
             "SubscriptionController"
+          ]
+        },
+        {
+          "source": "./controllers/tokens.controller",
+          "specifiers": [
+            "TokensController"
           ]
         },
         {
@@ -9303,6 +9315,12 @@
           ]
         },
         {
+          "source": "./services/payments.service",
+          "specifiers": [
+            "PaymentsService"
+          ]
+        },
+        {
           "source": "./services/places.service",
           "specifiers": [
             "PlacesService"
@@ -9387,6 +9405,18 @@
           ]
         },
         {
+          "source": "./services/tbank-acquiring.service",
+          "specifiers": [
+            "TbankAcquiringService"
+          ]
+        },
+        {
+          "source": "./services/tokens.service",
+          "specifiers": [
+            "TokensService"
+          ]
+        },
+        {
           "source": "./services/uploads.service",
           "specifiers": [
             "UploadsService"
@@ -9402,7 +9432,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 202,
+      "totalLines": 212,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -12006,6 +12036,62 @@
       "totalLines": 286,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/controllers/payments.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/payments.controller.ts",
+      "contentHash": "cf0ae9ec6d13bd503e5724076b548cd2e37bf1124ee1195360a6dfec6c6a1397",
+      "functions": [],
+      "classes": [
+        {
+          "name": "PaymentsController",
+          "methods": [
+            "constructor",
+            "getCatalog",
+            "initPayment",
+            "checkPayment",
+            "tbankWebhook"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 31
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "HttpCode",
+            "Param",
+            "Post"
+          ]
+        },
+        {
+          "source": "../common/current-user.decorator",
+          "specifiers": [
+            "CurrentUser"
+          ]
+        },
+        {
+          "source": "../common/public.decorator",
+          "specifiers": [
+            "Public"
+          ]
+        },
+        {
+          "source": "../services/payments.service",
+          "specifiers": [
+            "PaymentsService"
+          ]
+        }
+      ],
+      "exports": [
+        "PaymentsController"
+      ],
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/controllers/people.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/people.controller.ts",
       "contentHash": "00bfaae6bfe19c2fc16266ec4d1131196cd0a64435671671e312b32b570d19dc",
@@ -12508,7 +12594,7 @@
     },
     "backend/apps/api/src/controllers/subscription.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/subscription.controller.ts",
-      "contentHash": "28ccb28a65c4951ec41ac8bf9edc2717f80eff19301024ed99d29df623dece7e",
+      "contentHash": "0abcc8e6bbb4018145a18a47e622afab3730eef0ced7672cb1cab26c76469a2b",
       "functions": [],
       "classes": [
         {
@@ -12522,7 +12608,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 26
+          "lineCount": 36
         }
       ],
       "imports": [
@@ -12542,6 +12628,12 @@
           ]
         },
         {
+          "source": "../services/payments.service",
+          "specifiers": [
+            "PaymentsService"
+          ]
+        },
+        {
           "source": "../services/subscription.service",
           "specifiers": [
             "SubscriptionService"
@@ -12551,7 +12643,53 @@
       "exports": [
         "SubscriptionController"
       ],
-      "totalLines": 32,
+      "totalLines": 43,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/controllers/tokens.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/tokens.controller.ts",
+      "contentHash": "33c7d1578fc1c484c21ad6d7bd58f48bb02ff7a7e73b5f3ac75fa1997fcddad0",
+      "functions": [],
+      "classes": [
+        {
+          "name": "TokensController",
+          "methods": [
+            "constructor",
+            "getWallet",
+            "createPromotion"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "Post"
+          ]
+        },
+        {
+          "source": "../common/current-user.decorator",
+          "specifiers": [
+            "CurrentUser"
+          ]
+        },
+        {
+          "source": "../services/tokens.service",
+          "specifiers": [
+            "TokensService"
+          ]
+        }
+      ],
+      "exports": [
+        "TokensController"
+      ],
+      "totalLines": 22,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/uploads.controller.ts": {
@@ -15950,6 +16088,167 @@
       "totalLines": 1121,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/services/payment-catalog.ts": {
+      "filePath": "backend/apps/api/src/services/payment-catalog.ts",
+      "contentHash": "501f309f51758045012d8cc4ec5d986d42c3184182d9b5e78f60df783cca2ffd",
+      "functions": [
+        {
+          "name": "findPaymentProduct",
+          "params": [
+            "productKind",
+            "productId"
+          ],
+          "returnType": "PaymentProduct",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "findSubscriptionProduct",
+          "params": [
+            "plan"
+          ],
+          "returnType": "SubscriptionProduct",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "findTokenPackProduct",
+          "params": [
+            "packId"
+          ],
+          "returnType": "TokenPackProduct",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "findTokenPromotionOption",
+          "params": [
+            "optionId"
+          ],
+          "returnType": "TokenPromotionOption",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        }
+      ],
+      "exports": [
+        "subscriptionProducts",
+        "tokenPackProducts",
+        "tokenPromotionOptions",
+        "findPaymentProduct",
+        "findSubscriptionProduct",
+        "findTokenPackProduct",
+        "findTokenPromotionOption"
+      ],
+      "totalLines": 179,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/payments.service.ts": {
+      "filePath": "backend/apps/api/src/services/payments.service.ts",
+      "contentHash": "da978e3f67fe04fa661658a3d282ca2834adc1798561a6b16c87020b825f5a00",
+      "functions": [],
+      "classes": [
+        {
+          "name": "PaymentsService",
+          "methods": [
+            "constructor",
+            "getCatalog",
+            "isEnabled",
+            "initPayment",
+            "checkPayment",
+            "handleTbankWebhook",
+            "confirmPaymentOrder",
+            "markPaymentStatus",
+            "mapTbankStatus",
+            "jsonValue",
+            "mapOrder",
+            "createOrderId",
+            "notificationUrl",
+            "returnUrl",
+            "receiptPayload"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 354
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "PaymentOrderStatus",
+            "PaymentProductKind",
+            "PaymentProvider",
+            "Prisma"
+          ]
+        },
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "randomUUID"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "./subscription.service",
+          "specifiers": [
+            "SubscriptionService"
+          ]
+        },
+        {
+          "source": "./tbank-acquiring.service",
+          "specifiers": [
+            "TbankAcquiringService"
+          ]
+        },
+        {
+          "source": "./tokens.service",
+          "specifiers": [
+            "TokensService"
+          ]
+        },
+        {
+          "source": "./payment-catalog",
+          "specifiers": [
+            "PaymentProduct",
+            "findPaymentProduct",
+            "subscriptionProducts",
+            "tokenPackProducts",
+            "tokenPromotionOptions"
+          ]
+        }
+      ],
+      "exports": [
+        "PaymentsService"
+      ],
+      "totalLines": 385,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
       "contentHash": "71b2f135e2050f418073c191eac371fcaf3dab4fd24efd2acd4aad9e07ce1c1c",
@@ -16996,7 +17295,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "b190d6f6eedc63b2c1fc58ea7ae80fce36e7b23bb86d249723cc89f039804144",
+      "contentHash": "40a20e5dbb4ee59f08987d65f71fe43f96cea3eefbd8303e57a1fffc35228759",
       "functions": [],
       "classes": [
         {
@@ -17007,6 +17306,7 @@
             "getCurrent",
             "mapCurrent",
             "subscribe",
+            "activatePaidSubscription",
             "restore",
             "hasPremiumAccess",
             "isPremiumStatus",
@@ -17014,7 +17314,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 146
+          "lineCount": 178
         }
       ],
       "imports": [
@@ -17025,9 +17325,22 @@
           ]
         },
         {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
+          ]
+        },
+        {
           "source": "../common/api-error",
           "specifiers": [
             "ApiError"
+          ]
+        },
+        {
+          "source": "./payment-catalog",
+          "specifiers": [
+            "findSubscriptionProduct",
+            "subscriptionProducts"
           ]
         },
         {
@@ -17040,7 +17353,70 @@
       "exports": [
         "SubscriptionService"
       ],
-      "totalLines": 160,
+      "totalLines": 195,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/tbank-acquiring.service.ts": {
+      "filePath": "backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "contentHash": "a20347560dce18f819fe891e83a5d416375208220d58405bcacb5140fa98cebb",
+      "functions": [
+        {
+          "name": "positiveInt",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "classes": [
+        {
+          "name": "TbankAcquiringService",
+          "methods": [
+            "constructor",
+            "isEnabled",
+            "getTerminalKey",
+            "buildToken",
+            "initPayment",
+            "getState",
+            "post"
+          ],
+          "properties": [
+            "terminalKey",
+            "password",
+            "apiUrl",
+            "timeoutMs",
+            "fetchImpl"
+          ],
+          "exported": true,
+          "lineCount": 114
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "Optional"
+          ]
+        },
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "createHash"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        }
+      ],
+      "exports": [
+        "TbankAcquiringService"
+      ],
+      "totalLines": 162,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/telegram-auth.service.ts": {
@@ -17141,6 +17517,66 @@
         "TelegramAuthService"
       ],
       "totalLines": 898,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/tokens.service.ts": {
+      "filePath": "backend/apps/api/src/services/tokens.service.ts",
+      "contentHash": "5f5f702372daafd3115237bfcea799257150c477c508b6dc4db642b7dd917f55",
+      "functions": [],
+      "classes": [
+        {
+          "name": "TokensService",
+          "methods": [
+            "constructor",
+            "getWallet",
+            "creditPurchasedTokens",
+            "createPromotion",
+            "ensureWallet",
+            "assertPromotionAccess"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 180
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "./payment-catalog",
+          "specifiers": [
+            "findTokenPackProduct",
+            "findTokenPromotionOption",
+            "tokenPromotionOptions"
+          ]
+        }
+      ],
+      "exports": [
+        "TokensService"
+      ],
+      "totalLines": 194,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/uploads.service.ts": {
@@ -19140,7 +19576,7 @@
     },
     "backend/apps/worker/src/content/route-draft-generation.service.ts": {
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "contentHash": "10aab0e354cf4192f8f6aa581c315557b9e23f49f50c569685a928a858f62aa1",
+      "contentHash": "d685fa743c14fc5580706b1062b62184f7e6505bc165c25bd5f53406f6d877b8",
       "functions": [
         {
           "name": "hasUsableStepCount",
@@ -19188,28 +19624,12 @@
           "lineCount": 10
         },
         {
-          "name": "scopeCommercialPlacesToTomesto",
-          "params": [
-            "places"
-          ],
-          "exported": false,
-          "lineCount": 22
-        },
-        {
           "name": "countTomestoCommercialCategories",
           "params": [
             "places"
           ],
           "exported": false,
           "lineCount": 25
-        },
-        {
-          "name": "isCommercialPlaceCandidate",
-          "params": [
-            "place"
-          ],
-          "exported": false,
-          "lineCount": 7
         },
         {
           "name": "commercialCategoryKey",
@@ -19356,7 +19776,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 508
+          "lineCount": 507
         }
       ],
       "imports": [
@@ -19403,7 +19823,7 @@
       "exports": [
         "RouteDraftGenerationService"
       ],
-      "totalLines": 896,
+      "totalLines": 864,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/route-planner.ts": {

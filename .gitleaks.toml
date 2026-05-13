@@ -1,0 +1,12 @@
+title = "Frendly Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore historical false positives in removed AI security checklist examples"
+targetRules = ["generic-api-key"]
+paths = [
+  '''^\.codex/skills/aif-security-checklist/SKILL\.md$''',
+  '''^\.opencode/skills/aif-security-checklist/SKILL\.md$''',
+]
