@@ -75,6 +75,13 @@ export class PaymentsService {
 
     const productKind = typeof body.productKind === 'string' ? body.productKind : '';
     const productId = typeof body.productId === 'string' ? body.productId : '';
+    if (productKind === 'subscription') {
+      throw new ApiError(
+        400,
+        'subscription_paid_with_tokens',
+        'Frendly+ is paid with tokens',
+      );
+    }
     const product = findPaymentProduct(productKind, productId);
     const buyer = await this.prismaService.client.user.findUnique({
       where: { id: userId },

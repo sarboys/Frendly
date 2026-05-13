@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-13T12:13:44.073Z",
-    "gitCommitHash": "8bc5136ee6dac660b99843b29fa4694ba01624fe"
+    "analyzedAt": "2026-05-13T13:01:06.636Z",
+    "gitCommitHash": "49252c2cecd11c0e8bc71c58d414e76c8b076e0e"
   },
   "nodes": [
     {
@@ -4731,7 +4731,7 @@
       "filePath": "admin/src/admin/pages/RouteReviewQueue.tsx",
       "lineRange": [
         35,
-        701
+        702
       ],
       "summary": "RouteReviewQueue in RouteReviewQueue.tsx.",
       "tags": [
@@ -4747,8 +4747,8 @@
       "name": "errorMessage",
       "filePath": "admin/src/admin/pages/RouteReviewQueue.tsx",
       "lineRange": [
-        703,
-        711
+        704,
+        712
       ],
       "summary": "errorMessage in RouteReviewQueue.tsx.",
       "tags": [
@@ -9850,8 +9850,8 @@
       "name": "SubscriptionController",
       "filePath": "backend/apps/api/src/controllers/subscription.controller.ts",
       "lineRange": [
-        7,
-        42
+        6,
+        31
       ],
       "summary": "SubscriptionController in subscription.controller.ts.",
       "tags": [
@@ -11776,8 +11776,8 @@
       "name": "findPaymentProduct",
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
       "lineRange": [
-        138,
-        154
+        144,
+        160
       ],
       "summary": "findPaymentProduct in payment-catalog.ts.",
       "tags": [
@@ -11793,8 +11793,8 @@
       "name": "findSubscriptionProduct",
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
       "lineRange": [
-        156,
-        162
+        162,
+        168
       ],
       "summary": "findSubscriptionProduct in payment-catalog.ts.",
       "tags": [
@@ -11810,8 +11810,8 @@
       "name": "findTokenPackProduct",
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
       "lineRange": [
-        164,
-        170
+        170,
+        176
       ],
       "summary": "findTokenPackProduct in payment-catalog.ts.",
       "tags": [
@@ -11827,8 +11827,8 @@
       "name": "findTokenPromotionOption",
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
       "lineRange": [
-        172,
-        178
+        178,
+        184
       ],
       "summary": "findTokenPromotionOption in payment-catalog.ts.",
       "tags": [
@@ -11858,7 +11858,7 @@
       "filePath": "backend/apps/api/src/services/payments.service.ts",
       "lineRange": [
         32,
-        397
+        404
       ],
       "summary": "PaymentsService in payments.service.ts.",
       "tags": [
@@ -12549,8 +12549,8 @@
       "name": "SubscriptionService",
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
       "lineRange": [
-        17,
-        194
+        18,
+        230
       ],
       "summary": "SubscriptionService in subscription.service.ts.",
       "tags": [
@@ -12656,8 +12656,8 @@
       "name": "TokensService",
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
       "lineRange": [
-        14,
-        193
+        21,
+        228
       ],
       "summary": "TokensService in tokens.service.ts.",
       "tags": [
@@ -24895,6 +24895,19 @@
         "structure"
       ],
       "complexity": "moderate"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260513200000_token_subscription_spend/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260513200000_token_subscription_spend/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
@@ -44691,13 +44704,6 @@
     },
     {
       "source": "file:backend/apps/api/src/controllers/subscription.controller.ts",
-      "target": "file:backend/apps/api/src/services/payments.service.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/controllers/subscription.controller.ts",
       "target": "file:backend/apps/api/src/services/subscription.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -45714,6 +45720,13 @@
     {
       "source": "file:backend/apps/api/src/services/subscription.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/subscription.service.ts",
+      "target": "file:backend/apps/api/src/services/tokens.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -47748,6 +47761,7 @@
         "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_eventId_expiresAt_idx",
         "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_chatId_expiresAt_idx",
         "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_userId_expiresAt_idx",
+        "table:backend/packages/database/prisma/migrations/20260513200000_token_subscription_spend/migration.sql",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",

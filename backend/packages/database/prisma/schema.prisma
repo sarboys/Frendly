@@ -226,6 +226,7 @@ enum PaymentOrderStatus {
 enum TokenLedgerReason {
   purchase
   promotion_spend
+  subscription_spend
   admin_adjustment
 }
 

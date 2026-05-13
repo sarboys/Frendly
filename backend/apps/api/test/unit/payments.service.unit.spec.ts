@@ -48,7 +48,7 @@ describe('PaymentsService unit', () => {
     delete process.env.APP_DEEP_LINK_SCHEME;
   });
 
-  it('uses backend catalog price and creates one-time T-Bank payment', async () => {
+  it('uses backend catalog token pack price and creates one-time T-Bank payment', async () => {
     process.env.PAYMENTS_TBANK_ENABLED = 'true';
     process.env.PUBLIC_API_URL = 'https://api.test';
     process.env.APP_DEEP_LINK_SCHEME = 'frendly';
@@ -62,9 +62,9 @@ describe('PaymentsService unit', () => {
     prismaClient.paymentOrder.create.mockResolvedValue({
       id: 'order-db-1',
       orderId: 'fr_123',
-      amountKopecks: 79900,
-      productKind: 'subscription',
-      productId: 'month',
+      amountKopecks: 49900,
+      productKind: 'tokens',
+      productId: 'p2',
       status: 'pending',
     });
     prismaClient.paymentOrder.update.mockResolvedValue({
@@ -72,8 +72,8 @@ describe('PaymentsService unit', () => {
       providerPaymentId: 'payment-1',
       paymentUrl: 'https://pay.test/form',
       status: 'pending',
-      productKind: 'subscription',
-      productId: 'month',
+      productKind: 'tokens',
+      productId: 'p2',
     });
     tbank.initPayment.mockResolvedValue({
       Success: true,
@@ -84,25 +84,25 @@ describe('PaymentsService unit', () => {
 
     await expect(
       service.initPayment('user-1', {
-        productKind: 'subscription',
-        productId: 'month',
+        productKind: 'tokens',
+        productId: 'p2',
       }),
     ).resolves.toMatchObject({
       orderId: 'fr_123',
       paymentId: 'payment-1',
       paymentUrl: 'https://pay.test/form',
       status: 'pending',
-      productKind: 'subscription',
-      productId: 'month',
+      productKind: 'tokens',
+      productId: 'p2',
     });
 
     expect(prismaClient.paymentOrder.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          userId: 'user-1',
-          productKind: 'subscription',
-          productId: 'month',
-          amountKopecks: 79900,
+          data: expect.objectContaining({
+            userId: 'user-1',
+          productKind: 'tokens',
+          productId: 'p2',
+          amountKopecks: 49900,
           provider: 'tbank',
           status: 'pending',
         }),
@@ -110,12 +110,28 @@ describe('PaymentsService unit', () => {
     );
     expect(tbank.initPayment).toHaveBeenCalledWith(
       expect.objectContaining({
-        Amount: 79900,
-        Description: 'Frendly+ на месяц',
+        Amount: 49900,
+        Description: 'Frendly Tokens: 350',
         PayType: 'O',
         SuccessURL: expect.stringContaining('frendly://payment/success'),
       }),
     );
+  });
+
+  it('rejects direct T-Bank subscription payment init', async () => {
+    const { service, prismaClient, tbank } = makeService();
+
+    await expect(
+      service.initPayment('user-1', {
+        productKind: 'subscription',
+        productId: 'month',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'subscription_paid_with_tokens',
+    });
+    expect(prismaClient.paymentOrder.create).not.toHaveBeenCalled();
+    expect(tbank.initPayment).not.toHaveBeenCalled();
   });
 
   it('does not check a payment order owned by another user', async () => {

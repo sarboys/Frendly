@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TokenLedgerReason } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 import {
@@ -9,6 +9,13 @@ import {
 } from './payment-catalog';
 
 type PrismaLike = Prisma.TransactionClient;
+
+const ledgerNotes: Record<string, string> = {
+  purchase: 'Пополнение токенов',
+  promotion_spend: 'Продвижение',
+  subscription_spend: 'Frendly+',
+  admin_adjustment: 'Корректировка',
+};
 
 @Injectable()
 export class TokensService {
@@ -51,7 +58,7 @@ export class TokensService {
         id: entry.id,
         type: entry.amount >= 0 ? 'topup' : 'spend',
         amount: Math.abs(entry.amount),
-        note: entry.reason === 'purchase' ? 'Пополнение токенов' : 'Продвижение',
+        note: ledgerNotes[entry.reason] ?? 'Операция',
         timestamp: entry.createdAt.toISOString(),
       })),
       promoted: promotions
@@ -91,6 +98,47 @@ export class TokensService {
     });
   }
 
+  async spendTokens(
+    userId: string,
+    input: {
+      amount: number;
+      reason: Extract<TokenLedgerReason, 'promotion_spend' | 'subscription_spend'>;
+    },
+    client: PrismaLike = this.prismaService.client,
+  ) {
+    const wallet = await this.ensureWallet(userId, client);
+
+    if (wallet.balance < input.amount) {
+      throw new ApiError(402, 'tokens_insufficient', 'Not enough tokens');
+    }
+
+    const debit = await client.tokenWallet.updateMany({
+      where: {
+        id: wallet.id,
+        balance: {
+          gte: input.amount,
+        },
+      },
+      data: {
+        balance: {
+          decrement: input.amount,
+        },
+      },
+    });
+
+    if (debit.count !== 1) {
+      throw new ApiError(402, 'tokens_insufficient', 'Not enough tokens');
+    }
+
+    return client.tokenLedgerEntry.create({
+      data: {
+        walletId: wallet.id,
+        amount: -input.amount,
+        reason: input.reason,
+      },
+    });
+  }
+
   async createPromotion(userId: string, body: Record<string, unknown>) {
     const targetKind = typeof body.targetKind === 'string' ? body.targetKind : '';
     const targetId = typeof body.targetId === 'string' ? body.targetId : '';
@@ -106,27 +154,14 @@ export class TokensService {
 
     return this.prismaService.client.$transaction(async (client) => {
       await this.assertPromotionAccess(userId, targetKind, targetId, client);
-      const wallet = await this.ensureWallet(userId, client);
-
-      if (wallet.balance < option.cost) {
-        throw new ApiError(402, 'tokens_insufficient', 'Not enough tokens');
-      }
-
-      const ledgerEntry = await client.tokenLedgerEntry.create({
-        data: {
-          walletId: wallet.id,
-          amount: -option.cost,
+      const ledgerEntry = await this.spendTokens(
+        userId,
+        {
+          amount: option.cost,
           reason: 'promotion_spend',
         },
-      });
-      await client.tokenWallet.update({
-        where: { id: wallet.id },
-        data: {
-          balance: {
-            decrement: option.cost,
-          },
-        },
-      });
+        client,
+      );
       await client.tokenPromotion.create({
         data: {
           userId,

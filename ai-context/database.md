@@ -70,8 +70,8 @@ Communities:
 Safety and monetization:
 
 - `DatingAction`, `UserFollow`, `ProfileReaction`, `TrustedContact`, `SafetySosAlert`, `UserReport`, `UserBlock`, `UserSubscription`.
-- One-time T-Bank payments use `PaymentOrder` with provider `tbank`, product kind `subscription` or `tokens`, unique `orderId`, optional unique provider payment id, amount in kopecks, status, raw status and raw notification.
-- Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`.
+- One-time T-Bank payments use `PaymentOrder` with provider `tbank`, product kind `tokens`, unique `orderId`, optional unique provider payment id, amount in kopecks, status, raw status and raw notification. Legacy subscription orders may exist, but new Frendly+ purchases spend tokens instead of creating payment orders.
+- Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`; Frendly+ token purchases use `TokenLedgerReason.subscription_spend`.
 - `UserFollow` stores normal profile subscriptions. `ProfileReaction` stores normal profile likes and super-likes through `ProfileReactionKind`, separate from dating likes.
 
 Notifications and async:

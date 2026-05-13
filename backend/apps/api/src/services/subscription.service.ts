@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { findSubscriptionProduct, subscriptionProducts } from './payment-catalog';
 import { PrismaService } from './prisma.service';
+import { TokensService } from './tokens.service';
 
 type CurrentSubscription = {
   id?: string;
@@ -15,7 +16,10 @@ type CurrentSubscription = {
 
 @Injectable()
 export class SubscriptionService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly tokensService: TokensService,
+  ) {}
 
   getPlans() {
     return {
@@ -24,6 +28,8 @@ export class SubscriptionService {
         label: product.label,
         priceRub: product.priceRub,
         priceMonthlyRub: product.priceMonthlyRub,
+        tokenCost: product.tokenCost,
+        tokenMonthlyCost: product.tokenMonthlyCost,
         trialDays: product.trialDays,
         badge: product.badge,
       })),
@@ -104,10 +110,40 @@ export class SubscriptionService {
     return this.mapCurrent(subscription);
   }
 
+  async subscribeWithTokens(userId: string, body: Record<string, unknown>) {
+    const plan = typeof body.plan === 'string' ? body.plan : '';
+
+    if (plan !== 'month' && plan !== 'year') {
+      throw new ApiError(400, 'invalid_subscription_plan', 'Subscription plan is invalid');
+    }
+
+    const product = findSubscriptionProduct(plan);
+
+    return this.prismaService.client.$transaction(async (client) => {
+      await this.tokensService.spendTokens(
+        userId,
+        {
+          amount: product.tokenCost,
+          reason: 'subscription_spend',
+        },
+        client,
+      );
+
+      const subscription = await this.activatePaidSubscription(
+        userId,
+        product.id,
+        null,
+        client,
+      );
+
+      return this.mapCurrent(subscription);
+    });
+  }
+
   async activatePaidSubscription(
     userId: string,
     plan: string,
-    _paymentOrderId: string,
+    _paymentOrderId: string | null,
     client: Prisma.TransactionClient = this.prismaService.client,
   ) {
     const product = findSubscriptionProduct(plan);

@@ -1,14 +1,10 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
-import { PaymentsService } from '../services/payments.service';
 import { SubscriptionService } from '../services/subscription.service';
 
 @Controller('subscription')
 export class SubscriptionController {
-  constructor(
-    private readonly subscriptionService: SubscriptionService,
-    private readonly paymentsService: PaymentsService,
-  ) {}
+  constructor(private readonly subscriptionService: SubscriptionService) {}
 
   @Get('plans')
   getPlans() {
@@ -25,14 +21,7 @@ export class SubscriptionController {
     @CurrentUser() currentUser: { userId: string },
     @Body() body: Record<string, unknown>,
   ) {
-    if (!this.paymentsService.isEnabled()) {
-      return this.subscriptionService.subscribe(currentUser.userId, body);
-    }
-    const plan = typeof body.plan === 'string' ? body.plan : '';
-    return this.paymentsService.initPayment(currentUser.userId, {
-      productKind: 'subscription',
-      productId: plan,
-    });
+    return this.subscriptionService.subscribeWithTokens(currentUser.userId, body);
   }
 
   @Post('restore')

@@ -10,6 +10,8 @@ export type SubscriptionProduct = {
   amountKopecks: number;
   priceRub: number;
   priceMonthlyRub: number;
+  tokenCost: number;
+  tokenMonthlyCost: number;
   trialDays: number;
   durationDays: number;
   badge: string | null;
@@ -46,6 +48,8 @@ export const subscriptionProducts: readonly SubscriptionProduct[] = [
     amountKopecks: 79900,
     priceRub: 799,
     priceMonthlyRub: 799,
+    tokenCost: 799,
+    tokenMonthlyCost: 799,
     trialDays: 0,
     durationDays: 30,
     badge: null,
@@ -58,6 +62,8 @@ export const subscriptionProducts: readonly SubscriptionProduct[] = [
     amountKopecks: 478800,
     priceRub: 4788,
     priceMonthlyRub: 399,
+    tokenCost: 4788,
+    tokenMonthlyCost: 399,
     trialDays: 0,
     durationDays: 365,
     badge: '-50%',

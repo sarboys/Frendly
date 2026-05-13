@@ -1,6 +1,14 @@
 import { SubscriptionService } from '../../src/services/subscription.service';
 
 describe('SubscriptionService unit', () => {
+  const tokensService = {
+    spendTokens: jest.fn(),
+  };
+
+  beforeEach(() => {
+    tokensService.spendTokens.mockReset();
+  });
+
   it('loads only fields needed for the current subscription response', async () => {
     const subscription = {
       plan: 'month',
@@ -10,13 +18,16 @@ describe('SubscriptionService unit', () => {
       trialEndsAt: null,
     };
     const findFirst = jest.fn().mockResolvedValue(subscription);
-    const service = new SubscriptionService({
-      client: {
-        userSubscription: {
-          findFirst,
+    const service = new SubscriptionService(
+      {
+        client: {
+          userSubscription: {
+            findFirst,
+          },
         },
-      },
-    } as any);
+      } as any,
+      tokensService as any,
+    );
 
     await expect(service.getCurrent('user-me')).resolves.toEqual({
       plan: 'month',
@@ -48,14 +59,17 @@ describe('SubscriptionService unit', () => {
     };
     const findFirst = jest.fn().mockResolvedValue(subscription);
     const create = jest.fn();
-    const service = new SubscriptionService({
-      client: {
-        userSubscription: {
-          findFirst,
-          create,
+    const service = new SubscriptionService(
+      {
+        client: {
+          userSubscription: {
+            findFirst,
+            create,
+          },
         },
-      },
-    } as any);
+      } as any,
+      tokensService as any,
+    );
 
     await expect(
       service.subscribe('user-me', {
@@ -91,15 +105,18 @@ describe('SubscriptionService unit', () => {
       trialEndsAt: null,
     });
     const create = jest.fn();
-    const service = new SubscriptionService({
-      client: {
-        userSubscription: {
-          findFirst,
-          update,
-          create,
+    const service = new SubscriptionService(
+      {
+        client: {
+          userSubscription: {
+            findFirst,
+            update,
+            create,
+          },
         },
-      },
-    } as any);
+      } as any,
+      tokensService as any,
+    );
 
     await service.activatePaidSubscription('user-me', 'month', 'order-db-1');
 
@@ -113,5 +130,99 @@ describe('SubscriptionService unit', () => {
       },
     });
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('spends tokens and activates Frendly+ subscription', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-13T10:00:00.000Z').getTime());
+    const prismaClient: any = {
+      userSubscription: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          plan: 'month',
+          status: 'active',
+          startedAt: new Date('2026-05-13T10:00:00.000Z'),
+          renewsAt: new Date('2026-06-12T10:00:00.000Z'),
+          trialEndsAt: null,
+        }),
+      },
+      $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
+    };
+    tokensService.spendTokens.mockResolvedValue({ id: 'ledger-1' });
+    const service = new SubscriptionService(
+      { client: prismaClient } as any,
+      tokensService as any,
+    );
+
+    await expect(
+      service.subscribeWithTokens('user-1', { plan: 'month' }),
+    ).resolves.toMatchObject({
+      plan: 'month',
+      status: 'active',
+      startedAt: '2026-05-13T10:00:00.000Z',
+      renewsAt: '2026-06-12T10:00:00.000Z',
+      trialEndsAt: null,
+    });
+
+    expect(tokensService.spendTokens).toHaveBeenCalledWith(
+      'user-1',
+      {
+        amount: 799,
+        reason: 'subscription_spend',
+      },
+      prismaClient,
+    );
+  });
+
+  it('spends tokens and extends an active Frendly+ subscription', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-13T10:00:00.000Z').getTime());
+    const current = {
+      id: 'sub-1',
+      plan: 'month',
+      status: 'active',
+      startedAt: new Date('2026-05-01T00:00:00.000Z'),
+      renewsAt: new Date('2026-06-01T00:00:00.000Z'),
+      trialEndsAt: null,
+    };
+    const prismaClient: any = {
+      userSubscription: {
+        findFirst: jest.fn().mockResolvedValue(current),
+        update: jest.fn().mockResolvedValue({
+          ...current,
+          renewsAt: new Date('2026-07-01T00:00:00.000Z'),
+        }),
+        create: jest.fn(),
+      },
+      $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
+    };
+    tokensService.spendTokens.mockResolvedValue({ id: 'ledger-1' });
+    const service = new SubscriptionService(
+      { client: prismaClient } as any,
+      tokensService as any,
+    );
+
+    await service.subscribeWithTokens('user-1', { plan: 'month' });
+
+    expect(tokensService.spendTokens).toHaveBeenCalledWith(
+      'user-1',
+      {
+        amount: 799,
+        reason: 'subscription_spend',
+      },
+      prismaClient,
+    );
+    expect(prismaClient.userSubscription.update).toHaveBeenCalledWith({
+      where: { id: 'sub-1' },
+      data: {
+        plan: 'month',
+        status: 'active',
+        renewsAt: new Date('2026-07-01T00:00:00.000Z'),
+        trialEndsAt: null,
+      },
+    });
+    expect(prismaClient.userSubscription.create).not.toHaveBeenCalled();
   });
 });

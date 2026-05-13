@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "8bc5136ee6dac660b99843b29fa4694ba01624fe",
-  "generatedAt": "2026-05-13T12:13:44.303Z",
+  "gitCommitHash": "49252c2cecd11c0e8bc71c58d414e76c8b076e0e",
+  "generatedAt": "2026-05-13T13:01:07.532Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -4755,13 +4755,13 @@
     },
     "admin/src/admin/pages/RouteReviewQueue.tsx": {
       "filePath": "admin/src/admin/pages/RouteReviewQueue.tsx",
-      "contentHash": "a5cde3437490b082bc1dce66ad4d241954b506a24a14ee6865f778bd62fd85c9",
+      "contentHash": "f50197331e8ea7881e654d66230433c7feb0ae4edcfe710d5df957843b03e645",
       "functions": [
         {
           "name": "RouteReviewQueue",
           "params": [],
           "exported": true,
-          "lineCount": 667
+          "lineCount": 668
         },
         {
           "name": "errorMessage",
@@ -4860,7 +4860,7 @@
       "exports": [
         "RouteReviewQueue"
       ],
-      "totalLines": 712,
+      "totalLines": 713,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Settings.tsx": {
@@ -12594,7 +12594,7 @@
     },
     "backend/apps/api/src/controllers/subscription.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/subscription.controller.ts",
-      "contentHash": "72d868d56c4ae75edaa5eb097ef46211f6f01af59459d3e84694a06ea0b4e809",
+      "contentHash": "db5a6391f6d428574d3f91c96c05af0e5af814a933186b4b6db1919d82f12ff2",
       "functions": [],
       "classes": [
         {
@@ -12608,7 +12608,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 36
+          "lineCount": 26
         }
       ],
       "imports": [
@@ -12628,12 +12628,6 @@
           ]
         },
         {
-          "source": "../services/payments.service",
-          "specifiers": [
-            "PaymentsService"
-          ]
-        },
-        {
           "source": "../services/subscription.service",
           "specifiers": [
             "SubscriptionService"
@@ -12643,7 +12637,7 @@
       "exports": [
         "SubscriptionController"
       ],
-      "totalLines": 43,
+      "totalLines": 32,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/tokens.controller.ts": {
@@ -16090,7 +16084,7 @@
     },
     "backend/apps/api/src/services/payment-catalog.ts": {
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
-      "contentHash": "08917bd822f0022b5fd42afee358fa4a2b8eee21c3d6014ffef82dd4ff5e4fda",
+      "contentHash": "fe99370e73d334edad93afb31fe1e4f32f8e4f748d2fd39b23c1fb96a9c3f42f",
       "functions": [
         {
           "name": "findPaymentProduct",
@@ -16148,12 +16142,12 @@
         "findTokenPackProduct",
         "findTokenPromotionOption"
       ],
-      "totalLines": 179,
+      "totalLines": 185,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/payments.service.ts": {
       "filePath": "backend/apps/api/src/services/payments.service.ts",
-      "contentHash": "ad8847655c6324baf0e47de983b30aa2e2a6be4ea2a9f55e35cf7a55053bbfa2",
+      "contentHash": "33d48fc9f1f39ded2f4047511c6d28d94560e8b9a6ba257e9b07f15d0e1fada3",
       "functions": [],
       "classes": [
         {
@@ -16177,7 +16171,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 366
+          "lineCount": 373
         }
       ],
       "imports": [
@@ -16247,7 +16241,7 @@
       "exports": [
         "PaymentsService"
       ],
-      "totalLines": 398,
+      "totalLines": 405,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/people.service.ts": {
@@ -17296,7 +17290,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "2af44b7729a93b94595e679e401c63359fcfe414ad2cafd03c7b241259924d3a",
+      "contentHash": "1eb1461059f5acb747b29c18c6bfe648b3fb02f261fcdfe4194d3fa7d10b5abf",
       "functions": [],
       "classes": [
         {
@@ -17307,6 +17301,7 @@
             "getCurrent",
             "mapCurrent",
             "subscribe",
+            "subscribeWithTokens",
             "activatePaidSubscription",
             "restore",
             "hasPremiumAccess",
@@ -17315,7 +17310,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 178
+          "lineCount": 213
         }
       ],
       "imports": [
@@ -17349,12 +17344,18 @@
           "specifiers": [
             "PrismaService"
           ]
+        },
+        {
+          "source": "./tokens.service",
+          "specifiers": [
+            "TokensService"
+          ]
         }
       ],
       "exports": [
         "SubscriptionService"
       ],
-      "totalLines": 195,
+      "totalLines": 231,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/tbank-acquiring.service.ts": {
@@ -17522,7 +17523,7 @@
     },
     "backend/apps/api/src/services/tokens.service.ts": {
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
-      "contentHash": "c2db9ec98104f5508fa2f3b00a376a9e45f1e8d8eda8a69a00f9a2b82cd0aab6",
+      "contentHash": "74cab8853dbf882c4d706f15d242350912b54c43cbbcb13a896fb126114b39ac",
       "functions": [],
       "classes": [
         {
@@ -17531,13 +17532,14 @@
             "constructor",
             "getWallet",
             "creditPurchasedTokens",
+            "spendTokens",
             "createPromotion",
             "ensureWallet",
             "assertPromotionAccess"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 180
+          "lineCount": 208
         }
       ],
       "imports": [
@@ -17550,7 +17552,8 @@
         {
           "source": "@prisma/client",
           "specifiers": [
-            "Prisma"
+            "Prisma",
+            "TokenLedgerReason"
           ]
         },
         {
@@ -17577,7 +17580,7 @@
       "exports": [
         "TokensService"
       ],
-      "totalLines": 194,
+      "totalLines": 229,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/uploads.service.ts": {

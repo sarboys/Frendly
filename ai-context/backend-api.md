@@ -139,12 +139,12 @@ Public sharing:
 Payments and tokens:
 
 - `GET /payments/catalog` returns backend-owned Frendly+ plans, token packs, promo options and `tbankEnabled`.
-- `POST /payments/init` accepts only `productKind` and `productId`; API reads price and description from catalog and creates one-time T-Bank `PayType=O`.
-- Payment order responses include `productKind` and `productId`, so clients can return token payments to wallet screens and subscription payments to paywall state.
+- `POST /payments/init` accepts token packs only. `productKind=subscription` is rejected with `subscription_paid_with_tokens`; Frendly+ is paid from the token wallet.
+- Payment order responses include `productKind` and `productId`, so clients can return token payments to wallet screens.
 - `POST /payments/:orderId/check` verifies order ownership, calls T-Bank `GetState`, checks amount and fulfills only confirmed payments.
 - `POST /payments/tbank/webhook` is public, validates T-Bank token and terminal, then uses the same idempotent confirm path as manual check.
-- `POST /subscription/subscribe` is deprecated as direct activation and wraps payment init for subscription products.
-- `GET /tokens/wallet` returns server balance, history and active promoted targets. `POST /tokens/promotions` spends tokens server-side.
+- `POST /subscription/subscribe` spends tokens server-side and activates or extends Frendly+; it does not create a T-Bank payment order.
+- `GET /tokens/wallet` returns server balance, history and active promoted targets. `POST /tokens/promotions` and `POST /subscription/subscribe` spend tokens server-side.
 
 Admin auth:
 
