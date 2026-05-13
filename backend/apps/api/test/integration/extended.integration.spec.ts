@@ -13,6 +13,15 @@ describe('extended rollout api flows', () => {
   let prisma: PrismaClient;
   let accessToken = '';
 
+  async function setTokenBalance(userId: string, balance: number) {
+    await prisma.tokenWallet.create({
+      data: {
+        userId,
+        balance,
+      },
+    });
+  }
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ApiAppModule],
@@ -62,6 +71,13 @@ describe('extended rollout api flows', () => {
       },
     });
     await prisma.userSubscription.deleteMany({
+      where: {
+        userId: {
+          in: ['user-me', 'user-sonya'],
+        },
+      },
+    });
+    await prisma.tokenWallet.deleteMany({
       where: {
         userId: {
           in: ['user-me', 'user-sonya'],
@@ -577,13 +593,19 @@ describe('extended rollout api flows', () => {
     expect(createResponse.body.caption).toBe('Новый тост за вечер');
   });
 
-  it('returns subscription plans and creates mock subscription', async () => {
+  it('returns subscription plans and creates token-paid subscription', async () => {
     const plans = await request(app.getHttpServer())
       .get('/subscription/plans')
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(plans.body.plans).toHaveLength(2);
+    expect(plans.body.plans[0]).toMatchObject({
+      id: 'month',
+      tokenCost: 799,
+    });
+
+    await setTokenBalance('user-me', 799);
 
     const subscribe = await request(app.getHttpServer())
       .post('/subscription/subscribe')
@@ -601,6 +623,16 @@ describe('extended rollout api flows', () => {
 
     expect(current.body.plan).toBe('month');
     expect(current.body.status).toBe('active');
+
+    const wallet = await prisma.tokenWallet.findUnique({
+      where: { userId: 'user-me' },
+      include: { entries: true },
+    });
+
+    expect(wallet?.balance).toBe(0);
+    expect(wallet?.entries).toHaveLength(1);
+    expect(wallet?.entries[0]?.amount).toBe(-799);
+    expect(wallet?.entries[0]?.reason).toBe('subscription_spend');
 
     await prisma.userSubscription.deleteMany({
       where: { userId: 'user-me' },
@@ -625,11 +657,13 @@ describe('extended rollout api flows', () => {
     expect(response.body.code).toBe('invalid_subscription_plan');
   });
 
-  it('restores current mock subscription state without provider proof', async () => {
+  it('restores current token-paid subscription state without provider proof', async () => {
     const login = await request(app.getHttpServer())
       .post('/auth/dev/login')
       .send({ userId: 'user-sonya' })
       .expect(201);
+
+    await setTokenBalance('user-sonya', 4788);
 
     await request(app.getHttpServer())
       .post('/subscription/subscribe')
@@ -643,7 +677,7 @@ describe('extended rollout api flows', () => {
       .expect(201);
 
     expect(restoreResponse.body.plan).toBe('year');
-    expect(restoreResponse.body.status).toBe('trial');
+    expect(restoreResponse.body.status).toBe('active');
 
     const currentResponse = await request(app.getHttpServer())
       .get('/subscription/me')
@@ -651,7 +685,7 @@ describe('extended rollout api flows', () => {
       .expect(200);
 
     expect(currentResponse.body.plan).toBe('year');
-    expect(currentResponse.body.status).toBe('trial');
+    expect(currentResponse.body.status).toBe('active');
 
     await prisma.userSubscription.deleteMany({
       where: { userId: 'user-sonya' },
