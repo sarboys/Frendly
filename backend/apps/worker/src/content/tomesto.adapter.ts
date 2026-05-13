@@ -7,8 +7,8 @@ import type {
 } from './content-source.types';
 
 const DEFAULT_BASE_URL = 'https://tomesto.ru';
-const DEFAULT_MAX_PAGES = 200;
-const DEFAULT_REQUEST_DELAY_MS = 1000;
+const DEFAULT_MAX_PAGES = 40;
+const DEFAULT_REQUEST_DELAY_MS = 500;
 const DEFAULT_WINDOW_DAYS = 30;
 const TOMESTO_PROVIDER = 'ТоМесто';
 const MOSCOW = 'Москва';

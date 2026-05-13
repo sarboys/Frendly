@@ -22,7 +22,7 @@ export type ContentImportInput = {
   to: Date;
 };
 
-const DEFAULT_IMPORT_TIMEOUT_MS = 600_000;
+const DEFAULT_IMPORT_TIMEOUT_MS = 1_800_000;
 const PUBLIC_STATUS_PUBLISHED = 'published';
 const PUBLIC_STATUS_HIDDEN = 'hidden';
 const PUBLIC_STATUS_STALE = 'stale';
