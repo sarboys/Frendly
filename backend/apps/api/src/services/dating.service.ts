@@ -35,6 +35,7 @@ const DATING_PROFILE_PHOTO_SELECT = {
 } satisfies Prisma.ProfilePhotoSelect;
 const DATING_PROFILE_SELECT = {
   age: true,
+  city: true,
   area: true,
   bio: true,
   vibe: true,
@@ -46,6 +47,8 @@ const DATING_PROFILE_SELECT = {
   },
 } satisfies Prisma.ProfileSelect;
 const DATING_ONBOARDING_INTERESTS_SELECT = {
+  city: true,
+  area: true,
   interests: true,
 } satisfies Prisma.OnboardingPreferencesSelect;
 const DATING_SELF_SELECT = {
@@ -82,6 +85,7 @@ type DatingProfileUser = {
   online: boolean;
   profile: {
     age: number | null;
+    city: string | null;
     area: string | null;
     bio: string | null;
     vibe: string | null;
@@ -101,8 +105,33 @@ type DatingProfileUser = {
     }>;
   } | null;
   onboarding: {
+    city: string | null;
+    area: string | null;
     interests: unknown;
   } | null;
+};
+
+const _datingLocationByCityArea: Record<
+  string,
+  { latitude: number; longitude: number }
+> = {
+  'москва|патрики': { latitude: 55.764, longitude: 37.592 },
+  'москва|патриаршие пруды': { latitude: 55.7638, longitude: 37.5926 },
+  'москва|чистые пруды': { latitude: 55.7647, longitude: 37.6387 },
+  'москва|покровка': { latitude: 55.7594, longitude: 37.6461 },
+  'москва|китай-город': { latitude: 55.7536, longitude: 37.6368 },
+  'москва|замоскворечье': { latitude: 55.7378, longitude: 37.6331 },
+  'москва|центр': { latitude: 55.7558, longitude: 37.6173 },
+  'санкт-петербург|невский проспект': { latitude: 59.9343, longitude: 30.3351 },
+  'санкт-петербург|петроградка': { latitude: 59.9642, longitude: 30.3119 },
+  'санкт-петербург|центр': { latitude: 59.9386, longitude: 30.3141 },
+};
+
+const _datingLocationByCity: Record<string, { latitude: number; longitude: number }> = {
+  'москва': { latitude: 55.7558, longitude: 37.6173 },
+  'санкт-петербург': { latitude: 59.9386, longitude: 30.3141 },
+  'nha trang': { latitude: 12.2388, longitude: 109.1967 },
+  'нячанг': { latitude: 12.2388, longitude: 109.1967 },
 };
 
 const _datingPromptByUserId: Record<string, string> = {
@@ -472,10 +501,15 @@ export class DatingService {
       );
     const primaryPhoto = photos.length == 0 ? null : photos[0]!;
 
+    const city = user.profile?.city ?? user.onboarding?.city ?? null;
+    const area = user.profile?.area ?? user.onboarding?.area ?? null;
+    const location = this.resolveDatingProfileLocation(city, area);
+
     return {
       userId: user.id,
       name: user.displayName,
       age: user.profile?.age ?? null,
+      city,
       distance: this.deriveDistanceLabel(user.id),
       about: user.profile?.bio ?? 'Лучше знакомиться вживую, чем тянуть переписку.',
       tags,
@@ -487,10 +521,38 @@ export class DatingService {
       likedYou: options.likedYou,
       premium: true,
       vibe: user.profile?.vibe ?? null,
-      area: user.profile?.area ?? null,
+      area,
+      latitude: location?.latitude ?? null,
+      longitude: location?.longitude ?? null,
       verified: user.verified,
       online: user.online,
     };
+  }
+
+  private resolveDatingProfileLocation(city: string | null, area: string | null) {
+    const normalizedCity = this.normalizeLocationText(city);
+    const normalizedArea = this.normalizeLocationText(area);
+    if (normalizedCity.length === 0) {
+      return null;
+    }
+
+    if (normalizedArea.length > 0) {
+      const areaLocation =
+        _datingLocationByCityArea[`${normalizedCity}|${normalizedArea}`];
+      if (areaLocation != null) {
+        return areaLocation;
+      }
+    }
+
+    return _datingLocationByCity[normalizedCity] ?? null;
+  }
+
+  private normalizeLocationText(value: string | null) {
+    return (value ?? '')
+      .trim()
+      .toLowerCase()
+      .replaceAll('ё', 'е')
+      .replace(/^г\.\s*/, '');
   }
 
   private deriveDistanceLabel(userId: string) {

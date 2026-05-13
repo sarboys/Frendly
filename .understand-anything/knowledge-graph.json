@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-13T04:48:29.469Z",
-    "gitCommitHash": "0fb4cd7992df5fad5a992ca4f14a0e7ff6956aee"
+    "analyzedAt": "2026-05-13T06:03:52.310Z",
+    "gitCommitHash": "210c2e08b396807a8a57189526a167e7cddc7747"
   },
   "nodes": [
     {
@@ -8348,8 +8348,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        318,
-        372
+        320,
+        374
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -8365,8 +8365,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        374,
-        434
+        376,
+        438
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -8382,8 +8382,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        436,
-        456
+        440,
+        460
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -10649,8 +10649,8 @@
       "name": "DatingService",
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
-        127,
-        671
+        156,
+        733
       ],
       "summary": "DatingService in dating.service.ts.",
       "tags": [
@@ -11046,8 +11046,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3627,
-        3646
+        3628,
+        3647
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11063,8 +11063,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        173,
-        3625
+        174,
+        3626
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -11093,8 +11093,8 @@
       "name": "HostService",
       "filePath": "backend/apps/api/src/services/host.service.ts",
       "lineRange": [
-        63,
-        1231
+        65,
+        1233
       ],
       "summary": "HostService in host.service.ts.",
       "tags": [

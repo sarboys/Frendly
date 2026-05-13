@@ -171,6 +171,7 @@ Admin Evening route review:
 - `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates. It also accepts `afficheEventId` for creating a meetup from a published affiche event; `posterId`, `afficheEventId` and route selection are mutually exclusive.
 - Event list and detail summaries expose `imageUrl` from linked public Affiche content, so meetups created from `afficheEventId` can reuse the same external event image.
 - Event list and detail summaries expose paid ticket summary from linked Poster or public Affiche source: `ticketUrl`, `ticketSourceKind`, `ticketSourceId`, `ticketPriceFrom`, `ticketProvider`, `ticketVenue`. Free Affiche sources keep these fields null.
+- Event list and detail summaries expose radar category fields: `isDate` and `routeId` from `eveningRouteId`. Mobile uses them with ticket source fields to calculate Radar counts for bars, routes, dating and affiche.
 - `GET /events` and `GET /posters` accept `date=yyyy-mm-dd` for one-day filtering.
 - `GET /events` keeps recently started meetups visible in discovery for 3 hours, including nearby, calm, newcomers and date feeds. This prevents a just-started meetup from disappearing while users switch accounts or open the feed.
 - `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
@@ -188,6 +189,7 @@ Admin Evening route review:
 - Chat history hides blocked `replyTo` previews.
 - Cursors carry sort keys plus id when possible.
 - Dating discover remains available to all authenticated users. Do not gate dating profiles or `POST /events` with `mode=dating` behind Frendly+.
+- Dating discover profile payloads include `city`, `area`, `latitude` and `longitude` for Radar. Coordinates are approximate from known city/area labels, with city-level fallback when area is unknown.
 - `POST /events` with `mode=dating` requires `inviteeUserId` and `sourceChatId` for an existing direct chat between host and invitee. Dating events stay private: the invitee cannot open event detail until the invite is accepted and they become a participant.
 - Declining a pending dating invite cancels the private dating event with `cancelReason=dating_invite_declined` and removes its meetup chat from user chat lists.
 - `GET /dating/likes` requires Frendly+ access. Non-plus users get `403 frendly_plus_required`.

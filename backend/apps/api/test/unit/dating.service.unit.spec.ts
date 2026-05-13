@@ -274,6 +274,66 @@ describe('DatingService unit', () => {
     );
   });
 
+  it('adds approximate profile coordinates for dating radar', async () => {
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              profile: {
+                gender: 'male',
+              },
+              onboarding: {
+                gender: 'male',
+                interests: [],
+              },
+            }),
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'user-anya',
+                displayName: 'Аня',
+                verified: true,
+                online: true,
+                profile: {
+                  age: 27,
+                  city: 'Москва',
+                  area: 'Патрики',
+                  bio: 'Люблю тихие бары.',
+                  vibe: 'Спокойно',
+                  avatarUrl: null,
+                  photos: [],
+                },
+                onboarding: {
+                  interests: ['вино'],
+                },
+              },
+            ]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me');
+
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        city: 'Москва',
+        area: 'Патрики',
+        latitude: expect.any(Number),
+        longitude: expect.any(Number),
+      }),
+    );
+  });
+
   it('bounds profile photos in dating list queries', async () => {
     const userFindMany = jest.fn().mockResolvedValue([]);
     const datingActionFindMany = jest.fn().mockResolvedValue([]);
@@ -320,6 +380,7 @@ describe('DatingService unit', () => {
           profile: expect.objectContaining({
             select: expect.objectContaining({
               age: true,
+              city: true,
               area: true,
               bio: true,
               vibe: true,
@@ -346,6 +407,8 @@ describe('DatingService unit', () => {
           }),
           onboarding: {
             select: {
+              city: true,
+              area: true,
               interests: true,
             },
           },
@@ -365,6 +428,7 @@ describe('DatingService unit', () => {
               profile: expect.objectContaining({
                 select: expect.objectContaining({
                   age: true,
+                  city: true,
                   area: true,
                   bio: true,
                   vibe: true,
@@ -391,6 +455,8 @@ describe('DatingService unit', () => {
               }),
               onboarding: {
                 select: {
+                  city: true,
+                  area: true,
                   interests: true,
                 },
               },

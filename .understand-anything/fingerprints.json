@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "0fb4cd7992df5fad5a992ca4f14a0e7ff6956aee",
-  "generatedAt": "2026-05-13T04:48:29.690Z",
+  "gitCommitHash": "210c2e08b396807a8a57189526a167e7cddc7747",
+  "generatedAt": "2026-05-13T06:03:52.532Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -10024,7 +10024,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "b3084338fa2faacb3ebff7c9cfc25de03190b9ae412eb81e486f9073054297b1",
+      "contentHash": "1cf51d8fe39d11accf76aba422b4951ea15e64f8ba4c5620eea56b0c5ea35dfd",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10132,7 +10132,7 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 61
+          "lineCount": 63
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -10189,7 +10189,7 @@
         "mapEventTicketSummary",
         "mapEventSummary"
       ],
-      "totalLines": 457,
+      "totalLines": 461,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -14230,7 +14230,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "c7c48ca5254cfa39c1a4f3584bc17ef73cfbb933a01b48b8bf4bac59d4ae5c46",
+      "contentHash": "2497d3e8c23ccd17a46ef435a5999f4e2d0229cc51c8b6510cb051922cb4a3d0",
       "functions": [],
       "classes": [
         {
@@ -14244,6 +14244,8 @@
             "ensureSuperLikeQuota",
             "currentUtcDayWindow",
             "mapDatingProfile",
+            "resolveDatingProfileLocation",
+            "normalizeLocationText",
             "deriveDistanceLabel",
             "extractInterests",
             "createDatingLikeNotification",
@@ -14257,7 +14259,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 545
+          "lineCount": 578
         }
       ],
       "imports": [
@@ -14317,7 +14319,7 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 672,
+      "totalLines": 734,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -14816,7 +14818,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "f46a9c44d30592d20545528e9160de7dffd812ce4c5e24aadd33998fb43667b4",
+      "contentHash": "b5ed707e7870845599f3509215e5ab8bbdacd30eb535c8226dfd74087181671c",
       "functions": [
         {
           "name": "emojiForCategory",
@@ -14981,12 +14983,12 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3647,
+      "totalLines": 3648,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
       "filePath": "backend/apps/api/src/services/host.service.ts",
-      "contentHash": "35c4c8d4355c2a5bb3bd7b8182fcf71e9dd0c7be50215d3c5125e1e648661f48",
+      "contentHash": "cc3eb89a1d896d43a8ce7f61ca26163f2eb0a351ce52ba56c442b7d03dd64ab2",
       "functions": [],
       "classes": [
         {
@@ -15092,7 +15094,7 @@
       "exports": [
         "HostService"
       ],
-      "totalLines": 1232,
+      "totalLines": 1234,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/matches.service.ts": {
@@ -17691,7 +17693,7 @@
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
-      "contentHash": "28472c38deec80089927f92e0d34b8c8ae905f3023d5459c6a3e689850b6f956",
+      "contentHash": "8cb0e9d2fb5b3e6eadc09a60cb539a70c4c9ca9f50a7a57a7e8114877c9b7d0c",
       "functions": [
         {
           "name": "maskAdvCakeSecrets",
@@ -18197,7 +18199,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "bbcd7f9cb3661a9d458ad9129f93fac2e71f3083ce7e2c7d31eba812a50733fe",
+      "contentHash": "e3d34d58240e52fc8bbe62cc8a17da0c0771734e013efec6469553d3fd395a1e",
       "functions": [
         {
           "name": "safeJson",
@@ -18434,7 +18436,7 @@
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
-      "contentHash": "604c2fe798f04d72d86d4559535321fd108b7f3a93033afcc38c171cabc1b35c",
+      "contentHash": "87c5388bb4669f18822dd4ac0da353e9e3156feda3e44f9a2c3d7d4c8eb4c543",
       "functions": [
         {
           "name": "normalizeTitle",
@@ -18549,7 +18551,7 @@
     },
     "backend/apps/worker/src/content/content-source.types.ts": {
       "filePath": "backend/apps/worker/src/content/content-source.types.ts",
-      "contentHash": "829dfe6062e8623d4b5fe9f78d013c8a1870705279b3cba42b00fcf74e69b906",
+      "contentHash": "db7fd5b483ec16c4eaaad12e4af28b704a3b2026e036beee7f75a6e5dce86691",
       "functions": [],
       "classes": [],
       "imports": [],
