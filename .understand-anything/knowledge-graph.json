@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-13T11:43:49.681Z",
-    "gitCommitHash": "fd1f9237753431f00640e4b318295da821f14664"
+    "analyzedAt": "2026-05-13T11:52:13.534Z",
+    "gitCommitHash": "ad7b092421373478d555295fe7baaec02d6dfabe"
   },
   "nodes": [
     {
@@ -29470,6 +29470,19 @@
       "complexity": "simple"
     },
     {
+      "id": "file:mobile/lib/features/payments/presentation/payment_return_screen.dart",
+      "type": "file",
+      "name": "payment_return_screen.dart",
+      "filePath": "mobile/lib/features/payments/presentation/payment_return_screen.dart",
+      "summary": "payment_return_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:mobile/lib/features/paywall/presentation/paywall_screen.dart",
       "type": "file",
       "name": "paywall_screen.dart",
@@ -47908,6 +47921,7 @@
         "file:mobile/lib/features/notifications/presentation/notifications_screen.dart",
         "file:mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
         "file:mobile/lib/features/payments/application/payment_return_controller.dart",
+        "file:mobile/lib/features/payments/presentation/payment_return_screen.dart",
         "file:mobile/lib/features/paywall/presentation/paywall_screen.dart",
         "file:mobile/lib/features/perks/presentation/perks_screen.dart",
         "file:mobile/lib/features/permissions/presentation/permissions_screen.dart",
