@@ -122,12 +122,15 @@ const eventListSummarySelect = {
   sourceExternalContentItem: {
     select: {
       id: true,
+      contentKind: true,
+      title: true,
       imageUrl: true,
       priceFrom: true,
       priceMode: true,
       actionUrl: true,
       sourceProvider: true,
       venueName: true,
+      currency: true,
     },
   },
 } satisfies Prisma.EventSelect;
@@ -406,6 +409,24 @@ export class EventsService {
         where: { id: eventId },
         select: {
           ...eventListSummarySelect,
+          sourceExternalContentItem: {
+            select: {
+              id: true,
+              sourceId: true,
+              contentKind: true,
+              title: true,
+              address: true,
+              city: true,
+              imageUrl: true,
+              priceFrom: true,
+              priceMode: true,
+              actionUrl: true,
+              sourceProvider: true,
+              venueName: true,
+              currency: true,
+              raw: true,
+            },
+          },
           description: true,
           partnerName: true,
           partnerOffer: true,
@@ -505,6 +526,20 @@ export class EventsService {
       throw new ApiError(404, 'event_not_found', 'Event not found');
     }
 
+    const bookingPromos =
+      event.sourceExternalContentItem?.contentKind === 'place'
+        ? await this.loadActivePromosForPlace(event.sourceExternalContentItem)
+        : [];
+    const eventForPresenter =
+      event.sourceExternalContentItem?.contentKind === 'place'
+        ? {
+            ...event,
+            sourceExternalContentItem: {
+              ...event.sourceExternalContentItem,
+              bookingPromos,
+            },
+          }
+        : event;
     const visibleParticipants = event.participants.filter(
       (participant) => !blockedUserIds.has(participant.userId),
     );
@@ -520,7 +555,7 @@ export class EventsService {
 
     return {
       ...mapEventSummary({
-        event,
+        event: eventForPresenter,
         participants: visibleParticipants,
         currentUserId: userId,
         participantCount,
@@ -659,6 +694,52 @@ export class EventsService {
     });
 
     return this.getEventDetail(userId, eventId);
+  }
+
+  private async loadActivePromosForPlace(place: {
+    id?: string | null;
+    sourceId?: string | null;
+    title?: string | null;
+    address?: string | null;
+    city?: string | null;
+    raw?: unknown;
+  }) {
+    if (!place.sourceId) {
+      return [];
+    }
+    const now = new Date();
+    const promos = await this.prismaService.client.externalContentItem.findMany({
+      where: {
+        sourceId: place.sourceId,
+        city: place.city ?? 'Москва',
+        contentKind: 'event',
+        category: 'promo',
+        OR: [{ endsAt: null }, { endsAt: { gte: now } }],
+      },
+      select: {
+        title: true,
+        shortSummary: true,
+        endsAt: true,
+        actionUrl: true,
+        sourceUrl: true,
+        raw: true,
+      },
+      orderBy: [{ endsAt: 'asc' }, { importedAt: 'desc' }, { id: 'asc' }],
+      take: 12,
+    });
+
+    const matched = promos.filter((promo: any) => promoMatchesExternalPlace(promo, place)).slice(0, 3);
+    console.info('[events] selected place promos loaded', {
+      placeId: place.id,
+      promoCount: matched.length,
+    });
+    return matched.map((promo) => ({
+      title: promo.title,
+      description: promo.shortSummary ?? null,
+      validUntil: promo.endsAt?.toISOString() ?? null,
+      bookingUrl: promo.actionUrl ?? null,
+      sourceUrl: promo.sourceUrl ?? null,
+    }));
   }
 
   async createJoinRequest(userId: string, eventId: string, body: Record<string, unknown>) {
@@ -1011,6 +1092,10 @@ export class EventsService {
       typeof body.afficheEventId === 'string' && body.afficheEventId.trim().length > 0
         ? body.afficheEventId.trim()
         : undefined;
+    const externalPlaceId =
+      typeof body.externalPlaceId === 'string' && body.externalPlaceId.trim().length > 0
+        ? body.externalPlaceId.trim()
+        : undefined;
     const poster =
       posterId == null
         ? null
@@ -1028,6 +1113,22 @@ export class EventsService {
               priceMode: { in: ['free', 'paid'] },
             },
           });
+    const externalPlace =
+      externalPlaceId == null
+        ? null
+        : await this.prismaService.client.externalContentItem.findFirst({
+            where: {
+              id: externalPlaceId,
+              source: { code: 'tomesto' },
+              contentKind: 'place',
+              publicStatus: 'published',
+            },
+            include: {
+              source: {
+                select: { code: true, name: true },
+              },
+            },
+          });
     const routeSelection = this.parseEventRouteSelection(body);
 
     if ((posterId != null || afficheEventId != null) && routeSelection != null) {
@@ -1042,6 +1143,13 @@ export class EventsService {
         400,
         'invalid_event_payload',
         'posterId and afficheEventId cannot be used together',
+      );
+    }
+    if (externalPlaceId != null && afficheEventId != null) {
+      throw new ApiError(
+        400,
+        'invalid_event_payload',
+        'externalPlaceId and afficheEventId cannot be used together',
       );
     }
 
@@ -1077,6 +1185,12 @@ export class EventsService {
     if (afficheEventId != null && !afficheEvent) {
       throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
     }
+    if (externalPlaceId != null && !externalPlace) {
+      console.warn('[events] selected external place missing or hidden', {
+        externalPlaceId,
+      });
+      throw new ApiError(404, 'external_place_not_found', 'External place not found');
+    }
 
     const title =
       typeof body.title === 'string' && body.title.trim().length > 0
@@ -1103,7 +1217,9 @@ export class EventsService {
             }`
           : poster == null
             ? afficheEvent == null
-              ? ''
+              ? externalPlace == null
+                ? ''
+                : [externalPlace.title, externalPlace.address].filter(Boolean).join(', ')
               : [afficheEvent.venueName, afficheEvent.address, afficheEvent.city].filter(Boolean).join(', ')
             : `${poster.venue}, ${poster.address}`;
     const distanceKm =
@@ -1113,9 +1229,9 @@ export class EventsService {
           ? 0
           : poster?.distanceKm ?? 1.0;
     const latitude =
-      typeof body.latitude === 'number' ? body.latitude : afficheEvent?.lat ?? null;
+      typeof body.latitude === 'number' ? body.latitude : afficheEvent?.lat ?? externalPlace?.lat ?? null;
     const longitude =
-      typeof body.longitude === 'number' ? body.longitude : afficheEvent?.lng ?? null;
+      typeof body.longitude === 'number' ? body.longitude : afficheEvent?.lng ?? externalPlace?.lng ?? null;
     const capacity =
       typeof body.capacity === 'number' ? Math.trunc(body.capacity) : 8;
     const startsAtRaw =
@@ -1385,7 +1501,7 @@ export class EventsService {
             description,
             idempotencyKey,
             sourcePosterId: poster?.id,
-            sourceExternalContentItemId: afficheEvent?.id,
+            sourceExternalContentItemId: afficheEvent?.id ?? externalPlace?.id,
             capacity: normalizedCapacity,
             hostId: userId,
             isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
@@ -3623,6 +3739,52 @@ export class EventsService {
     return value;
   }
 
+}
+
+function promoMatchesExternalPlace(promo: any, place: any) {
+  const promoRaw = jsonRecord(promo.raw);
+  const placeRaw = jsonRecord(place.raw);
+  const promoSlug = text(promoRaw.placeSlug, '');
+  const placeSlug = text(placeRaw.slug, '');
+  if (promoSlug && placeSlug) {
+    console.debug('[events] matching promo by place slug', {
+      placeId: place.id,
+      promoSlug,
+    });
+    return normalizeText(promoSlug) === normalizeText(placeSlug);
+  }
+
+  const promoVenue = normalizeText(text(promoRaw.venueName, ''));
+  const placeTitle = normalizeText(place.title ?? '');
+  const promoAddress = normalizeText(text(promoRaw.address, ''));
+  const placeAddress = normalizeText(place.address ?? '');
+  const matched =
+    promoVenue.length > 0 &&
+    promoVenue === placeTitle &&
+    (promoAddress.length === 0 ||
+      placeAddress.includes(promoAddress) ||
+      promoAddress.includes(placeAddress));
+  if (!matched) {
+    console.warn('[events] promo cannot be linked to selected place', {
+      placeId: place.id,
+      promoTitle: promo.title,
+    });
+  }
+  return matched;
+}
+
+function jsonRecord(value: unknown): Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function normalizeText(value: unknown) {
+  return typeof value === 'string' ? value.trim().toLowerCase().replace(/\s+/g, ' ') : '';
+}
+
+function text(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback;
 }
 
 function emojiForCategory(category: string | null | undefined) {

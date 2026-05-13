@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "49f63bcd1fa5ba024ac33354c4b756778b413948",
-  "generatedAt": "2026-05-13T08:01:26.228Z",
+  "gitCommitHash": "0b519b082b74afcd24bd23d7df2eaf4e1f055c1e",
+  "generatedAt": "2026-05-13T09:58:06.401Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -8823,7 +8823,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "adc317265d2c352736313aeb6b9a69f158f9ffcf94267c4ed731ee8f47be1a05",
+      "contentHash": "32165e3f6929386e09cc9bee3962f30b8fc910e89ea6308b36c52acddff20798",
       "functions": [],
       "classes": [
         {
@@ -9000,6 +9000,12 @@
           "source": "./controllers/partner-portal.controller",
           "specifiers": [
             "PartnerPortalController"
+          ]
+        },
+        {
+          "source": "./controllers/places.controller",
+          "specifiers": [
+            "PlacesController"
           ]
         },
         {
@@ -9297,6 +9303,12 @@
           ]
         },
         {
+          "source": "./services/places.service",
+          "specifiers": [
+            "PlacesService"
+          ]
+        },
+        {
           "source": "./services/posters.service",
           "specifiers": [
             "PostersService"
@@ -9390,7 +9402,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 198,
+      "totalLines": 202,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -10024,7 +10036,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "1cf51d8fe39d11accf76aba422b4951ea15e64f8ba4c5620eea56b0c5ea35dfd",
+      "contentHash": "96d7ed3bcab557ad48cd64eeda8147cb2d89e718b6cbb9ba125cae9bc34a1c46",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10124,7 +10136,15 @@
             "event"
           ],
           "exported": true,
-          "lineCount": 55
+          "lineCount": 60
+        },
+        {
+          "name": "mapEventBookingSummary",
+          "params": [
+            "event"
+          ],
+          "exported": true,
+          "lineCount": 37
         },
         {
           "name": "mapEventSummary",
@@ -10132,7 +10152,7 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 63
+          "lineCount": 64
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -10187,9 +10207,10 @@
         "mapJoinRequestStatus",
         "mapLiveStatus",
         "mapEventTicketSummary",
+        "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 461,
+      "totalLines": 517,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -12038,6 +12059,44 @@
         "PeopleController"
       ],
       "totalLines": 88,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/controllers/places.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/places.controller.ts",
+      "contentHash": "2846bafbda4b4a1313d253eed33c078cb40fd8f2c5fde5a676c97e537e31429f",
+      "functions": [],
+      "classes": [
+        {
+          "name": "PlacesController",
+          "methods": [
+            "constructor",
+            "searchPlaces"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 20
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get",
+            "Query"
+          ]
+        },
+        {
+          "source": "../services/places.service",
+          "specifiers": [
+            "PlacesService"
+          ]
+        }
+      ],
+      "exports": [
+        "PlacesController"
+      ],
+      "totalLines": 25,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/posters.controller.ts": {
@@ -14023,7 +14082,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "2a547361dc721eff9fdf3c2d50e98794f7d734910d970ca6f05dbe7a8ef50a1f",
+      "contentHash": "fb5ddfbf6cd4bd09deb95e8aa421d960bd179fbb1da9eea6433c0a23a5303348",
       "functions": [],
       "classes": [
         {
@@ -14059,7 +14118,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 964
+          "lineCount": 968
         }
       ],
       "imports": [
@@ -14116,7 +14175,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1098,
+      "totalLines": 1102,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -14818,8 +14877,43 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "b5ed707e7870845599f3509215e5ab8bbdacd30eb535c8226dfd74087181671c",
+      "contentHash": "7f04e84b031d6fb23624853269f349c614d2744c66bbab963a37de033c8fddd6",
       "functions": [
+        {
+          "name": "promoMatchesExternalPlace",
+          "params": [
+            "promo",
+            "place"
+          ],
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "jsonRecord",
+          "params": [
+            "value"
+          ],
+          "returnType": "Record<string, unknown>",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "normalizeText",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "text",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
         {
           "name": "emojiForCategory",
           "params": [
@@ -14837,6 +14931,7 @@
             "listEvents",
             "getEventDetail",
             "joinEvent",
+            "loadActivePromosForPlace",
             "createJoinRequest",
             "cancelJoinRequest",
             "leaveEvent",
@@ -14895,7 +14990,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3453
+          "lineCount": 3566
         }
       ],
       "imports": [
@@ -14983,7 +15078,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3648,
+      "totalLines": 3810,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -16009,6 +16104,184 @@
         "PhoneOtpService"
       ],
       "totalLines": 216,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/places.service.ts": {
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "contentHash": "85fdbf94ece5f2b27c28d25421885c834b6db2b3eef428b3844c0f3d2258aecf",
+      "functions": [
+        {
+          "name": "mapPromoDto",
+          "params": [
+            "promo"
+          ],
+          "returnType": "PlacePromoDto",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "mapPlaceSearchResult",
+          "params": [
+            "place",
+            "promos",
+            "latitude",
+            "longitude"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "placeSearchScore",
+          "params": [
+            "place",
+            "query",
+            "latitude",
+            "longitude"
+          ],
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "promoMatchesPlace",
+          "params": [
+            "promo",
+            "place"
+          ],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "placeSlug",
+          "params": [
+            "place"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "ratingFromRaw",
+          "params": [
+            "raw"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "normalizeLimit",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "distanceKm",
+          "params": [
+            "fromLat",
+            "fromLng",
+            "toLat",
+            "toLng"
+          ],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "toRadians",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeText",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeTagQuery",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "text",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "isString",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "isFiniteNumber",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "asRecord",
+          "params": [
+            "value"
+          ],
+          "returnType": "Record<string, unknown>",
+          "exported": false,
+          "lineCount": 5
+        }
+      ],
+      "classes": [
+        {
+          "name": "PlacesService",
+          "methods": [
+            "constructor",
+            "searchPlaces",
+            "loadPromosForPlaces"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 130
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "PlacesService",
+        "mapPromoDto",
+        "promoMatchesPlace"
+      ],
+      "totalLines": 311,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/posters.service.ts": {
@@ -18867,7 +19140,7 @@
     },
     "backend/apps/worker/src/content/route-draft-generation.service.ts": {
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "contentHash": "a8b3a0c7cc99bf47c23f8a1bd6935e6c5e9cbe1a04640011b1971127994d4c84",
+      "contentHash": "10aab0e354cf4192f8f6aa581c315557b9e23f49f50c569685a928a858f62aa1",
       "functions": [
         {
           "name": "hasUsableStepCount",
@@ -18913,6 +19186,38 @@
           ],
           "exported": false,
           "lineCount": 10
+        },
+        {
+          "name": "scopeCommercialPlacesToTomesto",
+          "params": [
+            "places"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "countTomestoCommercialCategories",
+          "params": [
+            "places"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "isCommercialPlaceCandidate",
+          "params": [
+            "place"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "commercialCategoryKey",
+          "params": [
+            "place"
+          ],
+          "exported": false,
+          "lineCount": 29
         },
         {
           "name": "normalizeArea",
@@ -19051,7 +19356,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 503
+          "lineCount": 508
         }
       ],
       "imports": [
@@ -19098,12 +19403,12 @@
       "exports": [
         "RouteDraftGenerationService"
       ],
-      "totalLines": 804,
+      "totalLines": 896,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/route-planner.ts": {
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
-      "contentHash": "e43734fba70e533b44f603cdb6aa74d250348b626155eae2f0bca3202823dc76",
+      "contentHash": "b6bd4f6830bf011c76a1eea867fe8bc819761f68cf26555b8697f84e37e6ee9a",
       "functions": [
         {
           "name": "buildRouteSkeletons",
@@ -19325,7 +19630,7 @@
             "category"
           ],
           "exported": false,
-          "lineCount": 3
+          "lineCount": 9
         },
         {
           "name": "normalizeCategory",
@@ -19335,7 +19640,7 @@
             "summary"
           ],
           "exported": false,
-          "lineCount": 122
+          "lineCount": 131
         },
         {
           "name": "explicitCategoryFromSource",
@@ -19343,7 +19648,7 @@
             "category"
           ],
           "exported": false,
-          "lineCount": 116
+          "lineCount": 119
         },
         {
           "name": "sameVenueCluster",
@@ -19581,7 +19886,7 @@
         "buildRouteSkeletons",
         "validateRouteDraft"
       ],
-      "totalLines": 1531,
+      "totalLines": 1550,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/supported-cities.ts": {
@@ -19771,7 +20076,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "846badcf26e0da84e6076baaa14802c401679156e87892c50a6b630d44c72bb4",
+      "contentHash": "4c6d0104d043fdcc721e50aabc60f32a86b3236cd45b4075deb3736dd8dfd48a",
       "functions": [
         {
           "name": "isDetailPath",
@@ -19815,6 +20120,24 @@
           ],
           "exported": false,
           "lineCount": 13
+        },
+        {
+          "name": "firstAttr",
+          "params": [
+            "$",
+            "selectors",
+            "attrName"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "placeSlugFromVenueUrl",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 17
         },
         {
           "name": "collectTexts",
@@ -20203,7 +20526,7 @@
             "importImages"
           ],
           "exported": true,
-          "lineCount": 443
+          "lineCount": 454
         }
       ],
       "imports": [
@@ -20226,7 +20549,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1099,
+      "totalLines": 1138,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {
@@ -20744,12 +21067,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "ae99406e60d15c79d9a92deaf1cd6e4d81a3fb8b4377be158b4d672e6941d59e",
+      "contentHash": "5594ae84367f8c9690292283058876eb89943c27384857ea0b80ddca0dcee410",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1010,
+      "totalLines": 1037,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {

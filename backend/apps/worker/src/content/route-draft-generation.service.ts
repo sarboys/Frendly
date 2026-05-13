@@ -339,7 +339,10 @@ export class RouteDraftGenerationService {
         take: MAX_PLACE_CANDIDATES_PER_QUERY,
       }),
     ]);
-    const balancedPlaces = balancePlaceCandidates(places, input);
+    const scopedPlaces = scopeCommercialPlacesToTomesto(places);
+    const tomestoCounts = countTomestoCommercialCategories(scopedPlaces);
+    console.info('[route-generation] tomesto commercial candidates', tomestoCounts);
+    const balancedPlaces = balancePlaceCandidates(scopedPlaces, input);
     return uniqueCandidates([...events, ...balancedPlaces]);
   }
 
@@ -372,6 +375,7 @@ export class RouteDraftGenerationService {
           'Do not return empty route objects.',
         ],
         routePolicy: 'Use routeSkeletons as the source of truth. Prefer one timed event. Use two timed events only when the skeleton has two timed events, their categories differ, their times do not overlap, and travel time fits. Keep visible movement between places. Do not put restaurant, cafe and bar as adjacent steps. A bar is a final social stop, never a middle step before a walk, cultural venue or event.',
+        commercialPlacePolicy: 'Restaurant, cafe, bar, wine bar, dancing bar, karaoke, lounge and food steps must use candidates with source=tomesto. Walk, park, outdoor, museum and culture steps may use KudaGo or Overpass candidates. If a required Tomesto commercial candidate is missing, keep the route as a warning draft instead of silently replacing it with a generic place.',
         stepPolicy: 'Every route must include a steps array with 2 to 4 step objects. Keep event timeLabel and endTimeLabel equal to imported startsAt and endsAt. If you cannot build that route, omit it.',
       },
       brief: {
@@ -389,6 +393,7 @@ export class RouteDraftGenerationService {
         routeSkeletons: routeSkeletons.length,
         events: candidates.filter((item) => item.contentKind === 'event').length,
         places: candidates.filter((item) => item.contentKind === 'place').length,
+        tomestoPlaces: candidates.filter((item) => item.contentKind === 'place' && item.source?.code === 'tomesto').length,
       },
       candidates: promptCandidates.map((item) => ({
         id: item.id,
@@ -678,6 +683,93 @@ function uniqueCandidates<T extends { id: string }>(candidates: T[]) {
     seen.add(candidate.id);
     return true;
   });
+}
+
+function scopeCommercialPlacesToTomesto<T extends {
+  title?: string | null;
+  category?: string | null;
+  placeKind?: string | null;
+  tags?: unknown;
+  source?: { code?: string | null } | null;
+}>(places: T[]) {
+  return places.filter((place) => {
+    if (!isCommercialPlaceCandidate(place)) {
+      return true;
+    }
+    const allowed = place.source?.code === 'tomesto';
+    if (!allowed) {
+      console.debug('[route-generation] filtered non-tomesto commercial place', {
+        title: place.title,
+        category: place.category,
+        source: place.source?.code,
+      });
+    }
+    return allowed;
+  });
+}
+
+function countTomestoCommercialCategories(places: Array<{
+  category?: string | null;
+  placeKind?: string | null;
+  tags?: unknown;
+  source?: { code?: string | null } | null;
+}>) {
+  const counts: Record<string, number> = {
+    restaurant: 0,
+    cafe: 0,
+    bar: 0,
+    karaoke: 0,
+    lounge: 0,
+    food: 0,
+  };
+  for (const place of places) {
+    if (place.source?.code !== 'tomesto') {
+      continue;
+    }
+    const key = commercialCategoryKey(place);
+    if (key) {
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+function isCommercialPlaceCandidate(place: {
+  category?: string | null;
+  placeKind?: string | null;
+  tags?: unknown;
+}) {
+  return commercialCategoryKey(place) != null;
+}
+
+function commercialCategoryKey(place: {
+  category?: string | null;
+  placeKind?: string | null;
+  tags?: unknown;
+}) {
+  const tags = Array.isArray(place.tags)
+    ? place.tags.filter((tag): tag is string => typeof tag === 'string')
+    : [];
+  const raw = [place.category, place.placeKind, ...tags]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  if (/karaoke|караоке/.test(raw)) {
+    return 'karaoke';
+  }
+  if (/lounge|лаунж/.test(raw)) {
+    return 'lounge';
+  }
+  if (/wine|вино|винн|bar|бар|pub|gastropub/.test(raw)) {
+    return 'bar';
+  }
+  if (/cafe|coffee|кафе|кофе/.test(raw)) {
+    return 'cafe';
+  }
+  if (/restaurant|food|ресторан|еда|place:restaurant|occasion:food/.test(raw)) {
+    return 'restaurant';
+  }
+  return null;
 }
 
 function normalizeArea(value: string | null | undefined) {

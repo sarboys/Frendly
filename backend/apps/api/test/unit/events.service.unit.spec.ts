@@ -753,6 +753,103 @@ describe('EventsService unit', () => {
     expect(result.chatId).toBeNull();
   });
 
+  it('accepts externalPlaceId and links a Tomesto place to a created meetup', async () => {
+    const externalPlace = {
+      id: 'place-1',
+      title: 'Brix',
+      address: 'Покровка 12',
+      lat: 55.756,
+      lng: 37.64,
+      contentKind: 'place',
+      publicStatus: 'published',
+      source: { code: 'tomesto', name: 'ТоМесто' },
+    };
+    const eventCreate = jest.fn().mockResolvedValue({ id: 'event-1' });
+    const service = new EventsService(
+      {
+        client: {
+          externalContentItem: {
+            findFirst: jest.fn().mockResolvedValue(externalPlace),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          poster: { findUnique: jest.fn() },
+          eveningRoute: { findUnique: jest.fn() },
+          profile: { findUnique: jest.fn().mockResolvedValue({ gender: 'male' }) },
+          userBlock: { findMany: jest.fn().mockResolvedValue([]) },
+          user: { findUnique: jest.fn().mockResolvedValue({ displayName: 'Host' }) },
+          community: { findFirst: jest.fn() },
+          event: { create: eventCreate, findUnique: jest.fn() },
+          chat: { create: jest.fn().mockResolvedValue({ id: 'chat-1' }) },
+          eventParticipant: { create: jest.fn() },
+          eventAttendance: { create: jest.fn() },
+          notification: { create: jest.fn() },
+          outboxEvent: { create: jest.fn() },
+          eventLiveState: { create: jest.fn() },
+          chatMember: { create: jest.fn() },
+          $transaction: jest.fn(async (handler) => handler({
+            event: { create: eventCreate },
+            chat: { create: jest.fn().mockResolvedValue({ id: 'chat-1' }) },
+            eventParticipant: { create: jest.fn() },
+            eventAttendance: { create: jest.fn() },
+            notification: { create: jest.fn() },
+            outboxEvent: { create: jest.fn() },
+            eventLiveState: { create: jest.fn() },
+            chatMember: { create: jest.fn() },
+          })),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({ id: 'event-1' } as any);
+
+    await service.createEvent('host-1', {
+      title: 'Встреча',
+      description: 'Описание встречи',
+      emoji: '🍷',
+      vibe: 'Спокойно',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      capacity: 8,
+      externalPlaceId: 'place-1',
+    });
+
+    expect(eventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          place: 'Brix, Покровка 12',
+          latitude: 55.756,
+          longitude: 37.64,
+          sourceExternalContentItemId: 'place-1',
+        }),
+      }),
+    );
+  });
+
+  it('rejects hidden or non-Tomesto externalPlaceId', async () => {
+    const service = new EventsService(
+      {
+        client: {
+          externalContentItem: { findFirst: jest.fn().mockResolvedValue(null) },
+          poster: { findUnique: jest.fn() },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.createEvent('host-1', {
+        title: 'Встреча',
+        description: 'Описание встречи',
+        place: 'Brix',
+        startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        capacity: 8,
+        externalPlaceId: 'hidden-place',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'external_place_not_found',
+    });
+  });
+
   it('counts live meetup stories without loading every story row', async () => {
     const eventFindUnique = jest
       .fn()

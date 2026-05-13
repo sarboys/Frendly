@@ -32,7 +32,7 @@ Discovery and events:
 
 - `Event`, `Poster`, `EventParticipant`, `EventJoinRequest`, `EventAttendance`, `EventLiveState`, `EventFeedback`, `EventFavorite`, `EventStory`.
 - Partner-owned content uses optional `partnerId` where supported.
-- `Event.sourceExternalContentItemId` links a user-created meetup back to the imported affiche event when the user creates it from `afficheEventId`.
+- `Event.sourceExternalContentItemId` links a user-created meetup back to an imported source. For `afficheEventId` it points to a public imported event. For `externalPlaceId` it points to a published Tomesto place selected in Create Meetup.
 
 Frendly Evening:
 
@@ -45,7 +45,7 @@ Frendly Evening:
 - Route aggregation: `ExternalContentSource`, `ExternalImportRun`, `ExternalContentItem`, `GeneratedRouteDraftBatch`, `GeneratedRouteReviewDraft`, `GeneratedRouteDraftStep`. Manual imports and route generations use `pending_manual` statuses that worker scans outside the API request path.
 - `ExternalImportRun` stores import counters for admin health: `publishedCount`, `paidCount`, `freeCount`, `unknownPriceCount`, `missingCoordsCount`.
 - `ExternalContentItem` separates imported events and places through `contentKind`. Public affiche fields include `venueName`, `imageUrl`, `actionUrl`, `actionKind`, `priceMode`, `isAffiliate`, `sourceProvider`, `placeKind`, `lastSeenAt`, `publicStatus`.
-- Tomesto uses the same `ExternalContentSource`, `ExternalImportRun` and `ExternalContentItem` models. Places store route-builder taxonomy in `tags`, for example `area:center`, `occasion:food`, `budget:cheap`, `metro:*`, `feature:*`, `set:*`, and a compact `raw.taxonomy`. Reviews and menu text are not stored.
+- Tomesto uses the same `ExternalContentSource`, `ExternalImportRun` and `ExternalContentItem` models. Places store route-builder taxonomy in `tags`, for example `area:center`, `occasion:food`, `budget:cheap`, `metro:*`, `feature:*`, `set:*`, and a compact `raw.taxonomy`. Promos store compact place linkage in `raw.placeSlug`, `raw.venueName` and address when available. Reviews and menu text are not stored.
 - `priceMode=free` means exact external price `0`; `unknown` must not be treated as free. `publicStatus` gates public affiche and route candidate visibility.
 - Dedupe enrichment can be stored in `ExternalContentItem.raw.enrichment`, including source code, source item id, duplicate key, confidence and fields copied from the matched item.
 - `EveningRouteStep` can store external ticket metadata as `ticketUrl`, `ticketSourceCode` and `ticketProvider`. This is for external affiliate checkout only, not in-app payment.
@@ -84,7 +84,7 @@ Public:
 
 - `User` owns profile, settings, sessions, messages, media, notifications, push tokens and safety records.
 - `Event` owns primary chat, participants, requests, attendance, feedback, stories and public shares. It can optionally point to `EveningRoute` via `eveningRouteId` when a meetup is created from a ready or custom route.
-- `Event` can optionally point to `ExternalContentItem` through `sourceExternalContentItemId` when created from public affiche.
+- `Event` can optionally point to `ExternalContentItem` through `sourceExternalContentItemId` when created from public affiche or a selected Tomesto place. Presenters must branch by `contentKind`: event sources produce ticket fields, place sources produce booking fields.
 - `EveningRouteTemplate` owns immutable route revisions and current route pointer.
 - `EveningRoute` owns steps, sessions and optional route chat.
 - Generated route review drafts link to imported external items through draft steps. They publish only after admin convert and publish creates an `EveningRouteTemplate` plus current `EveningRoute`.

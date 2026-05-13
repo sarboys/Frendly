@@ -409,6 +409,14 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       '.event-place a',
       '.promo-place a',
     ]);
+    const venueUrl = firstAttr($, [
+      '[itemprop="location"] a',
+      '.venue a',
+      '.place a',
+      '.event-place a',
+      '.promo-place a',
+    ], 'href');
+    const placeSlug = kind === 'promos' ? placeSlugFromVenueUrl(venueUrl) : null;
     if (!venueName) {
       console.warn('[tomesto] timed item missing venue', { kind, slug, title });
     }
@@ -460,7 +468,10 @@ export class TomestoAdapter implements ExternalSourceAdapter {
         kind: kind === 'promos' ? 'promo' : 'event',
         slug,
         category: originalCategory,
+        placeSlug,
         venueName,
+        address: firstText($, ['[itemprop="address"]', '.address', 'address']),
+        sourceUrl,
       },
     };
   }
@@ -531,6 +542,34 @@ function firstText($: CheerioRoot, selectors: string[]) {
     if (attr) {
       return attr;
     }
+  }
+  return null;
+}
+
+function firstAttr($: CheerioRoot, selectors: string[], attrName: string) {
+  for (const selector of selectors) {
+    const value = cleanText($(selector).first().attr(attrName), 500);
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function placeSlugFromVenueUrl(value: string | null) {
+  if (!value) {
+    return null;
+  }
+  try {
+    const url = new URL(value, DEFAULT_BASE_URL);
+  const parts = url.pathname.split('/').filter(Boolean);
+  const placeIndex = parts.indexOf('places');
+  const slug = placeIndex >= 0 ? parts[placeIndex + 1] : undefined;
+  if (slug) {
+    return normalizeSlug(slug);
+  }
+  } catch {
+    return null;
   }
   return null;
 }

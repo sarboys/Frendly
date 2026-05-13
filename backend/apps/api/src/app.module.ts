@@ -25,6 +25,7 @@ import { OnboardingController } from './controllers/onboarding.controller';
 import { PeopleController } from './controllers/people.controller';
 import { PartnerAuthController } from './controllers/partner-auth.controller';
 import { PartnerPortalController } from './controllers/partner-portal.controller';
+import { PlacesController } from './controllers/places.controller';
 import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { PublicCodeController } from './controllers/public-code.controller';
@@ -74,6 +75,7 @@ import { PeopleService } from './services/people.service';
 import { PartnerAuthService } from './services/partner-auth.service';
 import { PartnerOfferCodeService } from './services/partner-offer-code.service';
 import { PartnerPortalService } from './services/partner-portal.service';
+import { PlacesService } from './services/places.service';
 import { PostersService } from './services/posters.service';
 import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
@@ -117,6 +119,7 @@ import { VerificationService } from './services/verification.service';
     PeopleController,
     PartnerAuthController,
     PartnerPortalController,
+    PlacesController,
     PostersController,
     ProfileController,
     PublicCodeController,
@@ -165,6 +168,7 @@ import { VerificationService } from './services/verification.service';
     PartnerAuthService,
     PartnerOfferCodeService,
     PartnerPortalService,
+    PlacesService,
     PhoneOtpService,
     PostersService,
     PrismaService,

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-13T08:01:25.992Z",
-    "gitCommitHash": "49f63bcd1fa5ba024ac33354c4b756778b413948"
+    "analyzedAt": "2026-05-13T09:58:06.173Z",
+    "gitCommitHash": "0b519b082b74afcd24bd23d7df2eaf4e1f055c1e"
   },
   "nodes": [
     {
@@ -7622,8 +7622,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        193,
-        197
+        197,
+        201
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -8147,7 +8147,7 @@
       "type": "file",
       "name": "presenters.ts",
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "summary": "presenters.ts contains 14 functions.",
+      "summary": "presenters.ts contains 15 functions.",
       "tags": [
         "backend",
         "code",
@@ -8348,10 +8348,27 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        320,
-        374
+        332,
+        391
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/presenters.ts:mapEventBookingSummary",
+      "type": "function",
+      "name": "mapEventBookingSummary",
+      "filePath": "backend/apps/api/src/common/presenters.ts",
+      "lineRange": [
+        393,
+        429
+      ],
+      "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
         "backend",
         "function",
@@ -8365,8 +8382,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        376,
-        438
+        431,
+        494
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -8382,8 +8399,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        440,
-        460
+        496,
+        516
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -9515,6 +9532,36 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/apps/api/src/controllers/places.controller.ts",
+      "type": "file",
+      "name": "places.controller.ts",
+      "filePath": "backend/apps/api/src/controllers/places.controller.ts",
+      "summary": "places.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/places.controller.ts:PlacesController",
+      "type": "class",
+      "name": "PlacesController",
+      "filePath": "backend/apps/api/src/controllers/places.controller.ts",
+      "lineRange": [
+        5,
+        24
+      ],
+      "summary": "PlacesController in places.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:backend/apps/api/src/controllers/posters.controller.ts",
       "type": "file",
       "name": "posters.controller.ts",
@@ -10590,7 +10637,7 @@
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
         134,
-        1097
+        1101
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [
@@ -11032,11 +11079,79 @@
       "type": "file",
       "name": "events.service.ts",
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "summary": "events.service.ts contains 1 classes, 1 functions.",
+      "summary": "events.service.ts contains 1 classes, 5 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events.service.ts:promoMatchesExternalPlace",
+      "type": "function",
+      "name": "promoMatchesExternalPlace",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        3744,
+        3774
+      ],
+      "summary": "promoMatchesExternalPlace in events.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events.service.ts:jsonRecord",
+      "type": "function",
+      "name": "jsonRecord",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        3776,
+        3780
+      ],
+      "summary": "jsonRecord in events.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events.service.ts:normalizeText",
+      "type": "function",
+      "name": "normalizeText",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        3782,
+        3784
+      ],
+      "summary": "normalizeText in events.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events.service.ts:text",
+      "type": "function",
+      "name": "text",
+      "filePath": "backend/apps/api/src/services/events.service.ts",
+      "lineRange": [
+        3786,
+        3788
+      ],
+      "summary": "text in events.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
       ],
       "complexity": "complex"
     },
@@ -11046,8 +11161,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3628,
-        3647
+        3790,
+        3809
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11063,8 +11178,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        174,
-        3626
+        177,
+        3742
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -11635,6 +11750,291 @@
         215
       ],
       "summary": "PhoneOtpService in phone-otp.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/places.service.ts",
+      "type": "file",
+      "name": "places.service.ts",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "summary": "places.service.ts contains 1 classes, 15 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:mapPromoDto",
+      "type": "function",
+      "name": "mapPromoDto",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        158,
+        172
+      ],
+      "summary": "mapPromoDto in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:mapPlaceSearchResult",
+      "type": "function",
+      "name": "mapPlaceSearchResult",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        174,
+        198
+      ],
+      "summary": "mapPlaceSearchResult in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:placeSearchScore",
+      "type": "function",
+      "name": "placeSearchScore",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        200,
+        225
+      ],
+      "summary": "placeSearchScore in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:promoMatchesPlace",
+      "type": "function",
+      "name": "promoMatchesPlace",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        227,
+        243
+      ],
+      "summary": "promoMatchesPlace in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:placeSlug",
+      "type": "function",
+      "name": "placeSlug",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        245,
+        247
+      ],
+      "summary": "placeSlug in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:ratingFromRaw",
+      "type": "function",
+      "name": "ratingFromRaw",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        249,
+        252
+      ],
+      "summary": "ratingFromRaw in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:normalizeLimit",
+      "type": "function",
+      "name": "normalizeLimit",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        254,
+        259
+      ],
+      "summary": "normalizeLimit in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:distanceKm",
+      "type": "function",
+      "name": "distanceKm",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        261,
+        279
+      ],
+      "summary": "distanceKm in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:toRadians",
+      "type": "function",
+      "name": "toRadians",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        281,
+        283
+      ],
+      "summary": "toRadians in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:normalizeText",
+      "type": "function",
+      "name": "normalizeText",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        285,
+        287
+      ],
+      "summary": "normalizeText in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:normalizeTagQuery",
+      "type": "function",
+      "name": "normalizeTagQuery",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        289,
+        292
+      ],
+      "summary": "normalizeTagQuery in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:text",
+      "type": "function",
+      "name": "text",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        294,
+        296
+      ],
+      "summary": "text in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:isString",
+      "type": "function",
+      "name": "isString",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        298,
+        300
+      ],
+      "summary": "isString in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:isFiniteNumber",
+      "type": "function",
+      "name": "isFiniteNumber",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        302,
+        304
+      ],
+      "summary": "isFiniteNumber in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:asRecord",
+      "type": "function",
+      "name": "asRecord",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        306,
+        310
+      ],
+      "summary": "asRecord in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/places.service.ts:PlacesService",
+      "type": "class",
+      "name": "PlacesService",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        27,
+        156
+      ],
+      "summary": "PlacesService in places.service.ts.",
       "tags": [
         "backend",
         "class",
@@ -14209,7 +14609,7 @@
       "type": "file",
       "name": "route-draft-generation.service.ts",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
-      "summary": "route-draft-generation.service.ts contains 1 classes, 19 functions.",
+      "summary": "route-draft-generation.service.ts contains 1 classes, 23 functions.",
       "tags": [
         "backend",
         "code",
@@ -14223,8 +14623,8 @@
       "name": "hasUsableStepCount",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        573,
-        576
+        578,
+        581
       ],
       "summary": "hasUsableStepCount in route-draft-generation.service.ts.",
       "tags": [
@@ -14240,8 +14640,8 @@
       "name": "validGeneratedRoutes",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        578,
-        603
+        583,
+        608
       ],
       "summary": "validGeneratedRoutes in route-draft-generation.service.ts.",
       "tags": [
@@ -14257,8 +14657,8 @@
       "name": "buildFallbackRoute",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        605,
-        614
+        610,
+        619
       ],
       "summary": "buildFallbackRoute in route-draft-generation.service.ts.",
       "tags": [
@@ -14274,8 +14674,8 @@
       "name": "balancePlaceCandidates",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        616,
-        670
+        621,
+        675
       ],
       "summary": "balancePlaceCandidates in route-draft-generation.service.ts.",
       "tags": [
@@ -14291,10 +14691,78 @@
       "name": "uniqueCandidates",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        672,
-        681
+        677,
+        686
       ],
       "summary": "uniqueCandidates in route-draft-generation.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:scopeCommercialPlacesToTomesto",
+      "type": "function",
+      "name": "scopeCommercialPlacesToTomesto",
+      "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "lineRange": [
+        688,
+        709
+      ],
+      "summary": "scopeCommercialPlacesToTomesto in route-draft-generation.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:countTomestoCommercialCategories",
+      "type": "function",
+      "name": "countTomestoCommercialCategories",
+      "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "lineRange": [
+        711,
+        735
+      ],
+      "summary": "countTomestoCommercialCategories in route-draft-generation.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:isCommercialPlaceCandidate",
+      "type": "function",
+      "name": "isCommercialPlaceCandidate",
+      "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "lineRange": [
+        737,
+        743
+      ],
+      "summary": "isCommercialPlaceCandidate in route-draft-generation.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:commercialCategoryKey",
+      "type": "function",
+      "name": "commercialCategoryKey",
+      "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "lineRange": [
+        745,
+        773
+      ],
+      "summary": "commercialCategoryKey in route-draft-generation.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -14308,8 +14776,8 @@
       "name": "normalizeArea",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        683,
-        689
+        775,
+        781
       ],
       "summary": "normalizeArea in route-draft-generation.service.ts.",
       "tags": [
@@ -14325,8 +14793,8 @@
       "name": "placeMatchesArea",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        691,
-        703
+        783,
+        795
       ],
       "summary": "placeMatchesArea in route-draft-generation.service.ts.",
       "tags": [
@@ -14342,8 +14810,8 @@
       "name": "geoBucket",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        705,
-        710
+        797,
+        802
       ],
       "summary": "geoBucket in route-draft-generation.service.ts.",
       "tags": [
@@ -14359,8 +14827,8 @@
       "name": "durationMinutes",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        712,
-        721
+        804,
+        813
       ],
       "summary": "durationMinutes in route-draft-generation.service.ts.",
       "tags": [
@@ -14376,8 +14844,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        723,
-        729
+        815,
+        821
       ],
       "summary": "text in route-draft-generation.service.ts.",
       "tags": [
@@ -14393,8 +14861,8 @@
       "name": "nullableText",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        731,
-        733
+        823,
+        825
       ],
       "summary": "nullableText in route-draft-generation.service.ts.",
       "tags": [
@@ -14410,8 +14878,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        735,
-        737
+        827,
+        829
       ],
       "summary": "number in route-draft-generation.service.ts.",
       "tags": [
@@ -14427,8 +14895,8 @@
       "name": "int",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        739,
-        742
+        831,
+        834
       ],
       "summary": "int in route-draft-generation.service.ts.",
       "tags": [
@@ -14444,8 +14912,8 @@
       "name": "nullableInt",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        744,
-        747
+        836,
+        839
       ],
       "summary": "nullableInt in route-draft-generation.service.ts.",
       "tags": [
@@ -14461,8 +14929,8 @@
       "name": "dateToIso",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        749,
-        751
+        841,
+        843
       ],
       "summary": "dateToIso in route-draft-generation.service.ts.",
       "tags": [
@@ -14478,8 +14946,8 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        753,
-        759
+        845,
+        851
       ],
       "summary": "csv in route-draft-generation.service.ts.",
       "tags": [
@@ -14495,8 +14963,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        761,
-        768
+        853,
+        860
       ],
       "summary": "positiveInt in route-draft-generation.service.ts.",
       "tags": [
@@ -14512,8 +14980,8 @@
       "name": "routeGenerationFailure",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        770,
-        787
+        862,
+        879
       ],
       "summary": "routeGenerationFailure in route-draft-generation.service.ts.",
       "tags": [
@@ -14529,8 +14997,8 @@
       "name": "emojiForKind",
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
-        789,
-        803
+        881,
+        895
       ],
       "summary": "emojiForKind in route-draft-generation.service.ts.",
       "tags": [
@@ -14547,7 +15015,7 @@
       "filePath": "backend/apps/worker/src/content/route-draft-generation.service.ts",
       "lineRange": [
         69,
-        571
+        576
       ],
       "summary": "RouteDraftGenerationService in route-draft-generation.service.ts.",
       "tags": [
@@ -14576,8 +15044,8 @@
       "name": "buildRouteSkeletons",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        119,
-        174
+        120,
+        175
       ],
       "summary": "buildRouteSkeletons in route-planner.ts.",
       "tags": [
@@ -14593,8 +15061,8 @@
       "name": "validateRouteDraft",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        176,
-        440
+        177,
+        441
       ],
       "summary": "validateRouteDraft in route-planner.ts.",
       "tags": [
@@ -14610,8 +15078,8 @@
       "name": "buildAnchoredRoute",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        442,
-        545
+        443,
+        546
       ],
       "summary": "buildAnchoredRoute in route-planner.ts.",
       "tags": [
@@ -14627,8 +15095,8 @@
       "name": "buildFlexibleRoute",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        547,
-        579
+        548,
+        580
       ],
       "summary": "buildFlexibleRoute in route-planner.ts.",
       "tags": [
@@ -14644,8 +15112,8 @@
       "name": "selectFlexiblePlaceCluster",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        581,
-        609
+        582,
+        610
       ],
       "summary": "selectFlexiblePlaceCluster in route-planner.ts.",
       "tags": [
@@ -14661,8 +15129,8 @@
       "name": "growFlexiblePlaceCluster",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        611,
-        626
+        612,
+        627
       ],
       "summary": "growFlexiblePlaceCluster in route-planner.ts.",
       "tags": [
@@ -14678,8 +15146,8 @@
       "name": "findNextFlexiblePlace",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        628,
-        650
+        629,
+        651
       ],
       "summary": "findNextFlexiblePlace in route-planner.ts.",
       "tags": [
@@ -14695,8 +15163,8 @@
       "name": "nextFlexiblePlaceScore",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        652,
-        659
+        653,
+        660
       ],
       "summary": "nextFlexiblePlaceScore in route-planner.ts.",
       "tags": [
@@ -14712,8 +15180,8 @@
       "name": "flexibleClusterScore",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        661,
-        674
+        662,
+        675
       ],
       "summary": "flexibleClusterScore in route-planner.ts.",
       "tags": [
@@ -14729,8 +15197,8 @@
       "name": "buildEventHopRoute",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        676,
-        734
+        677,
+        735
       ],
       "summary": "buildEventHopRoute in route-planner.ts.",
       "tags": [
@@ -14746,8 +15214,8 @@
       "name": "buildRouteSummary",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        736,
-        755
+        737,
+        756
       ],
       "summary": "buildRouteSummary in route-planner.ts.",
       "tags": [
@@ -14763,8 +15231,8 @@
       "name": "buildStep",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        757,
-        784
+        758,
+        785
       ],
       "summary": "buildStep in route-planner.ts.",
       "tags": [
@@ -14780,8 +15248,8 @@
       "name": "selectAnchors",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        786,
-        803
+        787,
+        804
       ],
       "summary": "selectAnchors in route-planner.ts.",
       "tags": [
@@ -14797,8 +15265,8 @@
       "name": "findFlexiblePlace",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        805,
-        829
+        806,
+        830
       ],
       "summary": "findFlexiblePlace in route-planner.ts.",
       "tags": [
@@ -14814,8 +15282,8 @@
       "name": "normalizeCandidates",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        831,
-        845
+        832,
+        846
       ],
       "summary": "normalizeCandidates in route-planner.ts.",
       "tags": [
@@ -14831,8 +15299,8 @@
       "name": "anchorCategories",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        847,
-        864
+        848,
+        865
       ],
       "summary": "anchorCategories in route-planner.ts.",
       "tags": [
@@ -14848,8 +15316,8 @@
       "name": "beforeCategories",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        866,
-        883
+        867,
+        884
       ],
       "summary": "beforeCategories in route-planner.ts.",
       "tags": [
@@ -14865,8 +15333,8 @@
       "name": "afterCategories",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        885,
-        902
+        886,
+        903
       ],
       "summary": "afterCategories in route-planner.ts.",
       "tags": [
@@ -14882,8 +15350,8 @@
       "name": "secondAfterCategories",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        904,
-        915
+        905,
+        916
       ],
       "summary": "secondAfterCategories in route-planner.ts.",
       "tags": [
@@ -14899,8 +15367,8 @@
       "name": "prefersPostEventFlow",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        917,
-        919
+        918,
+        920
       ],
       "summary": "prefersPostEventFlow in route-planner.ts.",
       "tags": [
@@ -14916,8 +15384,8 @@
       "name": "flexibleCategories",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        921,
-        938
+        922,
+        939
       ],
       "summary": "flexibleCategories in route-planner.ts.",
       "tags": [
@@ -14933,8 +15401,8 @@
       "name": "categoryPriority",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        940,
-        943
+        941,
+        944
       ],
       "summary": "categoryPriority in route-planner.ts.",
       "tags": [
@@ -14950,8 +15418,8 @@
       "name": "isHospitalityCategory",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        945,
-        947
+        946,
+        954
       ],
       "summary": "isHospitalityCategory in route-planner.ts.",
       "tags": [
@@ -14967,8 +15435,8 @@
       "name": "normalizeCategory",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        949,
-        1070
+        956,
+        1086
       ],
       "summary": "normalizeCategory in route-planner.ts.",
       "tags": [
@@ -14984,8 +15452,8 @@
       "name": "explicitCategoryFromSource",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1072,
-        1187
+        1088,
+        1206
       ],
       "summary": "explicitCategoryFromSource in route-planner.ts.",
       "tags": [
@@ -15001,8 +15469,8 @@
       "name": "sameVenueCluster",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1189,
-        1191
+        1208,
+        1210
       ],
       "summary": "sameVenueCluster in route-planner.ts.",
       "tags": [
@@ -15018,8 +15486,8 @@
       "name": "maxPairDistance",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1193,
-        1209
+        1212,
+        1228
       ],
       "summary": "maxPairDistance in route-planner.ts.",
       "tags": [
@@ -15035,8 +15503,8 @@
       "name": "walkMinutes",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1211,
-        1213
+        1230,
+        1232
       ],
       "summary": "walkMinutes in route-planner.ts.",
       "tags": [
@@ -15052,8 +15520,8 @@
       "name": "distanceMeters",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1215,
-        1224
+        1234,
+        1243
       ],
       "summary": "distanceMeters in route-planner.ts.",
       "tags": [
@@ -15069,8 +15537,8 @@
       "name": "degreesToRadians",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1226,
-        1228
+        1245,
+        1247
       ],
       "summary": "degreesToRadians in route-planner.ts.",
       "tags": [
@@ -15086,8 +15554,8 @@
       "name": "defaultDuration",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1230,
-        1268
+        1249,
+        1287
       ],
       "summary": "defaultDuration in route-planner.ts.",
       "tags": [
@@ -15103,8 +15571,8 @@
       "name": "eventEndDate",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1270,
-        1278
+        1289,
+        1297
       ],
       "summary": "eventEndDate in route-planner.ts.",
       "tags": [
@@ -15120,8 +15588,8 @@
       "name": "localMinutes",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1280,
-        1283
+        1299,
+        1302
       ],
       "summary": "localMinutes in route-planner.ts.",
       "tags": [
@@ -15137,8 +15605,8 @@
       "name": "formatTime",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1285,
-        1292
+        1304,
+        1311
       ],
       "summary": "formatTime in route-planner.ts.",
       "tags": [
@@ -15154,8 +15622,8 @@
       "name": "sameTimeLabel",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1294,
-        1301
+        1313,
+        1320
       ],
       "summary": "sameTimeLabel in route-planner.ts.",
       "tags": [
@@ -15171,8 +15639,8 @@
       "name": "parseTimeLabel",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1303,
-        1324
+        1322,
+        1343
       ],
       "summary": "parseTimeLabel in route-planner.ts.",
       "tags": [
@@ -15188,8 +15656,8 @@
       "name": "formatMinutes",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1326,
-        1331
+        1345,
+        1350
       ],
       "summary": "formatMinutes in route-planner.ts.",
       "tags": [
@@ -15205,8 +15673,8 @@
       "name": "durationLabel",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1333,
-        1346
+        1352,
+        1365
       ],
       "summary": "durationLabel in route-planner.ts.",
       "tags": [
@@ -15222,8 +15690,8 @@
       "name": "routeTitle",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1348,
-        1385
+        1367,
+        1404
       ],
       "summary": "routeTitle in route-planner.ts.",
       "tags": [
@@ -15239,8 +15707,8 @@
       "name": "fallbackVibe",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1387,
-        1407
+        1406,
+        1426
       ],
       "summary": "fallbackVibe in route-planner.ts.",
       "tags": [
@@ -15256,8 +15724,8 @@
       "name": "flexibleStepDescription",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1409,
-        1417
+        1428,
+        1436
       ],
       "summary": "flexibleStepDescription in route-planner.ts.",
       "tags": [
@@ -15273,8 +15741,8 @@
       "name": "emojiForKind",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1419,
-        1460
+        1438,
+        1479
       ],
       "summary": "emojiForKind in route-planner.ts.",
       "tags": [
@@ -15290,8 +15758,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1462,
-        1468
+        1481,
+        1487
       ],
       "summary": "text in route-planner.ts.",
       "tags": [
@@ -15307,8 +15775,8 @@
       "name": "nullableText",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1470,
-        1472
+        1489,
+        1491
       ],
       "summary": "nullableText in route-planner.ts.",
       "tags": [
@@ -15324,8 +15792,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1474,
-        1476
+        1493,
+        1495
       ],
       "summary": "number in route-planner.ts.",
       "tags": [
@@ -15341,8 +15809,8 @@
       "name": "nullableInt",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1478,
-        1481
+        1497,
+        1500
       ],
       "summary": "nullableInt in route-planner.ts.",
       "tags": [
@@ -15358,8 +15826,8 @@
       "name": "candidateFitsBudget",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1483,
-        1498
+        1502,
+        1517
       ],
       "summary": "candidateFitsBudget in route-planner.ts.",
       "tags": [
@@ -15375,8 +15843,8 @@
       "name": "candidateFitsMoodBudget",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1500,
-        1508
+        1519,
+        1527
       ],
       "summary": "candidateFitsMoodBudget in route-planner.ts.",
       "tags": [
@@ -15392,8 +15860,8 @@
       "name": "isOutdoorFreeCategory",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1510,
-        1518
+        1529,
+        1537
       ],
       "summary": "isOutdoorFreeCategory in route-planner.ts.",
       "tags": [
@@ -15409,8 +15877,8 @@
       "name": "isExplicitlyFreeCandidate",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1520,
-        1522
+        1539,
+        1541
       ],
       "summary": "isExplicitlyFreeCandidate in route-planner.ts.",
       "tags": [
@@ -15426,8 +15894,8 @@
       "name": "budgetLimitFor",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1524,
-        1526
+        1543,
+        1545
       ],
       "summary": "budgetLimitFor in route-planner.ts.",
       "tags": [
@@ -15443,8 +15911,8 @@
       "name": "normalizeToken",
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
       "lineRange": [
-        1528,
-        1530
+        1547,
+        1549
       ],
       "summary": "normalizeToken in route-planner.ts.",
       "tags": [
@@ -15740,7 +16208,7 @@
       "type": "file",
       "name": "tomesto.adapter.ts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "summary": "tomesto.adapter.ts contains 1 classes, 48 functions.",
+      "summary": "tomesto.adapter.ts contains 1 classes, 50 functions.",
       "tags": [
         "backend",
         "code",
@@ -15754,8 +16222,8 @@
       "name": "isDetailPath",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        481,
-        494
+        492,
+        505
       ],
       "summary": "isDetailPath in tomesto.adapter.ts.",
       "tags": [
@@ -15771,8 +16239,8 @@
       "name": "stripHash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        496,
-        500
+        507,
+        511
       ],
       "summary": "stripHash in tomesto.adapter.ts.",
       "tags": [
@@ -15788,8 +16256,8 @@
       "name": "canonicalUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        502,
-        512
+        513,
+        523
       ],
       "summary": "canonicalUrl in tomesto.adapter.ts.",
       "tags": [
@@ -15805,8 +16273,8 @@
       "name": "slugFromUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        514,
-        522
+        525,
+        533
       ],
       "summary": "slugFromUrl in tomesto.adapter.ts.",
       "tags": [
@@ -15822,10 +16290,44 @@
       "name": "firstText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        524,
-        536
+        535,
+        547
       ],
       "summary": "firstText in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:firstAttr",
+      "type": "function",
+      "name": "firstAttr",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        549,
+        557
+      ],
+      "summary": "firstAttr in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:placeSlugFromVenueUrl",
+      "type": "function",
+      "name": "placeSlugFromVenueUrl",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        559,
+        575
+      ],
+      "summary": "placeSlugFromVenueUrl in tomesto.adapter.ts.",
       "tags": [
         "backend",
         "function",
@@ -15839,8 +16341,8 @@
       "name": "collectTexts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        538,
-        550
+        577,
+        589
       ],
       "summary": "collectTexts in tomesto.adapter.ts.",
       "tags": [
@@ -15856,8 +16358,8 @@
       "name": "meta",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        552,
-        558
+        591,
+        597
       ],
       "summary": "meta in tomesto.adapter.ts.",
       "tags": [
@@ -15873,8 +16375,8 @@
       "name": "shortDescription",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        560,
-        566
+        599,
+        605
       ],
       "summary": "shortDescription in tomesto.adapter.ts.",
       "tags": [
@@ -15890,8 +16392,8 @@
       "name": "cleanText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        568,
-        577
+        607,
+        616
       ],
       "summary": "cleanText in tomesto.adapter.ts.",
       "tags": [
@@ -15907,8 +16409,8 @@
       "name": "coordinates",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        579,
-        601
+        618,
+        640
       ],
       "summary": "coordinates in tomesto.adapter.ts.",
       "tags": [
@@ -15924,8 +16426,8 @@
       "name": "jsonLdObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        603,
-        614
+        642,
+        653
       ],
       "summary": "jsonLdObjects in tomesto.adapter.ts.",
       "tags": [
@@ -15941,8 +16443,8 @@
       "name": "collectJsonObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        616,
-        627
+        655,
+        666
       ],
       "summary": "collectJsonObjects in tomesto.adapter.ts.",
       "tags": [
@@ -15958,8 +16460,8 @@
       "name": "placeCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        629,
-        655
+        668,
+        694
       ],
       "summary": "placeCategory in tomesto.adapter.ts.",
       "tags": [
@@ -15975,8 +16477,8 @@
       "name": "averageCheck",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        657,
-        664
+        696,
+        703
       ],
       "summary": "averageCheck in tomesto.adapter.ts.",
       "tags": [
@@ -15992,8 +16494,8 @@
       "name": "visiblePrice",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        666,
-        680
+        705,
+        719
       ],
       "summary": "visiblePrice in tomesto.adapter.ts.",
       "tags": [
@@ -16009,8 +16511,8 @@
       "name": "rating",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        682,
-        688
+        721,
+        727
       ],
       "summary": "rating in tomesto.adapter.ts.",
       "tags": [
@@ -16026,8 +16528,8 @@
       "name": "metroLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        690,
-        704
+        729,
+        743
       ],
       "summary": "metroLabels in tomesto.adapter.ts.",
       "tags": [
@@ -16043,8 +16545,8 @@
       "name": "featureLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        706,
-        720
+        745,
+        759
       ],
       "summary": "featureLabels in tomesto.adapter.ts.",
       "tags": [
@@ -16060,8 +16562,8 @@
       "name": "cuisineLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        722,
-        728
+        761,
+        767
       ],
       "summary": "cuisineLabels in tomesto.adapter.ts.",
       "tags": [
@@ -16077,8 +16579,8 @@
       "name": "setLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        730,
-        755
+        769,
+        794
       ],
       "summary": "setLabels in tomesto.adapter.ts.",
       "tags": [
@@ -16094,8 +16596,8 @@
       "name": "sourceUpdatedText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        757,
-        764
+        796,
+        803
       ],
       "summary": "sourceUpdatedText in tomesto.adapter.ts.",
       "tags": [
@@ -16111,8 +16613,8 @@
       "name": "compactPageText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        766,
-        770
+        805,
+        809
       ],
       "summary": "compactPageText in tomesto.adapter.ts.",
       "tags": [
@@ -16128,8 +16630,8 @@
       "name": "buildPlaceTaxonomy",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        772,
-        806
+        811,
+        845
       ],
       "summary": "buildPlaceTaxonomy in tomesto.adapter.ts.",
       "tags": [
@@ -16145,8 +16647,8 @@
       "name": "taxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        808,
-        819
+        847,
+        858
       ],
       "summary": "taxonomyTags in tomesto.adapter.ts.",
       "tags": [
@@ -16162,8 +16664,8 @@
       "name": "normalizeFeature",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        821,
-        845
+        860,
+        884
       ],
       "summary": "normalizeFeature in tomesto.adapter.ts.",
       "tags": [
@@ -16179,8 +16681,8 @@
       "name": "extractImageUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        847,
-        858
+        886,
+        897
       ],
       "summary": "extractImageUrl in tomesto.adapter.ts.",
       "tags": [
@@ -16196,8 +16698,8 @@
       "name": "firstDateWindow",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        860,
-        868
+        899,
+        907
       ],
       "summary": "firstDateWindow in tomesto.adapter.ts.",
       "tags": [
@@ -16213,8 +16715,8 @@
       "name": "dateWindows",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        870,
-        895
+        909,
+        934
       ],
       "summary": "dateWindows in tomesto.adapter.ts.",
       "tags": [
@@ -16230,8 +16732,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        897,
-        918
+        936,
+        957
       ],
       "summary": "parseDate in tomesto.adapter.ts.",
       "tags": [
@@ -16247,8 +16749,8 @@
       "name": "eventCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        920,
-        941
+        959,
+        980
       ],
       "summary": "eventCategory in tomesto.adapter.ts.",
       "tags": [
@@ -16264,8 +16766,8 @@
       "name": "ensureTrailingSlash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        943,
-        945
+        982,
+        984
       ],
       "summary": "ensureTrailingSlash in tomesto.adapter.ts.",
       "tags": [
@@ -16281,8 +16783,8 @@
       "name": "normalizeRefQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        947,
-        953
+        986,
+        992
       ],
       "summary": "normalizeRefQuery in tomesto.adapter.ts.",
       "tags": [
@@ -16298,8 +16800,8 @@
       "name": "safeQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        955,
-        961
+        994,
+        1000
       ],
       "summary": "safeQuery in tomesto.adapter.ts.",
       "tags": [
@@ -16315,8 +16817,8 @@
       "name": "dateKey",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        963,
-        965
+        1002,
+        1004
       ],
       "summary": "dateKey in tomesto.adapter.ts.",
       "tags": [
@@ -16332,8 +16834,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        967,
-        973
+        1006,
+        1012
       ],
       "summary": "text in tomesto.adapter.ts.",
       "tags": [
@@ -16349,8 +16851,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        975,
-        985
+        1014,
+        1024
       ],
       "summary": "number in tomesto.adapter.ts.",
       "tags": [
@@ -16366,8 +16868,8 @@
       "name": "positiveNumber",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        987,
-        990
+        1026,
+        1029
       ],
       "summary": "positiveNumber in tomesto.adapter.ts.",
       "tags": [
@@ -16383,8 +16885,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        992,
-        995
+        1031,
+        1034
       ],
       "summary": "positiveInt in tomesto.adapter.ts.",
       "tags": [
@@ -16400,8 +16902,8 @@
       "name": "nonNegativeInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        997,
-        1000
+        1036,
+        1039
       ],
       "summary": "nonNegativeInt in tomesto.adapter.ts.",
       "tags": [
@@ -16417,8 +16919,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1002,
-        1004
+        1041,
+        1043
       ],
       "summary": "object in tomesto.adapter.ts.",
       "tags": [
@@ -16434,8 +16936,8 @@
       "name": "delay",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1006,
-        1008
+        1045,
+        1047
       ],
       "summary": "delay in tomesto.adapter.ts.",
       "tags": [
@@ -16451,8 +16953,8 @@
       "name": "normalizeToken",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1010,
-        1018
+        1049,
+        1057
       ],
       "summary": "normalizeToken in tomesto.adapter.ts.",
       "tags": [
@@ -16468,8 +16970,8 @@
       "name": "normalizeSlug",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1020,
-        1028
+        1059,
+        1067
       ],
       "summary": "normalizeSlug in tomesto.adapter.ts.",
       "tags": [
@@ -16485,8 +16987,8 @@
       "name": "transliterate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1030,
-        1070
+        1069,
+        1109
       ],
       "summary": "transliterate in tomesto.adapter.ts.",
       "tags": [
@@ -16502,8 +17004,8 @@
       "name": "dedupe",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1072,
-        1074
+        1111,
+        1113
       ],
       "summary": "dedupe in tomesto.adapter.ts.",
       "tags": [
@@ -16519,8 +17021,8 @@
       "name": "isString",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1076,
-        1078
+        1115,
+        1117
       ],
       "summary": "isString in tomesto.adapter.ts.",
       "tags": [
@@ -16536,8 +17038,8 @@
       "name": "emptyTaxonomyCounts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1080,
-        1086
+        1119,
+        1125
       ],
       "summary": "emptyTaxonomyCounts in tomesto.adapter.ts.",
       "tags": [
@@ -16553,8 +17055,8 @@
       "name": "countTaxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1088,
-        1098
+        1127,
+        1137
       ],
       "summary": "countTaxonomyTags in tomesto.adapter.ts.",
       "tags": [
@@ -16571,7 +17073,7 @@
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
         37,
-        479
+        490
       ],
       "summary": "TomestoAdapter in tomesto.adapter.ts.",
       "tags": [
@@ -33930,6 +34432,13 @@
     },
     {
       "source": "file:backend/apps/api/src/common/presenters.ts",
+      "target": "function:backend/apps/api/src/common/presenters.ts:mapEventBookingSummary",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/presenters.ts",
       "target": "function:backend/apps/api/src/common/presenters.ts:mapEventSummary",
       "type": "contains",
       "direction": "forward",
@@ -34239,6 +34748,13 @@
     {
       "source": "file:backend/apps/api/src/controllers/people.controller.ts",
       "target": "class:backend/apps/api/src/controllers/people.controller.ts:PeopleController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/places.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/places.controller.ts:PlacesController",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -34686,6 +35202,34 @@
     },
     {
       "source": "file:backend/apps/api/src/services/events.service.ts",
+      "target": "function:backend/apps/api/src/services/events.service.ts:promoMatchesExternalPlace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events.service.ts",
+      "target": "function:backend/apps/api/src/services/events.service.ts:jsonRecord",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events.service.ts",
+      "target": "function:backend/apps/api/src/services/events.service.ts:normalizeText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events.service.ts",
+      "target": "function:backend/apps/api/src/services/events.service.ts:text",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events.service.ts",
       "target": "function:backend/apps/api/src/services/events.service.ts:emojiForCategory",
       "type": "contains",
       "direction": "forward",
@@ -34869,6 +35413,118 @@
     {
       "source": "file:backend/apps/api/src/services/phone-otp.service.ts",
       "target": "class:backend/apps/api/src/services/phone-otp.service.ts:PhoneOtpService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:mapPromoDto",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:mapPlaceSearchResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:placeSearchScore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:promoMatchesPlace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:placeSlug",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:ratingFromRaw",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:normalizeLimit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:distanceKm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:toRadians",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:normalizeText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:normalizeTagQuery",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:text",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:isString",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:isFiniteNumber",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:asRecord",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "class:backend/apps/api/src/services/places.service.ts:PlacesService",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -35708,6 +36364,34 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:scopeCommercialPlacesToTomesto",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:countTomestoCommercialCategories",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:isCommercialPlaceCandidate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
+      "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:commercialCategoryKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/route-draft-generation.service.ts",
       "target": "function:backend/apps/worker/src/content/route-draft-generation.service.ts:normalizeArea",
       "type": "contains",
       "direction": "forward",
@@ -36311,6 +36995,20 @@
     {
       "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
       "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:firstText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:firstAttr",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:placeSlugFromVenueUrl",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -41987,6 +42685,13 @@
     },
     {
       "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/controllers/places.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/posters.controller.ts",
       "type": "imports",
       "direction": "forward",
@@ -42324,6 +43029,13 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/services/partner-portal.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/places.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -43059,6 +43771,13 @@
     {
       "source": "file:backend/apps/api/src/controllers/people.controller.ts",
       "target": "file:backend/apps/api/src/services/people.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/places.controller.ts",
+      "target": "file:backend/apps/api/src/services/places.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -43906,6 +44625,20 @@
     {
       "source": "file:backend/apps/api/src/services/phone-otp.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -45554,6 +46287,7 @@
         "file:backend/apps/api/src/controllers/partner-auth.controller.ts",
         "file:backend/apps/api/src/controllers/partner-portal.controller.ts",
         "file:backend/apps/api/src/controllers/people.controller.ts",
+        "file:backend/apps/api/src/controllers/places.controller.ts",
         "file:backend/apps/api/src/controllers/posters.controller.ts",
         "file:backend/apps/api/src/controllers/profile.controller.ts",
         "file:backend/apps/api/src/controllers/public-code.controller.ts",
@@ -45600,6 +46334,7 @@
         "file:backend/apps/api/src/services/partner-portal.service.ts",
         "file:backend/apps/api/src/services/people.service.ts",
         "file:backend/apps/api/src/services/phone-otp.service.ts",
+        "file:backend/apps/api/src/services/places.service.ts",
         "file:backend/apps/api/src/services/posters.service.ts",
         "file:backend/apps/api/src/services/prisma.service.ts",
         "file:backend/apps/api/src/services/profile.service.ts",

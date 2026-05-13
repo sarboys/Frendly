@@ -5,6 +5,7 @@ export type RoutePlannerCandidate = {
   title: string;
   shortSummary?: string | null;
   category: string;
+  placeKind?: string | null;
   tags?: string[] | null;
   address?: string | null;
   lat?: number | null;
@@ -943,7 +944,13 @@ function categoryPriority(category: string, categories: string[]) {
 }
 
 function isHospitalityCategory(category: string) {
-  return category === 'food' || category === 'cafe' || category === 'bar';
+  return (
+    category === 'food' ||
+    category === 'cafe' ||
+    category === 'bar' ||
+    category === 'karaoke' ||
+    category === 'lounge'
+  );
 }
 
 function normalizeCategory(category: string, title?: string | null, summary?: string | null) {
@@ -1021,6 +1028,15 @@ function normalizeCategory(category: string, title?: string | null, summary?: st
   if (raw.includes('club') || raw.includes('клуб')) {
     return 'club';
   }
+  if (raw.includes('karaoke') || raw.includes('караоке')) {
+    return 'karaoke';
+  }
+  if (raw.includes('lounge') || raw.includes('лаунж')) {
+    return 'lounge';
+  }
+  if (raw.includes('wine') || raw.includes('вино') || raw.includes('винн')) {
+    return 'bar';
+  }
   if (raw.includes('bar') || raw.includes('бар') || raw.includes('pub')) {
     return 'bar';
   }
@@ -1084,7 +1100,10 @@ function explicitCategoryFromSource(category: string) {
     return 'bar';
   }
   if (normalized === 'karaoke') {
-    return 'active';
+    return 'karaoke';
+  }
+  if (normalized === 'lounge') {
+    return 'lounge';
   }
   if (normalized === 'quest' || normalized === 'quests') {
     return 'quest';

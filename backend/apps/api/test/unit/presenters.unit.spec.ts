@@ -162,6 +162,74 @@ describe('presenters', () => {
     });
   });
 
+  it('maps place booking separately from paid ticket fields', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-booking',
+        title: 'Встреча в баре',
+        emoji: '🍷',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Brix · Покровка 12',
+        distanceKm: 1.2,
+        latitude: null,
+        longitude: null,
+        capacity: 8,
+        vibe: 'Спокойно',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'free',
+        priceAmountFrom: null,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        sourceExternalContentItem: {
+          id: 'place-1',
+          contentKind: 'place',
+          imageUrl: null,
+          priceFrom: 1500,
+          priceMode: 'unknown',
+          actionUrl: 'https://tomesto.ru/moskva/places/brix?ref=frendly',
+          sourceProvider: 'ТоМесто',
+          venueName: null,
+          title: 'Brix',
+          currency: 'RUB',
+          bookingPromos: [
+            {
+              title: 'Сет к вину',
+              description: 'Компактно',
+              validUntil: '2026-06-01T00:00:00.000Z',
+              bookingUrl: 'https://tomesto.ru/moskva/promos/wine?ref=frendly',
+              sourceUrl: 'https://tomesto.ru/moskva/promos/wine',
+            },
+          ],
+        },
+      } as any,
+      participants: [],
+      currentUserId: 'user-me',
+    });
+
+    expect(summary).toMatchObject({
+      ticketUrl: null,
+      ticketSourceKind: null,
+      bookingUrl: 'https://tomesto.ru/moskva/places/brix?ref=frendly',
+      bookingProvider: 'ТоМесто',
+      bookingPlaceId: 'place-1',
+      bookingAverageCheck: 1500,
+      bookingCurrency: 'RUB',
+      bookingPromos: [
+        expect.objectContaining({
+          title: 'Сет к вину',
+          bookingUrl: 'https://tomesto.ru/moskva/promos/wine?ref=frendly',
+        }),
+      ],
+    });
+    expect(JSON.stringify(summary)).not.toContain('"raw"');
+  });
+
   it('maps radar category fields to event summaries', () => {
     const summary = mapEventSummary({
       event: {

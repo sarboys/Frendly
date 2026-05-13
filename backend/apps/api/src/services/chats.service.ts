@@ -195,6 +195,7 @@ export class ChatsService {
             sourceExternalContentItem: {
               select: {
                 id: true,
+                contentKind: true,
                 priceFrom: true,
                 priceMode: true,
                 actionUrl: true,
@@ -500,6 +501,7 @@ export class ChatsService {
     } | null;
     sourceExternalContentItem?: {
       id: string;
+      contentKind?: string | null;
       priceFrom?: number | null;
       priceMode?: string | null;
       actionUrl?: string | null;
@@ -521,6 +523,8 @@ export class ChatsService {
 
     const affiche = event?.sourceExternalContentItem;
     if (
+      affiche != null &&
+      (affiche.contentKind == null || affiche.contentKind === 'event') &&
       affiche?.priceMode === 'paid' &&
       (affiche.priceFrom ?? 0) > 0 &&
       (affiche.actionUrl ?? '').trim().length > 0

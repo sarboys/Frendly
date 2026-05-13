@@ -112,6 +112,33 @@ export interface VenueDto {
   updatedAt: string;
 }
 
+export interface PlacePromoDto {
+  title: string;
+  description: string | null;
+  validUntil: string | null;
+  bookingUrl: string | null;
+  sourceUrl: string | null;
+}
+
+export interface PlaceSearchResultDto {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  lat: number | null;
+  lng: number | null;
+  category: string;
+  placeKind: string | null;
+  averageCheck: number | null;
+  currency: string | null;
+  rating: number | null;
+  bookingUrl: string | null;
+  provider: string | null;
+  sourceUrl: string | null;
+  distanceKm: number | null;
+  promos: PlacePromoDto[];
+}
+
 export interface PartnerOfferDto {
   id: string;
   partnerId: string;

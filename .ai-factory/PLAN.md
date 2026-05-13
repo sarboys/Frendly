@@ -10,7 +10,11 @@ Created: 2026-05-09
 
 ## Goal
 
-Добавить импорт ТоМесто только для Москвы: заведения, события, акции, скидки, ссылки на бронь через нашу реферальную ссылку.
+Добавить импорт ТоМесто только для Москвы и использовать его в двух местах.
+
+Первый сценарий: пользователь выбирает конкретное место в Create Meetup, мы ищем это место в нашей базе, привязываем его к встрече, показываем ссылку на бронирование, средний чек, цены и активные акции.
+
+Второй сценарий: AI builder строит маршрут и для коммерческих мест берет варианты из ТоМесто. Например, "прогулка по центру и в конце винный бар" или "бар с танцами" должны использовать Tomesto place candidates.
 
 Публичный запуск полного импорта зависит от разрешения ТоМесто или партнерской интеграции. До этого импорт должен работать только как технический прототип или admin-only источник.
 
@@ -24,6 +28,7 @@ Created: 2026-05-09
 - Sitemap Москвы около 44.6 MB, там много SEO URL. Его нельзя делать главным ежедневным источником.
 - Страницы ТоМесто для событий и акций используют окно примерно 30 дней, например с 9 мая по 8 июня 2026.
 - Заведения периода не имеют, их надо обновлять отдельно от событий и акций.
+- Новый продуктовый смысл: ТоМесто является источником коммерческих мест для AI builder и lookup-слоем для конкретного места при создании встречи.
 
 ## Source Policy
 
@@ -34,6 +39,8 @@ Created: 2026-05-09
 - Не создавать фейковые брони.
 - Не запускать production schedule без разрешения или API от ТоМесто.
 - Для MVP хранить минимум: название, адрес, координаты, категория, чек, рейтинг, краткое описание, даты события или акции, `sourceUrl`, `actionUrl`.
+- Не подмешивать ТоМесто в публичную афишу.
+- В генератор маршрутов давать ТоМесто только для коммерческих place steps: ресторан, кафе, бар, винный бар, бар с танцами, караоке, лаунж.
 
 ## Commit Plan
 
@@ -41,6 +48,8 @@ Created: 2026-05-09
 - Commit 2, after tasks 4-6: `feat: import tomesto moscow content`
 - Commit 3, after tasks 7-10: `test: cover tomesto import flow`
 - Commit 4, after tasks 11-13: `docs: document tomesto import rollout`
+- Commit 5, after tasks 14-17: `feat: add tomesto route and place lookup`
+- Commit 6, after tasks 18-21: `feat: show booking info for selected meetup places`
 
 ## Tasks
 
@@ -237,6 +246,7 @@ Created: 2026-05-09
   - AI builder behavior:
     - "прогуляться в центре" uses existing KudaGo or Overpass walk, culture, park candidates first.
     - "потом покушать" uses Tomesto candidates with `occasion:food` or food categories.
+    - "винный бар", "бар", "бар с танцами", "караоке" use Tomesto candidates first and require a Tomesto source match when the prompt explicitly asks for that final venue type.
     - "в центре" filters by `area:center`, central metro, or distance from the walk stop.
     - "недорого" filters by `budget:cheap`, `sets` containing cheap selections, and average check threshold.
     - final ranking prefers nearby, open, has coordinates, has ref booking URL, lower average check, good rating.
@@ -338,6 +348,212 @@ Created: 2026-05-09
   - Logging:
     - Capture failing command name and first actionable error.
 
+### Phase 5: AI Builder And Meetup Place Booking Lookup
+
+- [x] Task 14: Scope Tomesto usage inside route generation.
+  - Deliverable: Tomesto places are required for commercial venue steps in AI builder, while walks and culture can still use KudaGo or Overpass.
+  - Files:
+    - Modify: `backend/apps/worker/src/content/route-draft-generation.service.ts`
+    - Modify: `backend/apps/worker/src/content/route-planner.ts`
+    - Modify: `backend/apps/worker/src/content/tomesto.adapter.ts`, only if more tags are needed for bar and dance-bar detection.
+    - Modify: `ai-context/backend-api.md`
+  - Exact behavior:
+    - Include `source.code = tomesto` place candidates in route generation.
+    - Use Tomesto candidates for restaurant, cafe, bar, wine bar, dance bar, karaoke, lounge and food steps.
+    - For prompts like "в конце винный бар" or "бар с танцами", the final commercial step must use a Tomesto candidate.
+    - Use KudaGo or Overpass first for walk, park, culture, museum, outdoor and non-booking steps.
+    - If the prompt explicitly asks for a Tomesto-backed commercial step and no candidate matches, return a validation warning instead of silently replacing it with a generic place.
+    - Rank Tomesto candidates by prompt category match, area or distance, average check, booking URL presence, rating and promo availability.
+    - Keep candidate pool bounded so Tomesto places do not push timed events and walks out of the prompt.
+    - Keep Tomesto events and promos hidden by default.
+    - Prefer importing places plus promos. Tomesto events are optional and should stay off unless `TOMESTO_IMPORT_EVENTS=true`.
+  - Logging:
+    - INFO with Tomesto candidate counts by commercial category.
+    - DEBUG when a source-specific candidate filter is applied.
+    - WARN when an explicit bar, wine bar, dance bar or restaurant request has no Tomesto match.
+
+- [x] Task 15: Add public authenticated place lookup endpoint for Create Meetup.
+  - Deliverable: mobile can search our imported Tomesto places before falling back to Yandex search.
+  - Files:
+    - Create: `backend/apps/api/src/controllers/places.controller.ts`
+    - Create: `backend/apps/api/src/services/places.service.ts`
+    - Modify: `backend/apps/api/src/app.module.ts`
+    - Modify: `backend/packages/contracts/src/index.ts`
+    - Add tests: `backend/apps/api/test/unit/places.service.unit.spec.ts`
+  - Endpoint:
+    - `GET /places/search`
+  - Query:
+    - `q`: required text, minimum 2 chars.
+    - `city`: default `Москва`.
+    - `latitude`, `longitude`: optional user point for distance.
+    - `limit`: default 10, max 20.
+  - Response DTO:
+    - `id`
+    - `name`
+    - `address`
+    - `city`
+    - `lat`
+    - `lng`
+    - `category`
+    - `placeKind`
+    - `averageCheck`
+    - `currency`
+    - `rating`
+    - `bookingUrl`
+    - `provider`
+    - `sourceUrl`
+    - `distanceKm`
+    - `promos`
+  - Search rules:
+    - Search only `ExternalContentItem` rows where `source.code = tomesto`, `contentKind = place`, `publicStatus = published`.
+    - Match by title, address, venue name and tags.
+    - Prefer exact title prefix, then title contains, then address contains.
+    - If coordinates are passed, sort nearby matches ahead of farther matches after textual relevance.
+    - Keep selects narrow. Do not read large raw blobs unless needed for rating or compact taxonomy.
+  - Logging:
+    - DEBUG for query, city, limit and whether coordinates were passed.
+    - INFO for result count.
+    - WARN when q is too short or city is unsupported.
+
+- [x] Task 16: Attach selected Tomesto place to meetup creation.
+  - Deliverable: `POST /events` can receive a selected imported place id and preserve booking metadata on the event detail.
+  - Files:
+    - Modify: `backend/apps/api/src/services/events.service.ts`
+    - Modify: `backend/apps/api/src/common/presenters.ts`
+    - Modify: `backend/packages/contracts/src/index.ts`
+    - Add tests: `backend/apps/api/test/unit/events.service.unit.spec.ts`
+    - Add tests: `backend/apps/api/test/unit/presenters.unit.spec.ts`
+  - Request field:
+    - `externalPlaceId`: optional string.
+  - Validation:
+    - If present, it must point to `ExternalContentItem` with `source.code = tomesto`, `contentKind = place`, `publicStatus = published`.
+    - If invalid, return `404 external_place_not_found`.
+    - `externalPlaceId` can be used with normal meetup creation.
+    - `externalPlaceId` must not be combined with `afficheEventId` unless a later product decision says otherwise.
+  - Event storage:
+    - Reuse `Event.sourceExternalContentItemId` for the selected place if no `afficheEventId` is used.
+    - Use the selected place title and address to fill `place` when user did not override it.
+    - Use selected coordinates when request coordinates are absent.
+  - Presenter behavior:
+    - Existing ticket fields must only come from `contentKind = event`.
+    - Add separate booking fields for `contentKind = place`:
+      - `bookingUrl`
+      - `bookingProvider`
+      - `bookingPlaceId`
+      - `bookingAverageCheck`
+      - `bookingCurrency`
+      - `bookingPromos`
+    - Do not expose raw source payload.
+  - Logging:
+    - DEBUG for external place lookup and selected id.
+    - INFO when event is linked to a Tomesto place.
+    - WARN when selected place is missing or hidden.
+
+- [x] Task 17: Attach active promos to a selected place.
+  - Deliverable: place lookup and event detail can show compact active promos for the selected place.
+  - Files:
+    - Modify: `backend/apps/worker/src/content/tomesto.adapter.ts`
+    - Modify: `backend/apps/api/src/services/places.service.ts`
+    - Modify: `backend/apps/api/src/common/presenters.ts`
+  - Import rules:
+    - Promo raw data must include enough place identity to match back to a place: `placeSlug`, normalized venue name, address if available, source URL.
+    - Promos stay hidden from public feeds.
+    - Promos can still be returned as nested info for a selected place.
+  - Lookup rules:
+    - Match promos by `raw.placeSlug` first.
+    - Fallback to normalized title plus address only when slug is missing.
+    - Return at most 3 active promos.
+    - Promo DTO has `title`, `description`, `validUntil`, `bookingUrl`, `sourceUrl`.
+  - Logging:
+    - DEBUG for promo match strategy.
+    - INFO for promo count returned with a place.
+    - WARN when promo cannot be linked to a place.
+
+- [x] Task 18: Use backend place lookup in mobile Create Meetup place picker.
+  - Deliverable: Create Meetup search shows our Tomesto places before generic Yandex results.
+  - Files:
+    - Modify: `mobile/lib/shared/data/backend_repository.dart`
+    - Modify: `mobile/lib/features/create_meetup/presentation/widgets/place_sheet.dart`
+    - Modify: `mobile/lib/features/create_meetup/presentation/create_meetup_draft.dart`
+    - Modify: `mobile/lib/features/create_meetup/presentation/create_meetup_screen.dart`
+  - Mobile model changes:
+    - Add `externalPlaceId` to `PlaceSelection`.
+    - Add `bookingUrl`, `averageCheck`, `currency`, `provider`, `promos`.
+    - Carry `externalPlaceId` into `CreateMeetupDraft`.
+    - Send `externalPlaceId` to `POST /events`.
+  - UI behavior:
+    - Query backend `/places/search` when text length is at least 2.
+    - Show Tomesto results first with badge `Можно забронировать`.
+    - Show average check as `Средний чек 1500 ₽` when present.
+    - Show one compact promo line when present.
+    - Fall back to Yandex search when backend returns no results or errors.
+    - Keep current manual location option.
+  - Performance:
+    - Debounce stays 300 ms.
+    - Cancel or ignore stale requests.
+    - Do not block Yandex fallback on a slow backend request longer than the current search flow allows.
+  - Logging:
+    - Mobile should not add noisy logs.
+    - Backend already logs query and result count.
+
+- [x] Task 19: Show booking info after meetup creation.
+  - Deliverable: users see booking info on meetup detail for events linked to a Tomesto place.
+  - Files:
+    - Modify: `mobile/lib/shared/models/event.dart`
+    - Modify: `mobile/lib/shared/models/event_detail.dart`
+    - Modify: `mobile/lib/features/meetup_detail/presentation/meetup_detail_screen.dart`
+    - Modify: `mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart`, only if the pinned meetup card should show booking.
+  - UI behavior:
+    - Show a `Забронировать столик` CTA when `bookingUrl` exists.
+    - Open it through external browser.
+    - Show average check and provider near the place info.
+    - Show up to 3 promos in compact form.
+    - Keep paid ticket CTA separate from table booking CTA.
+  - Logging:
+    - No extra mobile logs.
+    - If URL launch fails, show short user-facing error.
+
+- [x] Task 20: Add tests for place lookup and event booking fields.
+  - Deliverable: backend and mobile mapping tests cover the new flow.
+  - Files:
+    - Modify: `backend/apps/api/test/unit/places.service.unit.spec.ts`
+    - Modify: `backend/apps/api/test/unit/events.service.unit.spec.ts`
+    - Modify: `backend/apps/api/test/unit/presenters.unit.spec.ts`
+    - Modify mobile tests if the project already has matching create meetup or model tests.
+  - Cases:
+    - `/places/search` returns only Tomesto place rows.
+    - Search matches title and address.
+    - Search returns booking URL and average check.
+    - Search nests active promos without exposing raw.
+    - `POST /events` accepts `externalPlaceId`.
+    - Event detail exposes booking fields for place source.
+    - Event detail does not turn place booking into paid ticket fields.
+    - Invalid or hidden place returns `external_place_not_found`.
+  - Commands:
+    - `cd backend && pnpm --filter @big-break/api test:unit -- places.service.unit.spec.ts events.service.unit.spec.ts presenters.unit.spec.ts`
+    - `cd mobile && flutter analyze`
+  - Logging:
+    - Assert no raw source payload is exposed.
+
+- [x] Task 21: Update docs and graph for the new product logic.
+  - Deliverable: context says Tomesto is both an AI builder commercial-place source and a selected-place booking source.
+  - Files:
+    - Modify: `ai-context/backend-api.md`
+    - Modify: `ai-context/database.md`
+    - Modify: `ai-context/frontend-flutter.md`
+    - Modify: `.ai-factory/PLAN.md`
+  - Docs must mention:
+    - `externalPlaceId` in `POST /events`.
+    - `GET /places/search`.
+    - Booking fields are separate from ticket fields.
+    - Tomesto route candidates are required for explicit commercial venue steps like wine bar, restaurant, cafe, bar with dancing.
+    - Walk and culture route steps still prefer KudaGo or Overpass.
+    - Promos are shown only nested under selected places.
+  - Verification:
+    - `bash scripts/update-understand-graph.sh`
+  - Logging:
+    - Capture docs and graph update failures in final output.
+
 ## Open Questions Before Coding
 
 - Какая точная реферальная ссылка или query string у нас есть от ТоМесто.
@@ -350,6 +566,12 @@ Created: 2026-05-09
 - Manual import run for `tomesto` and city `Москва` creates external items.
 - Places have coordinates, address, source URL and affiliate booking action URL when ref query is set.
 - Events and promos do not leak into public feeds by default.
+- Tomesto places feed AI route generation for commercial venue steps.
+- Prompts that ask for final wine bar, bar with dancing, restaurant, cafe or similar commercial places use Tomesto candidates.
+- Create Meetup can search Tomesto places from our DB.
+- Created meetup can link to a selected Tomesto place through `externalPlaceId`.
+- Event detail exposes table booking fields separately from ticket fields.
+- Active Tomesto promos can be shown only as nested place info.
 - Reviews and personal data are not stored.
 - Tests cover parser, visibility and admin source acceptance.
 - Worker and API build pass.

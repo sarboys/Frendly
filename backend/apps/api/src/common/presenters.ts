@@ -308,13 +308,25 @@ type EventSummaryInput = Pick<
   } | null;
   sourceExternalContentItem?: {
     id?: string | null;
+    contentKind?: string | null;
+    title?: string | null;
     imageUrl: string | null;
     priceFrom?: number | null;
     priceMode?: string | null;
     actionUrl?: string | null;
     sourceProvider?: string | null;
     venueName?: string | null;
+    currency?: string | null;
+    bookingPromos?: EventBookingPromo[];
   } | null;
+};
+
+type EventBookingPromo = {
+  title: string;
+  description: string | null;
+  validUntil: string | null;
+  bookingUrl: string | null;
+  sourceUrl: string | null;
 };
 
 export function mapEventTicketSummary(event?: {
@@ -327,11 +339,15 @@ export function mapEventTicketSummary(event?: {
   } | null;
   sourceExternalContentItem?: {
     id?: string | null;
+    contentKind?: string | null;
+    title?: string | null;
     priceFrom?: number | null;
     priceMode?: string | null;
     actionUrl?: string | null;
     sourceProvider?: string | null;
     venueName?: string | null;
+    currency?: string | null;
+    bookingPromos?: EventBookingPromo[];
   } | null;
 } | null) {
   const poster = event?.sourcePoster;
@@ -349,6 +365,7 @@ export function mapEventTicketSummary(event?: {
   const affiche = event?.sourceExternalContentItem;
   if (
     affiche?.id &&
+    (affiche.contentKind == null || affiche.contentKind === 'event') &&
     affiche.priceMode === 'paid' &&
     (affiche.priceFrom ?? 0) > 0 &&
     (affiche.actionUrl ?? '').trim().length > 0
@@ -370,6 +387,44 @@ export function mapEventTicketSummary(event?: {
     ticketPriceFrom: null,
     ticketProvider: null,
     ticketVenue: null,
+  };
+}
+
+export function mapEventBookingSummary(event?: {
+  sourceExternalContentItem?: {
+    id?: string | null;
+    contentKind?: string | null;
+    title?: string | null;
+    priceFrom?: number | null;
+    actionUrl?: string | null;
+    sourceProvider?: string | null;
+    currency?: string | null;
+    bookingPromos?: EventBookingPromo[];
+  } | null;
+} | null) {
+  const place = event?.sourceExternalContentItem;
+  if (
+    place?.id &&
+    place.contentKind === 'place' &&
+    (place.actionUrl ?? '').trim().length > 0
+  ) {
+    return {
+      bookingUrl: place.actionUrl,
+      bookingProvider: place.sourceProvider ?? null,
+      bookingPlaceId: place.id,
+      bookingAverageCheck: place.priceFrom ?? null,
+      bookingCurrency: place.currency ?? null,
+      bookingPromos: (place.bookingPromos ?? []).slice(0, 3),
+    };
+  }
+
+  return {
+    bookingUrl: null,
+    bookingProvider: null,
+    bookingPlaceId: null,
+    bookingAverageCheck: null,
+    bookingCurrency: null,
+    bookingPromos: [],
   };
 }
 
@@ -434,6 +489,7 @@ export function mapEventSummary(params: {
     liveStatus: mapLiveStatus(liveState),
     isHost: event.hostId === currentUserId,
     ...mapEventTicketSummary(event),
+    ...mapEventBookingSummary(event),
   };
 }
 
