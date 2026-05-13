@@ -80,6 +80,44 @@ describe('AfficheService', () => {
     ]);
   });
 
+  it('filters standup by standup signals instead of theatre comedy category', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findMany,
+        },
+      },
+    } as any);
+
+    await service.listEvents({
+      city: 'Москва',
+      category: 'standup',
+    });
+
+    const findManyArgs = findMany.mock.calls[0][0];
+    expect(findManyArgs.where).toEqual(
+      expect.objectContaining({
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            OR: expect.arrayContaining([
+              { category: 'standup' },
+              { title: { contains: 'стендап', mode: 'insensitive' } },
+              {
+                tags: {
+                  array_contains: ['стендап'],
+                },
+              },
+            ]),
+          }),
+        ]),
+      }),
+    );
+    expect(findManyArgs.where).not.toEqual(
+      expect.objectContaining({ category: 'comedy' }),
+    );
+  });
+
   it('does not expose places through affiche detail', async () => {
     const findFirst = jest.fn().mockResolvedValue(null);
     const service = new AfficheService({

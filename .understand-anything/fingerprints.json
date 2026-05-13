@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "fa3a1ec978f5b3af97a46605fd34e6b27aa2c682",
-  "generatedAt": "2026-05-13T04:28:59.063Z",
+  "gitCommitHash": "0fb4cd7992df5fad5a992ca4f14a0e7ff6956aee",
+  "generatedAt": "2026-05-13T04:48:29.690Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -13701,7 +13701,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "3fd4b63c6d9a996d00563fa980935bb535987b38c6b8a6be9d09ce2044a8755a",
+      "contentHash": "b6d98621038a1d45ad3340105a66789730ceb2073a2ac62b5f2e65e6372253cf",
       "functions": [
         {
           "name": "oneDayRange",
@@ -13725,6 +13725,7 @@
             "isFreshRequest",
             "parseContentLength",
             "buildWhere",
+            "buildStandupCategoryWhere",
             "parsePriceMode",
             "parseBoolean",
             "parseDateRange",
@@ -13751,7 +13752,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 474
+          "lineCount": 491
         }
       ],
       "imports": [
@@ -13818,7 +13819,7 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 565,
+      "totalLines": 582,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {

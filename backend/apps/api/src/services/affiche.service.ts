@@ -206,6 +206,7 @@ export class AfficheService {
     const dateRange = this.parseDateRange(query);
     const source = this.optionalText(query.source);
     const category = this.optionalText(query.category);
+    const standupCategory = category === 'standup';
     const search = normalizeSearchQuery(this.optionalText(query.q) ?? undefined);
     const featured = this.parseBoolean(query.featured);
 
@@ -216,7 +217,8 @@ export class AfficheService {
       moderationStatus: { not: 'rejected' },
       priceMode: priceMode === 'any' ? { in: ['free', 'paid'] } : priceMode,
       ...(source ? { source: { code: source } } : {}),
-      ...(category ? { category } : {}),
+      ...(category && !standupCategory ? { category } : {}),
+      ...(standupCategory ? { AND: [this.buildStandupCategoryWhere()] } : {}),
       ...(featured === true ? { imageUrl: { not: null } } : {}),
       ...(dateRange
         ? { startsAt: { gte: dateRange.from, lt: dateRange.to } }
@@ -232,6 +234,21 @@ export class AfficheService {
             ],
           }
         : {}),
+    };
+  }
+
+  private buildStandupCategoryWhere(): Prisma.ExternalContentItemWhereInput {
+    return {
+      OR: [
+        { category: 'standup' },
+        { title: { contains: 'стендап', mode: 'insensitive' } },
+        { title: { contains: 'standup', mode: 'insensitive' } },
+        { title: { contains: 'stand up', mode: 'insensitive' } },
+        { title: { contains: 'stand-up', mode: 'insensitive' } },
+        ...['стендап', 'standup', 'stand up', 'stand-up', 'comedy-club'].map(
+          (tag) => ({ tags: { array_contains: [tag] } }),
+        ),
+      ],
     };
   }
 
