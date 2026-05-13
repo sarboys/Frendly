@@ -162,6 +162,43 @@ describe('presenters', () => {
     });
   });
 
+  it('maps radar category fields to event summaries', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-route-date',
+        title: 'Маршрут на двоих',
+        emoji: '✨',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Центр',
+        distanceKm: 1.2,
+        latitude: null,
+        longitude: null,
+        capacity: 2,
+        vibe: 'Свидание',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'free',
+        priceAmountFrom: null,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        eveningRouteId: 'r-date-route',
+        isDate: true,
+      } as any,
+      participants: [],
+      currentUserId: 'user-me',
+    });
+
+    expect(summary).toMatchObject({
+      routeId: 'r-date-route',
+      isDate: true,
+    });
+  });
+
   it('maps profile photo media variants to proxy urls', () => {
     const photo = mapProfilePhoto({
       id: 'photo-1',

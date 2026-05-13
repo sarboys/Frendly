@@ -107,6 +107,7 @@ const eventListSummarySelect = {
   visibilityMode: true,
   joinMode: true,
   isDate: true,
+  eveningRouteId: true,
   canceledAt: true,
   hostId: true,
   sourcePoster: {

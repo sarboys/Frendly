@@ -46,6 +46,8 @@ const hostEventSummarySelect = {
   genderMode: true,
   visibilityMode: true,
   joinMode: true,
+  isDate: true,
+  eveningRouteId: true,
   hostId: true,
 } satisfies Prisma.EventSelect;
 

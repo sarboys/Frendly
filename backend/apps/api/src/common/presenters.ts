@@ -294,6 +294,8 @@ type EventSummaryInput = Pick<
   | 'visibilityMode'
   | 'joinMode'
   | 'hostId'
+  | 'eveningRouteId'
+  | 'isDate'
 > & {
   latitude?: number | null;
   longitude?: number | null;
@@ -423,6 +425,8 @@ export function mapEventSummary(params: {
     accessMode: event.accessMode,
     genderMode: event.genderMode,
     visibilityMode: event.visibilityMode,
+    routeId: event.eveningRouteId,
+    isDate: event.isDate,
     joined: joined ?? participants.some((participant) => participant.userId === currentUserId),
     joinMode: event.joinMode,
     joinRequestStatus: mapJoinRequestStatus(joinRequest),
