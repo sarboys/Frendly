@@ -26,20 +26,23 @@ Use this for WebSocket, chat sync, unread, typing, messages, attachments and Eve
 ## Client lifecycle
 
 1. Load recent messages through REST: `GET /chats/:chatId/messages`.
-2. Connect socket.
-3. Send `session.authenticate` with access token.
-4. Subscribe with `chat.subscribe`.
-5. Request missed events with `sync.request`.
-6. Store sync cursor per chat.
-7. Store pending send, edit, delete and read commands in SharedPreferences outbox.
+2. Keep `nextCursor` from the REST page and request older history when the user scrolls near the top.
+3. Connect socket.
+4. Send `session.authenticate` with access token.
+5. Subscribe with `chat.subscribe`.
+6. Request missed events with `sync.request`.
+7. Store sync cursor per chat.
+8. Store pending send, edit, delete and read commands in SharedPreferences outbox.
 
 On reconnect, authenticate, resend queued commands, resubscribe known chat ids and request sync from stored cursor.
 
 Chat lists also expose per-user `isPinned`. Mobile toggles it through `POST /chats/:chatId/pin`, updates the row optimistically, then refetches the list.
 
+Mobile meetup chat list requests send `includeSocial=false` for the compact list path. The backend keeps member ids, names and online flags, but skips social preview aggregation unless a caller explicitly keeps social previews enabled.
+
 ## App-level sync
 
-`chatRealtimeSyncProvider` starts after auth.
+`chatRealtimeSyncProvider` starts after auth. `ChatsScreen` uses `chatRealtimeSyncForScopeProvider` so segment-specific tabs only subscribe the chat kinds they loaded.
 
 It subscribes to known meetup and personal chat ids and handles:
 
@@ -152,7 +155,8 @@ Flutter `AppAttachmentService` coalesces in-flight signed download URL requests 
 
 ## Performance notes
 
-- Initial message load is bounded.
+- Initial message load is bounded to the latest page, and older messages load by cursor only after the user scrolls upward.
+- Compact meetup chat lists skip social preview aggregation on the backend to keep the initial chat list query lighter.
 - Sync is bounded.
 - Membership cache is capped by `CHAT_MEMBERSHIP_CACHE_MAX_ENTRIES`.
 - WebSocket input payload, message text and attachment count are bounded before DB writes.

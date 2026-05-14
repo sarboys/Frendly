@@ -134,10 +134,15 @@ interface ChatListMemberState {
 export class ChatsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async listChats(userId: string, kind: 'meetup' | 'direct', params: { cursor?: string; limit?: number }) {
+  async listChats(
+    userId: string,
+    kind: 'meetup' | 'direct',
+    params: { cursor?: string; limit?: number; includeSocial?: boolean },
+  ) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const take = this.normalizeChatListLimit(params.limit);
     const cursorChat = await this.resolveChatListCursor(params.cursor);
+    const includeSocial = params.includeSocial !== false;
 
     const chats = await this.prismaService.client.chat.findMany({
       where: {
@@ -307,20 +312,21 @@ export class ChatsService {
     });
     const hasMore = chats.length > take;
     const page = hasMore ? chats.slice(0, take) : chats;
-    const memberStateByChatId = await this.getChatListMemberStates(
-      userId,
-      page.map((chat) => chat.id),
-    );
-    const socialByUserId =
-      kind === 'meetup'
-        ? await loadProfileSocialPreviews(
+    const [memberStateByChatId, socialByUserId] = await Promise.all([
+      this.getChatListMemberStates(
+        userId,
+        page.map((chat) => chat.id),
+      ),
+      kind === 'meetup' && includeSocial
+        ? loadProfileSocialPreviews(
             this.prismaService.client,
             userId,
             page.flatMap((chat) =>
               chat.members.map((entry) => entry.user.id),
             ),
           )
-        : new Map();
+        : Promise.resolve(new Map()),
+    ]);
 
     const items = (
       await Promise.all(

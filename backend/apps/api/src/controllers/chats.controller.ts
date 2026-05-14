@@ -11,10 +11,12 @@ export class ChatsController {
     @CurrentUser() currentUser: { userId: string },
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('includeSocial') includeSocial?: string,
   ) {
     return this.chatsService.listChats(currentUser.userId, 'meetup', {
       cursor,
       limit: limit ? Number(limit) : undefined,
+      includeSocial: includeSocial !== 'false',
     });
   }
 

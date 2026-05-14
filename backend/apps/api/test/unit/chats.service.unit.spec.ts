@@ -62,6 +62,14 @@ describe('ChatsService unit', () => {
       ...overrides.profileReaction,
     },
   });
+  const emptySocialPreview = () => ({
+    followers: 0,
+    likes: 0,
+    superLikes: 0,
+    iFollow: false,
+    iLike: false,
+    iSuper: false,
+  });
 
   afterEach(() => {
     delete process.env.CHAT_UNREAD_COUNTER_READS;
@@ -658,6 +666,76 @@ describe('ChatsService unit', () => {
             iLike: false,
             iSuper: true,
           },
+        },
+      ],
+    });
+  });
+
+  it('can skip social previews for compact meetup chat lists', async () => {
+    const chat = makeChatListItem(
+      'chat-compact',
+      new Date('2026-04-24T10:00:00.000Z'),
+    ) as any;
+    chat.members = [
+      {
+        userId: 'user-me',
+        user: {
+          id: 'user-me',
+          displayName: 'Сергей',
+          online: true,
+        },
+      },
+      {
+        userId: 'user-sonya',
+        user: {
+          id: 'user-sonya',
+          displayName: 'Соня М',
+          online: false,
+        },
+      },
+    ];
+    const socialClient = makeSocialClient();
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([chat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        ...socialClient,
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', {
+      limit: 20,
+      includeSocial: false,
+    } as any);
+
+    expect(socialClient.userFollow.groupBy).not.toHaveBeenCalled();
+    expect(socialClient.userFollow.findMany).not.toHaveBeenCalled();
+    expect(socialClient.profileReaction.groupBy).not.toHaveBeenCalled();
+    expect(socialClient.profileReaction.findMany).not.toHaveBeenCalled();
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-compact',
+      memberProfiles: [
+        {
+          userId: 'user-me',
+          name: 'Сергей',
+          online: true,
+          isCurrentUser: true,
+          social: emptySocialPreview(),
+        },
+        {
+          userId: 'user-sonya',
+          name: 'Соня М',
+          online: false,
+          isCurrentUser: false,
+          social: emptySocialPreview(),
         },
       ],
     });
