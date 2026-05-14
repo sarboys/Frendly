@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "5f417f0fad5e521bd4ad32089823af616a8934fb",
-  "generatedAt": "2026-05-14T12:45:16.729Z",
+  "gitCommitHash": "a7c9c854de20033861219a7e7e7c272339d16975",
+  "generatedAt": "2026-05-14T17:14:49.549Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -8823,7 +8823,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "1369937789d9fdf9871da82dadba36e8fd390cd5f7dc2b3ce93b659a0aaf0c79",
+      "contentHash": "1adbd1c2e38433fcc21fe585f27277f55c412e4d4c665d7e12e3b75fd08e99a6",
       "functions": [],
       "classes": [
         {
@@ -8970,6 +8970,12 @@
           "source": "./controllers/media.controller",
           "specifiers": [
             "MediaController"
+          ]
+        },
+        {
+          "source": "./controllers/metrics.controller",
+          "specifiers": [
+            "MetricsController"
           ]
         },
         {
@@ -9432,7 +9438,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 212,
+      "totalLines": 214,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -9853,6 +9859,66 @@
       "totalLines": 11,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/common/http-metrics.middleware.ts": {
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "contentHash": "0dbc99d84f095c6b7282b0fad7af8b53adf09b333c03ab68b6e6178d15f76aea",
+      "functions": [
+        {
+          "name": "statusClassOf",
+          "params": [
+            "statusCode"
+          ],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "routePathOf",
+          "params": [
+            "request"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "payloadBytesOf",
+          "params": [
+            "response"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "createHttpMetricsMiddleware",
+          "params": [
+            "service"
+          ],
+          "exported": true,
+          "lineCount": 23
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "appMetrics"
+          ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "NextFunction",
+            "Request",
+            "Response"
+          ]
+        }
+      ],
+      "exports": [
+        "createHttpMetricsMiddleware"
+      ],
+      "totalLines": 58,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/common/media-presenters.ts": {
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "contentHash": "cf72ddcfd747121b52df281aa6db068b91f7fdbde807477293c05ed2579e93e6",
@@ -10066,7 +10132,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "28312b25c405cf78cfe8b6012f67d9c3107522270b2b2bad2458ec4cc44327c4",
+      "contentHash": "151023bd9a70a4aae681104b355ee778a7fa5526011dc9bccfd403b971960a85",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -11190,7 +11256,7 @@
     },
     "backend/apps/api/src/controllers/chats.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
-      "contentHash": "0e09dcaaa25ea4e99600792016fa7642e2d7058dc7b44e8ed2161c1c5511d2b3",
+      "contentHash": "a3043cd58e797da7e9df1eb7f181922158e1f79b4d3b3d20190f2df396394f69",
       "functions": [],
       "classes": [
         {
@@ -11202,11 +11268,12 @@
             "getMessages",
             "markRead",
             "setPinned",
-            "deleteChat"
+            "deleteChat",
+            "respondWithChatListCache"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 72
+          "lineCount": 109
         }
       ],
       "imports": [
@@ -11217,9 +11284,17 @@
             "Controller",
             "Delete",
             "Get",
+            "Headers",
             "Param",
             "Post",
-            "Query"
+            "Query",
+            "Res"
+          ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "Response"
           ]
         },
         {
@@ -11238,7 +11313,7 @@
       "exports": [
         "ChatsController"
       ],
-      "totalLines": 78,
+      "totalLines": 126,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/communities.controller.ts": {
@@ -11432,7 +11507,7 @@
     },
     "backend/apps/api/src/controllers/events.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/events.controller.ts",
-      "contentHash": "3450323e0a77f1ba81e8cbe654999124bd2b21c99674b7acdca5e191df8f7f59",
+      "contentHash": "a23088513d1a9bd7e65d5c6527e05737f00c8ab02c3e9a239bc8c885c19f60ce",
       "functions": [],
       "classes": [
         {
@@ -11781,6 +11856,50 @@
       "totalLines": 63,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/controllers/metrics.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/metrics.controller.ts",
+      "contentHash": "1ca3cc0881df8e4fc3fcf5748e40b1792abed33c842785fab184232b3cda42ed",
+      "functions": [],
+      "classes": [
+        {
+          "name": "MetricsController",
+          "methods": [
+            "getMetrics"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get",
+            "Res"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "getMetricsContentType",
+            "renderAppMetrics"
+          ]
+        },
+        {
+          "source": "../common/public.decorator",
+          "specifiers": [
+            "Public"
+          ]
+        }
+      ],
+      "exports": [
+        "MetricsController"
+      ],
+      "totalLines": 18,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/controllers/notifications.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/notifications.controller.ts",
       "contentHash": "3547b5e190e93a2f7f473c2961e9390416059fd1e35fe27d310d9f2684619af7",
@@ -12097,7 +12216,7 @@
     },
     "backend/apps/api/src/controllers/people.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/people.controller.ts",
-      "contentHash": "556296e64ca2da397bed48f36adc15eeefcc63f723c31aa71fcfe28816cb8140",
+      "contentHash": "5c5db72c789a1bcbb27abb157afd769b0e22515f84c8cd1cb3fc34693dab6654",
       "functions": [],
       "classes": [
         {
@@ -12797,13 +12916,13 @@
     },
     "backend/apps/api/src/main.ts": {
       "filePath": "backend/apps/api/src/main.ts",
-      "contentHash": "dbfc18e6f2585eb09b6d1fee0f21f3d89e8bc2549e64128bfa3a961a34b2c8be",
+      "contentHash": "e7a70d320ccb523d989b1933c1b578e0004250b2572bd49a0d6bb82e91ef7dc2",
       "functions": [
         {
           "name": "bootstrap",
           "params": [],
           "exported": false,
-          "lineCount": 27
+          "lineCount": 28
         }
       ],
       "classes": [],
@@ -12839,6 +12958,12 @@
           ]
         },
         {
+          "source": "./common/http-metrics.middleware",
+          "specifiers": [
+            "createHttpMetricsMiddleware"
+          ]
+        },
+        {
           "source": "./common/normalize-request-url",
           "specifiers": [
             "normalizeDuplicateSlashesInPath"
@@ -12846,7 +12971,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 40,
+      "totalLines": 42,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-affiche.service.ts": {
@@ -14219,14 +14344,17 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "2c703ed6a55b300af7a29dc7a2c82ba2f55a7580c60f345fd6909a1ca64a1109",
+      "contentHash": "1f3f8721643bc168d016e7c082a30fb106aa1292ee92c5a092cfa542385189d7",
       "functions": [],
       "classes": [
         {
           "name": "ChatsService",
           "methods": [
             "constructor",
+            "listChatsWithCache",
             "listChats",
+            "buildChatListEtag",
+            "matchesEntityTag",
             "setPinned",
             "deleteChat",
             "scheduleChatPayloadCleanup",
@@ -14260,7 +14388,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 1238
+          "lineCount": 1279
         }
       ],
       "imports": [
@@ -14286,6 +14414,12 @@
           "specifiers": [
             "Injectable",
             "Logger"
+          ]
+        },
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "createHash"
           ]
         },
         {
@@ -14319,7 +14453,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1372,
+      "totalLines": 1414,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -14433,7 +14567,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "597f8feb3bc3b4c33aa7669982632f4b36c263f866d24478187daa75e262675b",
+      "contentHash": "b4a190f18cfea97df97d7e26df50cf78fc573d23e471ef9b2e094bb988bb3998",
       "functions": [],
       "classes": [
         {
@@ -15021,7 +15155,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "86d579cd8b84e01f2e983911ec7a6d1238252ff3a0b5c9465fc925951608c30d",
+      "contentHash": "0fe1f8505b3a42cea7b13987d3b7422883ccc80800cf266e46dfcc7c3d46ba9f",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -16259,7 +16393,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "a171267958241b86ac9db5c4a1875dfacf78e94a4dff5bdfd2a77ebfa9bafdb3",
+      "contentHash": "45c2f7aadd44a0a309c7e2e55b5ea68bd082f72a34c52c006d06560285c1bb1b",
       "functions": [],
       "classes": [
         {
@@ -16676,7 +16810,7 @@
     },
     "backend/apps/api/src/services/prisma.service.ts": {
       "filePath": "backend/apps/api/src/services/prisma.service.ts",
-      "contentHash": "83ff2b2b9e24f8f8bc8419e58f2df5dbbc5cac84d93995e298c6a306bb8229f6",
+      "contentHash": "b8ab49322301f2f9e05530f110dad88cdb580d4bfac5076b7efbe7ba43bbb18b",
       "functions": [],
       "classes": [
         {
@@ -16708,6 +16842,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
+            "bindPrismaMetrics",
             "getPrismaClient"
           ]
         }
@@ -17827,7 +17962,7 @@
     },
     "backend/apps/chat/src/app.module.ts": {
       "filePath": "backend/apps/chat/src/app.module.ts",
-      "contentHash": "8206b2d66ef412311fb90bbd9a486018adfd463ee5470d50636a2a5cbb64d0e4",
+      "contentHash": "5d7574718d9e83199f326fc90828cc9daa4b3e0341c43266340733286bf5939a",
       "functions": [],
       "classes": [
         {
@@ -17858,6 +17993,12 @@
           ]
         },
         {
+          "source": "./metrics.controller",
+          "specifiers": [
+            "MetricsController"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -17867,12 +18008,12 @@
       "exports": [
         "ChatAppModule"
       ],
-      "totalLines": 11,
+      "totalLines": 12,
       "hasStructuralAnalysis": true
     },
     "backend/apps/chat/src/chat-server.service.ts": {
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
-      "contentHash": "b4a2f20b4c280830db89204eb652ac81ccaf08542748030857fbd5cd2988fb4e",
+      "contentHash": "7919e1af9fa75dc1add8975a46918736ac31db55257379333028b2ac906752e3",
       "functions": [],
       "classes": [
         {
@@ -17914,6 +18055,9 @@
             "getState",
             "send",
             "sendSerialized",
+            "metricsEventTypeFromSerializedPayload",
+            "metricsEventType",
+            "recordPayloadSize",
             "rawDataByteLength",
             "rawDataToString",
             "cleanupSocket",
@@ -17930,6 +18074,7 @@
             "resolveDurationMs",
             "resolvePositiveInteger",
             "getBlockedUserIds",
+            "updateWebSocketGauges",
             "isUserBlocked",
             "getActorUserId",
             "getReplyAuthorId",
@@ -17946,6 +18091,7 @@
             "typingThrottleMs",
             "authRecheckMs",
             "maxPayloadBytes",
+            "payloadWarnBytes",
             "maxMessageTextLength",
             "maxAttachmentCount",
             "membershipCacheTtlMs",
@@ -17958,7 +18104,7 @@
             "heartbeatTimer"
           ],
           "exported": true,
-          "lineCount": 1469
+          "lineCount": 1595
         }
       ],
       "imports": [
@@ -17974,6 +18120,7 @@
           "specifiers": [
             "PUBSUB_CHANNEL",
             "OUTBOX_EVENT_TYPES",
+            "appMetrics",
             "buildMediaProxyPath",
             "buildMessagePreview",
             "createRedisPublisher",
@@ -18019,7 +18166,7 @@
       "exports": [
         "ChatServerService"
       ],
-      "totalLines": 1583,
+      "totalLines": 1712,
       "hasStructuralAnalysis": true
     },
     "backend/apps/chat/src/health.controller.ts": {
@@ -18092,9 +18239,47 @@
       "totalLines": 18,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/chat/src/metrics.controller.ts": {
+      "filePath": "backend/apps/chat/src/metrics.controller.ts",
+      "contentHash": "6a048b995b9017dd6de100ff11adaa12c432aa6f7a0aa48d11d04dc71a245bde",
+      "functions": [],
+      "classes": [
+        {
+          "name": "MetricsController",
+          "methods": [
+            "getMetrics"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get",
+            "Res"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "getMetricsContentType",
+            "renderAppMetrics"
+          ]
+        }
+      ],
+      "exports": [
+        "MetricsController"
+      ],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/chat/src/prisma.service.ts": {
       "filePath": "backend/apps/chat/src/prisma.service.ts",
-      "contentHash": "83ff2b2b9e24f8f8bc8419e58f2df5dbbc5cac84d93995e298c6a306bb8229f6",
+      "contentHash": "d0bda23beaa60561818f8cf8f56801dd4234e920a74b9d35e33dd2a1aa022692",
       "functions": [],
       "classes": [
         {
@@ -18126,6 +18311,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
+            "bindPrismaMetrics",
             "getPrismaClient"
           ]
         }
@@ -18342,7 +18528,7 @@
     },
     "backend/apps/worker/src/app.module.ts": {
       "filePath": "backend/apps/worker/src/app.module.ts",
-      "contentHash": "b71ba980429c48af5ea9469463e58950271953b91e087a90d99e7c952aa49d93",
+      "contentHash": "2f311593b4d42fefcbebbfa5d71b6f0676418be8889bd4ea271bb9c0ebec39e4",
       "functions": [],
       "classes": [
         {
@@ -18403,6 +18589,12 @@
           ]
         },
         {
+          "source": "./metrics.controller",
+          "specifiers": [
+            "MetricsController"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -18418,7 +18610,7 @@
       "exports": [
         "WorkerAppModule"
       ],
-      "totalLines": 29,
+      "totalLines": 30,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
@@ -21201,9 +21393,47 @@
       "totalLines": 86,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/worker/src/metrics.controller.ts": {
+      "filePath": "backend/apps/worker/src/metrics.controller.ts",
+      "contentHash": "6a048b995b9017dd6de100ff11adaa12c432aa6f7a0aa48d11d04dc71a245bde",
+      "functions": [],
+      "classes": [
+        {
+          "name": "MetricsController",
+          "methods": [
+            "getMetrics"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get",
+            "Res"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "getMetricsContentType",
+            "renderAppMetrics"
+          ]
+        }
+      ],
+      "exports": [
+        "MetricsController"
+      ],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/worker/src/prisma.service.ts": {
       "filePath": "backend/apps/worker/src/prisma.service.ts",
-      "contentHash": "83ff2b2b9e24f8f8bc8419e58f2df5dbbc5cac84d93995e298c6a306bb8229f6",
+      "contentHash": "ada06312693935d8c839be8ca93669d6e874388da2560c858bddca686f96b070",
       "functions": [],
       "classes": [
         {
@@ -21235,6 +21465,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
+            "bindPrismaMetrics",
             "getPrismaClient"
           ]
         }
@@ -21339,7 +21570,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "568e0ed04fcb189fbf304d9b6c45631201455acb428f210ab23bd2d48c1197bb",
+      "contentHash": "04adae9529bdad449ea2df76fa0cd6dfb9eb2eb0e77aa5aa16e2dcb6024301f7",
       "functions": [
         {
           "name": "csv",
@@ -21409,6 +21640,8 @@
             "createSystemNotification",
             "resolveProvider",
             "resolvePositiveInteger",
+            "recordClaimedOutboxCounts",
+            "recordWorkerJobDuration",
             "runWithConcurrency"
           ],
           "properties": [
@@ -21436,6 +21669,9 @@
             "systemNotificationIntervalMs",
             "systemNotificationBatchSize",
             "outboxBacklogWarnAgeMs",
+            "outboxEnabled",
+            "contentRoleEnabled",
+            "schedulesRoleEnabled",
             "pushTokenBatchSize",
             "retentionCleanupEnabled",
             "retentionCleanupIntervalMs",
@@ -21458,7 +21694,7 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 1692
+          "lineCount": 1750
         }
       ],
       "imports": [
@@ -21480,6 +21716,7 @@
           "source": "@big-break/database",
           "specifiers": [
             "OUTBOX_EVENT_TYPES",
+            "appMetrics",
             "buildPublicAssetUrl",
             "createRedisPublisher",
             "createS3Client",
@@ -21556,7 +21793,7 @@
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 1765,
+      "totalLines": 1825,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {
@@ -21591,7 +21828,7 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "3c56977e2e7b471308b2ae154d6b8e033e6d694c4a7789e20187af7422583d5c",
+      "contentHash": "b6a7ac2d9769f4ac4c48d0c2cba53a05e2f2d9df25cd0bb57052cf0327ab70df",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -22506,14 +22743,14 @@
     },
     "backend/packages/database/src/client.ts": {
       "filePath": "backend/packages/database/src/client.ts",
-      "contentHash": "7b31197ee887f4cc817d55ecbc08a0f5a90d7b112c77adc63346f6114fd66769",
+      "contentHash": "6d9128632c27ddb101da8d16b4c497d0e0d67a4fcc3a68dc8d72caf5b4ae91db",
       "functions": [
         {
           "name": "getPrismaClient",
           "params": [],
           "returnType": "PrismaClient",
           "exported": true,
-          "lineCount": 7
+          "lineCount": 9
         }
       ],
       "classes": [],
@@ -22528,7 +22765,7 @@
       "exports": [
         "getPrismaClient"
       ],
-      "totalLines": 15,
+      "totalLines": 17,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/concurrent-indexes.ts": {
@@ -22816,12 +23053,61 @@
     },
     "backend/packages/database/src/index.ts": {
       "filePath": "backend/packages/database/src/index.ts",
-      "contentHash": "ae88c5dcbecd8c72bee2e94b2d10c3f44d886948318969a69e258ad86836b7ff",
+      "contentHash": "83d5a3fb77aa2ed542a8249a574609ef2d1f9e829a4bec94d61aa7c7c8f70f1c",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 19,
+      "totalLines": 20,
+      "hasStructuralAnalysis": true
+    },
+    "backend/packages/database/src/metrics.ts": {
+      "filePath": "backend/packages/database/src/metrics.ts",
+      "contentHash": "2e4ea3fd6847d47994ba0025cc54afb03a075bf31309ab27c284927404276ca3",
+      "functions": [
+        {
+          "name": "bindPrismaMetrics",
+          "params": [
+            "client",
+            "service"
+          ],
+          "returnType": "TClient",
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "getMetricsContentType",
+          "params": [],
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "renderAppMetrics",
+          "params": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "prom-client",
+          "specifiers": [
+            "collectDefaultMetrics",
+            "Counter",
+            "Gauge",
+            "Histogram",
+            "Registry"
+          ]
+        }
+      ],
+      "exports": [
+        "bindPrismaMetrics",
+        "appMetrics",
+        "getMetricsContentType",
+        "renderAppMetrics"
+      ],
+      "totalLines": 251,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/openrouter.ts": {
@@ -23003,7 +23289,7 @@
     },
     "backend/packages/database/src/pubsub.ts": {
       "filePath": "backend/packages/database/src/pubsub.ts",
-      "contentHash": "8120c1878c177f6a2656e180a45b8ada575aa46986a57ac8f2adfc43ca772145",
+      "contentHash": "7c30aa30aacb315261e6098815c1233cb2fc03afcc47a2015fe15aabe1446212",
       "functions": [
         {
           "name": "createRedisPublisher",
@@ -23012,7 +23298,7 @@
           ],
           "returnType": "Redis",
           "exported": true,
-          "lineCount": 3
+          "lineCount": 11
         },
         {
           "name": "createRedisSubscriber",
@@ -23021,7 +23307,7 @@
           ],
           "returnType": "Redis",
           "exported": true,
-          "lineCount": 3
+          "lineCount": 11
         },
         {
           "name": "publishBusEvent",
@@ -23031,7 +23317,13 @@
           ],
           "returnType": "Promise<void>",
           "exported": true,
-          "lineCount": 17
+          "lineCount": 35
+        },
+        {
+          "name": "metricsServiceName",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
         },
         {
           "name": "resolvePositiveInteger",
@@ -23051,6 +23343,12 @@
           "specifiers": [
             "Redis"
           ]
+        },
+        {
+          "source": "./metrics",
+          "specifiers": [
+            "appMetrics"
+          ]
         }
       ],
       "exports": [
@@ -23059,7 +23357,7 @@
         "createRedisSubscriber",
         "publishBusEvent"
       ],
-      "totalLines": 52,
+      "totalLines": 91,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/push-providers.ts": {
@@ -23278,7 +23576,7 @@
     },
     "backend/packages/database/src/s3.ts": {
       "filePath": "backend/packages/database/src/s3.ts",
-      "contentHash": "acb2e41700d59e8eb9e33241cfe201e4188f4eeb000e0ca810fb6b7d0e1e0674",
+      "contentHash": "a0e8bcae4b8ad57ec7cf020e5f5b883d99b7f71bc58fd5d4d297fa58baed06eb",
       "functions": [
         {
           "name": "optionalEnv",
@@ -23339,7 +23637,7 @@
             "input"
           ],
           "exported": true,
-          "lineCount": 19
+          "lineCount": 21
         },
         {
           "name": "createPresignedDownload",
@@ -23348,6 +23646,22 @@
           ],
           "exported": true,
           "lineCount": 15
+        },
+        {
+          "name": "recordS3Operation",
+          "params": [
+            "operation",
+            "callback"
+          ],
+          "returnType": "Promise<T>",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "metricsServiceName",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
         },
         {
           "name": "buildPublicAssetUrl",
@@ -23420,6 +23734,12 @@
           "specifiers": [
             "getSignedUrl"
           ]
+        },
+        {
+          "source": "./metrics",
+          "specifiers": [
+            "appMetrics"
+          ]
         }
       ],
       "exports": [
@@ -23433,7 +23753,7 @@
         "objectKeyFromPublicAssetUrl",
         "buildMediaProxyPath"
       ],
-      "totalLines": 250,
+      "totalLines": 277,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/seed-dates.ts": {
@@ -23647,9 +23967,82 @@
       "totalLines": 52,
       "hasStructuralAnalysis": true
     },
+    "backend/scripts/perf-20k-smoke.mjs": {
+      "filePath": "backend/scripts/perf-20k-smoke.mjs",
+      "contentHash": "271a92aa4b21527a68c936c12eff9a9e24e25685d0738bb7f37c34e7abde9811",
+      "functions": [
+        {
+          "name": "parseArgs",
+          "params": [
+            "argv"
+          ],
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "required",
+          "params": [
+            "args",
+            "key"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "runScenario",
+          "params": [
+            "name",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "optionalScenario",
+          "params": [
+            "name",
+            "args",
+            "enabled"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 74
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawnSync"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "dirname",
+            "resolve"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 136,
+      "hasStructuralAnalysis": true
+    },
     "backend/scripts/perf-hotpaths.mjs": {
       "filePath": "backend/scripts/perf-hotpaths.mjs",
-      "contentHash": "1482d3f5edc9c7883cce61290f5c81adcbde8ea08e9059c4fdbef5ccefef375d",
+      "contentHash": "72814f4a233ab984664be3dc0ab41eda7a497cd7c9bf2b80b734ce299b6e896e",
       "functions": [
         {
           "name": "parseArgs",
@@ -23697,6 +24090,22 @@
           "lineCount": 11
         },
         {
+          "name": "authHeaders",
+          "params": [
+            "token"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "query",
+          "params": [
+            "params"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
           "name": "runPool",
           "params": [
             "total",
@@ -23707,12 +24116,21 @@
           "lineCount": 13
         },
         {
+          "name": "fetchMeasured",
+          "params": [
+            "api",
+            "path"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
           "name": "measureDatingDiscover",
           "params": [
             "args"
           ],
           "exported": false,
-          "lineCount": 24
+          "lineCount": 16
         },
         {
           "name": "measureHttpEndpoint",
@@ -23721,7 +24139,31 @@
             "defaults"
           ],
           "exported": false,
-          "lineCount": 32
+          "lineCount": 22
+        },
+        {
+          "name": "measureStartupChain",
+          "params": [
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 41
+        },
+        {
+          "name": "measureMapViewport",
+          "params": [
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "measureMediaReuse",
+          "params": [
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 25
         },
         {
           "name": "waitForSocketMessage",
@@ -23796,13 +24238,13 @@
           "name": "printUsage",
           "params": [],
           "exported": false,
-          "lineCount": 10
+          "lineCount": 13
         },
         {
           "name": "main",
           "params": [],
           "exported": false,
-          "lineCount": 51
+          "lineCount": 63
         }
       ],
       "classes": [],
@@ -23815,7 +24257,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 423,
+      "totalLines": 526,
       "hasStructuralAnalysis": true
     },
     "Makefile": {

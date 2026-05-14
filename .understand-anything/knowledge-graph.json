@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-14T12:45:15.433Z",
-    "gitCommitHash": "5f417f0fad5e521bd4ad32089823af616a8934fb"
+    "analyzedAt": "2026-05-14T17:14:49.316Z",
+    "gitCommitHash": "a7c9c854de20033861219a7e7e7c272339d16975"
   },
   "nodes": [
     {
@@ -7622,8 +7622,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        207,
-        211
+        209,
+        213
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -7900,6 +7900,87 @@
         "backend",
         "code",
         "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "type": "file",
+      "name": "http-metrics.middleware.ts",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "summary": "http-metrics.middleware.ts contains 4 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:statusClassOf",
+      "type": "function",
+      "name": "statusClassOf",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "lineRange": [
+        8,
+        8
+      ],
+      "summary": "statusClassOf in http-metrics.middleware.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:routePathOf",
+      "type": "function",
+      "name": "routePathOf",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "lineRange": [
+        10,
+        21
+      ],
+      "summary": "routePathOf in http-metrics.middleware.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:payloadBytesOf",
+      "type": "function",
+      "name": "payloadBytesOf",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "lineRange": [
+        23,
+        33
+      ],
+      "summary": "payloadBytesOf in http-metrics.middleware.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:createHttpMetricsMiddleware",
+      "type": "function",
+      "name": "createHttpMetricsMiddleware",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "lineRange": [
+        35,
+        57
+      ],
+      "summary": "createHttpMetricsMiddleware in http-metrics.middleware.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
       ],
       "complexity": "simple"
     },
@@ -9075,7 +9156,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "class:backend/apps/api/src/controllers/chats.controller.ts:ChatsController",
@@ -9083,8 +9164,8 @@
       "name": "ChatsController",
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
       "lineRange": [
-        6,
-        77
+        17,
+        125
       ],
       "summary": "ChatsController in chats.controller.ts.",
       "tags": [
@@ -9092,7 +9173,7 @@
         "class",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:backend/apps/api/src/controllers/communities.controller.ts",
@@ -9374,6 +9455,36 @@
         62
       ],
       "summary": "MediaController in media.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/apps/api/src/controllers/metrics.controller.ts",
+      "type": "file",
+      "name": "metrics.controller.ts",
+      "filePath": "backend/apps/api/src/controllers/metrics.controller.ts",
+      "summary": "metrics.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/metrics.controller.ts:MetricsController",
+      "type": "class",
+      "name": "MetricsController",
+      "filePath": "backend/apps/api/src/controllers/metrics.controller.ts",
+      "lineRange": [
+        10,
+        17
+      ],
+      "summary": "MetricsController in metrics.controller.ts.",
       "tags": [
         "backend",
         "class",
@@ -9970,8 +10081,8 @@
       "name": "bootstrap",
       "filePath": "backend/apps/api/src/main.ts",
       "lineRange": [
-        8,
-        34
+        9,
+        36
       ],
       "summary": "bootstrap in main.ts.",
       "tags": [
@@ -10696,8 +10807,8 @@
       "name": "ChatsService",
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
-        134,
-        1371
+        135,
+        1413
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [
@@ -12854,8 +12965,8 @@
       "name": "ChatAppModule",
       "filePath": "backend/apps/chat/src/app.module.ts",
       "lineRange": [
-        10,
-        10
+        11,
+        11
       ],
       "summary": "ChatAppModule in app.module.ts.",
       "tags": [
@@ -12884,8 +12995,8 @@
       "name": "ChatServerError",
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
       "lineRange": [
-        33,
-        40
+        34,
+        41
       ],
       "summary": "ChatServerError in chat-server.service.ts.",
       "tags": [
@@ -12901,8 +13012,8 @@
       "name": "ChatServerService",
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
       "lineRange": [
-        114,
-        1582
+        117,
+        1711
       ],
       "summary": "ChatServerService in chat-server.service.ts.",
       "tags": [
@@ -12968,6 +13079,36 @@
       "tags": [
         "backend",
         "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/apps/chat/src/metrics.controller.ts",
+      "type": "file",
+      "name": "metrics.controller.ts",
+      "filePath": "backend/apps/chat/src/metrics.controller.ts",
+      "summary": "metrics.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/chat/src/metrics.controller.ts:MetricsController",
+      "type": "class",
+      "name": "MetricsController",
+      "filePath": "backend/apps/chat/src/metrics.controller.ts",
+      "lineRange": [
+        9,
+        15
+      ],
+      "summary": "MetricsController in metrics.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
         "structure"
       ],
       "complexity": "simple"
@@ -13245,8 +13386,8 @@
       "name": "WorkerAppModule",
       "filePath": "backend/apps/worker/src/app.module.ts",
       "lineRange": [
-        28,
-        28
+        29,
+        29
       ],
       "summary": "WorkerAppModule in app.module.ts.",
       "tags": [
@@ -17558,6 +17699,36 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/apps/worker/src/metrics.controller.ts",
+      "type": "file",
+      "name": "metrics.controller.ts",
+      "filePath": "backend/apps/worker/src/metrics.controller.ts",
+      "summary": "metrics.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/worker/src/metrics.controller.ts:MetricsController",
+      "type": "class",
+      "name": "MetricsController",
+      "filePath": "backend/apps/worker/src/metrics.controller.ts",
+      "lineRange": [
+        9,
+        15
+      ],
+      "summary": "MetricsController in metrics.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:backend/apps/worker/src/prisma.service.ts",
       "type": "file",
       "name": "prisma.service.ts",
@@ -17721,8 +17892,8 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        1750,
-        1756
+        1810,
+        1816
       ],
       "summary": "csv in worker.service.ts.",
       "tags": [
@@ -17738,8 +17909,8 @@
       "name": "streamToBuffer",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        1758,
-        1764
+        1818,
+        1824
       ],
       "summary": "streamToBuffer in worker.service.ts.",
       "tags": [
@@ -17755,8 +17926,8 @@
       "name": "WorkerService",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        57,
-        1748
+        59,
+        1808
       ],
       "summary": "WorkerService in worker.service.ts.",
       "tags": [
@@ -26123,7 +26294,7 @@
       "filePath": "backend/packages/database/src/client.ts",
       "lineRange": [
         8,
-        14
+        16
       ],
       "summary": "getPrismaClient in client.ts.",
       "tags": [
@@ -26621,6 +26792,70 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/packages/database/src/metrics.ts",
+      "type": "file",
+      "name": "metrics.ts",
+      "filePath": "backend/packages/database/src/metrics.ts",
+      "summary": "metrics.ts contains 3 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/metrics.ts:bindPrismaMetrics",
+      "type": "function",
+      "name": "bindPrismaMetrics",
+      "filePath": "backend/packages/database/src/metrics.ts",
+      "lineRange": [
+        196,
+        216
+      ],
+      "summary": "bindPrismaMetrics in metrics.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/metrics.ts:getMetricsContentType",
+      "type": "function",
+      "name": "getMetricsContentType",
+      "filePath": "backend/packages/database/src/metrics.ts",
+      "lineRange": [
+        248,
+        248
+      ],
+      "summary": "getMetricsContentType in metrics.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/metrics.ts:renderAppMetrics",
+      "type": "function",
+      "name": "renderAppMetrics",
+      "filePath": "backend/packages/database/src/metrics.ts",
+      "lineRange": [
+        250,
+        250
+      ],
+      "summary": "renderAppMetrics in metrics.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:backend/packages/database/src/openrouter.ts",
       "type": "file",
       "name": "openrouter.ts",
@@ -26890,7 +27125,7 @@
       "type": "file",
       "name": "pubsub.ts",
       "filePath": "backend/packages/database/src/pubsub.ts",
-      "summary": "pubsub.ts contains 4 functions.",
+      "summary": "pubsub.ts contains 5 functions.",
       "tags": [
         "backend",
         "code",
@@ -26904,8 +27139,8 @@
       "name": "createRedisPublisher",
       "filePath": "backend/packages/database/src/pubsub.ts",
       "lineRange": [
-        16,
-        18
+        17,
+        27
       ],
       "summary": "createRedisPublisher in pubsub.ts.",
       "tags": [
@@ -26921,8 +27156,8 @@
       "name": "createRedisSubscriber",
       "filePath": "backend/packages/database/src/pubsub.ts",
       "lineRange": [
-        20,
-        22
+        29,
+        39
       ],
       "summary": "createRedisSubscriber in pubsub.ts.",
       "tags": [
@@ -26938,10 +27173,27 @@
       "name": "publishBusEvent",
       "filePath": "backend/packages/database/src/pubsub.ts",
       "lineRange": [
-        24,
-        40
+        41,
+        75
       ],
       "summary": "publishBusEvent in pubsub.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/src/pubsub.ts:metricsServiceName",
+      "type": "function",
+      "name": "metricsServiceName",
+      "filePath": "backend/packages/database/src/pubsub.ts",
+      "lineRange": [
+        77,
+        79
+      ],
+      "summary": "metricsServiceName in pubsub.ts.",
       "tags": [
         "backend",
         "function",
@@ -26955,8 +27207,8 @@
       "name": "resolvePositiveInteger",
       "filePath": "backend/packages/database/src/pubsub.ts",
       "lineRange": [
-        42,
-        51
+        81,
+        90
       ],
       "summary": "resolvePositiveInteger in pubsub.ts.",
       "tags": [
@@ -27278,7 +27530,7 @@
       "type": "file",
       "name": "s3.ts",
       "filePath": "backend/packages/database/src/s3.ts",
-      "summary": "s3.ts contains 15 functions.",
+      "summary": "s3.ts contains 17 functions.",
       "tags": [
         "backend",
         "code",
@@ -27292,8 +27544,8 @@
       "name": "optionalEnv",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        33,
-        36
+        34,
+        37
       ],
       "summary": "optionalEnv in s3.ts.",
       "tags": [
@@ -27309,8 +27561,8 @@
       "name": "getS3Config",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        38,
-        61
+        39,
+        62
       ],
       "summary": "getS3Config in s3.ts.",
       "tags": [
@@ -27326,8 +27578,8 @@
       "name": "createS3Client",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        63,
-        75
+        64,
+        76
       ],
       "summary": "createS3Client in s3.ts.",
       "tags": [
@@ -27343,8 +27595,8 @@
       "name": "createS3RequestOptions",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        77,
-        90
+        78,
+        91
       ],
       "summary": "createS3RequestOptions in s3.ts.",
       "tags": [
@@ -27360,8 +27612,8 @@
       "name": "createPublicS3Client",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        92,
-        104
+        93,
+        105
       ],
       "summary": "createPublicS3Client in s3.ts.",
       "tags": [
@@ -27377,8 +27629,8 @@
       "name": "getPublicS3Client",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        106,
-        121
+        107,
+        122
       ],
       "summary": "getPublicS3Client in s3.ts.",
       "tags": [
@@ -27394,8 +27646,8 @@
       "name": "resolveNonNegativeInteger",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        123,
-        132
+        124,
+        133
       ],
       "summary": "resolveNonNegativeInteger in s3.ts.",
       "tags": [
@@ -27411,8 +27663,8 @@
       "name": "createPresignedUpload",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        134,
-        152
+        135,
+        155
       ],
       "summary": "createPresignedUpload in s3.ts.",
       "tags": [
@@ -27428,10 +27680,44 @@
       "name": "createPresignedDownload",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        154,
-        168
+        157,
+        171
       ],
       "summary": "createPresignedDownload in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3.ts:recordS3Operation",
+      "type": "function",
+      "name": "recordS3Operation",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        173,
+        191
+      ],
+      "summary": "recordS3Operation in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3.ts:metricsServiceName",
+      "type": "function",
+      "name": "metricsServiceName",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        193,
+        195
+      ],
+      "summary": "metricsServiceName in s3.ts.",
       "tags": [
         "backend",
         "function",
@@ -27445,8 +27731,8 @@
       "name": "buildPublicAssetUrl",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        170,
-        177
+        197,
+        204
       ],
       "summary": "buildPublicAssetUrl in s3.ts.",
       "tags": [
@@ -27462,8 +27748,8 @@
       "name": "objectKeyFromPublicAssetUrl",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        179,
-        194
+        206,
+        221
       ],
       "summary": "objectKeyFromPublicAssetUrl in s3.ts.",
       "tags": [
@@ -27479,8 +27765,8 @@
       "name": "buildMediaProxyPath",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        196,
-        198
+        223,
+        225
       ],
       "summary": "buildMediaProxyPath in s3.ts.",
       "tags": [
@@ -27496,8 +27782,8 @@
       "name": "objectKeyFromEndpointUrl",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        200,
-        236
+        227,
+        263
       ],
       "summary": "objectKeyFromEndpointUrl in s3.ts.",
       "tags": [
@@ -27513,8 +27799,8 @@
       "name": "trimSlashes",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        238,
-        240
+        265,
+        267
       ],
       "summary": "trimSlashes in s3.ts.",
       "tags": [
@@ -27530,8 +27816,8 @@
       "name": "decodeObjectKey",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        242,
-        249
+        269,
+        276
       ],
       "summary": "decodeObjectKey in s3.ts.",
       "tags": [
@@ -27922,11 +28208,109 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/scripts/perf-20k-smoke.mjs",
+      "type": "file",
+      "name": "perf-20k-smoke.mjs",
+      "filePath": "backend/scripts/perf-20k-smoke.mjs",
+      "summary": "perf-20k-smoke.mjs contains 5 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "javascript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/perf-20k-smoke.mjs:parseArgs",
+      "type": "function",
+      "name": "parseArgs",
+      "filePath": "backend/scripts/perf-20k-smoke.mjs",
+      "lineRange": [
+        9,
+        26
+      ],
+      "summary": "parseArgs in perf-20k-smoke.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/perf-20k-smoke.mjs:required",
+      "type": "function",
+      "name": "required",
+      "filePath": "backend/scripts/perf-20k-smoke.mjs",
+      "lineRange": [
+        28,
+        34
+      ],
+      "summary": "required in perf-20k-smoke.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/perf-20k-smoke.mjs:runScenario",
+      "type": "function",
+      "name": "runScenario",
+      "filePath": "backend/scripts/perf-20k-smoke.mjs",
+      "lineRange": [
+        36,
+        45
+      ],
+      "summary": "runScenario in perf-20k-smoke.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/perf-20k-smoke.mjs:optionalScenario",
+      "type": "function",
+      "name": "optionalScenario",
+      "filePath": "backend/scripts/perf-20k-smoke.mjs",
+      "lineRange": [
+        47,
+        53
+      ],
+      "summary": "optionalScenario in perf-20k-smoke.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/perf-20k-smoke.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/perf-20k-smoke.mjs",
+      "lineRange": [
+        55,
+        128
+      ],
+      "summary": "main in perf-20k-smoke.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:backend/scripts/perf-hotpaths.mjs",
       "type": "file",
       "name": "perf-hotpaths.mjs",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
-      "summary": "perf-hotpaths.mjs contains 18 functions.",
+      "summary": "perf-hotpaths.mjs contains 24 functions.",
       "tags": [
         "backend",
         "code",
@@ -28020,15 +28404,66 @@
       "complexity": "complex"
     },
     {
+      "id": "function:backend/scripts/perf-hotpaths.mjs:authHeaders",
+      "type": "function",
+      "name": "authHeaders",
+      "filePath": "backend/scripts/perf-hotpaths.mjs",
+      "lineRange": [
+        72,
+        74
+      ],
+      "summary": "authHeaders in perf-hotpaths.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/perf-hotpaths.mjs:query",
+      "type": "function",
+      "name": "query",
+      "filePath": "backend/scripts/perf-hotpaths.mjs",
+      "lineRange": [
+        76,
+        84
+      ],
+      "summary": "query in perf-hotpaths.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "function:backend/scripts/perf-hotpaths.mjs:runPool",
       "type": "function",
       "name": "runPool",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        72,
-        84
+        86,
+        98
       ],
       "summary": "runPool in perf-hotpaths.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/perf-hotpaths.mjs:fetchMeasured",
+      "type": "function",
+      "name": "fetchMeasured",
+      "filePath": "backend/scripts/perf-hotpaths.mjs",
+      "lineRange": [
+        100,
+        110
+      ],
+      "summary": "fetchMeasured in perf-hotpaths.mjs.",
       "tags": [
         "backend",
         "function",
@@ -28042,8 +28477,8 @@
       "name": "measureDatingDiscover",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        86,
-        109
+        112,
+        127
       ],
       "summary": "measureDatingDiscover in perf-hotpaths.mjs.",
       "tags": [
@@ -28059,10 +28494,61 @@
       "name": "measureHttpEndpoint",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        111,
-        142
+        129,
+        150
       ],
       "summary": "measureHttpEndpoint in perf-hotpaths.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/perf-hotpaths.mjs:measureStartupChain",
+      "type": "function",
+      "name": "measureStartupChain",
+      "filePath": "backend/scripts/perf-hotpaths.mjs",
+      "lineRange": [
+        152,
+        192
+      ],
+      "summary": "measureStartupChain in perf-hotpaths.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/perf-hotpaths.mjs:measureMapViewport",
+      "type": "function",
+      "name": "measureMapViewport",
+      "filePath": "backend/scripts/perf-hotpaths.mjs",
+      "lineRange": [
+        194,
+        204
+      ],
+      "summary": "measureMapViewport in perf-hotpaths.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/perf-hotpaths.mjs:measureMediaReuse",
+      "type": "function",
+      "name": "measureMediaReuse",
+      "filePath": "backend/scripts/perf-hotpaths.mjs",
+      "lineRange": [
+        206,
+        230
+      ],
+      "summary": "measureMediaReuse in perf-hotpaths.mjs.",
       "tags": [
         "backend",
         "function",
@@ -28076,8 +28562,8 @@
       "name": "waitForSocketMessage",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        144,
-        173
+        232,
+        261
       ],
       "summary": "waitForSocketMessage in perf-hotpaths.mjs.",
       "tags": [
@@ -28093,8 +28579,8 @@
       "name": "getWebSocketCtor",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        175,
-        191
+        263,
+        279
       ],
       "summary": "getWebSocketCtor in perf-hotpaths.mjs.",
       "tags": [
@@ -28110,8 +28596,8 @@
       "name": "addSocketListener",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        193,
-        199
+        281,
+        287
       ],
       "summary": "addSocketListener in perf-hotpaths.mjs.",
       "tags": [
@@ -28127,8 +28613,8 @@
       "name": "removeSocketListener",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        201,
-        207
+        289,
+        295
       ],
       "summary": "removeSocketListener in perf-hotpaths.mjs.",
       "tags": [
@@ -28144,8 +28630,8 @@
       "name": "openSocket",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        209,
-        229
+        297,
+        317
       ],
       "summary": "openSocket in perf-hotpaths.mjs.",
       "tags": [
@@ -28161,8 +28647,8 @@
       "name": "connectChatSocket",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        231,
-        244
+        319,
+        332
       ],
       "summary": "connectChatSocket in perf-hotpaths.mjs.",
       "tags": [
@@ -28178,8 +28664,8 @@
       "name": "measureChatSend",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        246,
-        279
+        334,
+        367
       ],
       "summary": "measureChatSend in perf-hotpaths.mjs.",
       "tags": [
@@ -28195,8 +28681,8 @@
       "name": "measureBroadcastFanout",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        281,
-        354
+        369,
+        442
       ],
       "summary": "measureBroadcastFanout in perf-hotpaths.mjs.",
       "tags": [
@@ -28212,8 +28698,8 @@
       "name": "printUsage",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        356,
-        365
+        444,
+        456
       ],
       "summary": "printUsage in perf-hotpaths.mjs.",
       "tags": [
@@ -28229,8 +28715,8 @@
       "name": "main",
       "filePath": "backend/scripts/perf-hotpaths.mjs",
       "lineRange": [
-        367,
-        417
+        458,
+        520
       ],
       "summary": "main in perf-hotpaths.mjs.",
       "tags": [
@@ -28304,6 +28790,71 @@
         "unknown"
       ],
       "complexity": "moderate"
+    },
+    {
+      "id": "service:deploy/nginx/frendly.scale.conf",
+      "type": "service",
+      "name": "frendly.scale.conf",
+      "filePath": "deploy/nginx/frendly.scale.conf",
+      "summary": "frendly.scale.conf is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "unknown"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
+      "type": "service",
+      "name": "frendly-mobile-hot-paths.json",
+      "filePath": "deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
+      "summary": "frendly-mobile-hot-paths.json is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "json"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:deploy/observability/grafana/dashboards/frendly-runtime.json",
+      "type": "service",
+      "name": "frendly-runtime.json",
+      "filePath": "deploy/observability/grafana/dashboards/frendly-runtime.json",
+      "summary": "frendly-runtime.json is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "json"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:deploy/observability/grafana/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "deploy/observability/grafana/README.md",
+      "summary": "README.md is a docs file for deploy.",
+      "tags": [
+        "deploy",
+        "docs",
+        "markdown"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:deploy/observability/prometheus.yml",
+      "type": "service",
+      "name": "prometheus.yml",
+      "filePath": "deploy/observability/prometheus.yml",
+      "summary": "prometheus.yml is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "yaml"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "pipeline:Makefile",
@@ -28450,7 +29001,7 @@
         "code",
         "dart"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/app/core/device/app_permission_preferences.dart",
@@ -28544,6 +29095,123 @@
       "complexity": "simple"
     },
     {
+      "id": "file:mobile/lib/app/core/local_cache/app_cache_key.dart",
+      "type": "file",
+      "name": "app_cache_key.dart",
+      "filePath": "mobile/lib/app/core/local_cache/app_cache_key.dart",
+      "summary": "app_cache_key.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/app_cache_policy.dart",
+      "type": "file",
+      "name": "app_cache_policy.dart",
+      "filePath": "mobile/lib/app/core/local_cache/app_cache_policy.dart",
+      "summary": "app_cache_policy.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/app_local_cache_store.dart",
+      "type": "file",
+      "name": "app_local_cache_store.dart",
+      "filePath": "mobile/lib/app/core/local_cache/app_local_cache_store.dart",
+      "summary": "app_local_cache_store.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/app_local_database.dart",
+      "type": "file",
+      "name": "app_local_database.dart",
+      "filePath": "mobile/lib/app/core/local_cache/app_local_database.dart",
+      "summary": "app_local_database.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/app_local_database.g.dart",
+      "type": "file",
+      "name": "app_local_database.g.dart",
+      "filePath": "mobile/lib/app/core/local_cache/app_local_database.g.dart",
+      "summary": "app_local_database.g.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/chat_cache_serializers.dart",
+      "type": "file",
+      "name": "chat_cache_serializers.dart",
+      "filePath": "mobile/lib/app/core/local_cache/chat_cache_serializers.dart",
+      "summary": "chat_cache_serializers.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/chat_local_store.dart",
+      "type": "file",
+      "name": "chat_local_store.dart",
+      "filePath": "mobile/lib/app/core/local_cache/chat_local_store.dart",
+      "summary": "chat_local_store.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/local_cache_metrics.dart",
+      "type": "file",
+      "name": "local_cache_metrics.dart",
+      "filePath": "mobile/lib/app/core/local_cache/local_cache_metrics.dart",
+      "summary": "local_cache_metrics.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:mobile/lib/app/core/local_cache/local_first_repository.dart",
+      "type": "file",
+      "name": "local_first_repository.dart",
+      "filePath": "mobile/lib/app/core/local_cache/local_first_repository.dart",
+      "summary": "local_first_repository.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:mobile/lib/app/core/maps/mapkit_bootstrap.dart",
       "type": "file",
       "name": "mapkit_bootstrap.dart",
@@ -28606,7 +29274,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/app/navigation/app_router.dart",
@@ -29204,7 +29872,7 @@
         "code",
         "dart"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:mobile/lib/features/dating/presentation/dating_screen.dart",
@@ -30823,7 +31491,7 @@
       "type": "service",
       "name": "deploy-landing.sh",
       "filePath": "scripts/deploy-landing.sh",
-      "summary": "deploy-landing.sh is a infra file for scripts.",
+      "summary": "deploy-landing.sh contains 2 functions.",
       "tags": [
         "scripts",
         "infra",
@@ -30849,7 +31517,7 @@
       "type": "service",
       "name": "deploy.sh",
       "filePath": "scripts/deploy.sh",
-      "summary": "deploy.sh is a infra file for scripts.",
+      "summary": "deploy.sh contains 2 functions.",
       "tags": [
         "scripts",
         "infra",
@@ -35026,6 +35694,34 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:statusClassOf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:routePathOf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:payloadBytesOf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:createHttpMetricsMiddleware",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/api/src/common/media-presenters.ts",
       "target": "function:backend/apps/api/src/common/media-presenters.ts:resolveMediaVisibility",
       "type": "contains",
@@ -35469,6 +36165,13 @@
     {
       "source": "file:backend/apps/api/src/controllers/media.controller.ts",
       "target": "class:backend/apps/api/src/controllers/media.controller.ts:MediaController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/metrics.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/metrics.controller.ts:MetricsController",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -36498,6 +37201,13 @@
     {
       "source": "file:backend/apps/chat/src/main.ts",
       "target": "function:backend/apps/chat/src/main.ts:bootstrap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/chat/src/metrics.controller.ts",
+      "target": "class:backend/apps/chat/src/metrics.controller.ts:MetricsController",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -38220,6 +38930,13 @@
     {
       "source": "file:backend/apps/worker/src/media/image-variants.ts",
       "target": "function:backend/apps/worker/src/media/image-variants.ts:variantObjectKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/metrics.controller.ts",
+      "target": "class:backend/apps/worker/src/metrics.controller.ts:MetricsController",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -41375,6 +42092,27 @@
       "weight": 1
     },
     {
+      "source": "file:backend/packages/database/src/metrics.ts",
+      "target": "function:backend/packages/database/src/metrics.ts:bindPrismaMetrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/metrics.ts",
+      "target": "function:backend/packages/database/src/metrics.ts:getMetricsContentType",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/metrics.ts",
+      "target": "function:backend/packages/database/src/metrics.ts:renderAppMetrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/src/openrouter.ts",
       "target": "function:backend/packages/database/src/openrouter.ts:parseOpenRouterJsonContent",
       "type": "contains",
@@ -41468,6 +42206,13 @@
     {
       "source": "file:backend/packages/database/src/pubsub.ts",
       "target": "function:backend/packages/database/src/pubsub.ts:publishBusEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/pubsub.ts",
+      "target": "function:backend/packages/database/src/pubsub.ts:metricsServiceName",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -41649,6 +42394,20 @@
     },
     {
       "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:recordS3Operation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:metricsServiceName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
       "target": "function:backend/packages/database/src/s3.ts:buildPublicAssetUrl",
       "type": "contains",
       "direction": "forward",
@@ -41809,6 +42568,41 @@
       "weight": 1
     },
     {
+      "source": "file:backend/scripts/perf-20k-smoke.mjs",
+      "target": "function:backend/scripts/perf-20k-smoke.mjs:parseArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-20k-smoke.mjs",
+      "target": "function:backend/scripts/perf-20k-smoke.mjs:required",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-20k-smoke.mjs",
+      "target": "function:backend/scripts/perf-20k-smoke.mjs:runScenario",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-20k-smoke.mjs",
+      "target": "function:backend/scripts/perf-20k-smoke.mjs:optionalScenario",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-20k-smoke.mjs",
+      "target": "function:backend/scripts/perf-20k-smoke.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/scripts/perf-hotpaths.mjs",
       "target": "function:backend/scripts/perf-hotpaths.mjs:parseArgs",
       "type": "contains",
@@ -41845,7 +42639,28 @@
     },
     {
       "source": "file:backend/scripts/perf-hotpaths.mjs",
+      "target": "function:backend/scripts/perf-hotpaths.mjs:authHeaders",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-hotpaths.mjs",
+      "target": "function:backend/scripts/perf-hotpaths.mjs:query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-hotpaths.mjs",
       "target": "function:backend/scripts/perf-hotpaths.mjs:runPool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-hotpaths.mjs",
+      "target": "function:backend/scripts/perf-hotpaths.mjs:fetchMeasured",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -41860,6 +42675,27 @@
     {
       "source": "file:backend/scripts/perf-hotpaths.mjs",
       "target": "function:backend/scripts/perf-hotpaths.mjs:measureHttpEndpoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-hotpaths.mjs",
+      "target": "function:backend/scripts/perf-hotpaths.mjs:measureStartupChain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-hotpaths.mjs",
+      "target": "function:backend/scripts/perf-hotpaths.mjs:measureMapViewport",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/perf-hotpaths.mjs",
+      "target": "function:backend/scripts/perf-hotpaths.mjs:measureMediaReuse",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -43637,6 +44473,13 @@
     },
     {
       "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/controllers/metrics.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/notifications.controller.ts",
       "type": "imports",
       "direction": "forward",
@@ -44700,6 +45543,13 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/controllers/metrics.controller.ts",
+      "target": "file:backend/apps/api/src/common/public.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/controllers/notifications.controller.ts",
       "target": "file:backend/apps/api/src/common/current-user.decorator.ts",
       "type": "imports",
@@ -44996,6 +45846,13 @@
     {
       "source": "file:backend/apps/api/src/main.ts",
       "target": "file:backend/apps/api/src/app.module.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/main.ts",
+      "target": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -46080,6 +46937,13 @@
     },
     {
       "source": "file:backend/apps/chat/src/app.module.ts",
+      "target": "file:backend/apps/chat/src/metrics.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/chat/src/app.module.ts",
       "target": "file:backend/apps/chat/src/prisma.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -46172,6 +47036,13 @@
     {
       "source": "file:backend/apps/worker/src/app.module.ts",
       "target": "file:backend/apps/worker/src/health.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/worker/src/app.module.ts",
+      "target": "file:backend/apps/worker/src/metrics.controller.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -46529,6 +47400,20 @@
     {
       "source": "file:backend/packages/database/prisma/verify-chat-unread-counts.ts",
       "target": "file:backend/packages/database/src/chat-unread-verifier.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/packages/database/src/pubsub.ts",
+      "target": "file:backend/packages/database/src/metrics.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
+      "target": "file:backend/packages/database/src/metrics.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -47400,6 +48285,7 @@
         "file:backend/apps/api/src/common/current-admin.decorator.ts",
         "file:backend/apps/api/src/common/current-partner.decorator.ts",
         "file:backend/apps/api/src/common/current-user.decorator.ts",
+        "file:backend/apps/api/src/common/http-metrics.middleware.ts",
         "file:backend/apps/api/src/common/media-presenters.ts",
         "file:backend/apps/api/src/common/normalize-request-url.ts",
         "file:backend/apps/api/src/common/pagination.ts",
@@ -47430,6 +48316,7 @@
         "file:backend/apps/api/src/controllers/internal-telegram.controller.ts",
         "file:backend/apps/api/src/controllers/matches.controller.ts",
         "file:backend/apps/api/src/controllers/media.controller.ts",
+        "file:backend/apps/api/src/controllers/metrics.controller.ts",
         "file:backend/apps/api/src/controllers/notifications.controller.ts",
         "file:backend/apps/api/src/controllers/onboarding.controller.ts",
         "file:backend/apps/api/src/controllers/partner-auth.controller.ts",
@@ -47521,6 +48408,7 @@
         "file:backend/apps/chat/src/chat-server.service.ts",
         "file:backend/apps/chat/src/health.controller.ts",
         "file:backend/apps/chat/src/main.ts",
+        "file:backend/apps/chat/src/metrics.controller.ts",
         "file:backend/apps/chat/src/prisma.service.ts",
         "file:backend/apps/chat/test/setup-env.ts",
         "config:backend/apps/chat/tsconfig.json"
@@ -47551,6 +48439,7 @@
         "config:backend/package.json",
         "config:backend/pnpm-workspace.yaml",
         "document:backend/README.md",
+        "file:backend/scripts/perf-20k-smoke.mjs",
         "file:backend/scripts/perf-hotpaths.mjs",
         "config:backend/tsconfig.base.json"
       ]
@@ -47581,6 +48470,7 @@
         "file:backend/apps/worker/src/health.controller.ts",
         "file:backend/apps/worker/src/main.ts",
         "file:backend/apps/worker/src/media/image-variants.ts",
+        "file:backend/apps/worker/src/metrics.controller.ts",
         "file:backend/apps/worker/src/prisma.service.ts",
         "file:backend/apps/worker/src/push.providers.ts",
         "file:backend/apps/worker/src/worker.service.ts",
@@ -48031,6 +48921,7 @@
         "file:backend/packages/database/src/hot-query-explain.ts",
         "file:backend/packages/database/src/index.d.ts",
         "file:backend/packages/database/src/index.ts",
+        "file:backend/packages/database/src/metrics.ts",
         "file:backend/packages/database/src/openrouter.ts",
         "file:backend/packages/database/src/outbox.d.ts",
         "file:backend/packages/database/src/outbox.js",
@@ -48059,6 +48950,11 @@
         "service:compose.telegram-relay.yml",
         "service:compose.yaml",
         "service:deploy/nginx/frendly.conf",
+        "service:deploy/nginx/frendly.scale.conf",
+        "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
+        "service:deploy/observability/grafana/dashboards/frendly-runtime.json",
+        "document:deploy/observability/grafana/README.md",
+        "service:deploy/observability/prometheus.yml",
         "pipeline:Makefile",
         "step:Makefile:clear_test_user",
         "service:scripts/bootstrap-server.sh",
@@ -48093,6 +48989,15 @@
         "file:mobile/lib/app/core/device/app_voice_recorder_service.dart",
         "file:mobile/lib/app/core/device/payment_link_service.dart",
         "file:mobile/lib/app/core/device/social_share_service.dart",
+        "file:mobile/lib/app/core/local_cache/app_cache_key.dart",
+        "file:mobile/lib/app/core/local_cache/app_cache_policy.dart",
+        "file:mobile/lib/app/core/local_cache/app_local_cache_store.dart",
+        "file:mobile/lib/app/core/local_cache/app_local_database.dart",
+        "file:mobile/lib/app/core/local_cache/app_local_database.g.dart",
+        "file:mobile/lib/app/core/local_cache/chat_cache_serializers.dart",
+        "file:mobile/lib/app/core/local_cache/chat_local_store.dart",
+        "file:mobile/lib/app/core/local_cache/local_cache_metrics.dart",
+        "file:mobile/lib/app/core/local_cache/local_first_repository.dart",
         "file:mobile/lib/app/core/maps/mapkit_bootstrap.dart",
         "file:mobile/lib/app/core/maps/yandex_map_service.dart",
         "file:mobile/lib/app/core/network/api_client.dart",
@@ -48381,7 +49286,10 @@
         "service:scripts/deploy-landing.sh",
         "service:scripts/deploy-telegram-relay.sh",
         "service:scripts/deploy.sh",
-        "service:deploy/nginx/frendly.conf"
+        "service:deploy/nginx/frendly.conf",
+        "service:deploy/nginx/frendly.scale.conf",
+        "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
+        "service:deploy/observability/grafana/dashboards/frendly-runtime.json"
       ]
     }
   ]

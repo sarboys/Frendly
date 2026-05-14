@@ -848,13 +848,13 @@
 - Modify: `ai-context/database.md`
 - Modify: `project_map.md` only if new top-level files need mention.
 
-- [ ] Update Flutter context when local-first behavior is implemented.
-- [ ] Update realtime context when chat scale behavior is implemented.
-- [ ] Update backend context when conditional GET or endpoint contracts change.
-- [ ] Update infra context when compose, observability, worker roles or rollout flags change.
-- [ ] Update database context when DB rollout commands or indexes change.
+- [x] Update Flutter context when local-first behavior is implemented.
+- [x] Update realtime context when chat scale behavior is implemented.
+- [x] Update backend context when conditional GET or endpoint contracts change.
+- [x] Update infra context when compose, observability, worker roles or rollout flags change.
+- [x] Update database context when DB rollout commands or indexes change.
 - [x] Run `cd /Users/sergeypolyakov/MyApp && bash scripts/update-understand-graph.sh`.
-- [ ] Commit with message `обновить контекст после scale local first работ`.
+- [x] Commit with message `обновить контекст после scale local first работ`.
 
 ---
 

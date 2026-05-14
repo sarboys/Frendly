@@ -25,16 +25,21 @@ Use this for WebSocket, chat sync, unread, typing, messages, attachments and Eve
 
 ## Client lifecycle
 
-1. Load recent messages through REST: `GET /chats/:chatId/messages`.
-2. Keep `nextCursor` from the REST page and request older history when the user scrolls near the top.
-3. Connect socket.
-4. Send `session.authenticate` with access token.
-5. Subscribe with `chat.subscribe`.
-6. Request missed events with `sync.request`.
-7. Store sync cursor per chat.
-8. Store pending send, edit, delete and read commands in SharedPreferences outbox.
+1. Render recent messages from `ChatLocalStore` when local-first cache is available.
+2. Load recent messages through REST: `GET /chats/:chatId/messages`.
+3. Keep `nextCursor` from the REST page and request older history when the user scrolls near the top.
+4. Connect socket.
+5. Send `session.authenticate` with access token.
+6. Subscribe with `chat.subscribe`.
+7. Request missed events with `sync.request`.
+8. Store sync cursor per chat.
+9. Store pending send, edit, delete and read commands in the durable outbox.
 
 On reconnect, authenticate, resend queued commands, resubscribe known chat ids and request sync from stored cursor.
+
+When local-first cache is enabled and the current user id is known, mobile uses `DriftChatOutboxStorage` backed by `pending_commands`. It migrates legacy `chat.outbox.commands` from `SharedPreferences`, dedupes by the existing command `dedupeKey`, and falls back to the old SharedPreferences storage when Drift is disabled or unavailable.
+
+Chat thread sync prefers the stored `sync_cursors` value when it exists. REST `lastEventId`, live events and `sync.snapshot` updates are written back to Drift, so a reopened thread can request only missed realtime events after showing the cached message window.
 
 Chat lists also expose per-user `isPinned`. Mobile toggles it through `POST /chats/:chatId/pin`, updates the row optimistically, then refetches the list.
 
@@ -81,6 +86,7 @@ Server events:
 - Server verifies JWT and DB `Session`.
 - Authenticated commands re-check session with short TTL.
 - Payload size is bounded by `CHAT_WS_MAX_PAYLOAD_BYTES`.
+- Payload warning metrics use `CHAT_WS_PAYLOAD_WARN_BYTES`, default `32768`, and increment `frendly_payload_warning_total` for inbound or outbound payloads above the threshold.
 - All chat actions require `ChatMember`.
 - Membership check has bounded in-memory TTL cache.
 - Direct chat checks load current member plus one peer, not all members.
@@ -89,6 +95,12 @@ Server events:
 ## Messages
 
 Flutter creates optimistic local message and `clientMessageId`, then sends `message.send`.
+
+`ChatLocalStore` stores recent message JSON in `chat_messages`. Rows have `messageId` plus optional `clientMessageId`; when the server echo arrives with the same client id, the pending local row is replaced by the server row.
+
+Meetup and personal chat lists read cached summaries first and refresh REST in the background. Realtime preview, unread and delete patches still update Riverpod local state immediately; subsequent REST refresh writes the latest summary rows back to Drift.
+
+REST meetup and personal chat list endpoints support optional `If-None-Match`. They keep the same JSON body on normal `200`, set a private weak `ETag`, and return empty `304` when the list payload is unchanged.
 
 Server validates:
 
@@ -162,7 +174,9 @@ Flutter `AppAttachmentService` coalesces in-flight signed download URL requests 
 - Compact meetup chat lists skip social preview aggregation on the backend to keep the initial chat list query lighter.
 - Sync is bounded.
 - Membership cache is capped by `CHAT_MEMBERSHIP_CACHE_MAX_ENTRIES`.
+- Membership cache hit and miss are counted through `frendly_websocket_membership_cache_total`.
 - WebSocket input payload, message text and attachment count are bounded before DB writes.
+- Slow sockets over `CHAT_WS_MAX_BUFFERED_BYTES` are skipped and counted through `frendly_websocket_dropped_total{reason="buffered_amount"}`.
 - Push and unread fanout stay outside the hot WebSocket path.
 
 ## Tests
