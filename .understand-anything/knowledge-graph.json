@@ -21,8 +21,8 @@
       "NestJS",
       "Prisma"
     ],
-    "analyzedAt": "2026-05-14T02:48:36.669Z",
-    "gitCommitHash": "b2b296f70820e6b23583df7e25e6f66d5acdcc4f"
+    "analyzedAt": "2026-05-14T03:24:30.491Z",
+    "gitCommitHash": "9aa391efd23a964911ed28c4c2b1031caeb1b152"
   },
   "nodes": [
     {
@@ -8870,7 +8870,7 @@
       "type": "file",
       "name": "tomesto.adapter.ts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "summary": "tomesto.adapter.ts contains 1 classes, 50 functions.",
+      "summary": "tomesto.adapter.ts contains 1 classes, 51 functions.",
       "tags": [
         "backend",
         "code",
@@ -8884,8 +8884,8 @@
       "name": "isDetailPath",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        492,
-        505
+        505,
+        518
       ],
       "summary": "isDetailPath in tomesto.adapter.ts.",
       "tags": [
@@ -8901,8 +8901,8 @@
       "name": "stripHash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        507,
-        511
+        520,
+        524
       ],
       "summary": "stripHash in tomesto.adapter.ts.",
       "tags": [
@@ -8918,8 +8918,8 @@
       "name": "canonicalUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        513,
-        523
+        526,
+        536
       ],
       "summary": "canonicalUrl in tomesto.adapter.ts.",
       "tags": [
@@ -8935,8 +8935,8 @@
       "name": "slugFromUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        525,
-        533
+        538,
+        546
       ],
       "summary": "slugFromUrl in tomesto.adapter.ts.",
       "tags": [
@@ -8952,8 +8952,8 @@
       "name": "firstText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        535,
-        547
+        548,
+        560
       ],
       "summary": "firstText in tomesto.adapter.ts.",
       "tags": [
@@ -8969,8 +8969,8 @@
       "name": "firstAttr",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        549,
-        557
+        562,
+        570
       ],
       "summary": "firstAttr in tomesto.adapter.ts.",
       "tags": [
@@ -8986,8 +8986,8 @@
       "name": "placeSlugFromVenueUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        559,
-        575
+        572,
+        588
       ],
       "summary": "placeSlugFromVenueUrl in tomesto.adapter.ts.",
       "tags": [
@@ -9003,8 +9003,8 @@
       "name": "collectTexts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        577,
-        589
+        590,
+        602
       ],
       "summary": "collectTexts in tomesto.adapter.ts.",
       "tags": [
@@ -9020,8 +9020,8 @@
       "name": "meta",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        591,
-        597
+        604,
+        610
       ],
       "summary": "meta in tomesto.adapter.ts.",
       "tags": [
@@ -9037,8 +9037,8 @@
       "name": "shortDescription",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        599,
-        605
+        612,
+        618
       ],
       "summary": "shortDescription in tomesto.adapter.ts.",
       "tags": [
@@ -9054,8 +9054,8 @@
       "name": "cleanText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        607,
-        616
+        620,
+        629
       ],
       "summary": "cleanText in tomesto.adapter.ts.",
       "tags": [
@@ -9071,8 +9071,8 @@
       "name": "coordinates",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        618,
-        640
+        631,
+        653
       ],
       "summary": "coordinates in tomesto.adapter.ts.",
       "tags": [
@@ -9088,8 +9088,8 @@
       "name": "jsonLdObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        642,
-        653
+        655,
+        666
       ],
       "summary": "jsonLdObjects in tomesto.adapter.ts.",
       "tags": [
@@ -9105,8 +9105,8 @@
       "name": "collectJsonObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        655,
-        666
+        668,
+        679
       ],
       "summary": "collectJsonObjects in tomesto.adapter.ts.",
       "tags": [
@@ -9122,8 +9122,8 @@
       "name": "placeCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        668,
-        694
+        681,
+        707
       ],
       "summary": "placeCategory in tomesto.adapter.ts.",
       "tags": [
@@ -9139,8 +9139,8 @@
       "name": "averageCheck",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        696,
-        703
+        709,
+        716
       ],
       "summary": "averageCheck in tomesto.adapter.ts.",
       "tags": [
@@ -9156,8 +9156,8 @@
       "name": "visiblePrice",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        705,
-        719
+        718,
+        732
       ],
       "summary": "visiblePrice in tomesto.adapter.ts.",
       "tags": [
@@ -9173,8 +9173,8 @@
       "name": "rating",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        721,
-        727
+        734,
+        740
       ],
       "summary": "rating in tomesto.adapter.ts.",
       "tags": [
@@ -9190,8 +9190,8 @@
       "name": "metroLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        729,
-        743
+        742,
+        756
       ],
       "summary": "metroLabels in tomesto.adapter.ts.",
       "tags": [
@@ -9207,8 +9207,8 @@
       "name": "featureLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        745,
-        759
+        758,
+        772
       ],
       "summary": "featureLabels in tomesto.adapter.ts.",
       "tags": [
@@ -9224,8 +9224,8 @@
       "name": "cuisineLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        761,
-        767
+        774,
+        780
       ],
       "summary": "cuisineLabels in tomesto.adapter.ts.",
       "tags": [
@@ -9241,8 +9241,8 @@
       "name": "setLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        769,
-        794
+        782,
+        807
       ],
       "summary": "setLabels in tomesto.adapter.ts.",
       "tags": [
@@ -9258,8 +9258,8 @@
       "name": "sourceUpdatedText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        796,
-        803
+        809,
+        816
       ],
       "summary": "sourceUpdatedText in tomesto.adapter.ts.",
       "tags": [
@@ -9275,8 +9275,8 @@
       "name": "compactPageText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        805,
-        809
+        818,
+        822
       ],
       "summary": "compactPageText in tomesto.adapter.ts.",
       "tags": [
@@ -9292,8 +9292,8 @@
       "name": "buildPlaceTaxonomy",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        811,
-        845
+        824,
+        858
       ],
       "summary": "buildPlaceTaxonomy in tomesto.adapter.ts.",
       "tags": [
@@ -9309,8 +9309,8 @@
       "name": "taxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        847,
-        858
+        860,
+        871
       ],
       "summary": "taxonomyTags in tomesto.adapter.ts.",
       "tags": [
@@ -9326,8 +9326,8 @@
       "name": "normalizeFeature",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        860,
-        884
+        873,
+        897
       ],
       "summary": "normalizeFeature in tomesto.adapter.ts.",
       "tags": [
@@ -9343,8 +9343,8 @@
       "name": "extractImageUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        886,
-        897
+        899,
+        910
       ],
       "summary": "extractImageUrl in tomesto.adapter.ts.",
       "tags": [
@@ -9360,8 +9360,8 @@
       "name": "firstDateWindow",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        899,
-        907
+        912,
+        920
       ],
       "summary": "firstDateWindow in tomesto.adapter.ts.",
       "tags": [
@@ -9377,8 +9377,8 @@
       "name": "dateWindows",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        909,
-        934
+        922,
+        947
       ],
       "summary": "dateWindows in tomesto.adapter.ts.",
       "tags": [
@@ -9394,8 +9394,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        936,
-        957
+        949,
+        970
       ],
       "summary": "parseDate in tomesto.adapter.ts.",
       "tags": [
@@ -9411,8 +9411,8 @@
       "name": "eventCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        959,
-        980
+        972,
+        993
       ],
       "summary": "eventCategory in tomesto.adapter.ts.",
       "tags": [
@@ -9428,8 +9428,8 @@
       "name": "ensureTrailingSlash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        982,
-        984
+        995,
+        997
       ],
       "summary": "ensureTrailingSlash in tomesto.adapter.ts.",
       "tags": [
@@ -9445,8 +9445,8 @@
       "name": "normalizeRefQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        986,
-        992
+        999,
+        1005
       ],
       "summary": "normalizeRefQuery in tomesto.adapter.ts.",
       "tags": [
@@ -9462,8 +9462,8 @@
       "name": "safeQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        994,
-        1000
+        1007,
+        1013
       ],
       "summary": "safeQuery in tomesto.adapter.ts.",
       "tags": [
@@ -9479,8 +9479,8 @@
       "name": "dateKey",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1002,
-        1004
+        1015,
+        1017
       ],
       "summary": "dateKey in tomesto.adapter.ts.",
       "tags": [
@@ -9496,8 +9496,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1006,
-        1012
+        1019,
+        1025
       ],
       "summary": "text in tomesto.adapter.ts.",
       "tags": [
@@ -9513,8 +9513,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1014,
-        1024
+        1027,
+        1037
       ],
       "summary": "number in tomesto.adapter.ts.",
       "tags": [
@@ -9530,8 +9530,8 @@
       "name": "positiveNumber",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1026,
-        1029
+        1039,
+        1042
       ],
       "summary": "positiveNumber in tomesto.adapter.ts.",
       "tags": [
@@ -9547,8 +9547,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1031,
-        1034
+        1044,
+        1047
       ],
       "summary": "positiveInt in tomesto.adapter.ts.",
       "tags": [
@@ -9564,8 +9564,8 @@
       "name": "nonNegativeInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1036,
-        1039
+        1049,
+        1052
       ],
       "summary": "nonNegativeInt in tomesto.adapter.ts.",
       "tags": [
@@ -9581,8 +9581,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1041,
-        1043
+        1054,
+        1056
       ],
       "summary": "object in tomesto.adapter.ts.",
       "tags": [
@@ -9598,8 +9598,8 @@
       "name": "delay",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1045,
-        1047
+        1058,
+        1060
       ],
       "summary": "delay in tomesto.adapter.ts.",
       "tags": [
@@ -9615,8 +9615,8 @@
       "name": "normalizeToken",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1049,
-        1057
+        1062,
+        1070
       ],
       "summary": "normalizeToken in tomesto.adapter.ts.",
       "tags": [
@@ -9632,8 +9632,8 @@
       "name": "normalizeSlug",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1059,
-        1067
+        1072,
+        1080
       ],
       "summary": "normalizeSlug in tomesto.adapter.ts.",
       "tags": [
@@ -9649,8 +9649,8 @@
       "name": "transliterate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1069,
-        1109
+        1082,
+        1122
       ],
       "summary": "transliterate in tomesto.adapter.ts.",
       "tags": [
@@ -9666,8 +9666,8 @@
       "name": "dedupe",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1111,
-        1113
+        1124,
+        1126
       ],
       "summary": "dedupe in tomesto.adapter.ts.",
       "tags": [
@@ -9683,8 +9683,8 @@
       "name": "isString",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1115,
-        1117
+        1128,
+        1130
       ],
       "summary": "isString in tomesto.adapter.ts.",
       "tags": [
@@ -9700,8 +9700,8 @@
       "name": "emptyTaxonomyCounts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1119,
-        1125
+        1132,
+        1138
       ],
       "summary": "emptyTaxonomyCounts in tomesto.adapter.ts.",
       "tags": [
@@ -9717,10 +9717,27 @@
       "name": "countTaxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1127,
-        1137
+        1140,
+        1150
       ],
       "summary": "countTaxonomyTags in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:isTomestoNotFound",
+      "type": "function",
+      "name": "isTomestoNotFound",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        1152,
+        1154
+      ],
+      "summary": "isTomestoNotFound in tomesto.adapter.ts.",
       "tags": [
         "backend",
         "function",
@@ -9735,7 +9752,7 @@
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
         37,
-        490
+        503
       ],
       "summary": "TomestoAdapter in tomesto.adapter.ts.",
       "tags": [
@@ -25043,6 +25060,13 @@
     {
       "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
       "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:countTaxonomyTags",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:isTomestoNotFound",
       "type": "contains",
       "direction": "forward",
       "weight": 1

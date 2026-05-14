@@ -109,7 +109,20 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const urls = new Set<string>();
     for (let page = 1; page <= this.maxPages; page += 1) {
       const url = this.listUrl(kind, page, input.from, input.to);
-      const html = await this.fetchHtml(url, input.signal);
+      let html: string;
+      try {
+        html = await this.fetchHtml(url, input.signal);
+      } catch (caught) {
+        if (isTomestoNotFound(caught, url)) {
+          console.info('[tomesto] list page not found, stopping pagination', {
+            kind,
+            page,
+            path: url.pathname,
+          });
+          break;
+        }
+        throw caught;
+      }
       const $ = cheerio.load(html);
       const discovered = this.extractDetailUrls($, kind);
       let newCount = 0;
@@ -1134,4 +1147,8 @@ function countTaxonomyTags(tags: string[], counts: ReturnType<typeof emptyTaxono
   if (tags.includes('occasion:food')) {
     counts.occasionFood += 1;
   }
+}
+
+function isTomestoNotFound(caught: unknown, url: URL) {
+  return caught instanceof Error && caught.message === `tomesto_404_${url.pathname}`;
 }

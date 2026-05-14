@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "b2b296f70820e6b23583df7e25e6f66d5acdcc4f",
-  "generatedAt": "2026-05-14T02:48:37.002Z",
+  "gitCommitHash": "9aa391efd23a964911ed28c4c2b1031caeb1b152",
+  "generatedAt": "2026-05-14T03:24:30.664Z",
   "files": {
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
@@ -11682,7 +11682,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "634723e580798d29af58304a7621f7acbdfff79989dc73b3ea9a5434fda8971a",
+      "contentHash": "632772533862a36621971d84dcfc80de913e5a0a5e5ba0a8e3465c34d7b0dd16",
       "functions": [
         {
           "name": "isDetailPath",
@@ -12103,6 +12103,15 @@
           ],
           "exported": false,
           "lineCount": 11
+        },
+        {
+          "name": "isTomestoNotFound",
+          "params": [
+            "caught",
+            "url"
+          ],
+          "exported": false,
+          "lineCount": 3
         }
       ],
       "classes": [
@@ -12132,7 +12141,7 @@
             "importImages"
           ],
           "exported": true,
-          "lineCount": 454
+          "lineCount": 467
         }
       ],
       "imports": [
@@ -12155,7 +12164,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1138,
+      "totalLines": 1155,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {
