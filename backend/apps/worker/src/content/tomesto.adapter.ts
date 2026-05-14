@@ -12,6 +12,9 @@ const DEFAULT_REQUEST_DELAY_MS = 500;
 const DEFAULT_WINDOW_DAYS = 30;
 const DEFAULT_CATALOG_BATCH_SIZE = 250;
 const DEFAULT_CATALOG_FALLBACK_MAX_PAGES = 250;
+const DEFAULT_CATALOG_CONCURRENCY = 5;
+const DEFAULT_CATALOG_REQUEST_DELAY_MS = 150;
+const MAX_CATALOG_CONCURRENCY = 10;
 const TOMESTO_PROVIDER = 'ТоМесто';
 const MOSCOW = 'Москва';
 const MOSCOW_TIMEZONE = 'Europe/Moscow';
@@ -46,6 +49,15 @@ export class TomestoAdapter implements ExternalSourceAdapter {
   private readonly windowDays = positiveInt(process.env.TOMESTO_WINDOW_DAYS, DEFAULT_WINDOW_DAYS);
   private readonly importImages = process.env.TOMESTO_IMPORT_IMAGES === 'true';
   private readonly catalogBatchSize = positiveInt(process.env.TOMESTO_CATALOG_BATCH_SIZE, DEFAULT_CATALOG_BATCH_SIZE);
+  private readonly catalogConcurrency = boundedPositiveInt(
+    process.env.TOMESTO_CATALOG_CONCURRENCY,
+    DEFAULT_CATALOG_CONCURRENCY,
+    MAX_CATALOG_CONCURRENCY,
+  );
+  private readonly catalogRequestDelayMs = nonNegativeInt(
+    process.env.TOMESTO_CATALOG_REQUEST_DELAY_MS,
+    DEFAULT_CATALOG_REQUEST_DELAY_MS,
+  );
   private readonly catalogFallbackMaxPages = positiveInt(
     process.env.TOMESTO_CATALOG_FALLBACK_MAX_PAGES,
     DEFAULT_CATALOG_FALLBACK_MAX_PAGES,
@@ -177,9 +189,11 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       limit,
       total: allPlaceUrls.length,
       count: slice.length,
+      concurrency: this.catalogConcurrency,
+      requestDelayMs: this.catalogRequestDelayMs,
     });
     const taxonomyCounts = emptyTaxonomyCounts();
-    for await (const batch of this.fetchPlaceBatches(slice, input, taxonomyCounts, {
+    for await (const batch of this.fetchCatalogPlaceBatchesConcurrent(slice, input, taxonomyCounts, {
       offset,
       limit,
       total: allPlaceUrls.length,
@@ -218,6 +232,72 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       urls.add(stripHash(url).toString());
     });
     return Array.from(urls).sort();
+  }
+
+  private async *fetchCatalogPlaceBatchesConcurrent(
+    urls: string[],
+    input: ExternalSourceFetchInput,
+    taxonomyCounts: ReturnType<typeof emptyTaxonomyCounts>,
+    catalog: { offset: number; limit: number; total: number },
+  ) {
+    let batch: ExternalRawItem[] = [];
+    for (let index = 0; index < urls.length; index += this.catalogConcurrency) {
+      const chunk = urls.slice(index, index + this.catalogConcurrency);
+      const items = await Promise.all(
+        chunk.map((url) => this.fetchCatalogPlaceItem(url, input, taxonomyCounts, catalog)),
+      );
+      for (const item of items) {
+        if (!item) {
+          continue;
+        }
+        batch.push(item);
+        if (batch.length >= PLACE_BATCH_SIZE) {
+          yield batch;
+          batch = [];
+        }
+      }
+      if (index + this.catalogConcurrency < urls.length) {
+        await delay(this.catalogRequestDelayMs);
+      }
+    }
+    if (batch.length > 0) {
+      yield batch;
+    }
+  }
+
+  private async fetchCatalogPlaceItem(
+    url: string,
+    input: ExternalSourceFetchInput,
+    taxonomyCounts: ReturnType<typeof emptyTaxonomyCounts>,
+    catalog: { offset: number; limit: number; total: number },
+  ) {
+    const detailUrl = new URL(url);
+    let html: string;
+    try {
+      html = await this.fetchHtml(detailUrl, input.signal);
+    } catch (caught) {
+      if (isTomestoNotFound(caught, detailUrl)) {
+        console.warn('[tomesto] catalog place page not found, skipped', {
+          path: detailUrl.pathname,
+        });
+        return null;
+      }
+      throw caught;
+    }
+    const item = this.parsePlace(html, url, input.city);
+    if (!item) {
+      return null;
+    }
+    item.raw = mergeRaw(item.raw, {
+      catalog: {
+        mode: TOMESTO_PLACES_CATALOG_MODE,
+        offset: catalog.offset,
+        limit: catalog.limit,
+        total: catalog.total,
+      },
+    });
+    countTaxonomyTags(item.tags ?? [], taxonomyCounts);
+    return item;
   }
 
   private async *fetchPlaceBatches(
@@ -1131,6 +1211,14 @@ function positiveInt(value: unknown, fallback: number) {
 function nonNegativeInt(value: unknown, fallback: number) {
   const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function boundedPositiveInt(value: unknown, fallback: number, max: number) {
+  const parsed = typeof value === 'string' || typeof value === 'number'
+    ? Number.parseInt(String(value), 10)
+    : Number.NaN;
+  const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  return Math.max(1, Math.min(safe, max));
 }
 
 function positiveInteger(value: unknown, fallback: number) {

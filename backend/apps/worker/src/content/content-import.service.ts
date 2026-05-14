@@ -56,6 +56,17 @@ type EventDuplicateCandidate = {
   source: { code: ExternalSourceCode; name: string } | null;
 };
 
+type ImportCounters = {
+  fetchedCount: number;
+  normalizedCount: number;
+  skippedCount: number;
+  publishedCount: number;
+  paidCount: number;
+  freeCount: number;
+  unknownPriceCount: number;
+  missingCoordsCount: number;
+};
+
 const EVENT_DUPLICATE_CANDIDATE_SELECT = {
   id: true,
   sourceItemId: true,
@@ -257,6 +268,23 @@ export class ContentImportService {
     );
     const now = new Date();
     const cutoff = new Date(now.getTime() - staleAfterMs);
+    const staleRuns = await this.prismaService.client.externalImportRun.findMany({
+      where: {
+        status: 'running',
+        startedAt: { lt: cutoff },
+      },
+      select: {
+        id: true,
+        sourceId: true,
+        city: true,
+        metadata: true,
+        source: {
+          select: {
+            code: true,
+          },
+        },
+      },
+    });
     const result = await this.prismaService.client.externalImportRun.updateMany({
       where: {
         status: 'running',
@@ -270,6 +298,9 @@ export class ContentImportService {
         finishedAt: now,
       },
     });
+    for (const run of staleRuns as any[]) {
+      await this.enqueueTomestoCatalogResumeRun(run);
+    }
     if (result.count > 0) {
       console.warn('[content-import] stale running runs failed', {
         count: result.count,
@@ -365,6 +396,16 @@ export class ContentImportService {
             skippedCount += 1;
           }
         }
+        await this.updateRunProgress(input.runId, {
+          fetchedCount,
+          normalizedCount,
+          skippedCount,
+          publishedCount,
+          paidCount,
+          freeCount,
+          unknownPriceCount,
+          missingCoordsCount,
+        });
       }
       if (fetchedCount === 0) {
         console.warn('[content-import] source returned empty feed', {
@@ -574,6 +615,16 @@ export class ContentImportService {
     });
   }
 
+  private updateRunProgress(runId: string, counters: ImportCounters) {
+    return this.prismaService.client.externalImportRun.update({
+      where: { id: runId },
+      data: {
+        status: 'running',
+        ...counters,
+      },
+    });
+  }
+
   private async prepareItemForUpsert(
     item: NormalizedExternalContentItem,
     duplicateCache: DuplicateCandidateCache,
@@ -721,6 +772,49 @@ export class ContentImportService {
     });
   }
 
+  private async enqueueTomestoCatalogResumeRun(run: {
+    id: string;
+    sourceId: string;
+    city: string;
+    metadata: unknown;
+    source?: { code?: ExternalSourceCode | string | null } | null;
+  }) {
+    if (run.source?.code !== 'tomesto') {
+      return;
+    }
+    const metadata = object(run.metadata);
+    if (optionalString(metadata?.importMode) !== TOMESTO_PLACES_CATALOG_MODE) {
+      return;
+    }
+    const offset = optionalNonNegativeInteger(metadata?.catalogOffset);
+    if (offset == null) {
+      return;
+    }
+    const from = parseDate(metadata?.from) ?? new Date();
+    const to = parseDate(metadata?.to) ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const limit = optionalPositiveInteger(metadata?.catalogLimit) ?? DEFAULT_TOMESTO_CATALOG_BATCH_SIZE;
+    const total = optionalPositiveInteger(metadata?.catalogTotal);
+    const next = await this.enqueueTomestoCatalogRun({
+      sourceId: run.sourceId,
+      city: run.city,
+      from,
+      to,
+      offset,
+      limit,
+      total,
+      previousRunId: run.id,
+      requestedBy: 'worker-resume',
+    });
+    if (next) {
+      console.warn('[content-import] tomesto catalog resume run queued', {
+        interruptedRunId: run.id,
+        resumeRunId: next.id,
+        offset,
+        total,
+      });
+    }
+  }
+
   private async enqueueNextTomestoCatalogRun(
     input: {
       runId: string;
@@ -746,6 +840,43 @@ export class ContentImportService {
     if (nextOffset >= progress.total) {
       return;
     }
+    const next = await this.enqueueTomestoCatalogRun({
+      sourceId: input.sourceId,
+      city: input.city,
+      from: input.from,
+      to: input.to,
+      offset: nextOffset,
+      limit: progress.limit,
+      total: progress.total,
+      previousRunId: input.runId,
+      requestedBy: 'worker',
+    });
+    if (!next) {
+      console.warn('[content-import] tomesto catalog next run skipped because a run is already active', {
+        currentRunId: input.runId,
+        nextOffset,
+      });
+      return;
+    }
+    console.info('[content-import] tomesto catalog next run queued', {
+      currentRunId: input.runId,
+      nextRunId: next.id,
+      nextOffset,
+      total: progress.total,
+    });
+  }
+
+  private async enqueueTomestoCatalogRun(input: {
+    sourceId: string;
+    city: string;
+    from: Date;
+    to: Date;
+    offset: number;
+    limit: number;
+    total?: number | null;
+    previousRunId: string;
+    requestedBy: string;
+  }) {
     const existing = await this.prismaService.client.externalImportRun.findFirst({
       where: {
         sourceId: input.sourceId,
@@ -759,14 +890,14 @@ export class ContentImportService {
       orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
     });
     if (existing) {
-      console.warn('[content-import] tomesto catalog next run skipped because a run is already active', {
-        currentRunId: input.runId,
+      console.warn('[content-import] tomesto catalog run skipped because a run is already active', {
+        previousRunId: input.previousRunId,
         existingRunId: existing.id,
-        nextOffset,
+        offset: input.offset,
       });
-      return;
+      return null;
     }
-    const next = await this.prismaService.client.externalImportRun.create({
+    return this.prismaService.client.externalImportRun.create({
       data: {
         sourceId: input.sourceId,
         city: input.city,
@@ -774,20 +905,14 @@ export class ContentImportService {
         metadata: {
           from: input.from.toISOString(),
           to: input.to.toISOString(),
-          requestedBy: 'worker',
+          requestedBy: input.requestedBy,
           importMode: TOMESTO_PLACES_CATALOG_MODE,
-          catalogOffset: nextOffset,
-          catalogLimit: progress.limit,
-          catalogTotal: progress.total,
-          previousRunId: input.runId,
+          catalogOffset: input.offset,
+          catalogLimit: input.limit,
+          ...(input.total != null ? { catalogTotal: input.total } : {}),
+          previousRunId: input.previousRunId,
         },
       },
-    });
-    console.info('[content-import] tomesto catalog next run queued', {
-      currentRunId: input.runId,
-      nextRunId: next.id,
-      nextOffset,
-      total: progress.total,
     });
   }
 }

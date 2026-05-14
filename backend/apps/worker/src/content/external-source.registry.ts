@@ -53,6 +53,8 @@ const SOURCE_INFO: Record<ExternalSourceCode, ExternalSourceInfo> = {
       importImages: process.env.TOMESTO_IMPORT_IMAGES === 'true',
       publicEventsEnabled: process.env.TOMESTO_PUBLIC_EVENTS_ENABLED === 'true',
       requestDelayMs: process.env.TOMESTO_REQUEST_DELAY_MS ?? '1000',
+      catalogRequestDelayMs: process.env.TOMESTO_CATALOG_REQUEST_DELAY_MS ?? '150',
+      catalogConcurrency: process.env.TOMESTO_CATALOG_CONCURRENCY ?? '5',
       maxPages: process.env.TOMESTO_MAX_PAGES ?? '200',
       windowDays: process.env.TOMESTO_WINDOW_DAYS ?? '30',
     },
