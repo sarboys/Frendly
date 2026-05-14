@@ -782,11 +782,18 @@
 - Local report `docs/audits/2026-05-14-scale-local-first-performance-report.md` ranked measured scenarios as `startup-chain` p95 `51.52`, `map-viewport` p95 `19.66`, `route-templates` p95 `12.78`, `dating-discover` p95 `10.53` and `affiche-events` p95 `7.98`.
 - All measured local scenarios had `0` errors and p95 below `60 ms`, so no endpoint qualified for code changes.
 - Staging or production metrics are still required before changing `/chats/*`, `/search`, `/media/:assetId` or `/uploads/media/complete`.
+- Focused code review covered only endpoints visible in the local report: `/events`, `/dating/discover`, `/affiche/events` and `/evening/route-templates`.
+- `/events` keeps geo candidates bounded, loads details only for selected page ids, and caps participant preview at 6.
+- `/dating/discover` uses id cursor pagination, `take + 1`, a narrow card select and one incoming-like lookup for the current page ids.
+- `/affiche/events` uses a narrow public select without `raw`, plus `(startsAt, id)` cursor ordering.
+- `/evening/route-templates` uses summary-only payloads, first 4 route steps, first 3 sessions and partner offer preview capped at 8 rows per route.
+- No measured endpoint showed hidden social preview fanout, response shape change need or a latency/error reason to patch code.
 
 - [x] Rank endpoints by p95, p99, query count and error rate.
-- [ ] Start with `/events`, `/dating/discover`, `/chats/meetups`, `/chats/personal`, `/chats/:chatId/messages`, `/search`, `/media/:assetId`, `/uploads/media/complete`, `/affiche/events`, `/evening/route-templates`.
-- [ ] Inspect where clauses, orderBy, cursor, selected fields and nested includes.
-- [ ] Check that list endpoints do not do hidden social preview fanout.
+- [x] Start with currently measured local endpoints: `/events`, `/dating/discover`, `/affiche/events`, `/evening/route-templates`.
+- [x] Inspect where clauses, orderBy, cursor, selected fields and nested includes for currently measured endpoints.
+- [x] Check that currently measured list endpoints do not do hidden social preview fanout.
+- [ ] Expand to `/chats/meetups`, `/chats/personal`, `/chats/:chatId/messages`, `/search`, `/media/:assetId` and `/uploads/media/complete` only after staging or production metrics show them.
 - [ ] Work one hot path per PR or commit.
 - [ ] Add a failing test or measured baseline before the change.
 - [ ] Keep API response shape unless the contract update is explicit.
