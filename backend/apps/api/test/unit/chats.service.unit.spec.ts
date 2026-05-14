@@ -1113,6 +1113,78 @@ describe('ChatsService unit', () => {
     ]);
   });
 
+  it('wraps chat list responses with a stable ETag', async () => {
+    const service = new ChatsService({ client: {} } as any);
+    const payload = {
+      items: [
+        {
+          id: 'chat-1',
+          lastMessageId: 'message-1',
+          unread: 2,
+          isPinned: false,
+        },
+      ],
+      nextCursor: null,
+    };
+    jest.spyOn(service, 'listChats').mockResolvedValue(payload as any);
+
+    const first = await service.listChatsWithCache(
+      'user-me',
+      'meetup',
+      { limit: 20 },
+      undefined,
+    );
+    const second = await service.listChatsWithCache(
+      'user-me',
+      'meetup',
+      { limit: 20 },
+      undefined,
+    );
+
+    expect(first).toEqual({
+      etag: expect.stringMatching(/^W\/"chat-list-[a-f0-9]{32}"$/),
+      response: payload,
+    });
+    expect(second).toEqual(first);
+  });
+
+  it('returns not modified when a chat list ETag matches If-None-Match', async () => {
+    const service = new ChatsService({ client: {} } as any);
+    const payload = {
+      items: [{ id: 'chat-1', lastMessageId: 'message-1', unread: 0 }],
+      nextCursor: null,
+    };
+    jest.spyOn(service, 'listChats').mockResolvedValue(payload as any);
+
+    const first = await service.listChatsWithCache(
+      'user-me',
+      'direct',
+      { limit: 20 },
+      undefined,
+    );
+    const fresh = await service.listChatsWithCache(
+      'user-me',
+      'direct',
+      { limit: 20 },
+      `W/"stale", ${first.etag}`,
+    );
+    const stale = await service.listChatsWithCache(
+      'user-me',
+      'direct',
+      { limit: 20 },
+      'W/"stale"',
+    );
+
+    expect(fresh).toEqual({
+      etag: first.etag,
+      notModified: true,
+    });
+    expect(stale).toEqual({
+      etag: first.etag,
+      response: payload,
+    });
+  });
+
   it('does not expose blocked sender content through reply previews', async () => {
     const service = new ChatsService({
       client: {

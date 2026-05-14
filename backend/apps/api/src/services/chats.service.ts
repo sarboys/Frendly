@@ -6,6 +6,7 @@ import {
 } from '@big-break/database';
 import { ChatKind, MediaAssetKind, Prisma } from '@prisma/client';
 import { Injectable, Logger } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { formatEventTime, formatRelativeTime, mapMessage } from '../common/presenters';
 import {
@@ -135,6 +136,28 @@ export class ChatsService {
   private readonly logger = new Logger(ChatsService.name);
 
   constructor(private readonly prismaService: PrismaService) {}
+
+  async listChatsWithCache(
+    userId: string,
+    kind: 'meetup' | 'direct',
+    params: { cursor?: string; limit?: number; includeSocial?: boolean },
+    ifNoneMatch?: string,
+  ) {
+    const response = await this.listChats(userId, kind, params);
+    const etag = this.buildChatListEtag(response);
+
+    if (this.matchesEntityTag(ifNoneMatch, etag)) {
+      return {
+        etag,
+        notModified: true as const,
+      };
+    }
+
+    return {
+      etag,
+      response,
+    };
+  }
 
   async listChats(
     userId: string,
@@ -426,6 +449,25 @@ export class ChatsService {
               ? this.encodeChatListCursor(page[page.length - 1]!)
               : null,
     };
+  }
+
+  private buildChatListEtag(response: unknown) {
+    const hash = createHash('sha256')
+      .update(JSON.stringify(response))
+      .digest('hex')
+      .slice(0, 32);
+    return `W/"chat-list-${hash}"`;
+  }
+
+  private matchesEntityTag(ifNoneMatch: string | undefined, etag: string) {
+    if (!ifNoneMatch) {
+      return false;
+    }
+
+    return ifNoneMatch
+      .split(',')
+      .map((value) => value.trim())
+      .some((value) => value === '*' || value === etag);
   }
 
   async setPinned(userId: string, chatId: string, isPinned: boolean) {

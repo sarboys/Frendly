@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
+import { Response } from 'express';
 import { CurrentUser } from '../common/current-user.decorator';
 import { ChatsService } from '../services/chats.service';
 
@@ -12,12 +23,22 @@ export class ChatsController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('includeSocial') includeSocial?: string,
+    @Headers('if-none-match') ifNoneMatch?: string,
+    @Res({ passthrough: true }) response?: Response,
   ) {
-    return this.chatsService.listChats(currentUser.userId, 'meetup', {
-      cursor,
-      limit: limit ? Number(limit) : undefined,
-      includeSocial: includeSocial !== 'false',
-    });
+    return this.respondWithChatListCache(
+      response,
+      this.chatsService.listChatsWithCache(
+        currentUser.userId,
+        'meetup',
+        {
+          cursor,
+          limit: limit ? Number(limit) : undefined,
+          includeSocial: includeSocial !== 'false',
+        },
+        ifNoneMatch,
+      ),
+    );
   }
 
   @Get('personal')
@@ -25,11 +46,21 @@ export class ChatsController {
     @CurrentUser() currentUser: { userId: string },
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Headers('if-none-match') ifNoneMatch?: string,
+    @Res({ passthrough: true }) response?: Response,
   ) {
-    return this.chatsService.listChats(currentUser.userId, 'direct', {
-      cursor,
-      limit: limit ? Number(limit) : undefined,
-    });
+    return this.respondWithChatListCache(
+      response,
+      this.chatsService.listChatsWithCache(
+        currentUser.userId,
+        'direct',
+        {
+          cursor,
+          limit: limit ? Number(limit) : undefined,
+        },
+        ifNoneMatch,
+      ),
+    );
   }
 
   @Get(':chatId/messages')
@@ -73,5 +104,22 @@ export class ChatsController {
     @Param('chatId') chatId: string,
   ) {
     return this.chatsService.deleteChat(currentUser.userId, chatId);
+  }
+
+  private async respondWithChatListCache(
+    response: Response | undefined,
+    resultPromise: ReturnType<ChatsService['listChatsWithCache']>,
+  ) {
+    const result = await resultPromise;
+    response?.setHeader('ETag', result.etag);
+    response?.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+    response?.setHeader('Vary', 'Authorization');
+
+    if ('notModified' in result) {
+      response?.status(304).end();
+      return;
+    }
+
+    return result.response;
   }
 }
