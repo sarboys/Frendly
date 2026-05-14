@@ -6,11 +6,12 @@ import { ContentNormalizerService } from './content/content-normalizer.service';
 import { ExternalSourceRegistry } from './content/external-source.registry';
 import { RouteDraftGenerationService } from './content/route-draft-generation.service';
 import { HealthController } from './health.controller';
+import { MetricsController } from './metrics.controller';
 import { PrismaService } from './prisma.service';
 import { WorkerService } from './worker.service';
 
 @Module({
-  controllers: [HealthController],
+  controllers: [HealthController, MetricsController],
   providers: [
     PrismaService,
     ContentImageMirrorService,

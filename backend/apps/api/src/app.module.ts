@@ -20,6 +20,7 @@ import { HostController } from './controllers/host.controller';
 import { InternalTelegramController } from './controllers/internal-telegram.controller';
 import { MatchesController } from './controllers/matches.controller';
 import { MediaController } from './controllers/media.controller';
+import { MetricsController } from './controllers/metrics.controller';
 import { NotificationsController } from './controllers/notifications.controller';
 import { OnboardingController } from './controllers/onboarding.controller';
 import { PeopleController } from './controllers/people.controller';
@@ -119,6 +120,7 @@ import { VerificationService } from './services/verification.service';
     InternalTelegramController,
     MatchesController,
     MediaController,
+    MetricsController,
     NotificationsController,
     OnboardingController,
     PeopleController,
