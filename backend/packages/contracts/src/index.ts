@@ -305,6 +305,40 @@ export interface ProfileSocialDto {
   iSuper: boolean;
 }
 
+export type EventInviteState =
+  | 'available'
+  | 'already_joined'
+  | 'pending_invite'
+  | 'pending_request';
+
+export interface FollowingPersonDto {
+  id: string;
+  name: string;
+  age: number | null;
+  area: string | null;
+  common: string[];
+  online: boolean;
+  verified: boolean;
+  vibe: string | null;
+  avatarUrl: string | null;
+  social: ProfileSocialDto;
+  inviteState: EventInviteState;
+}
+
+export interface EventInviteResponseDto {
+  id: string;
+  eventId: string;
+  userId: string;
+  status: 'pending';
+  inviteState: 'pending_invite' | 'pending_request';
+}
+
+export interface DeleteChatResponseDto {
+  id: string;
+  kind: 'meetup' | 'direct';
+  eventId: string | null;
+}
+
 export interface MeetupChatMemberProfileDto {
   userId: string;
   name: string;

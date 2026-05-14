@@ -41,6 +41,7 @@ Events:
 - `POST /events/:eventId/join`
 - `DELETE /events/:eventId/join`
 - `POST /events/:eventId/join-request`
+- `POST /events/:eventId/invites`
 - `POST /events/:eventId/invites/:requestId/accept`
 - `POST /events/:eventId/invites/:requestId/decline`
 - check-in, live, after-party, feedback endpoints live under `/events/:eventId/*`.
@@ -70,6 +71,7 @@ Chats:
 - `GET /chats/:chatId/messages`
 - `POST /chats/:chatId/read`
 - `POST /chats/:chatId/pin` with `{ isPinned }` toggles the current user's pinned state for that chat.
+- `DELETE /chats/:chatId` deletes the chat only for the current user. Meetup chat delete makes a non-host leave the event, marks attendance as `left` and removes `ChatMember`; host delete for their own meetup is rejected. Direct chat delete removes only the current `ChatMember`.
 - Chat list items expose `lastMessageId` and `isPinned`; pinned items are returned before normal recency ordering.
 - Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
 - Meetup chat list items expose paid ticket summary from the linked source. Legacy `Poster` uses `sourcePoster.ticketUrl`, `priceFrom`, `provider` and `venue`; public Affiche uses `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.
@@ -88,6 +90,7 @@ Communities:
 
 People:
 
+- `GET /people/following`
 - `GET /people/:userId`
 - `GET /people/:userId/social`
 - `PUT /people/:userId/follow`
@@ -96,6 +99,7 @@ People:
 - `DELETE /people/:userId/reactions/:kind`
 - `POST /people/:userId/direct-chat`
 - Public profile responses include `social` with follower, like, super-like counts and viewer flags. Profile social actions are independent from dating actions. Backend rejects follow, like and super-like on yourself.
+- `GET /people/following` accepts `eventId`, `q`, `cursor`, `limit` and returns only users followed by the current user, with social preview and `inviteState` for event invite UI.
 
 Evening:
 
@@ -188,6 +192,9 @@ Admin Evening route review:
 - `GET /evening/route-templates` list uses summary payload only: route summary fields, first 4 steps and bounded partner offer preview. Template detail loads full steps separately.
 - Direct joins lock the event row and check capacity inside the transaction.
 - `POST /events/:eventId/join-request` keeps duplicate pending requests idempotent. If the previous request was `canceled` or `rejected`, the same request row is reopened as `pending`, review fields are cleared and the host gets a fresh notification.
+- `POST /events/:eventId/invites` is allowed for the host or any participant. It requires the inviter to follow the target user, checks blocks, visibility, self-invite, canceled event and capacity, then creates or reopens a pre-approved `EventJoinRequest` and sends an `event_invite` notification with the real inviter as actor.
+- Accepting an event invite checks capacity again in the transaction and adds `EventParticipant`, `EventAttendance` and `ChatMember`, then touches the chat summary so mobile lists refresh participant counts.
+- Existing direct chats can be reopened after one user deleted the chat. `createOrGetDirectChat` restores missing `ChatMember` rows for both sides instead of leaving the old direct chat hidden.
 - Concurrent join request review must not reset an approved request back to pending.
 - Duplicate pending event join requests are idempotent: the note can refresh, the request stays pending and host notifications stay deduped by event and user.
 - Event detail uses bounded previews and separate counts. `attendees` preview excludes the host because the host is exposed in the separate `host` block.
@@ -210,7 +217,7 @@ Admin Evening route review:
 - Dating positive actions create central `like` notifications on the first positive action. Plain `like` uses a plain dating payload without actor navigation. `super_like` includes `payload.source=dating`, `payload.action=super_like`, `payload.userId` and `payload.userName` so mobile can open dating on that profile.
 - Direct upload complete is idempotent by object key, owner, kind and target.
 - Private media download checks chat membership, event participation and blocks.
-- Profile photo and avatar payloads expose stable `/media/:assetId` URLs, not stored CDN URLs. The media endpoint can redirect S3 assets to a fresh signed URL, so profile screens are not coupled to a stale CDN URL in DB.
+- Profile photo and avatar payloads expose stable `/media/:assetId` URLs, not stored CDN URLs. Profile, people and dating payloads must keep photo entries even when `mediaAsset.publicUrl` is null, because `/media/:assetId` is the public proxy source of truth. The media endpoint can redirect S3 assets to a fresh signed URL, so profile screens are not coupled to a stale CDN URL in DB.
 - `GET /media/:assetId` sets `ETag` and `Last-Modified`. Fresh `If-None-Match` or `If-Modified-Since` requests return `304` before S3 streaming or signed URL generation. Private media keeps `Cache-Control: private, max-age=300` and adds `Vary: Authorization`.
 - Dating, people, host, notifications and safety services use narrow selects on hot paths.
 - `getBlockedUserIds` from `@big-break/database` is the shared hidden-user helper.

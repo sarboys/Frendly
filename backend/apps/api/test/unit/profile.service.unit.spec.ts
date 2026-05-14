@@ -78,6 +78,60 @@ describe('ProfileService', () => {
     });
   });
 
+  it('keeps profile photos when the media asset has no publicUrl', async () => {
+    const service = new ProfileService({
+      client: {
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-me',
+            displayName: 'Никита',
+            verified: false,
+            online: true,
+            profile: {
+              age: 29,
+              birthDate: null,
+              gender: 'male',
+              city: 'Москва',
+              area: 'Патрики',
+              bio: 'Люблю прогулки',
+              vibe: 'Спокойно',
+              rating: 0,
+              meetupCount: 0,
+              avatarAssetId: 'asset-photo-1',
+              avatarUrl: '/media/asset-photo-1',
+              photos: [
+                {
+                  id: 'photo-1',
+                  sortOrder: 0,
+                  mediaAsset: {
+                    id: 'asset-photo-1',
+                    kind: 'avatar',
+                    mimeType: 'image/jpeg',
+                    byteSize: 1024,
+                    durationMs: null,
+                    publicUrl: null,
+                    variants: null,
+                  },
+                },
+              ],
+            },
+          }),
+        },
+      },
+    } as any);
+
+    await expect(service.getProfile('user-me')).resolves.toMatchObject({
+      avatarUrl: '/media/asset-photo-1',
+      photos: [
+        {
+          id: 'photo-1',
+          url: '/media/asset-photo-1',
+          order: 0,
+        },
+      ],
+    });
+  });
+
   it('does not clear profile fields that are absent from patch payload', async () => {
     const userUpdate = jest.fn().mockResolvedValue({});
     const profileUpdate = jest.fn().mockResolvedValue({});

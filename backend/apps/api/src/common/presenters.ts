@@ -98,7 +98,6 @@ export function mapMessage(
   const senderAvatarPhoto = isSystem
     ? null
     : ((message.sender.profile?.photos ?? [])
-        .filter((photo) => photo.mediaAsset.publicUrl)
         .sort((left, right) => left.sortOrder - right.sortOrder)
         .map((photo) => mapProfilePhoto(photo))[0] ?? null);
   return {
@@ -201,7 +200,6 @@ type BasicProfileUser = Pick<User, 'id' | 'displayName' | 'verified' | 'online'>
 
 export function mapBasicProfile(user: BasicProfileUser) {
   const photos = (user.profile?.photos ?? [])
-    .filter((photo) => photo.mediaAsset.publicUrl)
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((photo) => mapProfilePhoto(photo));
   const birthDateAge = user.profile?.birthDate

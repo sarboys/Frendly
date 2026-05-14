@@ -20,6 +20,22 @@ export class PeopleController {
     });
   }
 
+  @Get('following')
+  listFollowing(
+    @CurrentUser() currentUser: { userId: string },
+    @Query('eventId') eventId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.peopleService.listFollowing(currentUser.userId, {
+      eventId,
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+      q,
+    });
+  }
+
   @Get(':userId')
   getPerson(
     @CurrentUser() currentUser: { userId: string },

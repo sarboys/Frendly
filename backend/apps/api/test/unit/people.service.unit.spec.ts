@@ -122,6 +122,77 @@ describe('PeopleService unit', () => {
     );
   });
 
+  it('keeps people summary photos when the media asset has no publicUrl', async () => {
+    const userFindMany = jest.fn().mockResolvedValue([
+      {
+        id: 'user-peer',
+        displayName: 'Аня',
+        online: true,
+        verified: false,
+        profile: {
+          age: 27,
+          area: 'Центр',
+          vibe: 'Спокойно',
+          avatarUrl: null,
+          photos: [
+            {
+              id: 'photo-1',
+              sortOrder: 0,
+              mediaAsset: {
+                id: 'asset-photo-1',
+                kind: 'avatar',
+                mimeType: 'image/jpeg',
+                byteSize: 1024,
+                durationMs: null,
+                publicUrl: null,
+                variants: null,
+              },
+            },
+          ],
+        },
+        onboarding: {
+          interests: ['кино'],
+        },
+        settings: {
+          showAge: true,
+        },
+      },
+    ]);
+    const service = new PeopleService({
+      client: {
+        onboardingPreferences: {
+          findUnique: jest.fn().mockResolvedValue({
+            interests: ['кино'],
+          }),
+        },
+        user: {
+          findMany: userFindMany,
+          findUnique: jest.fn(),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const result = await service.listPeople('user-me', {});
+
+    expect(result.items[0]).toMatchObject({
+      avatarUrl: '/media/asset-photo-1',
+      primaryPhoto: {
+        id: 'photo-1',
+        url: '/media/asset-photo-1',
+      },
+      photos: [
+        {
+          id: 'photo-1',
+          url: '/media/asset-photo-1',
+        },
+      ],
+    });
+  });
+
   it('adds bounded social previews to people summaries', async () => {
     const userFindMany = jest.fn().mockResolvedValue([
       makePerson('user-anna', 'Аня'),
@@ -197,6 +268,96 @@ describe('PeopleService unit', () => {
     });
   });
 
+  it('lists followed users with invite state for a meetup', async () => {
+    const userFollowFindMany = jest.fn().mockResolvedValue([
+      { targetUser: makePerson('user-anna', 'Аня') },
+      { targetUser: makePerson('user-boris', 'Борис') },
+      { targetUser: makePerson('user-cora', 'Кора') },
+    ]);
+    const service = new PeopleService({
+      client: {
+        onboardingPreferences: {
+          findUnique: jest.fn().mockResolvedValue({
+            interests: [],
+          }),
+        },
+        userFollow: {
+          findMany: userFollowFindMany,
+          groupBy: jest.fn().mockResolvedValue([]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-me',
+              blockedUserId: 'blocked-user',
+            },
+          ]),
+        },
+        event: {
+          findUnique: jest.fn().mockResolvedValue({
+            participants: [{ userId: 'user-anna' }],
+            joinRequests: [
+              {
+                userId: 'user-boris',
+                status: 'pending',
+                reviewedById: 'host-1',
+              },
+              {
+                userId: 'user-cora',
+                status: 'pending',
+                reviewedById: null,
+              },
+            ],
+          }),
+        },
+        profileReaction: {
+          groupBy: jest.fn().mockResolvedValue([]),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.listFollowing('user-me', {
+      eventId: 'event-1',
+      q: '  аня  ',
+      limit: 10,
+    });
+
+    expect(userFollowFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          followerUserId: 'user-me',
+          targetUserId: {
+            notIn: ['user-me', 'blocked-user'],
+          },
+          targetUser: expect.objectContaining({
+            settings: {
+              is: {
+                discoverable: true,
+              },
+            },
+          }),
+        }),
+        take: 11,
+      }),
+    );
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 'user-anna',
+        inviteState: 'already_joined',
+      }),
+      expect.objectContaining({
+        id: 'user-boris',
+        inviteState: 'pending_invite',
+      }),
+      expect.objectContaining({
+        id: 'user-cora',
+        inviteState: 'pending_request',
+      }),
+    ]);
+    expect(result.nextCursor).toBeNull();
+  });
+
   it('uses people cursor payload without reading the cursor user again', async () => {
     const firstPerson = makePerson('user-anna', 'Anna');
     const secondPerson = makePerson('user-boris', 'Boris');
@@ -248,6 +409,65 @@ describe('PeopleService unit', () => {
         },
       },
     ]);
+  });
+
+  it('restores direct chat members when reopening an existing direct chat', async () => {
+    const upsert = jest.fn().mockResolvedValue({});
+    const service = new PeopleService({
+      client: {
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            settings: {
+              discoverable: true,
+            },
+          }),
+        },
+        chat: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'chat-1',
+            directKey: 'user-me:user-peer',
+          }),
+        },
+        chatMember: {
+          upsert,
+        },
+      },
+    } as any);
+
+    const result = await service.createOrGetDirectChat('user-me', 'user-peer');
+
+    expect(result).toMatchObject({ id: 'chat-1' });
+    expect(upsert).toHaveBeenCalledTimes(2);
+    expect(upsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'chat-1',
+          userId: 'user-me',
+        },
+      },
+      update: {},
+      create: {
+        chatId: 'chat-1',
+        userId: 'user-me',
+      },
+    });
+    expect(upsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'chat-1',
+          userId: 'user-peer',
+        },
+      },
+      update: {},
+      create: {
+        chatId: 'chat-1',
+        userId: 'user-peer',
+      },
+    });
   });
 
   it('loads only fields needed for a person profile', async () => {
@@ -563,6 +783,9 @@ describe('PeopleService unit', () => {
         chat: {
           findUnique: chatFindUnique,
           create: jest.fn(),
+        },
+        chatMember: {
+          upsert: jest.fn().mockResolvedValue({}),
         },
         userBlock: {
           findMany: jest.fn().mockResolvedValue([]),

@@ -1659,6 +1659,246 @@ export class EventsService {
     return this.getEventDetail(userId, created.id);
   }
 
+  async inviteUserToEvent(
+    inviterUserId: string,
+    eventId: string,
+    targetUserId: string,
+  ) {
+    if (inviterUserId === targetUserId) {
+      throw new ApiError(
+        400,
+        'event_invite_self_not_allowed',
+        'Cannot invite yourself',
+      );
+    }
+
+    const [blockedUserIds, event] = await Promise.all([
+      this.getBlockedUserIds(inviterUserId),
+      this.prismaService.client.event.findUnique({
+        where: { id: eventId },
+        select: {
+          id: true,
+          title: true,
+          hostId: true,
+          canceledAt: true,
+          chat: {
+            select: { id: true },
+          },
+          participants: {
+            where: {
+              userId: {
+                in: [inviterUserId, targetUserId],
+              },
+            },
+            select: {
+              userId: true,
+            },
+          },
+          joinRequests: {
+            where: {
+              userId: targetUserId,
+            },
+            take: 1,
+            select: {
+              id: true,
+              eventId: true,
+              userId: true,
+              status: true,
+              reviewedById: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    if (!event || event.canceledAt != null || event.chat == null) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
+    if (blockedUserIds.has(event.hostId)) {
+      throw new ApiError(404, 'event_not_found', 'Event not found');
+    }
+
+    const inviterCanInvite =
+      event.hostId === inviterUserId ||
+      (event.participants ?? []).some(
+        (participant) => participant.userId === inviterUserId,
+      );
+    if (!inviterCanInvite) {
+      throw new ApiError(
+        403,
+        'event_invite_forbidden',
+        'Only event members can invite users',
+      );
+    }
+
+    if (blockedUserIds.has(targetUserId)) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
+    }
+
+    const targetAlreadyJoined =
+      targetUserId === event.hostId ||
+      (event.participants ?? []).some(
+        (participant) => participant.userId === targetUserId,
+      );
+    if (targetAlreadyJoined) {
+      throw new ApiError(
+        409,
+        'event_invite_already_joined',
+        'User is already joined',
+      );
+    }
+
+    const [targetUser, follow, inviter] = await Promise.all([
+      this.prismaService.client.user.findUnique({
+        where: { id: targetUserId },
+        select: {
+          id: true,
+          displayName: true,
+          settings: {
+            select: {
+              discoverable: true,
+            },
+          },
+        },
+      }),
+      this.prismaService.client.userFollow.findUnique({
+        where: {
+          followerUserId_targetUserId: {
+            followerUserId: inviterUserId,
+            targetUserId,
+          },
+        },
+        select: {
+          followerUserId: true,
+          targetUserId: true,
+        },
+      }),
+      this.prismaService.client.user.findUnique({
+        where: { id: inviterUserId },
+        select: {
+          displayName: true,
+        },
+      }),
+    ]);
+
+    if (!targetUser || targetUser.settings?.discoverable === false) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
+    }
+
+    if (!follow) {
+      throw new ApiError(
+        403,
+        'event_invite_follow_required',
+        'You can invite only followed users',
+      );
+    }
+
+    const existingRequest = (event.joinRequests ?? [])[0] ?? null;
+    if (existingRequest?.status === 'approved') {
+      throw new ApiError(
+        409,
+        'event_invite_already_joined',
+        'User is already joined',
+      );
+    }
+    if (existingRequest?.status === 'pending') {
+      return {
+        id: existingRequest.id,
+        eventId,
+        userId: targetUserId,
+        status: existingRequest.status,
+        inviteState:
+          existingRequest.reviewedById == null
+            ? 'pending_request'
+            : 'pending_invite',
+      };
+    }
+
+    const request = await this.prismaService.client.$transaction(async (tx) => {
+      await assertEventCapacityAvailable(tx, eventId);
+
+      const selected = {
+        id: true,
+        eventId: true,
+        userId: true,
+        status: true,
+      } satisfies Prisma.EventJoinRequestSelect;
+      const nextRequest = existingRequest
+        ? await tx.eventJoinRequest.update({
+            where: { id: existingRequest.id },
+            data: {
+              status: 'pending',
+              note: null,
+              compatibilityScore: 0,
+              reviewedById: event.hostId,
+              reviewedAt: null,
+            },
+            select: selected,
+          })
+        : await tx.eventJoinRequest.create({
+            data: {
+              eventId,
+              userId: targetUserId,
+              note: null,
+              status: 'pending',
+              compatibilityScore: 0,
+              reviewedById: event.hostId,
+            },
+            select: selected,
+          });
+
+      const notification = await tx.notification.create({
+        data: {
+          userId: targetUserId,
+          actorUserId: inviterUserId,
+          kind: 'event_invite',
+          title: 'Вас пригласили на встречу',
+          body: `приглашает тебя на встречу «${event.title}»`,
+          eventId,
+          requestId: nextRequest.id,
+          dedupeKey: `event_invite:${eventId}:${targetUserId}`,
+          payload: {
+            eventId,
+            requestId: nextRequest.id,
+            invite: true,
+            userId: inviterUserId,
+            userName: inviter?.displayName ?? null,
+            eventTitle: event.title,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      await tx.outboxEvent.createMany({
+        data: [
+          {
+            type: OUTBOX_EVENT_TYPES.pushDispatch,
+            payload: {
+              userId: targetUserId,
+              notificationId: notification.id,
+            },
+          },
+          {
+            type: OUTBOX_EVENT_TYPES.notificationCreate,
+            payload: {
+              notificationId: notification.id,
+            },
+          },
+        ],
+      });
+
+      return nextRequest;
+    });
+
+    return {
+      ...request,
+      inviteState: 'pending_invite',
+    };
+  }
+
   async acceptInvite(userId: string, eventId: string, requestId: string) {
     const invite = await this.prismaService.client.eventJoinRequest.findUnique({
       where: { id: requestId },
@@ -1763,6 +2003,11 @@ export class EventsService {
             chatId: invite.event.chat.id,
             userId,
           },
+        });
+
+        await tx.chat.update({
+          where: { id: invite.event.chat.id },
+          data: { updatedAt: new Date() },
         });
       }
 

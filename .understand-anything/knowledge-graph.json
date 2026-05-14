@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-14T10:31:10.767Z",
-    "gitCommitHash": "4dba95a61d11feefb18b71b01e2e00bed3563284"
+    "analyzedAt": "2026-05-14T12:12:07.934Z",
+    "gitCommitHash": "4e98c1c7aeaf8b6b833a5788e70de5b468288689"
   },
   "nodes": [
     {
@@ -8196,7 +8196,7 @@
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
         93,
-        121
+        120
       ],
       "summary": "mapMessage in presenters.ts.",
       "tags": [
@@ -8212,8 +8212,8 @@
       "name": "resolveSystemMessageKind",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        123,
-        137
+        122,
+        136
       ],
       "summary": "resolveSystemMessageKind in presenters.ts.",
       "tags": [
@@ -8229,8 +8229,8 @@
       "name": "mapReplyPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        139,
-        164
+        138,
+        163
       ],
       "summary": "mapReplyPreview in presenters.ts.",
       "tags": [
@@ -8246,8 +8246,8 @@
       "name": "mapBasicProfile",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        202,
-        231
+        201,
+        229
       ],
       "summary": "mapBasicProfile in presenters.ts.",
       "tags": [
@@ -8263,8 +8263,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        233,
-        244
+        231,
+        242
       ],
       "summary": "calculateAge in presenters.ts.",
       "tags": [
@@ -8280,8 +8280,8 @@
       "name": "mapUserPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        246,
-        258
+        244,
+        256
       ],
       "summary": "mapUserPreview in presenters.ts.",
       "tags": [
@@ -8297,8 +8297,8 @@
       "name": "mapAttendanceStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        260,
-        264
+        258,
+        262
       ],
       "summary": "mapAttendanceStatus in presenters.ts.",
       "tags": [
@@ -8314,8 +8314,8 @@
       "name": "mapJoinRequestStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        266,
-        270
+        264,
+        268
       ],
       "summary": "mapJoinRequestStatus in presenters.ts.",
       "tags": [
@@ -8331,8 +8331,8 @@
       "name": "mapLiveStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        272,
-        274
+        270,
+        272
       ],
       "summary": "mapLiveStatus in presenters.ts.",
       "tags": [
@@ -8348,8 +8348,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        332,
-        391
+        330,
+        389
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -8365,8 +8365,8 @@
       "name": "mapEventBookingSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        393,
-        429
+        391,
+        427
       ],
       "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
@@ -8382,8 +8382,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        431,
-        494
+        429,
+        492
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -8399,8 +8399,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        496,
-        516
+        494,
+        514
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -9084,7 +9084,7 @@
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
       "lineRange": [
         6,
-        69
+        77
       ],
       "summary": "ChatsController in chats.controller.ts.",
       "tags": [
@@ -9204,7 +9204,7 @@
       "filePath": "backend/apps/api/src/controllers/events.controller.ts",
       "lineRange": [
         6,
-        149
+        162
       ],
       "summary": "EventsController in events.controller.ts.",
       "tags": [
@@ -9551,7 +9551,7 @@
       "filePath": "backend/apps/api/src/controllers/people.controller.ts",
       "lineRange": [
         6,
-        87
+        103
       ],
       "summary": "PeopleController in people.controller.ts.",
       "tags": [
@@ -10697,7 +10697,7 @@
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
         134,
-        1107
+        1205
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [
@@ -10757,7 +10757,7 @@
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
         156,
-        733
+        732
       ],
       "summary": "DatingService in dating.service.ts.",
       "tags": [
@@ -11153,8 +11153,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3744,
-        3774
+        3989,
+        4019
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -11170,8 +11170,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3776,
-        3780
+        4021,
+        4025
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -11187,8 +11187,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3782,
-        3784
+        4027,
+        4029
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -11204,8 +11204,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3786,
-        3788
+        4031,
+        4033
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -11221,8 +11221,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3790,
-        3809
+        4035,
+        4054
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11239,7 +11239,7 @@
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
         177,
-        3742
+        3987
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -11887,8 +11887,8 @@
       "name": "PeopleService",
       "filePath": "backend/apps/api/src/services/people.service.ts",
       "lineRange": [
-        33,
-        600
+        44,
+        917
       ],
       "summary": "PeopleService in people.service.ts.",
       "tags": [
@@ -29576,6 +29576,19 @@
       "name": "meetup_chat_screen.dart",
       "filePath": "mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart",
       "summary": "meetup_chat_screen.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:mobile/lib/features/meetup_chat/presentation/meetup_invite_sheet.dart",
+      "type": "file",
+      "name": "meetup_invite_sheet.dart",
+      "filePath": "mobile/lib/features/meetup_chat/presentation/meetup_invite_sheet.dart",
+      "summary": "meetup_invite_sheet.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -48160,6 +48173,7 @@
         "file:mobile/lib/features/map/presentation/map_screen.dart",
         "file:mobile/lib/features/match/presentation/match_screen.dart",
         "file:mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart",
+        "file:mobile/lib/features/meetup_chat/presentation/meetup_invite_sheet.dart",
         "file:mobile/lib/features/meetups/presentation/meetups_screen.dart",
         "file:mobile/lib/features/memory_map/presentation/memory_map_screen.dart",
         "file:mobile/lib/features/notifications/presentation/notifications_screen.dart",

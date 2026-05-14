@@ -65,6 +65,19 @@ export class EventsController {
     return this.eventsService.createJoinRequest(currentUser.userId, eventId, body);
   }
 
+  @Post(':eventId/invites')
+  inviteUser(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('eventId') eventId: string,
+    @Body() body: { userId?: string },
+  ) {
+    return this.eventsService.inviteUserToEvent(
+      currentUser.userId,
+      eventId,
+      body.userId ?? '',
+    );
+  }
+
   @Post(':eventId/invites/:requestId/accept')
   acceptInvite(
     @CurrentUser() currentUser: { userId: string },

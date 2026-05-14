@@ -494,7 +494,6 @@ export class DatingService {
     const common = interests.filter((item) => selfInterests.includes(item));
     const tags = (common.length > 0 ? common : interests).slice(0, 3);
     const photos = (user.profile?.photos ?? [])
-      .filter((photo) => photo.mediaAsset.publicUrl != null)
       .sort((left, right) => left.sortOrder - right.sortOrder)
       .map((photo) =>
         mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),

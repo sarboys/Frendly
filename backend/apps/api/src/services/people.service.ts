@@ -20,6 +20,11 @@ type PeopleCursor = {
   displayName: string;
 };
 
+type FollowingCursor = {
+  id: string;
+  createdAt: Date;
+};
+
 type ProfileSocialSnapshot = {
   followers: number;
   likes: number;
@@ -28,6 +33,12 @@ type ProfileSocialSnapshot = {
   iLike: boolean;
   iSuper: boolean;
 };
+
+type InviteState =
+  | 'available'
+  | 'already_joined'
+  | 'pending_invite'
+  | 'pending_request';
 
 @Injectable()
 export class PeopleService {
@@ -170,7 +181,6 @@ export class PeopleService {
       const interests = Array.isArray(person.onboarding?.interests) ? (person.onboarding?.interests as string[]) : [];
       const common = interests.filter((interest) => selfInterests.has(interest));
       const photos = (person.profile?.photos ?? [])
-        .filter((photo) => photo.mediaAsset.publicUrl != null)
         .sort((left, right) => left.sortOrder - right.sortOrder)
         .map((photo) =>
           mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),
@@ -202,6 +212,198 @@ export class PeopleService {
           hasMore && page.length > 0
               ? this.encodePeopleCursor(page[page.length - 1]!)
               : null,
+    };
+  }
+
+  async listFollowing(
+    userId: string,
+    params: { eventId?: string; cursor?: string; limit?: number; q?: string },
+  ) {
+    const [self, blockedUserIds] = await Promise.all([
+      this.prismaService.client.onboardingPreferences.findUnique({
+        where: { userId },
+        select: {
+          interests: true,
+        },
+      }),
+      this.getBlockedUserIds(userId),
+    ]);
+
+    const take = this.normalizeListLimit(params.limit);
+    const query = normalizeSearchQuery(params.q);
+    const cursorFollow = this.resolveFollowingCursor(params.cursor);
+
+    const follows = await this.prismaService.client.userFollow.findMany({
+      where: {
+        followerUserId: userId,
+        targetUserId: {
+          notIn: [userId, ...blockedUserIds],
+        },
+        targetUser: {
+          settings: {
+            is: {
+              discoverable: true,
+            },
+          },
+          ...(query == null || query.length === 0
+            ? {}
+            : {
+                OR: [
+                  {
+                    displayName: {
+                      contains: query,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                  {
+                    profile: {
+                      is: {
+                        area: {
+                          contains: query,
+                          mode: 'insensitive' as const,
+                        },
+                      },
+                    },
+                  },
+                  {
+                    profile: {
+                      is: {
+                        vibe: {
+                          contains: query,
+                          mode: 'insensitive' as const,
+                        },
+                      },
+                    },
+                  },
+                ],
+              }),
+        },
+        ...(cursorFollow == null
+          ? {}
+          : {
+              OR: [
+                {
+                  createdAt: {
+                    lt: cursorFollow.createdAt,
+                  },
+                },
+                {
+                  createdAt: cursorFollow.createdAt,
+                  id: {
+                    lt: cursorFollow.id,
+                  },
+                },
+              ],
+            }),
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        targetUser: {
+          select: {
+            id: true,
+            displayName: true,
+            online: true,
+            verified: true,
+            profile: {
+              select: {
+                age: true,
+                area: true,
+                vibe: true,
+                avatarUrl: true,
+                photos: {
+                  select: {
+                    id: true,
+                    sortOrder: true,
+                    mediaAsset: {
+                      select: {
+                        id: true,
+                        kind: true,
+                        mimeType: true,
+                        byteSize: true,
+                        durationMs: true,
+                        publicUrl: true,
+                        variants: true,
+                      },
+                    },
+                  },
+                  orderBy: { sortOrder: 'asc' },
+                  take: 1,
+                },
+              },
+            },
+            onboarding: {
+              select: {
+                interests: true,
+              },
+            },
+            settings: {
+              select: {
+                showAge: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+    });
+
+    const hasMore = follows.length > take;
+    const page = hasMore ? follows.slice(0, take) : follows;
+    const targetUserIds = page.map((follow) => follow.targetUser.id);
+    const [socialByUserId, inviteStateByUserId] = await Promise.all([
+      loadProfileSocialPreviews(
+        this.prismaService.client,
+        userId,
+        targetUserIds,
+      ),
+      this.loadInviteStates(userId, params.eventId, targetUserIds),
+    ]);
+    const selfInterests = new Set(
+      Array.isArray(self?.interests) ? (self?.interests as string[]) : [],
+    );
+
+    return {
+      items: page.map((follow) => {
+        const person = follow.targetUser;
+        const interests = Array.isArray(person.onboarding?.interests)
+          ? (person.onboarding?.interests as string[])
+          : [];
+        const common = interests.filter((interest) =>
+          selfInterests.has(interest),
+        );
+        const photos = (person.profile?.photos ?? [])
+          .sort((left, right) => left.sortOrder - right.sortOrder)
+          .map((photo) =>
+            mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),
+          );
+        const primaryPhoto = photos.length === 0 ? null : photos[0]!;
+
+        return {
+          id: person.id,
+          name: person.displayName,
+          age:
+            person.settings?.showAge === true
+              ? person.profile?.age ?? null
+              : null,
+          area: person.profile?.area ?? null,
+          common,
+          online: person.online,
+          verified: person.verified,
+          vibe: person.profile?.vibe ?? null,
+          avatarUrl: primaryPhoto?.url ?? person.profile?.avatarUrl ?? null,
+          primaryPhoto,
+          photos,
+          social:
+            socialByUserId.get(person.id) ?? emptyProfileSocialPreview(),
+          inviteState: inviteStateByUserId.get(person.id) ?? 'available',
+        };
+      }),
+      nextCursor:
+        hasMore && page.length > 0
+          ? this.encodeFollowingCursor(page[page.length - 1]!)
+          : null,
     };
   }
 
@@ -238,6 +440,23 @@ export class PeopleService {
     }
 
     if (existing) {
+      await Promise.all(
+        [currentUserId, peerUserId].map((memberUserId) =>
+          this.prismaService.client.chatMember.upsert({
+            where: {
+              chatId_userId: {
+                chatId: existing.id,
+                userId: memberUserId,
+              },
+            },
+            update: {},
+            create: {
+              chatId: existing.id,
+              userId: memberUserId,
+            },
+          }),
+        ),
+      );
       return existing;
     }
 
@@ -514,6 +733,79 @@ export class PeopleService {
     return previews.get(targetUserId) ?? emptyProfileSocialPreview();
   }
 
+  private async loadInviteStates(
+    currentUserId: string,
+    eventId: string | undefined,
+    targetUserIds: string[],
+  ): Promise<Map<string, InviteState>> {
+    const states = new Map<string, InviteState>();
+    for (const targetUserId of targetUserIds) {
+      states.set(targetUserId, 'available');
+    }
+
+    if (!eventId || targetUserIds.length === 0) {
+      return states;
+    }
+
+    const event = await this.prismaService.client.event.findUnique({
+      where: { id: eventId },
+      select: {
+        hostId: true,
+        participants: {
+          where: {
+            userId: {
+              in: targetUserIds,
+            },
+          },
+          select: {
+            userId: true,
+          },
+        },
+        joinRequests: {
+          where: {
+            userId: {
+              in: targetUserIds,
+            },
+            status: {
+              in: ['pending', 'approved'],
+            },
+          },
+          select: {
+            userId: true,
+            status: true,
+            reviewedById: true,
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      return states;
+    }
+
+    if (targetUserIds.includes(event.hostId)) {
+      states.set(event.hostId, 'already_joined');
+    }
+    for (const participant of event.participants) {
+      states.set(participant.userId, 'already_joined');
+    }
+    for (const request of event.joinRequests) {
+      if (states.get(request.userId) === 'already_joined') {
+        continue;
+      }
+      if (request.status === 'approved') {
+        states.set(request.userId, 'already_joined');
+      } else if (request.reviewedById != null) {
+        states.set(request.userId, 'pending_invite');
+      } else {
+        states.set(request.userId, 'pending_request');
+      }
+    }
+
+    states.delete(currentUserId);
+    return states;
+  }
+
   private isDirectChatDuplicateError(error: unknown) {
     if (error == null || typeof error !== 'object') {
       return false;
@@ -579,6 +871,31 @@ export class PeopleService {
       value: person.id,
       displayName: person.displayName,
     });
+  }
+
+  private encodeFollowingCursor(follow: FollowingCursor) {
+    return encodeCursor({
+      value: follow.id,
+      createdAt: follow.createdAt.toISOString(),
+    });
+  }
+
+  private resolveFollowingCursor(cursor?: string): FollowingCursor | null {
+    const decoded = this.decodeCursorPayload(cursor);
+    if (decoded == null) {
+      return null;
+    }
+    const createdAt =
+      typeof decoded.createdAt === 'string'
+        ? new Date(decoded.createdAt)
+        : null;
+    if (createdAt == null || Number.isNaN(createdAt.getTime())) {
+      return null;
+    }
+    return {
+      id: decoded.value,
+      createdAt,
+    };
   }
 
   private decodeCursorPayload(cursor?: string) {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { ChatsService } from '../services/chats.service';
 
@@ -65,5 +65,13 @@ export class ChatsController {
       chatId,
       body.isPinned ?? body.pinned ?? true,
     );
+  }
+
+  @Delete(':chatId')
+  deleteChat(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('chatId') chatId: string,
+  ) {
+    return this.chatsService.deleteChat(currentUser.userId, chatId);
   }
 }

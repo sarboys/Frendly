@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "4dba95a61d11feefb18b71b01e2e00bed3563284",
-  "generatedAt": "2026-05-14T10:31:11.012Z",
+  "gitCommitHash": "4e98c1c7aeaf8b6b833a5788e70de5b468288689",
+  "generatedAt": "2026-05-14T12:12:08.171Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -10066,7 +10066,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "96d7ed3bcab557ad48cd64eeda8147cb2d89e718b6cbb9ba125cae9bc34a1c46",
+      "contentHash": "28312b25c405cf78cfe8b6012f67d9c3107522270b2b2bad2458ec4cc44327c4",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10092,7 +10092,7 @@
             "message"
           ],
           "exported": true,
-          "lineCount": 29
+          "lineCount": 28
         },
         {
           "name": "resolveSystemMessageKind",
@@ -10116,7 +10116,7 @@
             "user"
           ],
           "exported": true,
-          "lineCount": 30
+          "lineCount": 29
         },
         {
           "name": "calculateAge",
@@ -10240,7 +10240,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 517,
+      "totalLines": 515,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -11190,7 +11190,7 @@
     },
     "backend/apps/api/src/controllers/chats.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
-      "contentHash": "cf74a58070b7784249f6dc858fc741c96e45cfed7d791fe0f1a7f832168eb98a",
+      "contentHash": "0e09dcaaa25ea4e99600792016fa7642e2d7058dc7b44e8ed2161c1c5511d2b3",
       "functions": [],
       "classes": [
         {
@@ -11201,11 +11201,12 @@
             "listPersonalChats",
             "getMessages",
             "markRead",
-            "setPinned"
+            "setPinned",
+            "deleteChat"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 64
+          "lineCount": 72
         }
       ],
       "imports": [
@@ -11214,6 +11215,7 @@
           "specifiers": [
             "Body",
             "Controller",
+            "Delete",
             "Get",
             "Param",
             "Post",
@@ -11236,7 +11238,7 @@
       "exports": [
         "ChatsController"
       ],
-      "totalLines": 70,
+      "totalLines": 78,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/communities.controller.ts": {
@@ -11430,7 +11432,7 @@
     },
     "backend/apps/api/src/controllers/events.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/events.controller.ts",
-      "contentHash": "827de20680b20f02de0ff7987b19d68ab0c253ac22eeca30eb0f739438e3d74b",
+      "contentHash": "3450323e0a77f1ba81e8cbe654999124bd2b21c99674b7acdca5e191df8f7f59",
       "functions": [],
       "classes": [
         {
@@ -11441,6 +11443,7 @@
             "getEvent",
             "joinEvent",
             "createJoinRequest",
+            "inviteUser",
             "acceptInvite",
             "declineInvite",
             "cancelJoinRequest",
@@ -11454,7 +11457,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 144
+          "lineCount": 157
         }
       ],
       "imports": [
@@ -11487,7 +11490,7 @@
       "exports": [
         "EventsController"
       ],
-      "totalLines": 150,
+      "totalLines": 163,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/health.controller.ts": {
@@ -12094,7 +12097,7 @@
     },
     "backend/apps/api/src/controllers/people.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/people.controller.ts",
-      "contentHash": "00bfaae6bfe19c2fc16266ec4d1131196cd0a64435671671e312b32b570d19dc",
+      "contentHash": "556296e64ca2da397bed48f36adc15eeefcc63f723c31aa71fcfe28816cb8140",
       "functions": [],
       "classes": [
         {
@@ -12102,6 +12105,7 @@
           "methods": [
             "constructor",
             "listPeople",
+            "listFollowing",
             "getPerson",
             "getSocial",
             "follow",
@@ -12112,7 +12116,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 82
+          "lineCount": 98
         }
       ],
       "imports": [
@@ -12144,7 +12148,7 @@
       "exports": [
         "PeopleController"
       ],
-      "totalLines": 88,
+      "totalLines": 104,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/places.controller.ts": {
@@ -14215,7 +14219,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "db8baef03a3cfac8df86d4393bc3f1efcc17dfd21af32fb84a3f87fcff7bf4d0",
+      "contentHash": "ec5df70186854bb782e74bd5ab6a97dae547635a13ae3a79bcfefbb2c2fcd3f6",
       "functions": [],
       "classes": [
         {
@@ -14224,6 +14228,7 @@
             "constructor",
             "listChats",
             "setPinned",
+            "deleteChat",
             "getChatListMemberStates",
             "mapTicketSummary",
             "mapEveningChatPhase",
@@ -14251,7 +14256,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 974
+          "lineCount": 1072
         }
       ],
       "imports": [
@@ -14308,7 +14313,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1108,
+      "totalLines": 1206,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -14422,7 +14427,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "2497d3e8c23ccd17a46ef435a5999f4e2d0229cc51c8b6510cb051922cb4a3d0",
+      "contentHash": "597f8feb3bc3b4c33aa7669982632f4b36c263f866d24478187daa75e262675b",
       "functions": [],
       "classes": [
         {
@@ -14451,7 +14456,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 578
+          "lineCount": 577
         }
       ],
       "imports": [
@@ -14511,7 +14516,7 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 734,
+      "totalLines": 733,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -15010,7 +15015,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "7f04e84b031d6fb23624853269f349c614d2744c66bbab963a37de033c8fddd6",
+      "contentHash": "86d579cd8b84e01f2e983911ec7a6d1238252ff3a0b5c9465fc925951608c30d",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -15069,6 +15074,7 @@
             "cancelJoinRequest",
             "leaveEvent",
             "createEvent",
+            "inviteUserToEvent",
             "acceptInvite",
             "declineInvite",
             "getCheckIn",
@@ -15123,7 +15129,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3566
+          "lineCount": 3811
         }
       ],
       "imports": [
@@ -15211,7 +15217,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 3810,
+      "totalLines": 4055,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -16247,7 +16253,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "71b2f135e2050f418073c191eac371fcaf3dab4fd24efd2acd4aad9e07ce1c1c",
+      "contentHash": "a171267958241b86ac9db5c4a1875dfacf78e94a4dff5bdfd2a77ebfa9bafdb3",
       "functions": [],
       "classes": [
         {
@@ -16255,6 +16261,7 @@
           "methods": [
             "constructor",
             "listPeople",
+            "listFollowing",
             "createOrGetDirectChat",
             "getPersonProfile",
             "getProfileSocial",
@@ -16264,15 +16271,18 @@
             "getBlockedUserIds",
             "assertSocialTargetVisible",
             "getProfileSocialSnapshot",
+            "loadInviteStates",
             "isDirectChatDuplicateError",
             "normalizeListLimit",
             "resolveCursorUser",
             "encodePeopleCursor",
+            "encodeFollowingCursor",
+            "resolveFollowingCursor",
             "decodeCursorPayload"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 568
+          "lineCount": 874
         }
       ],
       "imports": [
@@ -16333,7 +16343,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 601,
+      "totalLines": 918,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -21575,12 +21585,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "33b13bf63d52b08fe0b3d1dd65613d961dd461c965daea061c0a7b7683a83eda",
+      "contentHash": "c513342628eb8d0355ea6719af4dc7e602b34f0d6136f1f32dc5cdf341a88665",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1038,
+      "totalLines": 1072,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {

@@ -462,6 +462,104 @@ export class ChatsService {
     }
   }
 
+  async deleteChat(userId: string, chatId: string) {
+    const membership = await this.prismaService.client.chatMember.findUnique({
+      where: {
+        chatId_userId: {
+          chatId,
+          userId,
+        },
+      },
+      select: {
+        chat: {
+          select: {
+            id: true,
+            kind: true,
+            event: {
+              select: {
+                id: true,
+                hostId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new ApiError(404, 'chat_not_found', 'Chat not found');
+    }
+
+    const chat = membership.chat;
+    if (chat.kind === ChatKind.direct) {
+      await this.prismaService.client.$transaction(async (tx) => {
+        await tx.chatMember.deleteMany({
+          where: { chatId, userId },
+        });
+      });
+
+      return {
+        id: chat.id,
+        kind: 'direct',
+        eventId: null,
+      };
+    }
+
+    if (chat.kind !== ChatKind.meetup || chat.event == null) {
+      throw new ApiError(
+        409,
+        'chat_delete_not_supported',
+        'Chat delete is not supported for this chat',
+      );
+    }
+
+    if (chat.event.hostId === userId) {
+      throw new ApiError(
+        409,
+        'host_cannot_delete_meetup_chat',
+        'Host cannot delete meetup chat',
+      );
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.eventParticipant.deleteMany({
+        where: {
+          eventId: chat.event!.id,
+          userId,
+        },
+      });
+
+      await tx.eventAttendance.upsert({
+        where: {
+          eventId_userId: {
+            eventId: chat.event!.id,
+            userId,
+          },
+        },
+        update: {
+          status: 'left',
+          leftAt: new Date(),
+        },
+        create: {
+          eventId: chat.event!.id,
+          userId,
+          status: 'left',
+          leftAt: new Date(),
+        },
+      });
+
+      await tx.chatMember.deleteMany({
+        where: { chatId, userId },
+      });
+    });
+
+    return {
+      id: chat.id,
+      kind: 'meetup',
+      eventId: chat.event.id,
+    };
+  }
+
   private async getChatListMemberStates(
     userId: string,
     chatIds: string[],

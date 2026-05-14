@@ -40,6 +40,8 @@ Chat lists also expose per-user `isPinned`. Mobile toggles it through `POST /cha
 
 Mobile meetup chat list requests send `includeSocial=false` for the compact list path. The backend keeps member ids, names and online flags, but skips social preview aggregation unless a caller explicitly keeps social previews enabled.
 
+Mobile chat delete uses REST `DELETE /chats/:chatId`, not WebSocket. Direct chat delete removes only the current `ChatMember`. Meetup chat delete removes the non-host user from `EventParticipant`, marks attendance `left` and removes `ChatMember`; host delete of their own meetup is rejected. Mobile removes the row optimistically and lets the derived chat unread badge recalculate from the local lists.
+
 ## App-level sync
 
 `chatRealtimeSyncProvider` starts after auth. `ChatsScreen` uses `chatRealtimeSyncForScopeProvider` so segment-specific tabs only subscribe the chat kinds they loaded.
@@ -107,6 +109,7 @@ Payloads include ids, sender summary, text, `kind`, optional `systemKind`, `repl
 ## Read, unread, typing, sync
 
 - `message.read` verifies the message and blocks before updating `ChatMember`.
+- Mobile sends read through WebSocket and also calls `POST /chats/:chatId/read` as a best-effort REST fallback, then clears local meetup, personal and community chat badges immediately.
 - Read resets `ChatMember.unreadCount` to `0`.
 - Chat list REST items include `lastMessageId`; mobile uses it to clear unread when the latest unread message is not in the loaded thread window.
 - Worker recomputes unread counts and excludes symmetrically blocked senders.

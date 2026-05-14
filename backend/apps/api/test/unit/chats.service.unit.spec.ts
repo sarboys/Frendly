@@ -473,6 +473,137 @@ describe('ChatsService unit', () => {
     });
   });
 
+  it('deletes a meetup chat by leaving the linked event for non-host members', async () => {
+    const deleteParticipant = jest.fn().mockResolvedValue({ count: 1 });
+    const attendanceUpsert = jest.fn().mockResolvedValue({});
+    const deleteChatMember = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              id: 'chat-1',
+              kind: ChatKind.meetup,
+              event: {
+                id: 'event-1',
+                hostId: 'host-1',
+              },
+            },
+          }),
+        },
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            eventParticipant: {
+              deleteMany: deleteParticipant,
+            },
+            eventAttendance: {
+              upsert: attendanceUpsert,
+            },
+            chatMember: {
+              deleteMany: deleteChatMember,
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    const result = await service.deleteChat('user-me', 'chat-1');
+
+    expect(result).toEqual({
+      id: 'chat-1',
+      kind: 'meetup',
+      eventId: 'event-1',
+    });
+    expect(deleteParticipant).toHaveBeenCalledWith({
+      where: {
+        eventId: 'event-1',
+        userId: 'user-me',
+      },
+    });
+    expect(attendanceUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          eventId_userId: {
+            eventId: 'event-1',
+            userId: 'user-me',
+          },
+        },
+        update: expect.objectContaining({
+          status: 'left',
+          leftAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(deleteChatMember).toHaveBeenCalledWith({
+      where: {
+        chatId: 'chat-1',
+        userId: 'user-me',
+      },
+    });
+  });
+
+  it('rejects deleting a hosted meetup chat', async () => {
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              id: 'chat-1',
+              kind: ChatKind.meetup,
+              event: {
+                id: 'event-1',
+                hostId: 'user-me',
+              },
+            },
+          }),
+        },
+      },
+    } as any);
+
+    await expect(service.deleteChat('user-me', 'chat-1')).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'host_cannot_delete_meetup_chat',
+    });
+  });
+
+  it('deletes a direct chat only for the current user', async () => {
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              id: 'chat-1',
+              kind: ChatKind.direct,
+              event: null,
+            },
+          }),
+        },
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            chatMember: {
+              deleteMany,
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    const result = await service.deleteChat('user-me', 'chat-1');
+
+    expect(result).toEqual({
+      id: 'chat-1',
+      kind: 'direct',
+      eventId: null,
+    });
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: {
+        chatId: 'chat-1',
+        userId: 'user-me',
+      },
+    });
+  });
+
   it('maps paid affiche ticket summary for meetup chats', async () => {
     const chat = makeChatListItem(
       'chat-affiche',
