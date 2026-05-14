@@ -1,5 +1,5 @@
 import { ChatsService } from '../../src/services/chats.service';
-import { ChatKind } from '@prisma/client';
+import { ChatKind, MediaAssetKind } from '@prisma/client';
 
 describe('ChatsService unit', () => {
   const makeChatListItem = (
@@ -506,6 +506,9 @@ describe('ChatsService unit', () => {
         ),
       },
     } as any);
+    jest
+      .spyOn(service as any, 'scheduleChatPayloadCleanup')
+      .mockImplementation(() => undefined);
 
     const result = await service.deleteChat('user-me', 'chat-1');
 
@@ -534,6 +537,67 @@ describe('ChatsService unit', () => {
         }),
       }),
     );
+    expect(deleteChatMember).toHaveBeenCalledWith({
+      where: {
+        chatId: 'chat-1',
+        userId: 'user-me',
+      },
+    });
+  });
+
+  it('deletes an evening meetup chat by leaving the linked session for non-host members', async () => {
+    const updateParticipant = jest.fn().mockResolvedValue({ count: 1 });
+    const deleteChatMember = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              id: 'chat-1',
+              kind: ChatKind.meetup,
+              event: null,
+              eveningSession: {
+                id: 'session-1',
+                hostUserId: 'host-1',
+              },
+              community: null,
+            },
+          }),
+        },
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            eveningSessionParticipant: {
+              updateMany: updateParticipant,
+            },
+            chatMember: {
+              deleteMany: deleteChatMember,
+            },
+          }),
+        ),
+      },
+    } as any);
+    jest
+      .spyOn(service as any, 'scheduleChatPayloadCleanup')
+      .mockImplementation(() => undefined);
+
+    const result = await service.deleteChat('user-me', 'chat-1');
+
+    expect(result).toEqual({
+      id: 'chat-1',
+      kind: 'meetup',
+      eventId: null,
+      sessionId: 'session-1',
+    });
+    expect(updateParticipant).toHaveBeenCalledWith({
+      where: {
+        sessionId: 'session-1',
+        userId: 'user-me',
+      },
+      data: {
+        status: 'left',
+        leftAt: expect.any(Date),
+      },
+    });
     expect(deleteChatMember).toHaveBeenCalledWith({
       where: {
         chatId: 'chat-1',
@@ -588,6 +652,9 @@ describe('ChatsService unit', () => {
         ),
       },
     } as any);
+    jest
+      .spyOn(service as any, 'scheduleChatPayloadCleanup')
+      .mockImplementation(() => undefined);
 
     const result = await service.deleteChat('user-me', 'chat-1');
 
@@ -601,6 +668,123 @@ describe('ChatsService unit', () => {
         chatId: 'chat-1',
         userId: 'user-me',
       },
+    });
+  });
+
+  it('deletes a community chat by leaving the club for non-owner members', async () => {
+    const deleteCommunityMember = jest.fn().mockResolvedValue({ count: 1 });
+    const deleteChatMember = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              id: 'chat-1',
+              kind: ChatKind.community,
+              event: null,
+              eveningSession: null,
+              community: {
+                id: 'community-1',
+                createdById: 'owner-1',
+              },
+            },
+          }),
+        },
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            communityMember: {
+              deleteMany: deleteCommunityMember,
+            },
+            chatMember: {
+              deleteMany: deleteChatMember,
+            },
+          }),
+        ),
+      },
+    } as any);
+    jest
+      .spyOn(service as any, 'scheduleChatPayloadCleanup')
+      .mockImplementation(() => undefined);
+
+    const result = await service.deleteChat('user-me', 'chat-1');
+
+    expect(result).toEqual({
+      id: 'chat-1',
+      kind: 'community',
+      eventId: null,
+      communityId: 'community-1',
+    });
+    expect(deleteCommunityMember).toHaveBeenCalledWith({
+      where: {
+        communityId: 'community-1',
+        userId: 'user-me',
+      },
+    });
+    expect(deleteChatMember).toHaveBeenCalledWith({
+      where: {
+        chatId: 'chat-1',
+        userId: 'user-me',
+      },
+    });
+  });
+
+  it('cleans chat messages and media when a deleted chat has no members left', async () => {
+    const chatMemberCount = jest.fn().mockResolvedValue(0);
+    const mediaAssetFindMany = jest
+      .fn()
+      .mockResolvedValue([{ id: 'asset-1' }, { id: 'asset-2' }]);
+    const notificationDeleteMany = jest.fn().mockResolvedValue({ count: 2 });
+    const realtimeEventDeleteMany = jest.fn().mockResolvedValue({ count: 2 });
+    const messageDeleteMany = jest.fn().mockResolvedValue({ count: 3 });
+    const mediaAssetDeleteMany = jest.fn().mockResolvedValue({ count: 2 });
+    const chatDelete = jest.fn().mockResolvedValue({});
+    const service = new ChatsService({
+      client: {
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            chatMember: {
+              count: chatMemberCount,
+            },
+            mediaAsset: {
+              findMany: mediaAssetFindMany,
+              deleteMany: mediaAssetDeleteMany,
+            },
+            notification: {
+              deleteMany: notificationDeleteMany,
+            },
+            realtimeEvent: {
+              deleteMany: realtimeEventDeleteMany,
+            },
+            message: {
+              deleteMany: messageDeleteMany,
+            },
+            chat: {
+              delete: chatDelete,
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    await (service as any).cleanupChatPayloadIfEmpty('chat-1', ChatKind.direct);
+
+    expect(chatMemberCount).toHaveBeenCalledWith({
+      where: { chatId: 'chat-1' },
+    });
+    expect(messageDeleteMany).toHaveBeenCalledWith({
+      where: { chatId: 'chat-1' },
+    });
+    expect(mediaAssetDeleteMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['asset-1', 'asset-2'] },
+        chatId: 'chat-1',
+        kind: {
+          in: [MediaAssetKind.chat_attachment, MediaAssetKind.chat_voice],
+        },
+      },
+    });
+    expect(chatDelete).toHaveBeenCalledWith({
+      where: { id: 'chat-1' },
     });
   });
 

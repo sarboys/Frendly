@@ -71,7 +71,8 @@ Chats:
 - `GET /chats/:chatId/messages`
 - `POST /chats/:chatId/read`
 - `POST /chats/:chatId/pin` with `{ isPinned }` toggles the current user's pinned state for that chat.
-- `DELETE /chats/:chatId` deletes the chat only for the current user. Meetup chat delete makes a non-host leave the event, marks attendance as `left` and removes `ChatMember`; host delete for their own meetup is rejected. Direct chat delete removes only the current `ChatMember`.
+- `DELETE /chats/:chatId` deletes the chat only for the current user. Event meetup delete makes a non-host leave the event, marks attendance as `left` and removes `ChatMember`; host delete for their own meetup is rejected. Evening-session meetup delete marks the non-host participant `left` and removes `ChatMember`. Community chat delete makes a non-owner leave the club by removing both `CommunityMember` and `ChatMember`. Direct chat delete removes only the current `ChatMember`.
+- After chat delete, backend starts best-effort background cleanup. If the chat has no remaining members, it removes messages, chat media assets, notifications and realtime events; direct chats are then removed too.
 - Chat list items expose `lastMessageId` and `isPinned`; pinned items are returned before normal recency ordering.
 - Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
 - Meetup chat list items expose paid ticket summary from the linked source. Legacy `Poster` uses `sourcePoster.ticketUrl`, `priceFrom`, `provider` and `venue`; public Affiche uses `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.

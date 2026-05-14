@@ -4,8 +4,8 @@ import {
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
-import { ChatKind, Prisma } from '@prisma/client';
-import { Injectable } from '@nestjs/common';
+import { ChatKind, MediaAssetKind, Prisma } from '@prisma/client';
+import { Injectable, Logger } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { formatEventTime, formatRelativeTime, mapMessage } from '../common/presenters';
 import {
@@ -132,6 +132,8 @@ interface ChatListMemberState {
 
 @Injectable()
 export class ChatsService {
+  private readonly logger = new Logger(ChatsService.name);
+
   constructor(private readonly prismaService: PrismaService) {}
 
   async listChats(
@@ -481,6 +483,18 @@ export class ChatsService {
                 hostId: true,
               },
             },
+            eveningSession: {
+              select: {
+                id: true,
+                hostUserId: true,
+              },
+            },
+            community: {
+              select: {
+                id: true,
+                createdById: true,
+              },
+            },
           },
         },
       },
@@ -497,6 +511,7 @@ export class ChatsService {
           where: { chatId, userId },
         });
       });
+      this.scheduleChatPayloadCleanup(chat.id, chat.kind);
 
       return {
         id: chat.id,
@@ -505,7 +520,46 @@ export class ChatsService {
       };
     }
 
-    if (chat.kind !== ChatKind.meetup || chat.event == null) {
+    if (chat.kind === ChatKind.community) {
+      if (chat.community == null) {
+        throw new ApiError(
+          409,
+          'chat_delete_not_supported',
+          'Chat delete is not supported for this chat',
+        );
+      }
+
+      if (chat.community.createdById === userId) {
+        throw new ApiError(
+          400,
+          'community_owner_cannot_leave',
+          'Community owner cannot leave the community',
+        );
+      }
+
+      await this.prismaService.client.$transaction(async (tx) => {
+        await tx.communityMember.deleteMany({
+          where: {
+            communityId: chat.community!.id,
+            userId,
+          },
+        });
+
+        await tx.chatMember.deleteMany({
+          where: { chatId, userId },
+        });
+      });
+      this.scheduleChatPayloadCleanup(chat.id, chat.kind);
+
+      return {
+        id: chat.id,
+        kind: 'community',
+        eventId: null,
+        communityId: chat.community.id,
+      };
+    }
+
+    if (chat.kind !== ChatKind.meetup) {
       throw new ApiError(
         409,
         'chat_delete_not_supported',
@@ -513,7 +567,64 @@ export class ChatsService {
       );
     }
 
-    if (chat.event.hostId === userId) {
+    if (chat.event != null) {
+      if (chat.event.hostId === userId) {
+        throw new ApiError(
+          409,
+          'host_cannot_delete_meetup_chat',
+          'Host cannot delete meetup chat',
+        );
+      }
+
+      await this.prismaService.client.$transaction(async (tx) => {
+        await tx.eventParticipant.deleteMany({
+          where: {
+            eventId: chat.event!.id,
+            userId,
+          },
+        });
+
+        await tx.eventAttendance.upsert({
+          where: {
+            eventId_userId: {
+              eventId: chat.event!.id,
+              userId,
+            },
+          },
+          update: {
+            status: 'left',
+            leftAt: new Date(),
+          },
+          create: {
+            eventId: chat.event!.id,
+            userId,
+            status: 'left',
+            leftAt: new Date(),
+          },
+        });
+
+        await tx.chatMember.deleteMany({
+          where: { chatId, userId },
+        });
+      });
+      this.scheduleChatPayloadCleanup(chat.id, chat.kind);
+
+      return {
+        id: chat.id,
+        kind: 'meetup',
+        eventId: chat.event.id,
+      };
+    }
+
+    if (chat.eveningSession == null) {
+      throw new ApiError(
+        409,
+        'chat_delete_not_supported',
+        'Chat delete is not supported for this chat',
+      );
+    }
+
+    if (chat.eveningSession.hostUserId === userId) {
       throw new ApiError(
         409,
         'host_cannot_delete_meetup_chat',
@@ -522,27 +633,12 @@ export class ChatsService {
     }
 
     await this.prismaService.client.$transaction(async (tx) => {
-      await tx.eventParticipant.deleteMany({
+      await tx.eveningSessionParticipant.updateMany({
         where: {
-          eventId: chat.event!.id,
+          sessionId: chat.eveningSession!.id,
           userId,
         },
-      });
-
-      await tx.eventAttendance.upsert({
-        where: {
-          eventId_userId: {
-            eventId: chat.event!.id,
-            userId,
-          },
-        },
-        update: {
-          status: 'left',
-          leftAt: new Date(),
-        },
-        create: {
-          eventId: chat.event!.id,
-          userId,
+        data: {
           status: 'left',
           leftAt: new Date(),
         },
@@ -552,12 +648,82 @@ export class ChatsService {
         where: { chatId, userId },
       });
     });
+    this.scheduleChatPayloadCleanup(chat.id, chat.kind);
 
     return {
       id: chat.id,
       kind: 'meetup',
-      eventId: chat.event.id,
+      eventId: null,
+      sessionId: chat.eveningSession.id,
     };
+  }
+
+  private scheduleChatPayloadCleanup(chatId: string, kind: ChatKind) {
+    setImmediate(() => {
+      void this.cleanupChatPayloadIfEmpty(chatId, kind).catch((error) => {
+        this.logger.warn(
+          `Failed to cleanup deleted chat payload: chatId=${chatId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
+    });
+  }
+
+  private async cleanupChatPayloadIfEmpty(chatId: string, kind: ChatKind) {
+    await this.prismaService.client.$transaction(async (tx) => {
+      const memberCount = await tx.chatMember.count({
+        where: { chatId },
+      });
+      if (memberCount > 0) {
+        return;
+      }
+
+      const attachmentKinds = [
+        MediaAssetKind.chat_attachment,
+        MediaAssetKind.chat_voice,
+      ];
+      const assets = await tx.mediaAsset.findMany({
+        where: {
+          chatId,
+          kind: {
+            in: attachmentKinds,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+      const assetIds = assets.map((asset) => asset.id);
+
+      await tx.notification.deleteMany({
+        where: { chatId },
+      });
+      await tx.realtimeEvent.deleteMany({
+        where: { chatId },
+      });
+      await tx.message.deleteMany({
+        where: { chatId },
+      });
+      if (assetIds.length > 0) {
+        await tx.mediaAsset.deleteMany({
+          where: {
+            id: {
+              in: assetIds,
+            },
+            chatId,
+            kind: {
+              in: attachmentKinds,
+            },
+          },
+        });
+      }
+
+      if (kind === ChatKind.direct) {
+        await tx.chat.delete({
+          where: { id: chatId },
+        });
+      }
+    });
   }
 
   private async getChatListMemberStates(

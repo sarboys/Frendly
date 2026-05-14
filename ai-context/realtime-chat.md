@@ -40,7 +40,7 @@ Chat lists also expose per-user `isPinned`. Mobile toggles it through `POST /cha
 
 Mobile meetup chat list requests send `includeSocial=false` for the compact list path. The backend keeps member ids, names and online flags, but skips social preview aggregation unless a caller explicitly keeps social previews enabled.
 
-Mobile chat delete uses REST `DELETE /chats/:chatId`, not WebSocket. Direct chat delete removes only the current `ChatMember`. Meetup chat delete removes the non-host user from `EventParticipant`, marks attendance `left` and removes `ChatMember`; host delete of their own meetup is rejected. Mobile removes the row optimistically and lets the derived chat unread badge recalculate from the local lists.
+Mobile chat delete uses REST `DELETE /chats/:chatId`, not WebSocket. Direct chat delete removes only the current `ChatMember`. Event meetup chat delete removes the non-host user from `EventParticipant`, marks attendance `left` and removes `ChatMember`; evening meetup chat delete marks the session participant `left`. Community chat delete removes `CommunityMember` plus `ChatMember` for non-owner users. Host delete of their own meetup and owner delete of their own club are rejected. Mobile removes the row optimistically and rolls back on API error. Backend starts best-effort cleanup after delete; if no members remain, it removes messages, chat media, notifications, realtime events and the empty direct chat row.
 
 ## App-level sync
 

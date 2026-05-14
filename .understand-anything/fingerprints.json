@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "4e98c1c7aeaf8b6b833a5788e70de5b468288689",
-  "generatedAt": "2026-05-14T12:12:08.171Z",
+  "gitCommitHash": "5f417f0fad5e521bd4ad32089823af616a8934fb",
+  "generatedAt": "2026-05-14T12:45:16.729Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14219,7 +14219,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "ec5df70186854bb782e74bd5ab6a97dae547635a13ae3a79bcfefbb2c2fcd3f6",
+      "contentHash": "2c703ed6a55b300af7a29dc7a2c82ba2f55a7580c60f345fd6909a1ca64a1109",
       "functions": [],
       "classes": [
         {
@@ -14229,6 +14229,8 @@
             "listChats",
             "setPinned",
             "deleteChat",
+            "scheduleChatPayloadCleanup",
+            "cleanupChatPayloadIfEmpty",
             "getChatListMemberStates",
             "mapTicketSummary",
             "mapEveningChatPhase",
@@ -14254,9 +14256,11 @@
             "resolveAfterDarkGlow",
             "getBlockedUserIds"
           ],
-          "properties": [],
+          "properties": [
+            "logger"
+          ],
           "exported": true,
-          "lineCount": 1072
+          "lineCount": 1238
         }
       ],
       "imports": [
@@ -14273,13 +14277,15 @@
           "source": "@prisma/client",
           "specifiers": [
             "ChatKind",
+            "MediaAssetKind",
             "Prisma"
           ]
         },
         {
           "source": "@nestjs/common",
           "specifiers": [
-            "Injectable"
+            "Injectable",
+            "Logger"
           ]
         },
         {
@@ -14313,7 +14319,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1206,
+      "totalLines": 1372,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -21585,12 +21591,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "c513342628eb8d0355ea6719af4dc7e602b34f0d6136f1f32dc5cdf341a88665",
+      "contentHash": "3c56977e2e7b471308b2ae154d6b8e033e6d694c4a7789e20187af7422583d5c",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1072,
+      "totalLines": 1074,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {

@@ -335,8 +335,10 @@ export interface EventInviteResponseDto {
 
 export interface DeleteChatResponseDto {
   id: string;
-  kind: 'meetup' | 'direct';
+  kind: 'meetup' | 'direct' | 'community';
   eventId: string | null;
+  sessionId?: string | null;
+  communityId?: string | null;
 }
 
 export interface MeetupChatMemberProfileDto {
