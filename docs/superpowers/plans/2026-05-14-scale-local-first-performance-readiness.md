@@ -409,18 +409,18 @@
 - Modify: `mobile/lib/app/core/providers/core_providers.dart`
 - Create: `mobile/test/app/core/local_cache/app_local_database_test.dart`
 
-- [ ] Add dependencies: `drift`, `drift_flutter`, `sqlite3_flutter_libs`, `path_provider`, `path`, `build_runner`, `drift_dev`.
-- [ ] Create tables: `cache_entries`, `chat_summaries`, `chat_messages`, `sync_cursors`, `pending_commands`.
-- [ ] Enable WAL.
-- [ ] Open DB on a background executor.
-- [ ] Expose `appLocalDatabaseProvider`.
-- [ ] Add `appCacheUserScopeProvider` based on current user id.
-- [ ] Add cache policies for chat, profile, public profiles, notifications, Tonight, Meetups, Map, Affiche, Dating, route templates, settings.
-- [ ] Add stable cache key helpers with sorted query params.
-- [ ] Test schema, unique keys, user scoping and key stability.
-- [ ] Run `cd /Users/sergeypolyakov/MyApp/mobile && dart run build_runner build --delete-conflicting-outputs`.
-- [ ] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/local_cache/app_local_database_test.dart`.
-- [ ] Commit with message `добавить локальную базу кеша приложения`.
+- [x] Add dependencies: `drift`, `drift_flutter`, `sqlite3_flutter_libs`, `path_provider`, `path`, `build_runner`, `drift_dev`.
+- [x] Create tables: `cache_entries`, `chat_summaries`, `chat_messages`, `sync_cursors`, `pending_commands`.
+- [x] Enable WAL.
+- [x] Open DB on a background executor.
+- [x] Expose `appLocalDatabaseProvider`.
+- [x] Add `appCacheUserScopeProvider` based on current user id.
+- [x] Add cache policies for chat, profile, public profiles, notifications, Tonight, Meetups, Map, Affiche, Dating, route templates, settings.
+- [x] Add stable cache key helpers with sorted query params.
+- [x] Test schema, unique keys, user scoping and key stability.
+- [x] Run `cd /Users/sergeypolyakov/MyApp/mobile && dart run build_runner build --delete-conflicting-outputs`.
+- [x] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/local_cache/app_local_database_test.dart`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ### Task 8: Build Generic Cache Store
 
@@ -432,14 +432,14 @@
 - Create: `mobile/lib/app/core/local_cache/local_cache_metrics.dart`
 - Create: `mobile/test/app/core/local_cache/app_local_cache_store_test.dart`
 
-- [ ] Implement `readFresh`, `readAny`, `write`, `deleteKey`, `deleteNamespace`, `deleteUser`, `pruneExpired`.
-- [ ] Store payload as JSON string in current API DTO shape.
-- [ ] Return metadata: `fetchedAt`, `staleAt`, `expiresAt`, `isStale`.
-- [ ] Coalesce writes by `userId + namespace + cacheKey`.
-- [ ] Add metrics hooks: `cache_hit`, `cache_miss`, `cache_stale_hit`, `cache_write_ms`, `cache_read_ms`.
-- [ ] Test fresh hit, stale hit, miss, expiration, user isolation and pruning.
-- [ ] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/local_cache/app_local_cache_store_test.dart`.
-- [ ] Commit with message `добавить общий store локального кеша`.
+- [x] Implement `readFresh`, `readAny`, `write`, `deleteKey`, `deleteNamespace`, `deleteUser`, `pruneExpired`.
+- [x] Store payload as JSON string in current API DTO shape.
+- [x] Return metadata: `fetchedAt`, `staleAt`, `expiresAt`, `isStale`.
+- [x] Coalesce writes by `userId + namespace + cacheKey`.
+- [x] Add metrics hooks: `cache_hit`, `cache_miss`, `cache_stale_hit`, `cache_write_ms`, `cache_read_ms`.
+- [x] Test fresh hit, stale hit, miss, expiration, user isolation and pruning.
+- [x] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/local_cache/app_local_cache_store_test.dart`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ### Task 9: Add LocalFirstRepository
 
@@ -452,17 +452,17 @@
 - Modify: `mobile/lib/app/core/providers/core_providers.dart`
 - Create: `mobile/test/app/core/local_cache/local_first_repository_test.dart`
 
-- [ ] Add wrapper with `namespace`, `cacheKey`, `policy`, `networkFetch`, `fromJsonList` or typed mapper.
-- [ ] Return cached data immediately when present.
-- [ ] Start background refresh after cached response.
-- [ ] Write fresh network response to DB.
-- [ ] Keep cached data on network failure when cache exists.
-- [ ] Preserve current error behavior when cache is empty.
-- [ ] Add `forceRefresh` for pull to refresh.
-- [ ] Keep Dio GET dedupe in place.
-- [ ] Test cache first, refresh success, refresh failure, empty cache error and force refresh.
-- [ ] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/local_cache/local_first_repository_test.dart`.
-- [ ] Commit with message `добавить local first repository`.
+- [x] Add wrapper with `namespace`, `cacheKey`, `policy`, `networkFetch`, `fromJsonList` or typed mapper.
+- [x] Return cached data immediately when present.
+- [x] Start background refresh after cached response.
+- [x] Write fresh network response to DB.
+- [x] Keep cached data on network failure when cache exists.
+- [x] Preserve current error behavior when cache is empty.
+- [x] Add `forceRefresh` for pull to refresh.
+- [x] Keep Dio GET dedupe in place.
+- [x] Test cache first, refresh success, refresh failure, empty cache error and force refresh.
+- [x] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/local_cache/local_first_repository_test.dart`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ### Task 10: Add Flags, Cleanup And Kill Switch
 
@@ -479,16 +479,16 @@
 - Modify: `mobile/test/shared/data/app_providers_test.dart`
 - Modify: `mobile/test/app/core/local_cache/app_local_cache_store_test.dart`
 
-- [ ] Add `BIG_BREAK_LOCAL_FIRST_CACHE` dart define.
-- [ ] Enable local-first by default in debug and profile.
-- [ ] Make release configurable.
-- [ ] Add DB open failure kill switch that falls back to current network-first behavior.
+- [x] Add `BIG_BREAK_LOCAL_FIRST_CACHE` dart define.
+- [x] Enable local-first by default in debug and profile.
+- [x] Make release configurable.
+- [x] Add DB open failure kill switch that falls back to current network-first behavior.
 - [ ] Run cache cleanup after auth restore.
-- [ ] Run user-scoped cleanup on logout.
-- [ ] Clear private attachment cache and signed URL cache on logout.
+- [x] Run user-scoped cleanup on logout.
+- [x] Clear private attachment cache and signed URL cache on logout.
 - [ ] Track cache hit rate, stale hit rate, refresh failures, DB read p95 and DB size estimate.
-- [ ] Test enabled path, disabled path and DB failure fallback.
-- [ ] Commit with message `добавить флаг и очистку local first кеша`.
+- [x] Test enabled path, disabled path and DB failure fallback.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ---
 
@@ -505,14 +505,14 @@
 - Modify: `mobile/lib/app/session/app_session_controller.dart`
 - Modify: `mobile/test/app/core/network/chat_socket_client_test.dart`
 
-- [ ] Add `DriftChatOutboxStorage` implementing current `ChatOutboxStorage`.
-- [ ] Migrate existing `chat.outbox.commands` from `SharedPreferences` to `pending_commands`.
-- [ ] Preserve current dedupe behavior.
-- [ ] Clear DB outbox on logout.
-- [ ] Test pending `message.send` survives client recreation.
-- [ ] Test duplicate dedupe keys do not create duplicate commands.
-- [ ] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/network/chat_socket_client_test.dart`.
-- [ ] Commit with message `перенести очередь чата в локальную базу`.
+- [x] Add `DriftChatOutboxStorage` implementing current `ChatOutboxStorage`.
+- [x] Migrate existing `chat.outbox.commands` from `SharedPreferences` to `pending_commands`.
+- [x] Preserve current dedupe behavior.
+- [x] Clear DB outbox on logout.
+- [x] Test pending `message.send` survives client recreation.
+- [x] Test duplicate dedupe keys do not create duplicate commands.
+- [x] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/app/core/network/chat_socket_client_test.dart`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ### Task 12: Add Structured Chat Store
 
@@ -526,18 +526,18 @@
 - Create: `mobile/test/app/core/local_cache/chat_local_store_test.dart`
 - Modify: `mobile/test/features/chats/presentation/chat_thread_providers_test.dart`
 
-- [ ] Store meetup, personal and community chat summaries in `chat_summaries`.
-- [ ] Store recent messages in `chat_messages`.
-- [ ] Merge messages by `messageId` and `clientMessageId`.
-- [ ] Preserve pending messages across restart.
-- [ ] Patch summaries on `message.created`, `unread.updated`, `typing.changed`, `chat.updated`.
-- [ ] On thread open, render local messages first.
-- [ ] Then fetch REST latest page.
-- [ ] Then request socket sync from stored cursor.
-- [ ] On `sync.snapshot reset=true`, reload REST latest page and replace recent window for that chat.
-- [ ] Test local-first load, pending ack, delete event, read event and reset snapshot.
-- [ ] Run chat local store tests and chat thread provider tests.
-- [ ] Commit with message `добавить локальный store для чатов`.
+- [x] Store meetup, personal and community chat summaries in `chat_summaries`.
+- [x] Store recent messages in `chat_messages`.
+- [x] Merge messages by `messageId` and `clientMessageId`.
+- [x] Preserve pending messages across restart.
+- [x] Patch summaries on `message.created`, `unread.updated`, `typing.changed`, `chat.updated`.
+- [x] On thread open, render local messages first.
+- [x] Then fetch REST latest page.
+- [x] Then request socket sync from stored cursor.
+- [x] On `sync.snapshot reset=true`, reload REST latest page and replace recent window for that chat.
+- [x] Test local-first load, pending ack, delete event, read event and reset snapshot.
+- [x] Run chat local store tests and chat thread provider tests.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ### Task 13: Keep Realtime Scalable
 
@@ -556,7 +556,7 @@
 - [x] Add metrics for dropped send due to `bufferedAmount`.
 - [x] Verify `sync.snapshot reset=true` remains handled by mobile.
 - [x] Run chat unit and realtime tests.
-- [ ] Commit with message `укрепить realtime sync для scale`.
+- [x] Commit backend realtime scale work in `41efc724 измерять горячие backend пути`.
 
 ---
 
@@ -585,7 +585,7 @@
 - [x] Test warm providers return cache without waiting for network.
 - [x] Test network errors keep cached values.
 - [x] Run `cd /Users/sergeypolyakov/MyApp/mobile && flutter test test/shared/data/app_providers_test.dart`.
-- [ ] Commit with message `подключить local first кеш к горячим экранам`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ### Task 15: Preserve UI During Background Refresh
 
@@ -609,7 +609,7 @@
 - [x] Verify chat swipe delete, long press, pin, unread and segment filters.
 - [x] Verify dating actions advance locally and roll back on API error.
 - [x] Run parity tests for people, chats, detail chat and profile.
-- [ ] Commit with message `сохранить UX при фоновом обновлении кеша`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ---
 
@@ -641,7 +641,7 @@
 - [x] Cap prewarm concurrency at `2` for cellular-like behavior and `3` for Wi-Fi-like behavior when network type is available.
 - [x] Never prewarm full lists.
 - [x] Run image widget tests.
-- [ ] Commit with message `ускорить media variants и prewarm`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
 
 ### Task 17: Keep Private Media Fast And Safe
 
@@ -660,7 +660,7 @@
 - [x] Reuse existing `ETag` and `Last-Modified` behavior for `GET /media/:assetId`.
 - [x] Ensure private media checks still run before private access.
 - [x] Test normal response, `304`, stale `200` and private authorization.
-- [ ] Commit with message `ускорить приватные media повторы без ослабления доступа`.
+- [x] Commit media repeat work in `60517bb добавить local first кеш в мобильное приложение`, `dd194ff9 добавить условное обновление горячих ответов` and `e9b4c1b5 добавить проверки media validators`.
 
 ---
 
