@@ -738,6 +738,13 @@
 - Modify: `ai-context/database.md`
 - Modify: `ai-context/infra.md`
 
+**Rollout blocker, 2026-05-15:**
+
+- No target `DATABASE_URL` with PostGIS is available in this environment, so `db:postgis:event-geo` was not run.
+- Local Postgres still lacks the PostGIS extension.
+- `CHAT_UNREAD_COUNTER_READS`, `ENABLE_POSTGIS_EVENT_FEED` and `WORKER_OUTBOX_BATCH_CLAIM` remain disabled.
+- Production env examples stay unchanged until target DB verify, staging worker batch claim and map/event feed QA are done.
+
 - [x] Run `cd /Users/sergeypolyakov/MyApp/backend && pnpm --filter @big-break/database db:indexes:hot-path`.
 - [x] Run `cd /Users/sergeypolyakov/MyApp/backend && pnpm --filter @big-break/database db:verify:chat-unread`.
 - [x] If needed, run chat unread backfill and verify again.
@@ -768,7 +775,13 @@
   - `backend/apps/chat/src/chat-server.service.ts`
   - `backend/apps/worker/src/worker.service.ts`
 
-- [ ] Rank endpoints by p95, p99, query count and error rate.
+**Measured review notes, 2026-05-15:**
+
+- Local report `docs/audits/2026-05-14-scale-local-first-performance-report.md` ranked measured scenarios as `startup-chain` p95 `51.52`, `map-viewport` p95 `19.66`, `route-templates` p95 `12.78`, `dating-discover` p95 `10.53` and `affiche-events` p95 `7.98`.
+- All measured local scenarios had `0` errors and p95 below `60 ms`, so no endpoint qualified for code changes.
+- Staging or production metrics are still required before changing `/chats/*`, `/search`, `/media/:assetId` or `/uploads/media/complete`.
+
+- [x] Rank endpoints by p95, p99, query count and error rate.
 - [ ] Start with `/events`, `/dating/discover`, `/chats/meetups`, `/chats/personal`, `/chats/:chatId/messages`, `/search`, `/media/:assetId`, `/uploads/media/complete`, `/affiche/events`, `/evening/route-templates`.
 - [ ] Inspect where clauses, orderBy, cursor, selected fields and nested includes.
 - [ ] Check that list endpoints do not do hidden social preview fanout.
