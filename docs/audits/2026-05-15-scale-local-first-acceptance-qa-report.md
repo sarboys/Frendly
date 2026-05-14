@@ -12,10 +12,10 @@ Build: XcodeBuildMCP `build_run_sim` succeeded for `Runner`, `Debug`, bundle `co
 
 ## Result
 
-- PASS: cold launch, Home first frame, map open and pan, chats open, direct text send, relaunch, chat list after relaunch.
+- PASS: cold launch, Home first frame, map open and pan, chats open, direct text send, meetup text send, relaunch, chat list after relaunch, existing photo reopen.
 - FAIL: none in checked scope.
-- BLOCKED: clean login was not checked because simulator already had a saved session; dating swipe like was blocked because the feed had no profiles; private runtime metrics were not available in this environment.
-- NOT CHECKED: meetup text, photo send/reopen, voice playback, meetup create/join, airplane mode, offline send and account switch.
+- BLOCKED: clean login was not checked because simulator already had a saved session; dating swipe like was blocked because the feed had no profiles; photo send was blocked by a blank iOS photo picker after permission; voice playback had no visible playback state after tap; private runtime metrics were not available in this environment.
+- NOT CHECKED: new photo send, voice playback proof, meetup create/join, airplane mode, offline send and account switch.
 
 ## Checks
 
@@ -28,11 +28,11 @@ Build: XcodeBuildMCP `build_run_sim` succeeded for `Runner`, `Debug`, bundle `co
 | Open dating and swipe like | blocked | saved simulator session | Dating opened with `Пока нет новых профилей`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-dating-empty.jpg` | Seed or switch account with available profiles |
 | Open chats | pass | saved simulator session | Chat list opened, screenshot `docs/audits/2026-05-15-scale-local-first-qa-relaunch-chat-list.jpg` | Continue meetup chat checks |
 | Send direct text | pass | saved simulator session | Sent `as-scale-local-first-2026-05-15`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-direct-message-sent.jpg` | Verify peer receipt in a two-account run |
-| Send meetup text | pending | saved QA account | pending | Confirm message appears |
-| Send photo | pending | saved QA account | pending | Confirm photo appears |
+| Send meetup text | pass | saved simulator session | Sent `as-meet-up-local-first-2026-05-15`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-meetup-message-sent.jpg` | Verify peer receipt in a two-account run |
+| Send photo | blocked | saved simulator session | Attachment sheet opened and Photos permission was granted, then picker rendered blank and app had to be relaunched. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-photo-permission.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-photo-picker-blank.jpg` | Retry after seeding simulator Photos or use file attachment path |
 | Relaunch app | pass | saved simulator session | Stop plus launch succeeded; app returned to Home and chat list showed latest direct message, screenshot `docs/audits/2026-05-15-scale-local-first-qa-relaunch-chat-list.jpg` | Continue offline cache checks |
-| Reopen photo | pending | saved QA account | pending | Confirm cached media |
-| Play voice | pending | saved QA account | pending | Confirm playback state |
+| Reopen photo | pass | saved simulator session | Existing meetup photo opened in media preview, screenshot `docs/audits/2026-05-15-scale-local-first-qa-photo-reopened.jpg` | Recheck after relaunch or offline mode |
+| Play voice | blocked | saved simulator session | Voice row was visible, but tapping it produced no visible playback state in screenshot or accessibility snapshot. Screenshot `docs/audits/2026-05-15-scale-local-first-qa-voice-no-visible-state.jpg` | Retest with logs or audio/player state instrumentation |
 | Create meetup | pending | saved QA account | pending | Confirm created meetup |
 | Join meetup from second account | pending | saved QA account | pending | Confirm join state |
 | Airplane mode after data cached | pending | saved QA account | pending | Confirm offline mode |

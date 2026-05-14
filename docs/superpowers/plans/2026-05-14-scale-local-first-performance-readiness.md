@@ -853,10 +853,10 @@
 - [ ] Open dating and swipe like.
 - [x] Open chats.
 - [x] Send direct text.
-- [ ] Send meetup text.
+- [x] Send meetup text.
 - [ ] Send photo.
 - [x] Relaunch app.
-- [ ] Reopen photo.
+- [x] Reopen photo.
 - [ ] Play voice.
 - [ ] Create meetup.
 - [ ] Join meetup from second account.

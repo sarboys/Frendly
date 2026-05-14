@@ -19,10 +19,10 @@ Accounts: saved repeated-digit QA accounts from local QA data. Do not write phon
 - [ ] Open dating and swipe like.
 - [x] Open chats.
 - [x] Send direct text.
-- [ ] Send meetup text.
+- [x] Send meetup text.
 - [ ] Send photo.
 - [x] Relaunch app.
-- [ ] Reopen photo.
+- [x] Reopen photo.
 - [ ] Play voice.
 - [ ] Create meetup.
 - [ ] Join meetup from second account.
@@ -38,6 +38,10 @@ Accounts: saved repeated-digit QA accounts from local QA data. Do not write phon
 - App launched into an existing saved simulator session, so login from a clean auth screen was not checked.
 - Dating opened, but there were no profiles in the current feed, so swipe like was blocked.
 - Direct chat text sent: `as-scale-local-first-2026-05-15`.
+- Meetup chat text sent: `as-meet-up-local-first-2026-05-15`.
+- Existing meetup photo reopened in media preview.
+- Voice row was visible, but tapping it did not produce a visible playback state in screenshot or accessibility snapshot.
+- Photo send is blocked in this run: after allowing Photos full access, the picker rendered blank and required app relaunch.
 
 ## Stop Conditions
 
