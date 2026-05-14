@@ -103,6 +103,9 @@ export class WorkerService implements OnModuleDestroy {
     process.env.WORKER_OUTBOX_BACKLOG_WARN_AGE_MS,
     DEFAULT_OUTBOX_BACKLOG_WARN_AGE_MS,
   );
+  private readonly outboxEnabled = process.env.WORKER_OUTBOX_ENABLED !== 'false';
+  private readonly contentRoleEnabled = process.env.WORKER_CONTENT_ENABLED !== 'false';
+  private readonly schedulesRoleEnabled = process.env.WORKER_SCHEDULES_ENABLED !== 'false';
   private readonly pushTokenBatchSize = this.resolvePositiveInteger(
     process.env.WORKER_PUSH_TOKEN_BATCH_SIZE,
     DEFAULT_PUSH_TOKEN_BATCH_SIZE,
@@ -172,22 +175,26 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   start() {
-    this.timer = setInterval(() => {
-      void this.runScheduledTask('outbox', () => this.runOnce());
-    }, 1500);
-    this.systemNotificationTimer = setInterval(() => {
-      void this.runScheduledTask(
-        'system-notifications',
-        () => this.runSystemNotificationScan(),
-      );
-    }, this.systemNotificationIntervalMs);
-    this.eveningAutoAdvanceTimer = setInterval(() => {
-      void this.runScheduledTask(
-        'evening-auto-advance',
-        () => this.runEveningAutoAdvanceScan(),
-      );
-    }, this.eveningAutoAdvanceIntervalMs);
-    if (this.retentionCleanupEnabled) {
+    if (this.outboxEnabled) {
+      this.timer = setInterval(() => {
+        void this.runScheduledTask('outbox', () => this.runOnce());
+      }, 1500);
+    }
+    if (this.schedulesRoleEnabled) {
+      this.systemNotificationTimer = setInterval(() => {
+        void this.runScheduledTask(
+          'system-notifications',
+          () => this.runSystemNotificationScan(),
+        );
+      }, this.systemNotificationIntervalMs);
+      this.eveningAutoAdvanceTimer = setInterval(() => {
+        void this.runScheduledTask(
+          'evening-auto-advance',
+          () => this.runEveningAutoAdvanceScan(),
+        );
+      }, this.eveningAutoAdvanceIntervalMs);
+    }
+    if (this.schedulesRoleEnabled && this.retentionCleanupEnabled) {
       this.retentionCleanupTimer = setInterval(() => {
         void this.runScheduledTask(
           'retention-cleanup',
@@ -195,19 +202,21 @@ export class WorkerService implements OnModuleDestroy {
         );
       }, this.retentionCleanupIntervalMs);
     }
-    this.contentManualImportTimer = setInterval(() => {
-      void this.runScheduledTask(
-        'content-manual-import',
-        () => this.runPendingManualImportScan(),
-      );
-    }, this.contentManualImportIntervalMs);
-    this.contentManualGenerationTimer = setInterval(() => {
-      void this.runScheduledTask(
-        'content-manual-generation',
-        () => this.runPendingManualGenerationScan(),
-      );
-    }, this.contentManualGenerationIntervalMs);
-    if (this.contentImportEnabled) {
+    if (this.contentRoleEnabled) {
+      this.contentManualImportTimer = setInterval(() => {
+        void this.runScheduledTask(
+          'content-manual-import',
+          () => this.runPendingManualImportScan(),
+        );
+      }, this.contentManualImportIntervalMs);
+      this.contentManualGenerationTimer = setInterval(() => {
+        void this.runScheduledTask(
+          'content-manual-generation',
+          () => this.runPendingManualGenerationScan(),
+        );
+      }, this.contentManualGenerationIntervalMs);
+    }
+    if (this.contentRoleEnabled && this.contentImportEnabled) {
       this.contentImportTimer = setInterval(() => {
         void this.runScheduledTask(
           'content-import',
@@ -215,7 +224,7 @@ export class WorkerService implements OnModuleDestroy {
         );
       }, this.contentImportIntervalMs);
     }
-    if (this.contentRouteGenerationEnabled) {
+    if (this.contentRoleEnabled && this.contentRouteGenerationEnabled) {
       this.contentRouteGenerationTimer = setInterval(() => {
         void this.runScheduledTask(
           'content-route-generation',
@@ -225,36 +234,42 @@ export class WorkerService implements OnModuleDestroy {
     }
     this.unrefTimers();
 
-    void this.runScheduledTask('outbox', () => this.runOnce());
-    void this.runScheduledTask(
-      'system-notifications',
-      () => this.runSystemNotificationScan(),
-    );
-    void this.runScheduledTask(
-      'evening-auto-advance',
-      () => this.runEveningAutoAdvanceScan(),
-    );
-    if (this.retentionCleanupEnabled) {
+    if (this.outboxEnabled) {
+      void this.runScheduledTask('outbox', () => this.runOnce());
+    }
+    if (this.schedulesRoleEnabled) {
+      void this.runScheduledTask(
+        'system-notifications',
+        () => this.runSystemNotificationScan(),
+      );
+      void this.runScheduledTask(
+        'evening-auto-advance',
+        () => this.runEveningAutoAdvanceScan(),
+      );
+    }
+    if (this.schedulesRoleEnabled && this.retentionCleanupEnabled) {
       void this.runScheduledTask(
         'retention-cleanup',
         () => this.runRetentionCleanup(),
       );
     }
-    void this.runScheduledTask(
-      'content-manual-import',
-      () => this.runPendingManualImportScan(),
-    );
-    void this.runScheduledTask(
-      'content-manual-generation',
-      () => this.runPendingManualGenerationScan(),
-    );
-    if (this.contentImportEnabled) {
+    if (this.contentRoleEnabled) {
+      void this.runScheduledTask(
+        'content-manual-import',
+        () => this.runPendingManualImportScan(),
+      );
+      void this.runScheduledTask(
+        'content-manual-generation',
+        () => this.runPendingManualGenerationScan(),
+      );
+    }
+    if (this.contentRoleEnabled && this.contentImportEnabled) {
       void this.runScheduledTask(
         'content-import',
         () => this.runContentImportScan(),
       );
     }
-    if (this.contentRouteGenerationEnabled) {
+    if (this.contentRoleEnabled && this.contentRouteGenerationEnabled) {
       void this.runScheduledTask(
         'content-route-generation',
         () => this.runContentRouteGenerationScan(),

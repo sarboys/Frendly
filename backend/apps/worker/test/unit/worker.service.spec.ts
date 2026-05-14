@@ -47,6 +47,12 @@ describe('worker outbox recovery', () => {
     delete process.env.WORKER_PUSH_TOKEN_BATCH_SIZE;
     delete process.env.WORKER_RETENTION_CLEANUP_ENABLED;
     delete process.env.WORKER_RETENTION_CLEANUP_INTERVAL_MS;
+    delete process.env.WORKER_OUTBOX_ENABLED;
+    delete process.env.WORKER_CONTENT_ENABLED;
+    delete process.env.WORKER_SCHEDULES_ENABLED;
+    delete process.env.CONTENT_IMPORT_ENABLED;
+    delete process.env.CONTENT_IMPORT_IMAGE_BACKFILL_ENABLED;
+    delete process.env.CONTENT_ROUTE_GENERATION_ENABLED;
     delete process.env.CONTENT_IMPORT_CITIES;
     delete process.env.CONTENT_IMPORT_SOURCES;
     delete process.env.TOMESTO_WINDOW_DAYS;
@@ -70,6 +76,120 @@ describe('worker outbox recovery', () => {
     expect(runScheduledTask).toHaveBeenCalledWith('outbox', expect.any(Function));
     expect(runScheduledTask).toHaveBeenCalledWith('system-notifications', expect.any(Function));
     expect(runScheduledTask).toHaveBeenCalledWith('evening-auto-advance', expect.any(Function));
+
+    await service.onModuleDestroy();
+  });
+
+  it('runs every worker role by default when feature flags are enabled', async () => {
+    process.env.WORKER_RETENTION_CLEANUP_ENABLED = 'true';
+    process.env.CONTENT_IMPORT_ENABLED = 'true';
+    process.env.CONTENT_ROUTE_GENERATION_ENABLED = 'true';
+    const service = new WorkerService(
+      {
+        client: {},
+      } as any,
+      {} as any,
+      {} as any,
+    );
+    const runScheduledTask = jest.fn((_label: string, task: () => Promise<void>) => {
+      void task();
+    });
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runOnce = jest.fn().mockResolvedValue(undefined);
+    (service as any).runSystemNotificationScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runEveningAutoAdvanceScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runRetentionCleanup = jest.fn().mockResolvedValue(undefined);
+    (service as any).runPendingManualImportScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runPendingManualGenerationScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runContentImportScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runContentRouteGenerationScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    expect(runScheduledTask).toHaveBeenCalledWith('outbox', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('system-notifications', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('evening-auto-advance', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('retention-cleanup', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('content-manual-import', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('content-manual-generation', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('content-import', expect.any(Function));
+    expect(runScheduledTask).toHaveBeenCalledWith('content-route-generation', expect.any(Function));
+    expect((service as any).timer).toBeDefined();
+    expect((service as any).systemNotificationTimer).toBeDefined();
+    expect((service as any).eveningAutoAdvanceTimer).toBeDefined();
+    expect((service as any).retentionCleanupTimer).toBeDefined();
+    expect((service as any).contentManualImportTimer).toBeDefined();
+    expect((service as any).contentManualGenerationTimer).toBeDefined();
+    expect((service as any).contentImportTimer).toBeDefined();
+    expect((service as any).contentRouteGenerationTimer).toBeDefined();
+
+    await service.onModuleDestroy();
+  });
+
+  it('skips outbox timer and startup scan when outbox role is disabled', async () => {
+    process.env.WORKER_OUTBOX_ENABLED = 'false';
+    const service = new WorkerService({
+      client: {},
+    } as any);
+    const runScheduledTask = jest.fn();
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runOnce = jest.fn().mockResolvedValue(undefined);
+    (service as any).runSystemNotificationScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runEveningAutoAdvanceScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    expect(runScheduledTask).not.toHaveBeenCalledWith('outbox', expect.any(Function));
+    expect((service as any).timer).toBeUndefined();
+
+    await service.onModuleDestroy();
+  });
+
+  it('skips content timers and startup scans when content role is disabled', async () => {
+    process.env.WORKER_CONTENT_ENABLED = 'false';
+    process.env.CONTENT_IMPORT_ENABLED = 'true';
+    process.env.CONTENT_ROUTE_GENERATION_ENABLED = 'true';
+    const service = new WorkerService({
+      client: {},
+    } as any);
+    const runScheduledTask = jest.fn();
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runOnce = jest.fn().mockResolvedValue(undefined);
+    (service as any).runSystemNotificationScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runEveningAutoAdvanceScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    expect(runScheduledTask).not.toHaveBeenCalledWith('content-manual-import', expect.any(Function));
+    expect(runScheduledTask).not.toHaveBeenCalledWith('content-manual-generation', expect.any(Function));
+    expect(runScheduledTask).not.toHaveBeenCalledWith('content-import', expect.any(Function));
+    expect(runScheduledTask).not.toHaveBeenCalledWith('content-route-generation', expect.any(Function));
+    expect((service as any).contentManualImportTimer).toBeUndefined();
+    expect((service as any).contentManualGenerationTimer).toBeUndefined();
+    expect((service as any).contentImportTimer).toBeUndefined();
+    expect((service as any).contentRouteGenerationTimer).toBeUndefined();
+
+    await service.onModuleDestroy();
+  });
+
+  it('skips schedule timers and startup scans when schedules role is disabled', async () => {
+    process.env.WORKER_SCHEDULES_ENABLED = 'false';
+    process.env.WORKER_RETENTION_CLEANUP_ENABLED = 'true';
+    const service = new WorkerService({
+      client: {},
+    } as any);
+    const runScheduledTask = jest.fn();
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runOnce = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    expect(runScheduledTask).not.toHaveBeenCalledWith('system-notifications', expect.any(Function));
+    expect(runScheduledTask).not.toHaveBeenCalledWith('evening-auto-advance', expect.any(Function));
+    expect(runScheduledTask).not.toHaveBeenCalledWith('retention-cleanup', expect.any(Function));
+    expect((service as any).systemNotificationTimer).toBeUndefined();
+    expect((service as any).eveningAutoAdvanceTimer).toBeUndefined();
+    expect((service as any).retentionCleanupTimer).toBeUndefined();
 
     await service.onModuleDestroy();
   });
