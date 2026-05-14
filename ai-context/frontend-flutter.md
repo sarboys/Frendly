@@ -52,6 +52,7 @@ Use this file for Flutter behavior, state and performance rules.
 - Guest outside public routes goes to `/welcome`.
 - Authenticated user on public route goes to `/tonight`.
 - Incomplete onboarding goes to `/onboarding`.
+- If onboarding/setup becomes complete while `/onboarding` is already open, redirect back to `/tonight`.
 - Shell tabs use `ShellRoute` and `AppShell`.
 
 ## Feature notes
