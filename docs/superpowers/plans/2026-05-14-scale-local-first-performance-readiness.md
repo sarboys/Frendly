@@ -275,12 +275,23 @@
 - Read: `compose.prod.yml`
 - Read: `deploy/nginx/frendly.conf`
 
-- [ ] Run `cd /Users/sergeypolyakov/MyApp && git status --short`.
-- [ ] Record current production services, ports, env flags and nginx `/ws` behavior.
-- [ ] Record current mobile startup behavior: root startup, Home, Chats, Dating, Affiche, Map, Profile.
-- [ ] Record current chat lifecycle: REST latest page, socket auth, subscribe, sync, outbox, read state.
-- [ ] Record current media lifecycle: upload, complete, private download URL, image widgets, prewarm.
-- [ ] Keep the old behavior unchanged in this phase.
+**Baseline notes, 2026-05-15:**
+
+- `git status --short` is clean in root and in `mobile/`.
+- Production compose has `postgres`, `pgbouncer`, `redis`, `migrate`, `api:3000`, `chat:3001`, `worker:3002`, `landing`, `admin_internal`, `admin_partner` and `nginx` on `80/443`.
+- Runtime services use `DATABASE_POOL_URL`; migrate uses `DATABASE_DIRECT_URL`. Fast-path flags still default safe: `CHAT_UNREAD_COUNTER_READS=false`, `ENABLE_POSTGIS_EVENT_FEED=false`, `WORKER_OUTBOX_BATCH_CLAIM=false`.
+- Nginx routes `/ws` to `chat_backend`, uses WebSocket upgrade headers, `proxy_read_timeout 600s`, `proxy_send_timeout 600s` and `proxy_buffering off`. Public `/metrics` returns `404`.
+- Mobile starts at `/splash`; guest users go to `/welcome`; authenticated complete users go to `/tonight`; incomplete onboarding goes to `/onboarding`. Hot screens now use local-first cache where implemented.
+- Chat opens local recent messages when available, then REST history, socket auth, subscribe and `sync.request`. Pending commands use durable Drift outbox when local-first is active, with SharedPreferences fallback.
+- Media uses shared widgets and services. Private chat media signed download URLs are coalesced and cached for four minutes, while access checks stay on backend media endpoints.
+- This phase recorded state only. No runtime behavior or rollout flag was changed.
+
+- [x] Run `cd /Users/sergeypolyakov/MyApp && git status --short`.
+- [x] Record current production services, ports, env flags and nginx `/ws` behavior.
+- [x] Record current mobile startup behavior: root startup, Home, Chats, Dating, Affiche, Map, Profile.
+- [x] Record current chat lifecycle: REST latest page, socket auth, subscribe, sync, outbox, read state.
+- [x] Record current media lifecycle: upload, complete, private download URL, image widgets, prewarm.
+- [x] Keep the old behavior unchanged in this phase.
 
 ### Task 2: Lock Scope
 
@@ -290,11 +301,19 @@
 
 - Modify only this plan if scope changes.
 
-- [ ] Confirm target: `20k DAU`, `1k concurrent app sessions smoke`, `500 concurrent WebSocket connections smoke`.
-- [ ] Confirm first release local-first scope: app cache, chat cache, queued chat sends.
-- [ ] Confirm excluded scope: full offline join, payments, upload, moderation, admin operations.
-- [ ] Confirm private media rule: no public CDN URL for private chat or story media.
-- [ ] Confirm rollout rule: no risky production flag before staging smoke.
+**Locked scope notes:**
+
+- Target remains `20k DAU`, `1k concurrent app sessions smoke`, `500 concurrent WebSocket connections smoke`.
+- First release local-first scope remains app cache, chat cache and queued chat sends.
+- Full offline join, payments, upload, moderation and admin operations stay outside this release scope.
+- Private chat or story media must not get public CDN URLs.
+- Production or risky fast-path flags must wait for staging smoke, target DB verify and QA.
+
+- [x] Confirm target: `20k DAU`, `1k concurrent app sessions smoke`, `500 concurrent WebSocket connections smoke`.
+- [x] Confirm first release local-first scope: app cache, chat cache, queued chat sends.
+- [x] Confirm excluded scope: full offline join, payments, upload, moderation, admin operations.
+- [x] Confirm private media rule: no public CDN URL for private chat or story media.
+- [x] Confirm rollout rule: no risky production flag before staging smoke.
 
 ---
 
