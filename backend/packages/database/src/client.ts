@@ -7,7 +7,9 @@ declare global {
 
 export function getPrismaClient(): PrismaClient {
   if (!global.__bigBreakPrisma__) {
-    global.__bigBreakPrisma__ = new PrismaClient();
+    global.__bigBreakPrisma__ = new PrismaClient({
+      log: [{ emit: 'event', level: 'query' }],
+    });
   }
 
   return global.__bigBreakPrisma__;
