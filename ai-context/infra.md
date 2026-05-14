@@ -39,6 +39,7 @@ postgres + redis
 - `api`: internal port `3000`, health `/health`.
 - `chat`: internal port `3001`, health `/health`.
 - `worker`: internal port `3002`, health `/health`.
+- API, chat and worker expose private `/metrics` endpoints for Prometheus scrapes inside the Docker network.
 - `landing`: Vite static build served by nginx.
 - `admin_internal`: `admin.frendly.tech`.
 - `admin_partner`: `partner.frendly.tech`.
@@ -53,6 +54,47 @@ Public routing:
 - `admin.frendly.tech` -> internal admin.
 - `partner.frendly.tech` -> partner admin.
 - `/ws` on API host -> chat WebSocket.
+- public `/metrics` on the API host is blocked in nginx and must not be exposed through `api.frendly.tech`.
+
+## Observability
+
+- Compose file: `compose.observability.yml`.
+- Prometheus config: `deploy/observability/prometheus.yml`.
+- Grafana dashboards: `deploy/observability/grafana/dashboards/`.
+- Grafana notes: `deploy/observability/grafana/README.md`.
+- Observability stack joins Docker network `frendly-backend_default` through `OBSERVABILITY_NETWORK`.
+
+Default local bindings:
+
+- Prometheus: `127.0.0.1:9090`.
+- Grafana: `127.0.0.1:3009`.
+
+Scrape targets:
+
+- API `/metrics` on `api:3000`.
+- Scale API `/metrics` on `api_a:3000` and `api_b:3000`.
+- Chat `/metrics` on `chat:3001`.
+- Scale chat `/metrics` on `chat_a:3001` and `chat_b:3001`.
+- Worker `/metrics` on `worker:3002`.
+- Scale workers `/metrics` on `worker_realtime:3002`, `worker_content:3002`, `worker_schedules:3002`.
+- node exporter.
+- postgres exporter.
+- redis exporter.
+- pgbouncer exporter.
+
+Metrics privacy rules:
+
+- labels may include service, endpoint, method, status class, job type, event type, operation and status.
+- labels must not include user id, chat id, message id, token, media URL, object key, phone, email or request payload.
+- Chat scale metrics include membership cache hit or miss, sync request status, WebSocket drops and payload warning counts. Payload labels stay at service, event type and direction only.
+
+Validation:
+
+```bash
+docker compose -f compose.observability.yml config
+```
+
+Use real exporter connection strings only through env, never in repo files.
 
 ## T-Bank payments
 
