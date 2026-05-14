@@ -48,6 +48,8 @@ Accounts: saved repeated-digit QA accounts from local QA data. Do not write phon
 - Dating was rechecked after account switch and still showed `Пока нет новых профилей`, so swipe like remains blocked.
 - Created meetup `as-local-first-2026-05-15` with address `QA test place`; published detail showed host state and `Идут 1/8`.
 - Join from the second account is blocked in this run: after login as another saved QA account, Home and the full nearby meetup list showed `0 встреч`, including after a cold app relaunch.
+- Airplane/offline checks are blocked in this run: `simctl` has no real per-simulator network-off command, the Control Center UI path was not stable through XcodeBuildMCP, and disabling macOS network would affect the whole environment.
+- Private runtime metrics were checked through `vps1`: production `api`, `chat` and `worker` containers returned `404` for internal `/metrics`, and no Prometheus/Grafana/exporter containers were running.
 
 ## Stop Conditions
 

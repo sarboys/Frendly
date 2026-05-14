@@ -14,8 +14,8 @@ Build: XcodeBuildMCP `build_run_sim` succeeded for `Runner`, `Debug`, bundle `co
 
 - PASS: cold launch, login with test account, Home first frame, map open and pan, chats open, direct text send, meetup text send, relaunch, chat list after relaunch, existing photo reopen, create meetup, logout/login another user, old profile cache not visible after account switch.
 - FAIL: none in checked scope.
-- BLOCKED: dating swipe like was blocked because the feed had no profiles on both checked accounts; photo send was blocked by a blank iOS photo picker after permission; voice playback had no visible playback state after tap; join meetup was blocked because the second account saw `0 встреч`; private runtime metrics were not available in this environment.
-- NOT CHECKED: new photo send, voice playback proof, airplane mode and offline send.
+- BLOCKED: dating swipe like was blocked because the feed had no profiles on both checked accounts; photo send was blocked by a blank iOS photo picker after permission; voice playback had no visible playback state after tap; join meetup was blocked because the second account saw `0 встреч`; airplane/offline checks were blocked by lack of safe per-simulator network-off control; private runtime metrics were not available on production containers.
+- NOT CHECKED: new photo send and voice playback proof.
 
 ## Checks
 
@@ -35,12 +35,12 @@ Build: XcodeBuildMCP `build_run_sim` succeeded for `Runner`, `Debug`, bundle `co
 | Play voice | blocked | saved simulator session | Voice row was visible, but tapping it produced no visible playback state in screenshot or accessibility snapshot. Screenshot `docs/audits/2026-05-15-scale-local-first-qa-voice-no-visible-state.jpg` | Retest with logs or audio/player state instrumentation |
 | Create meetup | pass | saved QA account | Created `as-local-first-2026-05-15` with address `QA test place`; published detail showed host state and `Идут 1/8`. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-create-meetup-preview.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-create-meetup-published.jpg` | Retest attendee flow after feed visibility is fixed or seeded |
 | Join meetup from second account | blocked | saved QA account | Logged in as another saved QA account, opened Home and full nearby meetup list; both showed `0 встреч`, including after cold relaunch. Screenshot `docs/audits/2026-05-15-scale-local-first-qa-second-user-meetups-empty-after-create.jpg` | Confirm why newly published meetup is not visible to the second account, then retry join |
-| Airplane mode after data cached | pending | saved QA account | pending | Confirm offline mode |
-| Read cached chats and hot screens | pending | saved QA account | pending | Confirm local data |
-| Send chat message offline, then reconnect | pending | saved QA account | pending | Confirm outbox flush |
+| Airplane mode after data cached | blocked | saved QA account | `simctl` has no real per-simulator network-off command; Control Center UI path was unstable through XcodeBuildMCP; disabling macOS network was not used because it would affect the whole environment | Retest on a device, or with a simulator network conditioner that can be scoped safely |
+| Read cached chats and hot screens | blocked | saved QA account | Blocked by the same offline-mode limitation, so cached screens were not checked under real network loss | Retest after safe network-off setup |
+| Send chat message offline, then reconnect | blocked | saved QA account | Blocked by the same offline-mode limitation, so durable outbox flush was not checked under real network loss | Retest after safe network-off setup |
 | Logout and login as another user | pass | saved QA account | Previous profile was visible before logout, login screen opened, second user profile loaded after SMS shortcut. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-logout-button.jpg`, `docs/audits/2026-05-15-scale-local-first-qa-login-screen.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-second-user-profile.jpg` | Repeat on clean install if needed |
 | Confirm old user's cached data is not visible | pass | saved QA account | After account switch, profile showed the second user's profile and chats opened under the second user. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-second-user-profile.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-second-user-chats.jpg` | Offline account switch cache isolation still needs a separate airplane mode run |
-| Runtime metrics | blocked | n/a | Private Prometheus/Grafana endpoint was not configured in this environment | Use staging or VPS private metrics |
+| Runtime metrics | blocked | n/a | Checked through `vps1`: production `api`, `chat` and `worker` containers returned `404` for internal `/metrics`; no Prometheus/Grafana/exporter containers were running | Deploy observability or expose internal metrics on staging, then record p95, ack p95, outbox lag, WS count, Redis pubsub, DB pool wait and S3 errors |
 
 ## Notes
 
