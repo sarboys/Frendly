@@ -846,16 +846,16 @@
 - Create: `docs/audits/2026-05-14-scale-local-first-performance-report.md`
 
 - [x] Check backend health through `curl -i https://api.frendly.tech/health`.
-- [ ] Launch cold on iOS simulator or QA device.
+- [x] Launch cold on iOS simulator or QA device.
 - [ ] Login with test account.
-- [ ] Open Home first frame.
-- [ ] Open map and pan map.
+- [x] Open Home first frame.
+- [x] Open map and pan map.
 - [ ] Open dating and swipe like.
-- [ ] Open chats.
-- [ ] Send direct text.
+- [x] Open chats.
+- [x] Send direct text.
 - [ ] Send meetup text.
 - [ ] Send photo.
-- [ ] Relaunch app.
+- [x] Relaunch app.
 - [ ] Reopen photo.
 - [ ] Play voice.
 - [ ] Create meetup.
