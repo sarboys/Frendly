@@ -5,6 +5,8 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/frendly}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env.production}"
 COMPOSE_FILE="${COMPOSE_FILE:-$APP_DIR/compose.prod.yml}"
+COMPOSE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-}"
+NGINX_SERVICE="${NGINX_SERVICE:-}"
 LOCK_FILE="${LOCK_FILE:-/tmp/frendly-deploy.lock}"
 LOCK_TIMEOUT_SECONDS="${LOCK_TIMEOUT_SECONDS:-1800}"
 LANDING_DIR="${LANDING_DIR:-$APP_DIR/landing}"
@@ -23,6 +25,25 @@ if [ ! -f "$COMPOSE_FILE" ]; then
   echo "Missing compose file: $COMPOSE_FILE" >&2
   exit 1
 fi
+
+read_env_value() {
+  local key="$1"
+  awk -F= -v key="$key" '$1 == key { sub(/^[^=]*=/, ""); print; exit }' "$ENV_FILE"
+}
+
+COMPOSE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-$(read_env_value COMPOSE_EXTRA_FILES)}"
+NGINX_SERVICE="${NGINX_SERVICE:-$(read_env_value NGINX_SERVICE)}"
+NGINX_SERVICE="${NGINX_SERVICE:-nginx}"
+
+COMPOSE_ARGS=(-f "$COMPOSE_FILE")
+for extra_file in $COMPOSE_EXTRA_FILES; do
+  COMPOSE_ARGS+=(-f "$extra_file")
+done
+read -r -a NGINX_SERVICE_ARGS <<< "$NGINX_SERVICE"
+
+docker_compose() {
+  docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" "$@"
+}
 
 exec 9>"$LOCK_FILE"
 echo "Waiting for deploy lock: $LOCK_FILE"
@@ -65,6 +86,6 @@ if [ -n "$LANDING_TARGET_SHA" ] && [ "$LANDING_ACTUAL_SHA" != "$LANDING_TARGET_S
 fi
 
 cd "$APP_DIR"
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --no-deps landing
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps --force-recreate nginx
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps landing nginx
+docker_compose up -d --build --no-deps landing
+docker_compose up -d --no-deps --force-recreate "${NGINX_SERVICE_ARGS[@]}"
+docker_compose ps landing "${NGINX_SERVICE_ARGS[@]}"

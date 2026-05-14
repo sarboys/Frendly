@@ -8,6 +8,10 @@ BRANCH="${BRANCH:-main}"
 TARGET_SHA="${TARGET_SHA:-}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env.production}"
 COMPOSE_FILE="${COMPOSE_FILE:-$APP_DIR/compose.prod.yml}"
+COMPOSE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-}"
+CORE_SERVICES="${CORE_SERVICES:-}"
+RUNTIME_SERVICES="${RUNTIME_SERVICES:-}"
+NGINX_SERVICE="${NGINX_SERVICE:-}"
 LOCK_FILE="${LOCK_FILE:-/tmp/frendly-deploy.lock}"
 LOCK_TIMEOUT_SECONDS="${LOCK_TIMEOUT_SECONDS:-1800}"
 LANDING_DIR="${LANDING_DIR:-$APP_DIR/landing}"
@@ -55,6 +59,33 @@ if [ ! -f "$ENV_FILE" ]; then
   echo "Missing env file: $ENV_FILE" >&2
   exit 1
 fi
+
+read_env_value() {
+  local key="$1"
+  awk -F= -v key="$key" '$1 == key { sub(/^[^=]*=/, ""); print; exit }' "$ENV_FILE"
+}
+
+COMPOSE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-$(read_env_value COMPOSE_EXTRA_FILES)}"
+CORE_SERVICES="${CORE_SERVICES:-$(read_env_value CORE_SERVICES)}"
+RUNTIME_SERVICES="${RUNTIME_SERVICES:-$(read_env_value RUNTIME_SERVICES)}"
+NGINX_SERVICE="${NGINX_SERVICE:-$(read_env_value NGINX_SERVICE)}"
+
+CORE_SERVICES="${CORE_SERVICES:-postgres redis pgbouncer}"
+RUNTIME_SERVICES="${RUNTIME_SERVICES:-api chat worker landing admin_internal admin_partner}"
+NGINX_SERVICE="${NGINX_SERVICE:-nginx}"
+
+COMPOSE_ARGS=(-f "$COMPOSE_FILE")
+for extra_file in $COMPOSE_EXTRA_FILES; do
+  COMPOSE_ARGS+=(-f "$extra_file")
+done
+
+read -r -a CORE_SERVICE_ARGS <<< "$CORE_SERVICES"
+read -r -a RUNTIME_SERVICE_ARGS <<< "$RUNTIME_SERVICES"
+read -r -a NGINX_SERVICE_ARGS <<< "$NGINX_SERVICE"
+
+docker_compose() {
+  docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" "$@"
+}
 
 exec 9>"$LOCK_FILE"
 echo "Waiting for deploy lock: $LOCK_FILE"
@@ -139,9 +170,9 @@ cd "$APP_DIR"
 echo "Disk usage before Docker cleanup:"
 df -h / /tmp || true
 docker system df || true
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
+docker_compose rm -sf migrate || true
 docker ps -aq \
-  --filter 'name=^[0-9a-f]+_frendly-backend-(api|chat|worker|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
+  --filter 'name=^[0-9a-f]+_frendly-backend-(api|api_a|api_b|chat|chat_a|chat_b|worker|worker_realtime|worker_content|worker_schedules|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
   | xargs -r docker rm -f
 docker container prune -f || true
 docker image prune -f || true
@@ -150,9 +181,9 @@ echo "Disk usage after Docker cleanup:"
 df -h / /tmp || true
 docker system df || true
 
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans postgres redis pgbouncer
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up --build migrate
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" rm -sf migrate || true
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --no-deps api chat worker landing admin_internal admin_partner
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-deps --force-recreate nginx
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
+docker_compose up -d --build --remove-orphans "${CORE_SERVICE_ARGS[@]}"
+docker_compose up --build migrate
+docker_compose rm -sf migrate || true
+docker_compose up -d --build --no-deps "${RUNTIME_SERVICE_ARGS[@]}"
+docker_compose up -d --no-deps --force-recreate "${NGINX_SERVICE_ARGS[@]}"
+docker_compose ps
