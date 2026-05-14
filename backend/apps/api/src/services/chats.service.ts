@@ -529,21 +529,15 @@ export class ChatsService {
         );
       }
 
-      if (chat.community.createdById === userId) {
-        throw new ApiError(
-          400,
-          'community_owner_cannot_leave',
-          'Community owner cannot leave the community',
-        );
-      }
-
       await this.prismaService.client.$transaction(async (tx) => {
-        await tx.communityMember.deleteMany({
-          where: {
-            communityId: chat.community!.id,
-            userId,
-          },
-        });
+        if (chat.community!.createdById !== userId) {
+          await tx.communityMember.deleteMany({
+            where: {
+              communityId: chat.community!.id,
+              userId,
+            },
+          });
+        }
 
         await tx.chatMember.deleteMany({
           where: { chatId, userId },
@@ -568,40 +562,34 @@ export class ChatsService {
     }
 
     if (chat.event != null) {
-      if (chat.event.hostId === userId) {
-        throw new ApiError(
-          409,
-          'host_cannot_delete_meetup_chat',
-          'Host cannot delete meetup chat',
-        );
-      }
-
       await this.prismaService.client.$transaction(async (tx) => {
-        await tx.eventParticipant.deleteMany({
-          where: {
-            eventId: chat.event!.id,
-            userId,
-          },
-        });
-
-        await tx.eventAttendance.upsert({
-          where: {
-            eventId_userId: {
+        if (chat.event!.hostId !== userId) {
+          await tx.eventParticipant.deleteMany({
+            where: {
               eventId: chat.event!.id,
               userId,
             },
-          },
-          update: {
-            status: 'left',
-            leftAt: new Date(),
-          },
-          create: {
-            eventId: chat.event!.id,
-            userId,
-            status: 'left',
-            leftAt: new Date(),
-          },
-        });
+          });
+
+          await tx.eventAttendance.upsert({
+            where: {
+              eventId_userId: {
+                eventId: chat.event!.id,
+                userId,
+              },
+            },
+            update: {
+              status: 'left',
+              leftAt: new Date(),
+            },
+            create: {
+              eventId: chat.event!.id,
+              userId,
+              status: 'left',
+              leftAt: new Date(),
+            },
+          });
+        }
 
         await tx.chatMember.deleteMany({
           where: { chatId, userId },
@@ -624,25 +612,19 @@ export class ChatsService {
       );
     }
 
-    if (chat.eveningSession.hostUserId === userId) {
-      throw new ApiError(
-        409,
-        'host_cannot_delete_meetup_chat',
-        'Host cannot delete meetup chat',
-      );
-    }
-
     await this.prismaService.client.$transaction(async (tx) => {
-      await tx.eveningSessionParticipant.updateMany({
-        where: {
-          sessionId: chat.eveningSession!.id,
-          userId,
-        },
-        data: {
-          status: 'left',
-          leftAt: new Date(),
-        },
-      });
+      if (chat.eveningSession!.hostUserId !== userId) {
+        await tx.eveningSessionParticipant.updateMany({
+          where: {
+            sessionId: chat.eveningSession!.id,
+            userId,
+          },
+          data: {
+            status: 'left',
+            leftAt: new Date(),
+          },
+        });
+      }
 
       await tx.chatMember.deleteMany({
         where: { chatId, userId },
