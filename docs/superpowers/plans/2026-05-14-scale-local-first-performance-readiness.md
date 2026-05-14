@@ -408,7 +408,7 @@
 - [x] Add map viewport scenario with rounded coordinates.
 - [x] Add media scenario with public HEAD, private download-url and repeated same asset request.
 - [x] Add report template with p50, p95, p99, error count, outbox lag, DB pool notes, Redis notes, S3 notes.
-- [ ] Run a safe local or staging smoke without real tokens committed.
+- [x] Run a safe local or staging smoke without real tokens committed. Local baseline is recorded in `docs/audits/2026-05-14-scale-local-first-performance-report.md`; no real token values are included.
 - [x] Commit with message `добавить 20k smoke проверки`.
 
 ---
