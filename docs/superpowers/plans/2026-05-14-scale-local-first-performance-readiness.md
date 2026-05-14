@@ -742,6 +742,8 @@
 
 - No target `DATABASE_URL` with PostGIS is available in this environment, so `db:postgis:event-geo` was not run.
 - Local Postgres still lacks the PostGIS extension.
+- Production Postgres was checked through `vps1`; `pg_available_extensions` returned `not_available` for `postgis`, so `db:postgis:event-geo` was not run there.
+- Production chat unread counters were checked with the same read-only SQL as `db:verify:chat-unread`, capped at 100000 members: `checked=79`, `mismatches=0`.
 - `CHAT_UNREAD_COUNTER_READS`, `ENABLE_POSTGIS_EVENT_FEED` and `WORKER_OUTBOX_BATCH_CLAIM` remain disabled.
 - Production env examples stay unchanged until target DB verify, staging worker batch claim and map/event feed QA are done.
 
