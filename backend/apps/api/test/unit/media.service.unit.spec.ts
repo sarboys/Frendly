@@ -190,6 +190,118 @@ describe('MediaService', () => {
     });
   });
 
+  it('returns media for stale public cache validators', async () => {
+    const payload = Buffer.from('fresh media').toString('base64');
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-1',
+          status: 'ready',
+          ownerId: 'user-owner',
+          kind: 'avatar',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'avatars/user-owner/avatar.jpg',
+          publicUrl: `data:text/plain;base64,${payload}`,
+          mimeType: 'text/plain',
+          byteSize: 11,
+          updatedAt: mediaUpdatedAt,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+
+    const media = await service.getAsset(
+      'asset-1',
+      undefined,
+      undefined,
+      'W/"media-asset-1-10-1"',
+      new Date('2026-05-07T09:59:00.000Z').toUTCString(),
+    );
+    const streamMedia = media as any;
+
+    expect(streamMedia.notModified).toBeUndefined();
+    expect(streamMedia.cacheControl).toBe(
+      'public, max-age=31536000, immutable',
+    );
+    expect(streamMedia.etag).toBe(
+      `W/"media-asset-1-11-${mediaUpdatedAt.getTime()}"`,
+    );
+    await expect(readStream(streamMedia.stream)).resolves.toBe('fresh media');
+  });
+
+  it('requires private media auth before fresh cache validators can return 304', async () => {
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-1',
+          status: 'ready',
+          ownerId: 'user-owner',
+          kind: 'chat_attachment',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'chat-attachments/user-owner/photo.jpg',
+          publicUrl: null,
+          mimeType: 'image/jpeg',
+          byteSize: 100,
+          updatedAt: mediaUpdatedAt,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+
+    await expect(
+      service.getAsset(
+        'asset-1',
+        undefined,
+        undefined,
+        `W/"media-asset-1-100-${mediaUpdatedAt.getTime()}"`,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'auth_required',
+    });
+  });
+
+  it('checks private media authorization before fresh validators can return 304', async () => {
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-1',
+          status: 'ready',
+          ownerId: 'user-owner',
+          kind: 'chat_attachment',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'chat-attachments/user-owner/photo.jpg',
+          publicUrl: null,
+          mimeType: 'image/jpeg',
+          byteSize: 100,
+          updatedAt: mediaUpdatedAt,
+        }),
+      },
+      session: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: 'user-viewer',
+          revokedAt: null,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+
+    await expect(
+      service.getAsset(
+        'asset-1',
+        undefined,
+        `Bearer ${signAccessToken('user-viewer', 'session-1')}`,
+        `W/"media-asset-1-100-${mediaUpdatedAt.getTime()}"`,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'media_forbidden',
+    });
+  });
+
   it('denies direct chat media download when the peer is blocked', async () => {
     const client = {
       mediaAsset: {
