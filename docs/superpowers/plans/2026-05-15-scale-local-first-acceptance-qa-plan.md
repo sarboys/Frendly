@@ -24,7 +24,7 @@ Accounts: saved repeated-digit QA accounts from local QA data. Do not write phon
 - [x] Relaunch app.
 - [x] Reopen photo.
 - [ ] Play voice.
-- [ ] Create meetup.
+- [x] Create meetup.
 - [ ] Join meetup from second account.
 - [ ] Switch to airplane mode after data is cached.
 - [ ] Read cached chats and hot screens.
@@ -46,6 +46,8 @@ Accounts: saved repeated-digit QA accounts from local QA data. Do not write phon
 - After account switch, profile showed the second user's profile instead of the previous `2222` profile.
 - Chat list opened under the second user; old profile data was not visible on profile or hot navigation screens.
 - Dating was rechecked after account switch and still showed `Пока нет новых профилей`, so swipe like remains blocked.
+- Created meetup `as-local-first-2026-05-15` with address `QA test place`; published detail showed host state and `Идут 1/8`.
+- Join from the second account is blocked in this run: after login as another saved QA account, Home and the full nearby meetup list showed `0 встреч`, including after a cold app relaunch.
 
 ## Stop Conditions
 

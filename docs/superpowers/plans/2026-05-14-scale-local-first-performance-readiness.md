@@ -858,7 +858,7 @@
 - [x] Relaunch app.
 - [x] Reopen photo.
 - [ ] Play voice.
-- [ ] Create meetup.
+- [x] Create meetup.
 - [ ] Join meetup from second account.
 - [ ] Switch to airplane mode after data is cached.
 - [ ] Read cached chats and hot screens.

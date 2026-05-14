@@ -12,10 +12,10 @@ Build: XcodeBuildMCP `build_run_sim` succeeded for `Runner`, `Debug`, bundle `co
 
 ## Result
 
-- PASS: cold launch, login with test account, Home first frame, map open and pan, chats open, direct text send, meetup text send, relaunch, chat list after relaunch, existing photo reopen, logout/login another user, old profile cache not visible after account switch.
+- PASS: cold launch, login with test account, Home first frame, map open and pan, chats open, direct text send, meetup text send, relaunch, chat list after relaunch, existing photo reopen, create meetup, logout/login another user, old profile cache not visible after account switch.
 - FAIL: none in checked scope.
-- BLOCKED: dating swipe like was blocked because the feed had no profiles on both checked accounts; photo send was blocked by a blank iOS photo picker after permission; voice playback had no visible playback state after tap; private runtime metrics were not available in this environment.
-- NOT CHECKED: new photo send, voice playback proof, meetup create/join, airplane mode and offline send.
+- BLOCKED: dating swipe like was blocked because the feed had no profiles on both checked accounts; photo send was blocked by a blank iOS photo picker after permission; voice playback had no visible playback state after tap; join meetup was blocked because the second account saw `0 встреч`; private runtime metrics were not available in this environment.
+- NOT CHECKED: new photo send, voice playback proof, airplane mode and offline send.
 
 ## Checks
 
@@ -33,8 +33,8 @@ Build: XcodeBuildMCP `build_run_sim` succeeded for `Runner`, `Debug`, bundle `co
 | Relaunch app | pass | saved simulator session | Stop plus launch succeeded; app returned to Home and chat list showed latest direct message, screenshot `docs/audits/2026-05-15-scale-local-first-qa-relaunch-chat-list.jpg` | Continue offline cache checks |
 | Reopen photo | pass | saved simulator session | Existing meetup photo opened in media preview, screenshot `docs/audits/2026-05-15-scale-local-first-qa-photo-reopened.jpg` | Recheck after relaunch or offline mode |
 | Play voice | blocked | saved simulator session | Voice row was visible, but tapping it produced no visible playback state in screenshot or accessibility snapshot. Screenshot `docs/audits/2026-05-15-scale-local-first-qa-voice-no-visible-state.jpg` | Retest with logs or audio/player state instrumentation |
-| Create meetup | pending | saved QA account | pending | Confirm created meetup |
-| Join meetup from second account | pending | saved QA account | pending | Confirm join state |
+| Create meetup | pass | saved QA account | Created `as-local-first-2026-05-15` with address `QA test place`; published detail showed host state and `Идут 1/8`. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-create-meetup-preview.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-create-meetup-published.jpg` | Retest attendee flow after feed visibility is fixed or seeded |
+| Join meetup from second account | blocked | saved QA account | Logged in as another saved QA account, opened Home and full nearby meetup list; both showed `0 встреч`, including after cold relaunch. Screenshot `docs/audits/2026-05-15-scale-local-first-qa-second-user-meetups-empty-after-create.jpg` | Confirm why newly published meetup is not visible to the second account, then retry join |
 | Airplane mode after data cached | pending | saved QA account | pending | Confirm offline mode |
 | Read cached chats and hot screens | pending | saved QA account | pending | Confirm local data |
 | Send chat message offline, then reconnect | pending | saved QA account | pending | Confirm outbox flush |
