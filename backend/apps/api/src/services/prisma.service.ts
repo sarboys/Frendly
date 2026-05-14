@@ -1,10 +1,10 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { getPrismaClient } from '@big-break/database';
+import { bindPrismaMetrics, getPrismaClient } from '@big-break/database';
 
 @Injectable()
 export class PrismaService implements OnModuleDestroy {
-  readonly client: PrismaClient = getPrismaClient();
+  readonly client: PrismaClient = bindPrismaMetrics(getPrismaClient(), 'api');
 
   async onModuleDestroy() {
     await this.client.$disconnect();

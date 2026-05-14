@@ -1,3 +1,9 @@
+const mockWorkerOutboxPendingSet = jest.fn();
+const mockWorkerOutboxLagSet = jest.fn();
+const mockWorkerJobDurationObserve = jest.fn();
+const mockWorkerJobRetriesInc = jest.fn();
+const mockWorkerPermanentFailuresInc = jest.fn();
+
 jest.mock('@big-break/database', () => ({
 	  OUTBOX_EVENT_TYPES: {
 	    mediaFinalize: 'media.finalize',
@@ -26,6 +32,23 @@ jest.mock('@big-break/database', () => ({
     deletedByTask: new Map(),
     skippedRealtimeEvents: true,
   }),
+  appMetrics: {
+    workerOutboxPending: {
+      set: mockWorkerOutboxPendingSet,
+    },
+    workerOutboxLagSeconds: {
+      set: mockWorkerOutboxLagSet,
+    },
+    workerJobDurationSeconds: {
+      observe: mockWorkerJobDurationObserve,
+    },
+    workerJobRetriesTotal: {
+      inc: mockWorkerJobRetriesInc,
+    },
+    workerPermanentFailuresTotal: {
+      inc: mockWorkerPermanentFailuresInc,
+    },
+  },
 }));
 
 import { WorkerService } from '../../src/worker.service';
@@ -39,6 +62,11 @@ const tinyPng = Buffer.from(
 describe('worker outbox recovery', () => {
   beforeEach(() => {
     jest.requireMock('@big-break/database').publishBusEvent.mockClear();
+    mockWorkerOutboxPendingSet.mockClear();
+    mockWorkerOutboxLagSet.mockClear();
+    mockWorkerJobDurationObserve.mockClear();
+    mockWorkerJobRetriesInc.mockClear();
+    mockWorkerPermanentFailuresInc.mockClear();
   });
 
   afterEach(() => {
@@ -1422,6 +1450,10 @@ describe('worker outbox recovery', () => {
         thresholdMs: 300000,
         claimedCount: 1,
       }),
+    );
+    expect(mockWorkerOutboxLagSet).toHaveBeenCalledWith(
+      { service: 'worker', event_type: 'push.dispatch' },
+      expect.any(Number),
     );
     consoleWarn.mockRestore();
   });

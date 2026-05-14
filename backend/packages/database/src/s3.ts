@@ -1,5 +1,6 @@
 import { GetObjectCommand, S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { appMetrics } from './metrics';
 
 export interface S3Config {
   endpoint: string;
@@ -140,7 +141,9 @@ export async function createPresignedUpload(input: PresignedUploadInput) {
     ContentType: input.contentType,
   });
 
-  const uploadUrl = await getSignedUrl(client, command, { expiresIn: 900 });
+  const uploadUrl = await recordS3Operation('presign_upload', () =>
+    getSignedUrl(client, command, { expiresIn: 900 }),
+  );
 
   return {
     uploadUrl,
@@ -160,11 +163,35 @@ export async function createPresignedDownload(objectKey: string) {
   });
 
   return {
-    url: await getSignedUrl(client, command, {
+    url: await recordS3Operation('presign_download', () => getSignedUrl(client, command, {
       expiresIn: PRESIGNED_DOWNLOAD_TTL_SECONDS,
-    }),
+    })),
     expiresAt: new Date(Date.now() + PRESIGNED_DOWNLOAD_TTL_SECONDS * 1000),
   };
+}
+
+async function recordS3Operation<T>(operation: string, callback: () => Promise<T>): Promise<T> {
+  const service = metricsServiceName();
+  const startedAt = process.hrtime.bigint();
+  try {
+    const result = await callback();
+    const durationSeconds = Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+    appMetrics.s3OperationTotal.inc({ service, operation, status: 'ok' });
+    appMetrics.s3OperationDurationSeconds.observe({ service, operation, status: 'ok' }, durationSeconds);
+    return result;
+  } catch (error) {
+    const durationSeconds = Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+    appMetrics.s3OperationTotal.inc({ service, operation, status: 'error' });
+    appMetrics.s3OperationDurationSeconds.observe(
+      { service, operation, status: 'error' },
+      durationSeconds,
+    );
+    throw error;
+  }
+}
+
+function metricsServiceName() {
+  return process.env.METRICS_SERVICE_NAME?.trim() || 'shared';
 }
 
 export function buildPublicAssetUrl(objectKey: string): string {

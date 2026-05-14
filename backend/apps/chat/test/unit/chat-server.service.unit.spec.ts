@@ -20,6 +20,7 @@ jest.mock('@big-break/database', () => {
 
 import { WebSocket } from 'ws';
 import { Prisma } from '@prisma/client';
+import { appMetrics, renderAppMetrics } from '@big-break/database';
 import { ChatServerService } from '../../src/chat-server.service';
 
 function createChatServiceForBroadcast() {
@@ -53,6 +54,7 @@ function authenticatedState(userId: string, subscriptions: string[] = []) {
 describe('ChatServerService unit', () => {
   beforeEach(() => {
     mockRedisPublish.mockClear();
+    appMetrics.reset();
   });
 
   it('limits sync snapshots and returns a continuation cursor', async () => {
@@ -339,6 +341,61 @@ describe('ChatServerService unit', () => {
     });
   });
 
+  it('records membership cache misses and hits', async () => {
+    const findUnique = jest.fn().mockResolvedValue({
+      chat: {
+        kind: 'community',
+        event: null,
+      },
+    });
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique,
+        },
+      },
+    } as any);
+
+    await (service as any).assertMembership('user-me', 'chat-1');
+    await (service as any).assertMembership('user-me', 'chat-1');
+
+    const text = await renderAppMetrics();
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(text).toContain(
+      'frendly_websocket_membership_cache_total{service="chat",status="miss"} 1',
+    );
+    expect(text).toContain(
+      'frendly_websocket_membership_cache_total{service="chat",status="hit"} 1',
+    );
+  });
+
+  it('records websocket payload warning metrics above threshold', async () => {
+    const previousThreshold = process.env.CHAT_WS_PAYLOAD_WARN_BYTES;
+    process.env.CHAT_WS_PAYLOAD_WARN_BYTES = '64';
+    const service = createChatServiceForBroadcast();
+    if (previousThreshold == null) {
+      delete process.env.CHAT_WS_PAYLOAD_WARN_BYTES;
+    } else {
+      process.env.CHAT_WS_PAYLOAD_WARN_BYTES = previousThreshold;
+    }
+    const socket = createOpenSocket();
+
+    (service as any).send(socket, {
+      type: 'chat.updated',
+      payload: {
+        chatId: 'chat-1',
+        preview: 'x'.repeat(128),
+      },
+    });
+
+    const text = await renderAppMetrics();
+    expect(socket.send).toHaveBeenCalledTimes(1);
+    expect(text).toContain('frendly_payload_warning_total');
+    expect(text).toContain('service="chat"');
+    expect(text).toContain('event_type="chat.updated"');
+    expect(text).toContain('direction="outbound"');
+  });
+
   it('broadcasts message event with one blocked-user lookup per actor', async () => {
     const findMany = jest.fn().mockResolvedValue([
       {
@@ -536,6 +593,7 @@ describe('ChatServerService unit', () => {
     });
 
     expect(slowSocket.send).not.toHaveBeenCalled();
+    await expect(renderAppMetrics()).resolves.toContain('reason="buffered_amount"');
   });
 
   it('terminates stale sockets during heartbeat cleanup', () => {

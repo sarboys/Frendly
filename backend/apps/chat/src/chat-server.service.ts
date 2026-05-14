@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   PUBSUB_CHANNEL,
   OUTBOX_EVENT_TYPES,
+  appMetrics,
   buildMediaProxyPath,
   buildMessagePreview,
   createRedisPublisher,
@@ -49,6 +50,8 @@ const DEFAULT_MAX_PAYLOAD_BYTES = 64 * 1024;
 const DEFAULT_MAX_MESSAGE_TEXT_LENGTH = 4000;
 const DEFAULT_MAX_ATTACHMENT_COUNT = 10;
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
+const DEFAULT_PAYLOAD_WARN_BYTES = 32 * 1024;
+const METRICS_SERVICE = 'chat';
 
 const messageReplyAttachmentSelect = {
   mediaAsset: {
@@ -129,6 +132,10 @@ export class ChatServerService implements OnModuleDestroy {
     process.env.CHAT_WS_MAX_PAYLOAD_BYTES,
     DEFAULT_MAX_PAYLOAD_BYTES,
   );
+  private readonly payloadWarnBytes = this.resolvePositiveInteger(
+    process.env.CHAT_WS_PAYLOAD_WARN_BYTES,
+    Math.min(DEFAULT_PAYLOAD_WARN_BYTES, this.maxPayloadBytes),
+  );
   private readonly maxMessageTextLength = this.resolvePositiveInteger(
     process.env.CHAT_MESSAGE_TEXT_MAX_LENGTH,
     DEFAULT_MAX_MESSAGE_TEXT_LENGTH,
@@ -192,6 +199,7 @@ export class ChatServerService implements OnModuleDestroy {
 
   private handleConnection(socket: WebSocket) {
     this.stateBySocket.set(socket, { subscriptions: new Set(), isAlive: true });
+    this.updateWebSocketGauges();
 
     socket.on('pong', () => {
       const state = this.stateBySocket.get(socket);
@@ -202,13 +210,31 @@ export class ChatServerService implements OnModuleDestroy {
 
     socket.on('message', async (raw: RawData) => {
       try {
-        if (this.rawDataByteLength(raw) > this.maxPayloadBytes) {
+        const payloadBytes = this.rawDataByteLength(raw);
+        if (payloadBytes > this.maxPayloadBytes) {
+          appMetrics.websocketInboundTotal.inc({
+            service: METRICS_SERVICE,
+            event_type: 'unknown',
+            status: 'payload_too_large',
+          });
           throw new ChatServerError('payload_too_large', 'Payload is too large');
         }
 
         const envelope = JSON.parse(this.rawDataToString(raw)) as Envelope;
+        const eventType = this.metricsEventType(envelope.type);
+        appMetrics.websocketInboundTotal.inc({
+          service: METRICS_SERVICE,
+          event_type: eventType,
+          status: 'ok',
+        });
+        this.recordPayloadSize(eventType, 'inbound', payloadBytes);
         await this.handleEnvelope(socket, envelope);
       } catch (error) {
+        appMetrics.websocketInboundTotal.inc({
+          service: METRICS_SERVICE,
+          event_type: 'unknown',
+          status: 'error',
+        });
         this.send(socket, {
           type: 'error',
           payload: {
@@ -352,6 +378,7 @@ export class ChatServerService implements OnModuleDestroy {
     state.tokenExpiresAtMs = tokenExpiresAtMs;
     state.authCheckedAtMs = now;
     this.addIndexedSocket(this.socketsByUserId, payload.userId, socket);
+    this.updateWebSocketGauges();
 
     this.send(socket, {
       type: 'session.authenticated',
@@ -370,6 +397,7 @@ export class ChatServerService implements OnModuleDestroy {
     await this.assertMembership(state.userId!, chatId);
     state.subscriptions.add(chatId);
     this.addIndexedSocket(this.socketsByChatId, chatId, socket);
+    this.updateWebSocketGauges();
     this.send(socket, {
       type: 'chat.updated',
       payload: { chatId },
@@ -383,6 +411,7 @@ export class ChatServerService implements OnModuleDestroy {
 
     this.getState(socket).subscriptions.delete(chatId);
     this.removeIndexedSocket(this.socketsByChatId, chatId, socket);
+    this.updateWebSocketGauges();
   }
 
   private async sendMessage(socket: WebSocket, payload: any) {
@@ -861,6 +890,10 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async sync(socket: WebSocket, payload: any) {
+    appMetrics.websocketSyncRequestsTotal.inc({
+      service: METRICS_SERVICE,
+      status: 'received',
+    });
     const state = await this.requireAuthenticated(socket);
     const chatId = payload?.chatId as string | undefined;
     const sinceEventId = payload?.sinceEventId as string | undefined;
@@ -886,6 +919,10 @@ export class ChatServerService implements OnModuleDestroy {
           events: [],
         },
       });
+      appMetrics.websocketSyncRequestsTotal.inc({
+        service: METRICS_SERVICE,
+        status: 'reset',
+      });
       return;
     }
 
@@ -903,6 +940,10 @@ export class ChatServerService implements OnModuleDestroy {
           nextEventId: null,
           events: [],
         },
+      });
+      appMetrics.websocketSyncRequestsTotal.inc({
+        service: METRICS_SERVICE,
+        status: 'reset',
       });
       return;
     }
@@ -952,6 +993,10 @@ export class ChatServerService implements OnModuleDestroy {
           createdAt: event.createdAt.toISOString(),
         })),
       },
+    });
+    appMetrics.websocketSyncRequestsTotal.inc({
+      service: METRICS_SERVICE,
+      status: 'ok',
     });
   }
 
@@ -1186,17 +1231,77 @@ export class ChatServerService implements OnModuleDestroy {
   private sendSerialized(socket: WebSocket, payload: string) {
     const bufferedAmount =
       typeof socket.bufferedAmount === 'number' ? socket.bufferedAmount : 0;
+    const eventType = this.metricsEventTypeFromSerializedPayload(payload);
     if (
       socket.readyState === WebSocket.OPEN &&
       bufferedAmount <= this.maxBufferedBytes
     ) {
       try {
         socket.send(payload);
+        appMetrics.websocketOutboundTotal.inc({
+          service: METRICS_SERVICE,
+          event_type: eventType,
+          status: 'ok',
+        });
+        this.recordPayloadSize(
+          eventType,
+          'outbound',
+          Buffer.byteLength(payload),
+        );
       } catch (error) {
+        appMetrics.websocketDroppedTotal.inc({
+          service: METRICS_SERVICE,
+          event_type: eventType,
+          reason: 'send_error',
+        });
         console.error('[chat] websocket send failed', error);
         this.terminateSocket(socket);
       }
+      return;
     }
+
+    appMetrics.websocketDroppedTotal.inc({
+      service: METRICS_SERVICE,
+      event_type: eventType,
+      reason:
+        socket.readyState === WebSocket.OPEN
+          ? 'buffered_amount'
+          : 'socket_not_open',
+    });
+  }
+
+  private metricsEventTypeFromSerializedPayload(payload: string) {
+    try {
+      const parsed = JSON.parse(payload) as Partial<Envelope>;
+      return this.metricsEventType(parsed.type);
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  private metricsEventType(type: unknown) {
+    return typeof type === 'string' && type.length > 0 ? type : 'unknown';
+  }
+
+  private recordPayloadSize(
+    eventType: string,
+    direction: 'inbound' | 'outbound',
+    bytes: number,
+  ) {
+    appMetrics.payloadSizeBytes.observe(
+      { service: METRICS_SERVICE, event_type: eventType, direction },
+      bytes,
+    );
+
+    if (bytes <= this.payloadWarnBytes) {
+      return;
+    }
+
+    appMetrics.payloadWarningTotal.inc({
+      service: METRICS_SERVICE,
+      event_type: eventType,
+      direction,
+    });
   }
 
   private rawDataByteLength(raw: RawData) {
@@ -1228,6 +1333,7 @@ export class ChatServerService implements OnModuleDestroy {
     this.clearAuthenticatedState(socket, state);
     this.stateBySocket.delete(socket);
     this.lastTypingSentAtBySocket.delete(socket);
+    this.updateWebSocketGauges();
   }
 
   private terminateSocket(socket: WebSocket) {
@@ -1295,11 +1401,19 @@ export class ChatServerService implements OnModuleDestroy {
     const now = Date.now();
     const cachedUntil = this.membershipCache.get(membershipCacheKey);
     if (cachedUntil != null && cachedUntil > now) {
+      appMetrics.websocketMembershipCacheTotal.inc({
+        service: METRICS_SERVICE,
+        status: 'hit',
+      });
       return;
     }
     if (cachedUntil != null) {
       this.membershipCache.delete(membershipCacheKey);
     }
+    appMetrics.websocketMembershipCacheTotal.inc({
+      service: METRICS_SERVICE,
+      status: 'miss',
+    });
 
     const membership = await this.prismaService.client.chatMember.findUnique({
       where: {
@@ -1435,6 +1549,21 @@ export class ChatServerService implements OnModuleDestroy {
 
   private async getBlockedUserIds(userId: string) {
     return loadBlockedUserIds(this.prismaService.client, userId);
+  }
+
+  private updateWebSocketGauges() {
+    appMetrics.websocketActiveConnections.set(
+      { service: METRICS_SERVICE },
+      this.stateBySocket.size,
+    );
+    appMetrics.websocketAuthenticatedConnections.set(
+      { service: METRICS_SERVICE },
+      [...this.socketsByUserId.values()].reduce((sum, sockets) => sum + sockets.size, 0),
+    );
+    appMetrics.websocketSubscribedRooms.set(
+      { service: METRICS_SERVICE },
+      this.socketsByChatId.size,
+    );
   }
 
   private async isUserBlocked(userId: string, targetUserId: string) {

@@ -2,6 +2,7 @@ import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   OUTBOX_EVENT_TYPES,
+  appMetrics,
   buildPublicAssetUrl,
   createRedisPublisher,
   createS3Client,
@@ -44,6 +45,7 @@ const DEFAULT_CONTENT_IMAGE_BACKFILL_BATCH_SIZE = 50;
 const DEFAULT_TOMESTO_WINDOW_DAYS = 30;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const METRICS_SERVICE = 'worker';
 
 type ClaimedOutboxEvent = {
   id: string;
@@ -332,9 +334,12 @@ export class WorkerService implements OnModuleDestroy {
     label: string,
     task: () => Promise<void>,
   ) {
+    const startedAt = process.hrtime.bigint();
     try {
       await task();
+      this.recordWorkerJobDuration(label, 'ok', startedAt);
     } catch (error) {
+      this.recordWorkerJobDuration(label, 'error', startedAt);
       console.error(`[worker] scheduled task failed: ${label}`, error);
     }
   }
@@ -382,6 +387,7 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   private recordOutboxBacklogAge(events: ClaimedOutboxEvent[]) {
+    this.recordClaimedOutboxCounts(events);
     const oldest = events.reduce<ClaimedOutboxEvent | null>((current, event) => {
       if (event.createdAt == null) {
         return current;
@@ -397,6 +403,10 @@ export class WorkerService implements OnModuleDestroy {
     }
 
     const ageMs = Date.now() - oldest.createdAt.getTime();
+    appMetrics.workerOutboxLagSeconds.set(
+      { service: METRICS_SERVICE, event_type: oldest.type },
+      ageMs / 1000,
+    );
     if (ageMs < this.outboxBacklogWarnAgeMs) {
       return;
     }
@@ -411,6 +421,7 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   private async processEvent(event: ClaimedOutboxEvent) {
+    const startedAt = process.hrtime.bigint();
     try {
       switch (event.type) {
         case OUTBOX_EVENT_TYPES.mediaFinalize:
@@ -465,7 +476,9 @@ export class WorkerService implements OnModuleDestroy {
           lockedAt: null,
         },
       });
+      this.recordWorkerJobDuration(event.type, 'ok', startedAt);
     } catch (error) {
+      this.recordWorkerJobDuration(event.type, 'error', startedAt);
       await this.handleFailure(event.id, event.attempts, error);
     }
   }
@@ -609,6 +622,17 @@ export class WorkerService implements OnModuleDestroy {
           : new Date(Date.now() + retryDelaySeconds * 1000),
       },
     });
+    if (shouldFailPermanently) {
+      appMetrics.workerPermanentFailuresTotal.inc({
+        service: METRICS_SERVICE,
+        job_type: 'outbox',
+      });
+    } else {
+      appMetrics.workerJobRetriesTotal.inc({
+        service: METRICS_SERVICE,
+        job_type: 'outbox',
+      });
+    }
   }
 
   private async handleMediaFinalize(payload: { assetId: string; chatId?: string }) {
@@ -1740,6 +1764,27 @@ export class WorkerService implements OnModuleDestroy {
     }
 
     return Math.max(1, Math.trunc(parsed));
+  }
+
+  private recordClaimedOutboxCounts(events: ClaimedOutboxEvent[]) {
+    const countsByType = new Map<string, number>();
+    for (const event of events) {
+      countsByType.set(event.type, (countsByType.get(event.type) ?? 0) + 1);
+    }
+
+    for (const [eventType, count] of countsByType) {
+      appMetrics.workerOutboxPending.set(
+        { service: METRICS_SERVICE, event_type: eventType },
+        count,
+      );
+    }
+  }
+
+  private recordWorkerJobDuration(jobType: string, status: string, startedAt: bigint) {
+    appMetrics.workerJobDurationSeconds.observe(
+      { service: METRICS_SERVICE, job_type: jobType, status },
+      Number(process.hrtime.bigint() - startedAt) / 1_000_000_000,
+    );
   }
 
   private async runWithConcurrency<T>(

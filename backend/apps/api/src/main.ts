@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ApiAppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
+import { createHttpMetricsMiddleware } from './common/http-metrics.middleware';
 import { normalizeDuplicateSlashesInPath } from './common/normalize-request-url';
 
 async function bootstrap() {
@@ -12,6 +13,7 @@ async function bootstrap() {
     request.url = normalizeDuplicateSlashesInPath(request.url) ?? request.url;
     next();
   });
+  app.use(createHttpMetricsMiddleware('api'));
   const corsOrigin = process.env.CORS_ORIGIN
     ?.split(',')
     .map((value) => value.trim())
