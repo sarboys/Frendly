@@ -483,12 +483,12 @@
 - [x] Enable local-first by default in debug and profile.
 - [x] Make release configurable.
 - [x] Add DB open failure kill switch that falls back to current network-first behavior.
-- [ ] Run cache cleanup after auth restore.
+- [x] Run cache cleanup after auth restore.
 - [x] Run user-scoped cleanup on logout.
 - [x] Clear private attachment cache and signed URL cache on logout.
-- [ ] Track cache hit rate, stale hit rate, refresh failures, DB read p95 and DB size estimate.
+- [x] Track cache hit rate, stale hit rate, refresh failures, DB read p95 and DB size estimate.
 - [x] Test enabled path, disabled path and DB failure fallback.
-- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение`.
+- [x] Commit mobile changes in `60517bb добавить local first кеш в мобильное приложение` and `54e9673 добавить cleanup и метрики local first кеша`.
 
 ---
 
