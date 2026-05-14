@@ -96,6 +96,32 @@ docker compose -f compose.observability.yml config
 
 Use real exporter connection strings only through env, never in repo files.
 
+## Load smoke
+
+- Hot path script: `backend/scripts/perf-hotpaths.mjs`.
+- Combined smoke runner: `backend/scripts/perf-20k-smoke.mjs`.
+- Report template: `docs/audits/scale-20k-readiness-template.md`.
+
+Main scenarios:
+
+- `startup`: `/profile/me`, unread count, Home events, Dating preview, route templates, Affiche preview.
+- `dating`: `/dating/discover`.
+- `map-viewport`: rounded coordinate event feed.
+- `affiche`: `/affiche/events`.
+- `routes`: `/evening/route-templates`.
+- `chat-history`: `/chats/:chatId/messages`.
+- `media-reuse`: repeated public media HEAD and private media download URL.
+- `chat-send`: WebSocket send ack.
+- `fanout`: WebSocket broadcast fanout.
+
+Example:
+
+```bash
+cd backend && node scripts/perf-20k-smoke.mjs --api https://api.frendly.tech --token TOKEN
+```
+
+Do not commit real tokens or production smoke output with secrets.
+
 ## T-Bank payments
 
 - T-Bank secrets live only in env: `TBANK_TERMINAL_KEY`, `TBANK_PASSWORD`.

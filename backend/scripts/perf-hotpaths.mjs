@@ -69,6 +69,20 @@ function printStats(name, values) {
   }, null, 2));
 }
 
+function authHeaders(token) {
+  return token ? { authorization: `Bearer ${token}` } : {};
+}
+
+function query(params) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null && value !== '') {
+      search.set(key, String(value));
+    }
+  }
+  return search.toString();
+}
+
 async function runPool(total, concurrency, task) {
   let next = 0;
   const workerCount = Math.min(total, concurrency);
@@ -83,6 +97,18 @@ async function runPool(total, concurrency, task) {
   );
 }
 
+async function fetchMeasured(api, path, options = {}) {
+  const startedAt = performance.now();
+  const response = await fetch(`${api}${path}`, options);
+  if ((options.method ?? 'GET').toUpperCase() !== 'HEAD') {
+    await response.arrayBuffer();
+  }
+  if (!response.ok && response.status !== 304) {
+    throw new Error(`HTTP ${response.status} from ${path}`);
+  }
+  return performance.now() - startedAt;
+}
+
 async function measureDatingDiscover(args) {
   const api = required(args, 'api').replace(/\/$/, '');
   const token = required(args, 'token');
@@ -92,17 +118,9 @@ async function measureDatingDiscover(args) {
   const timings = [];
 
   await runPool(requests, concurrency, async () => {
-    const startedAt = performance.now();
-    const response = await fetch(`${api}${path}`, {
-      headers: {
-        authorization: `Bearer ${token}`,
-      },
-    });
-    await response.arrayBuffer();
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} from ${path}`);
-    }
-    timings.push(performance.now() - startedAt);
+    timings.push(await fetchMeasured(api, path, {
+      headers: authHeaders(token),
+    }));
   });
 
   printStats('dating-discover', timings);
@@ -122,23 +140,93 @@ async function measureHttpEndpoint(args, defaults) {
   }
 
   await runPool(requests, concurrency, async () => {
-    const startedAt = performance.now();
-    const response = await fetch(`${api}${path}`, {
+    timings.push(await fetchMeasured(api, path, {
       method,
-      headers: {
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-    });
-    if (method.toUpperCase() !== 'HEAD') {
-      await response.arrayBuffer();
-    }
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} from ${path}`);
+      headers: authHeaders(token),
+    }));
+  });
+
+  printStats(defaults.name, timings);
+}
+
+async function measureStartupChain(args) {
+  const api = required(args, 'api').replace(/\/$/, '');
+  const token = required(args, 'token');
+  const requests = numberArg(args, 'requests', 50);
+  const concurrency = numberArg(args, 'concurrency', 5);
+  const city = args.city ?? 'Москва';
+  const latitude = args.latitude ?? '55.7558';
+  const longitude = args.longitude ?? '37.6173';
+  const radiusKm = args['radius-km'] ?? '50';
+  const limit = args.limit ?? '20';
+  const eventsQuery = query({
+    city,
+    latitude,
+    longitude,
+    radiusKm,
+    limit,
+  });
+  const routeQuery = query({ city, limit });
+  const afficheQuery = query({ city, limit });
+  const paths = [
+    args['profile-path'] ?? '/profile/me',
+    args['unread-path'] ?? '/notifications/unread-count',
+    args['events-path'] ?? `/events?${eventsQuery}`,
+    args['dating-path'] ?? '/dating/discover?limit=4',
+    args['routes-path'] ?? `/evening/route-templates?${routeQuery}`,
+    args['affiche-path'] ?? `/affiche/events?${afficheQuery}`,
+  ];
+  const timings = [];
+
+  await runPool(requests, concurrency, async () => {
+    const startedAt = performance.now();
+    for (const path of paths) {
+      await fetchMeasured(api, path, {
+        headers: authHeaders(token),
+      });
     }
     timings.push(performance.now() - startedAt);
   });
 
-  printStats(defaults.name, timings);
+  printStats('startup-chain', timings);
+}
+
+async function measureMapViewport(args) {
+  const latitude = args.latitude ?? '55.7558';
+  const longitude = args.longitude ?? '37.6173';
+  const radiusKm = args['radius-km'] ?? '50';
+  const limit = args.limit ?? '50';
+  const city = args.city ?? 'Москва';
+  await measureHttpEndpoint(args, {
+    name: 'map-viewport',
+    path: args.path ?? `/events?${query({ city, latitude, longitude, radiusKm, limit })}`,
+  });
+}
+
+async function measureMediaReuse(args) {
+  const api = required(args, 'api').replace(/\/$/, '');
+  const requests = numberArg(args, 'requests', 100);
+  const concurrency = numberArg(args, 'concurrency', 10);
+  const token = args.token;
+  const paths = [
+    args['public-path'],
+    args['private-path'],
+  ].filter(Boolean);
+  if (paths.length === 0) {
+    throw new Error('Missing --public-path or --private-path');
+  }
+  const timings = [];
+
+  await runPool(requests, concurrency, async (index) => {
+    const path = paths[index % paths.length];
+    const method = path === args['public-path'] ? 'HEAD' : 'GET';
+    timings.push(await fetchMeasured(api, path, {
+      method,
+      headers: authHeaders(token),
+    }));
+  });
+
+  printStats('media-reuse', timings);
 }
 
 function waitForSocketMessage(socket, predicate, timeoutMs = DEFAULT_TIMEOUT_MS) {
@@ -358,8 +446,11 @@ function printUsage() {
   node backend/scripts/perf-hotpaths.mjs dating --api http://127.0.0.1:3000 --token TOKEN --requests 100 --concurrency 10
   node backend/scripts/perf-hotpaths.mjs affiche --api http://127.0.0.1:3000 --requests 100 --concurrency 10
   node backend/scripts/perf-hotpaths.mjs routes --api http://127.0.0.1:3000 --token TOKEN --requests 100 --concurrency 10
+  node backend/scripts/perf-hotpaths.mjs startup --api http://127.0.0.1:3000 --token TOKEN --requests 50 --concurrency 5
+  node backend/scripts/perf-hotpaths.mjs map-viewport --api http://127.0.0.1:3000 --token TOKEN --requests 100 --concurrency 10
   node backend/scripts/perf-hotpaths.mjs chat-history --api http://127.0.0.1:3000 --token TOKEN --chat-id CHAT --requests 100 --concurrency 10
   node backend/scripts/perf-hotpaths.mjs media-head --api http://127.0.0.1:3000 --path /media/ASSET --token TOKEN --requests 100 --concurrency 10
+  node backend/scripts/perf-hotpaths.mjs media-reuse --api http://127.0.0.1:3000 --public-path /media/ASSET --private-path /media/ASSET/download-url --token TOKEN --requests 100 --concurrency 10
   node backend/scripts/perf-hotpaths.mjs chat-send --ws ws://127.0.0.1:3001 --token TOKEN --chat-id p1 --messages 100
   node backend/scripts/perf-hotpaths.mjs fanout --ws ws://127.0.0.1:3001 --sender-token TOKEN --subscriber-token TOKEN --chat-id p1 --subscribers 100 --runs 20`);
 }
@@ -386,6 +477,14 @@ async function main() {
     });
     return;
   }
+  if (scenario === 'startup') {
+    await measureStartupChain(args);
+    return;
+  }
+  if (scenario === 'map-viewport') {
+    await measureMapViewport(args);
+    return;
+  }
   if (scenario === 'chat-history') {
     const chatId = required(args, 'chat-id');
     await measureHttpEndpoint(args, {
@@ -401,6 +500,10 @@ async function main() {
       path: args.path ?? '/health',
       method: 'HEAD',
     });
+    return;
+  }
+  if (scenario === 'media-reuse') {
+    await measureMediaReuse(args);
     return;
   }
   if (scenario === 'chat-send') {
