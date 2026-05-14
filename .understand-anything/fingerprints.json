@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "b80a9ba5a7d5778ca05ff126b5d655b5ed926bac",
-  "generatedAt": "2026-05-14T18:37:01.828Z",
+  "gitCommitHash": "dbaca66ea93981a936e62e5636179b32a6db2c02",
+  "generatedAt": "2026-05-14T18:46:18.127Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
