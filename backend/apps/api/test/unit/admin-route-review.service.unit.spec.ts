@@ -338,6 +338,54 @@ describe('AdminRouteReviewService', () => {
     }));
   });
 
+  it('creates a Tomesto catalog import run with catalog metadata', async () => {
+    const sourceUpsert = jest.fn().mockResolvedValue({ id: 'source-tomesto' });
+    const runCreate = jest.fn().mockResolvedValue({
+      id: 'run-tomesto-catalog',
+      sourceId: 'source-tomesto',
+      source: { code: 'tomesto' },
+      city: 'Москва',
+      status: 'pending_manual',
+      startedAt: new Date('2026-05-04T10:00:00.000Z'),
+      finishedAt: null,
+      fetchedCount: 0,
+      normalizedCount: 0,
+      skippedCount: 0,
+      errorCode: null,
+      errorMessage: null,
+    });
+    jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          externalContentSource: { upsert: sourceUpsert },
+          externalImportRun: { create: runCreate },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.createImportRuns({
+      city: 'Москва',
+      from: '2026-05-04T00:00:00.000Z',
+      to: '2026-06-03T00:00:00.000Z',
+      sources: ['tomesto'],
+      importMode: 'tomesto_places_catalog',
+    });
+
+    expect(runCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceId: 'source-tomesto',
+        status: 'pending_manual',
+        metadata: expect.objectContaining({
+          importMode: 'tomesto_places_catalog',
+          catalogOffset: 0,
+          catalogLimit: 250,
+        }),
+      }),
+    }));
+  });
+
   it('rejects invalid manual import sources', async () => {
     const service = new AdminRouteReviewService({ client: {} } as any, {} as any);
 
@@ -348,6 +396,20 @@ describe('AdminRouteReviewService', () => {
       sources: ['unknown'],
     })).rejects.toMatchObject({
       code: 'content_import_source_invalid',
+    });
+  });
+
+  it('rejects Tomesto catalog mode mixed with other sources', async () => {
+    const service = new AdminRouteReviewService({ client: {} } as any, {} as any);
+
+    await expect(service.createImportRuns({
+      city: 'Москва',
+      from: '2026-05-04T00:00:00.000Z',
+      to: '2026-06-03T00:00:00.000Z',
+      sources: ['tomesto', 'kudago'],
+      importMode: 'tomesto_places_catalog',
+    })).rejects.toMatchObject({
+      code: 'content_import_mode_invalid',
     });
   });
 });

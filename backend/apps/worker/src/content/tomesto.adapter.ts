@@ -10,9 +10,12 @@ const DEFAULT_BASE_URL = 'https://tomesto.ru';
 const DEFAULT_MAX_PAGES = 10;
 const DEFAULT_REQUEST_DELAY_MS = 500;
 const DEFAULT_WINDOW_DAYS = 30;
+const DEFAULT_CATALOG_BATCH_SIZE = 250;
+const DEFAULT_CATALOG_FALLBACK_MAX_PAGES = 250;
 const TOMESTO_PROVIDER = 'ТоМесто';
 const MOSCOW = 'Москва';
 const MOSCOW_TIMEZONE = 'Europe/Moscow';
+const TOMESTO_PLACES_CATALOG_MODE = 'tomesto_places_catalog';
 const PLACE_BATCH_SIZE = 50;
 const EVENT_BATCH_SIZE = 50;
 
@@ -42,6 +45,11 @@ export class TomestoAdapter implements ExternalSourceAdapter {
   private readonly requestDelayMs = nonNegativeInt(process.env.TOMESTO_REQUEST_DELAY_MS, DEFAULT_REQUEST_DELAY_MS);
   private readonly windowDays = positiveInt(process.env.TOMESTO_WINDOW_DAYS, DEFAULT_WINDOW_DAYS);
   private readonly importImages = process.env.TOMESTO_IMPORT_IMAGES === 'true';
+  private readonly catalogBatchSize = positiveInt(process.env.TOMESTO_CATALOG_BATCH_SIZE, DEFAULT_CATALOG_BATCH_SIZE);
+  private readonly catalogFallbackMaxPages = positiveInt(
+    process.env.TOMESTO_CATALOG_FALLBACK_MAX_PAGES,
+    DEFAULT_CATALOG_FALLBACK_MAX_PAGES,
+  );
 
   async fetchItems(input: ExternalSourceFetchInput): Promise<ExternalRawItem[]> {
     const items = [];
@@ -67,12 +75,18 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       maxPages: this.maxPages,
       windowDays: this.windowDays,
       importImages: this.importImages,
+      importMode: input.importMode ?? 'default',
     });
     if (!this.refQuery) {
       console.warn('[tomesto] ref query missing', {
         env: 'TOMESTO_REF_QUERY',
         affiliateLinksEnabled: false,
       });
+    }
+
+    if (input.importMode === TOMESTO_PLACES_CATALOG_MODE) {
+      yield* this.fetchCatalogPlaceBatches(input);
+      return;
     }
 
     const placeUrls = await this.discoverDetailUrls('places', input);
@@ -105,9 +119,9 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     }
   }
 
-  private async discoverDetailUrls(kind: TomestoListKind, input: ExternalSourceFetchInput) {
+  private async discoverDetailUrls(kind: TomestoListKind, input: ExternalSourceFetchInput, maxPages = this.maxPages) {
     const urls = new Set<string>();
-    for (let page = 1; page <= this.maxPages; page += 1) {
+    for (let page = 1; page <= maxPages; page += 1) {
       const url = this.listUrl(kind, page, input.from, input.to);
       let html: string;
       try {
@@ -142,10 +156,10 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       if (newCount === 0) {
         break;
       }
-      if (page === this.maxPages) {
+      if (page === maxPages) {
         console.warn('[tomesto] max page guard stopped pagination', {
           kind,
-          maxPages: this.maxPages,
+          maxPages,
         });
       }
       await delay(this.requestDelayMs);
@@ -153,16 +167,80 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     return Array.from(urls);
   }
 
+  private async *fetchCatalogPlaceBatches(input: ExternalSourceFetchInput) {
+    const offset = nonNegativeInteger(input.catalogOffset, 0);
+    const limit = positiveInteger(input.catalogLimit, this.catalogBatchSize);
+    const allPlaceUrls = await this.discoverCatalogPlaceUrls(input);
+    const slice = allPlaceUrls.slice(offset, offset + limit);
+    console.info('[tomesto] catalog place slice selected', {
+      offset,
+      limit,
+      total: allPlaceUrls.length,
+      count: slice.length,
+    });
+    const taxonomyCounts = emptyTaxonomyCounts();
+    for await (const batch of this.fetchPlaceBatches(slice, input, taxonomyCounts, {
+      offset,
+      limit,
+      total: allPlaceUrls.length,
+    })) {
+      yield batch;
+    }
+    console.info('[tomesto] place taxonomy counts', taxonomyCounts);
+  }
+
+  private async discoverCatalogPlaceUrls(input: ExternalSourceFetchInput) {
+    try {
+      const sitemapUrl = new URL('/moskva/sitemap.xml', ensureTrailingSlash(this.baseUrl));
+      const xml = await this.fetchHtml(sitemapUrl, input.signal, 'application/xml,text/xml');
+      const urls = this.extractSitemapPlaceUrls(xml);
+      if (urls.length > 0) {
+        console.info('[tomesto] sitemap place urls discovered', { count: urls.length });
+        return urls;
+      }
+      console.warn('[tomesto] sitemap returned no place urls, falling back to list pagination');
+    } catch (caught) {
+      console.warn('[tomesto] sitemap discovery failed, falling back to list pagination', {
+        message: caught instanceof Error ? caught.message : 'unknown',
+      });
+    }
+    return this.discoverDetailUrls('places', input, this.catalogFallbackMaxPages);
+  }
+
+  private extractSitemapPlaceUrls(xml: string) {
+    const $ = cheerio.load(xml, { xmlMode: true });
+    const urls = new Set<string>();
+    $('loc').each((_, element) => {
+      const url = this.safeTomestoUrl($(element).text());
+      if (!url || !isSitemapPlacePath(url)) {
+        return;
+      }
+      urls.add(stripHash(url).toString());
+    });
+    return Array.from(urls).sort();
+  }
+
   private async *fetchPlaceBatches(
     urls: string[],
     input: ExternalSourceFetchInput,
     taxonomyCounts: ReturnType<typeof emptyTaxonomyCounts>,
+    catalog?: { offset: number; limit: number; total: number },
   ) {
     let batch: ExternalRawItem[] = [];
     for (const url of urls) {
       const html = await this.fetchHtml(new URL(url), input.signal);
       const item = this.parsePlace(html, url, input.city);
       if (item) {
+        if (catalog) {
+          item.raw = mergeRaw(item.raw, {
+            catalog: {
+              mode: TOMESTO_PLACES_CATALOG_MODE,
+              offset: catalog.offset,
+              limit: catalog.limit,
+              total: catalog.total,
+            },
+          });
+        }
         countTaxonomyTags(item.tags ?? [], taxonomyCounts);
         batch.push(item);
       }
@@ -228,7 +306,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     return url;
   }
 
-  private async fetchHtml(url: URL, signal: AbortSignal) {
+  private async fetchHtml(url: URL, signal: AbortSignal, accept = 'text/html,application/xhtml+xml') {
     console.debug('[tomesto] fetching page', {
       path: url.pathname,
       query: safeQuery(url),
@@ -236,7 +314,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const response = await fetch(url, {
       signal,
       headers: {
-        Accept: 'text/html,application/xhtml+xml',
+        Accept: accept,
         'User-Agent': 'FrendlyTomestoImporter/1.0',
       },
     });
@@ -305,6 +383,10 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const coords = coordinates($);
     if (!title) {
       console.warn('[tomesto] place skipped without title', { slug });
+      return null;
+    }
+    if (!address && (coords.lat == null || coords.lng == null)) {
+      console.warn('[tomesto] place skipped without address and coordinates', { slug, title });
       return null;
     }
     if (!address) {
@@ -1051,8 +1133,33 @@ function nonNegativeInt(value: unknown, fallback: number) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+function positiveInteger(value: unknown, fallback: number) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : fallback;
+}
+
+function nonNegativeInteger(value: unknown, fallback: number) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : fallback;
+}
+
 function object(value: unknown): Record<string, unknown> | null {
   return value != null && typeof value === 'object' ? value as Record<string, unknown> : null;
+}
+
+function mergeRaw(raw: unknown, extra: Record<string, unknown>) {
+  return {
+    ...(object(raw) ?? {}),
+    ...extra,
+  };
 }
 
 function delay(ms: number) {
@@ -1147,6 +1254,22 @@ function countTaxonomyTags(tags: string[], counts: ReturnType<typeof emptyTaxono
   if (tags.includes('occasion:food')) {
     counts.occasionFood += 1;
   }
+}
+
+function isSitemapPlacePath(url: URL) {
+  const path = url.pathname.replace(/\/+$/, '');
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length !== 3 || parts[0] !== 'moskva' || parts[1] !== 'places') {
+    return false;
+  }
+  const slug = parts[2];
+  if (!slug) {
+    return false;
+  }
+  return ![
+    'bankets',
+    'favorite',
+  ].includes(slug);
 }
 
 function isTomestoNotFound(caught: unknown, url: URL) {

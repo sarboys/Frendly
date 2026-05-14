@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "28136de1cdad0e59374d05c02314a45e16d0f0e1",
-  "generatedAt": "2026-05-14T03:55:05.226Z",
+  "gitCommitHash": "9f58fe4aa6b24f9cb89de0b85d726dffc2118a48",
+  "generatedAt": "2026-05-14T04:21:21.892Z",
   "files": {
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
@@ -4761,7 +4761,7 @@
     },
     "backend/apps/api/src/services/admin-route-review.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-route-review.service.ts",
-      "contentHash": "2d8c388b9862b759bd67e73329ebadbff3d161441ca73734bde309a124a1db85",
+      "contentHash": "4c76cf1de8773138e5b8c51a58d17efc46a2118aa83ef6e81f8ac04dd5241c76",
       "functions": [
         {
           "name": "timezoneForCity",
@@ -4834,6 +4834,7 @@
             "dateRangeWhere",
             "optionalDate",
             "parseSources",
+            "parseImportMode",
             "parseLimit",
             "parseMaxDrafts",
             "parseCursor",
@@ -4845,7 +4846,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 651
+          "lineCount": 671
         }
       ],
       "imports": [
@@ -4894,7 +4895,7 @@
       "exports": [
         "AdminRouteReviewService"
       ],
-      "totalLines": 796,
+      "totalLines": 818,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-users.service.ts": {
@@ -10094,7 +10095,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "78432c5cc9df8e6ca6e694b99c9c94ec4a717c39e4fc5f08d8beb09f6b5a86e6",
+      "contentHash": "d913c2a2a39fbd916580aa3125226f57350d68629db74cca6a1c79a26ddc6cd9",
       "functions": [
         {
           "name": "safeJson",
@@ -10187,6 +10188,39 @@
           "lineCount": 7
         },
         {
+          "name": "optionalString",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "optionalPositiveInteger",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "optionalNonNegativeInteger",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "tomestoCatalogProgress",
+          "params": [
+            "raw"
+          ],
+          "returnType": "TomestoCatalogProgress | null",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
           "name": "publicStatusFor",
           "params": [
             "item"
@@ -10245,13 +10279,14 @@
             "findEventDuplicate",
             "loadEventDuplicateCandidates",
             "enrichExistingAffiliateItem",
-            "hideDuplicateItem"
+            "hideDuplicateItem",
+            "enqueueNextTomestoCatalogRun"
           ],
           "properties": [
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 622
+          "lineCount": 710
         }
       ],
       "imports": [
@@ -10326,7 +10361,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 866,
+      "totalLines": 1001,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
@@ -10446,12 +10481,12 @@
     },
     "backend/apps/worker/src/content/content-source.types.ts": {
       "filePath": "backend/apps/worker/src/content/content-source.types.ts",
-      "contentHash": "829dfe6062e8623d4b5fe9f78d013c8a1870705279b3cba42b00fcf74e69b906",
+      "contentHash": "4b55b940869a86aff6f6f35c1c918da0c851426f65305d1a14daa017c13b5123",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 91,
+      "totalLines": 94,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/external-source.registry.ts": {
@@ -11682,7 +11717,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "632772533862a36621971d84dcfc80de913e5a0a5e5ba0a8e3465c34d7b0dd16",
+      "contentHash": "e2207c182098e147ea3ee2d7119b8887c9f84efb4ea2b7262e98a5d0b92ffedf",
       "functions": [
         {
           "name": "isDetailPath",
@@ -12033,6 +12068,24 @@
           "lineCount": 4
         },
         {
+          "name": "positiveInteger",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "nonNegativeInteger",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
           "name": "object",
           "params": [
             "value"
@@ -12040,6 +12093,15 @@
           "returnType": "Record<string, unknown> | null",
           "exported": false,
           "lineCount": 3
+        },
+        {
+          "name": "mergeRaw",
+          "params": [
+            "raw",
+            "extra"
+          ],
+          "exported": false,
+          "lineCount": 6
         },
         {
           "name": "delay",
@@ -12105,6 +12167,14 @@
           "lineCount": 11
         },
         {
+          "name": "isSitemapPlacePath",
+          "params": [
+            "url"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
           "name": "isTomestoNotFound",
           "params": [
             "caught",
@@ -12121,6 +12191,9 @@
             "fetchItems",
             "fetchBatches",
             "discoverDetailUrls",
+            "fetchCatalogPlaceBatches",
+            "discoverCatalogPlaceUrls",
+            "extractSitemapPlaceUrls",
             "fetchPlaceBatches",
             "fetchTimedBatches",
             "listUrl",
@@ -12138,10 +12211,12 @@
             "maxPages",
             "requestDelayMs",
             "windowDays",
-            "importImages"
+            "importImages",
+            "catalogBatchSize",
+            "catalogFallbackMaxPages"
           ],
           "exported": true,
-          "lineCount": 467
+          "lineCount": 546
         }
       ],
       "imports": [
@@ -12164,7 +12239,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1155,
+      "totalLines": 1278,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {
@@ -12662,12 +12737,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "0e4f753abd46f5d610e52143cdc55b8976a3f4a8a9927c4618138ad54c771693",
+      "contentHash": "fed6d5c6600bfe04bd36fa75a48977bce310285a26f0946fcc4ea052bb716d90",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1037,
+      "totalLines": 1038,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {

@@ -19,6 +19,8 @@ import { PrismaService } from './prisma.service';
 
 const VALID_SOURCES = ['kudago', 'timepad', 'overpass', 'advcake_ticketland', 'tomesto'] as const;
 type SourceCode = (typeof VALID_SOURCES)[number];
+const TOMESTO_PLACES_CATALOG_MODE = 'tomesto_places_catalog';
+const DEFAULT_TOMESTO_CATALOG_BATCH_SIZE = 250;
 const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
 const DEFAULT_FORMAT = 'evening_route';
@@ -265,6 +267,7 @@ export class AdminRouteReviewService {
       throw new ApiError(400, 'content_import_range_invalid', 'Import date range is invalid');
     }
     const sourceCodes = this.parseSources(input.sources);
+    const importMode = this.parseImportMode((input as any).importMode, sourceCodes);
     const items = [];
     for (const code of sourceCodes) {
       const source = await this.upsertSource(code);
@@ -277,6 +280,11 @@ export class AdminRouteReviewService {
             from: from.toISOString(),
             to: to.toISOString(),
             requestedBy: 'admin',
+            ...(importMode ? {
+              importMode,
+              catalogOffset: 0,
+              catalogLimit: DEFAULT_TOMESTO_CATALOG_BATCH_SIZE,
+            } : {}),
           },
         },
         include: { source: { select: { code: true } } },
@@ -649,6 +657,20 @@ export class AdminRouteReviewService {
       }
     }
     return Array.from(new Set(sources)) as SourceCode[];
+  }
+
+  private parseImportMode(value: unknown, sources: SourceCode[]) {
+    const mode = this.optionalText(value);
+    if (!mode) {
+      return null;
+    }
+    if (mode !== TOMESTO_PLACES_CATALOG_MODE) {
+      throw new ApiError(400, 'content_import_mode_invalid', 'Import mode is invalid');
+    }
+    if (sources.length !== 1 || sources[0] !== 'tomesto') {
+      throw new ApiError(400, 'content_import_mode_invalid', 'Tomesto catalog import requires only Tomesto source');
+    }
+    return mode;
   }
 
   private parseLimit(value: unknown) {

@@ -547,6 +547,7 @@ export interface AdminRouteReviewImportRunInput {
   sources: string[];
   from: string;
   to: string;
+  importMode?: string;
 }
 
 export interface AdminExternalContentItemDto {

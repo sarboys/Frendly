@@ -20,9 +20,14 @@ export type ContentImportInput = {
   sources: ExternalSourceCode[];
   from: Date;
   to: Date;
+  importMode?: string | null;
+  catalogOffset?: number | null;
+  catalogLimit?: number | null;
 };
 
 const DEFAULT_IMPORT_TIMEOUT_MS = 1_800_000;
+const TOMESTO_PLACES_CATALOG_MODE = 'tomesto_places_catalog';
+const DEFAULT_TOMESTO_CATALOG_BATCH_SIZE = 250;
 const PUBLIC_STATUS_PUBLISHED = 'published';
 const PUBLIC_STATUS_HIDDEN = 'hidden';
 const PUBLIC_STATUS_STALE = 'stale';
@@ -117,6 +122,9 @@ export class ContentImportService {
           metadata: {
             from: input.from.toISOString(),
             to: input.to.toISOString(),
+            ...(input.importMode ? { importMode: input.importMode } : {}),
+            ...(input.catalogOffset != null ? { catalogOffset: input.catalogOffset } : {}),
+            ...(input.catalogLimit != null ? { catalogLimit: input.catalogLimit } : {}),
           },
         },
       });
@@ -128,6 +136,9 @@ export class ContentImportService {
         city: input.city,
         from: input.from,
         to: input.to,
+        importMode: input.importMode,
+        catalogOffset: input.catalogOffset,
+        catalogLimit: input.catalogLimit,
       });
     }
     return runs;
@@ -167,6 +178,9 @@ export class ContentImportService {
         city: run.city,
         from,
         to,
+        importMode: optionalString(metadata?.importMode),
+        catalogOffset: optionalNonNegativeInteger(metadata?.catalogOffset),
+        catalogLimit: optionalPositiveInteger(metadata?.catalogLimit),
       });
     }
   }
@@ -271,6 +285,9 @@ export class ContentImportService {
     city: string;
     from: Date;
     to: Date;
+    importMode?: string | null;
+    catalogOffset?: number | null;
+    catalogLimit?: number | null;
   }) {
     const adapter = this.registry.getAdapter(input.sourceCode);
     const controller = new AbortController();
@@ -284,6 +301,7 @@ export class ContentImportService {
     let freeCount = 0;
     let unknownPriceCount = 0;
     let missingCoordsCount = 0;
+    let catalogProgress: TomestoCatalogProgress | null = null;
     const tomestoHiddenCounts = {
       eventDefaultDisabled: 0,
       promoSurfaceMissing: 0,
@@ -308,11 +326,15 @@ export class ContentImportService {
         from: input.from,
         to: input.to,
         signal: controller.signal,
+        importMode: input.importMode,
+        catalogOffset: input.catalogOffset,
+        catalogLimit: input.catalogLimit,
       };
       for await (const rawItems of this.fetchItemBatches(adapter, fetchInput)) {
         fetchedCount += rawItems.length;
         for (const rawItem of rawItems) {
           try {
+            catalogProgress = catalogProgress ?? tomestoCatalogProgress(rawItem.raw);
             const normalized = await this.prepareItemForUpsert(
               this.normalizer.normalize(rawItem),
               duplicateCache,
@@ -373,6 +395,7 @@ export class ContentImportService {
         where: { id: input.sourceId },
         data: { lastImportedAt: new Date() },
       });
+      await this.enqueueNextTomestoCatalogRun(input, catalogProgress);
       console.info('[content-import] source completed', {
         runId: input.runId,
         sourceCode: input.sourceCode,
@@ -697,7 +720,83 @@ export class ContentImportService {
       },
     });
   }
+
+  private async enqueueNextTomestoCatalogRun(
+    input: {
+      runId: string;
+      sourceId: string;
+      sourceCode: ExternalSourceCode;
+      city: string;
+      from: Date;
+      to: Date;
+      importMode?: string | null;
+      catalogOffset?: number | null;
+      catalogLimit?: number | null;
+    },
+    progress: TomestoCatalogProgress | null,
+  ) {
+    if (
+      input.sourceCode !== 'tomesto' ||
+      input.importMode !== TOMESTO_PLACES_CATALOG_MODE ||
+      !progress
+    ) {
+      return;
+    }
+    const nextOffset = progress.offset + progress.limit;
+    if (nextOffset >= progress.total) {
+      return;
+    }
+    const existing = await this.prismaService.client.externalImportRun.findFirst({
+      where: {
+        sourceId: input.sourceId,
+        city: input.city,
+        status: { in: ['pending_manual', 'running'] },
+        metadata: {
+          path: ['importMode'],
+          equals: TOMESTO_PLACES_CATALOG_MODE,
+        },
+      },
+      orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
+    });
+    if (existing) {
+      console.warn('[content-import] tomesto catalog next run skipped because a run is already active', {
+        currentRunId: input.runId,
+        existingRunId: existing.id,
+        nextOffset,
+      });
+      return;
+    }
+    const next = await this.prismaService.client.externalImportRun.create({
+      data: {
+        sourceId: input.sourceId,
+        city: input.city,
+        status: 'pending_manual',
+        metadata: {
+          from: input.from.toISOString(),
+          to: input.to.toISOString(),
+          requestedBy: 'worker',
+          importMode: TOMESTO_PLACES_CATALOG_MODE,
+          catalogOffset: nextOffset,
+          catalogLimit: progress.limit,
+          catalogTotal: progress.total,
+          previousRunId: input.runId,
+        },
+      },
+    });
+    console.info('[content-import] tomesto catalog next run queued', {
+      currentRunId: input.runId,
+      nextRunId: next.id,
+      nextOffset,
+      total: progress.total,
+    });
+  }
 }
+
+type TomestoCatalogProgress = {
+  offset: number;
+  limit: number;
+  total: number;
+};
 
 function safeJson(value: unknown): Prisma.InputJsonValue {
   if (value == null) {
@@ -792,6 +891,42 @@ function parseDate(value: unknown) {
   }
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function optionalString(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function optionalPositiveInteger(value: unknown) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+}
+
+function optionalNonNegativeInteger(value: unknown) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : null;
+}
+
+function tomestoCatalogProgress(raw: unknown): TomestoCatalogProgress | null {
+  const catalog = object(object(raw)?.catalog);
+  if (!catalog || catalog.mode !== TOMESTO_PLACES_CATALOG_MODE) {
+    return null;
+  }
+  const offset = optionalNonNegativeInteger(catalog.offset);
+  const limit = optionalPositiveInteger(catalog.limit);
+  const total = optionalPositiveInteger(catalog.total);
+  if (offset == null || limit == null || total == null) {
+    return null;
+  }
+  return { offset, limit, total };
 }
 
 function publicStatusFor(item: NormalizedExternalContentItem) {

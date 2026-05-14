@@ -73,6 +73,9 @@ export type ExternalSourceFetchInput = {
   from: Date;
   to: Date;
   signal: AbortSignal;
+  importMode?: string | null;
+  catalogOffset?: number | null;
+  catalogLimit?: number | null;
 };
 
 export interface ExternalSourceAdapter {

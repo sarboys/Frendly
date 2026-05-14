@@ -149,6 +149,63 @@ describe('ContentImportService', () => {
     expect(itemUpsert).toHaveBeenCalledTimes(3);
   });
 
+  it('queues the next Tomesto catalog run after a completed slice', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const runCreate = jest.fn()
+      .mockResolvedValueOnce({ id: 'run-1' })
+      .mockResolvedValueOnce({ id: 'run-2' });
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-tomesto', code: 'tomesto' },
+        itemUpsert,
+        runCreate,
+        runFindFirst: jest.fn().mockResolvedValue(null),
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'tomesto',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawPlace({
+            raw: {
+              catalog: {
+                mode: 'tomesto_places_catalog',
+                offset: 0,
+                limit: 1,
+                total: 2,
+              },
+            },
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['tomesto'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-06-03T00:00:00.000Z'),
+      importMode: 'tomesto_places_catalog',
+      catalogOffset: 0,
+      catalogLimit: 1,
+    });
+
+    expect(runCreate).toHaveBeenCalledTimes(2);
+    expect(runCreate.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceId: 'source-tomesto',
+        city: 'Москва',
+        status: 'pending_manual',
+        metadata: expect.objectContaining({
+          importMode: 'tomesto_places_catalog',
+          catalogOffset: 1,
+          catalogLimit: 1,
+          catalogTotal: 2,
+          previousRunId: 'run-1',
+        }),
+      }),
+    }));
+  });
+
   it('mirrors imported external images before saving content items', async () => {
     const itemUpsert = jest.fn().mockResolvedValue({});
     const imageMirror = {
@@ -732,6 +789,8 @@ function prismaMock(options: {
   itemUpsert?: jest.Mock;
   itemFindMany?: jest.Mock;
   itemUpdate?: jest.Mock;
+  runCreate?: jest.Mock;
+  runFindFirst?: jest.Mock;
   runUpdate?: jest.Mock;
 }) {
   return {
@@ -741,7 +800,8 @@ function prismaMock(options: {
         update: jest.fn().mockResolvedValue({}),
       },
       externalImportRun: {
-        create: jest.fn().mockResolvedValue({ id: 'run-1' }),
+        create: options.runCreate ?? jest.fn().mockResolvedValue({ id: 'run-1' }),
+        findFirst: options.runFindFirst ?? jest.fn().mockResolvedValue(null),
         update: options.runUpdate ?? jest.fn().mockResolvedValue({}),
       },
       externalContentItem: {

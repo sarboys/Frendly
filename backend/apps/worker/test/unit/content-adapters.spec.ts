@@ -9,6 +9,7 @@ const originalAdvCakePass = process.env.ADVCAKE_API_PASS;
 const originalTomestoRefQuery = process.env.TOMESTO_REF_QUERY;
 const originalTomestoRequestDelayMs = process.env.TOMESTO_REQUEST_DELAY_MS;
 const originalTomestoImportImages = process.env.TOMESTO_IMPORT_IMAGES;
+const originalTomestoCatalogBatchSize = process.env.TOMESTO_CATALOG_BATCH_SIZE;
 
 describe('content source adapters', () => {
   afterEach(() => {
@@ -37,6 +38,11 @@ describe('content source adapters', () => {
       delete process.env.TOMESTO_IMPORT_IMAGES;
     } else {
       process.env.TOMESTO_IMPORT_IMAGES = originalTomestoImportImages;
+    }
+    if (originalTomestoCatalogBatchSize == null) {
+      delete process.env.TOMESTO_CATALOG_BATCH_SIZE;
+    } else {
+      process.env.TOMESTO_CATALOG_BATCH_SIZE = originalTomestoCatalogBatchSize;
     }
   });
 
@@ -404,6 +410,54 @@ describe('content source adapters', () => {
       contentKind: 'event',
       category: 'promo',
       raw: expect.objectContaining({ kind: 'promo' }),
+    });
+  });
+
+  it('loads Tomesto catalog places from sitemap slices without events or promos', async () => {
+    process.env.TOMESTO_REQUEST_DELAY_MS = '0';
+    const adapter = new TomestoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/moskva/sitemap.xml') {
+        return textResponse(`
+          <urlset>
+            <url><loc>https://tomesto.ru/moskva/places/bankets</loc></url>
+            <url><loc>https://tomesto.ru/moskva/places/cafe-one</loc></url>
+            <url><loc>https://tomesto.ru/moskva/places/cafe-two</loc></url>
+            <url><loc>https://tomesto.ru/moskva/places/cafe-two/reviews</loc></url>
+            <url><loc>https://tomesto.ru/moskva/events/standup-night</loc></url>
+          </urlset>
+        `);
+      }
+      if (url.pathname === '/moskva/places/cafe-one') {
+        return textResponse(tomestoPlaceHtml());
+      }
+      throw new Error(`unexpected_url_${url.pathname}`);
+    });
+
+    const items = await adapter.fetchItems(fetchInput({
+      cityCode: 'moskva',
+      importMode: 'tomesto_places_catalog',
+      catalogOffset: 0,
+      catalogLimit: 1,
+    } as any));
+
+    expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).toEqual([
+      '/moskva/sitemap.xml',
+      '/moskva/places/cafe-one',
+    ]);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      sourceItemId: 'place:cafe-one',
+      contentKind: 'place',
+      raw: expect.objectContaining({
+        catalog: {
+          mode: 'tomesto_places_catalog',
+          offset: 0,
+          limit: 1,
+          total: 2,
+        },
+      }),
     });
   });
 
