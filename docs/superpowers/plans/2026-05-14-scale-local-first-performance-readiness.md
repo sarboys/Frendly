@@ -847,7 +847,7 @@
 
 - [x] Check backend health through `curl -i https://api.frendly.tech/health`.
 - [x] Launch cold on iOS simulator or QA device.
-- [ ] Login with test account.
+- [x] Login with test account.
 - [x] Open Home first frame.
 - [x] Open map and pan map.
 - [ ] Open dating and swipe like.
@@ -863,8 +863,8 @@
 - [ ] Switch to airplane mode after data is cached.
 - [ ] Read cached chats and hot screens.
 - [ ] Send chat message offline, then reconnect.
-- [ ] Logout and login as another user.
-- [ ] Confirm old user's cached data is not visible.
+- [x] Logout and login as another user.
+- [x] Confirm old user's cached data is not visible.
 - [ ] Record API p95, chat ack p95, outbox lag, WS connection count, Redis pubsub rate, DB pool wait and S3 errors.
 
 ### Task 25: Documentation And Graph
