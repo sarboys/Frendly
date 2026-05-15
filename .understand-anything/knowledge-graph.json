@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T05:27:15.688Z",
-    "gitCommitHash": "92c7893a11976dbcc16aa95a081f296eaa1fe231"
+    "analyzedAt": "2026-05-15T06:17:38.828Z",
+    "gitCommitHash": "8df9c1d1c423aead63573b55c274204e019c2f22"
   },
   "nodes": [
     {
@@ -7622,8 +7622,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        209,
-        213
+        211,
+        215
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -9246,7 +9246,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "class:backend/apps/api/src/controllers/evening.controller.ts:EveningController",
@@ -9254,8 +9254,8 @@
       "name": "EveningController",
       "filePath": "backend/apps/api/src/controllers/evening.controller.ts",
       "lineRange": [
-        8,
-        300
+        9,
+        352
       ],
       "summary": "EveningController in evening.controller.ts.",
       "tags": [
@@ -9263,7 +9263,7 @@
         "class",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/api/src/controllers/events.controller.ts",
@@ -10871,6 +10871,206 @@
         732
       ],
       "summary": "DatingService in dating.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "type": "file",
+      "name": "evening-ai-draft.service.ts",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 10 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stringOrNull",
+      "type": "function",
+      "name": "stringOrNull",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1263,
+        1265
+      ],
+      "summary": "stringOrNull in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:numberOrNull",
+      "type": "function",
+      "name": "numberOrNull",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1267,
+        1272
+      ],
+      "summary": "numberOrNull in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeTags",
+      "type": "function",
+      "name": "normalizeTags",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1274,
+        1282
+      ],
+      "summary": "normalizeTags in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeText",
+      "type": "function",
+      "name": "normalizeText",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1284,
+        1286
+      ],
+      "summary": "normalizeText in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasAny",
+      "type": "function",
+      "name": "hasAny",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1288,
+        1290
+      ],
+      "summary": "hasAny in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:roundCoord",
+      "type": "function",
+      "name": "roundCoord",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1292,
+        1294
+      ],
+      "summary": "roundCoord in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:pad2",
+      "type": "function",
+      "name": "pad2",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1296,
+        1298
+      ],
+      "summary": "pad2 in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stableHash",
+      "type": "function",
+      "name": "stableHash",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1300,
+        1306
+      ],
+      "summary": "stableHash in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:geoDistanceKm",
+      "type": "function",
+      "name": "geoDistanceKm",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1308,
+        1321
+      ],
+      "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:toRad",
+      "type": "function",
+      "name": "toRad",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1323,
+        1325
+      ],
+      "summary": "toRad in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/evening-ai-draft.service.ts:EveningAiDraftService",
+      "type": "class",
+      "name": "EveningAiDraftService",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        91,
+        1248
+      ],
+      "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "class",
@@ -25353,6 +25553,87 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "summary": "migration.sql contains 4 definitions.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft",
+      "type": "table",
+      "name": "EveningAiRouteDraft",
+      "filePath": "backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "lineRange": [
+        1,
+        27
+      ],
+      "summary": "table: EveningAiRouteDraft (23 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_userId_status_createdAt_id_idx",
+      "type": "table",
+      "name": "EveningAiRouteDraft_userId_status_createdAt_id_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "lineRange": [
+        29,
+        29
+      ],
+      "summary": "index: EveningAiRouteDraft_userId_status_createdAt_id_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_expiresAt_idx",
+      "type": "table",
+      "name": "EveningAiRouteDraft_expiresAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "lineRange": [
+        32,
+        32
+      ],
+      "summary": "index: EveningAiRouteDraft_expiresAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_routeId_idx",
+      "type": "table",
+      "name": "EveningAiRouteDraft_routeId_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "lineRange": [
+        35,
+        35
+      ],
+      "summary": "index: EveningAiRouteDraft_routeId_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -26993,8 +27274,8 @@
       "name": "parseOpenRouterJsonContent",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        192,
-        206
+        196,
+        210
       ],
       "summary": "parseOpenRouterJsonContent in openrouter.ts.",
       "tags": [
@@ -27010,8 +27291,8 @@
       "name": "extractAssistantContent",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        208,
-        249
+        212,
+        253
       ],
       "summary": "extractAssistantContent in openrouter.ts.",
       "tags": [
@@ -27027,8 +27308,8 @@
       "name": "textOrNull",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        251,
-        257
+        255,
+        261
       ],
       "summary": "textOrNull in openrouter.ts.",
       "tags": [
@@ -27044,8 +27325,8 @@
       "name": "positiveInteger",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        259,
-        266
+        263,
+        270
       ],
       "summary": "positiveInteger in openrouter.ts.",
       "tags": [
@@ -27061,8 +27342,8 @@
       "name": "isAbortError",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        268,
-        270
+        272,
+        274
       ],
       "summary": "isAbortError in openrouter.ts.",
       "tags": [
@@ -27078,8 +27359,8 @@
       "name": "unavailableFetch",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        272,
-        274
+        276,
+        278
       ],
       "summary": "unavailableFetch in openrouter.ts.",
       "tags": [
@@ -27095,8 +27376,8 @@
       "name": "OpenRouterClientError",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        40,
-        49
+        43,
+        52
       ],
       "summary": "OpenRouterClientError in openrouter.ts.",
       "tags": [
@@ -27112,8 +27393,8 @@
       "name": "OpenRouterClient",
       "filePath": "backend/packages/database/src/openrouter.ts",
       "lineRange": [
-        55,
-        190
+        58,
+        194
       ],
       "summary": "OpenRouterClient in openrouter.ts.",
       "tags": [
@@ -36726,6 +37007,83 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stringOrNull",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:numberOrNull",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeTags",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasAny",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:roundCoord",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:pad2",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stableHash",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:geoDistanceKm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:toRad",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "class:backend/apps/api/src/services/evening-ai-draft.service.ts:EveningAiDraftService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/api/src/services/evening-analytics.service.ts",
       "target": "class:backend/apps/api/src/services/evening-analytics.service.ts:EveningAnalyticsService",
       "type": "contains",
@@ -41815,6 +42173,34 @@
       "weight": 1
     },
     {
+      "source": "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_userId_status_createdAt_id_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_expiresAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_routeId_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/reset-test-users.ts",
       "target": "function:backend/packages/database/prisma/reset-test-users.ts:main",
       "type": "contains",
@@ -44994,6 +45380,13 @@
     },
     {
       "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/services/evening-route-ai-candidates.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -45639,6 +46032,13 @@
     {
       "source": "file:backend/apps/api/src/controllers/evening.controller.ts",
       "target": "file:backend/apps/api/src/common/current-user.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/evening.controller.ts",
+      "target": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -46437,6 +46837,27 @@
     {
       "source": "file:backend/apps/api/src/services/dating.service.ts",
       "target": "file:backend/apps/api/src/services/subscription.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "file:backend/apps/api/src/services/openrouter.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -48573,6 +48994,7 @@
         "file:backend/apps/api/src/services/chats.service.ts",
         "file:backend/apps/api/src/services/communities.service.ts",
         "file:backend/apps/api/src/services/dating.service.ts",
+        "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
         "file:backend/apps/api/src/services/evening-analytics.service.ts",
         "file:backend/apps/api/src/services/evening-route-ai-candidates.service.ts",
         "file:backend/apps/api/src/services/evening-route-ai-validator.service.ts",
@@ -49114,6 +49536,11 @@
         "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_chatId_expiresAt_idx",
         "index:backend/packages/database/prisma/migrations/20260513170000_payments/migration.sql:TokenPromotion_userId_expiresAt_idx",
         "table:backend/packages/database/prisma/migrations/20260513200000_token_subscription_spend/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft",
+        "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_userId_status_createdAt_id_idx",
+        "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_expiresAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_routeId_idx",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",

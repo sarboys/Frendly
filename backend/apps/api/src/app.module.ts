@@ -63,6 +63,7 @@ import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
 import { DatingService } from './services/dating.service';
 import { EveningAnalyticsService } from './services/evening-analytics.service';
+import { EveningAiDraftService } from './services/evening-ai-draft.service';
 import { EveningRouteAiCandidatesService } from './services/evening-route-ai-candidates.service';
 import { EveningRouteAiValidatorService } from './services/evening-route-ai-validator.service';
 import { EveningRouteTemplateService } from './services/evening-route-template.service';
@@ -162,6 +163,7 @@ import { VerificationService } from './services/verification.service';
     CommunitiesService,
     DatingService,
     EveningAnalyticsService,
+    EveningAiDraftService,
     EveningRouteAiCandidatesService,
     EveningRouteAiValidatorService,
     EveningRouteTemplateService,

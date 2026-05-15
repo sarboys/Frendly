@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "92c7893a11976dbcc16aa95a081f296eaa1fe231",
-  "generatedAt": "2026-05-15T05:27:15.925Z",
+  "gitCommitHash": "8df9c1d1c423aead63573b55c274204e019c2f22",
+  "generatedAt": "2026-05-15T06:17:39.067Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -8823,7 +8823,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "e27b7de97b59d3b552d824f87aa1ff2b45d4b05f82766df70c7105e62eb6da75",
+      "contentHash": "a63f3a3fd6a6aaeab1174c6c2aa0a4eaaaaf087d261fb46a2e7646dde47c2fec",
       "functions": [],
       "classes": [
         {
@@ -9231,6 +9231,12 @@
           ]
         },
         {
+          "source": "./services/evening-ai-draft.service",
+          "specifiers": [
+            "EveningAiDraftService"
+          ]
+        },
+        {
           "source": "./services/evening-route-ai-candidates.service",
           "specifiers": [
             "EveningRouteAiCandidatesService"
@@ -9438,7 +9444,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 214,
+      "totalLines": 216,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -11421,7 +11427,7 @@
     },
     "backend/apps/api/src/controllers/evening.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/evening.controller.ts",
-      "contentHash": "a8a94c14d6ba4287dbbe908461473ce573403d06b8aa36b6938e91c83063c1d7",
+      "contentHash": "e003978ed44e0f5ebc475764a53b66d47bb905ff1a7a2d0b5ef9a477449b9827",
       "functions": [],
       "classes": [
         {
@@ -11434,6 +11440,11 @@
             "listRouteTemplateSessions",
             "createRouteTemplateSession",
             "resolveRoute",
+            "createAiDraft",
+            "getAiDraft",
+            "acceptAiDraftStep",
+            "regenerateAiDraftStep",
+            "confirmAiDraft",
             "getRoute",
             "launchRoute",
             "listSessions",
@@ -11459,7 +11470,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 293
+          "lineCount": 344
         }
       ],
       "imports": [
@@ -11478,6 +11489,12 @@
           "source": "../common/current-user.decorator",
           "specifiers": [
             "CurrentUser"
+          ]
+        },
+        {
+          "source": "../services/evening-ai-draft.service",
+          "specifiers": [
+            "EveningAiDraftService"
           ]
         },
         {
@@ -11502,7 +11519,7 @@
       "exports": [
         "EveningController"
       ],
-      "totalLines": 301,
+      "totalLines": 353,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/events.controller.ts": {
@@ -14657,6 +14674,186 @@
         "DatingService"
       ],
       "totalLines": 733,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/evening-ai-draft.service.ts": {
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "contentHash": "cda7c5479169a913fb1366233a4ce5c8c574a0ea94a28fa17c44f44396c605b0",
+      "functions": [
+        {
+          "name": "stringOrNull",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "numberOrNull",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "normalizeTags",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "normalizeText",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "hasAny",
+          "params": [
+            "value",
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "roundCoord",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "pad2",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "stableHash",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "geoDistanceKm",
+          "params": [
+            "left",
+            "right"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "toRad",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "EveningAiDraftService",
+          "methods": [
+            "constructor",
+            "createDraft",
+            "getDraft",
+            "acceptStep",
+            "regenerateStep",
+            "confirmDraft",
+            "loadDraft",
+            "generateRouteWithFallback",
+            "deterministicRoute",
+            "routeFromGenerated",
+            "loadCandidatePack",
+            "rankCandidateGroup",
+            "loadRoleCandidates",
+            "mapDraftResponse",
+            "publicRoute",
+            "routeSnapshot",
+            "candidatePack",
+            "inputFromDraft",
+            "parseInput",
+            "parseStepCount",
+            "parseFormat",
+            "resolveRoles",
+            "sourceForRole",
+            "searchTermsForRole",
+            "kindForRole",
+            "emojiForRole",
+            "labelForRole",
+            "titleForRoles",
+            "candidateScore",
+            "candidateTailScore",
+            "systemPrompt",
+            "userPrompt",
+            "responseFormat",
+            "validateGeneratedRoute",
+            "stepRecordFromDto",
+            "hiddenExternalId",
+            "numberList",
+            "stringList",
+            "createId"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1158
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
+          ]
+        },
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "randomUUID"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./openrouter.service",
+          "specifiers": [
+            "OpenRouterService"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "EveningAiDraftService"
+      ],
+      "totalLines": 1326,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -21920,12 +22117,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "b6a7ac2d9769f4ac4c48d0c2cba53a05e2f2d9df25cd0bb57052cf0327ab70df",
+      "contentHash": "c3b420d3480d8271a07b15a33d61554b3b6558b86d90db71efbfe1836fb371b2",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1074,
+      "totalLines": 1105,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {
@@ -23204,7 +23401,7 @@
     },
     "backend/packages/database/src/openrouter.ts": {
       "filePath": "backend/packages/database/src/openrouter.ts",
-      "contentHash": "ed27e21aecae390dacd91875ca8866789a4dabf30c715969ed76a04760c6171d",
+      "contentHash": "e65ceca434c536d93dbc08788540c6803142ba69dcf5164a69af376bf9301ac0",
       "functions": [
         {
           "name": "parseOpenRouterJsonContent",
@@ -23282,7 +23479,7 @@
             "fetchImpl"
           ],
           "exported": true,
-          "lineCount": 136
+          "lineCount": 137
         }
       ],
       "imports": [],
@@ -23291,7 +23488,7 @@
         "OpenRouterClient",
         "parseOpenRouterJsonContent"
       ],
-      "totalLines": 275,
+      "totalLines": 279,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/outbox.d.ts": {

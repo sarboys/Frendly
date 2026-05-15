@@ -18,8 +18,11 @@ export type OpenRouterFetchLike = (
 export type OpenRouterGenerateJsonInput = {
   systemPrompt: string;
   userPrompt: string;
+  model?: string;
   temperature?: number;
   maxTokens?: number;
+  timeoutMs?: number;
+  responseFormat?: unknown;
 };
 
 export type OpenRouterGenerateJsonResult<T = unknown> = {
@@ -95,6 +98,7 @@ export class OpenRouterClient {
     const controller = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | null = null;
     let timedOut = false;
+    const requestTimeoutMs = positiveInteger(input.timeoutMs) ?? this.timeoutMs;
 
     try {
       const operation = this.executeGenerateJson<T>(input, startedAt, controller.signal);
@@ -102,8 +106,8 @@ export class OpenRouterClient {
         timeout = setTimeout(() => {
           timedOut = true;
           controller.abort();
-          reject(this.timeoutError());
-        }, this.timeoutMs);
+          reject(this.timeoutError(requestTimeoutMs));
+        }, requestTimeoutMs);
         timeout.unref?.();
       });
 
@@ -113,7 +117,7 @@ export class OpenRouterClient {
         throw caught;
       }
       if (timedOut || isAbortError(caught)) {
-        throw this.timeoutError();
+        throw this.timeoutError(requestTimeoutMs);
       }
       throw new OpenRouterClientError(
         503,
@@ -139,10 +143,10 @@ export class OpenRouterClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: this.model,
+        model: textOrNull(input.model) ?? this.model,
         temperature: input.temperature ?? 0.4,
         max_tokens: input.maxTokens ?? 1800,
-        response_format: { type: 'json_object' },
+        response_format: input.responseFormat ?? { type: 'json_object' },
         messages: [
           {
             role: 'system',
@@ -175,16 +179,16 @@ export class OpenRouterClient {
     return {
       rawResponse,
       parsedJson: parseOpenRouterJsonContent<T>(content),
-      model: this.model,
+      model: textOrNull(input.model) ?? this.model,
       latencyMs: Date.now() - startedAt,
     };
   }
 
-  private timeoutError() {
+  private timeoutError(timeoutMs = this.timeoutMs) {
     return new OpenRouterClientError(
       504,
       'openrouter_timeout',
-      `OpenRouter request timed out after ${this.timeoutMs}ms`,
+      `OpenRouter request timed out after ${timeoutMs}ms`,
     );
   }
 }

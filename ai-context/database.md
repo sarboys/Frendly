@@ -42,6 +42,7 @@ Frendly Evening:
 - `EveningAfterPartyFeedback`, `EveningAfterPartyPhoto`.
 - `PartnerOfferCode`, `UserEveningStepAction`.
 - AI studio: `AiEveningBrief`, `AiEveningGenerationRun`, `AiEveningDraft`, `AiEveningDraftStep`.
+- User AI route drafts: `EveningAiRouteDraft` stores `userId`, status, prompt/config, `candidatePackJson`, `routeSnapshotJson`, accepted step indexes, rejected external item ids, model, latency, validation issues, optional `routeId` and `expiresAt`.
 - Route aggregation: `ExternalContentSource`, `ExternalImportRun`, `ExternalContentItem`, `GeneratedRouteDraftBatch`, `GeneratedRouteReviewDraft`, `GeneratedRouteDraftStep`. Manual imports and route generations use `pending_manual` statuses that worker scans outside the API request path.
 - `ExternalImportRun` stores import counters for admin health: `publishedCount`, `paidCount`, `freeCount`, `unknownPriceCount`, `missingCoordsCount`.
 - `ExternalContentItem` separates imported events and places through `contentKind`. Public affiche fields include `venueName`, `imageUrl`, `actionUrl`, `actionKind`, `priceMode`, `isAffiliate`, `sourceProvider`, `placeKind`, `lastSeenAt`, `publicStatus`.
@@ -89,6 +90,7 @@ Public:
 - `Event` can optionally point to `ExternalContentItem` through `sourceExternalContentItemId` when created from public affiche or a selected Tomesto place. Presenters must branch by `contentKind`: event sources produce ticket fields, place sources produce booking fields.
 - `EveningRouteTemplate` owns immutable route revisions and current route pointer.
 - `EveningRoute` owns steps, sessions and optional route chat.
+- `EveningAiRouteDraft` is a user-facing draft, not an admin review draft. It keeps the candidate pack for stable step regeneration and turns into a normal `EveningRoute` only after all steps are accepted.
 - Generated route review drafts link to imported external items through draft steps. They publish only after admin convert and publish creates an `EveningRouteTemplate` plus current `EveningRoute`.
 - `EveningSession` owns session chat, participants, join requests, step states, check-ins, feedback, photos and public shares.
 - `Chat` owns members, messages and realtime events.

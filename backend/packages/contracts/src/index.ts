@@ -788,6 +788,37 @@ export interface EveningRouteDto {
   };
 }
 
+export interface EveningAiRouteDraftRequestDto {
+  prompt?: string;
+  goal?: string;
+  mood?: string;
+  budget?: string;
+  format?: string;
+  area?: string;
+  stepCount?: number;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface EveningAiRouteDraftWarningDto {
+  code: string;
+  message?: string;
+  stepIndex?: number;
+  externalContentItemId?: string;
+  issues?: EveningAiRouteDraftWarningDto[];
+}
+
+export interface EveningAiRouteDraftDto {
+  draftId: string;
+  route: EveningRouteDto;
+  acceptedStepIndexes: number[];
+  currentStepIndex: number | null;
+  canConfirm: boolean;
+  expiresAt: string;
+  warnings: EveningAiRouteDraftWarningDto[];
+}
+
 export interface EveningStepActionDto {
   stepId: string;
   perkUsed: boolean;

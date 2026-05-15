@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
+import { EveningAiDraftService } from '../services/evening-ai-draft.service';
 import { EveningRouteTemplateService } from '../services/evening-route-template.service';
 import { EveningService } from '../services/evening.service';
 import { PartnerOfferCodeService } from '../services/partner-offer-code.service';
@@ -8,6 +9,7 @@ import { PartnerOfferCodeService } from '../services/partner-offer-code.service'
 export class EveningController {
   constructor(
     private readonly eveningService: EveningService,
+    private readonly eveningAiDraftService: EveningAiDraftService,
     private readonly routeTemplateService: EveningRouteTemplateService,
     private readonly partnerOfferCodeService: PartnerOfferCodeService,
   ) {}
@@ -66,6 +68,56 @@ export class EveningController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.eveningService.resolveRoute(currentUser.userId, body);
+  }
+
+  @Post('routes/ai-drafts')
+  createAiDraft(
+    @CurrentUser() currentUser: { userId: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.eveningAiDraftService.createDraft(currentUser.userId, body);
+  }
+
+  @Get('routes/ai-drafts/:draftId')
+  getAiDraft(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('draftId') draftId: string,
+  ) {
+    return this.eveningAiDraftService.getDraft(currentUser.userId, draftId);
+  }
+
+  @Post('routes/ai-drafts/:draftId/steps/:stepIndex/accept')
+  acceptAiDraftStep(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('draftId') draftId: string,
+    @Param('stepIndex') stepIndex: string,
+  ) {
+    return this.eveningAiDraftService.acceptStep(
+      currentUser.userId,
+      draftId,
+      Number.parseInt(stepIndex, 10),
+    );
+  }
+
+  @Post('routes/ai-drafts/:draftId/steps/:stepIndex/regenerate')
+  regenerateAiDraftStep(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('draftId') draftId: string,
+    @Param('stepIndex') stepIndex: string,
+  ) {
+    return this.eveningAiDraftService.regenerateStep(
+      currentUser.userId,
+      draftId,
+      Number.parseInt(stepIndex, 10),
+    );
+  }
+
+  @Post('routes/ai-drafts/:draftId/confirm')
+  confirmAiDraft(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('draftId') draftId: string,
+  ) {
+    return this.eveningAiDraftService.confirmDraft(currentUser.userId, draftId);
   }
 
   @Get('routes/:routeId')
