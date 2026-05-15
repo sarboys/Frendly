@@ -126,6 +126,7 @@ describe('EveningAiDraftService unit', () => {
   function createService(options: {
     ticketlandWithoutCoords?: boolean;
     externalItems?: Record<string, Array<Record<string, unknown>>>;
+    filterExternalItemsByQuery?: boolean;
     openRouterResponses?: Array<Record<string, unknown> | Error>;
     intentResponse?: Record<string, unknown>;
   } = {}) {
@@ -133,7 +134,12 @@ describe('EveningAiDraftService unit', () => {
       const code = query?.where?.source?.code;
       const configuredItems = options.externalItems?.[code];
       if (configuredItems) {
-        return Promise.resolve(configuredItems.map((item) => externalItemFixture(item)));
+        const items = configuredItems.map((item) => externalItemFixture(item));
+        return Promise.resolve(
+          options.filterExternalItemsByQuery
+            ? items.filter((item) => externalItemMatchesQuery(item, query))
+            : items,
+        );
       }
       if (code === 'tomesto') {
         return Promise.resolve([
@@ -365,6 +371,30 @@ describe('EveningAiDraftService unit', () => {
     });
     const service = new EveningAiDraftService(prisma, openRouter as any);
     return { service, externalFindMany, draftCreate, draftUpdate, routeCreate, stepCreateMany, openRouter };
+  }
+
+  function externalItemMatchesQuery(item: any, query: any) {
+    const terms = query?.where?.OR;
+    if (!Array.isArray(terms) || terms.length === 0) {
+      return true;
+    }
+    return terms.some((term: any) => {
+      const tag = term?.tags?.array_contains?.[0];
+      if (typeof tag === 'string' && Array.isArray(item.tags)) {
+        return item.tags.includes(tag);
+      }
+      return ['title', 'area', 'category', 'shortSummary', 'venueName', 'placeKind'].some(
+        (field) => {
+          const contains = term?.[field]?.contains;
+          const value = item[field];
+          return (
+            typeof contains === 'string' &&
+            typeof value === 'string' &&
+            value.toLowerCase().includes(contains.toLowerCase())
+          );
+        },
+      );
+    });
   }
 
   it('creates a draft from source-specific candidates and Qwen JSON schema output', async () => {
@@ -1063,6 +1093,380 @@ describe('EveningAiDraftService unit', () => {
         }),
       }),
     );
+  });
+
+  it('finds cuisine candidates through taxonomy tags and keeps exact prompt step count', async () => {
+    const { service } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'walk', preferredTerms: ['парк'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['итальян'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-park',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Красивый парк',
+            category: 'park',
+            tags: ['парк', 'прогулка'],
+            lat: 55.73,
+            lng: 37.6,
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-casa',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Casa Bella',
+            category: 'food',
+            tags: ['occasion:food', 'cuisine:italyanskaya', 'feature:quiet'],
+            lat: 55.731,
+            lng: 37.601,
+            priceFrom: 2200,
+            placeKind: 'food',
+            venueName: 'Casa Bella',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            actionUrl: 'https://ticket.example.test/theatre',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Свидание на три точки',
+            vibe: 'Спокойное свидание',
+            blurb: 'Парк, итальянский ресторан и спектакль.',
+            steps: [
+              { externalContentItemId: 'kudago-park', timeLabel: '18:00' },
+              { externalContentItemId: 'tomesto-casa', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt:
+        'свидание на двоих завтра вечером, 3 точки. красивый парк, итальянский ресторан, спектакль. бюджет средний, не шумно.',
+      city: 'Москва',
+    });
+
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Красивый парк',
+      'Casa Bella',
+      'Спектакль',
+    ]);
+  });
+
+  it('finds expanded bar, cuisine, atmosphere and diet terms through taxonomy tags', async () => {
+    const { service, externalFindMany } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'place_bar', preferredTerms: ['крафтовое пиво'], avoidTerms: [], instruction: '' },
+            { role: 'place_bar', preferredTerms: ['камерные настойки'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['паназиатская кухня'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['мексиканская кухня'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['веганское кафе'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-craft',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Taproom',
+            category: 'drinks',
+            tags: ['place:bar', 'feature:craft_beer'],
+            lat: 55.731,
+            lng: 37.601,
+            priceFrom: 1600,
+            placeKind: 'drinks',
+            venueName: 'Taproom',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-infusions',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Cabinet',
+            category: 'drinks',
+            tags: ['place:bar', 'feature:quiet', 'set:nastoyki'],
+            lat: 55.732,
+            lng: 37.602,
+            priceFrom: 1800,
+            placeKind: 'drinks',
+            venueName: 'Cabinet',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-panasian',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Asia Room',
+            category: 'food',
+            tags: ['occasion:food', 'cuisine:panaziatskaya'],
+            lat: 55.733,
+            lng: 37.603,
+            priceFrom: 2100,
+            placeKind: 'food',
+            venueName: 'Asia Room',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-mexican',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Taco House',
+            category: 'food',
+            tags: ['occasion:food', 'cuisine:meksikanskaya'],
+            lat: 55.734,
+            lng: 37.604,
+            priceFrom: 1900,
+            placeKind: 'food',
+            venueName: 'Taco House',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-vegan',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Green Cafe',
+            category: 'food',
+            tags: ['occasion:food', 'place:cafe', 'feature:vegan'],
+            lat: 55.735,
+            lng: 37.605,
+            priceFrom: 1500,
+            placeKind: 'food',
+            venueName: 'Green Cafe',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Еда и бары по запросу',
+            vibe: 'Точно по фильтрам',
+            blurb: 'Пиво, настойки и кухни из промта.',
+            steps: [
+              { externalContentItemId: 'tomesto-craft', timeLabel: '18:00' },
+              { externalContentItemId: 'tomesto-infusions', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-panasian', timeLabel: '20:00' },
+              { externalContentItemId: 'tomesto-mexican', timeLabel: '21:00' },
+              { externalContentItemId: 'tomesto-vegan', timeLabel: '22:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt:
+        '5 точек: крафтовое пиво, камерные настойки, паназиатская кухня, мексиканская кухня, веганское кафе',
+      city: 'Москва',
+    });
+
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Taproom',
+      'Cabinet',
+      'Asia Room',
+      'Taco House',
+      'Green Cafe',
+    ]);
+    const queriedTags = externalFindMany.mock.calls.flatMap(([query]: [any]) =>
+      (query?.where?.OR ?? [])
+        .map((term: any) => term?.tags?.array_contains?.[0])
+        .filter((tag: unknown): tag is string => typeof tag === 'string'),
+    );
+    expect(queriedTags).toEqual(
+      expect.arrayContaining([
+        'feature:craft_beer',
+        'set:nastoyki',
+        'cuisine:panaziatskaya',
+        'cuisine:meksikanskaya',
+        'feature:vegan',
+      ]),
+    );
+  });
+
+  it('does not treat barbecue food wording as a bar tag', async () => {
+    const { service, externalFindMany } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'place_food', preferredTerms: ['барбекю'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-bbq',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Smoke House',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant', 'place:steakhouse'],
+            lat: 55.731,
+            lng: 37.601,
+            priceFrom: 2200,
+            placeKind: 'food',
+            venueName: 'Smoke House',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            actionUrl: 'https://ticket.example.test/theatre',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Барбекю и театр',
+            vibe: 'Плотный ужин и спектакль',
+            blurb: 'Сначала барбекю, потом театр.',
+            steps: [
+              { externalContentItemId: 'tomesto-bbq', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: '2 точки: барбекю и спектакль',
+      city: 'Москва',
+    });
+
+    const queriedTags = externalFindMany.mock.calls.flatMap(([query]: [any]) =>
+      (query?.where?.OR ?? [])
+        .map((term: any) => term?.tags?.array_contains?.[0])
+        .filter((tag: unknown): tag is string => typeof tag === 'string'),
+    );
+    expect(queriedTags).toContain('place:steakhouse');
+    expect(queriedTags).not.toContain('place:bar');
+  });
+
+  it('rejects exact prompt step count when a requested role has no candidates', async () => {
+    const { service, draftCreate } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'walk', preferredTerms: ['парк'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['итальян'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-park',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Красивый парк',
+            category: 'park',
+            tags: ['парк', 'прогулка'],
+            lat: 55.73,
+            lng: 37.6,
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            actionUrl: 'https://ticket.example.test/theatre',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+    });
+
+    await expect(
+      service.createDraft('user-1', {
+        prompt:
+          'свидание на двоих завтра вечером, 3 точки. красивый парк, итальянский ресторан, спектакль.',
+        city: 'Москва',
+      }),
+    ).rejects.toMatchObject({
+      code: 'evening_ai_candidates_not_found',
+    });
+    expect(draftCreate).not.toHaveBeenCalled();
   });
 
   it('does not rank AI draft candidates by user coordinates', async () => {

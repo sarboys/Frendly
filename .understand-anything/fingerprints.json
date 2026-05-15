@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "1f80a47fe57e07b2a0818dfb7a9e55eb0d186b37",
-  "generatedAt": "2026-05-15T12:29:25.436Z",
+  "gitCommitHash": "578cd5bcdec4ed01338bbd3760f9d82223324130",
+  "generatedAt": "2026-05-15T13:06:14.423Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14680,7 +14680,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "528953c0bcc4d8f51e537b74df37e0eb8289032d39e8629a1d1872ab07c70296",
+      "contentHash": "37fa2145a56223e2823e3f36ea0cf4c4de131e96d2a1e28f2b8571bea151b758",
       "functions": [
         {
           "name": "hasCandidateCoords",
@@ -14789,7 +14789,7 @@
             "terms"
           ],
           "exported": false,
-          "lineCount": 3
+          "lineCount": 10
         },
         {
           "name": "stepCountFromPrompt",
@@ -14798,6 +14798,56 @@
           ],
           "exported": false,
           "lineCount": 24
+        },
+        {
+          "name": "taxonomyTagQueriesForTerms",
+          "params": [
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "taxonomyTermMatches",
+          "params": [
+            "term",
+            "aliases"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "taxonomyAliasMatches",
+          "params": [
+            "term",
+            "alias"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "escapeRegExp",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeTaxonomyToken",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "transliterateRu",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 37
         },
         {
           "name": "budgetFromPrompt",
@@ -14943,7 +14993,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1846
+          "lineCount": 1856
         }
       ],
       "imports": [
@@ -14987,7 +15037,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 2529,
+      "totalLines": 2763,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {

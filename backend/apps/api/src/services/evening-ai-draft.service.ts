@@ -193,7 +193,10 @@ export class EveningAiDraftService {
     const intent = await this.resolveDraftIntent(parsedInput);
     const input = { ...parsedInput, stepCount: intent.roles.length };
     const candidates = await this.loadCandidatePack(input, intent.roles, intent.roleHints);
-    if (candidates.length < MIN_STEP_COUNT) {
+    if (
+      candidates.length < MIN_STEP_COUNT ||
+      (input.stepCountExplicit && !this.hasEnoughCandidatesForRoles(candidates, intent.roles))
+    ) {
       throw new ApiError(404, 'evening_ai_candidates_not_found', 'Route candidates not found');
     }
 
@@ -680,6 +683,9 @@ export class EveningAiDraftService {
       selected.push(candidate);
     }
 
+    if (input.stepCountExplicit && selected.length !== roles.length) {
+      throw new ApiError(404, 'evening_ai_route_not_found', 'AI route not found');
+    }
     if (selected.length < MIN_STEP_COUNT) {
       throw new ApiError(404, 'evening_ai_route_not_found', 'AI route not found');
     }
@@ -900,16 +906,20 @@ export class EveningAiDraftService {
     };
 
     const findManyByTerms = (terms: string[], take: number) => {
+      const tagTerms = taxonomyTagQueriesForTerms(terms);
       const where: Prisma.ExternalContentItemWhereInput = {
         ...baseWhere,
-        OR: terms.flatMap((term) => [
-          { title: { contains: term, mode: 'insensitive' as const } },
-          { area: { contains: term, mode: 'insensitive' as const } },
-          { category: { contains: term, mode: 'insensitive' as const } },
-          { shortSummary: { contains: term, mode: 'insensitive' as const } },
-          { venueName: { contains: term, mode: 'insensitive' as const } },
-          { placeKind: { contains: term, mode: 'insensitive' as const } },
-        ]),
+        OR: [
+          ...terms.flatMap((term) => [
+            { title: { contains: term, mode: 'insensitive' as const } },
+            { area: { contains: term, mode: 'insensitive' as const } },
+            { category: { contains: term, mode: 'insensitive' as const } },
+            { shortSummary: { contains: term, mode: 'insensitive' as const } },
+            { venueName: { contains: term, mode: 'insensitive' as const } },
+            { placeKind: { contains: term, mode: 'insensitive' as const } },
+          ]),
+          ...tagTerms.map((tag) => ({ tags: { array_contains: [tag] } as any })),
+        ],
       };
 
       return (this.prismaService.client as any).externalContentItem.findMany({
@@ -2363,7 +2373,14 @@ function candidateSearchText(candidate: CandidateCard) {
 }
 
 function candidateMatchesTerms(candidate: CandidateCard, terms: string[]) {
-  return terms.length > 0 && hasAny(candidateSearchText(candidate), terms);
+  if (terms.length === 0) {
+    return false;
+  }
+  if (hasAny(candidateSearchText(candidate), terms)) {
+    return true;
+  }
+  const tagTerms = new Set(taxonomyTagQueriesForTerms(terms));
+  return candidate.tags.some((tag) => tagTerms.has(normalizeText(tag)));
 }
 
 function stepCountFromPrompt(prompt: string | null) {
@@ -2389,6 +2406,223 @@ function stepCountFromPrompt(prompt: string | null) {
     [new RegExp(`${before}(?:пять)\\s+${unit}${after}`), 5],
   ];
   return wordCounts.find(([pattern]) => pattern.test(text))?.[1] ?? null;
+}
+
+const TAXONOMY_TERM_GROUPS: Array<{ aliases: string[]; tags: string[] }> = [
+  {
+    aliases: ['ресторан', 'рестик', 'ужин', 'поесть', 'еда', 'кухня', 'food', 'dinner', 'dining'],
+    tags: ['occasion:food', 'place:restaurant'],
+  },
+  {
+    aliases: ['кафе', 'кофейня', 'кофе', 'coffee', 'матча', 'чай', 'чайн'],
+    tags: ['occasion:food', 'place:cafe'],
+  },
+  {
+    aliases: ['завтрак', 'бранч', 'brunch', 'breakfast'],
+    tags: ['occasion:food', 'place:cafe', 'feature:breakfast'],
+  },
+  {
+    aliases: ['десерт', 'кондитер', 'пекар', 'булочн', 'сладк', 'cake', 'pastry'],
+    tags: ['occasion:food', 'place:cafe'],
+  },
+  {
+    aliases: ['паст', 'итальян', 'italian', 'траттор', 'trattoria', 'остери', 'osteria', 'пицц'],
+    tags: ['cuisine:italyanskaya', 'cuisine:italian'],
+  },
+  {
+    aliases: ['грузин', 'хинкали', 'хачапури', 'georgian'],
+    tags: ['cuisine:gruzinskaya', 'cuisine:georgian'],
+  },
+  {
+    aliases: ['суши', 'ролл', 'рамен', 'япон', 'izakaya', 'japanese'],
+    tags: ['cuisine:yaponskaya', 'cuisine:japanese'],
+  },
+  {
+    aliases: ['паназиат', 'азиат', 'лапша', 'wok', 'asian', 'panasian'],
+    tags: ['cuisine:panaziatskaya', 'cuisine:asian', 'cuisine:panasian'],
+  },
+  {
+    aliases: ['китай', 'димсам', 'дим сам', 'утка по пекински', 'chinese'],
+    tags: ['cuisine:kitayskaya', 'cuisine:chinese'],
+  },
+  {
+    aliases: ['корей', 'кимчи', 'korean'],
+    tags: ['cuisine:koreyskaya', 'cuisine:korean'],
+  },
+  {
+    aliases: ['мексик', 'тако', 'буррито', 'кесадиль', 'mexican'],
+    tags: ['cuisine:meksikanskaya', 'cuisine:mexican'],
+  },
+  {
+    aliases: ['индий', 'карри', 'масала', 'indian'],
+    tags: ['cuisine:indiyskaya', 'cuisine:indian'],
+  },
+  {
+    aliases: ['средиземномор', 'mediterranean'],
+    tags: ['cuisine:sredizemnomorskaya', 'cuisine:mediterranean'],
+  },
+  {
+    aliases: ['русск', 'борщ', 'пельмен', 'russian'],
+    tags: ['cuisine:russkaya', 'cuisine:russian'],
+  },
+  {
+    aliases: ['мясо', 'стейк', 'гриль', 'шашлык', 'барбекю', 'bbq', 'barbecue', 'steak'],
+    tags: ['occasion:food', 'place:restaurant', 'place:steakhouse', 'cuisine:steakhouse'],
+  },
+  {
+    aliases: ['рыба', 'морепродукт', 'seafood'],
+    tags: ['occasion:food', 'place:restaurant', 'cuisine:seafood', 'cuisine:rybnaya'],
+  },
+  {
+    aliases: ['веган', 'вегетариан', 'vegetarian', 'vegan'],
+    tags: ['occasion:food', 'place:cafe', 'feature:vegan', 'cuisine:vegan', 'cuisine:vegetarianskaya'],
+  },
+  {
+    aliases: ['бар', 'паб', 'гастробар', 'рюмочн', 'speakeasy', 'pub', 'bar'],
+    tags: ['place:bar'],
+  },
+  {
+    aliases: ['пиво', 'пивн', 'крафт', 'craft', 'ipa', 'stout', 'эль', 'лагер', 'lager'],
+    tags: ['place:bar', 'feature:craft_beer', 'set:craft_beer'],
+  },
+  {
+    aliases: ['настойк', 'наливк', 'infusion', 'infusions'],
+    tags: ['place:bar', 'set:nastoyki'],
+  },
+  {
+    aliases: ['вино', 'винн', 'wine'],
+    tags: ['place:bar', 'set:wine'],
+  },
+  {
+    aliases: ['коктейл', 'миксолог', 'cocktail', 'cocktails'],
+    tags: ['place:bar', 'set:cocktails'],
+  },
+  {
+    aliases: ['сидр', 'cider'],
+    tags: ['place:bar', 'set:cider'],
+  },
+  {
+    aliases: ['тих', 'спокойн', 'не шумно', 'камерн', 'уютн', 'chill', 'quiet', 'cozy'],
+    tags: ['feature:quiet', 'quiet'],
+  },
+  {
+    aliases: ['романтичн', 'свидан', 'date', 'romantic'],
+    tags: ['feature:quiet', 'feature:romantic', 'set:date', 'date'],
+  },
+  {
+    aliases: ['лаунж', 'lounge'],
+    tags: ['place:bar', 'feature:quiet', 'set:lounge'],
+  },
+  {
+    aliases: ['террас', 'веранд', 'terrace', 'veranda'],
+    tags: ['feature:summer_terrace'],
+  },
+  {
+    aliases: ['панорам', 'крыша', 'rooftop', 'panorama'],
+    tags: ['feature:panoramic_view'],
+  },
+  {
+    aliases: ['недорог', 'дешев', 'бюджет', 'cheap'],
+    tags: ['budget:cheap'],
+  },
+  {
+    aliases: ['средний', 'средн', 'mid', 'middle'],
+    tags: ['budget:mid'],
+  },
+  {
+    aliases: ['дорог', 'премиум', 'люкс', 'premium', 'luxury'],
+    tags: ['budget:premium'],
+  },
+];
+
+function taxonomyTagQueriesForTerms(terms: string[]) {
+  const tags: string[] = [];
+  const add = (...values: string[]) => {
+    tags.push(...values);
+  };
+
+  for (const rawTerm of terms) {
+    const term = normalizeText(rawTerm);
+    if (!term) {
+      continue;
+    }
+    if (term.includes(':')) {
+      add(term);
+    }
+    const token = normalizeTaxonomyToken(term);
+    if (token) {
+      add(token);
+    }
+    for (const group of TAXONOMY_TERM_GROUPS) {
+      if (taxonomyTermMatches(term, group.aliases)) {
+        add(...group.tags);
+      }
+    }
+  }
+
+  return uniqueStrings(tags);
+}
+
+function taxonomyTermMatches(term: string, aliases: string[]) {
+  return aliases.some((alias) => taxonomyAliasMatches(term, normalizeText(alias)));
+}
+
+function taxonomyAliasMatches(term: string, alias: string) {
+  if (alias.length <= 3) {
+    return new RegExp(`(^|[^a-z0-9а-я])${escapeRegExp(alias)}($|[^a-z0-9а-я])`).test(term);
+  }
+  return term.includes(alias);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeTaxonomyToken(value: string) {
+  const token = transliterateRu(value)
+    .replace(/['"`]+/g, '')
+    .replace(/[^a-z0-9а-яё:]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_');
+  return token || null;
+}
+
+function transliterateRu(value: string) {
+  const map: Record<string, string> = {
+    а: 'a',
+    б: 'b',
+    в: 'v',
+    г: 'g',
+    д: 'd',
+    е: 'e',
+    ж: 'zh',
+    з: 'z',
+    и: 'i',
+    й: 'y',
+    к: 'k',
+    л: 'l',
+    м: 'm',
+    н: 'n',
+    о: 'o',
+    п: 'p',
+    р: 'r',
+    с: 's',
+    т: 't',
+    у: 'u',
+    ф: 'f',
+    х: 'h',
+    ц: 'ts',
+    ч: 'ch',
+    ш: 'sh',
+    щ: 'sch',
+    ъ: '',
+    ы: 'y',
+    ь: '',
+    э: 'e',
+    ю: 'yu',
+    я: 'ya',
+  };
+  return value.replace(/[а-я]/g, (char) => map[char] ?? char);
 }
 
 function budgetFromPrompt(prompt: string | null) {

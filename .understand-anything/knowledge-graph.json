@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T12:29:25.049Z",
-    "gitCommitHash": "1f80a47fe57e07b2a0818dfb7a9e55eb0d186b37"
+    "analyzedAt": "2026-05-15T13:06:14.133Z",
+    "gitCommitHash": "578cd5bcdec4ed01338bbd3760f9d82223324130"
   },
   "nodes": [
     {
@@ -10883,7 +10883,7 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 1 classes, 24 functions.",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 30 functions.",
       "tags": [
         "backend",
         "code",
@@ -10897,8 +10897,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2268,
-        2272
+        2278,
+        2282
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -10914,8 +10914,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2274,
-        2283
+        2284,
+        2293
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -10931,8 +10931,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2285,
-        2287
+        2295,
+        2297
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10948,8 +10948,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2289,
-        2297
+        2299,
+        2307
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -10965,8 +10965,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2299,
-        2304
+        2309,
+        2314
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10982,8 +10982,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2306,
-        2314
+        2316,
+        2324
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -10999,8 +10999,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2316,
-        2318
+        2326,
+        2328
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -11016,8 +11016,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2320,
-        2322
+        2330,
+        2332
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -11033,8 +11033,8 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2324,
-        2332
+        2334,
+        2342
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -11050,8 +11050,8 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2334,
-        2336
+        2344,
+        2346
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -11067,8 +11067,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2338,
-        2347
+        2348,
+        2357
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -11084,8 +11084,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2349,
-        2363
+        2359,
+        2373
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -11101,8 +11101,8 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2365,
-        2367
+        2375,
+        2384
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -11118,10 +11118,112 @@
       "name": "stepCountFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2369,
-        2392
+        2386,
+        2409
       ],
       "summary": "stepCountFromPrompt in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyTagQueriesForTerms",
+      "type": "function",
+      "name": "taxonomyTagQueriesForTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2538,
+        2564
+      ],
+      "summary": "taxonomyTagQueriesForTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyTermMatches",
+      "type": "function",
+      "name": "taxonomyTermMatches",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2566,
+        2568
+      ],
+      "summary": "taxonomyTermMatches in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyAliasMatches",
+      "type": "function",
+      "name": "taxonomyAliasMatches",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2570,
+        2575
+      ],
+      "summary": "taxonomyAliasMatches in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:escapeRegExp",
+      "type": "function",
+      "name": "escapeRegExp",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2577,
+        2579
+      ],
+      "summary": "escapeRegExp in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeTaxonomyToken",
+      "type": "function",
+      "name": "normalizeTaxonomyToken",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2581,
+        2588
+      ],
+      "summary": "normalizeTaxonomyToken in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:transliterateRu",
+      "type": "function",
+      "name": "transliterateRu",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2590,
+        2626
+      ],
+      "summary": "transliterateRu in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -11135,8 +11237,8 @@
       "name": "budgetFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2394,
-        2414
+        2628,
+        2648
       ],
       "summary": "budgetFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
@@ -11152,8 +11254,8 @@
       "name": "areaFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2416,
-        2426
+        2650,
+        2660
       ],
       "summary": "areaFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
@@ -11169,8 +11271,8 @@
       "name": "explicitAreaFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2428,
-        2447
+        2662,
+        2681
       ],
       "summary": "explicitAreaFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
@@ -11186,8 +11288,8 @@
       "name": "normalizeAreaPhrase",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2449,
-        2482
+        2683,
+        2716
       ],
       "summary": "normalizeAreaPhrase in evening-ai-draft.service.ts.",
       "tags": [
@@ -11203,8 +11305,8 @@
       "name": "areaTermsFor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2484,
-        2493
+        2718,
+        2727
       ],
       "summary": "areaTermsFor in evening-ai-draft.service.ts.",
       "tags": [
@@ -11220,8 +11322,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2495,
-        2497
+        2729,
+        2731
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -11237,8 +11339,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2499,
-        2501
+        2733,
+        2735
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -11254,8 +11356,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2503,
-        2509
+        2737,
+        2743
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -11271,8 +11373,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2511,
-        2524
+        2745,
+        2758
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -11288,8 +11390,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2526,
-        2528
+        2760,
+        2762
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -11306,7 +11408,7 @@
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
         185,
-        2030
+        2040
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -37819,6 +37921,48 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stepCountFromPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyTagQueriesForTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyTermMatches",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyAliasMatches",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:escapeRegExp",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeTaxonomyToken",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:transliterateRu",
       "type": "contains",
       "direction": "forward",
       "weight": 1
