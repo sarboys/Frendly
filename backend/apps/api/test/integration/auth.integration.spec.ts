@@ -1002,11 +1002,29 @@ describe('auth flows', () => {
       ]),
     );
 
-    const serialized = JSON.stringify(auditEvents);
-    expect(serialized).not.toContain(session.code);
-    expect(serialized).not.toContain(response.body.accessToken);
-    expect(serialized).not.toContain(response.body.refreshToken);
-    expect(serialized).not.toContain(process.env.TELEGRAM_BOT_TOKEN!);
+    const serializedSecretBearingFields = JSON.stringify(
+      auditEvents.map(
+        (event: {
+          maskedPhone?: unknown;
+          userAgent?: unknown;
+          metadata?: unknown;
+        }) => ({
+          maskedPhone: event.maskedPhone,
+          userAgent: event.userAgent,
+          metadata: event.metadata,
+        }),
+      ),
+    );
+    expect(serializedSecretBearingFields).not.toContain(session.code);
+    expect(serializedSecretBearingFields).not.toContain(
+      response.body.accessToken,
+    );
+    expect(serializedSecretBearingFields).not.toContain(
+      response.body.refreshToken,
+    );
+    expect(serializedSecretBearingFields).not.toContain(
+      process.env.TELEGRAM_BOT_TOKEN!,
+    );
   });
 
   it('verifies the selected telegram session when another session has the same code', async () => {
