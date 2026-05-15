@@ -578,6 +578,20 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     ]);
     const categorySlug = normalizeSlug(originalCategory ?? kind);
     const normalizedCategory = kind === 'promos' ? 'promo' : eventCategory(originalCategory, title);
+    const description = shortDescription($);
+    if (kind === 'promos') {
+      const skipReason = blockedTomestoPromoReason({
+        title,
+        category: originalCategory,
+        description,
+        slug,
+        sourceUrl,
+      });
+      if (skipReason) {
+        console.info('[tomesto] promo skipped', { slug, title, reason: skipReason });
+        return null;
+      }
+    }
     const dateWindow = firstDateWindow($, input.from, input.to);
     const price = visiblePrice($);
     const venueName = firstText($, [
@@ -623,7 +637,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       city: MOSCOW,
       timezone: MOSCOW_TIMEZONE,
       title,
-      description: shortDescription($),
+      description,
       category: normalizedCategory,
       tags,
       address: firstText($, ['[itemprop="address"]', '.address', 'address']),
@@ -782,6 +796,32 @@ function shortDescription($: CheerioRoot) {
   );
 }
 
+function blockedTomestoPromoReason(input: {
+  title: string;
+  category: string | null;
+  description: string | null;
+  slug: string;
+  sourceUrl: string;
+}) {
+  const text = normalizeSearchText([
+    input.title,
+    input.category,
+    input.description,
+    input.slug,
+    input.sourceUrl,
+  ].filter(isString).join(' '));
+  if (/(?:день\s+рожд|дня\s+рожд|дню\s+рожд|именин|birthday|den[-_\s]*rozhden)/.test(text)) {
+    return 'birthday';
+  }
+  if (/(?:банкет|banket|banquet)/.test(text)) {
+    return 'banquet';
+  }
+  if (/(?:свадьб|свадеб|svadb|wedding)/.test(text)) {
+    return 'wedding';
+  }
+  return null;
+}
+
 function cleanText(value: unknown, maxLength = 500) {
   if (typeof value !== 'string') {
     return null;
@@ -791,6 +831,10 @@ function cleanText(value: unknown, maxLength = 500) {
     return null;
   }
   return trimmed.length > maxLength ? trimmed.slice(0, maxLength).trim() : trimmed;
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLowerCase().replace(/ё/g, 'е');
 }
 
 function coordinates($: CheerioRoot) {

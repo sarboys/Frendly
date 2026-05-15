@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "853d0f97c3283f59fd4db36f29be78217ae8b5d5",
-  "generatedAt": "2026-05-15T11:24:19.167Z",
+  "gitCommitHash": "1f80a47fe57e07b2a0818dfb7a9e55eb0d186b37",
+  "generatedAt": "2026-05-15T12:29:25.436Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14680,7 +14680,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "c8d30795de2bfc9bc0d22b88633abd53c4721733d7f79ef34838020f6ae93ace",
+      "contentHash": "528953c0bcc4d8f51e537b74df37e0eb8289032d39e8629a1d1872ab07c70296",
       "functions": [
         {
           "name": "hasCandidateCoords",
@@ -14792,12 +14792,53 @@
           "lineCount": 3
         },
         {
+          "name": "stepCountFromPrompt",
+          "params": [
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
           "name": "budgetFromPrompt",
           "params": [
             "prompt"
           ],
           "exported": false,
-          "lineCount": 18
+          "lineCount": 21
+        },
+        {
+          "name": "areaFromPrompt",
+          "params": [
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "explicitAreaFromPrompt",
+          "params": [
+            "text"
+          ],
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "normalizeAreaPhrase",
+          "params": [
+            "value",
+            "allowPlaceWords"
+          ],
+          "exported": false,
+          "lineCount": 34
+        },
+        {
+          "name": "areaTermsFor",
+          "params": [
+            "area"
+          ],
+          "exported": false,
+          "lineCount": 10
         },
         {
           "name": "roundCoord",
@@ -14902,7 +14943,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1844
+          "lineCount": 1846
         }
       ],
       "imports": [
@@ -14946,7 +14987,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 2225,
+      "totalLines": 2529,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -21359,7 +21400,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "9c9d1339699f86966b69a76c38c4d5e6cbe317ab2d076d3987e7b96fccaadc53",
+      "contentHash": "5b6188d4a74403d7a979795414bf3b1113103a33426d5928a4fa3c90fb7415b8",
       "functions": [
         {
           "name": "isDetailPath",
@@ -21449,6 +21490,14 @@
           "lineCount": 7
         },
         {
+          "name": "blockedTomestoPromoReason",
+          "params": [
+            "input"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
           "name": "cleanText",
           "params": [
             "value",
@@ -21456,6 +21505,14 @@
           ],
           "exported": false,
           "lineCount": 10
+        },
+        {
+          "name": "normalizeSearchText",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
         },
         {
           "name": "coordinates",
@@ -21880,7 +21937,7 @@
             "catalogFallbackMaxPages"
           ],
           "exported": true,
-          "lineCount": 626
+          "lineCount": 640
         }
       ],
       "imports": [
@@ -21903,7 +21960,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1385,
+      "totalLines": 1429,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {

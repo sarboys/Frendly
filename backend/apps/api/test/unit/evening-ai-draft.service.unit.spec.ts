@@ -922,6 +922,512 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('treats step count written in prompt as exact even when intent returns extra roles', async () => {
+    const { service, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'walk', preferredTerms: ['парк'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['итальян'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
+            { role: 'place_bar', preferredTerms: ['тихий'], avoidTerms: [], instruction: '' },
+            { role: 'free_activity', preferredTerms: ['выставка'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-park',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Красивый парк',
+            category: 'park',
+            tags: ['парк', 'прогулка'],
+            lat: 55.73,
+            lng: 37.6,
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+          {
+            id: 'kudago-free',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Бесплатная выставка',
+            category: 'festival',
+            tags: ['фестиваль'],
+            lat: 55.74,
+            lng: 37.61,
+            startsAt: new Date('2099-06-01T17:00:00.000Z'),
+            priceMode: 'free',
+            priceFrom: 0,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-italian',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Итальянский ресторан',
+            category: 'restaurant',
+            tags: ['итальян', 'паста'],
+            priceFrom: 2200,
+            placeKind: 'restaurant',
+            venueName: 'Итальянский ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Тихий бар',
+            category: 'bar',
+            tags: ['bar', 'тихий'],
+            priceFrom: 1800,
+            placeKind: 'bar',
+            venueName: 'Тихий бар',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            actionUrl: 'https://ticket.example.test/theatre',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Свидание на три точки',
+            vibe: 'Спокойное свидание',
+            blurb: 'Парк, итальянский ресторан и спектакль.',
+            steps: [
+              { externalContentItemId: 'kudago-park', timeLabel: '18:00' },
+              { externalContentItemId: 'tomesto-italian', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:00' },
+              { externalContentItemId: 'tomesto-bar', timeLabel: '22:00' },
+              { externalContentItemId: 'kudago-free', timeLabel: '23:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt:
+        'свидание на двоих завтра вечером. 3 точки, красивый парк, итальянский ресторан, спектакль. бюджет средний, не шумно',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config).toEqual(
+      expect.objectContaining({
+        stepCountMode: 'exact',
+        maxStepCount: 3,
+        budget: 'mid',
+      }),
+    );
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.stepCount).toBe(3);
+    expect(routePrompt.config.budget).toBe('mid');
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Красивый парк',
+      'Итальянский ресторан',
+      'Спектакль',
+    ]);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          budget: 'mid',
+          stepCount: 3,
+        }),
+      }),
+    );
+  });
+
+  it('does not rank AI draft candidates by user coordinates', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'place_food', preferredTerms: [], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: [], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-far',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Дальний ресторан',
+            category: 'restaurant',
+            tags: ['restaurant'],
+            lat: 55.1,
+            lng: 37.1,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Дальний ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-near',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ближний ресторан',
+            category: 'restaurant',
+            tags: ['restaurant'],
+            lat: 55.7298,
+            lng: 37.6011,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Ближний ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Два ресторана',
+            vibe: 'Без привязки к гео',
+            blurb: 'Порядок не зависит от текущей точки пользователя.',
+            steps: [
+              { externalContentItemId: 'tomesto-far', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-near', timeLabel: '20:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: '2 точки: ресторан и ресторан',
+      city: 'Москва',
+      latitude: 55.7298,
+      longitude: 37.6011,
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    const foodCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'place_food')
+      .map((candidate: any) => candidate.id);
+    expect(foodCandidateIds.slice(0, 2)).toEqual(['tomesto-far', 'tomesto-near']);
+  });
+
+  it('infers prompt area before LLM and boosts matching area candidates', async () => {
+    const { service, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'place_food', preferredTerms: ['ресторан'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-outside',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан у окраины',
+            category: 'restaurant',
+            tags: ['restaurant'],
+            area: 'Север',
+            lat: 55.9,
+            lng: 37.7,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан у окраины',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-center',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан в центре',
+            category: 'restaurant',
+            tags: ['restaurant', 'area:center', 'metro:teatralnaya', 'set:restaurants-center'],
+            area: 'Центр',
+            lat: 55.76,
+            lng: 37.61,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан в центре',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль в центре',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            sourceProvider: 'Ticketland / MTS Live',
+            actionUrl: 'https://ticket.example.test/theatre',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ресторан и спектакль',
+            vibe: 'В центре',
+            blurb: 'Сначала ресторан, потом спектакль.',
+            steps: [
+              { externalContentItemId: 'tomesto-center', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: '2 точки в центре: ресторан и спектакль',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config.area).toBe('center');
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.area).toBe('center');
+    const foodCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'place_food')
+      .map((candidate: any) => candidate.id);
+    expect(foodCandidateIds.indexOf('tomesto-center')).toBeLessThan(
+      foodCandidateIds.indexOf('tomesto-outside'),
+    );
+    expect(result.route.area).toBe('center');
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          area: 'center',
+        }),
+      }),
+    );
+  });
+
+  it('uses precise prompt area as fallback point for shows without coordinates', async () => {
+    const { service } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'place_food', preferredTerms: ['ресторан'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-patriki',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан на Патриках',
+            category: 'restaurant',
+            tags: ['restaurant', 'area:center', 'metro:barrikadnaya', 'set:patriki'],
+            area: 'Патрики',
+            lat: 55.7638,
+            lng: 37.5932,
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан на Патриках',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль без координат',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            lat: null,
+            lng: null,
+            sourceProvider: 'Ticketland / MTS Live',
+            actionUrl: 'https://ticket.example.test/theatre',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Патрики и спектакль',
+            vibe: 'В районе',
+            blurb: 'Сначала ресторан, потом спектакль.',
+            steps: [
+              { externalContentItemId: 'tomesto-patriki', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: '2 точки на патриках: ресторан и спектакль',
+      city: 'Москва',
+    });
+
+    expect(result.route.area).toBe('patriki');
+    expect(result.route.steps[1]).toEqual(
+      expect.objectContaining({
+        title: 'Спектакль без координат',
+        lat: 55.7638,
+        lng: 37.5932,
+        distance: 'адрес в билете',
+      }),
+    );
+  });
+
+  it('understands city side area from prompt and boosts it', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'place_food', preferredTerms: ['ресторан'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-center',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Центральный ресторан',
+            category: 'restaurant',
+            tags: ['restaurant', 'area:center'],
+            area: 'Центр',
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Центральный ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-north',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан на севере',
+            category: 'restaurant',
+            tags: ['restaurant', 'area:north'],
+            area: 'Север',
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан на севере',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            sourceProvider: 'Ticketland / MTS Live',
+            actionUrl: 'https://ticket.example.test/theatre',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Север и спектакль',
+            vibe: 'В районе',
+            blurb: 'Сначала ресторан, потом спектакль.',
+            steps: [
+              { externalContentItemId: 'tomesto-north', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: '2 точки на севере: ресторан и спектакль',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config.area).toBe('north');
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    const foodCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'place_food')
+      .map((candidate: any) => candidate.id);
+    expect(foodCandidateIds.indexOf('tomesto-north')).toBeLessThan(
+      foodCandidateIds.indexOf('tomesto-center'),
+    );
+  });
+
   it('allows KudaGo park places as walk candidates', async () => {
     const { service, draftCreate } = createService({
       externalItems: {

@@ -375,7 +375,14 @@ describe('content source adapters', () => {
         return textResponse('');
       }
       if (url.pathname === '/moskva/promos') {
-        return textResponse('<a href="/moskva/promos/birthday-sale">promo</a>');
+        return textResponse(`
+          <a href="/moskva/promos/birthday-sale">birthday promo</a>
+          <a href="/moskva/promos/birthday-gift">birthday gift</a>
+          <a href="/moskva/promos/den-rozhdeniya/birthday-menu">birthday menu</a>
+          <a href="/moskva/promos/bankety/banquet-discount">banquet promo</a>
+          <a href="/moskva/promos/svadby/wedding-offer">wedding promo</a>
+          <a href="/moskva/promos/wine-set">regular promo</a>
+        `);
       }
       if (url.pathname === '/moskva/promos/page/2') {
         return textResponse('');
@@ -387,6 +394,21 @@ describe('content source adapters', () => {
         return textResponse(tomestoEventHtml());
       }
       if (url.pathname === '/moskva/promos/birthday-sale') {
+        return textResponse(tomestoBirthdayPromoHtml());
+      }
+      if (url.pathname === '/moskva/promos/birthday-gift') {
+        return textResponse(tomestoBirthdayGiftPromoHtml());
+      }
+      if (url.pathname === '/moskva/promos/den-rozhdeniya/birthday-menu') {
+        return textResponse(tomestoBirthdayMenuPromoHtml());
+      }
+      if (url.pathname === '/moskva/promos/bankety/banquet-discount') {
+        return textResponse(tomestoBanquetPromoHtml());
+      }
+      if (url.pathname === '/moskva/promos/svadby/wedding-offer') {
+        return textResponse(tomestoWeddingPromoHtml());
+      }
+      if (url.pathname === '/moskva/promos/wine-set') {
         return textResponse(tomestoPromoHtml());
       }
       throw new Error(`unexpected_url_${url.pathname}`);
@@ -438,11 +460,16 @@ describe('content source adapters', () => {
     });
     expect(items[1]?.startsAt?.toISOString()).toBe('2026-05-12T16:00:00.000Z');
     expect(items[2]).toMatchObject({
-      sourceItemId: 'promo:birthday:birthday-sale',
+      sourceItemId: 'promo:skidki:wine-set',
       contentKind: 'event',
       category: 'promo',
       raw: expect.objectContaining({ kind: 'promo' }),
     });
+    expect(items.map((item) => item.sourceItemId)).not.toContain('promo:birthday:birthday-sale');
+    expect(items.map((item) => item.sourceItemId)).not.toContain('promo:birthday:birthday-gift');
+    expect(items.map((item) => item.sourceItemId)).not.toContain('promo:den-rozhdeniya:birthday-menu');
+    expect(items.map((item) => item.sourceItemId)).not.toContain('promo:bankety:banquet-discount');
+    expect(items.map((item) => item.sourceItemId)).not.toContain('promo:svadby:wedding-offer');
   });
 
   it('loads Tomesto catalog places from sitemap slices without events or promos', async () => {
@@ -622,7 +649,7 @@ function tomestoEventHtml() {
   `;
 }
 
-function tomestoPromoHtml() {
+function tomestoBirthdayPromoHtml() {
   return `
     <html>
       <head>
@@ -631,6 +658,86 @@ function tomestoPromoHtml() {
       <body>
         <h1>Скидка на день рождения</h1>
         <a class="promo-category" href="/moskva/promos/birthday">birthday</a>
+        <div class="promo-place"><a>Кафе Центр</a></div>
+        <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
+      </body>
+    </html>
+  `;
+}
+
+function tomestoBirthdayGiftPromoHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/promos/birthday-gift">
+      </head>
+      <body>
+        <h1>Подарок в день рождения</h1>
+        <a class="promo-category" href="/moskva/promos/birthday">birthday</a>
+        <div class="promo-place"><a>Кафе Центр</a></div>
+        <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
+      </body>
+    </html>
+  `;
+}
+
+function tomestoBirthdayMenuPromoHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/promos/den-rozhdeniya/birthday-menu">
+      </head>
+      <body>
+        <h1>Меню на день рождения</h1>
+        <a class="promo-category" href="/moskva/promos/den-rozhdeniya">День рождения</a>
+        <div class="promo-place"><a>Кафе Центр</a></div>
+        <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
+      </body>
+    </html>
+  `;
+}
+
+function tomestoBanquetPromoHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/promos/bankety/banquet-discount">
+      </head>
+      <body>
+        <h1>Скидка 10% на банкеты</h1>
+        <a class="promo-category" href="/moskva/promos/bankety">Банкеты</a>
+        <div class="promo-place"><a>Кафе Центр</a></div>
+        <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
+      </body>
+    </html>
+  `;
+}
+
+function tomestoWeddingPromoHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/promos/svadby/wedding-offer">
+      </head>
+      <body>
+        <h1>Свадебный банкет без аренды зала</h1>
+        <a class="promo-category" href="/moskva/promos/svadby">Свадьбы</a>
+        <div class="promo-place"><a>Кафе Центр</a></div>
+        <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
+      </body>
+    </html>
+  `;
+}
+
+function tomestoPromoHtml() {
+  return `
+    <html>
+      <head>
+        <link rel="canonical" href="https://tomesto.ru/moskva/promos/wine-set">
+      </head>
+      <body>
+        <h1>Винный сет в подарок</h1>
+        <a class="promo-category" href="/moskva/promos/skidki">Скидки</a>
         <div class="promo-place"><a>Кафе Центр</a></div>
         <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
       </body>

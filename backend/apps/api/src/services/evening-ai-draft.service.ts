@@ -904,6 +904,7 @@ export class EveningAiDraftService {
         ...baseWhere,
         OR: terms.flatMap((term) => [
           { title: { contains: term, mode: 'insensitive' as const } },
+          { area: { contains: term, mode: 'insensitive' as const } },
           { category: { contains: term, mode: 'insensitive' as const } },
           { shortSummary: { contains: term, mode: 'insensitive' as const } },
           { venueName: { contains: term, mode: 'insensitive' as const } },
@@ -946,13 +947,15 @@ export class EveningAiDraftService {
       });
     };
 
-    const [preferredItems, genericItems] = await Promise.all([
+    const areaTerms = areaTermsFor(input.area).slice(0, 16);
+    const [preferredItems, areaItems, genericItems] = await Promise.all([
       intent.preferredTerms.length > 0
         ? findManyByTerms(intent.preferredTerms, 80)
         : Promise.resolve([]),
+      areaTerms.length > 0 ? findManyByTerms(areaTerms, 80) : Promise.resolve([]),
       findManyByTerms(this.searchTermsForRole(role), 120),
     ]);
-    const items = uniqueById([...preferredItems, ...genericItems]);
+    const items = uniqueById([...preferredItems, ...areaItems, ...genericItems]);
 
     const mapped = items
       .filter(
@@ -1094,7 +1097,9 @@ export class EveningAiDraftService {
 
   private parseInput(body: Record<string, unknown>): ParsedDraftInput {
     const prompt = stringOrNull(body.prompt);
-    const stepCountExplicit = body.stepCount != null && body.stepCount !== '';
+    const bodyStepCountExplicit = body.stepCount != null && body.stepCount !== '';
+    const promptStepCount = bodyStepCountExplicit ? null : stepCountFromPrompt(prompt);
+    const stepCountExplicit = bodyStepCountExplicit || promptStepCount != null;
     return {
       city: stringOrNull(body.city) ?? DEFAULT_CITY,
       prompt,
@@ -1102,11 +1107,11 @@ export class EveningAiDraftService {
       mood: stringOrNull(body.mood),
       budget: stringOrNull(body.budget) ?? budgetFromPrompt(prompt),
       format: this.parseFormat(body.format),
-      area: stringOrNull(body.area),
-      stepCount: this.parseStepCount(body.stepCount),
+      area: stringOrNull(body.area) ?? areaFromPrompt(prompt),
+      stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : promptStepCount),
       stepCountExplicit,
-      latitude: numberOrNull(body.latitude),
-      longitude: numberOrNull(body.longitude),
+      latitude: null,
+      longitude: null,
     };
   }
 
@@ -1449,6 +1454,9 @@ export class EveningAiDraftService {
     if (intent.avoidTerms.length > 0 && candidateMatchesTerms(candidate, intent.avoidTerms)) {
       score += 150;
     }
+    if (candidateMatchesTerms(candidate, areaTermsFor(input.area))) {
+      score -= 110;
+    }
     if (input.budget === 'free' && candidate.priceMode !== 'free') {
       score += 100;
     }
@@ -1464,12 +1472,6 @@ export class EveningAiDraftService {
       } else {
         score += 10;
       }
-    }
-    if (input.latitude != null && input.longitude != null && hasCandidateCoords(candidate)) {
-      score += geoDistanceKm(
-        { lat: input.latitude, lng: input.longitude },
-        candidate,
-      ) * 10;
     }
     return score;
   }
@@ -2041,12 +2043,207 @@ type ParsedDraftInput = {
   longitude: number | null;
 };
 
+type AreaAlias = {
+  code: string;
+  detectTerms: string[];
+  scoreTerms: string[];
+};
+
+const AREA_ALIASES: AreaAlias[] = [
+  {
+    code: 'kitay_gorod',
+    detectTerms: ['китай-город', 'китай город', 'китайгород'],
+    scoreTerms: [
+      'китай-город',
+      'китай город',
+      'metro:kitay_gorod',
+      'metro:lubyanka',
+      'area:center',
+      'центр',
+    ],
+  },
+  {
+    code: 'patriki',
+    detectTerms: ['патрики', 'патриках', 'патриарш', 'баррикадная', 'маяковская'],
+    scoreTerms: [
+      'патрик',
+      'патриарш',
+      'set:patriki',
+      'metro:barrikadnaya',
+      'metro:mayakovskaya',
+      'metro:pushkinskaya',
+      'area:center',
+      'центр',
+    ],
+  },
+  {
+    code: 'arbat',
+    detectTerms: ['арбат', 'арбатск'],
+    scoreTerms: ['арбат', 'metro:arbat', 'metro:smolenskaya', 'area:center', 'центр'],
+  },
+  {
+    code: 'tverskaya',
+    detectTerms: ['тверская', 'тверской', 'тверск'],
+    scoreTerms: [
+      'тверск',
+      'metro:tverskaya',
+      'metro:pushkinskaya',
+      'metro:chekhovskaya',
+      'metro:mayakovskaya',
+      'area:center',
+      'центр',
+    ],
+  },
+  {
+    code: 'chistye',
+    detectTerms: ['чистые пруды', 'чистых прудах', 'чистопруд'],
+    scoreTerms: ['чистые пруды', 'чистопруд', 'metro:chistye_prudy', 'area:center', 'центр'],
+  },
+  {
+    code: 'gorky',
+    detectTerms: ['парк горького', 'горького', 'крымский вал'],
+    scoreTerms: ['парк горького', 'горького', 'metro:park_kultury', 'metro:oktyabrskaya'],
+  },
+  {
+    code: 'kursk',
+    detectTerms: ['курская', 'курском', 'курского вокзала', 'атриум'],
+    scoreTerms: ['курская', 'курск', 'metro:kurskaya', 'metro:chkalovskaya'],
+  },
+  {
+    code: 'hamovniki',
+    detectTerms: ['хамовник'],
+    scoreTerms: ['хамовник', 'metro:park_kultury', 'metro:frunzenskaya', 'area:center', 'центр'],
+  },
+  {
+    code: 'zamoskvorechye',
+    detectTerms: ['замосквореч'],
+    scoreTerms: [
+      'замосквореч',
+      'metro:novokuznetskaya',
+      'metro:tretyakovskaya',
+      'area:center',
+      'центр',
+    ],
+  },
+  {
+    code: 'presnya',
+    detectTerms: ['пресня', 'пресне', 'красная пресня'],
+    scoreTerms: ['пресня', 'metro:krasnopresnenskaya', 'metro:barrikadnaya', 'area:center', 'центр'],
+  },
+  {
+    code: 'taganka',
+    detectTerms: ['таганк'],
+    scoreTerms: ['таганк', 'metro:taganskaya', 'metro:marksistskaya', 'area:center', 'центр'],
+  },
+  {
+    code: 'sokolniki',
+    detectTerms: ['сокольник'],
+    scoreTerms: ['сокольник', 'metro:sokolniki'],
+  },
+  {
+    code: 'maryina_roshcha',
+    detectTerms: ['марьина рощ', 'марьиной рощ'],
+    scoreTerms: ['марьина рощ', 'марьиной рощ', 'metro:marina_roshcha'],
+  },
+  {
+    code: 'danilovsky',
+    detectTerms: ['данилов'],
+    scoreTerms: ['данилов', 'metro:tulskaya', 'metro:avtozavodskaya'],
+  },
+  {
+    code: 'center',
+    detectTerms: [
+      'в центре',
+      'центр',
+      'цао',
+      'садовое',
+      'садовом',
+      'садового',
+      'бульварное',
+      'театральная',
+      'охотный ряд',
+      'лубянка',
+    ],
+    scoreTerms: [
+      'центр',
+      'цао',
+      'садовое',
+      'area:center',
+      'metro:teatralnaya',
+      'metro:okhotny_ryad',
+      'metro:lubyanka',
+      'metro:kitay_gorod',
+      'metro:tverskaya',
+      'metro:arbat',
+      'set:center',
+    ],
+  },
+  {
+    code: 'northwest',
+    detectTerms: ['северо-запад', 'северо запад', 'сзао'],
+    scoreTerms: ['северо-запад', 'северо запад', 'сзао', 'area:northwest'],
+  },
+  {
+    code: 'northeast',
+    detectTerms: ['северо-восток', 'северо восток', 'свао'],
+    scoreTerms: ['северо-восток', 'северо восток', 'свао', 'area:northeast'],
+  },
+  {
+    code: 'southwest',
+    detectTerms: ['юго-запад', 'юго запад', 'юзао'],
+    scoreTerms: ['юго-запад', 'юго запад', 'юзао', 'area:southwest'],
+  },
+  {
+    code: 'southeast',
+    detectTerms: ['юго-восток', 'юго восток', 'ювао'],
+    scoreTerms: ['юго-восток', 'юго восток', 'ювао', 'area:southeast'],
+  },
+  {
+    code: 'north',
+    detectTerms: ['на севере', 'север моск', 'северный округ', 'сао'],
+    scoreTerms: ['север', 'сао', 'area:north'],
+  },
+  {
+    code: 'south',
+    detectTerms: ['на юге', 'юг моск', 'южный округ', 'юао'],
+    scoreTerms: ['юг', 'южн', 'юао', 'area:south'],
+  },
+  {
+    code: 'east',
+    detectTerms: ['на востоке', 'восток моск', 'восточный округ', 'вао'],
+    scoreTerms: ['восток', 'восточн', 'вао', 'area:east'],
+  },
+  {
+    code: 'west',
+    detectTerms: ['на западе', 'запад моск', 'западный округ', 'зао'],
+    scoreTerms: ['запад', 'западн', 'зао', 'area:west'],
+  },
+];
+
 const AREA_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
   center: { lat: 55.7558, lng: 37.6173 },
   patriki: { lat: 55.7638, lng: 37.5932 },
+  kitay_gorod: { lat: 55.7568, lng: 37.6313 },
+  arbat: { lat: 55.752, lng: 37.5926 },
+  tverskaya: { lat: 55.7652, lng: 37.6058 },
   chistye: { lat: 55.7657, lng: 37.6388 },
   gorky: { lat: 55.7298, lng: 37.6011 },
   kursk: { lat: 55.7585, lng: 37.6591 },
+  hamovniki: { lat: 55.7343, lng: 37.5778 },
+  zamoskvorechye: { lat: 55.7358, lng: 37.6301 },
+  presnya: { lat: 55.7634, lng: 37.5619 },
+  taganka: { lat: 55.7429, lng: 37.6576 },
+  sokolniki: { lat: 55.7908, lng: 37.6797 },
+  maryina_roshcha: { lat: 55.7956, lng: 37.6165 },
+  danilovsky: { lat: 55.7083, lng: 37.6258 },
+  north: { lat: 55.85, lng: 37.56 },
+  south: { lat: 55.62, lng: 37.62 },
+  east: { lat: 55.77, lng: 37.78 },
+  west: { lat: 55.74, lng: 37.45 },
+  northwest: { lat: 55.83, lng: 37.43 },
+  northeast: { lat: 55.86, lng: 37.66 },
+  southwest: { lat: 55.66, lng: 37.52 },
+  southeast: { lat: 55.69, lng: 37.76 },
 };
 
 const CITY_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
@@ -2169,6 +2366,31 @@ function candidateMatchesTerms(candidate: CandidateCard, terms: string[]) {
   return terms.length > 0 && hasAny(candidateSearchText(candidate), terms);
 }
 
+function stepCountFromPrompt(prompt: string | null) {
+  const text = normalizeText(prompt ?? '');
+  if (!text) {
+    return null;
+  }
+  const unit =
+    '(?:точк(?:а|и|у|ек)?|мест(?:о|а)?|локаци(?:я|и|й|ю)|шаг(?:а|ов)?|этап(?:а|ов)?|стоп(?:а|ов)?)';
+  const before = '(?:^|\\s)';
+  const after = '(?=$|\\s|[,.!?;:])';
+  const digitMatch =
+    text.match(new RegExp(`${before}([2-5])\\s+${unit}${after}`)) ??
+    text.match(new RegExp(`${before}${unit}\\s*[:=\\-]?\\s*([2-5])${after}`));
+  if (digitMatch?.[1]) {
+    return Number.parseInt(digitMatch[1], 10);
+  }
+
+  const wordCounts: Array<[RegExp, number]> = [
+    [new RegExp(`${before}(?:два|две|пара|пару)\\s+${unit}${after}`), 2],
+    [new RegExp(`${before}(?:три)\\s+${unit}${after}`), 3],
+    [new RegExp(`${before}(?:четыре)\\s+${unit}${after}`), 4],
+    [new RegExp(`${before}(?:пять)\\s+${unit}${after}`), 5],
+  ];
+  return wordCounts.find(([pattern]) => pattern.test(text))?.[1] ?? null;
+}
+
 function budgetFromPrompt(prompt: string | null) {
   const text = normalizeText(prompt ?? '');
   if (!text) {
@@ -2177,8 +2399,11 @@ function budgetFromPrompt(prompt: string | null) {
   if (/(?:бесплат|free|без\s+денег)/.test(text)) {
     return 'free';
   }
+  if (/(?:средн|1500\s*[-–]\s*3500|до\s*3\s*500|до\s*3500)/.test(text)) {
+    return 'mid';
+  }
   if (
-    /(?:недорог|не\s+дорог|дешев|бюджет|эконом|до\s*1\s*500|до\s*1500|до\s*тысяч[аи]?)/.test(text)
+    /(?:недорог|не\s+дорог|дешев|бюджетн|эконом|до\s*1\s*500|до\s*1500|до\s*тысяч[аи]?)/.test(text)
   ) {
     return 'low';
   }
@@ -2186,6 +2411,85 @@ function budgetFromPrompt(prompt: string | null) {
     return 'premium';
   }
   return null;
+}
+
+function areaFromPrompt(prompt: string | null) {
+  const text = normalizeText(prompt ?? '');
+  if (!text) {
+    return null;
+  }
+  const alias = AREA_ALIASES.find((item) => hasAny(text, item.detectTerms));
+  if (alias) {
+    return alias.code;
+  }
+  return explicitAreaFromPrompt(text);
+}
+
+function explicitAreaFromPrompt(text: string) {
+  const patterns = [
+    {
+      pattern: /(?:метро|м\.)\s+([а-яa-z0-9ё .'-]{2,48})/,
+      allowPlaceWords: true,
+    },
+    {
+      pattern: /(?:в\s+районе|район|около|возле|рядом\s+с|рядом\s+со)\s+([а-яa-z0-9ё .'-]{2,48})/,
+      allowPlaceWords: false,
+    },
+  ];
+  for (const { pattern, allowPlaceWords } of patterns) {
+    const match = text.match(pattern);
+    const area = normalizeAreaPhrase(match?.[1] ?? null, allowPlaceWords);
+    if (area) {
+      return area;
+    }
+  }
+  return null;
+}
+
+function normalizeAreaPhrase(value: string | null, allowPlaceWords = false) {
+  const phrase = normalizeText(value ?? '')
+    .split(/[,.!?;:]|\s+(?:и|потом|затем|сначала|вечером|утром|днем|ночью)\s+/)[0]
+    ?? '';
+  const cleanedPhrase = phrase
+    .replace(/\b(?:москвы|москва)\b/g, '')
+    .trim();
+  if (!cleanedPhrase || cleanedPhrase.length < 2) {
+    return null;
+  }
+  if (
+    !allowPlaceWords &&
+    hasAny(cleanedPhrase, [
+      'театр',
+      'ресторан',
+      'кафе',
+      'бар',
+      'клуб',
+      'место',
+      'точк',
+      'человек',
+      'двоих',
+      'бюджет',
+      'свидан',
+    ])
+  ) {
+    return null;
+  }
+  const alias = AREA_ALIASES.find((item) => hasAny(cleanedPhrase, item.detectTerms));
+  if (alias) {
+    return alias.code;
+  }
+  return cleanedPhrase.replace(/\s+/g, '_').slice(0, 48);
+}
+
+function areaTermsFor(area: string | null) {
+  if (!area) {
+    return [];
+  }
+  const alias = AREA_ALIASES.find((item) => item.code === area);
+  if (alias) {
+    return uniqueStrings([area, ...alias.detectTerms, ...alias.scoreTerms]);
+  }
+  return uniqueStrings([area, area.replace(/_/g, ' '), area.replace(/_/g, '-')]);
 }
 
 function roundCoord(value: number) {
