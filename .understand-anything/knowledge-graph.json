@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T02:24:06.742Z",
-    "gitCommitHash": "13ceac95dc36db1af6b2c04ae60bc2d04089640c"
+    "analyzedAt": "2026-05-15T03:30:55.693Z",
+    "gitCommitHash": "7ee5a79fb0e6564f9b885190eaa202eafe83f406"
   },
   "nodes": [
     {
@@ -28822,6 +28822,19 @@
       "complexity": "moderate"
     },
     {
+      "id": "service:deploy/observability/grafana/dashboards/frendly-infrastructure.json",
+      "type": "service",
+      "name": "frendly-infrastructure.json",
+      "filePath": "deploy/observability/grafana/dashboards/frendly-infrastructure.json",
+      "summary": "frendly-infrastructure.json is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "json"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
       "type": "service",
       "name": "frendly-mobile-hot-paths.json",
@@ -28846,6 +28859,45 @@
         "json"
       ],
       "complexity": "moderate"
+    },
+    {
+      "id": "service:deploy/observability/grafana/dashboards/frendly-scale-overview.json",
+      "type": "service",
+      "name": "frendly-scale-overview.json",
+      "filePath": "deploy/observability/grafana/dashboards/frendly-scale-overview.json",
+      "summary": "frendly-scale-overview.json is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "json"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "service:deploy/observability/grafana/provisioning/dashboards/frendly.yml",
+      "type": "service",
+      "name": "frendly.yml",
+      "filePath": "deploy/observability/grafana/provisioning/dashboards/frendly.yml",
+      "summary": "frendly.yml is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "yaml"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:deploy/observability/grafana/provisioning/datasources/prometheus.yml",
+      "type": "service",
+      "name": "prometheus.yml",
+      "filePath": "deploy/observability/grafana/provisioning/datasources/prometheus.yml",
+      "summary": "prometheus.yml is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "yaml"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "document:deploy/observability/grafana/README.md",
@@ -48975,8 +49027,12 @@
         "service:compose.yaml",
         "service:deploy/nginx/frendly.conf",
         "service:deploy/nginx/frendly.scale.conf",
+        "service:deploy/observability/grafana/dashboards/frendly-infrastructure.json",
         "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
         "service:deploy/observability/grafana/dashboards/frendly-runtime.json",
+        "service:deploy/observability/grafana/dashboards/frendly-scale-overview.json",
+        "service:deploy/observability/grafana/provisioning/dashboards/frendly.yml",
+        "service:deploy/observability/grafana/provisioning/datasources/prometheus.yml",
         "document:deploy/observability/grafana/README.md",
         "service:deploy/observability/prometheus.yml",
         "pipeline:Makefile",
@@ -49312,8 +49368,8 @@
         "service:scripts/deploy.sh",
         "service:deploy/nginx/frendly.conf",
         "service:deploy/nginx/frendly.scale.conf",
-        "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
-        "service:deploy/observability/grafana/dashboards/frendly-runtime.json"
+        "service:deploy/observability/grafana/dashboards/frendly-infrastructure.json",
+        "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json"
       ]
     }
   ]

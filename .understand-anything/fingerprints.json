@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "13ceac95dc36db1af6b2c04ae60bc2d04089640c",
-  "generatedAt": "2026-05-15T02:24:07.269Z",
+  "gitCommitHash": "7ee5a79fb0e6564f9b885190eaa202eafe83f406",
+  "generatedAt": "2026-05-15T03:30:55.927Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -8823,7 +8823,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "1adbd1c2e38433fcc21fe585f27277f55c412e4d4c665d7e12e3b75fd08e99a6",
+      "contentHash": "e27b7de97b59d3b552d824f87aa1ff2b45d4b05f82766df70c7105e62eb6da75",
       "functions": [],
       "classes": [
         {
@@ -9861,7 +9861,7 @@
     },
     "backend/apps/api/src/common/http-metrics.middleware.ts": {
       "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
-      "contentHash": "0dbc99d84f095c6b7282b0fad7af8b53adf09b333c03ab68b6e6178d15f76aea",
+      "contentHash": "e9d3539e1b818cc0b50c30178a61b881a4988417c6e35554b54ca22f85317577",
       "functions": [
         {
           "name": "statusClassOf",
@@ -11256,7 +11256,7 @@
     },
     "backend/apps/api/src/controllers/chats.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
-      "contentHash": "a3043cd58e797da7e9df1eb7f181922158e1f79b4d3b3d20190f2df396394f69",
+      "contentHash": "6155526a9e0ebc4f01a9261c983a4cc34c6aa8ddc16f24fd7298ad7717728024",
       "functions": [],
       "classes": [
         {
@@ -11858,7 +11858,7 @@
     },
     "backend/apps/api/src/controllers/metrics.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/metrics.controller.ts",
-      "contentHash": "1ca3cc0881df8e4fc3fcf5748e40b1792abed33c842785fab184232b3cda42ed",
+      "contentHash": "e8d2329ff018be65bccd8fe328c0cb7eb6a09afa6c7d9a58fa165eb337862845",
       "functions": [],
       "classes": [
         {
@@ -12916,7 +12916,7 @@
     },
     "backend/apps/api/src/main.ts": {
       "filePath": "backend/apps/api/src/main.ts",
-      "contentHash": "e7a70d320ccb523d989b1933c1b578e0004250b2572bd49a0d6bb82e91ef7dc2",
+      "contentHash": "0b644893b53df42fb86a282c9c4d9b7b84a1aaf40acacad9002687ddb76740cb",
       "functions": [
         {
           "name": "bootstrap",
@@ -16810,7 +16810,7 @@
     },
     "backend/apps/api/src/services/prisma.service.ts": {
       "filePath": "backend/apps/api/src/services/prisma.service.ts",
-      "contentHash": "b8ab49322301f2f9e05530f110dad88cdb580d4bfac5076b7efbe7ba43bbb18b",
+      "contentHash": "cae5253bc9a3574704e928bae6c2c0d13a16868761720a3f9c915147d753fa42",
       "functions": [],
       "classes": [
         {
@@ -17962,7 +17962,7 @@
     },
     "backend/apps/chat/src/app.module.ts": {
       "filePath": "backend/apps/chat/src/app.module.ts",
-      "contentHash": "5d7574718d9e83199f326fc90828cc9daa4b3e0341c43266340733286bf5939a",
+      "contentHash": "3f92e05b7214b727f7e0e7f5311bc75430e317409b77bbf421f11b6532e7221a",
       "functions": [],
       "classes": [
         {
@@ -18013,7 +18013,7 @@
     },
     "backend/apps/chat/src/chat-server.service.ts": {
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
-      "contentHash": "7919e1af9fa75dc1add8975a46918736ac31db55257379333028b2ac906752e3",
+      "contentHash": "1c1ff410ebfa6dee4d96e2e9881794d7e1f3b5489f988edfa9f25bac107106bc",
       "functions": [],
       "classes": [
         {
@@ -18241,7 +18241,7 @@
     },
     "backend/apps/chat/src/metrics.controller.ts": {
       "filePath": "backend/apps/chat/src/metrics.controller.ts",
-      "contentHash": "6a048b995b9017dd6de100ff11adaa12c432aa6f7a0aa48d11d04dc71a245bde",
+      "contentHash": "3e1087162165b1878530730ade116010d63979af04d45ca233141cb968a1655b",
       "functions": [],
       "classes": [
         {
@@ -18279,7 +18279,7 @@
     },
     "backend/apps/chat/src/prisma.service.ts": {
       "filePath": "backend/apps/chat/src/prisma.service.ts",
-      "contentHash": "d0bda23beaa60561818f8cf8f56801dd4234e920a74b9d35e33dd2a1aa022692",
+      "contentHash": "c5149c81d87e7e26bfae0b6071415133a601ae4636e77eacdd2e21762ab0ae04",
       "functions": [],
       "classes": [
         {
@@ -18528,7 +18528,7 @@
     },
     "backend/apps/worker/src/app.module.ts": {
       "filePath": "backend/apps/worker/src/app.module.ts",
-      "contentHash": "2f311593b4d42fefcbebbfa5d71b6f0676418be8889bd4ea271bb9c0ebec39e4",
+      "contentHash": "6686cf47cc252694c71bdbb4bef09b7602f50ae491df0dca3c364b74889918cd",
       "functions": [],
       "classes": [
         {
@@ -21412,7 +21412,7 @@
     },
     "backend/apps/worker/src/metrics.controller.ts": {
       "filePath": "backend/apps/worker/src/metrics.controller.ts",
-      "contentHash": "6a048b995b9017dd6de100ff11adaa12c432aa6f7a0aa48d11d04dc71a245bde",
+      "contentHash": "3e1087162165b1878530730ade116010d63979af04d45ca233141cb968a1655b",
       "functions": [],
       "classes": [
         {
@@ -21450,7 +21450,7 @@
     },
     "backend/apps/worker/src/prisma.service.ts": {
       "filePath": "backend/apps/worker/src/prisma.service.ts",
-      "contentHash": "ada06312693935d8c839be8ca93669d6e874388da2560c858bddca686f96b070",
+      "contentHash": "b777741dd26899b38ce040afaf2d5961a8523cbe511f04c59930e5366b1958c0",
       "functions": [],
       "classes": [
         {
@@ -21587,7 +21587,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "04adae9529bdad449ea2df76fa0cd6dfb9eb2eb0e77aa5aa16e2dcb6024301f7",
+      "contentHash": "6bee1295c4120c532bde7355adc1e392021e7fed911c9507c5d97343e70d0a39",
       "functions": [
         {
           "name": "csv",
@@ -22760,7 +22760,7 @@
     },
     "backend/packages/database/src/client.ts": {
       "filePath": "backend/packages/database/src/client.ts",
-      "contentHash": "6d9128632c27ddb101da8d16b4c497d0e0d67a4fcc3a68dc8d72caf5b4ae91db",
+      "contentHash": "6476a9d1da17d61a223bc0c9bcdb299d405dd273b696d1301d65e25d061132ea",
       "functions": [
         {
           "name": "getPrismaClient",
@@ -23070,7 +23070,7 @@
     },
     "backend/packages/database/src/index.ts": {
       "filePath": "backend/packages/database/src/index.ts",
-      "contentHash": "83d5a3fb77aa2ed542a8249a574609ef2d1f9e829a4bec94d61aa7c7c8f70f1c",
+      "contentHash": "8e5a74be7bd8cc492385ada8da230a566ee0f41af8eb419a1bbab8cda33ccaff",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -23080,7 +23080,7 @@
     },
     "backend/packages/database/src/metrics.ts": {
       "filePath": "backend/packages/database/src/metrics.ts",
-      "contentHash": "2e4ea3fd6847d47994ba0025cc54afb03a075bf31309ab27c284927404276ca3",
+      "contentHash": "e5a4f0fa0f4d0c0fedff946baa98a10f559ddf66b5b0fc3c3a89bbd7cca351df",
       "functions": [
         {
           "name": "bindPrismaMetrics",
@@ -23306,7 +23306,7 @@
     },
     "backend/packages/database/src/pubsub.ts": {
       "filePath": "backend/packages/database/src/pubsub.ts",
-      "contentHash": "7c30aa30aacb315261e6098815c1233cb2fc03afcc47a2015fe15aabe1446212",
+      "contentHash": "fc9e1ea594bccf9fea6ca07948405e67c964215536e19500d9b92abd66d2c070",
       "functions": [
         {
           "name": "createRedisPublisher",
@@ -23593,7 +23593,7 @@
     },
     "backend/packages/database/src/s3.ts": {
       "filePath": "backend/packages/database/src/s3.ts",
-      "contentHash": "a0e8bcae4b8ad57ec7cf020e5f5b883d99b7f71bc58fd5d4d297fa58baed06eb",
+      "contentHash": "7a66a67059dda71bb334d06499f79242d43667512b57d18355d8076c3187edd5",
       "functions": [
         {
           "name": "optionalEnv",
@@ -23986,7 +23986,7 @@
     },
     "backend/scripts/perf-20k-smoke.mjs": {
       "filePath": "backend/scripts/perf-20k-smoke.mjs",
-      "contentHash": "271a92aa4b21527a68c936c12eff9a9e24e25685d0738bb7f37c34e7abde9811",
+      "contentHash": "7dd8ca7f063c4c49cabfe8420e641178802b0d245a7cc9cbe1c2504bc961dc88",
       "functions": [
         {
           "name": "parseArgs",
@@ -24059,7 +24059,7 @@
     },
     "backend/scripts/perf-hotpaths.mjs": {
       "filePath": "backend/scripts/perf-hotpaths.mjs",
-      "contentHash": "72814f4a233ab984664be3dc0ab41eda7a497cd7c9bf2b80b734ce299b6e896e",
+      "contentHash": "27368f55d108daa802abf423b7101a0d7f72f3b6b0f8f5a35dee35c0e8ba3c11",
       "functions": [
         {
           "name": "parseArgs",

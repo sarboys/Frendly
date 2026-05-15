@@ -48,4 +48,9 @@ Prometheus should scrape service metrics from the Docker network, not through `a
 
 Dashboard JSON files live in `deploy/observability/grafana/dashboards/`.
 
-Import them manually in Grafana or provision them later through Grafana provisioning if needed.
+Grafana provisions Prometheus and all Frendly dashboards automatically from:
+
+- `deploy/observability/grafana/provisioning/datasources/prometheus.yml`
+- `deploy/observability/grafana/provisioning/dashboards/frendly.yml`
+
+Dashboards are mounted read-only from the repo. Edit JSON in the repo, then restart Grafana.

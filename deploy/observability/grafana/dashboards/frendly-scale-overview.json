@@ -1,0 +1,381 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum(up)",
+          "legendFormat": "up"
+        }
+      ],
+      "title": "Targets up",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum(up == 0)",
+          "legendFormat": "down"
+        }
+      ],
+      "title": "Targets down",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum(rate(frendly_http_request_duration_seconds_count{endpoint!~\"/health|/metrics\"}[5m])) by (job, instance, status_class)",
+          "legendFormat": "{{job}} {{instance}} {{status_class}}"
+        }
+      ],
+      "title": "App request rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frendly_http_request_duration_seconds_bucket{endpoint!~\"/health|/metrics\"}[5m])) by (le, service, endpoint))",
+          "legendFormat": "{{service}} {{endpoint}} p95"
+        }
+      ],
+      "title": "HTTP p95 by endpoint",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum(rate(frendly_http_request_duration_seconds_count{endpoint!~\"/health|/metrics\",status_class=~\"4xx|5xx\"}[5m])) by (service, endpoint, status_class)",
+          "legendFormat": "{{service}} {{endpoint}} {{status_class}}"
+        }
+      ],
+      "title": "HTTP errors",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frendly_http_response_payload_bytes_bucket{endpoint!~\"/health|/metrics\"}[5m])) by (le, service, endpoint))",
+          "legendFormat": "{{service}} {{endpoint}} p95"
+        }
+      ],
+      "title": "HTTP response size p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frendly_db_query_duration_seconds_bucket[5m])) by (le, job, instance, role))",
+          "legendFormat": "{{job}} {{instance}} {{role}} p95"
+        }
+      ],
+      "title": "DB query p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 8,
+      "targets": [
+        {
+          "expr": "sum(rate(frendly_db_query_total[5m])) by (job, instance, role)",
+          "legendFormat": "{{job}} {{instance}} {{role}}"
+        }
+      ],
+      "title": "DB query rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 9,
+      "targets": [
+        {
+          "expr": "frendly_process_nodejs_eventloop_lag_p99_seconds",
+          "legendFormat": "{{job}} {{instance}} {{role}}"
+        }
+      ],
+      "title": "Node event loop lag p99",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "id": 10,
+      "targets": [
+        {
+          "expr": "sum(rate(frendly_process_process_cpu_seconds_total[5m])) by (job, instance, role)",
+          "legendFormat": "{{job}} {{instance}} {{role}}"
+        }
+      ],
+      "title": "Process CPU seconds",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "id": 11,
+      "targets": [
+        {
+          "expr": "frendly_process_process_resident_memory_bytes",
+          "legendFormat": "{{job}} {{instance}} {{role}} RSS"
+        },
+        {
+          "expr": "frendly_process_nodejs_heap_size_used_bytes",
+          "legendFormat": "{{job}} {{instance}} {{role}} heap"
+        }
+      ],
+      "title": "Process memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "id": 12,
+      "targets": [
+        {
+          "expr": "sum(rate(frendly_worker_job_duration_seconds_count[5m])) by (role, job_type, status)",
+          "legendFormat": "{{role}} {{job_type}} {{status}}"
+        }
+      ],
+      "title": "Worker job rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "id": 13,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frendly_worker_job_duration_seconds_bucket[5m])) by (le, role, job_type, status))",
+          "legendFormat": "{{role}} {{job_type}} {{status}}"
+        }
+      ],
+      "title": "Worker job p95",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "frendly",
+    "scale",
+    "runtime"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Frendly Scale Overview",
+  "uid": "frendly-scale-overview",
+  "version": 1
+}

@@ -61,8 +61,10 @@ Public routing:
 - Compose file: `compose.observability.yml`.
 - Prometheus config: `deploy/observability/prometheus.yml`.
 - Grafana dashboards: `deploy/observability/grafana/dashboards/`.
+- Grafana provisioning: `deploy/observability/grafana/provisioning/`.
 - Grafana notes: `deploy/observability/grafana/README.md`.
 - Observability stack joins Docker network `frendly-backend_default` through `OBSERVABILITY_NETWORK`.
+- Grafana automatically provisions the `Prometheus` datasource with uid `prometheus` and loads Frendly dashboards from the dashboard directory.
 
 Default local bindings:
 
