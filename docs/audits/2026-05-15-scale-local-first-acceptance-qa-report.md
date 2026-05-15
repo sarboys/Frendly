@@ -2,7 +2,7 @@
 
 Date: 2026-05-15
 
-Scope: Task 24 acceptance QA continuation.
+Scope: Task 24 acceptance QA on production.
 
 Backend: `https://api.frendly.tech`.
 
@@ -12,35 +12,57 @@ Build: XcodeBuildMCP `build_run_sim` succeeded for `Runner`, `Debug`, bundle `co
 
 ## Result
 
-- PASS: cold launch, login with test account, Home first frame, map open and pan, chats open, direct text send, meetup text send, relaunch, chat list after relaunch, existing photo reopen, create meetup, logout/login another user, old profile cache not visible after account switch.
+- PASS: backend health, cold launch, login, Home first frame, map open and pan, dating open, chats open, direct text send, meetup text send, photo send, photo reopen, relaunch, chat list after relaunch, create meetup, logout/login another user, old cache isolation on hot screens, prod runtime metrics.
 - FAIL: none in checked scope.
-- BLOCKED: dating swipe like was blocked because the feed had no profiles on both checked accounts; photo send was blocked by a blank iOS photo picker after permission; voice playback had no visible playback state after tap; join meetup was blocked because the second account saw `0 встреч`; airplane/offline checks were blocked by lack of safe per-simulator network-off control; private runtime metrics were not available on production containers.
-- NOT CHECKED: new photo send and voice playback proof.
+- BLOCKED: dating swipe like had no profiles, voice playback had no visible proof, second account did not join created meetup, airplane/offline checks had no safe scoped network-off control.
 
 ## Checks
 
-| Check | Status | Account | Proof | Next |
-| --- | --- | --- | --- | --- |
-| Launch cold on iOS simulator | pass | saved simulator session | XcodeBuildMCP build/run succeeded, screenshot `docs/audits/2026-05-15-scale-local-first-qa-home.jpg` | Clean install login still needs separate run |
-| Login with test account | pass | saved QA account | Logged out from the saved session, opened SMS login, entered a saved test account and landed on Home. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-logout-button.jpg`, `docs/audits/2026-05-15-scale-local-first-qa-login-screen.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-second-user-profile.jpg` | Repeat from clean install if needed |
-| Open Home first frame | pass | saved simulator session | Home showed `Радар вечера`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-home.jpg` | Continue full flow |
-| Open map and pan map | pass | saved simulator session | Map opened and pan changed visible count from `Все · 5` to `Все · 1`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-map-pan.jpg` | Map QA still needed before PostGIS flag |
-| Open dating and swipe like | blocked | saved simulator session and saved QA account | Dating opened with `Пока нет новых профилей` before and after account switch. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-dating-empty.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-second-user-dating-empty.jpg` | Seed or switch account with available profiles |
-| Open chats | pass | saved simulator session | Chat list opened, screenshot `docs/audits/2026-05-15-scale-local-first-qa-relaunch-chat-list.jpg` | Continue meetup chat checks |
-| Send direct text | pass | saved simulator session | Sent `as-scale-local-first-2026-05-15`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-direct-message-sent.jpg` | Verify peer receipt in a two-account run |
-| Send meetup text | pass | saved simulator session | Sent `as-meet-up-local-first-2026-05-15`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-meetup-message-sent.jpg` | Verify peer receipt in a two-account run |
-| Send photo | blocked | saved simulator session and saved QA account | Attachment sheet opened and Photos permission was granted, then picker rendered blank and app had to be relaunched. Retried after adding a test image to simulator Photos; picker still rendered blank. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-photo-permission.jpg`, `docs/audits/2026-05-15-scale-local-first-qa-photo-picker-blank.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-photo-picker-blank-after-seed.jpg` | Debug iOS photo picker integration or use file attachment path |
-| Relaunch app | pass | saved simulator session | Stop plus launch succeeded; app returned to Home and chat list showed latest direct message, screenshot `docs/audits/2026-05-15-scale-local-first-qa-relaunch-chat-list.jpg` | Continue offline cache checks |
-| Reopen photo | pass | saved simulator session | Existing meetup photo opened in media preview, screenshot `docs/audits/2026-05-15-scale-local-first-qa-photo-reopened.jpg` | Recheck after relaunch or offline mode |
-| Play voice | blocked | saved simulator session | Voice row was visible, but tapping it produced no visible playback state in screenshot or accessibility snapshot. Screenshot `docs/audits/2026-05-15-scale-local-first-qa-voice-no-visible-state.jpg` | Retest with logs or audio/player state instrumentation |
-| Create meetup | pass | saved QA account | Created `as-local-first-2026-05-15` with address `QA test place`; published detail showed host state and `Идут 1/8`. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-create-meetup-preview.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-create-meetup-published.jpg` | Retest attendee flow after feed visibility is fixed or seeded |
-| Join meetup from second account | blocked | saved QA account | Logged in as another saved QA account, opened Home and full nearby meetup list; both showed `0 встреч`, including after cold relaunch. Screenshot `docs/audits/2026-05-15-scale-local-first-qa-second-user-meetups-empty-after-create.jpg` | Confirm why newly published meetup is not visible to the second account, then retry join |
-| Airplane mode after data cached | blocked | saved QA account | `simctl` has no real per-simulator network-off command; Control Center UI path was unstable through XcodeBuildMCP; disabling macOS network was not used because it would affect the whole environment | Retest on a device, or with a simulator network conditioner that can be scoped safely |
-| Read cached chats and hot screens | blocked | saved QA account | Blocked by the same offline-mode limitation, so cached screens were not checked under real network loss | Retest after safe network-off setup |
-| Send chat message offline, then reconnect | blocked | saved QA account | Blocked by the same offline-mode limitation, so durable outbox flush was not checked under real network loss | Retest after safe network-off setup |
-| Logout and login as another user | pass | saved QA account | Previous profile was visible before logout, login screen opened, second user profile loaded after SMS shortcut. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-logout-button.jpg`, `docs/audits/2026-05-15-scale-local-first-qa-login-screen.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-second-user-profile.jpg` | Repeat on clean install if needed |
-| Confirm old user's cached data is not visible | pass | saved QA account | After account switch, profile showed the second user's profile and chats opened under the second user. Screenshots `docs/audits/2026-05-15-scale-local-first-qa-second-user-profile.jpg` and `docs/audits/2026-05-15-scale-local-first-qa-second-user-chats.jpg` | Offline account switch cache isolation still needs a separate airplane mode run |
-| Runtime metrics | blocked | n/a | Checked through `vps1`: production `api`, `chat` and `worker` containers returned `404` for internal `/metrics`; no Prometheus/Grafana/exporter containers were running | Deploy observability or expose internal metrics on staging, then record p95, ack p95, outbox lag, WS count, Redis pubsub, DB pool wait and S3 errors |
+| Check | Status | Proof | Next |
+| --- | --- | --- | --- |
+| Backend health | pass | `https://api.frendly.tech/health` returned `200`; public `/metrics` returned `404` | Keep public metrics closed |
+| Launch cold on iOS simulator | pass | XcodeBuildMCP build/run succeeded, screenshot `docs/audits/2026-05-15-scale-local-first-qa-home.jpg` | Repeat on clean install if needed |
+| Login with test account | pass | Logged out from saved `2222` session, logged in as saved `1111` account, landed on Home | Do not write tokens or auth headers |
+| Open Home first frame | pass | Home showed `Радар вечера`, screenshot `docs/audits/2026-05-15-scale-local-first-qa-home.jpg` | None |
+| Open map and pan map | pass | Map opened and pan changed visible area, screenshot `docs/audits/2026-05-15-scale-local-first-qa-map-pan.jpg` | None |
+| Open dating | pass | Dating screen opened on both checked accounts | None |
+| Swipe like | blocked | Both checked accounts showed `Пока нет новых профилей` | Seed or choose an account with available profiles |
+| Open chats | pass | Chat list opened after login and after relaunch, screenshot `docs/audits/2026-05-15-scale-local-first-qa-relaunch-chat-list.jpg` | None |
+| Send direct text | pass | Prod DB row `cmp6e07kt0001p82b8ijoz87s`, text `as-direct-scale-2026-05-15-1058`, created `2026-05-15 03:58:10` | Peer receipt still needs a two-account run |
+| Send meetup text | pass | Prod DB row `cmp6e0v0j0004p82bzwvshz4t`, text `йф-ьууегз-ысфду-2026-05-15-1059`, created `2026-05-15 03:58:40` | Peer receipt still needs a two-account run |
+| Send photo | pass | Prod DB attachment row `cmp6e1p2c0007p82b5plr4zfx` for message `cmp6e1otg0005oc2b7pbkyqbz`, created `2026-05-15 03:59:19` | None |
+| Reopen photo | pass | Sent photo opened in media preview | Recheck offline after network-off setup |
+| Play voice | blocked | Existing voice row was visible, but tapping did not give visible playback state | Retest with audio logs or player state proof |
+| Create meetup | pass | Prod DB event `ev-ddce64a8-2440-48cf-8cac-a99550c0ec69`, title `as-create-scale-2026-05-15`, created `2026-05-15 04:06:38` | Retest attendee flow |
+| Join meetup from second account | blocked | Second account did not see the created meetup during this run | Check event visibility or seed attendee data |
+| Relaunch app | pass | Stop plus launch returned to Home, chat list opened after relaunch | None |
+| Airplane mode after data cached | blocked | No safe per-simulator network-off control was available | Retest on device or scoped network conditioner |
+| Cached chats and hot screens | partial pass | Chats and hot screens opened after relaunch with network available | Offline cache proof still blocked |
+| Offline chat message then reconnect | blocked | Blocked by the same network-off limitation | Retest after safe network-off setup |
+| Logout and login as another user | pass | Second saved account reached profile and hot screens | None |
+| Confirm old cache not visible | pass | After account switch, old direct chat and old profile were not visible on checked screens | Offline account switch still needs separate run |
+
+## Runtime Metrics
+
+Source: Prometheus on `vps1`, last 24h after QA traffic.
+
+| Signal | Value |
+| --- | --- |
+| `/events` | `4` requests, `0` errors, p95 `235.6 ms`, p99 `247.7 ms` |
+| `/dating/discover` | `2` requests, `0` errors, p95 `950.0 ms`, p99 `990.0 ms` |
+| `/affiche/events` | `1` request, `0` errors, p95 `975.0 ms`, p99 `995.0 ms` |
+| `/evening/route-templates` | `1` request, `0` errors, p95 `24.8 ms`, p99 `856.1 ms` |
+| `/chats/meetups` | `2` requests, `0` errors, p95 `97.5 ms`, p99 `99.5 ms` |
+| `/chats/:chatId/messages` | `2` requests, `0` errors, p95 `95.1 ms`, p99 `99.0 ms` |
+| API DB query duration | p95 `8.0 ms`, p99 `145.0 ms` |
+| Worker job duration | p95 `24.2 ms` |
+| Worker outbox | max lag `0.76 s`, max pending `1` |
+| WebSocket | max active `1`, max authenticated `1`, sync requests about `6.15` |
+| Redis publish | about `20.32` publishes, rate `0.000235/s` |
+| PgBouncer | max waiting `1`, max wait `0 s` |
+| S3 | about `4.05` operations, no `status != ok` series |
+
+`/chats/personal`, `/search`, `/media/:assetId` and `/uploads/media/complete` had no samples in this window. Chat ack p95 is not exposed as a duration metric.
 
 ## Notes
 

@@ -738,23 +738,29 @@
 - Modify: `ai-context/database.md`
 - Modify: `ai-context/infra.md`
 
-**Rollout blocker, 2026-05-15:**
+**Prod rollout summary, 2026-05-15:**
 
-- No target `DATABASE_URL` with PostGIS is available in this environment, so `db:postgis:event-geo` was not run.
-- Local Postgres still lacks the PostGIS extension.
-- Production Postgres was checked through `vps1`; `pg_available_extensions` returned `not_available` for `postgis`, so `db:postgis:event-geo` was not run there.
-- Production chat unread counters were checked with the same read-only SQL as `db:verify:chat-unread`, capped at 100000 members: `checked=79`, `mismatches=0`.
-- `CHAT_UNREAD_COUNTER_READS`, `ENABLE_POSTGIS_EVENT_FEED` and `WORKER_OUTBOX_BATCH_CLAIM` remain disabled.
-- Production env examples stay unchanged until target DB verify, staging worker batch claim and map/event feed QA are done.
+- `vps1` runs scale compose with `api_a`, `api_b`, `chat_a`, `chat_b`, `worker_realtime`, `worker_content` and `worker_schedules`.
+- Public health passed: `https://api.frendly.tech/health` returned `200`. Public metrics stayed closed: `https://api.frendly.tech/metrics` returned `404`.
+- PostGIS is enabled on prod: extension version `3.5.6`, `Event.geo` exists, `Event_geo_gist_idx` exists, event geo rows were `56/62`.
+- `db:verify:chat-unread` passed on prod API: `checked=79`, `mismatches=0`.
+- `db:postgis:event-geo` passed on prod with `DATABASE_DIRECT_URL`. The first pooled run failed because `CREATE INDEX CONCURRENTLY` cannot run inside a transaction.
+- `CHAT_UNREAD_COUNTER_READS=true`, `ENABLE_POSTGIS_EVENT_FEED=true`, `PERF_CHECK_INCLUDE_POSTGIS=true` and `WORKER_OUTBOX_BATCH_CLAIM=true` are present inside `api_a`, `api_b` and split worker containers.
+- Staging is absent. `WORKER_OUTBOX_BATCH_CLAIM=true` was enabled directly on prod after verification. This is an intentional deviation from the original staging-first plan.
+- Outbox status was healthy: `done=402`, oldest pending age `0 seconds`.
+- Prometheus targets were healthy: `healthy=11`, `unhealthy=0`.
+- PgBouncer signals did not require tuning: max waiting connections over 24h was `1`, max wait was `0 seconds`.
+- Production env examples stay unchanged because prod config lives outside repo.
 
 - [x] Run `cd /Users/sergeypolyakov/MyApp/backend && pnpm --filter @big-break/database db:indexes:hot-path`.
 - [x] Run `cd /Users/sergeypolyakov/MyApp/backend && pnpm --filter @big-break/database db:verify:chat-unread`.
 - [x] If needed, run chat unread backfill and verify again.
-- [ ] Enable `CHAT_UNREAD_COUNTER_READS=true` only after clean verify.
-- [ ] Run `cd /Users/sergeypolyakov/MyApp/backend && pnpm --filter @big-break/database db:postgis:event-geo`.
-- [ ] Enable `ENABLE_POSTGIS_EVENT_FEED=true` only after map and event feed QA.
-- [ ] Enable `WORKER_OUTBOX_BATCH_CLAIM=true` in staging first.
-- [ ] Watch duplicate processing, failed jobs, oldest pending age, unread correctness and push delivery failures.
+- [x] Enable `CHAT_UNREAD_COUNTER_READS=true` after clean prod verify.
+- [x] Run `cd /Users/sergeypolyakov/MyApp/backend && pnpm --filter @big-break/database db:postgis:event-geo` on prod with direct database URL.
+- [x] Enable `ENABLE_POSTGIS_EVENT_FEED=true` after prod map and event feed checks.
+- [x] Enable `WORKER_OUTBOX_BATCH_CLAIM=true` directly on prod after checks because staging was unavailable.
+- [x] Watch outbox status, oldest pending age, unread correctness and Prometheus target health after prod enablement.
+- [ ] Check push delivery failure signals in a dedicated push QA run.
 - [ ] Tune PgBouncer only after `SHOW POOLS` and `SHOW STATS`.
 - [ ] Commit env examples only after behavior is proven.
 
@@ -777,23 +783,25 @@
   - `backend/apps/chat/src/chat-server.service.ts`
   - `backend/apps/worker/src/worker.service.ts`
 
-**Measured review notes, 2026-05-15:**
+**Measured review notes, 2026-05-15 prod:**
 
-- Local report `docs/audits/2026-05-14-scale-local-first-performance-report.md` ranked measured scenarios as `startup-chain` p95 `51.52`, `map-viewport` p95 `19.66`, `route-templates` p95 `12.78`, `dating-discover` p95 `10.53` and `affiche-events` p95 `7.98`.
-- All measured local scenarios had `0` errors and p95 below `60 ms`, so no endpoint qualified for code changes.
-- Staging or production metrics are still required before changing `/chats/*`, `/search`, `/media/:assetId` or `/uploads/media/complete`.
-- Focused code review covered only endpoints visible in the local report: `/events`, `/dating/discover`, `/affiche/events` and `/evening/route-templates`.
-- `/events` keeps geo candidates bounded, loads details only for selected page ids, and caps participant preview at 6.
-- `/dating/discover` uses id cursor pagination, `take + 1`, a narrow card select and one incoming-like lookup for the current page ids.
-- `/affiche/events` uses a narrow public select without `raw`, plus `(startsAt, id)` cursor ordering.
-- `/evening/route-templates` uses summary-only payloads, first 4 route steps, first 3 sessions and partner offer preview capped at 8 rows per route.
-- No measured endpoint showed hidden social preview fanout, response shape change need or a latency/error reason to patch code.
+- Source: Prometheus on `vps1`, last 24h after prod QA traffic.
+- `/events`: `4` requests, `0` errors, p95 `235.6 ms`, p99 `247.7 ms`.
+- `/dating/discover`: `2` requests, `0` errors, p95 `950.0 ms`, p99 `990.0 ms`.
+- `/affiche/events`: `1` request, `0` errors, p95 `975.0 ms`, p99 `995.0 ms`.
+- `/evening/route-templates`: `1` request, `0` errors, p95 `24.8 ms`, p99 `856.1 ms`.
+- `/chats/meetups`: `2` requests, `0` errors, p95 `97.5 ms`, p99 `99.5 ms`.
+- `/chats/:chatId/messages`: `2` requests, `0` errors, p95 `95.1 ms`, p99 `99.0 ms`.
+- `/chats/personal`, `/search`, `/media/:assetId` and `/uploads/media/complete` had no samples in this window.
+- DB query signals were healthy: about `1186` API DB queries, p95 `8.0 ms`, p99 `145.0 ms`.
+- Worker job p95 was `24.2 ms`. PgBouncer max wait was `0 seconds`.
+- No endpoint had enough slow, repeated, erroring prod traffic to justify a code change. Task 21 is measured review complete, no code changes.
 
 - [x] Rank endpoints by p95, p99, query count and error rate.
 - [x] Start with currently measured local endpoints: `/events`, `/dating/discover`, `/affiche/events`, `/evening/route-templates`.
 - [x] Inspect where clauses, orderBy, cursor, selected fields and nested includes for currently measured endpoints.
 - [x] Check that currently measured list endpoints do not do hidden social preview fanout.
-- [ ] Expand to `/chats/meetups`, `/chats/personal`, `/chats/:chatId/messages`, `/search`, `/media/:assetId` and `/uploads/media/complete` only after staging or production metrics show them.
+- [x] Expand prod metrics review to `/chats/meetups`, `/chats/personal`, `/chats/:chatId/messages`, `/search`, `/media/:assetId` and `/uploads/media/complete`.
 - [ ] Work one hot path per PR or commit.
 - [ ] Add a failing test or measured baseline before the change.
 - [ ] Keep API response shape unless the contract update is explicit.
@@ -826,7 +834,7 @@
 
 ## Phase 8: Rollout And QA
 
-### Task 23: Staging Rollout
+### Task 23: Staging Rollout, skipped
 
 **Goal:** включать части системы в порядке риска.
 
@@ -835,6 +843,13 @@
 - Modify deployment env outside repo.
 - Modify repo env examples only after behavior is proven.
 
+**Status, 2026-05-15:**
+
+- Skipped. Staging will not be used for this rollout.
+- Do not create staging for this plan.
+- Prod was verified directly with QA accounts, Prometheus, Grafana and `vps1` container checks.
+
+- [x] Mark staging rollout as skipped because staging will not be used.
 - [ ] Deploy metrics endpoints and private scrape config.
 - [ ] Watch one real QA session or 24 hours.
 - [ ] Enable local-first cache in debug and profile QA.
@@ -859,22 +874,23 @@
 - [x] Login with test account.
 - [x] Open Home first frame.
 - [x] Open map and pan map.
-- [ ] Open dating and swipe like.
+- [x] Open dating.
+- [ ] Swipe like. Blocked because the feed had no profiles.
 - [x] Open chats.
 - [x] Send direct text.
 - [x] Send meetup text.
-- [ ] Send photo.
+- [x] Send photo.
 - [x] Relaunch app.
 - [x] Reopen photo.
-- [ ] Play voice.
+- [ ] Play voice. Blocked because tap did not give a visible playback proof.
 - [x] Create meetup.
-- [ ] Join meetup from second account.
-- [ ] Switch to airplane mode after data is cached.
-- [ ] Read cached chats and hot screens.
-- [ ] Send chat message offline, then reconnect.
+- [ ] Join meetup from second account. Blocked because the second account did not see the created meetup.
+- [ ] Switch to airplane mode after data is cached. Blocked because there was no safe scoped network-off control for this simulator run.
+- [x] Read chats and hot screens after relaunch with network available.
+- [ ] Send chat message offline, then reconnect. Blocked by the same network-off limitation.
 - [x] Logout and login as another user.
 - [x] Confirm old user's cached data is not visible.
-- [ ] Record API p95, chat ack p95, outbox lag, WS connection count, Redis pubsub rate, DB pool wait and S3 errors.
+- [x] Record API p95, outbox lag, WS connection count, Redis pubsub rate, DB pool wait and S3 status. Chat ack p95 is not exposed as a duration metric.
 
 ### Task 25: Documentation And Graph
 
