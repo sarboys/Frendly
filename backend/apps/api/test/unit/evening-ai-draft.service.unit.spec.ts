@@ -121,9 +121,18 @@ describe('EveningAiDraftService unit', () => {
     },
   };
 
-  function createService(options: { ticketlandWithoutCoords?: boolean } = {}) {
+  function createService(options: {
+    ticketlandWithoutCoords?: boolean;
+    externalItems?: Record<string, Array<Record<string, unknown>>>;
+    openRouterResponses?: Array<Record<string, unknown> | Error>;
+    intentResponse?: Record<string, unknown>;
+  } = {}) {
     const externalFindMany = jest.fn((query: any) => {
       const code = query?.where?.source?.code;
+      const configuredItems = options.externalItems?.[code];
+      if (configuredItems) {
+        return Promise.resolve(configuredItems.map((item) => externalItemFixture(item)));
+      }
       if (code === 'tomesto') {
         return Promise.resolve([
           externalItemFixture({ id: 'tomesto-bar', title: 'Brix', venueName: 'Brix' }),
@@ -276,8 +285,7 @@ describe('EveningAiDraftService unit', () => {
         ),
       },
     } as any;
-    const openRouter = {
-      generateJson: jest.fn().mockResolvedValue({
+    const defaultOpenRouterResponse = {
         parsedJson: {
           title: 'Бар и стендап',
           vibe: 'Живой вечер',
@@ -300,8 +308,39 @@ describe('EveningAiDraftService unit', () => {
         rawResponse: {},
         model: 'qwen/qwen3-next-80b-a3b-instruct:free',
         latencyMs: 123,
-      }),
+      };
+    const openRouter = {
+      generateJson: jest.fn(),
     };
+    const routeResponses = [...(options.openRouterResponses ?? [])];
+    openRouter.generateJson.mockImplementation((input: any) => {
+      const schemaName = input?.responseFormat?.json_schema?.name;
+      if (schemaName === 'evening_ai_route_intent') {
+        if (options.intentResponse) {
+          return Promise.resolve(options.intentResponse);
+        }
+        const prompt = JSON.parse(input.userPrompt);
+        const fallbackRoles = prompt.config?.fallbackRoles ?? ['place_bar', 'show'];
+        return Promise.resolve({
+          parsedJson: {
+            steps: fallbackRoles.map((role: string) => ({
+              role,
+              preferredTerms: [],
+              avoidTerms: [],
+              instruction: '',
+            })),
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 30,
+        });
+      }
+      const nextResponse = routeResponses.shift();
+      if (nextResponse instanceof Error) {
+        return Promise.reject(nextResponse);
+      }
+      return Promise.resolve(nextResponse ?? defaultOpenRouterResponse);
+    });
     const service = new EveningAiDraftService(prisma, openRouter as any);
     return { service, externalFindMany, draftCreate, draftUpdate, routeCreate, stepCreateMany, openRouter };
   }
@@ -388,9 +427,12 @@ describe('EveningAiDraftService unit', () => {
     const ticketlandCall = externalFindMany.mock.calls.find(
       ([query]) => query?.where?.source?.code === 'advcake_ticketland',
     )?.[0];
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
     expect(ticketlandCall?.where).not.toHaveProperty('lat');
     expect(ticketlandCall?.where).not.toHaveProperty('lng');
-    expect(openRouter.generateJson.mock.calls[0][0].userPrompt).toContain('"geo":null');
+    expect(routeCall?.userPrompt).toContain('"geo":null');
     expect(draftCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -413,6 +455,403 @@ describe('EveningAiDraftService unit', () => {
         walkMin: null,
         lat: expect.any(Number),
         lng: expect.any(Number),
+      }),
+    );
+  });
+
+  it('honors ordered walk, pasta and theatre intent from prompt', async () => {
+    const prompt = 'хочу погулять сначала, потом поесть пасту и пойти в театр';
+    const { service, draftCreate, openRouter } = createService({
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-walk-route',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Прогулка по Чистым прудам',
+            category: 'walk',
+            tags: ['прогулка', 'маршрут'],
+            startsAt: new Date('2099-06-01T16:00:00.000Z'),
+            priceFrom: 0,
+            priceMode: 'free',
+            sourceProvider: 'KudaGo',
+          },
+          {
+            id: 'kudago-museum',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Государственный музей Пушкина',
+            category: 'museum',
+            tags: ['музей', 'выставка'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceFrom: 0,
+            priceMode: 'free',
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-generic',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'After Seven',
+            category: 'restaurant',
+            tags: ['restaurant'],
+            placeKind: 'restaurant',
+            venueName: 'After Seven',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-pasta',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Pasta Fresca',
+            category: 'italian',
+            tags: ['паста', 'итальянская кухня'],
+            placeKind: 'restaurant',
+            venueName: 'Pasta Fresca',
+            shortSummary: 'Итальянский ресторан с пастой',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль в Театре на Малой Ордынке',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 1800,
+            sourceProvider: 'Ticketland / MTS Live',
+            actionUrl: 'https://ticket.example.test/theatre',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Прогулка, ужин и театр',
+            vibe: 'Вечер по порядку',
+            blurb: 'Сначала прогулка, потом паста и спектакль.',
+            steps: [
+              {
+                externalContentItemId: 'kudago-walk-route',
+                timeLabel: '18:00',
+                endTimeLabel: '19:00',
+                description: 'Маршрут для прогулки',
+              },
+              {
+                externalContentItemId: 'tomesto-generic',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Случайный ресторан',
+              },
+              {
+                externalContentItemId: 'ticketland-theatre',
+                timeLabel: '20:00',
+                endTimeLabel: '22:00',
+                description: 'Спектакль',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 100,
+        },
+        {
+          parsedJson: {
+            title: 'Прогулка, паста и театр',
+            vibe: 'Спокойный вечер',
+            blurb: 'Сначала прогулка, потом паста и спектакль.',
+            steps: [
+              {
+                externalContentItemId: 'kudago-walk-route',
+                timeLabel: '18:00',
+                endTimeLabel: '19:00',
+                description: 'Маршрут для прогулки',
+              },
+              {
+                externalContentItemId: 'tomesto-pasta',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Итальянский ресторан с пастой',
+              },
+              {
+                externalContentItemId: 'ticketland-theatre',
+                timeLabel: '20:00',
+                endTimeLabel: '22:00',
+                description: 'Спектакль',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 120,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt,
+      city: 'Москва',
+      stepCount: 3,
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    const firstPrompt = JSON.parse(routeCalls[0][0].userPrompt);
+    expect(firstPrompt.config.roles).toEqual(['walk', 'place_food', 'show']);
+    expect(firstPrompt.config.roleHints).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'walk',
+          preferredTerms: expect.arrayContaining(['прогул', 'маршрут']),
+        }),
+        expect.objectContaining({
+          role: 'place_food',
+          preferredTerms: expect.arrayContaining(['паста', 'итальян']),
+        }),
+        expect.objectContaining({
+          role: 'show',
+          preferredTerms: expect.arrayContaining(['театр', 'спектак']),
+        }),
+      ]),
+    );
+    expect(firstPrompt.candidates.map((candidate: any) => candidate.id)).not.toContain('kudago-museum');
+    expect(openRouter.generateJson).toHaveBeenCalledTimes(3);
+    expect(routeCalls[1][0].userPrompt).toContain('intent_mismatch');
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Прогулка по Чистым прудам',
+      'Pasta Fresca',
+      'Спектакль в Театре на Малой Ордынке',
+    ]);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          candidatePackJson: expect.arrayContaining([
+            expect.objectContaining({ id: 'kudago-walk-route', role: 'walk' }),
+            expect.objectContaining({ id: 'tomesto-pasta', role: 'place_food' }),
+            expect.objectContaining({ id: 'ticketland-theatre', role: 'show' }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('uses LLM intent for arbitrary wording and repeated roles', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'place_food',
+              preferredTerms: ['матча', 'matcha'],
+              avoidTerms: [],
+              instruction: 'Сначала место с матчей.',
+            },
+            {
+              role: 'show',
+              preferredTerms: ['театр', 'спектакль'],
+              avoidTerms: ['музей', 'выставка'],
+              instruction: 'Потом театральное событие.',
+            },
+            {
+              role: 'place_food',
+              preferredTerms: ['кофе', 'кофейня'],
+              avoidTerms: [],
+              instruction: 'В конце кофе.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 25,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-matcha',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Matcha Point',
+            category: 'cafe',
+            tags: ['матча', 'чай'],
+            placeKind: 'cafe',
+            venueName: 'Matcha Point',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-coffee',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Кофейня после театра',
+            category: 'cafe',
+            tags: ['кофе', 'кофейня'],
+            placeKind: 'cafe',
+            venueName: 'Кофейня после театра',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Иммерсивный спектакль',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 1600,
+            actionUrl: 'https://ticket.example.test/theatre',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Матча, спектакль и кофе',
+            vibe: 'Вечер по запросу',
+            blurb: 'Сначала матча, потом спектакль и кофе.',
+            steps: [
+              {
+                externalContentItemId: 'tomesto-matcha',
+                timeLabel: '18:00',
+                endTimeLabel: '19:00',
+                description: 'Матча перед событием',
+              },
+              {
+                externalContentItemId: 'ticketland-theatre',
+                timeLabel: '19:30',
+                endTimeLabel: '21:30',
+                description: 'Спектакль',
+              },
+              {
+                externalContentItemId: 'tomesto-coffee',
+                timeLabel: '21:45',
+                endTimeLabel: '22:30',
+                description: 'Кофе после театра',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу сначала матчовый ритуал, потом на сцену, в конце допить кофе',
+      city: 'Москва',
+      stepCount: 3,
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['place_food', 'show', 'place_food']);
+    expect(routePrompt.config.roleHints[0].preferredTerms).toEqual(
+      expect.arrayContaining(['матча']),
+    );
+    expect(routePrompt.config.roleHints[2].preferredTerms).toEqual(
+      expect.arrayContaining(['кофе']),
+    );
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Matcha Point',
+      'Иммерсивный спектакль',
+      'Кофейня после театра',
+    ]);
+  });
+
+  it('allows KudaGo park places as walk candidates', async () => {
+    const { service, draftCreate } = createService({
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-park-place',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Парк Горького',
+            category: 'park',
+            tags: ['парк', 'прогулка'],
+            startsAt: null,
+            priceFrom: null,
+            priceMode: 'unknown',
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-coffee',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Кофе рядом',
+            category: 'cafe',
+            tags: ['кофе'],
+            placeKind: 'cafe',
+            venueName: 'Кофе рядом',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Парк и кофе',
+            vibe: 'Спокойная прогулка',
+            blurb: 'Сначала парк, потом кофе.',
+            steps: [
+              {
+                externalContentItemId: 'kudago-park-place',
+                timeLabel: '18:00',
+                endTimeLabel: '19:00',
+                description: 'Парк для прогулки',
+              },
+              {
+                externalContentItemId: 'tomesto-coffee',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Кофе после прогулки',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 100,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'сначала погулять в парке, потом кофе',
+      city: 'Москва',
+      stepCount: 2,
+    });
+
+    expect(result.route.steps[0]).toEqual(
+      expect.objectContaining({
+        title: 'Парк Горького',
+        ticketSourceCode: 'kudago',
+      }),
+    );
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          candidatePackJson: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'kudago-park-place',
+              role: 'walk',
+              source: 'kudago',
+              contentKind: 'place',
+              priceMode: 'free',
+            }),
+          ]),
+        }),
       }),
     );
   });
@@ -465,10 +904,10 @@ describe('EveningAiDraftService unit', () => {
   });
 
   it('retries bad LLM output once and falls back to deterministic draft', async () => {
-    const { service, draftCreate, openRouter } = createService();
-    openRouter.generateJson
-      .mockRejectedValueOnce(new Error('invalid json'))
-      .mockResolvedValueOnce({
+    const { service, draftCreate, openRouter } = createService({
+      openRouterResponses: [
+        new Error('invalid json'),
+        {
         parsedJson: {
           title: 'Плохой маршрут',
           vibe: 'Ошибка',
@@ -491,7 +930,9 @@ describe('EveningAiDraftService unit', () => {
         rawResponse: {},
         model: 'qwen/qwen3-next-80b-a3b-instruct:free',
         latencyMs: 200,
-      });
+        },
+      ],
+    });
 
     const result = await service.createDraft('user-1', {
       prompt: 'Винный бар и стендап',
@@ -499,8 +940,11 @@ describe('EveningAiDraftService unit', () => {
       stepCount: 2,
     });
 
-    expect(openRouter.generateJson).toHaveBeenCalledTimes(2);
-    expect(openRouter.generateJson.mock.calls[1][0].userPrompt).toContain('llm_response_error');
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    expect(openRouter.generateJson).toHaveBeenCalledTimes(3);
+    expect(routeCalls[1][0].userPrompt).toContain('llm_response_error');
     expect(result.route.steps).toEqual([
       expect.objectContaining({ title: 'Brix', ticketSourceCode: 'tomesto' }),
       expect.objectContaining({

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T07:21:01.172Z",
-    "gitCommitHash": "8b4c79cbc79a7be3564384636ec46fab3fd7beec"
+    "analyzedAt": "2026-05-15T09:17:43.485Z",
+    "gitCommitHash": "80d66839d5a859072e6a45125934bdd338b86523"
   },
   "nodes": [
     {
@@ -10883,7 +10883,7 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 1 classes, 12 functions.",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 18 functions.",
       "tags": [
         "backend",
         "code",
@@ -10897,8 +10897,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1322,
-        1326
+        1894,
+        1898
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -10914,8 +10914,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1328,
-        1337
+        1900,
+        1909
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -10931,10 +10931,27 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1339,
-        1341
+        1911,
+        1913
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stringArray",
+      "type": "function",
+      "name": "stringArray",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1915,
+        1923
+      ],
+      "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -10948,8 +10965,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1343,
-        1348
+        1925,
+        1930
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10965,8 +10982,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1350,
-        1358
+        1932,
+        1940
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -10982,8 +10999,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1360,
-        1362
+        1942,
+        1944
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -10999,10 +11016,95 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1364,
-        1366
+        1946,
+        1948
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:firstTermIndex",
+      "type": "function",
+      "name": "firstTermIndex",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1950,
+        1958
+      ],
+      "summary": "firstTermIndex in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:uniqueStrings",
+      "type": "function",
+      "name": "uniqueStrings",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1960,
+        1962
+      ],
+      "summary": "uniqueStrings in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:uniqueById",
+      "type": "function",
+      "name": "uniqueById",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1964,
+        1973
+      ],
+      "summary": "uniqueById in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateSearchText",
+      "type": "function",
+      "name": "candidateSearchText",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1975,
+        1989
+      ],
+      "summary": "candidateSearchText in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesTerms",
+      "type": "function",
+      "name": "candidateMatchesTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1991,
+        1993
+      ],
+      "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -11016,8 +11118,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1368,
-        1370
+        1995,
+        1997
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -11033,8 +11135,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1372,
-        1374
+        1999,
+        2001
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -11050,8 +11152,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1376,
-        1382
+        2003,
+        2009
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -11067,8 +11169,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1384,
-        1397
+        2011,
+        2024
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -11084,8 +11186,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1399,
-        1401
+        2026,
+        2028
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -11101,8 +11203,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        91,
-        1280
+        127,
+        1852
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -37365,6 +37467,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stringArray",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:numberOrNull",
       "type": "contains",
       "direction": "forward",
@@ -37387,6 +37496,41 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasAny",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:firstTermIndex",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:uniqueStrings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:uniqueById",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateSearchText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesTerms",
       "type": "contains",
       "direction": "forward",
       "weight": 1

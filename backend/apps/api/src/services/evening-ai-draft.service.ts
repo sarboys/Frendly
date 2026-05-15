@@ -31,6 +31,8 @@ type CandidateCard = {
   title: string;
   area: string | null;
   tags: string[];
+  category: string | null;
+  placeKind: string | null;
   priceMode: string;
   priceFrom: number | null;
   startsAt: string | null;
@@ -56,12 +58,46 @@ type GeneratedDraftJson = {
   }>;
 };
 
+type GeneratedIntentJson = {
+  steps?: Array<{
+    role?: unknown;
+    preferredTerms?: unknown;
+    avoidTerms?: unknown;
+    instruction?: unknown;
+  }>;
+};
+
 type DraftValidationIssue = {
   code: string;
   message: string;
   stepIndex?: number;
   externalContentItemId?: string;
 };
+
+type RoleIntentHint = {
+  role: RouteRole;
+  preferredTerms: string[];
+  avoidTerms: string[];
+  instruction: string | null;
+};
+
+type DraftIntent = {
+  roles: RouteRole[];
+  roleHints: RoleIntentHint[];
+  source: 'llm' | 'rules';
+};
+
+type RouteSnapshotIntent = DraftIntent;
+
+const ROUTE_ROLES: RouteRole[] = [
+  'place_food',
+  'place_bar',
+  'place_club',
+  'show',
+  'free_activity',
+  'walk',
+];
+const ROUTE_ROLE_SET = new Set<string>(ROUTE_ROLES);
 
 type AiDraftRecord = {
   id: string;
@@ -96,19 +132,21 @@ export class EveningAiDraftService {
 
   async createDraft(userId: string, body: Record<string, unknown>) {
     const input = this.parseInput(body);
-    const roles = this.resolveRoles(input.prompt, input.format, input.stepCount);
-    const candidates = await this.loadCandidatePack(input, roles);
+    const intent = await this.resolveDraftIntent(input);
+    const candidates = await this.loadCandidatePack(input, intent.roles, intent.roleHints);
     if (candidates.length < MIN_STEP_COUNT) {
       throw new ApiError(404, 'evening_ai_candidates_not_found', 'Route candidates not found');
     }
 
     const generated = await this.generateRouteWithFallback({
       input,
-      roles,
+      roles: intent.roles,
+      roleHints: intent.roleHints,
       candidates,
       timeoutMs: 4500,
     });
     const expiresAt = new Date(Date.now() + DRAFT_TTL_MS);
+    const routeSnapshot = this.routeWithIntent(generated.route, intent);
     const draft = await (this.prismaService.client as any).eveningAiRouteDraft.create({
       data: {
         userId,
@@ -123,7 +161,7 @@ export class EveningAiDraftService {
         area: input.area,
         stepCount: input.stepCount,
         candidatePackJson: candidates as unknown as Prisma.InputJsonValue,
-        routeSnapshotJson: generated.route as unknown as Prisma.InputJsonValue,
+        routeSnapshotJson: routeSnapshot as unknown as Prisma.InputJsonValue,
         acceptedStepIndexes: [],
         rejectedExternalItemIds: [],
         model: generated.model,
@@ -177,22 +215,23 @@ export class EveningAiDraftService {
       .filter((index) => index !== stepIndex)
       .sort((left, right) => left - right);
     const input = this.inputFromDraft(draft);
-    const roles = this.resolveRoles(input.prompt, input.format, input.stepCount);
+    const intent = this.intentFromRoute(route, input) ?? await this.resolveDraftIntent(input);
     const generated = await this.generateRouteWithFallback({
       input,
-      roles,
+      roles: intent.roles,
+      roleHints: intent.roleHints,
       candidates: candidates.filter((candidate) => !rejected.has(candidate.id)),
       timeoutMs: 3500,
       previousRoute: route,
       regenerateStepIndex: stepIndex,
       rejectedIds: [...rejected],
     });
-    const nextRoute = {
+    const nextRoute = this.routeWithIntent({
       ...route,
       steps: route.steps.map((step: any, index: number) =>
         index === stepIndex ? generated.route.steps[stepIndex] ?? step : step,
       ),
-    };
+    }, intent);
 
     const updated = await (this.prismaService.client as any).eveningAiRouteDraft.update({
       where: { id: draft.id },
@@ -292,6 +331,7 @@ export class EveningAiDraftService {
   private async generateRouteWithFallback(input: {
     input: ParsedDraftInput;
     roles: RouteRole[];
+    roleHints?: RoleIntentHint[];
     candidates: CandidateCard[];
     timeoutMs: number;
     previousRoute?: any;
@@ -315,6 +355,7 @@ export class EveningAiDraftService {
         input.roles,
         input.candidates,
         firstResponse.parsedJson,
+        input.roleHints,
       );
       if (firstIssues.length === 0) {
         const route = this.routeFromGenerated(
@@ -349,6 +390,7 @@ export class EveningAiDraftService {
         input.roles,
         input.candidates,
         retryResponse.parsedJson,
+        input.roleHints,
       );
       if (retryIssues.length > 0) {
         latestValidationIssues = retryIssues;
@@ -404,6 +446,7 @@ export class EveningAiDraftService {
             input.roles,
             input.candidates,
             retryResponse.parsedJson,
+            input.roleHints,
           );
           if (retryIssues.length === 0) {
             const route = this.routeFromGenerated(
@@ -612,10 +655,14 @@ export class EveningAiDraftService {
     };
   }
 
-  private async loadCandidatePack(input: ParsedDraftInput, roles: RouteRole[]) {
+  private async loadCandidatePack(
+    input: ParsedDraftInput,
+    roles: RouteRole[],
+    roleHints: RoleIntentHint[] = [],
+  ) {
     const uniqueRoles = Array.from(new Set(roles));
     const groups = await Promise.all(
-      uniqueRoles.map((role) => this.loadRoleCandidates(input, role)),
+      uniqueRoles.map((role) => this.loadRoleCandidates(input, role, roleHints)),
     );
     const daySeed = new Date().toISOString().slice(0, 10);
     const serverSeed = process.env.EVENING_AI_CANDIDATE_SEED ?? daySeed;
@@ -627,6 +674,7 @@ export class EveningAiDraftService {
         group,
         stableHash(`${seed}:${uniqueRoles[index]}`),
         perRoleLimit,
+        roleHints,
       ),
     );
     const candidates: CandidateCard[] = [];
@@ -655,10 +703,15 @@ export class EveningAiDraftService {
     candidates: CandidateCard[],
     seed: number,
     limit: number,
+    roleHints: RoleIntentHint[] = [],
   ) {
     const ranked = candidates
       .slice()
-      .sort((left, right) => this.candidateScore(input, left) - this.candidateScore(input, right));
+      .sort(
+        (left, right) =>
+          this.candidateScore(input, left, roleHints) -
+          this.candidateScore(input, right, roleHints),
+      );
     const cappedLimit = Math.min(limit, ranked.length);
     const coreSize = Math.min(cappedLimit, Math.floor(cappedLimit * CANDIDATE_CORE_RATIO));
     const core = ranked.slice(0, coreSize);
@@ -672,12 +725,22 @@ export class EveningAiDraftService {
     return [...core, ...tail];
   }
 
-  private async loadRoleCandidates(input: ParsedDraftInput, role: RouteRole): Promise<CandidateCard[]> {
+  private async loadRoleCandidates(
+    input: ParsedDraftInput,
+    role: RouteRole,
+    roleHints: RoleIntentHint[] = [],
+  ): Promise<CandidateCard[]> {
     const source = this.sourceForRole(role);
-    const contentKind = source === 'tomesto' ? 'place' : 'event';
-    const where: Prisma.ExternalContentItemWhereInput = {
+    const contentKindWhere =
+      source === 'tomesto'
+        ? 'place'
+        : source === 'kudago'
+          ? { in: ['event', 'place'] }
+          : 'event';
+    const intent = this.roleIntentHint(input, role, roleHints);
+    const baseWhere: Prisma.ExternalContentItemWhereInput = {
       source: { code: source },
-      contentKind,
+      contentKind: contentKindWhere,
       publicStatus: 'published',
       city: input.city,
       ...(source === 'advcake_ticketland'
@@ -686,84 +749,125 @@ export class EveningAiDraftService {
             lat: { not: null },
             lng: { not: null },
           }),
-      ...(contentKind === 'event'
+      ...(source === 'advcake_ticketland'
         ? {
             moderationStatus: { not: 'rejected' },
             startsAt: { gte: new Date() },
-            priceMode:
-              source === 'kudago'
-                ? 'free'
-                : { in: ['free', 'paid'] },
+            priceMode: { in: ['free', 'paid'] },
           }
         : {}),
-      OR: this.searchTermsForRole(role).flatMap((term) => [
-        { title: { contains: term, mode: 'insensitive' as const } },
-        { category: { contains: term, mode: 'insensitive' as const } },
-        { shortSummary: { contains: term, mode: 'insensitive' as const } },
-        { venueName: { contains: term, mode: 'insensitive' as const } },
-        { placeKind: { contains: term, mode: 'insensitive' as const } },
-      ]),
+      ...(source === 'kudago'
+        ? {
+            AND: [
+              {
+                OR: [
+                  { contentKind: 'place' },
+                  {
+                    contentKind: 'event',
+                    moderationStatus: { not: 'rejected' },
+                    startsAt: { gte: new Date() },
+                    priceMode: 'free',
+                  },
+                ],
+              },
+            ],
+          }
+        : {}),
     };
 
-    const items = await (this.prismaService.client as any).externalContentItem.findMany({
-      where,
-      select: {
-        id: true,
-        title: true,
-        shortSummary: true,
-        category: true,
-        tags: true,
-        address: true,
-        lat: true,
-        lng: true,
-        startsAt: true,
-        endsAt: true,
-        priceFrom: true,
-        currency: true,
-        venueName: true,
-        actionUrl: true,
-        sourceUrl: true,
-        priceMode: true,
-        sourceProvider: true,
-        placeKind: true,
-        area: true,
-        source: {
-          select: { code: true, name: true },
-        },
-      },
-      orderBy:
-        contentKind === 'event'
-          ? [{ startsAt: 'asc' }, { id: 'asc' }]
-          : [{ title: 'asc' }, { id: 'asc' }],
-      take: 120,
-    });
+    const findManyByTerms = (terms: string[], take: number) => {
+      const where: Prisma.ExternalContentItemWhereInput = {
+        ...baseWhere,
+        OR: terms.flatMap((term) => [
+          { title: { contains: term, mode: 'insensitive' as const } },
+          { category: { contains: term, mode: 'insensitive' as const } },
+          { shortSummary: { contains: term, mode: 'insensitive' as const } },
+          { venueName: { contains: term, mode: 'insensitive' as const } },
+          { placeKind: { contains: term, mode: 'insensitive' as const } },
+        ]),
+      };
 
-    return items
+      return (this.prismaService.client as any).externalContentItem.findMany({
+        where,
+        select: {
+          id: true,
+          contentKind: true,
+          title: true,
+          shortSummary: true,
+          category: true,
+          tags: true,
+          address: true,
+          lat: true,
+          lng: true,
+          startsAt: true,
+          endsAt: true,
+          priceFrom: true,
+          currency: true,
+          venueName: true,
+          actionUrl: true,
+          sourceUrl: true,
+          priceMode: true,
+          sourceProvider: true,
+          placeKind: true,
+          area: true,
+          source: {
+            select: { code: true, name: true },
+          },
+        },
+        orderBy:
+          source === 'tomesto'
+            ? [{ title: 'asc' }, { id: 'asc' }]
+            : [{ startsAt: 'asc' }, { title: 'asc' }, { id: 'asc' }],
+        take,
+      });
+    };
+
+    const [preferredItems, genericItems] = await Promise.all([
+      intent.preferredTerms.length > 0
+        ? findManyByTerms(intent.preferredTerms, 80)
+        : Promise.resolve([]),
+      findManyByTerms(this.searchTermsForRole(role), 120),
+    ]);
+    const items = uniqueById([...preferredItems, ...genericItems]);
+
+    const mapped = items
       .filter(
         (item: any) =>
           source === 'advcake_ticketland' ||
           (typeof item.lat === 'number' && typeof item.lng === 'number'),
       )
-      .map((item: any) => ({
-        id: item.id,
-        role,
-        source,
-        contentKind,
-        title: item.title,
-        area: item.area ?? null,
-        tags: normalizeTags(item.tags),
-        priceMode: item.priceMode ?? 'unknown',
-        priceFrom: typeof item.priceFrom === 'number' ? item.priceFrom : null,
-        startsAt: item.startsAt instanceof Date ? item.startsAt.toISOString() : null,
-        lat: typeof item.lat === 'number' ? roundCoord(item.lat) : null,
-        lng: typeof item.lng === 'number' ? roundCoord(item.lng) : null,
-        address: item.address ?? null,
-        venueName: item.venueName ?? null,
-        actionUrl: item.actionUrl ?? null,
-        sourceUrl: item.sourceUrl ?? null,
-        sourceProvider: item.sourceProvider ?? item.source?.name ?? null,
-        shortSummary: item.shortSummary ?? null,
-      }));
+      .map((item: any) => {
+        const contentKind: CandidateCard['contentKind'] =
+          item.contentKind === 'place' ? 'place' : 'event';
+        const freeKudagoWalkPlace = source === 'kudago' && role === 'walk' && contentKind === 'place';
+        return {
+          id: item.id,
+          role,
+          source,
+          contentKind,
+          title: item.title,
+          area: item.area ?? null,
+          tags: normalizeTags(item.tags),
+          category: item.category ?? null,
+          placeKind: item.placeKind ?? null,
+          priceMode: freeKudagoWalkPlace ? 'free' : item.priceMode ?? 'unknown',
+          priceFrom: freeKudagoWalkPlace
+            ? 0
+            : typeof item.priceFrom === 'number'
+              ? item.priceFrom
+              : null,
+          startsAt: item.startsAt instanceof Date ? item.startsAt.toISOString() : null,
+          lat: typeof item.lat === 'number' ? roundCoord(item.lat) : null,
+          lng: typeof item.lng === 'number' ? roundCoord(item.lng) : null,
+          address: item.address ?? null,
+          venueName: item.venueName ?? null,
+          actionUrl: item.actionUrl ?? null,
+          sourceUrl: item.sourceUrl ?? null,
+          sourceProvider: item.sourceProvider ?? item.source?.name ?? null,
+          shortSummary: item.shortSummary ?? null,
+        };
+      });
+    return mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));
   }
 
   private mapDraftResponse(draft: AiDraftRecord) {
@@ -786,12 +890,52 @@ export class EveningAiDraftService {
   }
 
   private publicRoute(route: any) {
+    const routeFields = { ...route };
+    delete routeFields._aiIntent;
     return {
-      ...route,
+      ...routeFields,
       steps: (route.steps ?? []).map((step: any) => {
         const { externalContentItemId: _externalContentItemId, ...publicStep } = step;
         return publicStep;
       }),
+    };
+  }
+
+  private routeWithIntent(route: any, intent: RouteSnapshotIntent) {
+    return {
+      ...route,
+      _aiIntent: {
+        roles: intent.roles,
+        roleHints: intent.roleHints,
+        source: intent.source,
+      },
+    };
+  }
+
+  private intentFromRoute(route: any, input: ParsedDraftInput): DraftIntent | null {
+    const stored = route?._aiIntent;
+    if (!stored || typeof stored !== 'object') {
+      return null;
+    }
+    const roles: RouteRole[] = Array.isArray(stored.roles)
+      ? stored.roles
+          .map((role: unknown) => this.routeRoleOrNull(role))
+          .filter((role: RouteRole | null): role is RouteRole => role != null)
+      : [];
+    if (roles.length !== input.stepCount) {
+      return null;
+    }
+    const rawHints = Array.isArray(stored.roleHints) ? stored.roleHints : [];
+    return {
+      roles,
+      roleHints: roles.map((role, index) =>
+        this.normalizeLlmIntentHint(input, role, {
+          preferredTerms: rawHints[index]?.preferredTerms,
+          avoidTerms: rawHints[index]?.avoidTerms,
+          instruction: rawHints[index]?.instruction,
+        }),
+      ),
+      source: stored.source === 'llm' ? 'llm' : 'rules',
     };
   }
 
@@ -862,6 +1006,107 @@ export class EveningAiDraftService {
     return format;
   }
 
+  private async resolveDraftIntent(input: ParsedDraftInput): Promise<DraftIntent> {
+    const fallbackRoles = this.resolveRoles(input.prompt, input.format, input.stepCount);
+    const fallbackIntent: DraftIntent = {
+      roles: fallbackRoles,
+      roleHints: fallbackRoles.map((role) => this.roleIntentHint(input, role)),
+      source: 'rules',
+    };
+    if (!input.prompt) {
+      return fallbackIntent;
+    }
+
+    try {
+      const response = await this.openRouterService.generateJson<GeneratedIntentJson>({
+        model: QWEN_FREE_MODEL,
+        timeoutMs: 1800,
+        systemPrompt: this.intentSystemPrompt(),
+        userPrompt: this.intentUserPrompt(input, fallbackRoles),
+        temperature: 0,
+        maxTokens: 600,
+        responseFormat: this.intentResponseFormat(),
+      });
+      const parsedIntent = this.parseIntentResponse(input, response.parsedJson, fallbackRoles);
+      if (parsedIntent.roles.length === input.stepCount) {
+        return {
+          ...parsedIntent,
+          source: 'llm',
+        };
+      }
+    } catch {
+      return fallbackIntent;
+    }
+
+    return fallbackIntent;
+  }
+
+  private parseIntentResponse(
+    input: ParsedDraftInput,
+    generated: GeneratedIntentJson,
+    fallbackRoles: RouteRole[],
+  ): Omit<DraftIntent, 'source'> {
+    const roles: RouteRole[] = [];
+    const roleHints: RoleIntentHint[] = [];
+    const steps = Array.isArray(generated?.steps) ? generated.steps : [];
+
+    for (const step of steps) {
+      const role = this.routeRoleOrNull(step?.role);
+      if (!role || roles.length >= input.stepCount) {
+        continue;
+      }
+      roles.push(role);
+      roleHints.push(
+        this.normalizeLlmIntentHint(input, role, {
+          preferredTerms: step?.preferredTerms,
+          avoidTerms: step?.avoidTerms,
+          instruction: step?.instruction,
+        }),
+      );
+    }
+
+    for (const fallbackRole of fallbackRoles) {
+      if (roles.length >= input.stepCount) {
+        break;
+      }
+      roles.push(fallbackRole);
+      roleHints.push(this.roleIntentHint(input, fallbackRole));
+    }
+
+    return {
+      roles: roles.slice(0, input.stepCount),
+      roleHints: roleHints.slice(0, input.stepCount),
+    };
+  }
+
+  private normalizeLlmIntentHint(
+    input: ParsedDraftInput,
+    role: RouteRole,
+    rawHint: {
+      preferredTerms?: unknown;
+      avoidTerms?: unknown;
+      instruction?: unknown;
+    },
+  ): RoleIntentHint {
+    const fallback = this.roleIntentHint(input, role);
+    return {
+      role,
+      preferredTerms: uniqueStrings([
+        ...stringArray(rawHint.preferredTerms, 10),
+        ...fallback.preferredTerms,
+      ]),
+      avoidTerms: uniqueStrings([...stringArray(rawHint.avoidTerms, 10), ...fallback.avoidTerms]),
+      instruction: stringOrNull(rawHint.instruction) ?? fallback.instruction,
+    };
+  }
+
+  private routeRoleOrNull(value: unknown): RouteRole | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    return ROUTE_ROLE_SET.has(value) ? (value as RouteRole) : null;
+  }
+
   private resolveRoles(prompt: string | null, format: string | null, stepCount: number): RouteRole[] {
     const normalized = normalizeText([prompt, format].filter(Boolean).join(' '));
     const roles: RouteRole[] = [];
@@ -871,17 +1116,86 @@ export class EveningAiDraftService {
       }
     };
 
-    if (format === 'bar' || hasAny(normalized, ['бар', 'вино', 'коктейл', 'клуб'])) {
-      add(normalized.includes('клуб') ? 'place_club' : 'place_bar');
+    const orderedMentions = [
+      {
+        role: 'place_club' as const,
+        index: firstTermIndex(normalized, ['клуб', 'танц', 'караоке']),
+      },
+      {
+        role: 'place_bar' as const,
+        index: firstTermIndex(normalized, ['бар', 'вино', 'коктейл', 'wine', 'bar']),
+      },
+      {
+        role: 'place_food' as const,
+        index: firstTermIndex(normalized, [
+          'поесть',
+          'еда',
+          'ужин',
+          'ресторан',
+          'кафе',
+          'кофе',
+          'бранч',
+          'завтрак',
+          'десерт',
+          'паст',
+          'суши',
+          'ролл',
+          'бургер',
+          'стейк',
+          'пицц',
+          'итальян',
+          'грузин',
+          'хинкали',
+          'азиат',
+          'рамен',
+        ]),
+      },
+      {
+        role: 'show' as const,
+        index: firstTermIndex(normalized, [
+          'театр',
+          'спектак',
+          'опера',
+          'балет',
+          'мюзикл',
+          'шоу',
+          'стендап',
+          'концерт',
+          'джаз',
+        ]),
+      },
+      {
+        role: hasAny(normalized, ['прогул', 'погуля', 'маршрут', 'парк', 'набереж', 'бульвар'])
+          ? 'walk' as const
+          : 'free_activity' as const,
+        index: firstTermIndex(normalized, [
+          'погуля',
+          'прогул',
+          'маршрут',
+          'парк',
+          'набереж',
+          'бульвар',
+          'бесплат',
+          'праздн',
+          'активност',
+        ]),
+      },
+    ]
+      .filter((item) => item.index >= 0)
+      .sort((left, right) => left.index - right.index);
+
+    for (const mention of orderedMentions) {
+      add(mention.role);
     }
-    if (hasAny(normalized, ['кафе', 'кофе', 'бранч', 'ужин', 'ресторан', 'еда'])) {
-      add('place_food');
-    }
-    if (format === 'show' || hasAny(normalized, ['шоу', 'стендап', 'спектакл', 'театр', 'концерт', 'джаз'])) {
-      add('show');
-    }
-    if (format === 'active' || hasAny(normalized, ['бесплат', 'прогул', 'маршрут', 'парк', 'праздн', 'активност'])) {
-      add(hasAny(normalized, ['прогул', 'маршрут', 'парк']) ? 'walk' : 'free_activity');
+
+    if (roles.length === 0) {
+      if (format === 'bar') {
+        add('place_bar');
+      } else if (format === 'show') {
+        add('show');
+      } else if (format === 'active') {
+        add('free_activity');
+      }
     }
 
     while (roles.length < stepCount) {
@@ -915,14 +1229,14 @@ export class EveningAiDraftService {
       case 'place_club':
         return ['клуб', 'танцы', 'караоке', 'club'];
       case 'show':
-        return ['стендап', 'спектакль', 'театр', 'концерт', 'джаз', 'шоу'];
+        return ['стендап', 'спектакль', 'театр', 'концерт', 'джаз', 'шоу', 'опера', 'балет'];
       case 'walk':
-        return ['прогулка', 'парк', 'маршрут', 'выставка'];
+        return ['прогулка', 'погулять', 'парк', 'маршрут', 'набережная', 'бульвар', 'экскурсия'];
       case 'free_activity':
-        return ['бесплатно', 'фестиваль', 'праздник', 'лекция', 'активность'];
+        return ['бесплатно', 'фестиваль', 'праздник', 'лекция', 'активность', 'выставка'];
       case 'place_food':
       default:
-        return ['ресторан', 'кафе', 'бранч', 'ужин', 'еда', 'coffee'];
+        return ['ресторан', 'кафе', 'кофе', 'бранч', 'ужин', 'еда', 'coffee', 'десерт', 'паст', 'итальян'];
     }
   }
 
@@ -978,13 +1292,24 @@ export class EveningAiDraftService {
     return Array.from(new Set(roles.map((role) => this.labelForRole(role)))).join(' + ');
   }
 
-  private candidateScore(input: ParsedDraftInput, candidate: CandidateCard) {
+  private candidateScore(
+    input: ParsedDraftInput,
+    candidate: CandidateCard,
+    roleHints: RoleIntentHint[] = [],
+  ) {
     let score = 0;
-    const text = normalizeText([candidate.title, candidate.shortSummary, candidate.tags.join(' ')].join(' '));
+    const intent = this.roleIntentHint(input, candidate.role, roleHints);
+    const text = candidateSearchText(candidate);
     for (const term of this.searchTermsForRole(candidate.role)) {
-      if (text.includes(normalizeText(term))) {
+      if (hasAny(text, [term])) {
         score -= 20;
       }
+    }
+    if (intent.preferredTerms.length > 0) {
+      score += candidateMatchesTerms(candidate, intent.preferredTerms) ? -90 : 20;
+    }
+    if (intent.avoidTerms.length > 0 && candidateMatchesTerms(candidate, intent.avoidTerms)) {
+      score += 150;
     }
     if (input.budget === 'free' && candidate.priceMode !== 'free') {
       score += 100;
@@ -1005,8 +1330,218 @@ export class EveningAiDraftService {
     return fallbackPointForInput(input);
   }
 
+  private roleIntentHint(
+    input: ParsedDraftInput,
+    role: RouteRole,
+    roleHints: RoleIntentHint[] = [],
+  ): RoleIntentHint {
+    const explicitHints = roleHints.filter((hint) => hint.role === role);
+    if (explicitHints.length > 0) {
+      return {
+        role,
+        preferredTerms: uniqueStrings(explicitHints.flatMap((hint) => hint.preferredTerms)),
+        avoidTerms: uniqueStrings(explicitHints.flatMap((hint) => hint.avoidTerms)),
+        instruction:
+          explicitHints
+            .map((hint) => hint.instruction)
+            .filter((value): value is string => typeof value === 'string' && value.length > 0)
+            .join(' ') || null,
+      };
+    }
+
+    const normalized = normalizeText([input.prompt, input.format].filter(Boolean).join(' '));
+    const hint = (preferredTerms: string[], avoidTerms: string[], instruction: string): RoleIntentHint => ({
+      role,
+      preferredTerms: uniqueStrings(preferredTerms),
+      avoidTerms: uniqueStrings(avoidTerms),
+      instruction,
+    });
+
+    if (role === 'walk' && hasAny(normalized, ['погуля', 'прогул', 'маршрут', 'парк', 'набереж', 'бульвар'])) {
+      return hint(
+        ['прогул', 'маршрут', 'парк', 'сквер', 'бульвар', 'набереж', 'пеш', 'экскурс'],
+        ['музей', 'выстав', 'экспозици', 'галере', 'театр', 'спектак', 'концерт', 'стендап'],
+        'Нужна именно прогулка, парк, набережная или пеший маршрут, не музей и не выставка.',
+      );
+    }
+
+    if (role === 'place_food') {
+      if (hasAny(normalized, ['паст', 'итальян', 'italian'])) {
+        return hint(
+          ['паста', 'итальян', 'italian', 'траттор', 'trattoria', 'остери', 'osteria', 'равиол', 'пицц'],
+          [],
+          'Нужен итальянский ресторан или место, где явно есть паста.',
+        );
+      }
+      if (hasAny(normalized, ['суши', 'ролл', 'рамен', 'япон'])) {
+        return hint(
+          ['суши', 'ролл', 'рамен', 'япон', 'izakaya', 'азиат'],
+          [],
+          'Нужно место под суши, роллы, рамен или японскую кухню.',
+        );
+      }
+      if (hasAny(normalized, ['бургер'])) {
+        return hint(['бургер', 'burger'], [], 'Нужно место с бургерами.');
+      }
+      if (hasAny(normalized, ['стейк', 'мясо', 'гриль', 'grill'])) {
+        return hint(['стейк', 'мясо', 'гриль', 'grill'], [], 'Нужно мясное место, стейк или гриль.');
+      }
+      if (hasAny(normalized, ['грузин', 'хинкали', 'хачапури'])) {
+        return hint(
+          ['грузин', 'хинкали', 'хачапури'],
+          [],
+          'Нужно место с грузинской кухней.',
+        );
+      }
+      if (hasAny(normalized, ['кофе', 'coffee'])) {
+        return hint(['кофе', 'кофей', 'coffee', 'кафе'], [], 'Нужно место для кофе.');
+      }
+    }
+
+    if (role === 'show') {
+      if (hasAny(normalized, ['театр', 'спектак', 'опера', 'балет', 'мюзикл'])) {
+        return hint(
+          ['театр', 'театраль', 'спектак', 'опера', 'балет', 'мюзикл', 'постанов'],
+          ['музей', 'выстав', 'экспозици', 'галере'],
+          'Нужен театр, спектакль, опера, балет или мюзикл, не музей и не выставка.',
+        );
+      }
+      if (hasAny(normalized, ['стендап', 'standup', 'stand up', 'комед'])) {
+        return hint(['стендап', 'standup', 'stand up', 'комед'], [], 'Нужен стендап или комедийное шоу.');
+      }
+      if (hasAny(normalized, ['концерт', 'джаз', 'музык'])) {
+        return hint(['концерт', 'джаз', 'музык'], [], 'Нужен концерт, джаз или музыкальное событие.');
+      }
+    }
+
+    if (role === 'place_bar' && hasAny(normalized, ['вино', 'винн'])) {
+      return hint(['вино', 'винн', 'wine'], [], 'Нужен винный бар.');
+    }
+
+    return {
+      role,
+      preferredTerms: [],
+      avoidTerms: [],
+      instruction: null,
+    };
+  }
+
+  private isCandidateAllowedForIntent(candidate: CandidateCard, intent: RoleIntentHint) {
+    if (intent.avoidTerms.length === 0) {
+      return true;
+    }
+    if (!candidateMatchesTerms(candidate, intent.avoidTerms)) {
+      return true;
+    }
+    return candidateMatchesTerms(candidate, intent.preferredTerms);
+  }
+
   private candidateTailScore(candidate: CandidateCard, seed: number) {
     return stableHash(`${seed}:${candidate.id}`);
+  }
+
+  private intentSystemPrompt() {
+    return [
+      'Return strict JSON only.',
+      'Extract the ordered route intent from the user text.',
+      'Keep the same step order as the user asked.',
+      'Use only allowed roles.',
+      'Write short Russian search terms in preferredTerms and avoidTerms.',
+      'Do not choose real places here.',
+    ].join('\n');
+  }
+
+  private intentUserPrompt(input: ParsedDraftInput, fallbackRoles: RouteRole[]) {
+    return JSON.stringify({
+      prompt: input.prompt,
+      config: {
+        city: input.city,
+        area: input.area,
+        budget: input.budget,
+        goal: input.goal,
+        mood: input.mood,
+        format: input.format,
+        stepCount: input.stepCount,
+        fallbackRoles,
+      },
+      allowedRoles: [
+        {
+          role: 'place_food',
+          source: 'tomesto',
+          meaning: 'кафе, рестораны, кухня, паста, суши, кофе, завтрак, ужин',
+        },
+        {
+          role: 'place_bar',
+          source: 'tomesto',
+          meaning: 'бар, винный бар, коктейли',
+        },
+        {
+          role: 'place_club',
+          source: 'tomesto',
+          meaning: 'клуб, танцы, караоке',
+        },
+        {
+          role: 'show',
+          source: 'advcake_ticketland',
+          meaning: 'театр, спектакль, стендап, концерт, джаз, шоу, опера, балет',
+        },
+        {
+          role: 'walk',
+          source: 'kudago',
+          meaning: 'пешая прогулка, парк, маршрут, набережная, бульвар',
+        },
+        {
+          role: 'free_activity',
+          source: 'kudago',
+          meaning: 'бесплатная активность, фестиваль, праздник, выставка, лекция',
+        },
+      ],
+      rules: [
+        'Return exactly stepCount steps when the prompt has enough intent.',
+        'If the user asks the same kind of step twice, keep it twice.',
+        'preferredTerms must describe what the candidate should match.',
+        'avoidTerms must describe wrong candidates for this step.',
+        'For theatre requests prefer театр, спектакль, опера, балет, мюзикл and avoid музей, выставка.',
+        'For walking requests prefer прогулка, парк, маршрут, набережная and avoid музей, выставка.',
+      ],
+    });
+  }
+
+  private intentResponseFormat() {
+    return {
+      type: 'json_schema',
+      json_schema: {
+        name: 'evening_ai_route_intent',
+        strict: true,
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            steps: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  role: { type: 'string', enum: ROUTE_ROLES },
+                  preferredTerms: {
+                    type: 'array',
+                    items: { type: 'string' },
+                  },
+                  avoidTerms: {
+                    type: 'array',
+                    items: { type: 'string' },
+                  },
+                  instruction: { type: 'string' },
+                },
+                required: ['role', 'preferredTerms', 'avoidTerms', 'instruction'],
+              },
+            },
+          },
+          required: ['steps'],
+        },
+      },
+    };
   }
 
   private systemPrompt() {
@@ -1021,6 +1556,7 @@ export class EveningAiDraftService {
   private userPrompt(input: {
     input: ParsedDraftInput;
     roles: RouteRole[];
+    roleHints?: RoleIntentHint[];
     candidates: CandidateCard[];
     previousRoute?: any;
     regenerateStepIndex?: number;
@@ -1038,6 +1574,10 @@ export class EveningAiDraftService {
         format: input.input.format,
         stepCount: input.input.stepCount,
         roles: input.roles,
+        roleHints:
+          input.roleHints && input.roleHints.length > 0
+            ? input.roleHints
+            : input.roles.map((role) => this.roleIntentHint(input.input, role)),
       },
       regenerateStepIndex: input.regenerateStepIndex ?? null,
       rejectedIds: input.rejectedIds ?? [],
@@ -1058,6 +1598,8 @@ export class EveningAiDraftService {
         title: candidate.title,
         area: candidate.area,
         tags: candidate.tags.slice(0, 8),
+        category: candidate.category,
+        placeKind: candidate.placeKind,
         priceMode: candidate.priceMode,
         priceFrom: candidate.priceFrom,
         startsAt: candidate.startsAt,
@@ -1107,6 +1649,7 @@ export class EveningAiDraftService {
     roles: RouteRole[],
     candidates: CandidateCard[],
     generated: GeneratedDraftJson,
+    roleHints: RoleIntentHint[] = [],
   ) {
     const issues: DraftValidationIssue[] = [];
     const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
@@ -1164,6 +1707,35 @@ export class EveningAiDraftService {
         issues.push({
           code: 'source_role_mismatch',
           message: `Source ${candidate.source} does not match role ${role}`,
+          stepIndex: index,
+          externalContentItemId,
+        });
+      }
+      const intent =
+        roleHints[index]?.role === role
+          ? roleHints[index]
+          : this.roleIntentHint(input, role, roleHints);
+      const roleCandidates = candidates.filter((item) => item.role === role);
+      if (
+        intent.preferredTerms.length > 0 &&
+        roleCandidates.some((item) => candidateMatchesTerms(item, intent.preferredTerms)) &&
+        !candidateMatchesTerms(candidate, intent.preferredTerms)
+      ) {
+        issues.push({
+          code: 'intent_mismatch',
+          message: 'Step does not match requested role details',
+          stepIndex: index,
+          externalContentItemId,
+        });
+      }
+      if (
+        intent.avoidTerms.length > 0 &&
+        candidateMatchesTerms(candidate, intent.avoidTerms) &&
+        roleCandidates.some((item) => !candidateMatchesTerms(item, intent.avoidTerms))
+      ) {
+        issues.push({
+          code: 'intent_mismatch',
+          message: 'Step uses a candidate that conflicts with requested role details',
           stepIndex: index,
           externalContentItemId,
         });
@@ -1340,6 +1912,16 @@ function stringOrNull(value: unknown) {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function stringArray(value: unknown, limit: number) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => stringOrNull(item))
+    .filter((item): item is string => item != null)
+    .slice(0, limit);
+}
+
 function numberOrNull(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return null;
@@ -1363,6 +1945,51 @@ function normalizeText(value: string) {
 
 function hasAny(value: string, terms: string[]) {
   return terms.some((term) => value.includes(normalizeText(term)));
+}
+
+function firstTermIndex(value: string, terms: string[]) {
+  return terms.reduce((best, term) => {
+    const index = value.indexOf(normalizeText(term));
+    if (index < 0) {
+      return best;
+    }
+    return best < 0 ? index : Math.min(best, index);
+  }, -1);
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.map(normalizeText).filter(Boolean)));
+}
+
+function uniqueById<T extends { id?: unknown }>(items: T[]) {
+  const seen = new Set<unknown>();
+  return items.filter((item) => {
+    if (!item.id || seen.has(item.id)) {
+      return false;
+    }
+    seen.add(item.id);
+    return true;
+  });
+}
+
+function candidateSearchText(candidate: CandidateCard) {
+  return normalizeText(
+    [
+      candidate.title,
+      candidate.shortSummary,
+      candidate.venueName,
+      candidate.area,
+      candidate.category,
+      candidate.placeKind,
+      candidate.tags.join(' '),
+    ]
+      .filter(Boolean)
+      .join(' '),
+  );
+}
+
+function candidateMatchesTerms(candidate: CandidateCard, terms: string[]) {
+  return terms.length > 0 && hasAny(candidateSearchText(candidate), terms);
 }
 
 function roundCoord(value: number) {

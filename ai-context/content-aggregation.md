@@ -229,7 +229,7 @@ AdvCake item stays primary
   -> raw.enrichment records match details
 ```
 
-This lets paid affiliate events appear in affiche even without coordinates. User-facing AI show drafts may also use Ticketland rows without coordinates, while enrichment still improves walking distance and map quality when coordinates are found.
+This lets paid affiliate events appear in affiche even without coordinates. User-facing AI show drafts may also use Ticketland rows without coordinates, while enrichment still improves walking distance and map quality when coordinates are found. User-facing AI walk drafts can use KudaGo event rows and KudaGo place rows, so parks and walking places are not lost when there is no timed event.
 
 KudaGo event import requests `expand=place`, so event rows can store `venueName`, `address`, `lat` and `lng` from the linked place. If an older or partial KudaGo event only has `raw.place.id`, worker can copy the missing venue fields from the already imported `kudago` place row. The enrichment is recorded in `raw.enrichment` with `method=kudago_place_id` and `geoConfidence=high`.
 
@@ -245,7 +245,7 @@ optional Yandex geocoder high-confidence result
   -> raw.enrichment.method=geocoder_high_confidence
 ```
 
-Generic venue names such as `Клуб`, `Театр`, `Пешеходные экскурсии` are not geocoded by name. Geocoder enrichment is optional and only runs when a backend geocoder key is configured. Low-confidence geocoder results must leave coordinates empty. KudaGo and Tomesto route candidates still require coordinates; Ticketland show candidates can enter the user-facing AI pack without them.
+Generic venue names such as `Клуб`, `Театр`, `Пешеходные экскурсии` are not geocoded by name. Geocoder enrichment is optional and only runs when a backend geocoder key is configured. Low-confidence geocoder results must leave coordinates empty. KudaGo and Tomesto route candidates still require coordinates; Ticketland show candidates can enter the user-facing AI pack without them. KudaGo place candidates are allowed only for walk/free activity style AI route steps, not as restaurants or bars.
 
 ## Public API
 
@@ -368,6 +368,8 @@ walk,outdoor,bike,sport,adventure
 Food, cafe and bar must not fill a free outdoor route unless the place is explicitly free.
 
 Route generation keeps the place pool bounded before planner prompt building: DB query is capped, then places are balanced by requested area, category quota and geo bucket. Batch logs include RSS and duration.
+
+User-facing AI drafts run a fast Qwen intent pass before building the candidate pack. That intent pass returns ordered roles and per-step search hints, so arbitrary prompts and repeated role types are supported without adding one-off rules. Source mapping stays backend-owned: Tomesto for food, bars, clubs and restaurants; Ticketland/MTS Live for theatre, shows, concerts and standup; KudaGo for walks, parks, free activities and city events.
 
 AdvCake events without coordinates stay in public affiche only. They must not be selected for generated routes.
 
