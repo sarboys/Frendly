@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "62d6304e86dad96cc2703386d43e2e868e0ff2d6",
-  "generatedAt": "2026-05-15T04:25:16.657Z",
+  "gitCommitHash": "92c7893a11976dbcc16aa95a081f296eaa1fe231",
+  "generatedAt": "2026-05-15T05:27:15.925Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14962,7 +14962,7 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "26f61839cd3ea6d4475689ae05ef645863e6098c2ad7056d5345aa3234c53f60",
+      "contentHash": "41754febb4eab73e2b1bc04d11e8f864ae989ce47ea7fc04e0cf26fdb9b4e4ca",
       "functions": [
         {
           "name": "normalizeEveningPrompt",
@@ -14980,6 +14980,57 @@
           ],
           "exported": false,
           "lineCount": 3
+        },
+        {
+          "name": "isFiniteNumber",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "geoDistanceKm",
+          "params": [
+            "left",
+            "right"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "degreesToRadians",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "dayRangeFromDate",
+          "params": [
+            "date"
+          ],
+          "returnType": "AggregatedDateRange",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "remainingDayRangeFromDate",
+          "params": [
+            "date"
+          ],
+          "returnType": "AggregatedDateRange",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "nextWeekdayRange",
+          "params": [
+            "day"
+          ],
+          "exported": false,
+          "lineCount": 6
         }
       ],
       "classes": [
@@ -15009,6 +15060,15 @@
             "addAfterPartyPhoto",
             "finishRoute",
             "loadEveningRouteTemplate",
+            "resolveAggregatedRoute",
+            "buildAggregatedSlots",
+            "aggregatedSlot",
+            "loadAggregatedCandidates",
+            "aggregatedSearchWhere",
+            "aggregatedCandidateScore",
+            "pickNearbyAggregatedSequence",
+            "buildAggregatedRouteRecord",
+            "aggregatedRouteTitle",
             "findRouteCandidates",
             "pickBestRoute",
             "scoreRoute",
@@ -15025,10 +15085,15 @@
             "moveToNextStep",
             "mapAfterParty",
             "dateToIso",
+            "createId",
             "sessionPhaseToChatPhase",
             "normalizeSessionCurrentStep",
             "parsePrivacy",
             "parseCapacity",
+            "parseStepCount",
+            "resolveStartPoint",
+            "parseAggregatedDateRange",
+            "areaLabel",
             "normalizeSessionLimit",
             "optionalText",
             "requiredText",
@@ -15059,7 +15124,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 2627
+          "lineCount": 3174
         }
       ],
       "imports": [
@@ -15115,7 +15180,7 @@
       "exports": [
         "EveningService"
       ],
-      "totalLines": 2835,
+      "totalLines": 3456,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/event-capacity.ts": {
@@ -21587,7 +21652,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "6bee1295c4120c532bde7355adc1e392021e7fed911c9507c5d97343e70d0a39",
+      "contentHash": "62296dfdcd4ebc2c8e751c37339f42ac522d538accbce2b522c2722e3ad52dbe",
       "functions": [
         {
           "name": "csv",
@@ -21616,6 +21681,13 @@
             "unrefTimers",
             "clearTimers",
             "getTimers",
+            "startContentImportSchedule",
+            "scheduleNextDailyContentImport",
+            "runDailyContentImportAndReschedule",
+            "parseDailyImportTime",
+            "resolveContentImportTimeZone",
+            "msUntilDailyImport",
+            "localTimeParts",
             "runScheduledTask",
             "runOnce",
             "shouldUseBatchOutboxClaim",
@@ -21678,6 +21750,7 @@
             "contentManualImportRunning",
             "contentManualGenerationRunning",
             "contentRouteGenerationRunning",
+            "shuttingDown",
             "maxEventsPerRun",
             "outboxProcessingConcurrency",
             "pushConcurrency",
@@ -21699,6 +21772,8 @@
             "contentImageBackfillEnabled",
             "contentImageBackfillBatchSize",
             "contentImportIntervalMs",
+            "contentImportDailyAt",
+            "contentImportTimeZone",
             "contentManualImportIntervalMs",
             "contentManualGenerationIntervalMs",
             "contentRouteGenerationEnabled",
@@ -21711,7 +21786,7 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 1750
+          "lineCount": 1851
         }
       ],
       "imports": [
@@ -21810,7 +21885,7 @@
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 1825,
+      "totalLines": 1932,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {

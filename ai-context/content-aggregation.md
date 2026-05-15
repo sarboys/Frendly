@@ -399,6 +399,15 @@ CONTENT_IMPORT_INTERVAL_MS=14400000
 
 That is 4 hours.
 
+Production can switch scheduled import to a wall-clock daily run:
+
+```text
+CONTENT_IMPORT_DAILY_AT=00:00
+CONTENT_IMPORT_TIME_ZONE=Europe/Moscow
+```
+
+When `CONTENT_IMPORT_DAILY_AT` is set, worker does not run scheduled import immediately on boot. It waits for the next configured wall-clock time.
+
 Manual import scan:
 
 ```text

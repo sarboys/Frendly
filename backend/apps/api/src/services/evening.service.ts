@@ -62,6 +62,35 @@ const EVENING_SESSION_PUBLIC_PHASES = ['scheduled', 'live'] as const;
 
 type EveningPrivacy = (typeof EVENING_PRIVACY)[number];
 
+type AggregatedRouteSlot = {
+  sourceCode: 'kudago' | 'tomesto' | 'advcake_ticketland';
+  contentKind: 'event' | 'place';
+  kind: string;
+  emoji: string;
+  terms: string[];
+  title: string;
+};
+
+type AggregatedRouteCandidate = {
+  slot: AggregatedRouteSlot;
+  item: any;
+  lat: number;
+  lng: number;
+  sourceCode: string;
+  sourceName: string | null;
+  baseScore: number;
+};
+
+type GeoPoint = {
+  lat: number;
+  lng: number;
+};
+
+type AggregatedDateRange = {
+  from: Date;
+  to: Date;
+};
+
 const eveningRouteStepSelect = {
   id: true,
   timeLabel: true,
@@ -224,6 +253,19 @@ export class EveningService {
     const area =
       this.parseOption(body.area, EVENING_AREAS, 'invalid_evening_area') ??
       hints.area;
+    const stepCount = this.parseStepCount(body.stepCount);
+
+    const aggregatedRoute = await this.resolveAggregatedRoute(userId, body, {
+      goal,
+      mood,
+      budget,
+      format,
+      area,
+      stepCount,
+    });
+    if (aggregatedRoute) {
+      return aggregatedRoute;
+    }
 
     const routes = await this.findRouteCandidates({
       goal,
@@ -1617,6 +1659,474 @@ export class EveningService {
     });
   }
 
+  private async resolveAggregatedRoute(
+    userId: string,
+    body: Record<string, unknown>,
+    params: {
+      goal: string | null;
+      mood: string | null;
+      budget: string | null;
+      format: string | null;
+      area: string | null;
+      stepCount: number;
+    },
+  ) {
+    const client = this.prismaService.client as any;
+    if (
+      typeof body.prompt !== 'string' ||
+      body.prompt.trim().length === 0 ||
+      client.externalContentItem?.findMany == null ||
+      client.$transaction == null
+    ) {
+      return null;
+    }
+
+    const prompt = normalizeEveningPrompt(body.prompt);
+    const slots = this.buildAggregatedSlots(prompt, params.format, params.stepCount);
+    if (slots.length < 2) {
+      return null;
+    }
+
+    const city = this.optionalText(body.city) ?? 'Москва';
+    const dateRange = this.parseAggregatedDateRange(prompt);
+    const groups = await Promise.all(
+      slots.map((slot) => this.loadAggregatedCandidates(slot, city, dateRange)),
+    );
+    if (groups.some((group) => group.length === 0)) {
+      return null;
+    }
+
+    const sequence = this.pickNearbyAggregatedSequence(
+      groups,
+      this.resolveStartPoint(body, params.area),
+    );
+    if (!sequence) {
+      return null;
+    }
+
+    const route = this.buildAggregatedRouteRecord(sequence, {
+      city,
+      goal: params.goal,
+      mood: params.mood,
+      budget: params.budget,
+      format: params.format,
+      area: params.area,
+    });
+
+    await client.$transaction(async (tx: any) => {
+      await tx.eveningRoute.create({
+        data: route.routeData,
+      });
+      await tx.eveningRouteStep.createMany({
+        data: route.steps,
+      });
+    });
+
+    return this.mapRouteForUser(userId, {
+      ...route.routeData,
+      chatId: null,
+      isCurated: false,
+      badgeLabel: 'AI маршрут',
+      steps: route.steps,
+    } as EveningRouteWithSteps);
+  }
+
+  private buildAggregatedSlots(
+    prompt: string,
+    format: string | null,
+    stepCount: number,
+  ): AggregatedRouteSlot[] {
+    const slots: AggregatedRouteSlot[] = [];
+    const addSlot = (slot: AggregatedRouteSlot) => {
+      if (slots.length < stepCount) {
+        slots.push(slot);
+      }
+    };
+
+    const wantsActive =
+      format === 'active' ||
+      hasPromptTerm(prompt, ['спорт', 'пробеж', 'бег', 'трениров', 'йога']);
+    const wantsBrunch = hasPromptTerm(prompt, [
+      'бранч',
+      'завтрак',
+      'кофе',
+      'кафе',
+      'ресторан',
+      'ужин',
+      'бар',
+      'вино',
+      'коктейл',
+      'клуб',
+    ]);
+    const wantsShow =
+      format === 'show' ||
+      hasPromptTerm(prompt, ['концерт', 'театр', 'спектакл', 'стендап', 'джаз', 'шоу']);
+    const wantsWalk =
+      hasPromptTerm(prompt, ['прогул', 'парк', 'выстав', 'бесплат', 'активност']) ||
+      format === 'culture';
+
+    if (wantsActive) {
+      addSlot(this.aggregatedSlot('active'));
+    }
+    if (wantsActive && stepCount >= 3) {
+      addSlot(this.aggregatedSlot('walk'));
+    }
+    if (wantsBrunch) {
+      addSlot(this.aggregatedSlot('food'));
+    }
+    if (wantsShow) {
+      addSlot(this.aggregatedSlot('show'));
+    }
+    if (wantsWalk && !wantsActive) {
+      addSlot(this.aggregatedSlot('walk'));
+    }
+
+    while (slots.length < stepCount) {
+      if (
+        slots.some((slot) => slot.title === 'Активность') &&
+        !slots.some((slot) => slot.title === 'Прогулка')
+      ) {
+        addSlot(this.aggregatedSlot('walk'));
+      } else if (!slots.some((slot) => slot.sourceCode === 'tomesto')) {
+        addSlot(this.aggregatedSlot('food'));
+      } else {
+        addSlot(this.aggregatedSlot('coffee'));
+      }
+    }
+
+    return slots.slice(0, stepCount);
+  }
+
+  private aggregatedSlot(kind: 'active' | 'walk' | 'food' | 'coffee' | 'show'): AggregatedRouteSlot {
+    switch (kind) {
+      case 'active':
+        return {
+          sourceCode: 'kudago',
+          contentKind: 'event',
+          kind: 'active',
+          emoji: '🏃',
+          terms: ['спорт', 'пробеж', 'бег', 'трениров', 'йога', 'active'],
+          title: 'Активность',
+        };
+      case 'walk':
+        return {
+          sourceCode: 'kudago',
+          contentKind: 'event',
+          kind: 'active',
+          emoji: '🌿',
+          terms: ['прогул', 'парк', 'выстав', 'бесплат', 'маршрут'],
+          title: 'Прогулка',
+        };
+      case 'show':
+        return {
+          sourceCode: 'advcake_ticketland',
+          contentKind: 'event',
+          kind: 'show',
+          emoji: '🎤',
+          terms: ['концерт', 'театр', 'спектакл', 'стендап', 'джаз', 'шоу'],
+          title: 'Событие',
+        };
+      case 'coffee':
+        return {
+          sourceCode: 'tomesto',
+          contentKind: 'place',
+          kind: 'dinner',
+          emoji: '☕',
+          terms: ['кофе', 'кафе', 'десерт', 'тихо'],
+          title: 'Кофе',
+        };
+      case 'food':
+      default:
+        return {
+          sourceCode: 'tomesto',
+          contentKind: 'place',
+          kind: 'dinner',
+          emoji: '🍳',
+          terms: [
+            'бранч',
+            'завтрак',
+            'ресторан',
+            'кафе',
+            'еда',
+            'ужин',
+            'бар',
+            'вино',
+            'коктейл',
+            'клуб',
+          ],
+          title: 'Заведение',
+        };
+    }
+  }
+
+  private async loadAggregatedCandidates(
+    slot: AggregatedRouteSlot,
+    city: string,
+    dateRange: AggregatedDateRange | null,
+  ): Promise<AggregatedRouteCandidate[]> {
+    const where: Prisma.ExternalContentItemWhereInput = {
+      source: { code: slot.sourceCode },
+      contentKind: slot.contentKind,
+      publicStatus: 'published',
+      city,
+      lat: { not: null },
+      lng: { not: null },
+      ...(slot.contentKind === 'event'
+        ? {
+            moderationStatus: { not: 'rejected' },
+            priceMode:
+              slot.sourceCode === 'kudago'
+                ? 'free'
+                : { in: ['free', 'paid'] },
+            startsAt: dateRange
+              ? { gte: dateRange.from, lt: dateRange.to }
+              : { gte: new Date() },
+          }
+        : {}),
+      OR: this.aggregatedSearchWhere(slot.terms),
+    };
+
+    const items = await (this.prismaService.client as any).externalContentItem.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        shortSummary: true,
+        category: true,
+        address: true,
+        lat: true,
+        lng: true,
+        startsAt: true,
+        endsAt: true,
+        priceFrom: true,
+        currency: true,
+        venueName: true,
+        actionUrl: true,
+        sourceUrl: true,
+        priceMode: true,
+        sourceProvider: true,
+        placeKind: true,
+        source: {
+          select: { code: true, name: true },
+        },
+      },
+      orderBy: slot.contentKind === 'event'
+        ? [{ startsAt: 'asc' }, { id: 'asc' }]
+        : [{ title: 'asc' }, { id: 'asc' }],
+      take: 60,
+    });
+
+    return items
+      .filter((item: any) => isFiniteNumber(item.lat) && isFiniteNumber(item.lng))
+      .map((item: any): AggregatedRouteCandidate => ({
+        slot,
+        item,
+        lat: item.lat,
+        lng: item.lng,
+        sourceCode: item.source?.code ?? slot.sourceCode,
+        sourceName: item.sourceProvider ?? item.source?.name ?? null,
+        baseScore: this.aggregatedCandidateScore(item, slot),
+      }))
+      .sort((left: AggregatedRouteCandidate, right: AggregatedRouteCandidate) => left.baseScore - right.baseScore)
+      .slice(0, 24);
+  }
+
+  private aggregatedSearchWhere(terms: string[]): Prisma.ExternalContentItemWhereInput[] {
+    const uniqueTerms = Array.from(new Set(terms.map((term) => term.trim()).filter(Boolean)));
+    return uniqueTerms.flatMap((term) => [
+      { title: { contains: term, mode: 'insensitive' as const } },
+      { shortSummary: { contains: term, mode: 'insensitive' as const } },
+      { category: { contains: term, mode: 'insensitive' as const } },
+      { venueName: { contains: term, mode: 'insensitive' as const } },
+      { placeKind: { contains: term, mode: 'insensitive' as const } },
+    ]);
+  }
+
+  private aggregatedCandidateScore(item: any, slot: AggregatedRouteSlot) {
+    const text = normalizeEveningPrompt(
+      [item.title, item.shortSummary, item.category, item.venueName, item.placeKind]
+        .filter(Boolean)
+        .join(' '),
+    );
+    let score = 20;
+    for (const term of slot.terms) {
+      if (text.includes(normalizeEveningPrompt(term))) {
+        score -= 3;
+      }
+    }
+    if (item.priceMode === 'free') {
+      score -= 2;
+    }
+    if (item.priceFrom != null) {
+      score += Math.min(Number(item.priceFrom) / 1000, 6);
+    }
+    return score;
+  }
+
+  private pickNearbyAggregatedSequence(
+    groups: AggregatedRouteCandidate[][],
+    startPoint: GeoPoint | null,
+  ) {
+    const maxLegKm = 3;
+    const preferredLegKm = 1.5;
+    const maxFromAnchorKm = 4;
+    let bestItems: AggregatedRouteCandidate[] | null = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    const search = (
+      index: number,
+      selected: AggregatedRouteCandidate[],
+      usedIds: Set<string>,
+      score: number,
+    ) => {
+      if (index === groups.length) {
+        if (score < bestScore) {
+          bestItems = [...selected];
+          bestScore = score;
+        }
+        return;
+      }
+
+      const group = groups[index];
+      if (!group) {
+        return;
+      }
+
+      for (const candidate of group) {
+        if (usedIds.has(candidate.item.id)) {
+          continue;
+        }
+
+        let nextScore = score + candidate.baseScore;
+        const previous = selected[selected.length - 1] ?? null;
+        if (previous) {
+          const legKm = geoDistanceKm(previous, candidate);
+          if (legKm > maxLegKm) {
+            continue;
+          }
+          nextScore += legKm > preferredLegKm ? legKm * 8 : legKm * 3;
+        } else if (startPoint) {
+          const startKm = geoDistanceKm(startPoint, candidate);
+          if (startKm > maxFromAnchorKm) {
+            continue;
+          }
+          nextScore += startKm * 2;
+        }
+
+        const anchor = selected[0] ?? candidate;
+        if (geoDistanceKm(anchor, candidate) > maxFromAnchorKm) {
+          continue;
+        }
+
+        usedIds.add(candidate.item.id);
+        selected.push(candidate);
+        search(index + 1, selected, usedIds, nextScore);
+        selected.pop();
+        usedIds.delete(candidate.item.id);
+      }
+    };
+
+    search(0, [], new Set(), 0);
+    return bestItems;
+  }
+
+  private buildAggregatedRouteRecord(
+    sequence: AggregatedRouteCandidate[],
+    params: {
+      city: string;
+      goal: string | null;
+      mood: string | null;
+      budget: string | null;
+      format: string | null;
+      area: string | null;
+    },
+  ) {
+    const routeId = this.createId('route');
+    const firstTime = sequence.some((candidate) => candidate.slot.kind === 'active')
+      ? 10
+      : 19;
+    const steps = sequence.map((candidate, index) => {
+      const previous = sequence[index - 1] ?? null;
+      const legKm = previous ? geoDistanceKm(previous, candidate) : 0;
+      const startHour = firstTime + index;
+      return {
+        id: this.createId('step'),
+        routeId,
+        venueId: null,
+        partnerOfferId: null,
+        sortOrder: index,
+        timeLabel: `${String(startHour).padStart(2, '0')}:00`,
+        endTimeLabel: `${String(startHour + 1).padStart(2, '0')}:00`,
+        kind: candidate.slot.kind,
+        title: candidate.item.title,
+        venue: candidate.item.venueName ?? candidate.item.title,
+        address: candidate.item.address ?? params.city,
+        emoji: candidate.slot.emoji,
+        distanceLabel: index === 0 ? 'старт' : `${legKm.toFixed(1)} км`,
+        walkMin: index === 0 ? null : Math.max(1, Math.round((legKm / 4.5) * 60)),
+        perk: null,
+        perkShort: null,
+        ticketPrice:
+          candidate.sourceCode === 'advcake_ticketland'
+            ? candidate.item.priceFrom ?? null
+            : null,
+        ticketCommission: null,
+        ticketUrl:
+          candidate.sourceCode === 'advcake_ticketland'
+            ? candidate.item.actionUrl ?? candidate.item.sourceUrl ?? null
+            : null,
+        ticketSourceCode: candidate.sourceCode,
+        ticketProvider: candidate.sourceName,
+        sponsored: false,
+        premium: false,
+        partnerId: null,
+        description: candidate.item.shortSummary ?? candidate.slot.title,
+        vibeTag: candidate.slot.title,
+        lat: candidate.lat,
+        lng: candidate.lng,
+        offerTitleSnapshot: null,
+        offerDescriptionSnapshot: null,
+        offerTermsSnapshot: null,
+        offerShortLabelSnapshot: null,
+      };
+    });
+    const totalPriceFrom = sequence.reduce(
+      (sum, candidate) => sum + Math.max(0, Number(candidate.item.priceFrom ?? 0)),
+      0,
+    );
+    const routeData = {
+      id: routeId,
+      templateId: null,
+      title: this.aggregatedRouteTitle(sequence),
+      vibe: 'Рядом, без лишних переездов',
+      blurb: 'Маршрут собран из городских источников с учетом расстояния между шагами.',
+      totalPriceFrom,
+      totalSavings: 0,
+      durationLabel: `${steps[0]?.timeLabel ?? '19:00'} - ${steps[steps.length - 1]?.endTimeLabel ?? '21:00'}`,
+      area: this.areaLabel(params.area) ?? params.city,
+      goal: params.goal ?? 'newfriends',
+      mood: params.mood ?? 'chill',
+      budget: params.budget ?? (totalPriceFrom === 0 ? 'free' : 'low'),
+      format: params.format ?? 'mixed',
+      premium: false,
+      recommendedFor: 'AI подобрал точки рядом',
+      hostsCount: 0,
+      source: 'ai_aggregation',
+      status: 'draft',
+      city: params.city,
+      timezone: 'Europe/Moscow',
+      isCurated: false,
+      badgeLabel: 'AI маршрут',
+      publishedAt: null,
+    };
+    return { routeData, steps };
+  }
+
+  private aggregatedRouteTitle(sequence: AggregatedRouteCandidate[]) {
+    const labels = sequence.map((candidate) => candidate.slot.title);
+    return Array.from(new Set(labels)).join(' + ') || 'AI маршрут рядом';
+  }
+
   private async findRouteCandidates(params: {
     goal: string | null;
     mood: string | null;
@@ -2207,6 +2717,10 @@ export class EveningService {
     return value instanceof Date ? value.toISOString() : null;
   }
 
+  private createId(prefix: string) {
+    return `${prefix}_${randomBytes(12).toString('hex')}`;
+  }
+
   private sessionPhaseToChatPhase(value: string | null | undefined) {
     if (value === 'live') {
       return 'live';
@@ -2245,6 +2759,68 @@ export class EveningService {
       }
     }
     return 10;
+  }
+
+  private parseStepCount(value: unknown) {
+    if (value == null || value === '') {
+      return 2;
+    }
+    const parsed = typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+    if (!Number.isFinite(parsed)) {
+      throw new ApiError(400, 'invalid_evening_step_count', 'Evening step count is invalid');
+    }
+    return Math.min(4, Math.max(2, Math.floor(parsed)));
+  }
+
+  private resolveStartPoint(
+    body: Record<string, unknown>,
+    area: string | null,
+  ): GeoPoint | null {
+    const latitude = typeof body.latitude === 'number' ? body.latitude : null;
+    const longitude = typeof body.longitude === 'number' ? body.longitude : null;
+    if (latitude != null && longitude != null && isFiniteNumber(latitude) && isFiniteNumber(longitude)) {
+      return { lat: latitude, lng: longitude };
+    }
+    switch (area) {
+      case 'center':
+        return { lat: 55.7558, lng: 37.6173 };
+      case 'patriki':
+        return { lat: 55.7638, lng: 37.5932 };
+      case 'chistye':
+        return { lat: 55.7657, lng: 37.6388 };
+      case 'gorky':
+        return { lat: 55.7298, lng: 37.6011 };
+      case 'kursk':
+        return { lat: 55.7585, lng: 37.6591 };
+      default:
+        return null;
+    }
+  }
+
+  private parseAggregatedDateRange(prompt: string): AggregatedDateRange | null {
+    if (hasPromptTerm(prompt, ['сегодня', 'сейчас'])) {
+      return remainingDayRangeFromDate(new Date());
+    }
+    if (hasPromptTerm(prompt, ['завтра'])) {
+      const date = new Date();
+      date.setDate(date.getDate() + 1);
+      return dayRangeFromDate(date);
+    }
+    if (hasPromptTerm(prompt, ['суббот'])) {
+      return nextWeekdayRange(6);
+    }
+    if (hasPromptTerm(prompt, ['воскрес'])) {
+      return nextWeekdayRange(0);
+    }
+    return null;
+  }
+
+  private areaLabel(area: string | null) {
+    return EVENING_AREAS.find((item) => item.key === area)?.label ?? null;
   }
 
   private normalizeSessionLimit(value: unknown) {
@@ -2831,4 +3407,49 @@ function normalizeEveningPrompt(value: string) {
 
 function hasPromptTerm(text: string, terms: string[]) {
   return terms.some((term) => text.includes(normalizeEveningPrompt(term)));
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function geoDistanceKm(left: GeoPoint, right: GeoPoint) {
+  const earthRadiusKm = 6371;
+  const lat1 = degreesToRadians(left.lat);
+  const lat2 = degreesToRadians(right.lat);
+  const deltaLat = degreesToRadians(right.lat - left.lat);
+  const deltaLng = degreesToRadians(right.lng - left.lng);
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(lat1) *
+      Math.cos(lat2) *
+      Math.sin(deltaLng / 2) *
+      Math.sin(deltaLng / 2);
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function degreesToRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function dayRangeFromDate(date: Date): AggregatedDateRange {
+  const from = new Date(date);
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(from);
+  to.setDate(to.getDate() + 1);
+  return { from, to };
+}
+
+function remainingDayRangeFromDate(date: Date): AggregatedDateRange {
+  const from = new Date(date);
+  const to = new Date(date);
+  to.setHours(24, 0, 0, 0);
+  return { from, to };
+}
+
+function nextWeekdayRange(day: number) {
+  const date = new Date();
+  const delta = (day - date.getDay() + 7) % 7 || 7;
+  date.setDate(date.getDate() + delta);
+  return dayRangeFromDate(date);
 }

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T04:25:16.427Z",
-    "gitCommitHash": "62d6304e86dad96cc2703386d43e2e868e0ff2d6"
+    "analyzedAt": "2026-05-15T05:27:15.688Z",
+    "gitCommitHash": "92c7893a11976dbcc16aa95a081f296eaa1fe231"
   },
   "nodes": [
     {
@@ -11156,7 +11156,7 @@
       "type": "file",
       "name": "evening.service.ts",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "summary": "evening.service.ts contains 1 classes, 2 functions.",
+      "summary": "evening.service.ts contains 1 classes, 8 functions.",
       "tags": [
         "backend",
         "code",
@@ -11170,8 +11170,8 @@
       "name": "normalizeEveningPrompt",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
-        2822,
-        2830
+        3398,
+        3406
       ],
       "summary": "normalizeEveningPrompt in evening.service.ts.",
       "tags": [
@@ -11187,10 +11187,112 @@
       "name": "hasPromptTerm",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
-        2832,
-        2834
+        3408,
+        3410
       ],
       "summary": "hasPromptTerm in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:isFiniteNumber",
+      "type": "function",
+      "name": "isFiniteNumber",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        3412,
+        3414
+      ],
+      "summary": "isFiniteNumber in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:geoDistanceKm",
+      "type": "function",
+      "name": "geoDistanceKm",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        3416,
+        3429
+      ],
+      "summary": "geoDistanceKm in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:degreesToRadians",
+      "type": "function",
+      "name": "degreesToRadians",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        3431,
+        3433
+      ],
+      "summary": "degreesToRadians in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:dayRangeFromDate",
+      "type": "function",
+      "name": "dayRangeFromDate",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        3435,
+        3441
+      ],
+      "summary": "dayRangeFromDate in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:remainingDayRangeFromDate",
+      "type": "function",
+      "name": "remainingDayRangeFromDate",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        3443,
+        3448
+      ],
+      "summary": "remainingDayRangeFromDate in evening.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening.service.ts:nextWeekdayRange",
+      "type": "function",
+      "name": "nextWeekdayRange",
+      "filePath": "backend/apps/api/src/services/evening.service.ts",
+      "lineRange": [
+        3450,
+        3455
+      ],
+      "summary": "nextWeekdayRange in evening.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -11204,8 +11306,8 @@
       "name": "EveningService",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
-        194,
-        2820
+        223,
+        3396
       ],
       "summary": "EveningService in evening.service.ts.",
       "tags": [
@@ -17909,8 +18011,8 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        1810,
-        1816
+        1917,
+        1923
       ],
       "summary": "csv in worker.service.ts.",
       "tags": [
@@ -17926,8 +18028,8 @@
       "name": "streamToBuffer",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        1818,
-        1824
+        1925,
+        1931
       ],
       "summary": "streamToBuffer in worker.service.ts.",
       "tags": [
@@ -17943,8 +18045,8 @@
       "name": "WorkerService",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        59,
-        1808
+        65,
+        1915
       ],
       "summary": "WorkerService in worker.service.ts.",
       "tags": [
@@ -36724,6 +36826,48 @@
     {
       "source": "file:backend/apps/api/src/services/evening.service.ts",
       "target": "function:backend/apps/api/src/services/evening.service.ts:hasPromptTerm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:isFiniteNumber",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:geoDistanceKm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:degreesToRadians",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:dayRangeFromDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:remainingDayRangeFromDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening.service.ts",
+      "target": "function:backend/apps/api/src/services/evening.service.ts:nextWeekdayRange",
       "type": "contains",
       "direction": "forward",
       "weight": 1

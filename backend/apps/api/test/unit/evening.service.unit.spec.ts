@@ -76,6 +76,45 @@ describe('EveningService unit', () => {
     ...overrides,
   });
 
+  const externalItemFixture = (overrides: Record<string, unknown> = {}) => ({
+    id: 'external-1',
+    sourceId: 'source-1',
+    sourceItemId: 'source-item-1',
+    sourceUrl: 'https://example.test/item',
+    contentKind: 'event',
+    city: 'Москва',
+    timezone: 'Europe/Moscow',
+    area: null,
+    title: 'External item',
+    shortSummary: 'External summary',
+    category: 'sport',
+    tags: [],
+    address: 'External address',
+    lat: 55.76,
+    lng: 37.61,
+    startsAt: new Date('2026-06-07T07:00:00.000Z'),
+    endsAt: new Date('2026-06-07T08:00:00.000Z'),
+    priceFrom: 0,
+    currency: 'RUB',
+    venueName: 'External venue',
+    imageUrl: null,
+    imageVariants: {},
+    actionUrl: 'https://example.test/action',
+    actionKind: 'open',
+    priceMode: 'free',
+    isAffiliate: false,
+    sourceProvider: null,
+    placeKind: null,
+    publicStatus: 'published',
+    moderationStatus: 'approved',
+    raw: {},
+    source: {
+      code: 'kudago',
+      name: 'KudaGo',
+    },
+    ...overrides,
+  });
+
   it('resolves the strongest matching route and maps user step state', async () => {
     const findMany = jest.fn().mockResolvedValue([
       routeFixture({ id: 'r-other', goal: 'quiet', mood: 'chill', budget: 'low' }),
@@ -232,6 +271,228 @@ describe('EveningService unit', () => {
           OR: expect.arrayContaining([{ format: 'mixed' }]),
         }),
       }),
+    );
+  });
+
+  it('builds an AI route from source-specific nearby external items', async () => {
+    const externalFindMany = jest.fn((query: any) => {
+      const sourceCode = query?.where?.source?.code;
+      if (sourceCode === 'kudago') {
+        return Promise.resolve([
+          externalItemFixture({
+            id: 'kudago-far-run',
+            sourceItemId: 'kudago-far-run',
+            title: 'Пробежка далеко',
+            venueName: 'Дальний парк',
+            address: 'Дальний парк',
+            lat: 55.9,
+            lng: 37.82,
+          }),
+          externalItemFixture({
+            id: 'kudago-near-run',
+            sourceItemId: 'kudago-near-run',
+            title: 'Утренняя пробежка',
+            venueName: 'Сад у воды',
+            address: 'Набережная 1',
+            lat: 55.76,
+            lng: 37.61,
+          }),
+        ]);
+      }
+      if (sourceCode === 'tomesto') {
+        return Promise.resolve([
+          externalItemFixture({
+            id: 'tomesto-near-brunch',
+            sourceItemId: 'tomesto-near-brunch',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Бранч рядом',
+            venueName: null,
+            category: 'restaurant',
+            placeKind: 'restaurant',
+            address: 'Набережная 3',
+            lat: 55.761,
+            lng: 37.612,
+            startsAt: null,
+            endsAt: null,
+            priceFrom: 1200,
+            priceMode: 'unknown',
+            sourceProvider: 'ТоМесто',
+          }),
+          externalItemFixture({
+            id: 'tomesto-far-brunch',
+            sourceItemId: 'tomesto-far-brunch',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Бранч на другом конце',
+            venueName: null,
+            category: 'restaurant',
+            placeKind: 'restaurant',
+            address: 'Дальний проспект 9',
+            lat: 55.66,
+            lng: 37.86,
+            startsAt: null,
+            endsAt: null,
+            priceFrom: 1400,
+            priceMode: 'unknown',
+            sourceProvider: 'ТоМесто',
+          }),
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    const routeCreate = jest.fn().mockResolvedValue({});
+    const stepCreateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const routeFindMany = jest.fn().mockResolvedValue([routeFixture()]);
+    const service = new EveningService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: externalFindMany,
+          },
+          eveningRoute: {
+            findMany: routeFindMany,
+            findUnique: jest.fn(),
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              eveningRoute: { create: routeCreate },
+              eveningRouteStep: { createMany: stepCreateMany },
+            }),
+          ),
+        },
+      } as any,
+    );
+
+    const result = await service.resolveRoute('user-me', {
+      prompt: 'Спорт + бранч',
+      stepCount: 2,
+    });
+
+    expect(routeFindMany).not.toHaveBeenCalled();
+    expect(result.steps).toHaveLength(2);
+    expect(result.steps[0]).toMatchObject({
+      title: 'Утренняя пробежка',
+      venue: 'Сад у воды',
+      kind: 'active',
+    });
+    expect(result.steps[1]).toMatchObject({
+      title: 'Бранч рядом',
+      venue: 'Бранч рядом',
+      kind: 'dinner',
+      ticketSourceCode: 'tomesto',
+      ticketProvider: 'ТоМесто',
+    });
+    expect(stepCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            title: 'Бранч рядом',
+            ticketSourceCode: 'tomesto',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('clamps generated AI routes to four steps', async () => {
+    const externalFindMany = jest.fn((query: any) => {
+      const sourceCode = query?.where?.source?.code;
+      if (sourceCode === 'kudago') {
+        return Promise.resolve([
+          externalItemFixture({ id: 'kudago-1', sourceItemId: 'kudago-1', title: 'Тренировка', lat: 55.76, lng: 37.61 }),
+          externalItemFixture({ id: 'kudago-2', sourceItemId: 'kudago-2', title: 'Прогулка', category: 'walk', lat: 55.761, lng: 37.612 }),
+        ]);
+      }
+      if (sourceCode === 'tomesto') {
+        return Promise.resolve([
+          externalItemFixture({ id: 'tomesto-1', sourceItemId: 'tomesto-1', source: { code: 'tomesto', name: 'ТоМесто' }, contentKind: 'place', title: 'Бранч', category: 'restaurant', lat: 55.762, lng: 37.613, startsAt: null, endsAt: null, priceFrom: 1000 }),
+          externalItemFixture({ id: 'tomesto-2', sourceItemId: 'tomesto-2', source: { code: 'tomesto', name: 'ТоМесто' }, contentKind: 'place', title: 'Кофе', category: 'cafe', lat: 55.763, lng: 37.614, startsAt: null, endsAt: null, priceFrom: 500 }),
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    const stepCreateMany = jest.fn().mockResolvedValue({ count: 4 });
+    const service = new EveningService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: externalFindMany,
+          },
+          eveningRoute: {
+            findMany: jest.fn().mockResolvedValue([routeFixture()]),
+            findUnique: jest.fn(),
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              eveningRoute: { create: jest.fn().mockResolvedValue({}) },
+              eveningRouteStep: { createMany: stepCreateMany },
+            }),
+          ),
+        },
+      } as any,
+    );
+
+    const result = await service.resolveRoute('user-me', {
+      prompt: 'Спорт + бранч + кофе',
+      stepCount: 9,
+    });
+
+    expect(result.steps).toHaveLength(4);
+    expect(stepCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ sortOrder: 3 }),
+        ]),
+      }),
+    );
+  });
+
+  it('does not query past external events for current day AI routes', async () => {
+    const externalFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EveningService(
+      {
+        client: {
+          externalContentItem: {
+            findMany: externalFindMany,
+          },
+          eveningRoute: {
+            findMany: jest.fn().mockResolvedValue([routeFixture()]),
+            findUnique: jest.fn(),
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: jest.fn(),
+        },
+      } as any,
+    );
+
+    const beforeResolve = Date.now();
+    await service.resolveRoute('user-me', {
+      prompt: 'Прогулка сейчас',
+    });
+
+    const kudagoCall = externalFindMany.mock.calls.find(
+      ([query]) => query?.where?.source?.code === 'kudago',
+    );
+    expect(kudagoCall?.[0].where.startsAt.gte.getTime()).toBeGreaterThanOrEqual(
+      beforeResolve - 1000,
     );
   });
 

@@ -38,6 +38,7 @@ const DEFAULT_EVENING_AUTO_ADVANCE_INTERVAL_MS = 30_000;
 const DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE = 25;
 const DEFAULT_PUSH_TOKEN_BATCH_SIZE = 20;
 const DEFAULT_CONTENT_IMPORT_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const DEFAULT_CONTENT_IMPORT_TIME_ZONE = 'Europe/Moscow';
 const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -53,6 +54,11 @@ type ClaimedOutboxEvent = {
   payload: unknown;
   attempts: number;
   createdAt?: Date | null;
+};
+
+type DailyImportTime = {
+  hour: number;
+  minute: number;
 };
 
 @Injectable()
@@ -73,6 +79,7 @@ export class WorkerService implements OnModuleDestroy {
   private contentManualImportRunning = false;
   private contentManualGenerationRunning = false;
   private contentRouteGenerationRunning = false;
+  private shuttingDown = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
     process.env.WORKER_MAX_EVENTS_PER_RUN,
     DEFAULT_MAX_EVENTS_PER_RUN,
@@ -141,6 +148,12 @@ export class WorkerService implements OnModuleDestroy {
   private readonly contentImportIntervalMs = this.resolvePositiveInteger(
     process.env.CONTENT_IMPORT_INTERVAL_MS,
     DEFAULT_CONTENT_IMPORT_INTERVAL_MS,
+  );
+  private readonly contentImportDailyAt = this.parseDailyImportTime(
+    process.env.CONTENT_IMPORT_DAILY_AT,
+  );
+  private readonly contentImportTimeZone = this.resolveContentImportTimeZone(
+    process.env.CONTENT_IMPORT_TIME_ZONE,
   );
   private readonly contentManualImportIntervalMs = this.resolvePositiveInteger(
     process.env.CONTENT_MANUAL_IMPORT_INTERVAL_MS,
@@ -219,12 +232,7 @@ export class WorkerService implements OnModuleDestroy {
       }, this.contentManualGenerationIntervalMs);
     }
     if (this.contentRoleEnabled && this.contentImportEnabled) {
-      this.contentImportTimer = setInterval(() => {
-        void this.runScheduledTask(
-          'content-import',
-          () => this.runContentImportScan(),
-        );
-      }, this.contentImportIntervalMs);
+      this.startContentImportSchedule();
     }
     if (this.contentRoleEnabled && this.contentRouteGenerationEnabled) {
       this.contentRouteGenerationTimer = setInterval(() => {
@@ -265,7 +273,11 @@ export class WorkerService implements OnModuleDestroy {
         () => this.runPendingManualGenerationScan(),
       );
     }
-    if (this.contentRoleEnabled && this.contentImportEnabled) {
+    if (
+      this.contentRoleEnabled &&
+      this.contentImportEnabled &&
+      !this.contentImportDailyAt
+    ) {
       void this.runScheduledTask(
         'content-import',
         () => this.runContentImportScan(),
@@ -280,6 +292,7 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    this.shuttingDown = true;
     this.clearTimers();
     const shutdownResults = await Promise.allSettled([
       this.redis.quit(),
@@ -328,6 +341,100 @@ export class WorkerService implements OnModuleDestroy {
       this.contentManualGenerationTimer,
       this.contentRouteGenerationTimer,
     ];
+  }
+
+  private startContentImportSchedule() {
+    if (this.contentImportDailyAt) {
+      this.scheduleNextDailyContentImport();
+      return;
+    }
+
+    this.contentImportTimer = setInterval(() => {
+      void this.runScheduledTask(
+        'content-import',
+        () => this.runContentImportScan(),
+      );
+    }, this.contentImportIntervalMs);
+  }
+
+  private scheduleNextDailyContentImport() {
+    if (!this.contentImportDailyAt || this.shuttingDown) {
+      return;
+    }
+
+    this.contentImportTimer = setTimeout(() => {
+      void this.runDailyContentImportAndReschedule();
+    }, this.msUntilDailyImport(this.contentImportDailyAt));
+    this.contentImportTimer.unref?.();
+  }
+
+  private async runDailyContentImportAndReschedule() {
+    await this.runScheduledTask(
+      'content-import',
+      () => this.runContentImportScan(),
+    );
+    this.scheduleNextDailyContentImport();
+  }
+
+  private parseDailyImportTime(value?: string): DailyImportTime | null {
+    const raw = value?.trim();
+    if (!raw) {
+      return null;
+    }
+
+    const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(raw);
+    if (!match) {
+      console.warn('[worker] CONTENT_IMPORT_DAILY_AT ignored, expected HH:mm');
+      return null;
+    }
+
+    return {
+      hour: Number.parseInt(match[1]!, 10),
+      minute: Number.parseInt(match[2]!, 10),
+    };
+  }
+
+  private resolveContentImportTimeZone(value?: string) {
+    const timeZone = value?.trim() || DEFAULT_CONTENT_IMPORT_TIME_ZONE;
+
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date(0));
+      return timeZone;
+    } catch {
+      console.warn(
+        '[worker] CONTENT_IMPORT_TIME_ZONE ignored, expected an IANA time zone',
+      );
+      return DEFAULT_CONTENT_IMPORT_TIME_ZONE;
+    }
+  }
+
+  private msUntilDailyImport(target: DailyImportTime, now = new Date()) {
+    const local = this.localTimeParts(now);
+    const currentMs =
+      ((local.hour * 60 + local.minute) * 60 + local.second) * 1000 +
+      now.getMilliseconds();
+    const targetMs = ((target.hour * 60 + target.minute) * 60) * 1000;
+    const dayMs = 24 * 60 * 60 * 1000;
+    const delay = targetMs - currentMs;
+    return delay > 0 ? delay : delay + dayMs;
+  }
+
+  private localTimeParts(date: Date) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: this.contentImportTimeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(date);
+    const value = (type: string) =>
+      Number.parseInt(parts.find((part) => part.type === type)?.value ?? '0', 10);
+
+    return {
+      hour: value('hour'),
+      minute: value('minute'),
+      second: value('second'),
+    };
   }
 
   private async runScheduledTask(

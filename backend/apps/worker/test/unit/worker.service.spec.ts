@@ -79,11 +79,14 @@ describe('worker outbox recovery', () => {
     delete process.env.WORKER_CONTENT_ENABLED;
     delete process.env.WORKER_SCHEDULES_ENABLED;
     delete process.env.CONTENT_IMPORT_ENABLED;
+    delete process.env.CONTENT_IMPORT_DAILY_AT;
+    delete process.env.CONTENT_IMPORT_TIME_ZONE;
     delete process.env.CONTENT_IMPORT_IMAGE_BACKFILL_ENABLED;
     delete process.env.CONTENT_ROUTE_GENERATION_ENABLED;
     delete process.env.CONTENT_IMPORT_CITIES;
     delete process.env.CONTENT_IMPORT_SOURCES;
     delete process.env.TOMESTO_WINDOW_DAYS;
+    jest.useRealTimers();
   });
 
   it('runs startup scans through the safe scheduled runner', async () => {
@@ -605,6 +608,85 @@ describe('worker outbox recovery', () => {
     expect(daysBetween(defaultCall.from, defaultCall.to)).toBe(14);
     expect(daysBetween(tomestoCall.from, tomestoCall.to)).toBe(30);
     consoleDebug.mockRestore();
+    await service.onModuleDestroy();
+  });
+
+  it('schedules daily content import at the configured wall-clock time', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-15T20:30:00.000Z'));
+    process.env.WORKER_OUTBOX_ENABLED = 'false';
+    process.env.WORKER_SCHEDULES_ENABLED = 'false';
+    process.env.CONTENT_IMPORT_ENABLED = 'true';
+    process.env.CONTENT_IMPORT_DAILY_AT = '00:00';
+    process.env.CONTENT_IMPORT_TIME_ZONE = 'Europe/Moscow';
+    const contentImportService = {
+      runImport: jest.fn().mockResolvedValue([]),
+      backfillMirroredImages: jest.fn().mockResolvedValue({ scanned: 0, mirrored: 0 }),
+    };
+    const service = new WorkerService(
+      { client: {} } as any,
+      contentImportService as any,
+    );
+    const runContentImportScan = jest.fn().mockResolvedValue(undefined);
+    const runScheduledTask = jest.fn((_label: string, task: () => Promise<void>) => {
+      void task();
+    });
+    (service as any).runContentImportScan = runContentImportScan;
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runPendingManualImportScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runPendingManualGenerationScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    expect(runScheduledTask).not.toHaveBeenCalledWith(
+      'content-import',
+      expect.any(Function),
+    );
+
+    await jest.advanceTimersByTimeAsync(29 * 60 * 1000 + 59 * 1000);
+    expect(runContentImportScan).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(runScheduledTask).toHaveBeenCalledWith('content-import', expect.any(Function));
+    expect(runContentImportScan).toHaveBeenCalledTimes(1);
+
+    await service.onModuleDestroy();
+  });
+
+  it('falls back to Moscow time when daily import time zone is invalid', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-15T20:30:00.000Z'));
+    process.env.WORKER_OUTBOX_ENABLED = 'false';
+    process.env.WORKER_SCHEDULES_ENABLED = 'false';
+    process.env.CONTENT_IMPORT_ENABLED = 'true';
+    process.env.CONTENT_IMPORT_DAILY_AT = '00:00';
+    process.env.CONTENT_IMPORT_TIME_ZONE = 'bad-zone';
+    const consoleWarn = jest.spyOn(console, 'warn').mockImplementation();
+    const contentImportService = {
+      runImport: jest.fn().mockResolvedValue([]),
+      backfillMirroredImages: jest.fn().mockResolvedValue({ scanned: 0, mirrored: 0 }),
+    };
+    const service = new WorkerService(
+      { client: {} } as any,
+      contentImportService as any,
+    );
+    const runContentImportScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runContentImportScan = runContentImportScan;
+    (service as any).runScheduledTask = jest.fn((_label: string, task: () => Promise<void>) => {
+      void task();
+    });
+    (service as any).runPendingManualImportScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runPendingManualGenerationScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    await jest.advanceTimersByTimeAsync(30 * 60 * 1000);
+    expect(runContentImportScan).toHaveBeenCalledTimes(1);
+    expect(consoleWarn).toHaveBeenCalledWith(
+      '[worker] CONTENT_IMPORT_TIME_ZONE ignored, expected an IANA time zone',
+    );
+
+    consoleWarn.mockRestore();
     await service.onModuleDestroy();
   });
 
