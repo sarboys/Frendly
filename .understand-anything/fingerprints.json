@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "80d66839d5a859072e6a45125934bdd338b86523",
-  "generatedAt": "2026-05-15T09:17:43.727Z",
+  "gitCommitHash": "0cca2010b42aae613d82200c8153d26609a85257",
+  "generatedAt": "2026-05-15T10:10:06.867Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -11427,7 +11427,7 @@
     },
     "backend/apps/api/src/controllers/evening.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/evening.controller.ts",
-      "contentHash": "e003978ed44e0f5ebc475764a53b66d47bb905ff1a7a2d0b5ef9a477449b9827",
+      "contentHash": "57c991f6796da461b10bc74c7244ec89d7806705c3429978cde9a13495ec7a56",
       "functions": [],
       "classes": [
         {
@@ -11444,6 +11444,7 @@
             "getAiDraft",
             "acceptAiDraftStep",
             "regenerateAiDraftStep",
+            "regenerateAiDraft",
             "confirmAiDraft",
             "getRoute",
             "launchRoute",
@@ -11470,7 +11471,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 344
+          "lineCount": 355
         }
       ],
       "imports": [
@@ -11519,7 +11520,7 @@
       "exports": [
         "EveningController"
       ],
-      "totalLines": 353,
+      "totalLines": 364,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/events.controller.ts": {
@@ -14678,7 +14679,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "a22183177338eb09691ecfea35bf00bcb756f5517859c18bca29bbe219b391ed",
+      "contentHash": "8ad7fa44e9021cf5daf6ca2f3b94715166a94fdc6c29f336af8d4a35107705d1",
       "functions": [
         {
           "name": "hasCandidateCoords",
@@ -14840,6 +14841,8 @@
             "getDraft",
             "acceptStep",
             "regenerateStep",
+            "regenerateDraft",
+            "hasEnoughCandidatesForRoles",
             "confirmDraft",
             "loadDraft",
             "generateRouteWithFallback",
@@ -14873,6 +14876,7 @@
             "routePointForCandidate",
             "roleIntentHint",
             "isCandidateAllowedForIntent",
+            "isWalkCandidate",
             "candidateTailScore",
             "intentSystemPrompt",
             "intentUserPrompt",
@@ -14889,7 +14893,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1726
+          "lineCount": 1811
         }
       ],
       "imports": [
@@ -14933,7 +14937,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 2029,
+      "totalLines": 2171,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -19469,7 +19473,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "1e4a0b51bea0ca10cf772def1c540c314117325f9736083ac1f70ede7437bb24",
+      "contentHash": "63ecd5445267b7f7c1f144a3ef6eea30c555b29ae2a190bf54b2c3854b47ec84",
       "functions": [
         {
           "name": "safeJson",
@@ -19662,7 +19666,7 @@
             "item"
           ],
           "exported": false,
-          "lineCount": 31
+          "lineCount": 34
         },
         {
           "name": "contentImportFailure",
@@ -19695,7 +19699,31 @@
             "counts"
           ],
           "exported": false,
-          "lineCount": 14
+          "lineCount": 23
+        },
+        {
+          "name": "isTomestoClosedPlace",
+          "params": [
+            "item"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "tomestoRawClosed",
+          "params": [
+            "raw"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "booleanTrue",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
         }
       ],
       "classes": [
@@ -19731,7 +19759,7 @@
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 994
+          "lineCount": 1002
         }
       ],
       "imports": [
@@ -19813,7 +19841,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 1441,
+      "totalLines": 1480,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
@@ -21292,7 +21320,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "608c4a019d71eade56a7b2329fcc4385d8c20c5cc324476204a20a1da8c1dc43",
+      "contentHash": "9c9d1339699f86966b69a76c38c4d5e6cbe317ab2d076d3987e7b96fccaadc53",
       "functions": [
         {
           "name": "isDetailPath",
@@ -21496,6 +21524,14 @@
           ],
           "exported": false,
           "lineCount": 5
+        },
+        {
+          "name": "tomestoClosedPlaceStatus",
+          "params": [
+            "pageText"
+          ],
+          "exported": false,
+          "lineCount": 15
         },
         {
           "name": "buildPlaceTaxonomy",
@@ -21805,7 +21841,7 @@
             "catalogFallbackMaxPages"
           ],
           "exported": true,
-          "lineCount": 623
+          "lineCount": 626
         }
       ],
       "imports": [
@@ -21828,7 +21864,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1366,
+      "totalLines": 1385,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {

@@ -44,6 +44,7 @@ describe('EveningAiDraftService unit', () => {
     chatId: null,
     steps: [
       {
+        externalContentItemId: 'tomesto-bar',
         id: 'step-1',
         time: '19:00',
         endTime: '20:00',
@@ -79,6 +80,7 @@ describe('EveningAiDraftService unit', () => {
         },
       },
       {
+        externalContentItemId: 'ticketland-show',
         id: 'step-2',
         time: '20:30',
         endTime: '22:00',
@@ -199,6 +201,26 @@ describe('EveningAiDraftService unit', () => {
           sourceUrl: null,
           sourceProvider: 'ТоМесто',
           shortSummary: 'Бар для старта',
+        },
+        {
+          id: 'tomesto-alt',
+          role: 'place_bar',
+          source: 'tomesto',
+          contentKind: 'place',
+          title: 'Винный шкаф',
+          area: 'Центр',
+          tags: ['bar', 'wine'],
+          priceMode: 'paid',
+          priceFrom: 1400,
+          startsAt: null,
+          lat: 55.761,
+          lng: 37.612,
+          address: 'Покровка 14',
+          venueName: 'Винный шкаф',
+          actionUrl: null,
+          sourceUrl: null,
+          sourceProvider: 'ТоМесто',
+          shortSummary: 'Другой бар',
         },
         {
           id: 'ticketland-show',
@@ -784,6 +806,18 @@ describe('EveningAiDraftService unit', () => {
             priceMode: 'unknown',
             sourceProvider: 'KudaGo',
           },
+          {
+            id: 'kudago-rink',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Каток «Ледо» у парка Кусково',
+            category: 'sport',
+            tags: ['каток', 'парк', 'активность'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceFrom: 0,
+            priceMode: 'free',
+            sourceProvider: 'KudaGo',
+          },
         ],
         tomesto: [
           {
@@ -838,6 +872,13 @@ describe('EveningAiDraftService unit', () => {
         title: 'Парк Горького',
         ticketSourceCode: 'kudago',
       }),
+    );
+    expect(draftCreate.mock.calls[0]?.[0]?.data?.candidatePackJson).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'kudago-rink',
+        }),
+      ]),
     );
     expect(draftCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -899,6 +940,63 @@ describe('EveningAiDraftService unit', () => {
             title: 'Brix',
           }),
         ]),
+      }),
+    );
+  });
+
+  it('regenerates the whole draft without reusing current route steps', async () => {
+    const { service, draftUpdate, openRouter } = createService({
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Другой бар и джаз',
+            vibe: 'Новый вариант',
+            blurb: 'Маршрут заменен целиком.',
+            steps: [
+              {
+                externalContentItemId: 'tomesto-alt',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Другой бар',
+              },
+              {
+                externalContentItemId: 'ticketland-alt',
+                timeLabel: '20:30',
+                endTimeLabel: '22:00',
+                description: 'Другой концерт',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 130,
+        },
+      ],
+    });
+
+    const result = await service.regenerateDraft('user-1', 'draft-1');
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    expect(routeCall.userPrompt).toContain('tomesto-bar');
+    expect(routeCall.userPrompt).toContain('ticketland-show');
+    expect(result.acceptedStepIndexes).toEqual([]);
+    expect(result.currentStepIndex).toBe(0);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Винный шкаф',
+      'Джаз',
+    ]);
+    expect(draftUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          acceptedStepIndexes: [],
+          rejectedExternalItemIds: expect.arrayContaining([
+            'old-rejected',
+            'tomesto-bar',
+            'ticketland-show',
+          ]),
+        }),
       }),
     );
   });

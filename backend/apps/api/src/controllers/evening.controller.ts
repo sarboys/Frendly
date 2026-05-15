@@ -112,6 +112,17 @@ export class EveningController {
     );
   }
 
+  @Post('routes/ai-drafts/:draftId/regenerate')
+  regenerateAiDraft(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('draftId') draftId: string,
+  ) {
+    return this.eveningAiDraftService.regenerateDraft(
+      currentUser.userId,
+      draftId,
+    );
+  }
+
   @Post('routes/ai-drafts/:draftId/confirm')
   confirmAiDraft(
     @CurrentUser() currentUser: { userId: string },

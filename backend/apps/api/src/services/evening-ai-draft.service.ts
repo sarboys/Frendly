@@ -14,6 +14,63 @@ const MIN_STEP_COUNT = 2;
 const MAX_CANDIDATES = 300;
 const MAX_LEG_KM = 3.5;
 const CANDIDATE_CORE_RATIO = 0.7;
+const WALK_ALLOWED_CATEGORY_TERMS = ['walk', 'outdoor', 'park', 'route', 'маршрут', 'прогул', 'парк'];
+const WALK_STRONG_TERMS = [
+  'прогул',
+  'пеш',
+  'маршрут',
+  'парк',
+  'сквер',
+  'сад',
+  'набереж',
+  'бульвар',
+  'лесопарк',
+  'усадьб',
+  'площад',
+  'алле',
+];
+const WALK_BLOCKED_TERMS = [
+  'каток',
+  'коньк',
+  'ледовый',
+  'аквапарк',
+  'аттракцион',
+  'квест',
+  'vr',
+  'виртуаль',
+  'музей',
+  'выстав',
+  'экспозици',
+  'галере',
+  'театр',
+  'спектак',
+  'кино',
+  'цирк',
+  'зоопарк',
+  'ресторан',
+  'кафе',
+  'клуб',
+  'караоке',
+  'боулинг',
+  'батут',
+  'стадион',
+  'арена',
+];
+const WALK_BLOCKED_CATEGORY_TERMS = [
+  'sport',
+  'active',
+  'quest',
+  'museum',
+  'exhibition',
+  'theatre',
+  'cinema',
+  'concert',
+  'food',
+  'restaurant',
+  'bar',
+  'club',
+  'entertainment',
+];
 
 type RouteRole =
   | 'place_food'
@@ -245,6 +302,71 @@ export class EveningAiDraftService {
       },
     });
     return this.mapDraftResponse(updated);
+  }
+
+  async regenerateDraft(userId: string, draftId: string) {
+    const draft = await this.loadDraft(userId, draftId);
+    const route = this.routeSnapshot(draft);
+    const candidates = this.candidatePack(draft);
+    const rejected = new Set(this.stringList(draft.rejectedExternalItemIds));
+    for (const [index, step] of (route.steps ?? []).entries()) {
+      const currentId = this.hiddenExternalId(step) ?? candidates[index]?.id ?? null;
+      if (currentId) {
+        rejected.add(currentId);
+      }
+    }
+
+    const input = this.inputFromDraft(draft);
+    const intent = this.intentFromRoute(route, input) ?? await this.resolveDraftIntent(input);
+    const availableCandidates = candidates.filter((candidate) => !rejected.has(candidate.id));
+    if (
+      availableCandidates.length < MIN_STEP_COUNT ||
+      !this.hasEnoughCandidatesForRoles(availableCandidates, intent.roles)
+    ) {
+      throw new ApiError(
+        409,
+        'evening_ai_regenerate_candidates_exhausted',
+        'Not enough alternative candidates to regenerate route',
+      );
+    }
+
+    const generated = await this.generateRouteWithFallback({
+      input,
+      roles: intent.roles,
+      roleHints: intent.roleHints,
+      candidates: availableCandidates,
+      timeoutMs: 4500,
+      previousRoute: route,
+      rejectedIds: [...rejected],
+    });
+    const nextRoute = this.routeWithIntent(generated.route, intent);
+    const updated = await (this.prismaService.client as any).eveningAiRouteDraft.update({
+      where: { id: draft.id },
+      data: {
+        routeSnapshotJson: nextRoute as Prisma.InputJsonValue,
+        acceptedStepIndexes: [],
+        rejectedExternalItemIds: [...rejected],
+        model: generated.model,
+        latencyMs: generated.latencyMs,
+        validationIssues: generated.warnings as unknown as Prisma.InputJsonValue,
+      },
+    });
+    return this.mapDraftResponse(updated);
+  }
+
+  private hasEnoughCandidatesForRoles(candidates: CandidateCard[], roles: RouteRole[]) {
+    const availableByRole = new Map<RouteRole, number>();
+    for (const candidate of candidates) {
+      availableByRole.set(candidate.role, (availableByRole.get(candidate.role) ?? 0) + 1);
+    }
+    const neededByRole = new Map<RouteRole, number>();
+    for (const role of roles) {
+      neededByRole.set(role, (neededByRole.get(role) ?? 0) + 1);
+      if ((availableByRole.get(role) ?? 0) < (neededByRole.get(role) ?? 0)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   async confirmDraft(userId: string, draftId: string) {
@@ -1427,6 +1549,9 @@ export class EveningAiDraftService {
   }
 
   private isCandidateAllowedForIntent(candidate: CandidateCard, intent: RoleIntentHint) {
+    if (candidate.role === 'walk' && !this.isWalkCandidate(candidate)) {
+      return false;
+    }
     if (intent.avoidTerms.length === 0) {
       return true;
     }
@@ -1434,6 +1559,23 @@ export class EveningAiDraftService {
       return true;
     }
     return candidateMatchesTerms(candidate, intent.preferredTerms);
+  }
+
+  private isWalkCandidate(candidate: CandidateCard) {
+    const text = candidateSearchText(candidate);
+    if (hasAny(text, WALK_BLOCKED_TERMS)) {
+      return false;
+    }
+    const categoryText = normalizeText(
+      [candidate.category, candidate.tags.join(' ')]
+        .filter(Boolean)
+        .join(' '),
+    );
+    if (hasAny(categoryText, WALK_BLOCKED_CATEGORY_TERMS)) {
+      return false;
+    }
+    return hasAny(categoryText, WALK_ALLOWED_CATEGORY_TERMS) ||
+      hasAny(text, WALK_STRONG_TERMS);
   }
 
   private candidateTailScore(candidate: CandidateCard, seed: number) {

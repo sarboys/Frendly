@@ -57,6 +57,45 @@ describe('TomestoAdapter', () => {
     expect(maxActiveDetailRequests).toBe(2);
     expect(fetchSpy).toHaveBeenCalledTimes(5);
   });
+
+  it('marks permanently closed catalog places in raw status', async () => {
+    jest.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.endsWith('/moskva/sitemap.xml')) {
+        return new Response(sitemapXml(1), {
+          status: 200,
+          headers: { 'content-type': 'application/xml' },
+        }) as any;
+      }
+
+      return new Response(placeHtml(value, '<div>Место закрыто</div><div>навсегда</div>'), {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }) as any;
+    });
+
+    const items = await new TomestoAdapter().fetchItems({
+      city: 'Москва',
+      cityCode: 'moskva',
+      timezone: 'Europe/Moscow',
+      from,
+      to,
+      signal: new AbortController().signal,
+      importMode: 'tomesto_places_catalog',
+      catalogOffset: 0,
+      catalogLimit: 1,
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.raw).toEqual(
+      expect.objectContaining({
+        status: expect.objectContaining({
+          closed: true,
+          permanentlyClosed: true,
+        }),
+      }),
+    );
+  });
 });
 
 function sitemapXml(count: number) {
@@ -66,7 +105,7 @@ function sitemapXml(count: number) {
   return `<urlset>${locs}</urlset>`;
 }
 
-function placeHtml(sourceUrl: string) {
+function placeHtml(sourceUrl: string, bodyExtra = '') {
   return `
     <html>
       <head>
@@ -79,6 +118,7 @@ function placeHtml(sourceUrl: string) {
         <script type="application/ld+json">
           {"geo":{"latitude":55.7558,"longitude":37.6173}}
         </script>
+        ${bodyExtra}
       </body>
     </html>
   `;

@@ -452,6 +452,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const $ = cheerio.load(html);
     const sourceUrl = canonicalUrl($, detailUrl);
     const slug = slugFromUrl(sourceUrl);
+    const pageText = compactPageText($);
     const title = firstText($, ['h1', '[itemprop="name"]']) ?? meta($, 'og:title');
     const address = firstText($, [
       '[itemprop="address"]',
@@ -491,7 +492,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const cuisine = cuisineLabels($);
     const taxonomy = buildPlaceTaxonomy({
       sourceUrl,
-      text: compactPageText($),
+      text: pageText,
       priceFrom,
       category,
       categoryLabels,
@@ -503,6 +504,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const tags = taxonomyTags(taxonomy);
     const itemImageUrl = this.importImages ? extractImageUrl($, sourceUrl) : null;
     const actionUrl = this.actionUrl(sourceUrl);
+    const closedStatus = tomestoClosedPlaceStatus(pageText);
     console.debug('[tomesto] parsed place', {
       slug,
       hasTitle: true,
@@ -544,6 +546,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
         metro,
         features,
         sourceUpdatedText: sourceUpdatedText($),
+        ...(closedStatus ? { status: closedStatus } : {}),
         taxonomy,
       },
     };
@@ -981,6 +984,22 @@ function compactPageText($: CheerioRoot) {
   const clone = $.root().clone();
   clone.find('script,style,.reviews,.review,.menu,.menu-item').remove();
   return cleanText(clone.text(), 2000) ?? '';
+}
+
+function tomestoClosedPlaceStatus(pageText: string) {
+  const normalized = pageText.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  const closedPlace =
+    /(?:место|заведение|ресторан|кафе|бар)\s+закрыт[ао]?/.test(normalized) ||
+    /закрыт[ао]?\s+навсегда/.test(normalized);
+  if (!closedPlace) {
+    return null;
+  }
+  const permanentlyClosed = normalized.includes('навсегда');
+  return {
+    closed: true,
+    permanentlyClosed,
+    label: permanentlyClosed ? 'Место закрыто навсегда' : 'Место закрыто',
+  };
 }
 
 function buildPlaceTaxonomy(input: {

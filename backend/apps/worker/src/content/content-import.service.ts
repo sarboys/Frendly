@@ -387,6 +387,7 @@ export class ContentImportService {
       eventDefaultDisabled: 0,
       promoSurfaceMissing: 0,
       unknownPrice: 0,
+      closedPlace: 0,
     };
     const rssBefore = process.memoryUsage().rss;
     const startedAt = Date.now();
@@ -699,6 +700,13 @@ export class ContentImportService {
         venuePlaceCache,
         geocodeCache,
       );
+    }
+
+    if (isTomestoClosedPlace(enrichedItem)) {
+      return {
+        item: enrichedItem,
+        publicStatusOverride: PUBLIC_STATUS_HIDDEN,
+      };
     }
 
     if (enrichedItem.contentKind !== 'event' || !enrichedItem.startsAt) {
@@ -1370,6 +1378,9 @@ function tomestoCatalogProgress(raw: unknown): TomestoCatalogProgress | null {
 }
 
 function publicStatusFor(item: NormalizedExternalContentItem) {
+  if (isTomestoClosedPlace(item)) {
+    return PUBLIC_STATUS_HIDDEN;
+  }
   if (item.contentKind === 'place') {
     return PUBLIC_STATUS_PUBLISHED;
   }
@@ -1426,8 +1437,17 @@ function maskTomestoSecrets(value: string) {
 
 function countTomestoHiddenReason(
   item: NormalizedExternalContentItem,
-  counts: { eventDefaultDisabled: number; promoSurfaceMissing: number; unknownPrice: number },
+  counts: {
+    eventDefaultDisabled: number;
+    promoSurfaceMissing: number;
+    unknownPrice: number;
+    closedPlace: number;
+  },
 ) {
+  if (isTomestoClosedPlace(item)) {
+    counts.closedPlace += 1;
+    return;
+  }
   if (object(item.raw)?.kind === 'promo') {
     counts.promoSurfaceMissing += 1;
     return;
@@ -1437,4 +1457,23 @@ function countTomestoHiddenReason(
     return;
   }
   counts.eventDefaultDisabled += 1;
+}
+
+function isTomestoClosedPlace(item: NormalizedExternalContentItem) {
+  return item.sourceCode === 'tomesto' &&
+    item.contentKind === 'place' &&
+    tomestoRawClosed(item.raw);
+}
+
+function tomestoRawClosed(raw: unknown) {
+  const root = object(raw);
+  const status = object(root?.status);
+  return booleanTrue(status?.closed) ||
+    booleanTrue(status?.permanentlyClosed) ||
+    booleanTrue(root?.closed) ||
+    booleanTrue(root?.permanentlyClosed);
+}
+
+function booleanTrue(value: unknown) {
+  return value === true || value === 'true' || value === 1 || value === '1';
 }

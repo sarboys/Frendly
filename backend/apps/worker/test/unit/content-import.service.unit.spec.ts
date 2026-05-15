@@ -120,6 +120,70 @@ describe('ContentImportService', () => {
       }),
     });
   });
+
+  it('imports permanently closed Tomesto places as hidden', async () => {
+    const adapter = {
+      code: 'tomesto',
+      async *fetchBatches() {
+        yield [{ sourceItemId: 'place:balsamiq' }];
+      },
+    };
+    const externalContentItemUpsert = jest.fn().mockResolvedValue({});
+    const prisma = prismaMock({
+      externalImportRun: {
+        update: jest.fn().mockResolvedValue({}),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+      },
+      externalContentItem: {
+        upsert: externalContentItemUpsert,
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      externalContentSource: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+    });
+    const service = new ContentImportService(
+      prisma as any,
+      {
+        normalize: () => normalizedItem('place:balsamiq', {
+          sourceCode: 'tomesto',
+          title: 'BalsamiQ',
+          raw: {
+            status: {
+              closed: true,
+              permanentlyClosed: true,
+              label: 'Место закрыто навсегда',
+            },
+          },
+        }),
+      } as any,
+      {
+        getAdapter: () => adapter,
+      } as any,
+    );
+
+    await (service as any).executeRun({
+      runId: 'run-1',
+      sourceId: 'source-1',
+      sourceCode: 'tomesto',
+      city: 'Москва',
+      from: new Date('2026-05-14T00:00:00.000Z'),
+      to: new Date('2026-05-15T00:00:00.000Z'),
+    });
+
+    expect(externalContentItemUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          sourceItemId: 'place:balsamiq',
+          publicStatus: 'hidden',
+        }),
+        update: expect.objectContaining({
+          publicStatus: { set: 'hidden' },
+        }),
+      }),
+    );
+  });
 });
 
 function prismaMock(client: Record<string, unknown>) {
@@ -128,7 +192,10 @@ function prismaMock(client: Record<string, unknown>) {
   };
 }
 
-function normalizedItem(sourceItemId: string): NormalizedExternalContentItem {
+function normalizedItem(
+  sourceItemId: string,
+  overrides: Partial<NormalizedExternalContentItem> = {},
+): NormalizedExternalContentItem {
   return {
     sourceCode: 'kudago',
     sourceItemId,
@@ -161,5 +228,6 @@ function normalizedItem(sourceItemId: string): NormalizedExternalContentItem {
     raw: {},
     normalizedHash: sourceItemId,
     expiresAt: null,
+    ...overrides,
   };
 }
