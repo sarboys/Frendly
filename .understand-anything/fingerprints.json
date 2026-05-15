@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "578cd5bcdec4ed01338bbd3760f9d82223324130",
-  "generatedAt": "2026-05-15T13:06:14.423Z",
+  "gitCommitHash": "95969aad8758ef314fbc51e80e8cb5cb2da320e9",
+  "generatedAt": "2026-05-15T13:39:31.977Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14680,7 +14680,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "37fa2145a56223e2823e3f36ea0cf4c4de131e96d2a1e28f2b8571bea151b758",
+      "contentHash": "a0eae989f81b915ca5298e9eff8eef4b6fe4a7bab48c7f210b6b6cdaa8ffb349",
       "functions": [
         {
           "name": "hasCandidateCoords",
@@ -14798,6 +14798,41 @@
           ],
           "exported": false,
           "lineCount": 24
+        },
+        {
+          "name": "participantsCountFromPrompt",
+          "params": [
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "intentStepCountFromGenerated",
+          "params": [
+            "generated",
+            "maxStepCount"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "intentParticipantsCountFromGenerated",
+          "params": [
+            "generated"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "normalizedCount",
+          "params": [
+            "value",
+            "max",
+            "min"
+          ],
+          "exported": false,
+          "lineCount": 16
         },
         {
           "name": "taxonomyTagQueriesForTerms",
@@ -14963,9 +14998,13 @@
             "parseFormat",
             "resolveDraftIntent",
             "parseIntentResponse",
+            "intentFallbackStepCount",
+            "intentTargetStepCount",
+            "mentionedStepCount",
             "normalizeLlmIntentHint",
             "routeRoleOrNull",
             "resolveRoles",
+            "mentionedRoles",
             "sourceForRole",
             "searchTermsForRole",
             "kindForRole",
@@ -14993,7 +15032,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1856
+          "lineCount": 1950
         }
       ],
       "imports": [
@@ -15037,7 +15076,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 2763,
+      "totalLines": 2929,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {

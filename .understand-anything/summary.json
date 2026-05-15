@@ -18,7 +18,7 @@
     "pipeline": 31,
     "config": 31,
     "file": 525,
-    "function": 911,
+    "function": 915,
     "class": 145,
     "table": 410,
     "schema": 1,
@@ -28,7 +28,7 @@
     "step": 65
   },
   "edgeTypes": {
-    "contains": 1435,
+    "contains": 1439,
     "imports": 671,
     "contains_flow": 12,
     "flow_step": 65,

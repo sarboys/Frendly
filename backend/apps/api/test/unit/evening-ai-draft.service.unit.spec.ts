@@ -952,6 +952,151 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('does not treat participant count as route step count', async () => {
+    const { service, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 4,
+          stepCountReason: 'Модель ошибочно взяла число людей за шаги.',
+          participantsCount: 4,
+          steps: [
+            {
+              role: 'walk',
+              preferredTerms: ['центр', 'прогулка'],
+              avoidTerms: [],
+              instruction: 'Сначала прогулка по центру.',
+            },
+            {
+              role: 'place_bar',
+              preferredTerms: ['пивной бар', 'пиво'],
+              avoidTerms: [],
+              instruction: 'Потом пивной бар.',
+            },
+            {
+              role: 'show',
+              preferredTerms: ['шоу'],
+              avoidTerms: [],
+              instruction: 'Ошибочный лишний шаг.',
+            },
+            {
+              role: 'free_activity',
+              preferredTerms: ['прогулка'],
+              avoidTerms: [],
+              instruction: 'Ошибочный лишний шаг.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 40,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-center-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Центральная прогулка',
+            category: 'walk',
+            tags: ['прогулка', 'центр', 'area:center'],
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+          {
+            id: 'kudago-free',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Уличная активность',
+            category: 'festival',
+            tags: ['фестиваль'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceMode: 'free',
+            priceFrom: 0,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-beer-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Пивной бар на компанию',
+            category: 'bar',
+            tags: ['place:bar', 'drink:beer', 'пиво'],
+            priceFrom: 1800,
+            placeKind: 'bar',
+            venueName: 'Пивной бар на компанию',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-show',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Лишнее шоу',
+            category: 'show',
+            tags: ['шоу'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 1500,
+            actionUrl: 'https://ticket.example.test/show',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Прогулка и пивной бар',
+            vibe: 'Спокойный вечер',
+            blurb: 'Сначала центр, потом бар.',
+            steps: [
+              { externalContentItemId: 'kudago-center-walk', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-beer-bar', timeLabel: '20:00' },
+              { externalContentItemId: 'ticketland-show', timeLabel: '21:00' },
+              { externalContentItemId: 'kudago-free', timeLabel: '22:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу вечером прогуляться по центру и потом в пивной бар на 4 человек',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config).toEqual(
+      expect.objectContaining({
+        participantsCount: 4,
+        stepCountMode: 'infer',
+        maxStepCount: 5,
+      }),
+    );
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.stepCount).toBe(2);
+    expect(routePrompt.config.roles).toEqual(['walk', 'place_bar']);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Центральная прогулка',
+      'Пивной бар на компанию',
+    ]);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stepCount: 2,
+        }),
+      }),
+    );
+  });
+
   it('treats step count written in prompt as exact even when intent returns extra roles', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {

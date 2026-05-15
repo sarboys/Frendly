@@ -117,6 +117,9 @@ type GeneratedDraftJson = {
 };
 
 type GeneratedIntentJson = {
+  routeStepCount?: unknown;
+  stepCountReason?: unknown;
+  participantsCount?: unknown;
   steps?: Array<{
     role?: unknown;
     preferredTerms?: unknown;
@@ -1100,6 +1103,7 @@ export class EveningAiDraftService {
       area: draft.area,
       stepCount: draft.stepCount,
       stepCountExplicit: true,
+      participantsCount: participantsCountFromPrompt(draft.prompt),
       latitude: null,
       longitude: null,
     };
@@ -1120,6 +1124,7 @@ export class EveningAiDraftService {
       area: stringOrNull(body.area) ?? areaFromPrompt(prompt),
       stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : promptStepCount),
       stepCountExplicit,
+      participantsCount: participantsCountFromPrompt(prompt),
       latitude: null,
       longitude: null,
     };
@@ -1150,7 +1155,11 @@ export class EveningAiDraftService {
   }
 
   private async resolveDraftIntent(input: ParsedDraftInput): Promise<DraftIntent> {
-    const fallbackRoles = this.resolveRoles(input.prompt, input.format, input.stepCount);
+    const fallbackRoles = this.resolveRoles(
+      input.prompt,
+      input.format,
+      this.intentFallbackStepCount(input),
+    );
     const fallbackIntent: DraftIntent = {
       roles: fallbackRoles,
       roleHints: fallbackRoles.map((role) => this.roleIntentHint(input, role)),
@@ -1189,13 +1198,14 @@ export class EveningAiDraftService {
     generated: GeneratedIntentJson,
     fallbackRoles: RouteRole[],
   ): Omit<DraftIntent, 'source'> {
+    const targetStepCount = this.intentTargetStepCount(input, generated);
     const roles: RouteRole[] = [];
     const roleHints: RoleIntentHint[] = [];
     const steps = Array.isArray(generated?.steps) ? generated.steps : [];
 
     for (const step of steps) {
       const role = this.routeRoleOrNull(step?.role);
-      if (!role || roles.length >= input.stepCount) {
+      if (!role || roles.length >= targetStepCount) {
         continue;
       }
       roles.push(role);
@@ -1208,15 +1218,8 @@ export class EveningAiDraftService {
       );
     }
 
-    if (!input.stepCountExplicit && roles.length >= MIN_STEP_COUNT) {
-      return {
-        roles,
-        roleHints,
-      };
-    }
-
     for (const fallbackRole of fallbackRoles) {
-      if (roles.length >= input.stepCount) {
+      if (roles.length >= targetStepCount) {
         break;
       }
       roles.push(fallbackRole);
@@ -1224,9 +1227,43 @@ export class EveningAiDraftService {
     }
 
     return {
-      roles: roles.slice(0, input.stepCount),
-      roleHints: roleHints.slice(0, input.stepCount),
+      roles: roles.slice(0, targetStepCount),
+      roleHints: roleHints.slice(0, targetStepCount),
     };
+  }
+
+  private intentFallbackStepCount(input: ParsedDraftInput) {
+    if (input.stepCountExplicit) {
+      return input.stepCount;
+    }
+    return this.mentionedStepCount(input) ?? input.stepCount;
+  }
+
+  private intentTargetStepCount(input: ParsedDraftInput, generated: GeneratedIntentJson) {
+    if (input.stepCountExplicit) {
+      return input.stepCount;
+    }
+    const mentionedStepCount = this.mentionedStepCount(input);
+    const generatedStepCount = intentStepCountFromGenerated(generated, input.stepCount);
+    const participantsCount = intentParticipantsCountFromGenerated(generated) ?? input.participantsCount;
+
+    if (
+      mentionedStepCount != null &&
+      participantsCount != null &&
+      generatedStepCount === participantsCount &&
+      generatedStepCount !== mentionedStepCount
+    ) {
+      return mentionedStepCount;
+    }
+    if (generatedStepCount != null) {
+      return generatedStepCount;
+    }
+    return mentionedStepCount ?? input.stepCount;
+  }
+
+  private mentionedStepCount(input: ParsedDraftInput) {
+    const roles = this.mentionedRoles(input.prompt, input.format);
+    return roles.length >= MIN_STEP_COUNT ? Math.min(roles.length, input.stepCount) : null;
   }
 
   private normalizeLlmIntentHint(
@@ -1258,10 +1295,42 @@ export class EveningAiDraftService {
   }
 
   private resolveRoles(prompt: string | null, format: string | null, stepCount: number): RouteRole[] {
-    const normalized = normalizeText([prompt, format].filter(Boolean).join(' '));
     const roles: RouteRole[] = [];
     const add = (role: RouteRole) => {
       if (roles.length < stepCount && !roles.includes(role)) {
+        roles.push(role);
+      }
+    };
+
+    for (const role of this.mentionedRoles(prompt, format)) {
+      add(role);
+    }
+
+    if (roles.length === 0) {
+      if (format === 'bar') {
+        add('place_bar');
+      } else if (format === 'show') {
+        add('show');
+      } else if (format === 'active') {
+        add('free_activity');
+      }
+    }
+
+    const fallbackCycle: RouteRole[] = ['place_food', 'show', 'walk', 'place_bar', 'free_activity'];
+    let fallbackIndex = 0;
+    while (roles.length < stepCount) {
+      const uniqueFallback = fallbackCycle.find((role) => !roles.includes(role));
+      roles.push(uniqueFallback ?? fallbackCycle[fallbackIndex % fallbackCycle.length] ?? 'place_food');
+      fallbackIndex += 1;
+    }
+    return roles.slice(0, stepCount);
+  }
+
+  private mentionedRoles(prompt: string | null, format: string | null): RouteRole[] {
+    const normalized = normalizeText([prompt, format].filter(Boolean).join(' '));
+    const roles: RouteRole[] = [];
+    const add = (role: RouteRole) => {
+      if (!roles.includes(role)) {
         roles.push(role);
       }
     };
@@ -1273,7 +1342,18 @@ export class EveningAiDraftService {
       },
       {
         role: 'place_bar' as const,
-        index: firstTermIndex(normalized, ['бар', 'вино', 'коктейл', 'wine', 'bar']),
+        index: firstTermIndex(normalized, [
+          'бар',
+          'пив',
+          'крафт',
+          'сидр',
+          'настойк',
+          'вино',
+          'коктейл',
+          'wine',
+          'beer',
+          'bar',
+        ]),
       },
       {
         role: 'place_food' as const,
@@ -1338,31 +1418,7 @@ export class EveningAiDraftService {
       add(mention.role);
     }
 
-    if (roles.length === 0) {
-      if (format === 'bar') {
-        add('place_bar');
-      } else if (format === 'show') {
-        add('show');
-      } else if (format === 'active') {
-        add('free_activity');
-      }
-    }
-
-    const fallbackCycle: RouteRole[] = ['place_food', 'show', 'walk', 'place_bar', 'free_activity'];
-    let fallbackIndex = 0;
-    while (roles.length < stepCount) {
-      const nextRole =
-        !roles.some((role) => role.startsWith('place_'))
-          ? 'place_food'
-          : !roles.includes('show')
-            ? 'show'
-            : !roles.includes('walk')
-              ? 'walk'
-              : fallbackCycle[fallbackIndex % fallbackCycle.length] ?? 'place_food';
-      roles.push(nextRole);
-      fallbackIndex += 1;
-    }
-    return roles.slice(0, stepCount);
+    return roles;
   }
 
   private sourceForRole(role: RouteRole) {
@@ -1378,7 +1434,19 @@ export class EveningAiDraftService {
   private searchTermsForRole(role: RouteRole) {
     switch (role) {
       case 'place_bar':
-        return ['бар', 'вино', 'коктейл', 'wine', 'bar'];
+        return [
+          'бар',
+          'пиво',
+          'пивной',
+          'крафт',
+          'сидр',
+          'настойка',
+          'вино',
+          'коктейл',
+          'beer',
+          'wine',
+          'bar',
+        ];
       case 'place_club':
         return ['клуб', 'танцы', 'караоке', 'club'];
       case 'show':
@@ -1577,6 +1645,18 @@ export class EveningAiDraftService {
       }
     }
 
+    if (role === 'place_bar' && hasAny(normalized, ['пив', 'крафт', 'сидр', 'beer'])) {
+      return hint(
+        ['пиво', 'пивн', 'крафт', 'крафтов', 'сидр', 'beer', 'pub'],
+        [],
+        'Нужен пивной бар, паб или место с крафтовым пивом.',
+      );
+    }
+
+    if (role === 'place_bar' && hasAny(normalized, ['настойк', 'наливк'])) {
+      return hint(['настойк', 'наливк', 'бар'], [], 'Нужен бар с настойками или наливками.');
+    }
+
     if (role === 'place_bar' && hasAny(normalized, ['вино', 'винн'])) {
       return hint(['вино', 'винн', 'wine'], [], 'Нужен винный бар.');
     }
@@ -1626,8 +1706,9 @@ export class EveningAiDraftService {
   private intentSystemPrompt() {
     return [
       'Return strict JSON only.',
-      'Extract the ordered route intent from the user text.',
+      'Extract the route intent configuration from the user text.',
       'Keep the same step order as the user asked.',
+      'Separate route step count from participant count.',
       'Infer step count from the user text unless config.stepCountMode is exact.',
       'Use only allowed roles.',
       'Write short Russian search terms in preferredTerms and avoidTerms.',
@@ -1648,6 +1729,8 @@ export class EveningAiDraftService {
         stepCountMode: input.stepCountExplicit ? 'exact' : 'infer',
         defaultStepCount: DEFAULT_STEP_COUNT,
         maxStepCount: input.stepCount,
+        participantsCount: input.participantsCount,
+        suggestedStepCount: fallbackRoles.length,
         fallbackRoles,
       },
       allowedRoles: [
@@ -1659,7 +1742,7 @@ export class EveningAiDraftService {
         {
           role: 'place_bar',
           source: 'tomesto',
-          meaning: 'бар, винный бар, коктейли',
+          meaning: 'бар, пивной бар, паб, крафтовое пиво, настойки, винный бар, коктейли',
         },
         {
           role: 'place_club',
@@ -1686,6 +1769,9 @@ export class EveningAiDraftService {
         'If stepCountMode is exact, return exactly maxStepCount steps.',
         'If stepCountMode is infer, return the number of steps requested by the user, from 2 to maxStepCount.',
         'If stepCountMode is infer and the user does not imply a count, return defaultStepCount steps.',
+        'Numbers near человек, людей, персон, на двоих, на троих, вчетвером describe participantsCount, not routeStepCount.',
+        'If the user lists activities with words like сначала, потом, затем, routeStepCount is the number of listed activities.',
+        'routeStepCount must describe places or activities, not people.',
         'If the user asks the same kind of step twice, keep it twice.',
         'preferredTerms must describe what the candidate should match.',
         'avoidTerms must describe wrong candidates for this step.',
@@ -1705,6 +1791,17 @@ export class EveningAiDraftService {
           type: 'object',
           additionalProperties: false,
           properties: {
+            routeStepCount: {
+              type: 'integer',
+              minimum: MIN_STEP_COUNT,
+              maximum: MAX_STEP_COUNT,
+            },
+            stepCountReason: { type: 'string' },
+            participantsCount: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 20,
+            },
             steps: {
               type: 'array',
               items: {
@@ -1726,7 +1823,7 @@ export class EveningAiDraftService {
               },
             },
           },
-          required: ['steps'],
+          required: ['routeStepCount', 'stepCountReason', 'participantsCount', 'steps'],
         },
       },
     };
@@ -2049,6 +2146,7 @@ type ParsedDraftInput = {
   area: string | null;
   stepCount: number;
   stepCountExplicit: boolean;
+  participantsCount: number | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -2406,6 +2504,74 @@ function stepCountFromPrompt(prompt: string | null) {
     [new RegExp(`${before}(?:пять)\\s+${unit}${after}`), 5],
   ];
   return wordCounts.find(([pattern]) => pattern.test(text))?.[1] ?? null;
+}
+
+function participantsCountFromPrompt(prompt: string | null) {
+  const text = normalizeText(prompt ?? '');
+  if (!text) {
+    return null;
+  }
+  const before = '(?:^|\\s)';
+  const after = '(?=$|\\s|[,.!?;:])';
+  const peopleUnit =
+    '(?:человек|человека|чел|людей|персон(?:а|ы)?|гост(?:ь|я|ей)|участник(?:а|ов)?)';
+  const digitPatterns = [
+    new RegExp(
+      `${before}(?:на|для|нас|компания|группа|будет|будем)\\s+([1-9]\\d?)\\s+${peopleUnit}${after}`,
+    ),
+    new RegExp(`${before}([1-9]\\d?)\\s+${peopleUnit}${after}`),
+    new RegExp(`${before}${peopleUnit}\\s*[:=\\-]?\\s*([1-9]\\d?)${after}`),
+  ];
+  for (const pattern of digitPatterns) {
+    const match = text.match(pattern);
+    const count = normalizedCount(match?.[1], 20);
+    if (count != null) {
+      return count;
+    }
+  }
+
+  const wordCounts: Array<[RegExp, number]> = [
+    [new RegExp(`${before}(?:на|для)\\s+(?:двоих|двоих человек|пару|пары)${after}`), 2],
+    [new RegExp(`${before}(?:вдвоем|двоем|двоих)${after}`), 2],
+    [new RegExp(`${before}(?:на|для)\\s+(?:троих|троих человек)${after}`), 3],
+    [new RegExp(`${before}(?:втроем|троем|троих)${after}`), 3],
+    [new RegExp(`${before}(?:на|для)\\s+(?:четверых|четверых человек)${after}`), 4],
+    [new RegExp(`${before}(?:вчетвером|четвером|четверых)${after}`), 4],
+    [new RegExp(`${before}(?:на|для)\\s+(?:пятерых|пятерых человек)${after}`), 5],
+    [new RegExp(`${before}(?:впятером|пятером|пятерых)${after}`), 5],
+  ];
+  return wordCounts.find(([pattern]) => pattern.test(text))?.[1] ?? null;
+}
+
+function intentStepCountFromGenerated(generated: GeneratedIntentJson, maxStepCount: number) {
+  const routeStepCount = normalizedCount(generated?.routeStepCount, maxStepCount);
+  if (routeStepCount != null && routeStepCount >= MIN_STEP_COUNT) {
+    return routeStepCount;
+  }
+  const generatedStepsCount = Array.isArray(generated?.steps) ? generated.steps.length : null;
+  return normalizedCount(generatedStepsCount, maxStepCount, MIN_STEP_COUNT);
+}
+
+function intentParticipantsCountFromGenerated(generated: GeneratedIntentJson) {
+  const count = normalizedCount(generated?.participantsCount, 20, 0);
+  return count && count > 0 ? count : null;
+}
+
+function normalizedCount(value: unknown, max: number, min = 1) {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseInt(value, 10)
+        : null;
+  if (parsed == null || !Number.isFinite(parsed)) {
+    return null;
+  }
+  const count = Math.trunc(parsed);
+  if (count < min || count > max) {
+    return null;
+  }
+  return count;
 }
 
 const TAXONOMY_TERM_GROUPS: Array<{ aliases: string[]; tags: string[] }> = [
