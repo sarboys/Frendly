@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "dbaca66ea93981a936e62e5636179b32a6db2c02",
-  "generatedAt": "2026-05-14T18:46:18.127Z",
+  "gitCommitHash": "13ceac95dc36db1af6b2c04ae60bc2d04089640c",
+  "generatedAt": "2026-05-15T02:24:07.269Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14344,7 +14344,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "1f3f8721643bc168d016e7c082a30fb106aa1292ee92c5a092cfa542385189d7",
+      "contentHash": "8f62674c04c33dcc1feb0d4595378dccb7893a715825d2bf498e946ecd2f9fcb",
       "functions": [],
       "classes": [
         {
@@ -14388,7 +14388,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 1279
+          "lineCount": 1261
         }
       ],
       "imports": [
@@ -14453,7 +14453,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1414,
+      "totalLines": 1396,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -19121,7 +19121,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "69baf5c7ab250697d65ae4c7184db5733a3ff099a6db9f008c4da3c9dbd27312",
+      "contentHash": "8a5660991154bd647ec0e92007d894e2e909582eeb8f8260165cbd69ca0aede3",
       "functions": [
         {
           "name": "safeJson",
@@ -19301,18 +19301,21 @@
             "fetchItemBatches",
             "upsertItem",
             "markStaleItems",
+            "updateRunProgress",
             "prepareItemForUpsert",
             "findEventDuplicate",
             "loadEventDuplicateCandidates",
             "enrichExistingAffiliateItem",
             "hideDuplicateItem",
-            "enqueueNextTomestoCatalogRun"
+            "enqueueTomestoCatalogResumeRun",
+            "enqueueNextTomestoCatalogRun",
+            "enqueueTomestoCatalogRun"
           ],
           "properties": [
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 710
+          "lineCount": 824
         }
       ],
       "imports": [
@@ -19387,7 +19390,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 1001,
+      "totalLines": 1126,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
@@ -19517,7 +19520,7 @@
     },
     "backend/apps/worker/src/content/external-source.registry.ts": {
       "filePath": "backend/apps/worker/src/content/external-source.registry.ts",
-      "contentHash": "093ed651e8c99e8038bede1cda6e154cbfb73e851c2021736166d89bcd8fe44d",
+      "contentHash": "ce04aac98c4eab413b506bab77c4067fd4dda95aaaaa607cca50ab9ced9b0bc0",
       "functions": [],
       "classes": [
         {
@@ -19585,7 +19588,7 @@
       "exports": [
         "ExternalSourceRegistry"
       ],
-      "totalLines": 93,
+      "totalLines": 95,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/kudago.adapter.ts": {
@@ -20743,7 +20746,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "09d83da59d4d8dc00e765e502875c37896a87fdd2d2541f61f11ce5f7f683856",
+      "contentHash": "608c4a019d71eade56a7b2329fcc4385d8c20c5cc324476204a20a1da8c1dc43",
       "functions": [
         {
           "name": "isDetailPath",
@@ -21094,6 +21097,16 @@
           "lineCount": 4
         },
         {
+          "name": "boundedPositiveInt",
+          "params": [
+            "value",
+            "fallback",
+            "max"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
           "name": "positiveInteger",
           "params": [
             "value",
@@ -21220,6 +21233,8 @@
             "fetchCatalogPlaceBatches",
             "discoverCatalogPlaceUrls",
             "extractSitemapPlaceUrls",
+            "fetchCatalogPlaceBatchesConcurrent",
+            "fetchCatalogPlaceItem",
             "fetchPlaceBatches",
             "fetchTimedBatches",
             "listUrl",
@@ -21239,10 +21254,12 @@
             "windowDays",
             "importImages",
             "catalogBatchSize",
+            "catalogConcurrency",
+            "catalogRequestDelayMs",
             "catalogFallbackMaxPages"
           ],
           "exported": true,
-          "lineCount": 546
+          "lineCount": 623
         }
       ],
       "imports": [
@@ -21265,7 +21282,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1278,
+      "totalLines": 1366,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {
