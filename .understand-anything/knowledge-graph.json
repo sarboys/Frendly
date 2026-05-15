@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T10:10:06.620Z",
-    "gitCommitHash": "0cca2010b42aae613d82200c8153d26609a85257"
+    "analyzedAt": "2026-05-15T11:12:34.118Z",
+    "gitCommitHash": "4349e738cf1cd960a5e2e790f8d40c431947f739"
   },
   "nodes": [
     {
@@ -9692,7 +9692,7 @@
       "filePath": "backend/apps/api/src/controllers/places.controller.ts",
       "lineRange": [
         5,
-        24
+        41
       ],
       "summary": "PlacesController in places.controller.ts.",
       "tags": [
@@ -10883,7 +10883,7 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 1 classes, 18 functions.",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 19 functions.",
       "tags": [
         "backend",
         "code",
@@ -10897,8 +10897,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2036,
-        2040
+        2071,
+        2075
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -10914,8 +10914,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2042,
-        2051
+        2077,
+        2086
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -10931,8 +10931,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2053,
-        2055
+        2088,
+        2090
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10948,8 +10948,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2057,
-        2065
+        2092,
+        2100
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -10965,8 +10965,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2067,
-        2072
+        2102,
+        2107
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10982,8 +10982,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2074,
-        2082
+        2109,
+        2117
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -10999,8 +10999,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2084,
-        2086
+        2119,
+        2121
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -11016,8 +11016,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2088,
-        2090
+        2123,
+        2125
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -11033,8 +11033,8 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2092,
-        2100
+        2127,
+        2135
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -11050,8 +11050,8 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2102,
-        2104
+        2137,
+        2139
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -11067,8 +11067,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2106,
-        2115
+        2141,
+        2150
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -11084,8 +11084,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2117,
-        2131
+        2152,
+        2166
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -11101,10 +11101,27 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2133,
-        2135
+        2168,
+        2170
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetFromPrompt",
+      "type": "function",
+      "name": "budgetFromPrompt",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2172,
+        2189
+      ],
+      "summary": "budgetFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -11118,8 +11135,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2137,
-        2139
+        2191,
+        2193
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -11135,8 +11152,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2141,
-        2143
+        2195,
+        2197
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -11152,8 +11169,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2145,
-        2151
+        2199,
+        2205
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -11169,8 +11186,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2153,
-        2166
+        2207,
+        2220
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -11186,8 +11203,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2168,
-        2170
+        2222,
+        2224
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -11203,8 +11220,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        184,
-        1994
+        185,
+        2028
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -12482,13 +12499,47 @@
       "type": "file",
       "name": "places.service.ts",
       "filePath": "backend/apps/api/src/services/places.service.ts",
-      "summary": "places.service.ts contains 1 classes, 15 functions.",
+      "summary": "places.service.ts contains 1 classes, 18 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:mapPlacePromoListItem",
+      "type": "function",
+      "name": "mapPlacePromoListItem",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        277,
+        308
+      ],
+      "summary": "mapPlacePromoListItem in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:comparePlacePromoListItems",
+      "type": "function",
+      "name": "comparePlacePromoListItems",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        310,
+        329
+      ],
+      "summary": "comparePlacePromoListItems in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:mapPromoDto",
@@ -12496,8 +12547,8 @@
       "name": "mapPromoDto",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        158,
-        172
+        331,
+        345
       ],
       "summary": "mapPromoDto in places.service.ts.",
       "tags": [
@@ -12505,7 +12556,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:mapPlaceSearchResult",
@@ -12513,8 +12564,8 @@
       "name": "mapPlaceSearchResult",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        174,
-        198
+        347,
+        371
       ],
       "summary": "mapPlaceSearchResult in places.service.ts.",
       "tags": [
@@ -12522,7 +12573,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:placeSearchScore",
@@ -12530,8 +12581,8 @@
       "name": "placeSearchScore",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        200,
-        225
+        373,
+        398
       ],
       "summary": "placeSearchScore in places.service.ts.",
       "tags": [
@@ -12539,7 +12590,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:promoMatchesPlace",
@@ -12547,8 +12598,8 @@
       "name": "promoMatchesPlace",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        227,
-        243
+        400,
+        416
       ],
       "summary": "promoMatchesPlace in places.service.ts.",
       "tags": [
@@ -12556,7 +12607,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:placeSlug",
@@ -12564,8 +12615,8 @@
       "name": "placeSlug",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        245,
-        247
+        418,
+        420
       ],
       "summary": "placeSlug in places.service.ts.",
       "tags": [
@@ -12573,7 +12624,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:ratingFromRaw",
@@ -12581,8 +12632,8 @@
       "name": "ratingFromRaw",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        249,
-        252
+        422,
+        425
       ],
       "summary": "ratingFromRaw in places.service.ts.",
       "tags": [
@@ -12590,7 +12641,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:normalizeLimit",
@@ -12598,8 +12649,8 @@
       "name": "normalizeLimit",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        254,
-        259
+        427,
+        432
       ],
       "summary": "normalizeLimit in places.service.ts.",
       "tags": [
@@ -12607,7 +12658,24 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/places.service.ts:normalizePromoLimit",
+      "type": "function",
+      "name": "normalizePromoLimit",
+      "filePath": "backend/apps/api/src/services/places.service.ts",
+      "lineRange": [
+        434,
+        439
+      ],
+      "summary": "normalizePromoLimit in places.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:distanceKm",
@@ -12615,8 +12683,8 @@
       "name": "distanceKm",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        261,
-        279
+        441,
+        459
       ],
       "summary": "distanceKm in places.service.ts.",
       "tags": [
@@ -12624,7 +12692,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:toRadians",
@@ -12632,8 +12700,8 @@
       "name": "toRadians",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        281,
-        283
+        461,
+        463
       ],
       "summary": "toRadians in places.service.ts.",
       "tags": [
@@ -12641,7 +12709,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:normalizeText",
@@ -12649,8 +12717,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        285,
-        287
+        465,
+        467
       ],
       "summary": "normalizeText in places.service.ts.",
       "tags": [
@@ -12658,7 +12726,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:normalizeTagQuery",
@@ -12666,8 +12734,8 @@
       "name": "normalizeTagQuery",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        289,
-        292
+        469,
+        472
       ],
       "summary": "normalizeTagQuery in places.service.ts.",
       "tags": [
@@ -12675,7 +12743,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:text",
@@ -12683,8 +12751,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        294,
-        296
+        474,
+        476
       ],
       "summary": "text in places.service.ts.",
       "tags": [
@@ -12692,7 +12760,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:isString",
@@ -12700,8 +12768,8 @@
       "name": "isString",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        298,
-        300
+        478,
+        480
       ],
       "summary": "isString in places.service.ts.",
       "tags": [
@@ -12709,7 +12777,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:isFiniteNumber",
@@ -12717,8 +12785,8 @@
       "name": "isFiniteNumber",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        302,
-        304
+        482,
+        484
       ],
       "summary": "isFiniteNumber in places.service.ts.",
       "tags": [
@@ -12726,7 +12794,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/api/src/services/places.service.ts:asRecord",
@@ -12734,8 +12802,8 @@
       "name": "asRecord",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        306,
-        310
+        486,
+        490
       ],
       "summary": "asRecord in places.service.ts.",
       "tags": [
@@ -12743,7 +12811,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "class:backend/apps/api/src/services/places.service.ts:PlacesService",
@@ -12751,8 +12819,8 @@
       "name": "PlacesService",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        27,
-        156
+        57,
+        275
       ],
       "summary": "PlacesService in places.service.ts.",
       "tags": [
@@ -12760,7 +12828,7 @@
         "class",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/api/src/services/posters.service.ts",
@@ -31652,6 +31720,19 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:mobile/lib/shared/data/tomesto_promos_provider.dart",
+      "type": "file",
+      "name": "tomesto_promos_provider.dart",
+      "filePath": "mobile/lib/shared/data/tomesto_promos_provider.dart",
+      "summary": "tomesto_promos_provider.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:mobile/lib/shared/models/affiche_event.dart",
       "type": "file",
       "name": "affiche_event.dart",
@@ -37605,6 +37686,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetFromPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:roundCoord",
       "type": "contains",
       "direction": "forward",
@@ -38060,6 +38148,20 @@
     },
     {
       "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:mapPlacePromoListItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:comparePlacePromoListItems",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
       "target": "function:backend/apps/api/src/services/places.service.ts:mapPromoDto",
       "type": "contains",
       "direction": "forward",
@@ -38103,6 +38205,13 @@
     {
       "source": "file:backend/apps/api/src/services/places.service.ts",
       "target": "function:backend/apps/api/src/services/places.service.ts:normalizeLimit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/places.service.ts",
+      "target": "function:backend/apps/api/src/services/places.service.ts:normalizePromoLimit",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -50494,6 +50603,7 @@
         "file:mobile/lib/shared/data/app_providers.dart",
         "file:mobile/lib/shared/data/backend_repository.dart",
         "file:mobile/lib/shared/data/location_override_provider.dart",
+        "file:mobile/lib/shared/data/tomesto_promos_provider.dart",
         "file:mobile/lib/shared/models/affiche_event.dart",
         "file:mobile/lib/shared/models/after_party_state.dart",
         "file:mobile/lib/shared/models/auth_flow.dart",
@@ -50636,8 +50746,8 @@
         "file:mobile/lib/shared/data/app_providers.dart",
         "file:mobile/lib/shared/data/backend_repository.dart",
         "file:mobile/lib/shared/data/location_override_provider.dart",
-        "file:mobile/lib/shared/models/affiche_event.dart",
-        "file:mobile/lib/shared/models/after_party_state.dart"
+        "file:mobile/lib/shared/data/tomesto_promos_provider.dart",
+        "file:mobile/lib/shared/models/affiche_event.dart"
       ]
     },
     {

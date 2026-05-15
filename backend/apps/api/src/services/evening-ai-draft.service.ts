@@ -9,7 +9,8 @@ const QWEN_FREE_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CITY = 'Москва';
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
-const MAX_STEP_COUNT = 4;
+const DEFAULT_STEP_COUNT = 5;
+const MAX_STEP_COUNT = 5;
 const MIN_STEP_COUNT = 2;
 const MAX_CANDIDATES = 300;
 const MAX_LEG_KM = 3.5;
@@ -188,8 +189,9 @@ export class EveningAiDraftService {
   ) {}
 
   async createDraft(userId: string, body: Record<string, unknown>) {
-    const input = this.parseInput(body);
-    const intent = await this.resolveDraftIntent(input);
+    const parsedInput = this.parseInput(body);
+    const intent = await this.resolveDraftIntent(parsedInput);
+    const input = { ...parsedInput, stepCount: intent.roles.length };
     const candidates = await this.loadCandidatePack(input, intent.roles, intent.roleHints);
     if (candidates.length < MIN_STEP_COUNT) {
       throw new ApiError(404, 'evening_ai_candidates_not_found', 'Route candidates not found');
@@ -1084,21 +1086,25 @@ export class EveningAiDraftService {
       format: draft.format,
       area: draft.area,
       stepCount: draft.stepCount,
+      stepCountExplicit: true,
       latitude: null,
       longitude: null,
     };
   }
 
   private parseInput(body: Record<string, unknown>): ParsedDraftInput {
+    const prompt = stringOrNull(body.prompt);
+    const stepCountExplicit = body.stepCount != null && body.stepCount !== '';
     return {
       city: stringOrNull(body.city) ?? DEFAULT_CITY,
-      prompt: stringOrNull(body.prompt),
+      prompt,
       goal: stringOrNull(body.goal),
       mood: stringOrNull(body.mood),
-      budget: stringOrNull(body.budget),
+      budget: stringOrNull(body.budget) ?? budgetFromPrompt(prompt),
       format: this.parseFormat(body.format),
       area: stringOrNull(body.area),
       stepCount: this.parseStepCount(body.stepCount),
+      stepCountExplicit,
       latitude: numberOrNull(body.latitude),
       longitude: numberOrNull(body.longitude),
     };
@@ -1110,9 +1116,9 @@ export class EveningAiDraftService {
         ? value
         : typeof value === 'string'
           ? Number.parseInt(value, 10)
-          : MIN_STEP_COUNT;
+          : DEFAULT_STEP_COUNT;
     if (!Number.isFinite(parsed)) {
-      return MIN_STEP_COUNT;
+      return DEFAULT_STEP_COUNT;
     }
     return Math.max(MIN_STEP_COUNT, Math.min(MAX_STEP_COUNT, Math.trunc(parsed)));
   }
@@ -1150,7 +1156,7 @@ export class EveningAiDraftService {
         responseFormat: this.intentResponseFormat(),
       });
       const parsedIntent = this.parseIntentResponse(input, response.parsedJson, fallbackRoles);
-      if (parsedIntent.roles.length === input.stepCount) {
+      if (parsedIntent.roles.length >= MIN_STEP_COUNT && parsedIntent.roles.length <= input.stepCount) {
         return {
           ...parsedIntent,
           source: 'llm',
@@ -1185,6 +1191,13 @@ export class EveningAiDraftService {
           instruction: step?.instruction,
         }),
       );
+    }
+
+    if (!input.stepCountExplicit && roles.length >= MIN_STEP_COUNT) {
+      return {
+        roles,
+        roleHints,
+      };
     }
 
     for (const fallbackRole of fallbackRoles) {
@@ -1320,16 +1333,19 @@ export class EveningAiDraftService {
       }
     }
 
+    const fallbackCycle: RouteRole[] = ['place_food', 'show', 'walk', 'place_bar', 'free_activity'];
+    let fallbackIndex = 0;
     while (roles.length < stepCount) {
-      if (!roles.some((role) => role.startsWith('place_'))) {
-        add('place_food');
-      } else if (!roles.includes('show')) {
-        add('show');
-      } else if (!roles.includes('walk')) {
-        add('walk');
-      } else {
-        add('free_activity');
-      }
+      const nextRole =
+        !roles.some((role) => role.startsWith('place_'))
+          ? 'place_food'
+          : !roles.includes('show')
+            ? 'show'
+            : !roles.includes('walk')
+              ? 'walk'
+              : fallbackCycle[fallbackIndex % fallbackCycle.length] ?? 'place_food';
+      roles.push(nextRole);
+      fallbackIndex += 1;
     }
     return roles.slice(0, stepCount);
   }
@@ -1435,6 +1451,19 @@ export class EveningAiDraftService {
     }
     if (input.budget === 'free' && candidate.priceMode !== 'free') {
       score += 100;
+    }
+    if (input.budget === 'low') {
+      const text = candidateSearchText(candidate);
+      if (hasAny(text, ['budget:cheap', 'недорог', 'дешев', 'бюджет'])) {
+        score -= 50;
+      }
+      if (candidate.priceFrom != null && candidate.priceFrom <= 1500) {
+        score -= 40;
+      } else if (candidate.priceFrom != null && candidate.priceFrom > 2500) {
+        score += 90;
+      } else {
+        score += 10;
+      }
     }
     if (input.latitude != null && input.longitude != null && hasCandidateCoords(candidate)) {
       score += geoDistanceKm(
@@ -1587,6 +1616,7 @@ export class EveningAiDraftService {
       'Return strict JSON only.',
       'Extract the ordered route intent from the user text.',
       'Keep the same step order as the user asked.',
+      'Infer step count from the user text unless config.stepCountMode is exact.',
       'Use only allowed roles.',
       'Write short Russian search terms in preferredTerms and avoidTerms.',
       'Do not choose real places here.',
@@ -1603,7 +1633,9 @@ export class EveningAiDraftService {
         goal: input.goal,
         mood: input.mood,
         format: input.format,
-        stepCount: input.stepCount,
+        stepCountMode: input.stepCountExplicit ? 'exact' : 'infer',
+        defaultStepCount: DEFAULT_STEP_COUNT,
+        maxStepCount: input.stepCount,
         fallbackRoles,
       },
       allowedRoles: [
@@ -1639,7 +1671,9 @@ export class EveningAiDraftService {
         },
       ],
       rules: [
-        'Return exactly stepCount steps when the prompt has enough intent.',
+        'If stepCountMode is exact, return exactly maxStepCount steps.',
+        'If stepCountMode is infer, return the number of steps requested by the user, from 2 to maxStepCount.',
+        'If stepCountMode is infer and the user does not imply a count, return defaultStepCount steps.',
         'If the user asks the same kind of step twice, keep it twice.',
         'preferredTerms must describe what the candidate should match.',
         'avoidTerms must describe wrong candidates for this step.',
@@ -2002,6 +2036,7 @@ type ParsedDraftInput = {
   format: string | null;
   area: string | null;
   stepCount: number;
+  stepCountExplicit: boolean;
   latitude: number | null;
   longitude: number | null;
 };
@@ -2132,6 +2167,25 @@ function candidateSearchText(candidate: CandidateCard) {
 
 function candidateMatchesTerms(candidate: CandidateCard, terms: string[]) {
   return terms.length > 0 && hasAny(candidateSearchText(candidate), terms);
+}
+
+function budgetFromPrompt(prompt: string | null) {
+  const text = normalizeText(prompt ?? '');
+  if (!text) {
+    return null;
+  }
+  if (/(?:бесплат|free|без\s+денег)/.test(text)) {
+    return 'free';
+  }
+  if (
+    /(?:недорог|не\s+дорог|дешев|бюджет|эконом|до\s*1\s*500|до\s*1500|до\s*тысяч[аи]?)/.test(text)
+  ) {
+    return 'low';
+  }
+  if (/(?:премиум|дорого|без\s+лимит|люкс|premium)/.test(text)) {
+    return 'premium';
+  }
+  return null;
 }
 
 function roundCoord(value: number) {

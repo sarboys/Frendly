@@ -790,6 +790,138 @@ describe('EveningAiDraftService unit', () => {
     ]);
   });
 
+  it('infers prompt step count and low budget without button filters', async () => {
+    const { service, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'walk',
+              preferredTerms: ['прогулка', 'парк'],
+              avoidTerms: ['музей', 'каток'],
+              instruction: 'Сначала прогулка.',
+            },
+            {
+              role: 'place_food',
+              preferredTerms: ['недорог', 'budget:cheap'],
+              avoidTerms: [],
+              instruction: 'Потом недорого поесть.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 40,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-park',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Парк Горького',
+            category: 'park',
+            tags: ['парк', 'прогулка'],
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-expensive',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Дорогой ресторан',
+            category: 'restaurant',
+            tags: ['restaurant'],
+            priceFrom: 4200,
+            placeKind: 'restaurant',
+            venueName: 'Дорогой ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-cheap',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Недорогая паста',
+            category: 'restaurant',
+            tags: ['budget:cheap', 'паста'],
+            priceFrom: 1000,
+            placeKind: 'restaurant',
+            venueName: 'Недорогая паста',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Прогулка и недорогая еда',
+            vibe: 'Спокойно и бюджетно',
+            blurb: 'Сначала парк, потом недорого поесть.',
+            steps: [
+              {
+                externalContentItemId: 'kudago-park',
+                timeLabel: '18:00',
+                endTimeLabel: '19:00',
+                description: 'Прогулка',
+              },
+              {
+                externalContentItemId: 'tomesto-cheap',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Недорого поесть',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу погулять и покушать не дорого',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config).toEqual(
+      expect.objectContaining({
+        stepCountMode: 'infer',
+        defaultStepCount: 5,
+        maxStepCount: 5,
+        budget: 'low',
+      }),
+    );
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.stepCount).toBe(2);
+    expect(routePrompt.config.budget).toBe('low');
+    const foodCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'place_food')
+      .map((candidate: any) => candidate.id);
+    expect(foodCandidateIds.indexOf('tomesto-cheap')).toBeLessThan(
+      foodCandidateIds.indexOf('tomesto-expensive'),
+    );
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Парк Горького',
+      'Недорогая паста',
+    ]);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          budget: 'low',
+          stepCount: 2,
+        }),
+      }),
+    );
+  });
+
   it('allows KudaGo park places as walk candidates', async () => {
     const { service, draftCreate } = createService({
       externalItems: {

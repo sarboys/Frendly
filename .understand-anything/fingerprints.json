@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "0cca2010b42aae613d82200c8153d26609a85257",
-  "generatedAt": "2026-05-15T10:10:06.867Z",
+  "gitCommitHash": "4349e738cf1cd960a5e2e790f8d40c431947f739",
+  "generatedAt": "2026-05-15T11:12:34.565Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -12290,18 +12290,19 @@
     },
     "backend/apps/api/src/controllers/places.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/places.controller.ts",
-      "contentHash": "2846bafbda4b4a1313d253eed33c078cb40fd8f2c5fde5a676c97e537e31429f",
+      "contentHash": "c7731210ede5ef0d6076f9a416668bc5467676853a80598c13d06b18629c4173",
       "functions": [],
       "classes": [
         {
           "name": "PlacesController",
           "methods": [
             "constructor",
-            "searchPlaces"
+            "searchPlaces",
+            "listPlacePromos"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 20
+          "lineCount": 37
         }
       ],
       "imports": [
@@ -12323,7 +12324,7 @@
       "exports": [
         "PlacesController"
       ],
-      "totalLines": 25,
+      "totalLines": 42,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/posters.controller.ts": {
@@ -14679,7 +14680,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "8ad7fa44e9021cf5daf6ca2f3b94715166a94fdc6c29f336af8d4a35107705d1",
+      "contentHash": "c8d30795de2bfc9bc0d22b88633abd53c4721733d7f79ef34838020f6ae93ace",
       "functions": [
         {
           "name": "hasCandidateCoords",
@@ -14791,6 +14792,14 @@
           "lineCount": 3
         },
         {
+          "name": "budgetFromPrompt",
+          "params": [
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 18
+        },
+        {
           "name": "roundCoord",
           "params": [
             "value"
@@ -14893,7 +14902,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1811
+          "lineCount": 1844
         }
       ],
       "imports": [
@@ -14937,7 +14946,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 2171,
+      "totalLines": 2225,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -16899,8 +16908,29 @@
     },
     "backend/apps/api/src/services/places.service.ts": {
       "filePath": "backend/apps/api/src/services/places.service.ts",
-      "contentHash": "85fdbf94ece5f2b27c28d25421885c834b6db2b3eef428b3844c0f3d2258aecf",
+      "contentHash": "2630c20a9d08017f5d20ffdf06d17f43d7ba53c1394ab581ea6f7d5731ed6db6",
       "functions": [
+        {
+          "name": "mapPlacePromoListItem",
+          "params": [
+            "promo",
+            "place",
+            "latitude",
+            "longitude"
+          ],
+          "returnType": "PlacePromoListItemDto",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "comparePlacePromoListItems",
+          "params": [
+            "left",
+            "right"
+          ],
+          "exported": false,
+          "lineCount": 20
+        },
         {
           "name": "mapPromoDto",
           "params": [
@@ -16959,6 +16989,14 @@
         },
         {
           "name": "normalizeLimit",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "normalizePromoLimit",
           "params": [
             "value"
           ],
@@ -17040,11 +17078,12 @@
           "methods": [
             "constructor",
             "searchPlaces",
+            "listPlacePromos",
             "loadPromosForPlaces"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 130
+          "lineCount": 219
         }
       ],
       "imports": [
@@ -17072,7 +17111,7 @@
         "mapPromoDto",
         "promoMatchesPlace"
       ],
-      "totalLines": 311,
+      "totalLines": 491,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/posters.service.ts": {
@@ -22437,12 +22476,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "c3b420d3480d8271a07b15a33d61554b3b6558b86d90db71efbfe1836fb371b2",
+      "contentHash": "a16b94ecfbc9783364fd27b8c5e2cc084679ae875bbda5cf722f4f399cc6b0ef",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1105,
+      "totalLines": 1123,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {

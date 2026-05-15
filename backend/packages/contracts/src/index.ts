@@ -139,6 +139,24 @@ export interface PlaceSearchResultDto {
   promos: PlacePromoDto[];
 }
 
+export interface PlacePromoListItemDto extends PlacePromoDto {
+  id: string;
+  city: string;
+  venueName: string | null;
+  address: string | null;
+  placeId: string | null;
+  placeName: string | null;
+  placeCategory: string | null;
+  placeKind: string | null;
+  placeBookingUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  averageCheck: number | null;
+  currency: string | null;
+  provider: string | null;
+  distanceKm: number | null;
+}
+
 export interface PartnerOfferDto {
   id: string;
   partnerId: string;

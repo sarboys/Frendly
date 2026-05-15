@@ -10,6 +10,14 @@ export type PlaceSearchInput = {
   limit?: number | null;
 };
 
+export type PlacePromoListInput = {
+  city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  limit?: number | null;
+  category?: string | null;
+};
+
 export type PlacePromoDto = {
   title: string;
   description: string | null;
@@ -18,10 +26,32 @@ export type PlacePromoDto = {
   sourceUrl: string | null;
 };
 
+export type PlacePromoListItemDto = PlacePromoDto & {
+  id: string;
+  city: string;
+  venueName: string | null;
+  address: string | null;
+  placeId: string | null;
+  placeName: string | null;
+  placeCategory: string | null;
+  placeKind: string | null;
+  placeBookingUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  averageCheck: number | null;
+  currency: string | null;
+  provider: string | null;
+  distanceKm: number | null;
+};
+
 const DEFAULT_CITY = 'Москва';
 const MAX_LIMIT = 20;
 const DEFAULT_LIMIT = 10;
 const RAW_CANDIDATE_LIMIT = 100;
+const DEFAULT_PROMO_LIMIT = 80;
+const MAX_PROMO_LIMIT = 100;
+const RAW_PROMO_CANDIDATE_LIMIT = 200;
+const RAW_PROMO_PLACE_LIMIT = 500;
 
 @Injectable()
 export class PlacesService {
@@ -36,10 +66,6 @@ export class PlacesService {
     if (q.length < 2) {
       console.warn('[places] search query too short', { city, length: q.length });
       throw new ApiError(400, 'place_search_query_too_short', 'Search query is too short');
-    }
-    if (city !== DEFAULT_CITY) {
-      console.warn('[places] unsupported city', { city });
-      return [];
     }
 
     console.debug('[places] search requested', { q, city, limit, hasCoords });
@@ -91,7 +117,7 @@ export class PlacesService {
       .filter((entry) => entry.score < 1000)
       .sort((left, right) => left.score - right.score)
       .slice(0, limit);
-    const promosByPlaceId = await this.loadPromosForPlaces(scored.map((entry) => entry.place));
+    const promosByPlaceId = await this.loadPromosForPlaces(scored.map((entry) => entry.place), city);
 
     const result = scored.map(({ place }) =>
       mapPlaceSearchResult(
@@ -105,7 +131,99 @@ export class PlacesService {
     return result;
   }
 
-  private async loadPromosForPlaces(places: any[]) {
+  async listPlacePromos(input: PlacePromoListInput): Promise<PlacePromoListItemDto[]> {
+    const city = input.city?.trim() || DEFAULT_CITY;
+    const limit = normalizePromoLimit(input.limit);
+    const category = input.category?.trim().toLowerCase() || null;
+    const now = new Date();
+
+    const promos = await this.prismaService.client.externalContentItem.findMany({
+      where: {
+        source: { code: 'tomesto' },
+        contentKind: 'event',
+        category: 'promo',
+        city,
+        NOT: { moderationStatus: 'rejected' },
+        OR: [
+          { endsAt: null },
+          { endsAt: { gte: now } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        shortSummary: true,
+        city: true,
+        address: true,
+        venueName: true,
+        endsAt: true,
+        actionUrl: true,
+        sourceUrl: true,
+        sourceProvider: true,
+        raw: true,
+        source: {
+          select: { name: true },
+        },
+      },
+      orderBy: [{ endsAt: 'asc' }, { importedAt: 'desc' }, { id: 'asc' }],
+      take: Math.min(Math.max(limit * 3, limit), RAW_PROMO_CANDIDATE_LIMIT),
+    });
+
+    if (promos.length === 0) {
+      return [];
+    }
+
+    const places = await this.prismaService.client.externalContentItem.findMany({
+      where: {
+        source: { code: 'tomesto' },
+        contentKind: 'place',
+        publicStatus: 'published',
+        city,
+      },
+      select: {
+        id: true,
+        title: true,
+        address: true,
+        city: true,
+        category: true,
+        placeKind: true,
+        lat: true,
+        lng: true,
+        priceFrom: true,
+        currency: true,
+        actionUrl: true,
+        sourceProvider: true,
+        raw: true,
+        source: {
+          select: { name: true },
+        },
+      },
+      orderBy: [{ title: 'asc' }, { id: 'asc' }],
+      take: RAW_PROMO_PLACE_LIMIT,
+    });
+
+    const result = promos
+      .map((promo: any) => {
+        const place = places.find((candidate: any) => promoMatchesPlace(promo, candidate)) ?? null;
+        return mapPlacePromoListItem(promo, place, input.latitude, input.longitude);
+      })
+      .filter((promo) => {
+        if (!category) {
+          return true;
+        }
+        return (
+          normalizeText(promo.placeCategory) === category ||
+          normalizeText(promo.placeKind) === category
+        );
+      })
+      .sort(comparePlacePromoListItems)
+      .slice(0, limit);
+
+    console.info('[places] promos listed', { city, resultCount: result.length });
+    return result;
+  }
+
+  private async loadPromosForPlaces(places: any[], city: string) {
     const byPlaceId = new Map<string, PlacePromoDto[]>();
     if (places.length === 0) {
       return byPlaceId;
@@ -115,9 +233,10 @@ export class PlacesService {
     const promos = await this.prismaService.client.externalContentItem.findMany({
       where: {
         sourceId: { in: sourceIds },
-        city: DEFAULT_CITY,
+        city,
         contentKind: 'event',
         category: 'promo',
+        NOT: { moderationStatus: 'rejected' },
         OR: [
           { endsAt: null },
           { endsAt: { gte: now } },
@@ -153,6 +272,60 @@ export class PlacesService {
     }
     return byPlaceId;
   }
+}
+
+function mapPlacePromoListItem(
+  promo: any,
+  place: any | null,
+  latitude?: number | null,
+  longitude?: number | null,
+): PlacePromoListItemDto {
+  const raw = asRecord(promo.raw);
+  const venueName = text(promo.venueName) ?? text(raw.venueName) ?? place?.title ?? null;
+  const address = place?.address ?? text(promo.address) ?? text(raw.address);
+  return {
+    id: promo.id,
+    title: promo.title,
+    description: promo.shortSummary ?? null,
+    validUntil: promo.endsAt?.toISOString() ?? null,
+    bookingUrl: promo.actionUrl ?? null,
+    sourceUrl: promo.sourceUrl ?? null,
+    city: promo.city,
+    venueName,
+    address,
+    placeId: place?.id ?? null,
+    placeName: place?.title ?? venueName,
+    placeCategory: place?.category ?? null,
+    placeKind: place?.placeKind ?? place?.category ?? null,
+    placeBookingUrl: place?.actionUrl ?? null,
+    latitude: place?.lat ?? null,
+    longitude: place?.lng ?? null,
+    averageCheck: place?.priceFrom ?? null,
+    currency: place?.currency ?? null,
+    provider: promo.sourceProvider ?? place?.sourceProvider ?? promo.source?.name ?? place?.source?.name ?? null,
+    distanceKm: place == null ? null : distanceKm(latitude, longitude, place.lat, place.lng),
+  };
+}
+
+function comparePlacePromoListItems(left: PlacePromoListItemDto, right: PlacePromoListItemDto) {
+  const leftDistance = left.distanceKm ?? Number.POSITIVE_INFINITY;
+  const rightDistance = right.distanceKm ?? Number.POSITIVE_INFINITY;
+  if (leftDistance !== rightDistance) {
+    return leftDistance - rightDistance;
+  }
+  const leftCategory = left.placeKind ?? left.placeCategory ?? '';
+  const rightCategory = right.placeKind ?? right.placeCategory ?? '';
+  const byCategory = leftCategory.localeCompare(rightCategory, 'ru');
+  if (byCategory !== 0) {
+    return byCategory;
+  }
+  const leftPlace = left.placeName ?? left.venueName ?? '';
+  const rightPlace = right.placeName ?? right.venueName ?? '';
+  const byPlace = leftPlace.localeCompare(rightPlace, 'ru');
+  if (byPlace !== 0) {
+    return byPlace;
+  }
+  return left.title.localeCompare(right.title, 'ru');
 }
 
 export function mapPromoDto(promo: {
@@ -256,6 +429,13 @@ function normalizeLimit(value: number | null | undefined) {
     return DEFAULT_LIMIT;
   }
   return Math.min(Math.max(Math.trunc(value), 1), MAX_LIMIT);
+}
+
+function normalizePromoLimit(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_PROMO_LIMIT;
+  }
+  return Math.min(Math.max(Math.trunc(value), 1), MAX_PROMO_LIMIT);
 }
 
 function distanceKm(
