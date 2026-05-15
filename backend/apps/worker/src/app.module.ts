@@ -3,6 +3,7 @@ import { OpenRouterClient } from '@big-break/database';
 import { ContentImportService } from './content/content-import.service';
 import { ContentImageMirrorService } from './content/content-image-mirror.service';
 import { ContentNormalizerService } from './content/content-normalizer.service';
+import { ContentVenueGeocoderService } from './content/content-venue-geocoder.service';
 import { ExternalSourceRegistry } from './content/external-source.registry';
 import { RouteDraftGenerationService } from './content/route-draft-generation.service';
 import { HealthController } from './health.controller';
@@ -16,6 +17,7 @@ import { WorkerService } from './worker.service';
     PrismaService,
     ContentImageMirrorService,
     ContentNormalizerService,
+    ContentVenueGeocoderService,
     ExternalSourceRegistry,
     ContentImportService,
     RouteDraftGenerationService,

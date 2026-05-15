@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "8df9c1d1c423aead63573b55c274204e019c2f22",
-  "generatedAt": "2026-05-15T06:17:39.067Z",
+  "gitCommitHash": "8b4c79cbc79a7be3564384636ec46fab3fd7beec",
+  "generatedAt": "2026-05-15T07:21:01.414Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14678,8 +14678,25 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "cda7c5479169a913fb1366233a4ce5c8c574a0ea94a28fa17c44f44396c605b0",
+      "contentHash": "cd9c10f667c93b88fda1e40057c1804fb7d46c5138a8f794f896249fda6d52bf",
       "functions": [
+        {
+          "name": "hasCandidateCoords",
+          "params": [
+            "candidate"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "fallbackPointForInput",
+          "params": [
+            "input"
+          ],
+          "returnType": "{ lat: number; lng: number }",
+          "exported": false,
+          "lineCount": 10
+        },
         {
           "name": "stringOrNull",
           "params": [
@@ -14796,6 +14813,7 @@
             "labelForRole",
             "titleForRoles",
             "candidateScore",
+            "routePointForCandidate",
             "candidateTailScore",
             "systemPrompt",
             "userPrompt",
@@ -14809,7 +14827,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1158
+          "lineCount": 1190
         }
       ],
       "imports": [
@@ -14853,7 +14871,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 1326,
+      "totalLines": 1402,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -18790,7 +18808,7 @@
     },
     "backend/apps/worker/src/app.module.ts": {
       "filePath": "backend/apps/worker/src/app.module.ts",
-      "contentHash": "6686cf47cc252694c71bdbb4bef09b7602f50ae491df0dca3c364b74889918cd",
+      "contentHash": "f0c8bd264ca9b253971a52bd7ca71bf8d8d4fa17a9bf30a0e26524d5bf0af031",
       "functions": [],
       "classes": [
         {
@@ -18833,6 +18851,12 @@
           ]
         },
         {
+          "source": "./content/content-venue-geocoder.service",
+          "specifiers": [
+            "ContentVenueGeocoderService"
+          ]
+        },
+        {
           "source": "./content/external-source.registry",
           "specifiers": [
             "ExternalSourceRegistry"
@@ -18872,7 +18896,7 @@
       "exports": [
         "WorkerAppModule"
       ],
-      "totalLines": 30,
+      "totalLines": 32,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
@@ -19383,7 +19407,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "8a5660991154bd647ec0e92007d894e2e909582eeb8f8260165cbd69ca0aede3",
+      "contentHash": "1e4a0b51bea0ca10cf772def1c540c314117325f9736083ac1f70ede7437bb24",
       "functions": [
         {
           "name": "safeJson",
@@ -19431,10 +19455,72 @@
           "lineCount": 27
         },
         {
+          "name": "enrichItemFromPlace",
+          "params": [
+            "item",
+            "place",
+            "enrichment"
+          ],
+          "returnType": "NormalizedExternalContentItem",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "enrichItemFromGeocoder",
+          "params": [
+            "item",
+            "geocoded"
+          ],
+          "returnType": "NormalizedExternalContentItem",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
           "name": "mergeRaw",
           "params": [
             "raw",
             "enrichment"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "kudagoPlaceId",
+          "params": [
+            "raw"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "selectExactVenuePlace",
+          "params": [
+            "rows",
+            "venueKey"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "placeSourcePriority",
+          "params": [
+            "place"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "isReliableAffiliateVenueName",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "normalizeVenueText",
+          "params": [
+            "value"
           ],
           "exported": false,
           "lineCount": 10
@@ -19565,6 +19651,12 @@
             "markStaleItems",
             "updateRunProgress",
             "prepareItemForUpsert",
+            "enrichEventFromStableVenueData",
+            "enrichKudaGoEventFromPlace",
+            "enrichAffiliateEventFromVenue",
+            "findSourcePlaceCandidate",
+            "findExactVenuePlaceCandidate",
+            "geocodeAffiliateVenue",
             "findEventDuplicate",
             "loadEventDuplicateCandidates",
             "enrichExistingAffiliateItem",
@@ -19577,7 +19669,7 @@
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 824
+          "lineCount": 994
         }
       ],
       "imports": [
@@ -19626,6 +19718,13 @@
           ]
         },
         {
+          "source": "./content-venue-geocoder.service",
+          "specifiers": [
+            "ContentVenueGeocoderService",
+            "VenueGeocodeResult"
+          ]
+        },
+        {
           "source": "./external-source.registry",
           "specifiers": [
             "ExternalSourceRegistry"
@@ -19652,7 +19751,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 1126,
+      "totalLines": 1441,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
@@ -19780,6 +19879,129 @@
       "totalLines": 94,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/worker/src/content/content-venue-geocoder.service.ts": {
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "contentHash": "9283dfabcf8561d778a7b397908c5802f6bcf8bc5a26f7dc6be552501da5f558",
+      "functions": [
+        {
+          "name": "geocodeQuery",
+          "params": [
+            "input"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "highConfidenceResult",
+          "params": [
+            "payload",
+            "city",
+            "query",
+            "hasAddress"
+          ],
+          "returnType": "VenueGeocodeResult | null",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "isHighConfidence",
+          "params": [
+            "precision",
+            "kind",
+            "hasAddress"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "withinCity",
+          "params": [
+            "city",
+            "lat",
+            "lng"
+          ],
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "parsePoint",
+          "params": [
+            "value"
+          ],
+          "returnType": "[number | null, number | null]",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "object",
+          "params": [
+            "value"
+          ],
+          "returnType": "Record<string, unknown> | null",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "array",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "cleanText",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "positiveInt",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "classes": [
+        {
+          "name": "ContentVenueGeocoderService",
+          "methods": [
+            "geocode"
+          ],
+          "properties": [
+            "apiKey",
+            "baseUrl",
+            "timeoutMs"
+          ],
+          "exported": true,
+          "lineCount": 52
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "./supported-cities",
+          "specifiers": [
+            "overpassBboxForCity"
+          ]
+        }
+      ],
+      "exports": [
+        "ContentVenueGeocoderService"
+      ],
+      "totalLines": 209,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/worker/src/content/external-source.registry.ts": {
       "filePath": "backend/apps/worker/src/content/external-source.registry.ts",
       "contentHash": "ce04aac98c4eab413b506bab77c4067fd4dda95aaaaa607cca50ab9ced9b0bc0",
@@ -19855,7 +20077,7 @@
     },
     "backend/apps/worker/src/content/kudago.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
-      "contentHash": "c870670007690be60026274baf72091a91d110af6959cf6349c6604e51442545",
+      "contentHash": "b2bd65373b683ba4a11da17d2c96267d6737c8c5a4dfff3a38995ee6b5258567",
       "functions": [
         {
           "name": "fetchJson",
@@ -19958,7 +20180,7 @@
             "baseUrl"
           ],
           "exported": true,
-          "lineCount": 121
+          "lineCount": 123
         }
       ],
       "imports": [
@@ -19981,7 +20203,7 @@
       "exports": [
         "KudaGoAdapter"
       ],
-      "totalLines": 272,
+      "totalLines": 274,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/overpass.adapter.ts": {

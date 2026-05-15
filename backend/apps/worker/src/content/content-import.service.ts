@@ -5,6 +5,7 @@ import { maskAdvCakeSecrets } from './advcake-ticketland.adapter';
 import { dayKey, eventDuplicateMatch } from './content-deduplication.service';
 import { ContentNormalizerService } from './content-normalizer.service';
 import { ContentImageMirrorService } from './content-image-mirror.service';
+import { ContentVenueGeocoderService, type VenueGeocodeResult } from './content-venue-geocoder.service';
 import { ExternalSourceRegistry } from './external-source.registry';
 import { cityCodesForSource, timezoneForCity } from './supported-cities';
 import type {
@@ -36,6 +37,8 @@ const DEFAULT_DUPLICATE_PRELOAD_LIMIT = 1000;
 const DEFAULT_IMAGE_BACKFILL_LIMIT = 50;
 
 type DuplicateCandidateCache = Map<string, Promise<EventDuplicateCandidate[]>>;
+type PlaceCandidateCache = Map<string, Promise<PlaceCandidate | null>>;
+type GeocodeCache = Map<string, Promise<VenueGeocodeResult | null>>;
 
 type EventDuplicateCandidate = {
   id: string;
@@ -52,6 +55,18 @@ type EventDuplicateCandidate = {
   priceMode: string;
   publicStatus: string;
   actionUrl: string | null;
+  raw: unknown;
+  source: { code: ExternalSourceCode; name: string } | null;
+};
+
+type PlaceCandidate = {
+  id: string;
+  sourceItemId: string;
+  title: string;
+  venueName: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
   raw: unknown;
   source: { code: ExternalSourceCode; name: string } | null;
 };
@@ -91,6 +106,40 @@ const EVENT_DUPLICATE_CANDIDATE_SELECT = {
   },
 } satisfies Prisma.ExternalContentItemSelect;
 
+const PLACE_CANDIDATE_SELECT = {
+  id: true,
+  sourceItemId: true,
+  title: true,
+  venueName: true,
+  address: true,
+  lat: true,
+  lng: true,
+  raw: true,
+  source: {
+    select: {
+      code: true,
+      name: true,
+    },
+  },
+} satisfies Prisma.ExternalContentItemSelect;
+
+const AFFILIATE_PLACE_SOURCE_CODES: ExternalSourceCode[] = ['kudago', 'tomesto'];
+const GENERIC_AFFILIATE_VENUE_NAMES = new Set([
+  'бар',
+  'зал',
+  'кафе',
+  'клуб',
+  'музей',
+  'театр',
+  'ресторан',
+  'концертный зал',
+  'малый зал',
+  'большой зал',
+  'пешеходные экскурсии',
+  'экскурсии пешие',
+  'экскурсии',
+]);
+
 @Injectable()
 export class ContentImportService {
   private readonly timeoutMs = positiveInt(process.env.CONTENT_IMPORT_TIMEOUT_MS, DEFAULT_IMPORT_TIMEOUT_MS);
@@ -100,6 +149,7 @@ export class ContentImportService {
     private readonly normalizer: ContentNormalizerService,
     private readonly registry: ExternalSourceRegistry,
     @Optional() private readonly imageMirror?: ContentImageMirrorService,
+    @Optional() private readonly venueGeocoder?: ContentVenueGeocoderService,
   ) {}
 
   async runImport(input: ContentImportInput) {
@@ -341,6 +391,9 @@ export class ContentImportService {
     const rssBefore = process.memoryUsage().rss;
     const startedAt = Date.now();
     const duplicateCache: DuplicateCandidateCache = new Map();
+    const sourcePlaceCache: PlaceCandidateCache = new Map();
+    const venuePlaceCache: PlaceCandidateCache = new Map();
+    const geocodeCache: GeocodeCache = new Map();
     try {
       console.info('[content-import] source started', {
         runId: input.runId,
@@ -369,6 +422,9 @@ export class ContentImportService {
             const normalized = await this.prepareItemForUpsert(
               this.normalizer.normalize(rawItem),
               duplicateCache,
+              sourcePlaceCache,
+              venuePlaceCache,
+              geocodeCache,
             );
             const item = this.imageMirror
               ? await this.imageMirror.mirrorExternalImage(normalized.item)
@@ -628,24 +684,37 @@ export class ContentImportService {
   private async prepareItemForUpsert(
     item: NormalizedExternalContentItem,
     duplicateCache: DuplicateCandidateCache,
+    sourcePlaceCache: PlaceCandidateCache,
+    venuePlaceCache: PlaceCandidateCache,
+    geocodeCache: GeocodeCache,
   ): Promise<{
     item: NormalizedExternalContentItem;
     publicStatusOverride?: string;
   }> {
-    if (item.contentKind !== 'event' || !item.startsAt) {
-      return { item };
+    let enrichedItem = item;
+    if (enrichedItem.contentKind === 'event') {
+      enrichedItem = await this.enrichEventFromStableVenueData(
+        enrichedItem,
+        sourcePlaceCache,
+        venuePlaceCache,
+        geocodeCache,
+      );
     }
 
-    const duplicate = await this.findEventDuplicate(item, duplicateCache);
+    if (enrichedItem.contentKind !== 'event' || !enrichedItem.startsAt) {
+      return { item: enrichedItem };
+    }
+
+    const duplicate = await this.findEventDuplicate(enrichedItem, duplicateCache);
     if (!duplicate || duplicate.match.confidence === 'low') {
-      return { item };
+      return { item: enrichedItem };
     }
 
-    if (item.sourceCode === 'advcake_ticketland') {
-      const enriched = enrichItemFromDuplicate(item, duplicate.item);
+    if (enrichedItem.sourceCode === 'advcake_ticketland') {
+      const enriched = enrichItemFromDuplicate(enrichedItem, duplicate.item);
       await this.hideDuplicateItem(duplicate.item.id, duplicate.item.raw, {
-        sourceCode: item.sourceCode,
-        sourceItemId: item.sourceItemId,
+        sourceCode: enrichedItem.sourceCode,
+        sourceItemId: enrichedItem.sourceItemId,
         confidence: duplicate.match.confidence,
         duplicateKey: duplicate.match.key,
         role: 'merged_into_affiliate_event',
@@ -654,11 +723,11 @@ export class ContentImportService {
     }
 
     if (duplicate.item.source?.code === 'advcake_ticketland') {
-      await this.enrichExistingAffiliateItem(duplicate.item, item, duplicate.match);
+      await this.enrichExistingAffiliateItem(duplicate.item, enrichedItem, duplicate.match);
       return {
         item: {
-          ...item,
-          raw: mergeRaw(item.raw, {
+          ...enrichedItem,
+          raw: mergeRaw(enrichedItem.raw, {
             sourceCode: duplicate.item.source.code,
             sourceItemId: duplicate.item.sourceItemId,
             confidence: duplicate.match.confidence,
@@ -670,7 +739,157 @@ export class ContentImportService {
       };
     }
 
-    return { item };
+    return { item: enrichedItem };
+  }
+
+  private async enrichEventFromStableVenueData(
+    item: NormalizedExternalContentItem,
+    sourcePlaceCache: PlaceCandidateCache,
+    venuePlaceCache: PlaceCandidateCache,
+    geocodeCache: GeocodeCache,
+  ) {
+    if (item.sourceCode === 'kudago') {
+      return this.enrichKudaGoEventFromPlace(item, sourcePlaceCache);
+    }
+    if (item.sourceCode === 'advcake_ticketland') {
+      return this.enrichAffiliateEventFromVenue(item, venuePlaceCache, geocodeCache);
+    }
+    return item;
+  }
+
+  private async enrichKudaGoEventFromPlace(
+    item: NormalizedExternalContentItem,
+    sourcePlaceCache: PlaceCandidateCache,
+  ) {
+    if (item.lat != null && item.lng != null) {
+      return item;
+    }
+    const placeId = kudagoPlaceId(item.raw);
+    if (!placeId) {
+      return item;
+    }
+    const place = await this.findSourcePlaceCandidate(item, `place-${placeId}`, sourcePlaceCache);
+    if (!place || place.lat == null || place.lng == null) {
+      return item;
+    }
+    return enrichItemFromPlace(item, place, {
+      role: 'source_place_enriched',
+      method: 'kudago_place_id',
+      geoConfidence: 'high',
+    });
+  }
+
+  private async enrichAffiliateEventFromVenue(
+    item: NormalizedExternalContentItem,
+    venuePlaceCache: PlaceCandidateCache,
+    geocodeCache: GeocodeCache,
+  ) {
+    if (item.lat != null && item.lng != null) {
+      return item;
+    }
+
+    const place = await this.findExactVenuePlaceCandidate(item, venuePlaceCache);
+    if (place && place.lat != null && place.lng != null) {
+      return enrichItemFromPlace(item, place, {
+        role: 'affiliate_venue_enriched',
+        method: 'exact_venue_place_match',
+        geoConfidence: 'high',
+      });
+    }
+
+    const geocoded = await this.geocodeAffiliateVenue(item, geocodeCache);
+    if (!geocoded) {
+      return item;
+    }
+    return enrichItemFromGeocoder(item, geocoded);
+  }
+
+  private findSourcePlaceCandidate(
+    item: NormalizedExternalContentItem,
+    sourceItemId: string,
+    sourcePlaceCache: PlaceCandidateCache,
+  ) {
+    const key = ['source-place', item.sourceCode, item.city, sourceItemId].join('|');
+    const cached = sourcePlaceCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const load = this.prismaService.client.externalContentItem.findMany({
+      where: {
+        source: { code: item.sourceCode },
+        contentKind: 'place',
+        publicStatus: PUBLIC_STATUS_PUBLISHED,
+        city: item.city,
+        sourceItemId,
+        lat: { not: null },
+        lng: { not: null },
+      },
+      select: PLACE_CANDIDATE_SELECT,
+      take: 1,
+    }).then((rows) => (rows[0] as PlaceCandidate | undefined) ?? null);
+    sourcePlaceCache.set(key, load);
+    return load;
+  }
+
+  private findExactVenuePlaceCandidate(
+    item: NormalizedExternalContentItem,
+    venuePlaceCache: PlaceCandidateCache,
+  ) {
+    const venueName = optionalString(item.venueName);
+    if (!venueName || !isReliableAffiliateVenueName(venueName)) {
+      return Promise.resolve(null);
+    }
+
+    const venueKey = normalizeVenueText(venueName);
+    const key = ['affiliate-place', item.city, venueKey].join('|');
+    const cached = venuePlaceCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const load = this.prismaService.client.externalContentItem.findMany({
+      where: {
+        source: { code: { in: AFFILIATE_PLACE_SOURCE_CODES } },
+        contentKind: 'place',
+        publicStatus: PUBLIC_STATUS_PUBLISHED,
+        city: item.city,
+        lat: { not: null },
+        lng: { not: null },
+        OR: [
+          { title: { equals: venueName, mode: 'insensitive' } },
+          { venueName: { equals: venueName, mode: 'insensitive' } },
+        ],
+      },
+      select: PLACE_CANDIDATE_SELECT,
+      take: 10,
+    }).then((rows) => selectExactVenuePlace(rows as unknown as PlaceCandidate[], venueKey));
+    venuePlaceCache.set(key, load);
+    return load;
+  }
+
+  private geocodeAffiliateVenue(
+    item: NormalizedExternalContentItem,
+    geocodeCache: GeocodeCache,
+  ) {
+    if (!this.venueGeocoder) {
+      return Promise.resolve(null);
+    }
+    const address = optionalString(item.address);
+    const venueName = optionalString(item.venueName);
+    if (!address && !isReliableAffiliateVenueName(venueName)) {
+      return Promise.resolve(null);
+    }
+    const key = ['affiliate-geocode', item.city, address ?? '', normalizeVenueText(venueName)].join('|');
+    const cached = geocodeCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const load = this.venueGeocoder.geocode({
+      city: item.city,
+      venueName: isReliableAffiliateVenueName(venueName) ? venueName : null,
+      address,
+    });
+    geocodeCache.set(key, load);
+    return load;
   }
 
   private async findEventDuplicate(
@@ -981,6 +1200,51 @@ function enrichItemFromDuplicate(
   };
 }
 
+function enrichItemFromPlace(
+  item: NormalizedExternalContentItem,
+  place: PlaceCandidate,
+  enrichment: {
+    role: string;
+    method: string;
+    geoConfidence: string;
+  },
+): NormalizedExternalContentItem {
+  return {
+    ...item,
+    address: item.address ?? place.address ?? null,
+    lat: item.lat ?? place.lat ?? null,
+    lng: item.lng ?? place.lng ?? null,
+    venueName: item.venueName ?? place.venueName ?? place.title ?? null,
+    raw: mergeRaw(item.raw, {
+      ...enrichment,
+      sourceCode: place.source?.code,
+      sourceItemId: place.sourceItemId,
+      fields: ['address', 'lat', 'lng', 'venueName'],
+    }),
+  };
+}
+
+function enrichItemFromGeocoder(
+  item: NormalizedExternalContentItem,
+  geocoded: VenueGeocodeResult,
+): NormalizedExternalContentItem {
+  return {
+    ...item,
+    address: item.address ?? geocoded.address ?? null,
+    lat: item.lat ?? geocoded.lat,
+    lng: item.lng ?? geocoded.lng,
+    raw: mergeRaw(item.raw, {
+      role: 'affiliate_venue_enriched',
+      method: 'geocoder_high_confidence',
+      geoConfidence: 'high',
+      provider: geocoded.provider,
+      precision: geocoded.precision,
+      kind: geocoded.kind,
+      fields: ['address', 'lat', 'lng'],
+    }),
+  };
+}
+
 function mergeRaw(raw: unknown, enrichment: Record<string, unknown>) {
   const base = object(raw) ?? {};
   return {
@@ -990,6 +1254,57 @@ function mergeRaw(raw: unknown, enrichment: Record<string, unknown>) {
       ...enrichment,
     },
   };
+}
+
+function kudagoPlaceId(raw: unknown) {
+  const place = object(object(raw)?.place);
+  const id = place?.id;
+  if (typeof id === 'number' && Number.isFinite(id)) {
+    return String(Math.trunc(id));
+  }
+  if (typeof id === 'string' && id.trim().length > 0) {
+    return id.trim();
+  }
+  return null;
+}
+
+function selectExactVenuePlace(rows: PlaceCandidate[], venueKey: string) {
+  const matches = rows
+    .filter((row) =>
+      normalizeVenueText(row.title) === venueKey ||
+      normalizeVenueText(row.venueName) === venueKey,
+    )
+    .sort((left, right) => placeSourcePriority(left) - placeSourcePriority(right));
+  return matches[0] ?? null;
+}
+
+function placeSourcePriority(place: PlaceCandidate) {
+  if (place.source?.code === 'kudago') {
+    return 0;
+  }
+  if (place.source?.code === 'tomesto') {
+    return 1;
+  }
+  return 2;
+}
+
+function isReliableAffiliateVenueName(value: string | null) {
+  const normalized = normalizeVenueText(value);
+  if (normalized.length < 5 || GENERIC_AFFILIATE_VENUE_NAMES.has(normalized)) {
+    return false;
+  }
+  return /[a-zа-яё]/i.test(normalized);
+}
+
+function normalizeVenueText(value: string | null) {
+  if (!value) {
+    return '';
+  }
+  return value
+    .toLowerCase()
+    .replace(/[«»"']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function positiveInt(value: unknown, fallback: number) {

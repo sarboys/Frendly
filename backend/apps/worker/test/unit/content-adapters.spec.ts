@@ -78,6 +78,9 @@ describe('content source adapters', () => {
     const placeCategories = urls
       .find((url) => url.pathname.endsWith('/places/'))
       ?.searchParams.get('categories');
+    const eventExpand = urls
+      .find((url) => url.pathname.endsWith('/events/'))
+      ?.searchParams.get('expand');
 
     expect(eventCategories).toBe([
       'cinema',
@@ -98,6 +101,7 @@ describe('content source adapters', () => {
     expect(eventCategories).not.toContain('business-events');
     expect(eventCategories).not.toContain('kids');
     expect(eventCategories).not.toContain('stock');
+    expect(eventExpand).toBe('place');
 
     expect(placeCategories).toBe([
       'amusement',
@@ -149,6 +153,34 @@ describe('content source adapters', () => {
 
     const urls = fetchMock.mock.calls.map((call) => new URL(String(call[0])));
     expect(urls.every((url) => url.searchParams.get('location') === 'kzn')).toBe(true);
+  });
+
+  it('maps expanded KudaGo event place coordinates and venue name', async () => {
+    const adapter = new KudaGoAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({
+        results: [kudagoEvent(100, {
+          place: {
+            id: 96,
+            title: 'Дарвиновский музей',
+            address: 'ул. Вавилова, 57',
+            coords: { lat: 55.6894, lon: 37.5629 },
+          },
+        })],
+      }) as any)
+      .mockResolvedValueOnce(jsonResponse({ results: [] }) as any);
+
+    const items = await adapter.fetchItems(fetchInput());
+
+    expect(items[0]).toMatchObject({
+      sourceCode: 'kudago',
+      sourceItemId: 'event-100',
+      contentKind: 'event',
+      venueName: 'Дарвиновский музей',
+      address: 'ул. Вавилова, 57',
+      lat: 55.6894,
+      lng: 37.5629,
+    });
   });
 
   it('loads all Timepad pages until the selected period ends', async () => {
@@ -511,7 +543,7 @@ function textResponse(payload: string) {
   } as unknown as Response;
 }
 
-function kudagoEvent(id: number) {
+function kudagoEvent(id: number, overrides: Record<string, unknown> = {}) {
   return {
     id,
     title: `Событие ${id}`,
@@ -519,10 +551,13 @@ function kudagoEvent(id: number) {
     categories: ['concert'],
     dates: [{ start: 1770000000, end: 1770003600 }],
     place: {
+      id: 1,
+      title: 'Парк',
       address: 'Москва, Парк',
       coords: { lat: 55.75, lon: 37.61 },
     },
     price: '500',
+    ...overrides,
   };
 }
 

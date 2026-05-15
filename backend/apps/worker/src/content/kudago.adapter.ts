@@ -86,6 +86,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
     url.searchParams.set('page_size', String(PAGE_SIZE));
     url.searchParams.set('categories', KUDAGO_EVENT_CATEGORY_SLUGS.join(','));
     url.searchParams.set('fields', 'id,title,short_title,description,site_url,categories,dates,place,price');
+    url.searchParams.set('expand', 'place');
     for await (const items of fetchPaged(url, input.signal)) {
       const mapped = items.flatMap((item) => this.mapEvent(item, input.city));
       if (mapped.length > 0) {
@@ -137,6 +138,7 @@ export class KudaGoAdapter implements ExternalSourceAdapter {
         endsAt: date?.end ?? null,
         priceFrom: priceFrom(item.price),
         currency: 'RUB',
+        venueName: text(place?.title),
         raw: item,
       }];
     } catch {

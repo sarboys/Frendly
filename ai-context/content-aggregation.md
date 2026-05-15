@@ -229,7 +229,23 @@ AdvCake item stays primary
   -> raw.enrichment records match details
 ```
 
-This lets paid affiliate events appear in affiche even without coordinates, and later become route candidates if enrichment found coordinates.
+This lets paid affiliate events appear in affiche even without coordinates. User-facing AI show drafts may also use Ticketland rows without coordinates, while enrichment still improves walking distance and map quality when coordinates are found.
+
+KudaGo event import requests `expand=place`, so event rows can store `venueName`, `address`, `lat` and `lng` from the linked place. If an older or partial KudaGo event only has `raw.place.id`, worker can copy the missing venue fields from the already imported `kudago` place row. The enrichment is recorded in `raw.enrichment` with `method=kudago_place_id` and `geoConfidence=high`.
+
+AdvCake Ticketland rows can also be enriched before upsert:
+
+```text
+exact venueName match against KudaGo or Tomesto place
+  -> copy address, lat, lng, venueName
+  -> raw.enrichment.method=exact_venue_place_match
+
+optional Yandex geocoder high-confidence result
+  -> copy address, lat, lng
+  -> raw.enrichment.method=geocoder_high_confidence
+```
+
+Generic venue names such as `Клуб`, `Театр`, `Пешеходные экскурсии` are not geocoded by name. Geocoder enrichment is optional and only runs when a backend geocoder key is configured. Low-confidence geocoder results must leave coordinates empty. KudaGo and Tomesto route candidates still require coordinates; Ticketland show candidates can enter the user-facing AI pack without them.
 
 ## Public API
 

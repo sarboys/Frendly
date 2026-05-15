@@ -121,7 +121,7 @@ describe('EveningAiDraftService unit', () => {
     },
   };
 
-  function createService() {
+  function createService(options: { ticketlandWithoutCoords?: boolean } = {}) {
     const externalFindMany = jest.fn((query: any) => {
       const code = query?.where?.source?.code;
       if (code === 'tomesto') {
@@ -139,6 +139,8 @@ describe('EveningAiDraftService unit', () => {
             contentKind: 'event',
             startsAt: new Date('2099-06-01T17:30:00.000Z'),
             priceFrom: 1200,
+            lat: options.ticketlandWithoutCoords ? null : 55.765,
+            lng: options.ticketlandWithoutCoords ? null : 37.615,
             sourceProvider: 'Ticketland / MTS Live',
           }),
         ]);
@@ -368,6 +370,49 @@ describe('EveningAiDraftService unit', () => {
             }),
           ]),
         }),
+      }),
+    );
+  });
+
+  it('keeps Ticketland show candidates without coordinates in the AI draft pack', async () => {
+    const { service, externalFindMany, draftCreate, openRouter } = createService({
+      ticketlandWithoutCoords: true,
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'Винный бар и стендап',
+      city: 'Москва',
+      stepCount: 2,
+    });
+
+    const ticketlandCall = externalFindMany.mock.calls.find(
+      ([query]) => query?.where?.source?.code === 'advcake_ticketland',
+    )?.[0];
+    expect(ticketlandCall?.where).not.toHaveProperty('lat');
+    expect(ticketlandCall?.where).not.toHaveProperty('lng');
+    expect(openRouter.generateJson.mock.calls[0][0].userPrompt).toContain('"geo":null');
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          candidatePackJson: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'ticketland-show',
+              source: 'advcake_ticketland',
+              lat: null,
+              lng: null,
+            }),
+          ]),
+        }),
+      }),
+    );
+    expect(result.route.steps[1]).toEqual(
+      expect.objectContaining({
+        title: 'Стендап',
+        ticketSourceCode: 'advcake_ticketland',
+        distance: 'адрес в билете',
+        walkMin: null,
+        lat: expect.any(Number),
+        lng: expect.any(Number),
       }),
     );
   });

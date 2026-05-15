@@ -34,8 +34,8 @@ type CandidateCard = {
   priceMode: string;
   priceFrom: number | null;
   startsAt: string | null;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   address: string | null;
   venueName: string | null;
   actionUrl: string | null;
@@ -520,7 +520,11 @@ export class EveningAiDraftService {
     const steps = selected.map((candidate, index) => {
       const generatedStep = generatedSteps[index] ?? {};
       const previous = selected[index - 1] ?? null;
-      const legKm = previous ? geoDistanceKm(previous, candidate) : 0;
+      const legKm =
+        previous && hasCandidateCoords(previous) && hasCandidateCoords(candidate)
+          ? geoDistanceKm(previous, candidate)
+          : null;
+      const routePoint = this.routePointForCandidate(input, candidate);
       const startHour = 19 + index;
       const timeLabel = stringOrNull(generatedStep.timeLabel) ?? `${pad2(startHour)}:00`;
       const endTimeLabel = stringOrNull(generatedStep.endTimeLabel) ?? `${pad2(startHour + 1)}:00`;
@@ -538,8 +542,16 @@ export class EveningAiDraftService {
         venue: candidate.venueName ?? candidate.title,
         address: candidate.address ?? input.city,
         emoji: this.emojiForRole(candidate.role),
-        distance: index === 0 ? 'старт' : `${legKm.toFixed(1)} км`,
-        walkMin: index === 0 ? null : Math.max(1, Math.round((legKm / 4.5) * 60)),
+        distance:
+          index === 0
+            ? 'старт'
+            : legKm == null
+              ? 'адрес в билете'
+              : `${legKm.toFixed(1)} км`,
+        walkMin:
+          index === 0 || legKm == null
+            ? null
+            : Math.max(1, Math.round((legKm / 4.5) * 60)),
         perk: null,
         perkShort: null,
         ticketPrice: ticketUrl ? candidate.priceFrom : null,
@@ -557,8 +569,8 @@ export class EveningAiDraftService {
           candidate.shortSummary ??
           this.labelForRole(candidate.role),
         vibeTag: this.labelForRole(candidate.role),
-        lat: candidate.lat,
-        lng: candidate.lng,
+        lat: routePoint.lat,
+        lng: routePoint.lng,
         hasShareable: ticketUrl != null,
         state: {
           perkUsed: false,
@@ -668,8 +680,12 @@ export class EveningAiDraftService {
       contentKind,
       publicStatus: 'published',
       city: input.city,
-      lat: { not: null },
-      lng: { not: null },
+      ...(source === 'advcake_ticketland'
+        ? {}
+        : {
+            lat: { not: null },
+            lng: { not: null },
+          }),
       ...(contentKind === 'event'
         ? {
             moderationStatus: { not: 'rejected' },
@@ -723,7 +739,11 @@ export class EveningAiDraftService {
     });
 
     return items
-      .filter((item: any) => typeof item.lat === 'number' && typeof item.lng === 'number')
+      .filter(
+        (item: any) =>
+          source === 'advcake_ticketland' ||
+          (typeof item.lat === 'number' && typeof item.lng === 'number'),
+      )
       .map((item: any) => ({
         id: item.id,
         role,
@@ -735,8 +755,8 @@ export class EveningAiDraftService {
         priceMode: item.priceMode ?? 'unknown',
         priceFrom: typeof item.priceFrom === 'number' ? item.priceFrom : null,
         startsAt: item.startsAt instanceof Date ? item.startsAt.toISOString() : null,
-        lat: roundCoord(item.lat),
-        lng: roundCoord(item.lng),
+        lat: typeof item.lat === 'number' ? roundCoord(item.lat) : null,
+        lng: typeof item.lng === 'number' ? roundCoord(item.lng) : null,
         address: item.address ?? null,
         venueName: item.venueName ?? null,
         actionUrl: item.actionUrl ?? null,
@@ -969,13 +989,20 @@ export class EveningAiDraftService {
     if (input.budget === 'free' && candidate.priceMode !== 'free') {
       score += 100;
     }
-    if (input.latitude != null && input.longitude != null) {
+    if (input.latitude != null && input.longitude != null && hasCandidateCoords(candidate)) {
       score += geoDistanceKm(
         { lat: input.latitude, lng: input.longitude },
         candidate,
       ) * 10;
     }
     return score;
+  }
+
+  private routePointForCandidate(input: ParsedDraftInput, candidate: CandidateCard) {
+    if (hasCandidateCoords(candidate)) {
+      return { lat: candidate.lat, lng: candidate.lng };
+    }
+    return fallbackPointForInput(input);
   }
 
   private candidateTailScore(candidate: CandidateCard, seed: number) {
@@ -1034,7 +1061,9 @@ export class EveningAiDraftService {
         priceMode: candidate.priceMode,
         priceFrom: candidate.priceFrom,
         startsAt: candidate.startsAt,
-        geo: `${candidate.lat},${candidate.lng}`,
+        venueName: candidate.venueName,
+        address: candidate.address,
+        geo: hasCandidateCoords(candidate) ? `${candidate.lat},${candidate.lng}` : null,
       })),
     });
   }
@@ -1175,6 +1204,9 @@ export class EveningAiDraftService {
       if (!previous || !current) {
         continue;
       }
+      if (!hasCandidateCoords(previous) || !hasCandidateCoords(current)) {
+        continue;
+      }
       const distanceKm = geoDistanceKm(previous, current);
       if (distanceKm > MAX_LEG_KM) {
         issues.push({
@@ -1259,6 +1291,50 @@ type ParsedDraftInput = {
   latitude: number | null;
   longitude: number | null;
 };
+
+const AREA_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
+  center: { lat: 55.7558, lng: 37.6173 },
+  patriki: { lat: 55.7638, lng: 37.5932 },
+  chistye: { lat: 55.7657, lng: 37.6388 },
+  gorky: { lat: 55.7298, lng: 37.6011 },
+  kursk: { lat: 55.7585, lng: 37.6591 },
+};
+
+const CITY_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
+  Москва: { lat: 55.7558, lng: 37.6173 },
+  'Санкт-Петербург': { lat: 59.9311, lng: 30.3609 },
+  Новосибирск: { lat: 55.0084, lng: 82.9357 },
+  Екатеринбург: { lat: 56.8389, lng: 60.6057 },
+  Казань: { lat: 55.7961, lng: 49.1064 },
+  'Нижний Новгород': { lat: 56.2965, lng: 43.9361 },
+  Красноярск: { lat: 56.0153, lng: 92.8932 },
+  Челябинск: { lat: 55.1644, lng: 61.4368 },
+  Самара: { lat: 53.1959, lng: 50.1008 },
+  Уфа: { lat: 54.7351, lng: 55.9587 },
+  'Ростов-на-Дону': { lat: 47.2225, lng: 39.7187 },
+  Краснодар: { lat: 45.0355, lng: 38.9753 },
+  Омск: { lat: 54.9893, lng: 73.3682 },
+  Воронеж: { lat: 51.6608, lng: 39.2003 },
+  Пермь: { lat: 58.0105, lng: 56.2502 },
+  Волгоград: { lat: 48.708, lng: 44.5133 },
+};
+
+function hasCandidateCoords(
+  candidate: CandidateCard,
+): candidate is CandidateCard & { lat: number; lng: number } {
+  return typeof candidate.lat === 'number' && typeof candidate.lng === 'number';
+}
+
+function fallbackPointForInput(input: ParsedDraftInput): { lat: number; lng: number } {
+  if (input.latitude != null && input.longitude != null) {
+    return { lat: roundCoord(input.latitude), lng: roundCoord(input.longitude) };
+  }
+  const areaPoint = input.area ? AREA_FALLBACK_POINTS[input.area] : null;
+  if (areaPoint) {
+    return areaPoint;
+  }
+  return CITY_FALLBACK_POINTS[input.city] ?? { lat: 55.7558, lng: 37.6173 };
+}
 
 function stringOrNull(value: unknown) {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;

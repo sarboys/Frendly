@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T06:17:38.828Z",
-    "gitCommitHash": "8df9c1d1c423aead63573b55c274204e019c2f22"
+    "analyzedAt": "2026-05-15T07:21:01.172Z",
+    "gitCommitHash": "8b4c79cbc79a7be3564384636ec46fab3fd7beec"
   },
   "nodes": [
     {
@@ -10883,11 +10883,45 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 1 classes, 10 functions.",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 12 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasCandidateCoords",
+      "type": "function",
+      "name": "hasCandidateCoords",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1322,
+        1326
+      ],
+      "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:fallbackPointForInput",
+      "type": "function",
+      "name": "fallbackPointForInput",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        1328,
+        1337
+      ],
+      "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
       ],
       "complexity": "complex"
     },
@@ -10897,8 +10931,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1263,
-        1265
+        1339,
+        1341
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10914,8 +10948,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1267,
-        1272
+        1343,
+        1348
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10931,8 +10965,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1274,
-        1282
+        1350,
+        1358
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -10948,8 +10982,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1284,
-        1286
+        1360,
+        1362
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -10965,8 +10999,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1288,
-        1290
+        1364,
+        1366
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -10982,8 +11016,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1292,
-        1294
+        1368,
+        1370
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -10999,8 +11033,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1296,
-        1298
+        1372,
+        1374
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -11016,8 +11050,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1300,
-        1306
+        1376,
+        1382
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -11033,8 +11067,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1308,
-        1321
+        1384,
+        1397
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -11050,8 +11084,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        1323,
-        1325
+        1399,
+        1401
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -11068,7 +11102,7 @@
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
         91,
-        1248
+        1280
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -13688,8 +13722,8 @@
       "name": "WorkerAppModule",
       "filePath": "backend/apps/worker/src/app.module.ts",
       "lineRange": [
-        29,
-        29
+        31,
+        31
       ],
       "summary": "WorkerAppModule in app.module.ts.",
       "tags": [
@@ -14457,7 +14491,7 @@
       "type": "file",
       "name": "content-import.service.ts",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "summary": "content-import.service.ts contains 1 classes, 19 functions.",
+      "summary": "content-import.service.ts contains 1 classes, 26 functions.",
       "tags": [
         "backend",
         "code",
@@ -14471,8 +14505,8 @@
       "name": "safeJson",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        926,
-        931
+        1145,
+        1150
       ],
       "summary": "safeJson in content-import.service.ts.",
       "tags": [
@@ -14488,8 +14522,8 @@
       "name": "dayBounds",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        933,
-        938
+        1152,
+        1157
       ],
       "summary": "dayBounds in content-import.service.ts.",
       "tags": [
@@ -14505,8 +14539,8 @@
       "name": "duplicateCacheKey",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        940,
-        947
+        1159,
+        1166
       ],
       "summary": "duplicateCacheKey in content-import.service.ts.",
       "tags": [
@@ -14522,8 +14556,8 @@
       "name": "itemsPerSecond",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        949,
-        954
+        1168,
+        1173
       ],
       "summary": "itemsPerSecond in content-import.service.ts.",
       "tags": [
@@ -14539,10 +14573,44 @@
       "name": "enrichItemFromDuplicate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        956,
-        982
+        1175,
+        1201
       ],
       "summary": "enrichItemFromDuplicate in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:enrichItemFromPlace",
+      "type": "function",
+      "name": "enrichItemFromPlace",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        1203,
+        1225
+      ],
+      "summary": "enrichItemFromPlace in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:enrichItemFromGeocoder",
+      "type": "function",
+      "name": "enrichItemFromGeocoder",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        1227,
+        1246
+      ],
+      "summary": "enrichItemFromGeocoder in content-import.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -14556,10 +14624,95 @@
       "name": "mergeRaw",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        984,
-        993
+        1248,
+        1257
       ],
       "summary": "mergeRaw in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:kudagoPlaceId",
+      "type": "function",
+      "name": "kudagoPlaceId",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        1259,
+        1269
+      ],
+      "summary": "kudagoPlaceId in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:selectExactVenuePlace",
+      "type": "function",
+      "name": "selectExactVenuePlace",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        1271,
+        1279
+      ],
+      "summary": "selectExactVenuePlace in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:placeSourcePriority",
+      "type": "function",
+      "name": "placeSourcePriority",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        1281,
+        1289
+      ],
+      "summary": "placeSourcePriority in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:isReliableAffiliateVenueName",
+      "type": "function",
+      "name": "isReliableAffiliateVenueName",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        1291,
+        1297
+      ],
+      "summary": "isReliableAffiliateVenueName in content-import.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-import.service.ts:normalizeVenueText",
+      "type": "function",
+      "name": "normalizeVenueText",
+      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
+      "lineRange": [
+        1299,
+        1308
+      ],
+      "summary": "normalizeVenueText in content-import.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -14573,8 +14726,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        995,
-        998
+        1310,
+        1313
       ],
       "summary": "positiveInt in content-import.service.ts.",
       "tags": [
@@ -14590,8 +14743,8 @@
       "name": "boundedPositiveInt",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1000,
-        1007
+        1315,
+        1322
       ],
       "summary": "boundedPositiveInt in content-import.service.ts.",
       "tags": [
@@ -14607,8 +14760,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1009,
-        1011
+        1324,
+        1326
       ],
       "summary": "object in content-import.service.ts.",
       "tags": [
@@ -14624,8 +14777,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1013,
-        1019
+        1328,
+        1334
       ],
       "summary": "parseDate in content-import.service.ts.",
       "tags": [
@@ -14641,8 +14794,8 @@
       "name": "optionalString",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1021,
-        1023
+        1336,
+        1338
       ],
       "summary": "optionalString in content-import.service.ts.",
       "tags": [
@@ -14658,8 +14811,8 @@
       "name": "optionalPositiveInteger",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1025,
-        1032
+        1340,
+        1347
       ],
       "summary": "optionalPositiveInteger in content-import.service.ts.",
       "tags": [
@@ -14675,8 +14828,8 @@
       "name": "optionalNonNegativeInteger",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1034,
-        1041
+        1349,
+        1356
       ],
       "summary": "optionalNonNegativeInteger in content-import.service.ts.",
       "tags": [
@@ -14692,8 +14845,8 @@
       "name": "tomestoCatalogProgress",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1043,
-        1055
+        1358,
+        1370
       ],
       "summary": "tomestoCatalogProgress in content-import.service.ts.",
       "tags": [
@@ -14709,8 +14862,8 @@
       "name": "publicStatusFor",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1057,
-        1087
+        1372,
+        1402
       ],
       "summary": "publicStatusFor in content-import.service.ts.",
       "tags": [
@@ -14726,8 +14879,8 @@
       "name": "contentImportFailure",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1089,
-        1096
+        1404,
+        1411
       ],
       "summary": "contentImportFailure in content-import.service.ts.",
       "tags": [
@@ -14743,8 +14896,8 @@
       "name": "maskKnownSecrets",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1098,
-        1106
+        1413,
+        1421
       ],
       "summary": "maskKnownSecrets in content-import.service.ts.",
       "tags": [
@@ -14760,8 +14913,8 @@
       "name": "maskTomestoSecrets",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1108,
-        1110
+        1423,
+        1425
       ],
       "summary": "maskTomestoSecrets in content-import.service.ts.",
       "tags": [
@@ -14777,8 +14930,8 @@
       "name": "countTomestoHiddenReason",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1112,
-        1125
+        1427,
+        1440
       ],
       "summary": "countTomestoHiddenReason in content-import.service.ts.",
       "tags": [
@@ -14794,8 +14947,8 @@
       "name": "ContentImportService",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        95,
-        918
+        144,
+        1137
       ],
       "summary": "ContentImportService in content-import.service.ts.",
       "tags": [
@@ -14985,6 +15138,189 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "type": "file",
+      "name": "content-venue-geocoder.service.ts",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "summary": "content-venue-geocoder.service.ts contains 1 classes, 9 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:geocodeQuery",
+      "type": "function",
+      "name": "geocodeQuery",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        77,
+        91
+      ],
+      "summary": "geocodeQuery in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:highConfidenceResult",
+      "type": "function",
+      "name": "highConfidenceResult",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        93,
+        124
+      ],
+      "summary": "highConfidenceResult in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:isHighConfidence",
+      "type": "function",
+      "name": "isHighConfidence",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        126,
+        140
+      ],
+      "summary": "isHighConfidence in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:withinCity",
+      "type": "function",
+      "name": "withinCity",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        142,
+        171
+      ],
+      "summary": "withinCity in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:parsePoint",
+      "type": "function",
+      "name": "parsePoint",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        173,
+        187
+      ],
+      "summary": "parsePoint in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:object",
+      "type": "function",
+      "name": "object",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        189,
+        191
+      ],
+      "summary": "object in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:array",
+      "type": "function",
+      "name": "array",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        193,
+        195
+      ],
+      "summary": "array in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:cleanText",
+      "type": "function",
+      "name": "cleanText",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        197,
+        203
+      ],
+      "summary": "cleanText in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:positiveInt",
+      "type": "function",
+      "name": "positiveInt",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        205,
+        208
+      ],
+      "summary": "positiveInt in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/apps/worker/src/content/content-venue-geocoder.service.ts:ContentVenueGeocoderService",
+      "type": "class",
+      "name": "ContentVenueGeocoderService",
+      "filePath": "backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "lineRange": [
+        24,
+        75
+      ],
+      "summary": "ContentVenueGeocoderService in content-venue-geocoder.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:backend/apps/worker/src/content/external-source.registry.ts",
       "type": "file",
       "name": "external-source.registry.ts",
@@ -15033,8 +15369,8 @@
       "name": "fetchJson",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        181,
-        187
+        183,
+        189
       ],
       "summary": "fetchJson in kudago.adapter.ts.",
       "tags": [
@@ -15050,8 +15386,8 @@
       "name": "results",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        205,
-        210
+        207,
+        212
       ],
       "summary": "results in kudago.adapter.ts.",
       "tags": [
@@ -15067,8 +15403,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        212,
-        214
+        214,
+        216
       ],
       "summary": "object in kudago.adapter.ts.",
       "tags": [
@@ -15084,8 +15420,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        216,
-        225
+        218,
+        227
       ],
       "summary": "text in kudago.adapter.ts.",
       "tags": [
@@ -15101,8 +15437,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        227,
-        229
+        229,
+        231
       ],
       "summary": "number in kudago.adapter.ts.",
       "tags": [
@@ -15118,8 +15454,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        231,
-        235
+        233,
+        237
       ],
       "summary": "stringArray in kudago.adapter.ts.",
       "tags": [
@@ -15135,8 +15471,8 @@
       "name": "firstString",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        237,
-        239
+        239,
+        241
       ],
       "summary": "firstString in kudago.adapter.ts.",
       "tags": [
@@ -15152,8 +15488,8 @@
       "name": "firstDate",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        241,
-        255
+        243,
+        257
       ],
       "summary": "firstDate in kudago.adapter.ts.",
       "tags": [
@@ -15169,8 +15505,8 @@
       "name": "priceFrom",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        257,
-        266
+        259,
+        268
       ],
       "summary": "priceFrom in kudago.adapter.ts.",
       "tags": [
@@ -15186,8 +15522,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        268,
-        271
+        270,
+        273
       ],
       "summary": "positiveInt in kudago.adapter.ts.",
       "tags": [
@@ -15204,7 +15540,7 @@
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
         59,
-        179
+        181
       ],
       "summary": "KudaGoAdapter in kudago.adapter.ts.",
       "tags": [
@@ -37008,6 +37344,20 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasCandidateCoords",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:fallbackPointForInput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stringOrNull",
       "type": "contains",
       "direction": "forward",
@@ -38156,7 +38506,56 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:enrichItemFromPlace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:enrichItemFromGeocoder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
       "target": "function:backend/apps/worker/src/content/content-import.service.ts:mergeRaw",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:kudagoPlaceId",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:selectExactVenuePlace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:placeSourcePriority",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:isReliableAffiliateVenueName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-import.service.ts:normalizeVenueText",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -38318,6 +38717,76 @@
     {
       "source": "file:backend/apps/worker/src/content/content-normalizer.service.ts",
       "target": "class:backend/apps/worker/src/content/content-normalizer.service.ts:ContentNormalizerService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:geocodeQuery",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:highConfidenceResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:isHighConfidence",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:withinCity",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:parsePoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:object",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:array",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:cleanText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-venue-geocoder.service.ts:positiveInt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "class:backend/apps/worker/src/content/content-venue-geocoder.service.ts:ContentVenueGeocoderService",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -47662,6 +48131,13 @@
     },
     {
       "source": "file:backend/apps/worker/src/app.module.ts",
+      "target": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/worker/src/app.module.ts",
       "target": "file:backend/apps/worker/src/content/external-source.registry.ts",
       "type": "imports",
       "direction": "forward",
@@ -47781,6 +48257,13 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/content-import.service.ts",
+      "target": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
       "target": "file:backend/apps/worker/src/content/external-source.registry.ts",
       "type": "imports",
       "direction": "forward",
@@ -47803,6 +48286,13 @@
     {
       "source": "file:backend/apps/worker/src/content/content-normalizer.service.ts",
       "target": "file:backend/apps/worker/src/content/content-source.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
+      "target": "file:backend/apps/worker/src/content/supported-cities.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -49101,6 +49591,7 @@
         "file:backend/apps/worker/src/content/content-import.service.ts",
         "file:backend/apps/worker/src/content/content-normalizer.service.ts",
         "file:backend/apps/worker/src/content/content-source.types.ts",
+        "file:backend/apps/worker/src/content/content-venue-geocoder.service.ts",
         "file:backend/apps/worker/src/content/external-source.registry.ts",
         "file:backend/apps/worker/src/content/kudago.adapter.ts",
         "file:backend/apps/worker/src/content/overpass.adapter.ts",
