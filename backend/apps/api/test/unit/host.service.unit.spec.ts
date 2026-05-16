@@ -629,4 +629,163 @@ describe('HostService unit', () => {
     );
     expect(result.event.going).toBe(7);
   });
+
+  it('finishes live meetup with only host-selected attendees checked in', async () => {
+    const liveState = {
+      status: 'finished',
+      startedAt: new Date('2026-04-28T18:00:00.000Z'),
+      finishedAt: new Date('2026-04-28T20:00:00.000Z'),
+    };
+    const eventFindFirst = jest.fn().mockResolvedValue({
+      id: 'event-1',
+      participants: [
+        { userId: 'host-user' },
+        { userId: 'guest-present' },
+        { userId: 'guest-absent' },
+      ],
+    });
+    const liveStateUpsert = jest.fn().mockResolvedValue(liveState);
+    const attendanceUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const attendanceUpsert = jest.fn().mockResolvedValue({});
+    const service = new HostService({
+      client: {
+        event: {
+          findFirst: eventFindFirst,
+        },
+        eventLiveState: {
+          upsert: liveStateUpsert,
+        },
+        eventAttendance: {
+          updateMany: attendanceUpdateMany,
+          upsert: attendanceUpsert,
+        },
+        $transaction: jest.fn((callback) =>
+          callback({
+            eventLiveState: {
+              upsert: liveStateUpsert,
+            },
+            eventAttendance: {
+              updateMany: attendanceUpdateMany,
+              upsert: attendanceUpsert,
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    const result = await service.finishLive('host-user', 'event-1', [
+      'guest-present',
+      'guest-present',
+    ]);
+
+    expect(eventFindFirst).toHaveBeenCalledWith({
+      where: { id: 'event-1', hostId: 'host-user' },
+      select: {
+        id: true,
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+    expect(attendanceUpdateMany).toHaveBeenCalledWith({
+      where: {
+        eventId: 'event-1',
+        userId: {
+          in: ['host-user', 'guest-absent'],
+        },
+      },
+      data: {
+        status: 'not_checked_in',
+        checkedInAt: null,
+        checkedInById: null,
+        checkInMethod: null,
+        leftAt: null,
+      },
+    });
+    expect(attendanceUpsert).toHaveBeenCalledTimes(1);
+    expect(attendanceUpsert).toHaveBeenCalledWith({
+      where: {
+        eventId_userId: {
+          eventId: 'event-1',
+          userId: 'guest-present',
+        },
+      },
+      update: expect.objectContaining({
+        status: 'checked_in',
+        checkedInById: 'host-user',
+        checkInMethod: 'host_manual',
+        leftAt: null,
+      }),
+      create: expect.objectContaining({
+        eventId: 'event-1',
+        userId: 'guest-present',
+        status: 'checked_in',
+        checkedInById: 'host-user',
+        checkInMethod: 'host_manual',
+        leftAt: null,
+      }),
+      select: {
+        id: true,
+      },
+    });
+    expect(result).toMatchObject({
+      eventId: 'event-1',
+      status: 'finished',
+      attendedUserIds: ['guest-present'],
+    });
+  });
+
+  it('treats missing finish attendees as an empty host selection', async () => {
+    const eventFindFirst = jest.fn().mockResolvedValue({
+      id: 'event-1',
+      participants: [{ userId: 'guest-present' }, { userId: 'guest-absent' }],
+    });
+    const liveStateUpsert = jest.fn().mockResolvedValue({
+      status: 'finished',
+      startedAt: null,
+      finishedAt: new Date('2026-04-28T20:00:00.000Z'),
+    });
+    const attendanceUpdateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const attendanceUpsert = jest.fn().mockResolvedValue({});
+    const service = new HostService({
+      client: {
+        event: {
+          findFirst: eventFindFirst,
+        },
+        $transaction: jest.fn((callback) =>
+          callback({
+            eventLiveState: {
+              upsert: liveStateUpsert,
+            },
+            eventAttendance: {
+              updateMany: attendanceUpdateMany,
+              upsert: attendanceUpsert,
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    const result = await service.finishLive('host-user', 'event-1');
+
+    expect(attendanceUpdateMany).toHaveBeenCalledWith({
+      where: {
+        eventId: 'event-1',
+        userId: {
+          in: ['guest-present', 'guest-absent'],
+        },
+      },
+      data: {
+        status: 'not_checked_in',
+        checkedInAt: null,
+        checkedInById: null,
+        checkInMethod: null,
+        leftAt: null,
+      },
+    });
+    expect(attendanceUpsert).not.toHaveBeenCalled();
+    expect(result.attendedUserIds).toEqual([]);
+  });
 });
