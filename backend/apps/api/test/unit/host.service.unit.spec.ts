@@ -73,6 +73,20 @@ describe('HostService unit', () => {
     },
   });
 
+  const hostedEventUpdatePayload = () => ({
+    title: 'Встреча',
+    description: 'Описание',
+    emoji: '🍷',
+    vibe: 'Спокойно',
+    place: 'Brix',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    capacity: 8,
+    accessMode: 'open',
+    genderMode: 'all',
+    visibilityMode: 'public',
+    joinMode: 'open',
+  });
+
   it('loads dashboard stats through one aggregate query without all participant rows', async () => {
     const eventFindMany = jest.fn().mockResolvedValueOnce([
       {
@@ -209,6 +223,126 @@ describe('HostService unit', () => {
     );
     expect(result.events[0]?.going).toBe(9);
     expect(client.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects plus-only hosted event update for a non-plus host', async () => {
+    const eventUpdate = jest.fn();
+    const service = new HostService({
+      client: {
+        event: {
+          findFirst: jest.fn().mockResolvedValue({
+            id: 'event-1',
+            _count: { participants: 1 },
+          }),
+          update: eventUpdate,
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({ verified: true }),
+        },
+        userSubscription: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.updateHostedEvent('host-user', 'event-1', {
+        ...hostedEventUpdatePayload(),
+        requiresFrendlyPlus: true,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_host_plus_required',
+    });
+    expect(eventUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects verified-only hosted event update for an unverified host', async () => {
+    const eventUpdate = jest.fn();
+    const service = new HostService({
+      client: {
+        event: {
+          findFirst: jest.fn().mockResolvedValue({
+            id: 'event-1',
+            _count: { participants: 1 },
+          }),
+          update: eventUpdate,
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            verified: false,
+            verification: { status: 'under_review' },
+          }),
+        },
+        userSubscription: {
+          findFirst: jest.fn().mockResolvedValue({
+            status: 'active',
+            renewsAt: new Date(Date.now() + 60 * 60 * 1000),
+            trialEndsAt: null,
+          }),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.updateHostedEvent('host-user', 'event-1', {
+        ...hostedEventUpdatePayload(),
+        requiresVerification: true,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_host_verification_required',
+    });
+    expect(eventUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects approving a pending request when guest misses entry requirements', async () => {
+    const transaction = jest.fn();
+    const service = new HostService({
+      client: {
+        eventJoinRequest: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'request-1',
+            eventId: 'event-1',
+            userId: 'user-guest',
+            status: 'pending',
+            event: {
+              id: 'event-1',
+              hostId: 'host-user',
+              title: 'Ужин',
+              requiresVerification: true,
+              requiresFrendlyPlus: false,
+              chat: { id: 'chat-1' },
+            },
+          }),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({ verified: false }),
+        },
+        userSubscription: {
+          findFirst: jest.fn().mockResolvedValue({
+            status: 'active',
+            renewsAt: new Date(Date.now() + 60 * 60 * 1000),
+            trialEndsAt: null,
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        $transaction: transaction,
+      },
+    } as any);
+
+    await expect(
+      service.approveRequest('host-user', 'request-1'),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_entry_requirements_not_met',
+      details: {
+        missing: ['verification'],
+      },
+    });
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it('rejects stale host request reject when another review wins the race', async () => {
