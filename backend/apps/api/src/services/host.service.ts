@@ -45,6 +45,8 @@ const hostEventSummarySelect = {
   accessMode: true,
   genderMode: true,
   visibilityMode: true,
+  requiresVerification: true,
+  requiresFrendlyPlus: true,
   joinMode: true,
   isDate: true,
   eveningRouteId: true,
@@ -60,6 +62,13 @@ interface HostRequestCursor {
   id: string;
   createdAt: Date;
 }
+
+type EventEntryRequirement = 'verification' | 'frendly_plus';
+
+type EventEntryRequirementsInput = {
+  requiresVerification?: boolean | null;
+  requiresFrendlyPlus?: boolean | null;
+};
 
 @Injectable()
 export class HostService {
@@ -426,6 +435,7 @@ export class HostService {
     }
 
     const data = this.parseHostedEventUpdate(body);
+    await this.assertHostCanUseEntryRequirements(userId, data);
     if (
       data.capacity != null &&
       typeof data.capacity === 'number' &&
@@ -454,6 +464,8 @@ export class HostService {
           select: {
             hostId: true,
             title: true,
+            requiresVerification: true,
+            requiresFrendlyPlus: true,
             chat: {
               select: {
                 id: true,
@@ -480,6 +492,7 @@ export class HostService {
         'Join request is already reviewed',
       );
     }
+    await this.assertUserMeetsEntryRequirements(request.userId, request.event);
 
     const approved = await this.prismaService.client.$transaction(async (tx) => {
       const reviewed = await tx.eventJoinRequest.updateMany({
@@ -884,6 +897,121 @@ export class HostService {
     return event;
   }
 
+  private async resolveEventEntryRequirements(
+    userId: string,
+    requirements: EventEntryRequirementsInput,
+  ) {
+    const requiresVerification = requirements.requiresVerification === true;
+    const requiresFrendlyPlus = requirements.requiresFrendlyPlus === true;
+
+    const [user, hasPlus] = await Promise.all([
+      requiresVerification
+        ? this.prismaService.client.user.findUnique({
+            where: { id: userId },
+            select: {
+              verified: true,
+              verification: {
+                select: {
+                  status: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve(null),
+      requiresFrendlyPlus
+        ? this.hasFrendlyPlus(userId)
+        : Promise.resolve(null),
+    ]);
+
+    const verified = user?.verified === true || user?.verification?.status === 'verified';
+    const missing: EventEntryRequirement[] = [];
+    if (requiresVerification && !verified) {
+      missing.push('verification');
+    }
+    if (requiresFrendlyPlus && hasPlus !== true) {
+      missing.push('frendly_plus');
+    }
+
+    return {
+      canJoin: missing.length === 0,
+      missing,
+    };
+  }
+
+  private async assertHostCanUseEntryRequirements(
+    userId: string,
+    requirements: EventEntryRequirementsInput,
+  ) {
+    const state = await this.resolveEventEntryRequirements(userId, requirements);
+    if (state.missing.includes('verification')) {
+      throw new ApiError(
+        403,
+        'event_host_verification_required',
+        'Host must be verified to require verification',
+      );
+    }
+    if (state.missing.includes('frendly_plus')) {
+      throw new ApiError(
+        403,
+        'event_host_plus_required',
+        'Host must have Frendly Plus to require Frendly Plus',
+      );
+    }
+  }
+
+  private async assertUserMeetsEntryRequirements(
+    userId: string,
+    requirements: EventEntryRequirementsInput,
+  ) {
+    const state = await this.resolveEventEntryRequirements(userId, requirements);
+    if (!state.canJoin) {
+      throw new ApiError(
+        403,
+        'event_entry_requirements_not_met',
+        'Event entry requirements are not met',
+        { missing: state.missing },
+      );
+    }
+  }
+
+  private async hasFrendlyPlus(userId: string) {
+    const subscription = await this.prismaService.client.userSubscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        status: true,
+        renewsAt: true,
+        trialEndsAt: true,
+      },
+    });
+    const status = this.resolveSubscriptionStatus(subscription);
+    return status === 'trial' || status === 'active';
+  }
+
+  private resolveSubscriptionStatus(
+    subscription: {
+      status: 'inactive' | 'trial' | 'active' | 'canceled';
+      renewsAt: Date | null;
+      trialEndsAt: Date | null;
+    } | null,
+  ) {
+    if (!subscription) {
+      return 'inactive';
+    }
+
+    const now = Date.now();
+    const renewsAt = subscription.renewsAt?.getTime() ?? null;
+    const trialEndsAt = subscription.trialEndsAt?.getTime() ?? null;
+
+    if (trialEndsAt != null && trialEndsAt > now) {
+      return 'trial';
+    }
+    if (renewsAt != null && renewsAt > now) {
+      return subscription.status === 'canceled' ? 'active' : subscription.status;
+    }
+    return 'inactive';
+  }
+
   private mapRequest(
     request: {
       id: string;
@@ -943,6 +1071,8 @@ export class HostService {
       accessMode,
       genderMode: this.parseGenderMode(body.genderMode),
       visibilityMode,
+      requiresVerification: body.requiresVerification === true,
+      requiresFrendlyPlus: body.requiresFrendlyPlus === true,
       joinMode,
       distanceKm: this.optionalNumber(body.distanceKm) ?? 1,
       latitude: this.optionalCoordinate(body.latitude, -90, 90, 'host_event_latitude_invalid'),

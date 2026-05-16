@@ -290,6 +290,8 @@ type EventSummaryInput = Pick<
   | 'accessMode'
   | 'genderMode'
   | 'visibilityMode'
+  | 'requiresVerification'
+  | 'requiresFrendlyPlus'
   | 'joinMode'
   | 'hostId'
   | 'eveningRouteId'
@@ -478,6 +480,8 @@ export function mapEventSummary(params: {
     accessMode: event.accessMode,
     genderMode: event.genderMode,
     visibilityMode: event.visibilityMode,
+    requiresVerification: event.requiresVerification,
+    requiresFrendlyPlus: event.requiresFrendlyPlus,
     routeId: event.eveningRouteId,
     isDate: event.isDate,
     joined: joined ?? participants.some((participant) => participant.userId === currentUserId),

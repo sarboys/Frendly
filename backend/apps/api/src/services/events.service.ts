@@ -51,6 +51,13 @@ type EventViewerState = {
   hasAttendance?: boolean;
 };
 
+type EventEntryRequirement = 'verification' | 'frendly_plus';
+
+type EventEntryRequirementsInput = {
+  requiresVerification?: boolean | null;
+  requiresFrendlyPlus?: boolean | null;
+};
+
 type PostgisEventCandidate = {
   eventId: string;
   distanceKm: number;
@@ -105,6 +112,8 @@ const eventListSummarySelect = {
   accessMode: true,
   genderMode: true,
   visibilityMode: true,
+  requiresVerification: true,
+  requiresFrendlyPlus: true,
   joinMode: true,
   isDate: true,
   eveningRouteId: true,
@@ -552,6 +561,10 @@ export class EventsService {
     const hasChatAccess =
       event.hostId === userId ||
       viewerState.isParticipant;
+    const entryRequirements =
+      event.hostId === userId || viewerState.isParticipant
+        ? { canJoin: true, missing: [] as EventEntryRequirement[] }
+        : await this.resolveEventEntryRequirements(userId, event);
 
     return {
       ...mapEventSummary({
@@ -581,6 +594,7 @@ export class EventsService {
         displayName: participant.user.displayName,
         avatarUrl: participant.user.profile?.avatarUrl ?? null,
       })),
+      entryRequirements,
     };
   }
 
@@ -594,6 +608,8 @@ export class EventsService {
           hostId: true,
           genderMode: true,
           joinMode: true,
+          requiresVerification: true,
+          requiresFrendlyPlus: true,
           chat: {
             select: { id: true },
           },
@@ -623,6 +639,13 @@ export class EventsService {
 
     if (event.joinMode === 'request') {
       throw new ApiError(409, 'join_request_required', 'Join request is required for this event');
+    }
+
+    const alreadyParticipant = event.participants?.some(
+      (participant) => participant.userId === userId,
+    ) ?? false;
+    if (event.hostId !== userId && !alreadyParticipant) {
+      await this.assertUserMeetsEntryRequirements(userId, event);
     }
 
     const chatId = event.chat.id;
@@ -753,6 +776,8 @@ export class EventsService {
           title: true,
           genderMode: true,
           joinMode: true,
+          requiresVerification: true,
+          requiresFrendlyPlus: true,
           participants: {
             select: {
               userId: true,
@@ -780,6 +805,13 @@ export class EventsService {
 
     if (event.hostId === userId) {
       throw new ApiError(400, 'host_cannot_request', 'Host cannot create join request');
+    }
+
+    const alreadyParticipant = event.participants?.some(
+      (participant) => participant.userId === userId,
+    ) ?? false;
+    if (!alreadyParticipant) {
+      await this.assertUserMeetsEntryRequirements(userId, event);
     }
 
     const existingRequest = await this.prismaService.client.eventJoinRequest.findUnique({
@@ -1337,6 +1369,7 @@ export class EventsService {
         : null;
     const consentRequired = isAfterDarkMode ? body.consentRequired === true : false;
     const rules = this.parseEventRules(body.rules);
+    const entryRequirements = this.parseEventEntryRequirements(body);
 
     if (title.length === 0 || description.length === 0 || place.length === 0) {
       throw new ApiError(
@@ -1409,9 +1442,13 @@ export class EventsService {
     if (!hostUser) {
       throw new ApiError(404, 'user_not_found', 'User not found');
     }
+    await this.assertHostCanUseEntryRequirements(userId, entryRequirements);
 
     if (inviteeUserId != null && !inviteeUser) {
       throw new ApiError(404, 'user_not_found', 'Invitee user not found');
+    }
+    if (inviteeUserId != null) {
+      await this.assertUserMeetsEntryRequirements(inviteeUserId, entryRequirements);
     }
 
     if (isDatingMode && inviteeUserId != null) {
@@ -1498,6 +1535,8 @@ export class EventsService {
             accessMode,
             genderMode,
             visibilityMode,
+            requiresVerification: entryRequirements.requiresVerification,
+            requiresFrendlyPlus: entryRequirements.requiresFrendlyPlus,
             description,
             idempotencyKey,
             sourcePosterId: poster?.id,
@@ -1681,6 +1720,8 @@ export class EventsService {
           title: true,
           hostId: true,
           canceledAt: true,
+          requiresVerification: true,
+          requiresFrendlyPlus: true,
           chat: {
             select: { id: true },
           },
@@ -1793,6 +1834,8 @@ export class EventsService {
         'You can invite only followed users',
       );
     }
+
+    await this.assertUserMeetsEntryRequirements(targetUserId, event);
 
     const existingRequest = (event.joinRequests ?? [])[0] ?? null;
     if (existingRequest?.status === 'approved') {
@@ -1911,6 +1954,8 @@ export class EventsService {
         event: {
           select: {
             hostId: true,
+            requiresVerification: true,
+            requiresFrendlyPlus: true,
             chat: {
               select: { id: true },
             },
@@ -1934,6 +1979,8 @@ export class EventsService {
     if (blockedUserIds.has(invite.event.hostId)) {
       throw new ApiError(404, 'invite_not_found', 'Invite not found');
     }
+
+    await this.assertUserMeetsEntryRequirements(userId, invite.event);
 
     await this.prismaService.client.$transaction(async (tx) => {
       await assertEventCapacityAvailable(tx, eventId);
@@ -3955,6 +4002,90 @@ export class EventsService {
     }
 
     return event.genderMode === userGender;
+  }
+
+  private parseEventEntryRequirements(body: Record<string, unknown>) {
+    return {
+      requiresVerification: body.requiresVerification === true,
+      requiresFrendlyPlus: body.requiresFrendlyPlus === true,
+    };
+  }
+
+  private async resolveEventEntryRequirements(
+    userId: string,
+    requirements: EventEntryRequirementsInput,
+  ) {
+    const requiresVerification = requirements.requiresVerification === true;
+    const requiresFrendlyPlus = requirements.requiresFrendlyPlus === true;
+
+    const [user, hasPlus] = await Promise.all([
+      requiresVerification
+        ? this.prismaService.client.user.findUnique({
+            where: { id: userId },
+            select: {
+              verified: true,
+              verification: {
+                select: {
+                  status: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve(null),
+      requiresFrendlyPlus
+        ? this.subscriptionService.hasPremiumAccess(userId)
+        : Promise.resolve(null),
+    ]);
+
+    const verified = user?.verified === true || user?.verification?.status === 'verified';
+    const missing: EventEntryRequirement[] = [];
+    if (requiresVerification && !verified) {
+      missing.push('verification');
+    }
+    if (requiresFrendlyPlus && hasPlus !== true) {
+      missing.push('frendly_plus');
+    }
+
+    return {
+      canJoin: missing.length === 0,
+      missing,
+    };
+  }
+
+  private async assertHostCanUseEntryRequirements(
+    userId: string,
+    requirements: EventEntryRequirementsInput,
+  ) {
+    const state = await this.resolveEventEntryRequirements(userId, requirements);
+    if (state.missing.includes('verification')) {
+      throw new ApiError(
+        403,
+        'event_host_verification_required',
+        'Host must be verified to require verification',
+      );
+    }
+    if (state.missing.includes('frendly_plus')) {
+      throw new ApiError(
+        403,
+        'event_host_plus_required',
+        'Host must have Frendly Plus to require Frendly Plus',
+      );
+    }
+  }
+
+  private async assertUserMeetsEntryRequirements(
+    userId: string,
+    requirements: EventEntryRequirementsInput,
+  ) {
+    const state = await this.resolveEventEntryRequirements(userId, requirements);
+    if (!state.canJoin) {
+      throw new ApiError(
+        403,
+        'event_entry_requirements_not_met',
+        'Event entry requirements are not met',
+        { missing: state.missing },
+      );
+    }
   }
 
   private buildCheckInCode(eventId: string, userId: string) {

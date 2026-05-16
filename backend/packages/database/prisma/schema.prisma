@@ -594,6 +594,8 @@ model Event {
   accessMode        EventAccessMode     @default(open)
   genderMode        EventGenderMode     @default(all)
   visibilityMode    EventVisibilityMode @default(public)
+  requiresVerification Boolean           @default(false)
+  requiresFrendlyPlus Boolean            @default(false)
   hostNote          String?
   description       String
   partnerName       String?

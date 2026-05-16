@@ -36,6 +36,72 @@ describe('EventsService unit', () => {
     ...overrides,
   });
 
+  const makeCreateEventService = ({
+    hostVerified = true,
+    hostPremium = true,
+    hostVerificationStatus = null,
+  }: {
+    hostVerified?: boolean;
+    hostPremium?: boolean;
+    hostVerificationStatus?: string | null;
+  } = {}) => {
+    const eventCreate = jest.fn().mockResolvedValue({ id: 'event-1' });
+    const userFindUnique = jest.fn().mockResolvedValue({
+      id: 'host-1',
+      displayName: 'Host',
+      verified: hostVerified,
+      verification:
+        hostVerificationStatus == null
+          ? null
+          : { status: hostVerificationStatus },
+    });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'chat-1' }) },
+      eventParticipant: { create: jest.fn() },
+      eventAttendance: { create: jest.fn() },
+      notification: { create: jest.fn() },
+      outboxEvent: { create: jest.fn() },
+      eventLiveState: { create: jest.fn() },
+      chatMember: { create: jest.fn() },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            create: eventCreate,
+            findFirst: jest.fn().mockResolvedValue(null),
+            findUnique: jest.fn(),
+          },
+          poster: { findUnique: jest.fn() },
+          externalContentItem: { findFirst: jest.fn() },
+          eveningRoute: { findUnique: jest.fn() },
+          userBlock: { findMany: jest.fn().mockResolvedValue([]) },
+          user: { findUnique: userFindUnique },
+          community: { findFirst: jest.fn() },
+          chat: { findFirst: jest.fn() },
+          $transaction: jest.fn(async (handler) => handler(tx)),
+        },
+      } as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(hostPremium),
+      } as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({ id: 'event-1' } as any);
+
+    return { service, eventCreate };
+  };
+
+  const createEventPayload = () => ({
+    title: 'Встреча',
+    description: 'Описание встречи',
+    emoji: '🍷',
+    vibe: 'Спокойно',
+    place: 'Brix',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    capacity: 8,
+  });
+
   it('caps event search query before building contains filters', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(
@@ -847,6 +913,56 @@ describe('EventsService unit', () => {
     ).rejects.toMatchObject({
       statusCode: 404,
       code: 'external_place_not_found',
+    });
+  });
+
+  it('saves event entry requirements on create', async () => {
+    const { service, eventCreate } = makeCreateEventService();
+
+    await service.createEvent('host-1', {
+      ...createEventPayload(),
+      requiresVerification: true,
+      requiresFrendlyPlus: true,
+    });
+
+    expect(eventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          requiresVerification: true,
+          requiresFrendlyPlus: true,
+        }),
+      }),
+    );
+  });
+
+  it('rejects verified-only event creation for an unverified host', async () => {
+    const { service } = makeCreateEventService({
+      hostVerified: false,
+      hostVerificationStatus: 'under_review',
+    });
+
+    await expect(
+      service.createEvent('host-1', {
+        ...createEventPayload(),
+        requiresVerification: true,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_host_verification_required',
+    });
+  });
+
+  it('rejects plus-only event creation for a non-plus host', async () => {
+    const { service } = makeCreateEventService({ hostPremium: false });
+
+    await expect(
+      service.createEvent('host-1', {
+        ...createEventPayload(),
+        requiresFrendlyPlus: true,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_host_plus_required',
     });
   });
 
@@ -1858,6 +1974,143 @@ describe('EventsService unit', () => {
     expect(participantUpsert).toHaveBeenCalled();
     expect(attendanceUpsert).toHaveBeenCalled();
     expect(chatMemberUpsert).toHaveBeenCalled();
+  });
+
+  it('rejects direct join when the viewer misses verification and plus requirements', async () => {
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ verified: false }),
+          },
+          event: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'event-1',
+              hostId: 'host-1',
+              genderMode: 'all',
+              joinMode: 'open',
+              requiresVerification: true,
+              requiresFrendlyPlus: true,
+              chat: { id: 'chat-1' },
+              participants: [],
+              attendances: [],
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+    );
+
+    await expect(service.joinEvent('guest-1', 'event-1')).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_entry_requirements_not_met',
+      details: {
+        missing: ['verification', 'frendly_plus'],
+      },
+    });
+  });
+
+  it('rejects join request when the viewer misses plus requirement', async () => {
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ verified: true }),
+          },
+          event: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'event-1',
+              title: 'Закрытый ужин',
+              hostId: 'host-1',
+              genderMode: 'all',
+              joinMode: 'request',
+              requiresVerification: false,
+              requiresFrendlyPlus: true,
+              participants: [],
+            }),
+          },
+          eventJoinRequest: {
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+    );
+
+    await expect(
+      service.createJoinRequest('guest-1', 'event-1', {
+        note: 'Хочу прийти',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_entry_requirements_not_met',
+      details: {
+        missing: ['frendly_plus'],
+      },
+    });
+  });
+
+  it('rejects invite accept when the invitee no longer satisfies entry requirements', async () => {
+    const transaction = jest.fn();
+    const service = new EventsService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ verified: false }),
+          },
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'invite-1',
+              eventId: 'event-1',
+              userId: 'guest-1',
+              status: 'pending',
+              reviewedById: 'host-1',
+              event: {
+                id: 'event-1',
+                hostId: 'host-1',
+                requiresVerification: true,
+                requiresFrendlyPlus: false,
+                chat: { id: 'chat-1' },
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: transaction,
+        },
+      } as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+    );
+
+    await expect(
+      service.acceptInvite('guest-1', 'event-1', 'invite-1'),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'event_entry_requirements_not_met',
+      details: {
+        missing: ['verification'],
+      },
+    });
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it('rejects stale invite accept when the invite was already reviewed', async () => {

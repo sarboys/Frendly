@@ -87,6 +87,7 @@ Public:
 
 - `User` owns profile, settings, sessions, messages, media, notifications, push tokens and safety records.
 - `Event` owns primary chat, participants, requests, attendance, feedback, stories and public shares. It can optionally point to `EveningRoute` via `eveningRouteId` when a meetup is created from a ready or custom route.
+- `Event.requiresVerification` and `Event.requiresFrendlyPlus` gate new entry into a meetup. Both default to `false`; existing participants stay participants when the flags change.
 - `Event` can optionally point to `ExternalContentItem` through `sourceExternalContentItemId` when created from public affiche or a selected Tomesto place. Presenters must branch by `contentKind`: event sources produce ticket fields, place sources produce booking fields.
 - `EveningRouteTemplate` owns immutable route revisions and current route pointer.
 - `EveningRoute` owns steps, sessions and optional route chat.
