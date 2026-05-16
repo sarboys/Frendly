@@ -16,6 +16,7 @@ import {
 import { PrismaService } from './prisma.service';
 
 const CHAT_MEMBER_PREVIEW_LIMIT = 8;
+const MEETUP_AUTO_FINISH_MS = 24 * 60 * 60 * 1000;
 
 const chatMessageMediaAssetSelect = {
   id: true,
@@ -926,9 +927,6 @@ export class ChatsService {
       durationMinutes?: number | null;
     } | null,
   ) {
-    if (event?.liveState?.status === 'live') {
-      return 'live';
-    }
     if (event?.liveState?.status === 'finished') {
       return 'done';
     }
@@ -936,16 +934,16 @@ export class ChatsService {
       return 'upcoming';
     }
 
-    const msUntilStart = event.startsAt.getTime() - Date.now();
-    const durationMinutes =
-      event.durationMinutes && event.durationMinutes > 0
-        ? event.durationMinutes
-        : 120;
-    const msUntilEnd = msUntilStart + durationMinutes * 60 * 1000;
-    if (msUntilEnd <= 0) {
+    const msSinceStart = Date.now() - event.startsAt.getTime();
+    if (msSinceStart >= MEETUP_AUTO_FINISH_MS) {
       return 'done';
     }
-    if (msUntilStart > 0 && msUntilStart <= 2 * 60 * 60 * 1000) {
+    if (event.liveState?.status === 'live' || msSinceStart >= 0) {
+      return 'live';
+    }
+
+    const msUntilStart = -msSinceStart;
+    if (msUntilStart <= 2 * 60 * 60 * 1000) {
       return 'soon';
     }
 

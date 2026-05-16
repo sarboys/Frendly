@@ -100,6 +100,8 @@ Flutter creates optimistic local message and `clientMessageId`, then sends `mess
 
 Meetup and personal chat lists read cached summaries first and refresh REST in the background. Realtime preview, unread and delete patches still update Riverpod local state immediately; subsequent REST refresh writes the latest summary rows back to Drift.
 
+Event meetup chat phase becomes `done` once `startsAt` is at least 24 hours old, even without an explicit host finish action.
+
 REST meetup and personal chat list endpoints support optional `If-None-Match`. They keep the same JSON body on normal `200`, set a private weak `ETag`, and return empty `304` when the list payload is unchanged.
 
 Server validates:

@@ -2339,6 +2339,7 @@ export class EventsService {
           id: true,
           title: true,
           place: true,
+          startsAt: true,
           participants: {
             where: this.buildVisibleParticipantWhere(blockedUserIds),
             select: {
@@ -2399,7 +2400,7 @@ export class EventsService {
       title: event.title,
       place: event.place,
       chatId: event.chat?.id ?? null,
-      status: mapLiveStatus(event.liveState),
+      status: mapLiveStatus(event.liveState, event.startsAt),
       startedAt: startedAt?.toISOString() ?? null,
       elapsedMinutes,
       attendees: event.participants

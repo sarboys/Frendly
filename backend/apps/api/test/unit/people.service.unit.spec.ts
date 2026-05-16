@@ -476,6 +476,13 @@ describe('PeopleService unit', () => {
       displayName: 'Аня',
       online: true,
       verified: false,
+      subscriptions: [
+        {
+          status: 'trial',
+          renewsAt: new Date('2026-06-16T10:00:00.000Z'),
+          trialEndsAt: new Date('2026-05-20T10:00:00.000Z'),
+        },
+      ],
       profile: {
         age: 27,
         birthDate: null,
@@ -509,6 +516,7 @@ describe('PeopleService unit', () => {
 
     await expect(service.getPersonProfile('user-peer', 'user-peer')).resolves.toMatchObject({
       id: 'user-peer',
+      frendlyPlus: true,
       interests: ['кино'],
       intent: 'dating',
       photos: [],
@@ -520,6 +528,15 @@ describe('PeopleService unit', () => {
         displayName: true,
         verified: true,
         online: true,
+        subscriptions: {
+          select: {
+            status: true,
+            renewsAt: true,
+            trialEndsAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
         profile: {
           select: {
             age: true,

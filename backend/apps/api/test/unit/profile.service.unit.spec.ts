@@ -24,6 +24,13 @@ describe('ProfileService', () => {
         avatarUrl: null,
         photos: [],
       },
+      subscriptions: [
+        {
+          status: 'active',
+          renewsAt: new Date('2026-06-16T10:00:00.000Z'),
+          trialEndsAt: null,
+        },
+      ],
     });
     const service = new ProfileService({
       client: {
@@ -36,6 +43,7 @@ describe('ProfileService', () => {
     await expect(service.getProfile('user-me')).resolves.toMatchObject({
       id: 'user-me',
       displayName: 'Никита',
+      frendlyPlus: true,
       photos: [],
     });
     expect(userFindUnique).toHaveBeenCalledWith({
@@ -45,6 +53,15 @@ describe('ProfileService', () => {
         displayName: true,
         verified: true,
         online: true,
+        subscriptions: {
+          select: {
+            status: true,
+            renewsAt: true,
+            trialEndsAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
         profile: {
           select: {
             age: true,
@@ -90,8 +107,9 @@ describe('ProfileService', () => {
             id: 'user-me',
             displayName: 'Никита',
             verified: false,
-            online: true,
-            profile: {
+        online: true,
+        subscriptions: [],
+        profile: {
               age: 29,
               birthDate: null,
               gender: 'male',
@@ -155,8 +173,9 @@ describe('ProfileService', () => {
           id: 'user-me',
           displayName: 'Никита',
           verified: false,
-          online: true,
-          profile: {
+        online: true,
+        subscriptions: [],
+        profile: {
             age: 29,
             birthDate: null,
             gender: 'male',

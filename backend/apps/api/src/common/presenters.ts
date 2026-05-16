@@ -196,6 +196,13 @@ type BasicProfileUser = Pick<User, 'id' | 'displayName' | 'verified' | 'online'>
         photos?: BasicProfilePhoto[];
       })
     | null;
+  subscriptions?: BasicProfileSubscription[];
+};
+
+type BasicProfileSubscription = {
+  status: string;
+  renewsAt: Date | null;
+  trialEndsAt: Date | null;
 };
 
 export function mapBasicProfile(user: BasicProfileUser) {
@@ -210,6 +217,7 @@ export function mapBasicProfile(user: BasicProfileUser) {
     id: user.id,
     displayName: user.displayName,
     verified: user.verified,
+    frendlyPlus: hasActiveFrendlyPlus(user.subscriptions?.[0] ?? null),
     online: user.online,
     age: birthDateAge ?? user.profile?.age ?? null,
     gender: user.profile?.gender ?? null,
@@ -226,6 +234,25 @@ export function mapBasicProfile(user: BasicProfileUser) {
         : user.profile?.avatarUrl ?? null),
     photos,
   };
+}
+
+function hasActiveFrendlyPlus(subscription: BasicProfileSubscription | null) {
+  if (!subscription) {
+    return false;
+  }
+
+  const now = Date.now();
+  const trialEndsAt = subscription.trialEndsAt?.getTime() ?? null;
+  if (trialEndsAt != null && trialEndsAt > now) {
+    return true;
+  }
+
+  const renewsAt = subscription.renewsAt?.getTime() ?? null;
+  if (renewsAt == null || renewsAt <= now) {
+    return false;
+  }
+
+  return subscription.status !== 'inactive';
 }
 
 function calculateAge(birthDate: Date) {
@@ -267,7 +294,18 @@ export function mapJoinRequestStatus(
   return request?.status ?? null;
 }
 
-export function mapLiveStatus(state?: Pick<EventLiveState, 'status'> | null) {
+const EVENT_AUTO_FINISH_MS = 24 * 60 * 60 * 1000;
+
+export function mapLiveStatus(
+  state?: Pick<EventLiveState, 'status'> | null,
+  startsAt?: Date | null,
+) {
+  if (
+    startsAt != null &&
+    Date.now() - startsAt.getTime() >= EVENT_AUTO_FINISH_MS
+  ) {
+    return 'finished';
+  }
   return state?.status ?? 'idle';
 }
 
@@ -462,7 +500,7 @@ export function mapEventSummary(params: {
     joinMode: event.joinMode,
     joinRequestStatus: mapJoinRequestStatus(joinRequest),
     attendanceStatus: mapAttendanceStatus(attendance),
-    liveStatus: mapLiveStatus(liveState),
+    liveStatus: mapLiveStatus(liveState, event.startsAt),
     isHost: event.hostId === currentUserId,
     ...mapEventTicketSummary(event),
     ...mapEventBookingSummary(event),

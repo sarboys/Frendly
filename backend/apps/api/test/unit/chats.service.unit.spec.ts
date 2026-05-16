@@ -228,15 +228,15 @@ describe('ChatsService unit', () => {
     });
   });
 
-  it('maps finished or past event meetup chats to done phase', () => {
+  it('maps event meetup chats to done phase 24 hours after start', () => {
     jest.spyOn(Date, 'now').mockReturnValue(
-      new Date('2026-04-26T18:00:00.000Z').getTime(),
+      new Date('2026-04-27T18:00:00.000Z').getTime(),
     );
     const service = new ChatsService({ client: {} } as any);
 
     expect(
       (service as any).phaseFromEvent({
-        startsAt: new Date('2026-04-26T08:33:00.000Z'),
+        startsAt: new Date('2026-04-26T17:59:00.000Z'),
         durationMinutes: 120,
         liveState: { status: 'idle' },
       }),
@@ -244,6 +244,20 @@ describe('ChatsService unit', () => {
     expect(
       (service as any).phaseFromEvent({
         startsAt: new Date('2026-04-26T17:00:00.000Z'),
+        durationMinutes: 120,
+        liveState: { status: 'live' },
+      }),
+    ).toBe('done');
+    expect(
+      (service as any).phaseFromEvent({
+        startsAt: new Date('2026-04-26T19:00:00.000Z'),
+        durationMinutes: 120,
+        liveState: { status: 'idle' },
+      }),
+    ).toBe('live');
+    expect(
+      (service as any).phaseFromEvent({
+        startsAt: new Date('2026-04-27T17:00:00.000Z'),
         durationMinutes: 120,
         liveState: { status: 'finished' },
       }),

@@ -390,7 +390,7 @@ export class HostService {
         liveState: event.liveState,
       }),
       chatId: event.chat?.id ?? null,
-      liveStatus: mapLiveStatus(event.liveState),
+      liveStatus: mapLiveStatus(event.liveState, event.startsAt),
       requests: event.joinRequests
         .filter((request) => !blockedUserIds.has(request.userId))
         .map((request) =>

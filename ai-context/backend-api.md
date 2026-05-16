@@ -86,6 +86,7 @@ Chats:
 - After chat delete, backend starts best-effort background cleanup. If the chat has no remaining members, it removes messages, chat media assets, notifications and realtime events; direct chats are then removed too.
 - Chat list items expose `lastMessageId` and `isPinned`; pinned items are returned before normal recency ordering.
 - Chat list endpoints set a weak `ETag` on the response body, `Cache-Control: private, max-age=0, must-revalidate` and `Vary: Authorization`. Fresh `If-None-Match` requests return `304` with an empty body. Clients are not required to send the header.
+- Event meetups are treated as finished 24 hours after `startsAt` in effective live status and meetup chat phase, even if the host never pressed finish.
 - Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
 - Meetup chat list items expose paid ticket summary from linked public Affiche event sources. It uses `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.
 
@@ -112,6 +113,7 @@ People:
 - `DELETE /people/:userId/reactions/:kind`
 - `POST /people/:userId/direct-chat`
 - Public profile responses include `social` with follower, like, super-like counts and viewer flags. Profile social actions are independent from dating actions. Backend rejects follow, like and super-like on yourself.
+- Own profile and public profile payloads expose `frendlyPlus`, derived from the latest subscription. Active access means a live trial, active, or paid-through canceled subscription; expired or inactive subscriptions return `false`.
 - `GET /people/following` accepts `eventId`, `q`, `cursor`, `limit` and returns only users followed by the current user, with social preview and `inviteState` for event invite UI.
 
 Profile season:

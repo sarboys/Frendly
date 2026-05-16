@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "3dc8894201c3f55fb804b5a19369adc5731b5a11",
-  "generatedAt": "2026-05-16T11:15:00.464Z",
+  "gitCommitHash": "e02e25c59ee135ec28b2b7d99b3615345d458625",
+  "generatedAt": "2026-05-16T12:11:04.402Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -9913,7 +9913,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "e2a7ae1023c38b17b244133b066cc2cbaf9f18592420e8496735fe7f53a82c70",
+      "contentHash": "c94190a4007638d3fc422ed41926e32d3b9d1aff04bcc329b37a42ca87844707",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -9963,7 +9963,15 @@
             "user"
           ],
           "exported": true,
-          "lineCount": 29
+          "lineCount": 30
+        },
+        {
+          "name": "hasActiveFrendlyPlus",
+          "params": [
+            "subscription"
+          ],
+          "exported": false,
+          "lineCount": 18
         },
         {
           "name": "calculateAge",
@@ -10002,10 +10010,11 @@
         {
           "name": "mapLiveStatus",
           "params": [
-            "state"
+            "state",
+            "startsAt"
           ],
           "exported": true,
-          "lineCount": 3
+          "lineCount": 12
         },
         {
           "name": "mapEventTicketSummary",
@@ -10087,7 +10096,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 493,
+      "totalLines": 531,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -14082,7 +14091,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "694b0aa2e745221009e84bd2efdf616b126e5b56a00c5b27ff03f7a4668bc4ce",
+      "contentHash": "228f95487b721999e68e5c436f9817c8b38878e9133f0658f2ef157435632a49",
       "functions": [],
       "classes": [
         {
@@ -14126,7 +14135,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 1235
+          "lineCount": 1232
         }
       ],
       "imports": [
@@ -14191,7 +14200,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1370,
+      "totalLines": 1368,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -15378,7 +15387,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "87fe00823ef7c4928086f96f63a313585577fd6ad82f528fbda4f7f3c860c2f9",
+      "contentHash": "3ff7950d410505c8a16c438837299e9e21c5fc693717311811a97d3bb11b1e89",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -15496,7 +15505,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3911
+          "lineCount": 3912
         }
       ],
       "imports": [
@@ -15584,12 +15593,12 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4155,
+      "totalLines": 4156,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
       "filePath": "backend/apps/api/src/services/host.service.ts",
-      "contentHash": "d79bcbbe474bb6cacdf23d8177cf8e11d1f99b74e691cb67cf2fa575657ba71b",
+      "contentHash": "908fd9f5de4d53866fed75fe798cdded2f2904eba6573c538e645ef4a7aa4637",
       "functions": [],
       "classes": [
         {
@@ -16613,7 +16622,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "4447c039705a3a3913661b1656e5141b0192959cdfad35f13ef24ec128d492b3",
+      "contentHash": "1bb9ac94eccadfef939054b2bb3fe07e664ce4d29373b5eb33e2c933ae9b436f",
       "functions": [],
       "classes": [
         {
@@ -16642,7 +16651,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 874
+          "lineCount": 883
         }
       ],
       "imports": [
@@ -16703,7 +16712,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 918,
+      "totalLines": 927,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -17026,7 +17035,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "ceb05777ab232d5ccef991b825f9f1863ed3dd59455430cc162d2d69352139dd",
+      "contentHash": "46c34ccf6e129e5428752aa2ce79bbb48a0afadd4475a6efdb726a4dfbd6e3b9",
       "functions": [],
       "classes": [
         {
@@ -17084,7 +17093,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1507
+          "lineCount": 1516
         }
       ],
       "imports": [
@@ -17159,7 +17168,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 1616,
+      "totalLines": 1625,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {

@@ -1265,6 +1265,15 @@ export class ProfileService {
         displayName: true,
         verified: true,
         online: true,
+        subscriptions: {
+          select: {
+            status: true,
+            renewsAt: true,
+            trialEndsAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
         profile: {
           select: {
             age: true,
