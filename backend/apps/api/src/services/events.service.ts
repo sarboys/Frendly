@@ -117,6 +117,15 @@ const eventListSummarySelect = {
   joinMode: true,
   isDate: true,
   eveningRouteId: true,
+  eveningRoute: {
+    select: {
+      _count: {
+        select: {
+          steps: true,
+        },
+      },
+    },
+  },
   canceledAt: true,
   hostId: true,
   sourceExternalContentItem: {

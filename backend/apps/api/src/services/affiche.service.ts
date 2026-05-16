@@ -20,6 +20,13 @@ import { PrismaService } from './prisma.service';
 type AfficheCursor = {
   id: string;
   startsAt: Date | null;
+  sortPriority?: number | null;
+};
+
+type AffichePriorityRow = {
+  id: string;
+  startsAt: Date | null;
+  sortPriority: number;
 };
 
 const afficheEventSelect = {
@@ -84,6 +91,10 @@ export class AfficheService {
     const cursor = await this.resolveCursor(this.optionalText(query.cursor));
     const where = this.buildWhere(query, city);
     const cursorWhere = this.buildCursorWhere(cursor);
+
+    if (this.shouldUseDefaultPrioritySort(query)) {
+      return this.listPrioritySortedEvents(query, city, limit, cursor);
+    }
 
     const items = await this.prismaService.client.externalContentItem.findMany({
       where: cursorWhere ? { AND: [where, cursorWhere] } : where,
@@ -252,6 +263,122 @@ export class AfficheService {
     };
   }
 
+  private shouldUseDefaultPrioritySort(query: Record<string, unknown>) {
+    if (typeof this.prismaService.client.$queryRaw !== 'function') {
+      return false;
+    }
+    return (
+      !this.optionalText(query.category) &&
+      !normalizeSearchQuery(this.optionalText(query.q) ?? undefined)
+    );
+  }
+
+  private async listPrioritySortedEvents(
+    query: Record<string, unknown>,
+    city: string,
+    limit: number,
+    cursor: AfficheCursor | null,
+  ): Promise<AfficheEventListDto> {
+    const priorityCursor = await this.resolvePriorityCursor(cursor);
+    const rows = await this.prismaService.client.$queryRaw<AffichePriorityRow[]>(
+      Prisma.sql`
+        SELECT
+          item."id",
+          item."startsAt",
+          ${this.defaultAfficheSortPrioritySql()} AS "sortPriority"
+        FROM "ExternalContentItem" item
+        LEFT JOIN "ExternalContentSource" source
+          ON source."id" = item."sourceId"
+        WHERE ${this.buildPrioritySortWhereSql(query, city, priorityCursor)}
+        ORDER BY "sortPriority" ASC, item."startsAt" ASC, item."id" ASC
+        LIMIT ${limit + 1}
+      `,
+    );
+    const pageRows = rows.slice(0, limit);
+    const next = rows.length > limit ? rows[limit] : null;
+    if (pageRows.length === 0) {
+      return { items: [], nextCursor: null };
+    }
+
+    const records = await this.prismaService.client.externalContentItem.findMany({
+      where: { id: { in: pageRows.map((row) => row.id) } },
+      select: afficheEventSelect,
+    });
+    const recordsById = new Map(records.map((record) => [record.id, record]));
+    const items = pageRows
+      .map((row) => recordsById.get(row.id))
+      .filter((record): record is AfficheEventRecord => record != null);
+
+    return {
+      items: items.map((item: any) => this.mapEvent(item)),
+      nextCursor: next ? this.encodeEventCursor(next) : null,
+    };
+  }
+
+  private buildPrioritySortWhereSql(
+    query: Record<string, unknown>,
+    city: string,
+    cursor: AfficheCursor | null,
+  ) {
+    const priceMode = this.parsePriceMode(query.priceMode);
+    const dateRange = this.parseDateRange(query);
+    const source = this.optionalText(query.source);
+    const featured = this.parseBoolean(query.featured);
+    const clauses = [
+      Prisma.sql`item."city" = ${city}`,
+      Prisma.sql`item."contentKind" = 'event'`,
+      Prisma.sql`item."publicStatus" = 'published'`,
+      Prisma.sql`item."moderationStatus" <> 'rejected'`,
+      priceMode === 'any'
+        ? Prisma.sql`item."priceMode" IN ('free', 'paid')`
+        : Prisma.sql`item."priceMode" = ${priceMode}`,
+      dateRange
+        ? Prisma.sql`item."startsAt" >= ${dateRange.from} AND item."startsAt" < ${dateRange.to}`
+        : Prisma.sql`item."startsAt" >= ${new Date()}`,
+    ];
+
+    if (source) {
+      clauses.push(Prisma.sql`source."code" = ${source}`);
+    }
+    if (featured === true) {
+      clauses.push(Prisma.sql`item."imageUrl" IS NOT NULL`);
+    }
+    if (cursor?.sortPriority != null && cursor.startsAt != null) {
+      const priority = this.defaultAfficheSortPrioritySql();
+      clauses.push(Prisma.sql`(
+        ${priority} > ${cursor.sortPriority}
+        OR (
+          ${priority} = ${cursor.sortPriority}
+          AND (
+            item."startsAt" > ${cursor.startsAt}
+            OR (item."startsAt" = ${cursor.startsAt} AND item."id" > ${cursor.id})
+          )
+        )
+      )`);
+    }
+
+    return Prisma.join(clauses, ' AND ');
+  }
+
+  private defaultAfficheSortPrioritySql() {
+    return Prisma.sql`CASE
+      WHEN (
+        item."category" = 'standup'
+        OR item."title" ILIKE '%стендап%'
+        OR item."title" ILIKE '%standup%'
+        OR item."title" ILIKE '%stand up%'
+        OR item."title" ILIKE '%stand-up%'
+        OR item."tags" @> '["стендап"]'::jsonb
+        OR item."tags" @> '["standup"]'::jsonb
+        OR item."tags" @> '["stand up"]'::jsonb
+        OR item."tags" @> '["stand-up"]'::jsonb
+        OR item."tags" @> '["comedy-club"]'::jsonb
+      ) THEN 0
+      WHEN item."category" = 'concert' THEN 1
+      ELSE 2
+    END`;
+  }
+
   private parsePriceMode(value: unknown): 'free' | 'paid' | 'any' {
     const raw = this.optionalText(value);
     return raw === 'free' || raw === 'paid' || raw === 'any' ? raw : 'any';
@@ -294,6 +421,14 @@ export class AfficheService {
       const decoded = decodeCursor(cursor);
       cursorId = decoded?.value ?? null;
       startsAt = this.dateFromUnknown(decoded?.startsAt);
+      const sortPriority = Number(decoded?.sortPriority);
+      if (cursorId && startsAt) {
+        return {
+          id: cursorId,
+          startsAt,
+          sortPriority: Number.isFinite(sortPriority) ? sortPriority : null,
+        };
+      }
     } catch {
       cursorId = cursor;
     }
@@ -305,9 +440,61 @@ export class AfficheService {
     }
     const item = await this.prismaService.client.externalContentItem.findUnique({
       where: { id: cursorId },
-      select: { id: true, startsAt: true },
+      select: { id: true, startsAt: true, category: true, title: true, tags: true },
     });
-    return item ? { id: item.id, startsAt: item.startsAt } : null;
+    return item
+      ? {
+          id: item.id,
+          startsAt: item.startsAt,
+          sortPriority: this.defaultAfficheSortPriority(item),
+        }
+      : null;
+  }
+
+  private async resolvePriorityCursor(cursor: AfficheCursor | null) {
+    if (!cursor || cursor.sortPriority != null) {
+      return cursor;
+    }
+    const item = await this.prismaService.client.externalContentItem.findUnique({
+      where: { id: cursor.id },
+      select: { id: true, startsAt: true, category: true, title: true, tags: true },
+    });
+    return item
+      ? {
+          id: item.id,
+          startsAt: item.startsAt,
+          sortPriority: this.defaultAfficheSortPriority(item),
+        }
+      : cursor;
+  }
+
+  private defaultAfficheSortPriority(item: {
+    category: string | null;
+    title: string | null;
+    tags: unknown;
+  }) {
+    const title = (item.title ?? '').toLowerCase();
+    const tags = Array.isArray(item.tags)
+      ? item.tags.filter((tag): tag is string => typeof tag === 'string')
+      : [];
+    if (
+      item.category === 'standup' ||
+      title.includes('стендап') ||
+      title.includes('standup') ||
+      title.includes('stand up') ||
+      title.includes('stand-up') ||
+      tags.some((tag) =>
+        ['стендап', 'standup', 'stand up', 'stand-up', 'comedy-club'].includes(
+          tag.toLowerCase(),
+        ),
+      )
+    ) {
+      return 0;
+    }
+    if (item.category === 'concert') {
+      return 1;
+    }
+    return 2;
   }
 
   private buildCursorWhere(cursor: AfficheCursor | null): Prisma.ExternalContentItemWhereInput | null {
@@ -329,6 +516,7 @@ export class AfficheService {
     return encodeCursor({
       value: item.id,
       startsAt: item.startsAt?.toISOString() ?? null,
+      ...(item.sortPriority != null ? { sortPriority: item.sortPriority } : {}),
     });
   }
 

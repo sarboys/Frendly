@@ -118,6 +118,45 @@ describe('AfficheService', () => {
     );
   });
 
+  it('prioritizes standups and concerts when no content filter is set', async () => {
+    const queryRaw = jest.fn().mockResolvedValue([
+      { id: 'standup-late', startsAt: new Date('2026-05-07T16:00:00.000Z'), sortPriority: 0 },
+      { id: 'concert-mid', startsAt: new Date('2026-05-06T16:00:00.000Z'), sortPriority: 1 },
+      { id: 'theatre-early', startsAt: new Date('2026-05-05T16:00:00.000Z'), sortPriority: 2 },
+      { id: 'next-page', startsAt: new Date('2026-05-08T16:00:00.000Z'), sortPriority: 2 },
+    ]);
+    const findMany = jest.fn().mockResolvedValue([
+      afficheItem({ id: 'theatre-early', title: 'Ранний театр', category: 'theatre' }),
+      afficheItem({ id: 'concert-mid', title: 'Большой концерт', category: 'concert' }),
+      afficheItem({ id: 'standup-late', title: 'Поздний стендап', category: 'comedy' }),
+    ]);
+    const service = new AfficheService({
+      client: {
+        $queryRaw: queryRaw,
+        externalContentItem: {
+          findMany,
+        },
+      },
+    } as any);
+
+    const result = await service.listEvents({
+      city: 'Москва',
+      limit: '3',
+    });
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: { in: ['standup-late', 'concert-mid', 'theatre-early'] } },
+      select: expect.any(Object),
+    }));
+    expect(result.items.map((item) => item.id)).toEqual([
+      'standup-late',
+      'concert-mid',
+      'theatre-early',
+    ]);
+    expect(result.nextCursor).toEqual(expect.any(String));
+  });
+
   it('does not expose places through affiche detail', async () => {
     const findFirst = jest.fn().mockResolvedValue(null);
     const service = new AfficheService({

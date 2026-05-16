@@ -350,6 +350,11 @@ type EventSummaryInput = Pick<
     currency?: string | null;
     bookingPromos?: EventBookingPromo[];
   } | null;
+  eveningRoute?: {
+    _count?: {
+      steps?: number;
+    } | null;
+  } | null;
 };
 
 type EventBookingPromo = {
@@ -495,6 +500,8 @@ export function mapEventSummary(params: {
     requiresVerification: event.requiresVerification,
     requiresFrendlyPlus: event.requiresFrendlyPlus,
     routeId: event.eveningRouteId,
+    routePointCount: event.eveningRoute?._count?.steps ?? null,
+    isAfficheBacked: event.sourceExternalContentItem?.contentKind === 'event',
     isDate: event.isDate,
     joined: joined ?? participants.some((participant) => participant.userId === currentUserId),
     joinMode: event.joinMode,

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-16T12:11:04.156Z",
-    "gitCommitHash": "e02e25c59ee135ec28b2b7d99b3615345d458625"
+    "analyzedAt": "2026-05-16T13:43:50.003Z",
+    "gitCommitHash": "8713b62c11177d666b6e9660a93ecb4df07e1d84"
   },
   "nodes": [
     {
@@ -8123,8 +8123,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        363,
-        403
+        368,
+        408
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -8140,8 +8140,8 @@
       "name": "mapEventBookingSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        405,
-        441
+        410,
+        446
       ],
       "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
@@ -8157,8 +8157,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        443,
-        508
+        448,
+        515
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -8174,8 +8174,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        510,
-        530
+        517,
+        537
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -10381,8 +10381,8 @@
       "name": "oneDayRange",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        570,
-        581
+        758,
+        769
       ],
       "summary": "oneDayRange in affiche.service.ts.",
       "tags": [
@@ -10398,8 +10398,8 @@
       "name": "AfficheService",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        78,
-        568
+        85,
+        756
       ],
       "summary": "AfficheService in affiche.service.ts.",
       "tags": [
@@ -11689,8 +11689,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4090,
-        4120
+        4099,
+        4129
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -11706,8 +11706,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4122,
-        4126
+        4131,
+        4135
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -11723,8 +11723,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4128,
-        4130
+        4137,
+        4139
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -11740,8 +11740,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4132,
-        4134
+        4141,
+        4143
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -11757,8 +11757,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4136,
-        4155
+        4145,
+        4164
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11774,8 +11774,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        177,
-        4088
+        186,
+        4097
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [

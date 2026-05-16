@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "e02e25c59ee135ec28b2b7d99b3615345d458625",
-  "generatedAt": "2026-05-16T12:11:04.402Z",
+  "gitCommitHash": "8713b62c11177d666b6e9660a93ecb4df07e1d84",
+  "generatedAt": "2026-05-16T13:43:50.482Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -9913,7 +9913,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "c94190a4007638d3fc422ed41926e32d3b9d1aff04bcc329b37a42ca87844707",
+      "contentHash": "07fc9aa92c0bfa89d8f6505bc236c3c62ab69aab65938d94604c55ae8c2c933c",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10038,7 +10038,7 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 66
+          "lineCount": 68
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -10096,7 +10096,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 531,
+      "totalLines": 538,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -13769,7 +13769,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "b6d98621038a1d45ad3340105a66789730ceb2073a2ac62b5f2e65e6372253cf",
+      "contentHash": "c832289a98e681755939ebef926bb89c9531d8fc1c224e0314d7a6b623cad72c",
       "functions": [
         {
           "name": "oneDayRange",
@@ -13794,10 +13794,16 @@
             "parseContentLength",
             "buildWhere",
             "buildStandupCategoryWhere",
+            "shouldUseDefaultPrioritySort",
+            "listPrioritySortedEvents",
+            "buildPrioritySortWhereSql",
+            "defaultAfficheSortPrioritySql",
             "parsePriceMode",
             "parseBoolean",
             "parseDateRange",
             "resolveCursor",
+            "resolvePriorityCursor",
+            "defaultAfficheSortPriority",
             "buildCursorWhere",
             "encodeEventCursor",
             "mapEvent",
@@ -13820,7 +13826,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 491
+          "lineCount": 672
         }
       ],
       "imports": [
@@ -13887,7 +13893,7 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 582,
+      "totalLines": 770,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
@@ -15387,7 +15393,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "3ff7950d410505c8a16c438837299e9e21c5fc693717311811a97d3bb11b1e89",
+      "contentHash": "b81d013dbdec5cb62aeeea63433291de5ed45235eb2e5959556163365f7e234b",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -15593,7 +15599,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4156,
+      "totalLines": 4165,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
