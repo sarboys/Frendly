@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-16T10:32:59.940Z",
-    "gitCommitHash": "78b0ca4b606c779deccf12c8c62b80b6cbe60bd8"
+    "analyzedAt": "2026-05-16T10:36:03.792Z",
+    "gitCommitHash": "d72b5521566e17e78dd48dcbb6bfb5e7e4644158"
   },
   "nodes": [
     {
@@ -11672,8 +11672,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4088,
-        4118
+        4089,
+        4119
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -11689,8 +11689,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4120,
-        4124
+        4121,
+        4125
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -11706,8 +11706,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4126,
-        4128
+        4127,
+        4129
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -11723,8 +11723,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4130,
-        4132
+        4131,
+        4133
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -11740,8 +11740,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4134,
-        4153
+        4135,
+        4154
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11758,7 +11758,7 @@
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
         177,
-        4086
+        4087
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [

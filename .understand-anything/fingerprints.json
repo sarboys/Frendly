@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "78b0ca4b606c779deccf12c8c62b80b6cbe60bd8",
-  "generatedAt": "2026-05-16T10:33:00.186Z",
+  "gitCommitHash": "d72b5521566e17e78dd48dcbb6bfb5e7e4644158",
+  "generatedAt": "2026-05-16T10:36:04.067Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -15378,7 +15378,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "3e3f8ee79caf44332c91c3b7f7df0eef1d0e10aaa313d26e3d3b376b77b600cd",
+      "contentHash": "87fe00823ef7c4928086f96f63a313585577fd6ad82f528fbda4f7f3c860c2f9",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -15496,7 +15496,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3910
+          "lineCount": 3911
         }
       ],
       "imports": [
@@ -15584,7 +15584,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4154,
+      "totalLines": 4155,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {

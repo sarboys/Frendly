@@ -1459,7 +1459,10 @@ describe('EventsService unit', () => {
             .map((part) => part.strings.join(' ')),
         ].join(' ');
     expect(postgisSql).toContain('ST_DWithin');
-    expect(postgisSql).toContain('e."geo" IS NULL');
+    expect(postgisSql).toContain('e."latitude" IS NOT NULL');
+    expect(postgisSql).toContain('e."longitude" IS NOT NULL');
+    expect(postgisSql).toContain('ST_MakePoint(e."longitude", e."latitude")');
+    expect(postgisSql).toContain('e."latitude" IS NULL OR e."longitude" IS NULL');
     expect(postgisSql).toContain('e."distanceKm"');
     expect(postgisSql).toContain('e."canceledAt" IS NULL');
     expect(postgisSql).toContain('e."isAfterDark" = false');

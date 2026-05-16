@@ -3035,8 +3035,8 @@ export class EventsService {
         SELECT
           e."id" AS event_id,
           CASE
-            WHEN e."geo" IS NOT NULL THEN ST_Distance(
-              e."geo",
+            WHEN e."latitude" IS NOT NULL AND e."longitude" IS NOT NULL THEN ST_Distance(
+              ST_SetSRID(ST_MakePoint(e."longitude", e."latitude"), 4326)::geography,
               ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography
             ) / 1000
             ELSE COALESCE(e."distanceKm", ${radiusKm})
@@ -3056,15 +3056,16 @@ export class EventsService {
           ${blockedHostFilter}
           AND (
             (
-              e."geo" IS NOT NULL
+              e."latitude" IS NOT NULL
+              AND e."longitude" IS NOT NULL
               AND ST_DWithin(
-                e."geo",
+                ST_SetSRID(ST_MakePoint(e."longitude", e."latitude"), 4326)::geography,
                 ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography,
                 ${radiusMeters}
               )
             )
             OR (
-              e."geo" IS NULL
+              (e."latitude" IS NULL OR e."longitude" IS NULL)
               AND (
                 e."hostId" = ${params.userId}
                 OR ${participantOrAttendanceVisibility}
