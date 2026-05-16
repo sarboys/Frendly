@@ -30,7 +30,7 @@ Auth and user:
 
 Discovery and events:
 
-- `Event`, `Poster`, `EventParticipant`, `EventJoinRequest`, `EventAttendance`, `EventLiveState`, `EventFeedback`, `EventFavorite`, `EventStory`.
+- `Event`, `EventParticipant`, `EventJoinRequest`, `EventAttendance`, `EventLiveState`, `EventFeedback`, `EventFavorite`, `EventStory`.
 - Partner-owned content uses optional `partnerId` where supported.
 - `Event.sourceExternalContentItemId` links a user-created meetup back to an imported source. For `afficheEventId` it points to a public imported event. For `externalPlaceId` it points to a published Tomesto place selected in Create Meetup.
 
@@ -62,7 +62,7 @@ Chat and realtime:
 
 Media:
 
-- `MediaAsset` covers avatars, profile photos, chat attachments, voice, stories and poster covers.
+- `MediaAsset` covers avatars, profile photos, chat attachments, voice and stories.
 
 Communities:
 
@@ -72,7 +72,8 @@ Safety and monetization:
 
 - `DatingAction`, `UserFollow`, `ProfileReaction`, `TrustedContact`, `SafetySosAlert`, `UserReport`, `UserBlock`, `UserSubscription`.
 - One-time T-Bank payments use `PaymentOrder` with provider `tbank`, product kind `tokens`, unique `orderId`, optional unique provider payment id, amount in kopecks, status, raw status and raw notification. Legacy subscription orders may exist, but new Frendly+ purchases spend tokens instead of creating payment orders.
-- Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`; Frendly+ token purchases use `TokenLedgerReason.subscription_spend`.
+- Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`; Frendly+ token purchases use `TokenLedgerReason.subscription_spend`. Frendly season gifts use `TokenLedgerReason.reward_grant`.
+- `UserSeasonRewardClaim` stores one claimed Frendly season reward per `userId + seasonKey + rewardKey`, so reward claim endpoints stay idempotent.
 - `UserFollow` stores normal profile subscriptions. `ProfileReaction` stores normal profile likes and super-likes through `ProfileReactionKind`, separate from dating likes.
 
 Notifications and async:
@@ -134,7 +135,7 @@ cd backend && pnpm --filter @big-break/database db:delete:test-accounts
 
 Seed file: `backend/packages/database/prisma/seed.ts`.
 
-Seed no longer inserts demo data. It only cleans legacy deterministic demo rows from the old seed by known IDs, including demo users, events, posters, communities, chats, Evening routes, test partner, venues and offer. Running `db:seed` must not create mock users, mock events or mock routes.
+Seed no longer inserts demo data. It only cleans legacy deterministic demo rows from the old seed by known IDs, including demo users, events, communities, chats, Evening routes, test partner, venues and offer. Running `db:seed` must not create mock users, mock events or mock routes.
 
 Test account data is separate from `db:seed`: `backend/packages/database/prisma/seed-test-accounts.ts` creates or deletes the 10 repeated-digit phone accounts, their profiles, photos, Frendly Plus subscriptions, hosted Moscow meetups and test clubs.
 

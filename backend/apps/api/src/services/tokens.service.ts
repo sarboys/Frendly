@@ -14,6 +14,7 @@ const ledgerNotes: Record<string, string> = {
   purchase: 'Пополнение токенов',
   promotion_spend: 'Продвижение',
   subscription_spend: 'Frendly+',
+  reward_grant: 'Подарок сезона',
   admin_adjustment: 'Корректировка',
 };
 

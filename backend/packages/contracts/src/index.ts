@@ -369,7 +369,7 @@ export interface MeetupChatMemberProfileDto {
 
 export interface MeetupChatTicketDto {
   ticketUrl: string | null;
-  ticketSourceKind: 'poster' | 'affiche' | null;
+  ticketSourceKind: 'affiche' | null;
   ticketSourceId: string | null;
   ticketPriceFrom: number | null;
   ticketProvider: string | null;
@@ -1019,8 +1019,7 @@ export type MediaKind =
   | 'avatar'
   | 'chat_attachment'
   | 'chat_voice'
-  | 'story_media'
-  | 'poster_cover';
+  | 'story_media';
 export type MediaVisibility = 'public' | 'private';
 
 export interface MediaVariantDto {

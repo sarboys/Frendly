@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -23,6 +24,46 @@ export class ProfileController {
   @Get('me')
   getProfile(@CurrentUser() currentUser: { userId: string }) {
     return this.profileService.getProfile(currentUser.userId);
+  }
+
+  @Get('me/frendly-season')
+  getFrendlySeason(@CurrentUser() currentUser: { userId: string }) {
+    return this.profileService.getFrendlySeason(currentUser.userId);
+  }
+
+  @Post('me/frendly-season/rewards/:rewardKey/claim')
+  claimFrendlySeasonReward(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('rewardKey') rewardKey: string,
+  ) {
+    return this.profileService.claimFrendlySeasonReward(
+      currentUser.userId,
+      rewardKey,
+    );
+  }
+
+  @Get('me/frendly-history')
+  listFrendlyHistory(
+    @CurrentUser() currentUser: { userId: string },
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.profileService.listFrendlyHistory(currentUser.userId, {
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('me/frendly-people')
+  listFrendlyPeople(
+    @CurrentUser() currentUser: { userId: string },
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.profileService.listFrendlyPeople(currentUser.userId, {
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Patch('me')

@@ -79,9 +79,9 @@ Auth:
 
 Discovery and events:
 
-- Flutter: `tonight`, `search`, `map`, `posters`, `event_detail`.
-- API: `EventsService`, `PostersService`.
-- DB: `Event`, `Poster`, participants, requests, attendance, live state, feedback, stories.
+- Flutter: `tonight`, shared V5 search modal, `map`, `affiche`, `event_detail`.
+- API: `EventsService`, `AfficheService`.
+- DB: `Event`, `ExternalContentItem`, participants, requests, attendance, live state, feedback, stories.
 
 Chats and realtime:
 

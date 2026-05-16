@@ -110,15 +110,6 @@ const eventListSummarySelect = {
   eveningRouteId: true,
   canceledAt: true,
   hostId: true,
-  sourcePoster: {
-    select: {
-      id: true,
-      priceFrom: true,
-      ticketUrl: true,
-      provider: true,
-      venue: true,
-    },
-  },
   sourceExternalContentItem: {
     select: {
       id: true,
@@ -1084,10 +1075,6 @@ export class EventsService {
       }
     }
 
-    const posterId =
-      typeof body.posterId === 'string' && body.posterId.trim().length > 0
-        ? body.posterId.trim()
-        : undefined;
     const afficheEventId =
       typeof body.afficheEventId === 'string' && body.afficheEventId.trim().length > 0
         ? body.afficheEventId.trim()
@@ -1096,12 +1083,6 @@ export class EventsService {
       typeof body.externalPlaceId === 'string' && body.externalPlaceId.trim().length > 0
         ? body.externalPlaceId.trim()
         : undefined;
-    const poster =
-      posterId == null
-        ? null
-        : await this.prismaService.client.poster.findUnique({
-            where: { id: posterId },
-          });
     const afficheEvent =
       afficheEventId == null
         ? null
@@ -1131,18 +1112,11 @@ export class EventsService {
           });
     const routeSelection = this.parseEventRouteSelection(body);
 
-    if ((posterId != null || afficheEventId != null) && routeSelection != null) {
+    if (afficheEventId != null && routeSelection != null) {
       throw new ApiError(
         400,
         'invalid_event_payload',
         'content source and route cannot be used together',
-      );
-    }
-    if (posterId != null && afficheEventId != null) {
-      throw new ApiError(
-        400,
-        'invalid_event_payload',
-        'posterId and afficheEventId cannot be used together',
       );
     }
     if (externalPlaceId != null && afficheEventId != null) {
@@ -1179,9 +1153,6 @@ export class EventsService {
       await this.assertAfterDarkUnlocked(userId);
     }
 
-    if (posterId != null && !poster) {
-      throw new ApiError(404, 'poster_not_found', 'Poster not found');
-    }
     if (afficheEventId != null && !afficheEvent) {
       throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
     }
@@ -1195,15 +1166,15 @@ export class EventsService {
     const title =
       typeof body.title === 'string' && body.title.trim().length > 0
         ? body.title.trim()
-        : poster?.title ?? afficheEvent?.title ?? '';
+        : afficheEvent?.title ?? '';
     const description =
       typeof body.description === 'string' && body.description.trim().length > 0
         ? body.description.trim()
-        : poster?.description ?? afficheEvent?.shortSummary ?? '';
+        : afficheEvent?.shortSummary ?? '';
     const emoji =
       typeof body.emoji === 'string' && body.emoji.trim().length > 0
         ? body.emoji
-        : poster?.emoji ?? emojiForCategory(afficheEvent?.category) ?? (isDatingMode ? '💘' : isAfterDarkMode ? '🖤' : '🍷');
+        : emojiForCategory(afficheEvent?.category) ?? (isDatingMode ? '💘' : isAfterDarkMode ? '🖤' : '🍷');
     const requestedVibe = typeof body.vibe === 'string' ? body.vibe : 'Спокойно';
     const vibe = isDatingMode ? 'Свидание' : requestedVibe;
     const place =
@@ -1215,19 +1186,17 @@ export class EventsService {
                 ? existingRoute?.title ?? routeSelection.title ?? 'вечера'
                 : routeSelection.title
             }`
-          : poster == null
-            ? afficheEvent == null
-              ? externalPlace == null
-                ? ''
-                : [externalPlace.title, externalPlace.address].filter(Boolean).join(', ')
-              : [afficheEvent.venueName, afficheEvent.address, afficheEvent.city].filter(Boolean).join(', ')
-            : `${poster.venue}, ${poster.address}`;
+          : afficheEvent == null
+            ? externalPlace == null
+              ? ''
+              : [externalPlace.title, externalPlace.address].filter(Boolean).join(', ')
+            : [afficheEvent.venueName, afficheEvent.address, afficheEvent.city].filter(Boolean).join(', ');
     const distanceKm =
       typeof body.distanceKm === 'number'
         ? body.distanceKm
         : routeSelection != null
           ? 0
-          : poster?.distanceKm ?? 1.0;
+          : 1.0;
     const latitude =
       typeof body.latitude === 'number' ? body.latitude : afficheEvent?.lat ?? externalPlace?.lat ?? null;
     const longitude =
@@ -1237,7 +1206,7 @@ export class EventsService {
     const startsAtRaw =
       typeof body.startsAt === 'string' ? body.startsAt : undefined;
     const startsAt =
-      startsAtRaw != null ? new Date(startsAtRaw) : poster?.startsAt ?? afficheEvent?.startsAt ?? new Date();
+      startsAtRaw != null ? new Date(startsAtRaw) : afficheEvent?.startsAt ?? new Date();
     const lifestyle =
       body.lifestyle === 'zozh' || body.lifestyle === 'anti' || body.lifestyle === 'neutral'
         ? body.lifestyle
@@ -1500,7 +1469,6 @@ export class EventsService {
             visibilityMode,
             description,
             idempotencyKey,
-            sourcePosterId: poster?.id,
             sourceExternalContentItemId: afficheEvent?.id ?? externalPlace?.id,
             capacity: normalizedCapacity,
             hostId: userId,

@@ -297,13 +297,6 @@ type EventSummaryInput = Pick<
 > & {
   latitude?: number | null;
   longitude?: number | null;
-  sourcePoster?: {
-    id: string;
-    priceFrom: number;
-    ticketUrl: string;
-    provider: string;
-    venue: string;
-  } | null;
   sourceExternalContentItem?: {
     id?: string | null;
     contentKind?: string | null;
@@ -328,13 +321,6 @@ type EventBookingPromo = {
 };
 
 export function mapEventTicketSummary(event?: {
-  sourcePoster?: {
-    id: string;
-    priceFrom: number;
-    ticketUrl: string;
-    provider: string;
-    venue: string;
-  } | null;
   sourceExternalContentItem?: {
     id?: string | null;
     contentKind?: string | null;
@@ -348,18 +334,6 @@ export function mapEventTicketSummary(event?: {
     bookingPromos?: EventBookingPromo[];
   } | null;
 } | null) {
-  const poster = event?.sourcePoster;
-  if (poster && poster.priceFrom > 0 && poster.ticketUrl.trim().length > 0) {
-    return {
-      ticketUrl: poster.ticketUrl,
-      ticketSourceKind: 'poster',
-      ticketSourceId: poster.id,
-      ticketPriceFrom: poster.priceFrom,
-      ticketProvider: poster.provider,
-      ticketVenue: poster.venue,
-    };
-  }
-
   const affiche = event?.sourceExternalContentItem;
   if (
     affiche?.id &&

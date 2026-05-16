@@ -213,15 +213,6 @@ export class ChatsService {
             durationMinutes: true,
             isAfterDark: true,
             afterDarkGlow: true,
-            sourcePoster: {
-              select: {
-                id: true,
-                priceFrom: true,
-                ticketUrl: true,
-                provider: true,
-                venue: true,
-              },
-            },
             sourceExternalContentItem: {
               select: {
                 id: true,
@@ -786,13 +777,6 @@ export class ChatsService {
   }
 
   private mapTicketSummary(event?: {
-    sourcePoster?: {
-      id: string;
-      priceFrom: number;
-      ticketUrl: string;
-      provider: string;
-      venue: string;
-    } | null;
     sourceExternalContentItem?: {
       id: string;
       contentKind?: string | null;
@@ -803,18 +787,6 @@ export class ChatsService {
       venueName?: string | null;
     } | null;
   } | null) {
-    const poster = event?.sourcePoster;
-    if (poster && poster.priceFrom > 0 && poster.ticketUrl.trim().length > 0) {
-      return {
-        ticketUrl: poster.ticketUrl,
-        ticketSourceKind: 'poster',
-        ticketSourceId: poster.id,
-        ticketPriceFrom: poster.priceFrom,
-        ticketProvider: poster.provider,
-        ticketVenue: poster.venue,
-      };
-    }
-
     const affiche = event?.sourceExternalContentItem;
     if (
       affiche != null &&

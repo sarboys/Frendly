@@ -193,40 +193,6 @@ export class PartnerPortalController {
     return this.partnerPortalService.deleteCommunityMedia(current, communityId, mediaId);
   }
 
-  @Get('posters')
-  listPosters(@CurrentPartner() current: CurrentPartnerDto, @Query() query: Record<string, unknown>) {
-    return this.partnerPortalService.listPosters(current, this.queryWithNumberLimit(query));
-  }
-
-  @Post('posters')
-  createPoster(@CurrentPartner() current: CurrentPartnerDto, @Body() body: Record<string, unknown>) {
-    return this.partnerPortalService.createPoster(current, body);
-  }
-
-  @Get('posters/:posterId')
-  getPoster(@CurrentPartner() current: CurrentPartnerDto, @Param('posterId') posterId: string) {
-    return this.partnerPortalService.getPoster(current, posterId);
-  }
-
-  @Patch('posters/:posterId')
-  updatePoster(
-    @CurrentPartner() current: CurrentPartnerDto,
-    @Param('posterId') posterId: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.partnerPortalService.updatePoster(current, posterId, body);
-  }
-
-  @Post('posters/:posterId/submit')
-  submitPoster(@CurrentPartner() current: CurrentPartnerDto, @Param('posterId') posterId: string) {
-    return this.partnerPortalService.submitPoster(current, posterId);
-  }
-
-  @Post('posters/:posterId/archive')
-  archivePoster(@CurrentPartner() current: CurrentPartnerDto, @Param('posterId') posterId: string) {
-    return this.partnerPortalService.archivePoster(current, posterId);
-  }
-
   @Get('featured-requests')
   listFeaturedRequests(
     @CurrentPartner() current: CurrentPartnerDto,

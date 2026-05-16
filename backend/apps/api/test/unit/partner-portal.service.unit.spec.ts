@@ -6,8 +6,6 @@ const approvedPartner = {
 };
 
 describe('PartnerPortalService unit', () => {
-  const futureDate = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
   it('requires an approved partner binding before portal CRUD', async () => {
     const service = new PartnerPortalService({ client: {} } as any);
 
@@ -40,67 +38,6 @@ describe('PartnerPortalService unit', () => {
         take: 21,
       }),
     );
-  });
-
-  it('creates partner posters as drafts owned by the session partner', async () => {
-    const startsAt = futureDate();
-    const create = jest.fn().mockResolvedValue({
-      id: 'poster-1',
-      partnerId: 'partner-1',
-      category: 'concert',
-      title: 'Jazz Night',
-      emoji: '🎷',
-      startsAt,
-      dateLabel: '01.05',
-      timeLabel: '20:00',
-      venue: 'Roof',
-      address: 'Москва, Тверская 1',
-      distanceKm: 0,
-      priceFrom: 1200,
-      ticketUrl: 'https://tickets.example',
-      provider: 'partner',
-      tone: 'warm',
-      tags: ['jazz'],
-      description: 'Live jazz',
-      status: 'draft',
-      isFeatured: false,
-      coverAssetId: null,
-      createdAt: new Date('2026-04-29T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-29T10:00:00.000Z'),
-    });
-    const service = new PartnerPortalService({
-      client: {
-        poster: {
-          create,
-        },
-      },
-    } as any);
-
-    const result = await service.createPoster(approvedPartner, {
-      category: 'concert',
-      title: 'Jazz Night',
-      emoji: '🎷',
-      startsAt: startsAt.toISOString(),
-      venue: 'Roof',
-      address: 'Москва, Тверская 1',
-      priceFrom: 1200,
-      ticketUrl: 'https://tickets.example',
-      tags: ['jazz'],
-      description: 'Live jazz',
-    });
-
-    expect(create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        partnerId: 'partner-1',
-        status: 'draft',
-        provider: 'partner',
-      }),
-    });
-    expect(result).toMatchObject({
-      id: 'poster-1',
-      partnerId: 'partner-1',
-      status: 'draft',
-    });
   });
 
   it('does not create featuring requests for targets owned by another partner', async () => {

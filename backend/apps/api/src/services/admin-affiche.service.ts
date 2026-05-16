@@ -1,101 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { PosterCategory, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-const POSTER_STATUSES = new Set(['published', 'hidden', 'rejected', 'archived', 'draft']);
 
 @Injectable()
 export class AdminAfficheService {
   constructor(private readonly prismaService: PrismaService) {}
-
-  async listPosters(query: Record<string, unknown> = {}) {
-    const limit = this.parseLimit(query.limit);
-    const rows = await this.prismaService.client.poster.findMany({
-      where: this.buildPosterWhere(query),
-      select: this.posterSelect(),
-      orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    });
-
-    return this.page(
-      rows,
-      limit,
-      (row) => this.mapPoster(row as any),
-      (row) => ({ startsAt: row.startsAt.toISOString(), id: row.id }),
-    );
-  }
-
-  async createPoster(body: Record<string, unknown>) {
-    const startsAt = this.requiredDate(body.startsAt, 'admin_poster_starts_at_invalid');
-    const poster = await this.prismaService.client.poster.create({
-      data: {
-        id: this.requiredText(body.id, 'admin_poster_id_required'),
-        city: this.requiredText(body.city, 'admin_poster_city_required'),
-        category: this.parsePosterCategory(body.category),
-        title: this.requiredText(body.title, 'admin_poster_title_required'),
-        emoji: this.optionalText(body.emoji) ?? '🎟️',
-        startsAt,
-        dateLabel: this.optionalText(body.dateLabel) ?? this.dateLabel(startsAt),
-        timeLabel: this.optionalText(body.timeLabel) ?? this.timeLabel(startsAt),
-        venue: this.requiredText(body.venue, 'admin_poster_venue_required'),
-        address: this.requiredText(body.address, 'admin_poster_address_required'),
-        distanceKm: this.optionalNumber(body.distanceKm) ?? 0,
-        priceFrom: this.parseInt(body.priceFrom ?? body.price ?? 0, 0, 1_000_000, 'admin_poster_price_invalid'),
-        ticketUrl: this.requiredHttpsUrl(body.ticketUrl, 'admin_poster_ticket_url_invalid'),
-        provider: this.optionalText(body.provider) ?? 'admin',
-        tone: 'warm',
-        tags: this.parseStringArray(body.tags),
-        description: this.requiredText(body.description, 'admin_poster_description_required'),
-        status: this.parsePosterStatus(body.status ?? 'draft'),
-        isFeatured: this.parseBoolean(body.featured ?? body.isFeatured) ?? false,
-        partnerId: this.optionalText(body.partnerId),
-      },
-      select: this.posterSelect(),
-    });
-
-    return this.mapPoster(poster as any);
-  }
-
-  async getPoster(posterId: string) {
-    const poster = await this.prismaService.client.poster.findUnique({
-      where: { id: posterId },
-      select: this.posterDetailSelect(),
-    });
-    if (!poster) {
-      throw new ApiError(404, 'admin_poster_not_found', 'Poster not found');
-    }
-
-    return this.mapPoster(poster as any);
-  }
-
-  async updatePoster(posterId: string, body: Record<string, unknown>) {
-    const data = this.parsePosterUpdate(body);
-    const poster = await this.prismaService.client.poster.update({
-      where: { id: posterId },
-      data,
-      select: this.posterDetailSelect(),
-    });
-
-    return this.mapPoster(poster as any);
-  }
-
-  async posterAction(posterId: string, action: string) {
-    const data = posterActionData(action);
-    if (!data) {
-      throw new ApiError(400, 'admin_poster_action_invalid', 'Poster action is invalid');
-    }
-
-    const poster = await this.prismaService.client.poster.update({
-      where: { id: posterId },
-      data,
-      select: this.posterDetailSelect(),
-    });
-
-    return this.mapPoster(poster as any);
-  }
 
   async listContentItems(query: Record<string, unknown> = {}) {
     const limit = this.parseLimit(query.limit);
@@ -255,52 +168,6 @@ export class AdminAfficheService {
     return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
   }
 
-  private buildPosterWhere(query: Record<string, unknown>): Prisma.PosterWhereInput {
-    const and: Prisma.PosterWhereInput[] = [];
-    const search = this.optionalText(query.q);
-    const city = this.optionalText(query.city);
-    const category = this.optionalText(query.category);
-    const status = this.optionalText(query.status);
-    const featured = this.parseBoolean(query.featured);
-    const dateFrom = this.parseDate(query.dateFrom, 'admin_poster_date_from_invalid');
-    const dateTo = this.parseDate(query.dateTo, 'admin_poster_date_to_invalid');
-
-    if (search) {
-      and.push({
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { venue: { contains: search, mode: 'insensitive' } },
-          { address: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-          { provider: { contains: search, mode: 'insensitive' } },
-        ],
-      });
-    }
-    if (city) {
-      and.push({ city });
-    }
-    if (category) {
-      and.push({ category: this.parsePosterCategory(category) });
-    }
-    if (status) {
-      and.push({ status: this.parsePosterStatus(status) });
-    }
-    if (featured != null) {
-      and.push({ isFeatured: featured });
-    }
-    if (dateFrom || dateTo) {
-      and.push({
-        startsAt: {
-          ...(dateFrom ? { gte: dateFrom } : {}),
-          ...(dateTo ? { lte: dateTo } : {}),
-        },
-      });
-    }
-
-    and.push(this.startsAtCursorWhere(query.cursor));
-    return and.length === 1 ? and[0] ?? {} : { AND: and };
-  }
-
   private buildContentItemWhere(query: Record<string, unknown>): Prisma.ExternalContentItemWhereInput {
     const and: Prisma.ExternalContentItemWhereInput[] = [{ contentKind: 'event' }];
     const search = this.optionalText(query.q);
@@ -358,43 +225,6 @@ export class AdminAfficheService {
     }
   }
 
-  private posterSelect() {
-    return {
-      id: true,
-      city: true,
-      category: true,
-      title: true,
-      emoji: true,
-      startsAt: true,
-      dateLabel: true,
-      timeLabel: true,
-      venue: true,
-      address: true,
-      distanceKm: true,
-      priceFrom: true,
-      ticketUrl: true,
-      provider: true,
-      tone: true,
-      tags: true,
-      description: true,
-      status: true,
-      isFeatured: true,
-      coverAssetId: true,
-      partnerId: true,
-      createdAt: true,
-      updatedAt: true,
-    };
-  }
-
-  private posterDetailSelect() {
-    return {
-      ...this.posterSelect(),
-      _count: {
-        select: { events: true },
-      },
-    };
-  }
-
   private contentItemSelect() {
     return {
       id: true,
@@ -430,36 +260,6 @@ export class AdminAfficheService {
       createdAt: true,
       updatedAt: true,
       source: { select: { code: true, name: true } },
-    };
-  }
-
-  private mapPoster(poster: any) {
-    return {
-      source: 'native',
-      id: poster.id,
-      city: poster.city,
-      category: poster.category,
-      title: poster.title,
-      emoji: poster.emoji,
-      startsAt: poster.startsAt.toISOString(),
-      dateLabel: poster.dateLabel,
-      timeLabel: poster.timeLabel,
-      venue: poster.venue,
-      address: poster.address,
-      distanceKm: poster.distanceKm,
-      priceFrom: poster.priceFrom,
-      ticketUrl: poster.ticketUrl,
-      provider: poster.provider,
-      tone: poster.tone,
-      tags: Array.isArray(poster.tags) ? poster.tags : [],
-      description: poster.description,
-      status: poster.status,
-      isFeatured: poster.isFeatured,
-      coverAssetId: poster.coverAssetId,
-      partnerId: poster.partnerId,
-      linkedEventsCount: poster._count?.events ?? 0,
-      createdAt: poster.createdAt.toISOString(),
-      updatedAt: poster.updatedAt.toISOString(),
     };
   }
 
@@ -504,41 +304,6 @@ export class AdminAfficheService {
     };
   }
 
-  private parsePosterUpdate(body: Record<string, unknown>) {
-    const data: Record<string, unknown> = {};
-    this.setRequiredText(data, body, 'city', 'admin_poster_city_required');
-    if (this.hasOwn(body, 'category')) data.category = this.parsePosterCategory(body.category);
-    this.setRequiredText(data, body, 'title', 'admin_poster_title_required');
-    this.setRequiredText(data, body, 'emoji', 'admin_poster_emoji_required');
-    if (this.hasOwn(body, 'startsAt')) {
-      const startsAt = this.requiredDate(body.startsAt, 'admin_poster_starts_at_invalid');
-      data.startsAt = startsAt;
-      data.dateLabel = this.dateLabel(startsAt);
-      data.timeLabel = this.timeLabel(startsAt);
-    }
-    this.setRequiredText(data, body, 'dateLabel', 'admin_poster_date_label_required');
-    this.setRequiredText(data, body, 'timeLabel', 'admin_poster_time_label_required');
-    this.setRequiredText(data, body, 'venue', 'admin_poster_venue_required');
-    this.setRequiredText(data, body, 'address', 'admin_poster_address_required');
-    if (this.hasOwn(body, 'distanceKm')) data.distanceKm = this.optionalNumber(body.distanceKm) ?? 0;
-    if (this.hasOwn(body, 'priceFrom') || this.hasOwn(body, 'price')) {
-      data.priceFrom = this.parseInt(body.priceFrom ?? body.price, 0, 1_000_000, 'admin_poster_price_invalid');
-    }
-    if (this.hasOwn(body, 'ticketUrl')) {
-      data.ticketUrl = this.requiredHttpsUrl(body.ticketUrl, 'admin_poster_ticket_url_invalid');
-    }
-    this.setRequiredText(data, body, 'provider', 'admin_poster_provider_required');
-    if (this.hasOwn(body, 'tags')) data.tags = this.parseStringArray(body.tags);
-    this.setRequiredText(data, body, 'description', 'admin_poster_description_required');
-    if (this.hasOwn(body, 'status')) data.status = this.parsePosterStatus(body.status);
-    if (this.hasOwn(body, 'featured') || this.hasOwn(body, 'isFeatured')) {
-      data.isFeatured = this.parseBoolean(body.featured ?? body.isFeatured) ?? false;
-    }
-    if (this.hasOwn(body, 'partnerId')) data.partnerId = this.optionalText(body.partnerId);
-
-    return data as Prisma.PosterUpdateInput;
-  }
-
   private parseContentItemUpdate(body: Record<string, unknown>) {
     const data: Record<string, unknown> = {};
     this.setRequiredText(data, body, 'title', 'admin_affiche_title_required');
@@ -577,14 +342,6 @@ export class AdminAfficheService {
     }
   }
 
-  private startsAtCursorWhere(cursorValue: unknown) {
-    const cursor = this.parseCursor(cursorValue);
-    if (!cursor) return {};
-    const startsAt = this.requiredCursorDate(cursor, 'startsAt');
-    const id = this.requiredCursorText(cursor, 'id');
-    return { OR: [{ startsAt: { lt: startsAt } }, { startsAt, id: { lt: id } }] };
-  }
-
   private contentCursorWhere(cursorValue: unknown) {
     const cursor = this.parseCursor(cursorValue);
     if (!cursor) return {};
@@ -617,35 +374,6 @@ export class AdminAfficheService {
     const date = this.parseDate(value, code);
     if (!date) throw new ApiError(400, code, 'Date is invalid');
     return date;
-  }
-
-  private parsePosterCategory(value: unknown) {
-    if (
-      value === PosterCategory.concert ||
-      value === PosterCategory.sport ||
-      value === PosterCategory.exhibition ||
-      value === PosterCategory.theatre ||
-      value === PosterCategory.standup ||
-      value === PosterCategory.festival ||
-      value === PosterCategory.cinema
-    ) {
-      return value;
-    }
-    throw new ApiError(400, 'admin_poster_category_invalid', 'Poster category is invalid');
-  }
-
-  private parsePosterStatus(value: unknown) {
-    const status = this.requiredText(value, 'admin_poster_status_required');
-    if (!POSTER_STATUSES.has(status)) {
-      throw new ApiError(400, 'admin_poster_status_invalid', 'Poster status is invalid');
-    }
-    return status;
-  }
-
-  private requiredHttpsUrl(value: unknown, code: string) {
-    const url = this.optionalSafeUrl(value, code);
-    if (!url) throw new ApiError(400, code, 'URL is invalid');
-    return url;
   }
 
   private optionalSafeUrl(value: unknown, code: string) {
@@ -700,32 +428,6 @@ export class AdminAfficheService {
     return Object.prototype.hasOwnProperty.call(source, key);
   }
 
-  private dateLabel(date: Date) {
-    return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`;
-  }
-
-  private timeLabel(date: Date) {
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-  }
-}
-
-function posterActionData(action: string) {
-  switch (action) {
-    case 'publish':
-      return { status: 'published' };
-    case 'hide':
-      return { status: 'hidden' };
-    case 'reject':
-      return { status: 'rejected' };
-    case 'archive':
-      return { status: 'archived' };
-    case 'feature':
-      return { isFeatured: true };
-    case 'unfeature':
-      return { isFeatured: false };
-    default:
-      return null;
-  }
 }
 
 function contentActionData(action: string) {

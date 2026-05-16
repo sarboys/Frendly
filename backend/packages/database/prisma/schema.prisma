@@ -42,7 +42,6 @@ enum MediaAssetKind {
   chat_attachment
   chat_voice
   story_media
-  poster_cover
 }
 
 enum MediaAssetStatus {
@@ -134,16 +133,6 @@ enum EventVisibilityMode {
   friends
 }
 
-enum PosterCategory {
-  concert
-  sport
-  exhibition
-  theatre
-  standup
-  festival
-  cinema
-}
-
 enum EventJoinRequestStatus {
   pending
   approved
@@ -227,6 +216,7 @@ enum TokenLedgerReason {
   purchase
   promotion_spend
   subscription_spend
+  reward_grant
   admin_adjustment
 }
 
@@ -311,6 +301,7 @@ model User {
   paymentOrders                      PaymentOrder[]
   tokenWallet                        TokenWallet?
   tokenPromotions                    TokenPromotion[]
+  seasonRewardClaims                 UserSeasonRewardClaim[]
   chatMembers                        ChatMember[]
   createdCommunities                 Community[]                 @relation("CommunityCreator")
   communityMemberships               CommunityMember[]
@@ -611,7 +602,6 @@ model Event {
   isCalm            Boolean             @default(false)
   isNewcomers       Boolean             @default(false)
   isDate            Boolean             @default(false)
-  sourcePosterId    String?
   sourceExternalContentItemId String?
   eveningRouteId    String?
   partnerId         String?
@@ -619,7 +609,6 @@ model Event {
   cancelReason      String?
   hostId            String
   host              User                @relation("HostedEvents", fields: [hostId], references: [id])
-  sourcePoster      Poster?             @relation(fields: [sourcePosterId], references: [id], onDelete: SetNull)
   sourceExternalContentItem ExternalContentItem? @relation("EventSourceExternalContent", fields: [sourceExternalContentItemId], references: [id], onDelete: SetNull)
   eveningRoute      EveningRoute?       @relation(fields: [eveningRouteId], references: [id], onDelete: SetNull)
   partner           Partner?            @relation(fields: [partnerId], references: [id], onDelete: SetNull)
@@ -639,7 +628,6 @@ model Event {
   updatedAt         DateTime            @updatedAt
 
   @@unique([hostId, idempotencyKey])
-  @@index([sourcePosterId])
   @@index([sourceExternalContentItemId])
   @@index([eveningRouteId, startsAt, id])
   @@index([partnerId, startsAt, id])
@@ -656,41 +644,6 @@ model Event {
   @@index([isAfterDark, genderMode, startsAt, id])
   @@index([startsAt, id])
   @@index([hostId, startsAt, id])
-}
-
-model Poster {
-  id           String         @id
-  city         String
-  category     PosterCategory
-  title        String
-  emoji        String
-  startsAt     DateTime
-  dateLabel    String
-  timeLabel    String
-  venue        String
-  address      String
-  distanceKm   Float
-  priceFrom    Int
-  ticketUrl    String
-  provider     String
-  tone         EventTone      @default(warm)
-  tags         Json
-  description  String
-  status       String         @default("published")
-  isFeatured   Boolean        @default(false)
-  coverAssetId String?        @unique
-  partnerId    String?
-  events       Event[]
-  coverAsset   MediaAsset?    @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
-  partner      Partner?       @relation(fields: [partnerId], references: [id], onDelete: SetNull)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-
-  @@index([city, startsAt])
-  @@index([city, category, startsAt])
-  @@index([city, isFeatured, startsAt])
-  @@index([partnerId, startsAt, id])
-  @@index([status, city, startsAt, id])
 }
 
 model Partner {
@@ -712,7 +665,6 @@ model Partner {
   offerCodes       PartnerOfferCode[]
   events           Event[]
   communities      Community[]
-  posters          Poster[]
   featuredRequests PartnerFeaturedRequest[]
 
   @@index([city, status, id])
@@ -1792,6 +1744,20 @@ model TokenPromotion {
   @@index([userId, expiresAt])
 }
 
+model UserSeasonRewardClaim {
+  id           String   @id @default(cuid())
+  userId       String
+  seasonKey    String
+  rewardKey    String
+  rewardKind   String
+  rewardAmount Int
+  claimedAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seasonKey, rewardKey])
+  @@index([userId, seasonKey, claimedAt])
+}
+
 model DatingAction {
   id           String           @id @default(cuid())
   actorUserId  String
@@ -2041,7 +2007,6 @@ model MediaAsset {
   profileAvatar           Profile?                 @relation("ProfileAvatar")
   profilePhotos           ProfilePhoto[]
   storyAsset              EventStory?
-  posterCover             Poster?
   messageLinks            MessageAttachment[]
   eveningAfterPartyPhotos EveningAfterPartyPhoto[]
 

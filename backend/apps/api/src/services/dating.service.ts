@@ -12,7 +12,10 @@ import { PrismaService } from './prisma.service';
 import { PeopleService } from './people.service';
 import { SubscriptionService } from './subscription.service';
 
-const _positiveDatingActions = new Set<DatingActionKind>(['like', 'super_like']);
+const _positiveDatingActions = new Set<DatingActionKind>([
+  'like',
+  'super_like',
+]);
 type DatingGender = 'male' | 'female';
 const FREE_SUPER_LIKE_DAILY_LIMIT = 1;
 const PLUS_SUPER_LIKE_DAILY_LIMIT = 15;
@@ -56,11 +59,15 @@ const DATING_SELF_SELECT = {
   profile: {
     select: {
       gender: true,
+      city: true,
+      area: true,
     },
   },
   onboarding: {
     select: {
       gender: true,
+      city: true,
+      area: true,
       interests: true,
     },
   },
@@ -111,6 +118,38 @@ type DatingProfileUser = {
   } | null;
 };
 
+type DatingSelfUser = {
+  displayName?: string | null;
+  profile?: {
+    gender: DatingGender | null;
+    city?: string | null;
+    area?: string | null;
+  } | null;
+  onboarding?: {
+    gender: DatingGender | null;
+    city?: string | null;
+    area?: string | null;
+    interests?: unknown;
+  } | null;
+} | null;
+
+type DatingDiscoverParams = {
+  cursor?: string;
+  limit?: number;
+  ageMin?: number;
+  ageMax?: number;
+  radiusKm?: number;
+  interests?: string[];
+};
+
+type NormalizedDatingDiscoverFilters = {
+  ageMin?: number;
+  ageMax?: number;
+  radiusKm?: number;
+  interests: string[];
+};
+type DatingLocation = { latitude: number; longitude: number };
+
 const _datingLocationByCityArea: Record<
   string,
   { latitude: number; longitude: number }
@@ -127,17 +166,21 @@ const _datingLocationByCityArea: Record<
   'санкт-петербург|центр': { latitude: 59.9386, longitude: 30.3141 },
 };
 
-const _datingLocationByCity: Record<string, { latitude: number; longitude: number }> = {
-  'москва': { latitude: 55.7558, longitude: 37.6173 },
+const _datingLocationByCity: Record<
+  string,
+  { latitude: number; longitude: number }
+> = {
+  москва: { latitude: 55.7558, longitude: 37.6173 },
   'санкт-петербург': { latitude: 59.9386, longitude: 30.3141 },
   'nha trang': { latitude: 12.2388, longitude: 109.1967 },
-  'нячанг': { latitude: 12.2388, longitude: 109.1967 },
+  нячанг: { latitude: 12.2388, longitude: 109.1967 },
 };
 
 const _datingPromptByUserId: Record<string, string> = {
   'user-anya': 'Идеальный первый date, выставка плюс долгий ужин без спешки.',
   'user-sonya': 'Выбираю тихие места, где можно правда поговорить.',
-  'user-liza': 'Если звать на свидание, то лучше сразу вживую, без долгих прелюдий.',
+  'user-liza':
+    'Если звать на свидание, то лучше сразу вживую, без долгих прелюдий.',
   'user-mark': 'Люблю быстрые планы, легкие маршруты, хороший бар без пафоса.',
   'user-dima': 'Лучший date, когда можно гулять, смеяться, не сидеть на месте.',
   'user-oleg': 'Умею находить музыку, места, поздние разговоры после работы.',
@@ -160,10 +203,7 @@ export class DatingService {
     private readonly subscriptionService: SubscriptionService,
   ) {}
 
-  async listDiscover(
-    userId: string,
-    params: { cursor?: string; limit?: number } = {},
-  ) {
+  async listDiscover(userId: string, params: DatingDiscoverParams = {}) {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -174,67 +214,179 @@ export class DatingService {
 
     const take = this.normalizeListLimit(params.limit);
     const cursorId = this.decodeCursor(params.cursor);
-    const excludedUserIds = new Set<string>([
-      userId,
-      ...blockedUserIds,
-    ]);
+    const filters = this.normalizeDiscoverFilters(params);
+    const candidateTake = this.discoverCandidateTake(take, filters);
+    const excludedUserIds = new Set<string>([userId, ...blockedUserIds]);
     const selfInterests = this.extractInterests(self?.onboarding?.interests);
     const targetGender = this.oppositeGenderForSelf(self);
-
-    const users = await this.prismaService.client.user.findMany({
-      where: {
-        ...this.oppositeGenderWhere(targetGender),
-        id: {
-          notIn: [...excludedUserIds],
-          ...(cursorId == null ? {} : { gt: cursorId }),
-        },
-        settings: {
-          is: {
-            discoverable: true,
-          },
-        },
-        datingActionsReceived: {
-          none: {
-            actorUserId: userId,
-          },
-        },
-      },
-      select: DATING_USER_CARD_SELECT,
-      orderBy: [{ id: 'asc' }],
-      take: take + 1,
+    const selfLocation = this.resolveUserDatingLocation(self);
+    const discoverWhere = this.buildDiscoverWhere({
+      userId,
+      targetGender,
+      excludedUserIds,
+      cursorId,
+      filters,
     });
 
-    const userIds = users.map((item) => item.id);
-    const incomingLikes = userIds.length === 0
-      ? []
-      : await this.prismaService.client.datingAction.findMany({
-          where: {
-            actorUserId: {
-              in: userIds,
+    const users = await this.prismaService.client.user.findMany({
+      where: discoverWhere,
+      select: DATING_USER_CARD_SELECT,
+      orderBy: [{ id: 'asc' }],
+      take: candidateTake,
+    });
+
+    const filteredUsers = this.applyDiscoverPostFilters(
+      users,
+      selfLocation,
+      filters,
+    );
+    const hasMore = users.length >= candidateTake;
+    const page = filteredUsers.slice(0, take);
+
+    const userIds = page.map((item) => item.id);
+    const incomingLikes =
+      userIds.length === 0
+        ? []
+        : await this.prismaService.client.datingAction.findMany({
+            where: {
+              actorUserId: {
+                in: userIds,
+              },
+              targetUserId: userId,
+              action: {
+                in: ['like', 'super_like'],
+              },
             },
-            targetUserId: userId,
-            action: {
-              in: ['like', 'super_like'],
-            },
-          },
-          select: { actorUserId: true },
-        });
+            select: { actorUserId: true },
+          });
 
     const likedYou = new Set(incomingLikes.map((item) => item.actorUserId));
-    const hasMore = users.length > take;
-    const page = hasMore ? users.slice(0, take) : users;
+    const nextCursorId = this.discoverNextCursorId({
+      users,
+      filteredUsers,
+      page,
+      hasMore,
+      take,
+    });
 
     return {
       items: page.map((user) =>
         this.mapDatingProfile(user, selfInterests, {
           likedYou: likedYou.has(user.id),
+          viewerLocation: selfLocation,
         }),
       ),
       nextCursor:
-        hasMore && page.length > 0
-          ? encodeCursor({ value: page[page.length - 1]!.id })
-          : null,
+        nextCursorId == null ? null : encodeCursor({ value: nextCursorId }),
     };
+  }
+
+  private buildDiscoverWhere(params: {
+    userId: string;
+    targetGender: DatingGender | null;
+    excludedUserIds: Set<string>;
+    cursorId: string | null;
+    filters: NormalizedDatingDiscoverFilters;
+  }): Prisma.UserWhereInput {
+    const andFilters = this.discoverAndFilters(params.filters);
+    const genderWhere = this.oppositeGenderWhere(params.targetGender);
+    const genderAnd = this.toAndArray(genderWhere.AND);
+    const and = [...genderAnd, ...andFilters];
+    const where: Prisma.UserWhereInput = {
+      ...genderWhere,
+      id: {
+        notIn: [...params.excludedUserIds],
+        ...(params.cursorId == null ? {} : { gt: params.cursorId }),
+      },
+      settings: {
+        is: {
+          discoverable: true,
+        },
+      },
+      datingActionsReceived: {
+        none: {
+          actorUserId: params.userId,
+        },
+      },
+    };
+    if (and.length > 0) {
+      where.AND = and;
+    } else {
+      delete where.AND;
+    }
+    return where;
+  }
+
+  private discoverAndFilters(
+    filters: NormalizedDatingDiscoverFilters,
+  ): Prisma.UserWhereInput[] {
+    const age: Prisma.IntNullableFilter = {};
+    if (filters.ageMin != null) {
+      age.gte = filters.ageMin;
+    }
+    if (filters.ageMax != null) {
+      age.lte = filters.ageMax;
+    }
+    if (Object.keys(age).length === 0) {
+      return [];
+    }
+    return [{ profile: { is: { age } } }];
+  }
+
+  private discoverCandidateTake(
+    take: number,
+    filters: NormalizedDatingDiscoverFilters,
+  ) {
+    const needsPostFiltering =
+      filters.interests.length > 0 || filters.radiusKm != null;
+    return needsPostFiltering ? Math.min(take * 5, 100) + 1 : take + 1;
+  }
+
+  private applyDiscoverPostFilters(
+    users: DatingProfileUser[],
+    selfLocation: DatingLocation | null,
+    filters: NormalizedDatingDiscoverFilters,
+  ) {
+    if (filters.interests.length === 0 && filters.radiusKm == null) {
+      return users;
+    }
+    return users.filter((user) => {
+      if (!this.matchesInterestFilter(user, filters.interests)) {
+        return false;
+      }
+      if (
+        filters.radiusKm != null &&
+        !this.matchesRadiusFilter(user, selfLocation, filters.radiusKm)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  private discoverNextCursorId(params: {
+    users: DatingProfileUser[];
+    filteredUsers: DatingProfileUser[];
+    page: DatingProfileUser[];
+    hasMore: boolean;
+    take: number;
+  }) {
+    if (params.filteredUsers.length > params.take && params.page.length > 0) {
+      return params.page[params.page.length - 1]!.id;
+    }
+    if (params.hasMore && params.users.length > 0) {
+      return params.users[params.users.length - 1]!.id;
+    }
+    return null;
+  }
+
+  private toAndArray(
+    value: Prisma.UserWhereInput['AND'],
+  ): Prisma.UserWhereInput[] {
+    if (value == null) {
+      return [];
+    }
+    return Array.isArray(value) ? value : [value];
   }
 
   async listLikes(
@@ -255,6 +407,7 @@ export class DatingService {
     const cursorId = this.decodeCursor(params.cursor);
     const selfInterests = this.extractInterests(self?.onboarding?.interests);
     const targetGender = this.oppositeGenderForSelf(self);
+    const selfLocation = this.resolveUserDatingLocation(self);
 
     const likes = await this.prismaService.client.datingAction.findMany({
       where: {
@@ -292,6 +445,7 @@ export class DatingService {
       items: page.map((item) =>
         this.mapDatingProfile(item.actorUser, selfInterests, {
           likedYou: true,
+          viewerLocation: selfLocation,
         }),
       ),
       nextCursor:
@@ -307,7 +461,11 @@ export class DatingService {
     const action = this.parseAction(body.action);
 
     if (targetUserId.length === 0 || targetUserId === userId) {
-      throw new ApiError(400, 'invalid_dating_target', 'Target user is invalid');
+      throw new ApiError(
+        400,
+        'invalid_dating_target',
+        'Target user is invalid',
+      );
     }
 
     const blockedUserIds = await this.getBlockedUserIds(userId);
@@ -400,10 +558,9 @@ export class DatingService {
       reciprocal != null &&
       _positiveDatingActions.has(reciprocal.action);
 
-    const chat =
-      matched
-        ? await this.peopleService.createOrGetDirectChat(userId, targetUserId)
-        : null;
+    const chat = matched
+      ? await this.peopleService.createOrGetDirectChat(userId, targetUserId)
+      : null;
 
     return {
       ok: true,
@@ -417,6 +574,7 @@ export class DatingService {
         {
           likedYou:
             reciprocal != null && _positiveDatingActions.has(reciprocal.action),
+          viewerLocation: this.resolveUserDatingLocation(self),
         },
       ),
     };
@@ -474,11 +632,7 @@ export class DatingService {
   private currentUtcDayWindow() {
     const now = new Date();
     const start = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate(),
-      ),
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
     );
     const end = new Date(start);
     end.setUTCDate(end.getUTCDate() + 1);
@@ -488,7 +642,7 @@ export class DatingService {
   private mapDatingProfile(
     user: DatingProfileUser,
     selfInterests: string[],
-    options: { likedYou: boolean },
+    options: { likedYou: boolean; viewerLocation?: DatingLocation | null },
   ) {
     const interests = this.extractInterests(user.onboarding?.interests);
     const common = interests.filter((item) => selfInterests.includes(item));
@@ -503,16 +657,26 @@ export class DatingService {
     const city = user.profile?.city ?? user.onboarding?.city ?? null;
     const area = user.profile?.area ?? user.onboarding?.area ?? null;
     const location = this.resolveDatingProfileLocation(city, area);
+    const distanceKm =
+      options.viewerLocation == null || location == null
+        ? null
+        : this.calculateDistanceKm(options.viewerLocation, location);
 
     return {
       userId: user.id,
       name: user.displayName,
       age: user.profile?.age ?? null,
       city,
-      distance: this.deriveDistanceLabel(user.id),
-      about: user.profile?.bio ?? 'Лучше знакомиться вживую, чем тянуть переписку.',
+      distance:
+        distanceKm == null
+          ? this.deriveDistanceLabel(user.id)
+          : this.formatDistanceLabel(distanceKm),
+      about:
+        user.profile?.bio ?? 'Лучше знакомиться вживую, чем тянуть переписку.',
       tags,
-      prompt: _datingPromptByUserId[user.id] ?? 'Позови на свидание, если хочешь увидеться без долгих свайпов.',
+      prompt:
+        _datingPromptByUserId[user.id] ??
+        'Позови на свидание, если хочешь увидеться без долгих свайпов.',
       photoEmoji: _datingEmojiByUserId[user.id] ?? '💘',
       avatarUrl: primaryPhoto?.url ?? user.profile?.avatarUrl ?? null,
       primaryPhoto,
@@ -528,7 +692,10 @@ export class DatingService {
     };
   }
 
-  private resolveDatingProfileLocation(city: string | null, area: string | null) {
+  private resolveDatingProfileLocation(
+    city: string | null,
+    area: string | null,
+  ) {
     const normalizedCity = this.normalizeLocationText(city);
     const normalizedArea = this.normalizeLocationText(area);
     if (normalizedCity.length === 0) {
@@ -561,10 +728,111 @@ export class DatingService {
     return decimal === 0 ? `${whole} км` : `${whole}.${decimal} км`;
   }
 
+  private formatDistanceLabel(distanceKm: number) {
+    if (distanceKm < 1) {
+      return `${Math.max(1, Math.round(distanceKm * 1000))} м`;
+    }
+    const rounded = Math.round(distanceKm * 10) / 10;
+    return Number.isInteger(rounded)
+      ? `${rounded} км`
+      : `${rounded.toFixed(1)} км`;
+  }
+
+  private normalizeDiscoverFilters(
+    params: DatingDiscoverParams,
+  ): NormalizedDatingDiscoverFilters {
+    const ageMin = this.normalizeAgeFilter(params.ageMin);
+    const ageMax = this.normalizeAgeFilter(params.ageMax);
+    const normalizedAgeMin =
+      ageMin != null && ageMax != null ? Math.min(ageMin, ageMax) : ageMin;
+    const normalizedAgeMax =
+      ageMin != null && ageMax != null ? Math.max(ageMin, ageMax) : ageMax;
+    const radiusKm =
+      params.radiusKm == null || !Number.isFinite(params.radiusKm)
+        ? undefined
+        : Math.max(1, Math.min(Math.round(params.radiusKm), 150));
+    const interests = (params.interests ?? [])
+      .map((item) => this.normalizeFilterText(item))
+      .filter(
+        (item, index, values) =>
+          item.length > 0 && values.indexOf(item) === index,
+      );
+
+    return {
+      ageMin: normalizedAgeMin,
+      ageMax: normalizedAgeMax,
+      radiusKm,
+      interests,
+    };
+  }
+
+  private normalizeAgeFilter(value?: number) {
+    if (value == null || !Number.isFinite(value)) {
+      return undefined;
+    }
+    return Math.max(18, Math.min(Math.trunc(value), 80));
+  }
+
   private extractInterests(raw: unknown) {
     return Array.isArray(raw)
       ? raw.filter((item): item is string => typeof item === 'string')
       : [];
+  }
+
+  private matchesInterestFilter(user: DatingProfileUser, interests: string[]) {
+    if (interests.length === 0) {
+      return true;
+    }
+    const profileInterests = this.extractInterests(user.onboarding?.interests)
+      .map((item) => this.normalizeFilterText(item))
+      .filter((item) => item.length > 0);
+    return interests.some((interest) => profileInterests.includes(interest));
+  }
+
+  private matchesRadiusFilter(
+    user: DatingProfileUser,
+    selfLocation: DatingLocation | null,
+    radiusKm: number,
+  ) {
+    if (selfLocation == null) {
+      return true;
+    }
+    const city = user.profile?.city ?? user.onboarding?.city ?? null;
+    const area = user.profile?.area ?? user.onboarding?.area ?? null;
+    const userLocation = this.resolveDatingProfileLocation(city, area);
+    if (userLocation == null) {
+      return false;
+    }
+    return this.calculateDistanceKm(selfLocation, userLocation) <= radiusKm;
+  }
+
+  private resolveUserDatingLocation(user: DatingSelfUser) {
+    return this.resolveDatingProfileLocation(
+      user?.profile?.city ?? user?.onboarding?.city ?? null,
+      user?.profile?.area ?? user?.onboarding?.area ?? null,
+    );
+  }
+
+  private calculateDistanceKm(from: DatingLocation, to: DatingLocation) {
+    const earthRadiusKm = 6371;
+    const latitudeDelta = this.toRadians(to.latitude - from.latitude);
+    const longitudeDelta = this.toRadians(to.longitude - from.longitude);
+    const fromLatitude = this.toRadians(from.latitude);
+    const toLatitude = this.toRadians(to.latitude);
+    const a =
+      Math.sin(latitudeDelta / 2) ** 2 +
+      Math.cos(fromLatitude) *
+        Math.cos(toLatitude) *
+        Math.sin(longitudeDelta / 2) ** 2;
+    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  private toRadians(value: number) {
+    return (value * Math.PI) / 180;
+  }
+
+  private normalizeFilterText(value: string) {
+    return value.trim().toLowerCase().replaceAll('ё', 'е');
   }
 
   private async createDatingLikeNotification(params: {
@@ -575,8 +843,7 @@ export class DatingService {
   }) {
     const isSuperLike = params.action === 'super_like';
     const notificationAction = isSuperLike ? 'super_like' : 'like';
-    const dedupeKey =
-      `dating_${notificationAction}:${params.targetUserId}:${params.userId}`;
+    const dedupeKey = `dating_${notificationAction}:${params.targetUserId}:${params.userId}`;
 
     try {
       await this.prismaService.client.$transaction(async (tx) => {
@@ -723,7 +990,11 @@ export class DatingService {
       return raw;
     }
 
-    throw new ApiError(400, 'invalid_dating_action', 'Dating action is invalid');
+    throw new ApiError(
+      400,
+      'invalid_dating_action',
+      'Dating action is invalid',
+    );
   }
 
   private async getBlockedUserIds(userId: string) {

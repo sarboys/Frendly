@@ -64,7 +64,6 @@ function detailEvent(overrides: Record<string, unknown> = {}) {
     consentRequired: false,
     rules: null,
     cancelReason: null,
-    sourcePoster: null,
     sourceExternalContentItem: null,
     chat: { id: 'chat-1' },
     createdAt: now,

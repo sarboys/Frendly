@@ -150,6 +150,12 @@ type DraftIntent = {
 
 type RouteSnapshotIntent = DraftIntent;
 
+type EventDateWindow = {
+  label: string;
+  from: Date;
+  to: Date;
+};
+
 const ROUTE_ROLES: RouteRole[] = [
   'place_food',
   'place_bar',
@@ -196,9 +202,10 @@ export class EveningAiDraftService {
     const intent = await this.resolveDraftIntent(parsedInput);
     const input = { ...parsedInput, stepCount: intent.roles.length };
     const candidates = await this.loadCandidatePack(input, intent.roles, intent.roleHints);
+    const requiredRoles = this.requiredCandidateRoles(input, intent.roles);
     if (
       candidates.length < MIN_STEP_COUNT ||
-      (input.stepCountExplicit && !this.hasEnoughCandidatesForRoles(candidates, intent.roles))
+      (requiredRoles.length > 0 && !this.hasEnoughCandidatesForRoles(candidates, requiredRoles))
     ) {
       throw new ApiError(404, 'evening_ai_candidates_not_found', 'Route candidates not found');
     }
@@ -864,6 +871,9 @@ export class EveningAiDraftService {
     roleHints: RoleIntentHint[] = [],
   ): Promise<CandidateCard[]> {
     const source = this.sourceForRole(role);
+    const eventStartsAtWhere = input.eventDateWindow
+      ? { gte: input.eventDateWindow.from, lte: input.eventDateWindow.to }
+      : { gte: new Date() };
     const contentKindWhere =
       source === 'tomesto'
         ? 'place'
@@ -885,7 +895,7 @@ export class EveningAiDraftService {
       ...(source === 'advcake_ticketland'
         ? {
             moderationStatus: { not: 'rejected' },
-            startsAt: { gte: new Date() },
+            startsAt: eventStartsAtWhere,
             priceMode: { in: ['free', 'paid'] },
           }
         : {}),
@@ -898,7 +908,7 @@ export class EveningAiDraftService {
                   {
                     contentKind: 'event',
                     moderationStatus: { not: 'rejected' },
-                    startsAt: { gte: new Date() },
+                    startsAt: eventStartsAtWhere,
                     priceMode: 'free',
                   },
                 ],
@@ -1104,6 +1114,7 @@ export class EveningAiDraftService {
       stepCount: draft.stepCount,
       stepCountExplicit: true,
       participantsCount: participantsCountFromPrompt(draft.prompt),
+      eventDateWindow: eventDateWindowFromPrompt(draft.prompt),
       latitude: null,
       longitude: null,
     };
@@ -1125,6 +1136,7 @@ export class EveningAiDraftService {
       stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : promptStepCount),
       stepCountExplicit,
       participantsCount: participantsCountFromPrompt(prompt),
+      eventDateWindow: eventDateWindowFromPrompt(prompt),
       latitude: null,
       longitude: null,
     };
@@ -1264,6 +1276,13 @@ export class EveningAiDraftService {
   private mentionedStepCount(input: ParsedDraftInput) {
     const roles = this.mentionedRoles(input.prompt, input.format);
     return roles.length >= MIN_STEP_COUNT ? Math.min(roles.length, input.stepCount) : null;
+  }
+
+  private requiredCandidateRoles(input: ParsedDraftInput, intentRoles: RouteRole[]) {
+    if (input.stepCountExplicit) {
+      return intentRoles;
+    }
+    return this.mentionedRoles(input.prompt, input.format);
   }
 
   private normalizeLlmIntentHint(
@@ -1857,6 +1876,13 @@ export class EveningAiDraftService {
         goal: input.input.goal,
         mood: input.input.mood,
         format: input.input.format,
+        eventDateWindow: input.input.eventDateWindow
+          ? {
+              label: input.input.eventDateWindow.label,
+              from: input.input.eventDateWindow.from.toISOString(),
+              to: input.input.eventDateWindow.to.toISOString(),
+            }
+          : null,
         stepCount: input.input.stepCount,
         roles: input.roles,
         roleHints:
@@ -2035,6 +2061,20 @@ export class EveningAiDraftService {
             externalContentItemId,
           });
         }
+        if (
+          input.eventDateWindow &&
+          startsAt &&
+          Number.isFinite(startsAt.getTime()) &&
+          (startsAt.getTime() < input.eventDateWindow.from.getTime() ||
+            startsAt.getTime() > input.eventDateWindow.to.getTime())
+        ) {
+          issues.push({
+            code: 'event_outside_requested_date',
+            message: 'Event candidate is outside requested date window',
+            stepIndex: index,
+            externalContentItemId,
+          });
+        }
       }
       if (input.budget === 'free' && candidate.priceMode !== 'free') {
         issues.push({
@@ -2147,6 +2187,7 @@ type ParsedDraftInput = {
   stepCount: number;
   stepCountExplicit: boolean;
   participantsCount: number | null;
+  eventDateWindow: EventDateWindow | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -2541,6 +2582,215 @@ function participantsCountFromPrompt(prompt: string | null) {
     [new RegExp(`${before}(?:впятером|пятером|пятерых)${after}`), 5],
   ];
   return wordCounts.find(([pattern]) => pattern.test(text))?.[1] ?? null;
+}
+
+type LocalDateParts = {
+  year: number;
+  month: number;
+  day: number;
+};
+
+const WEEKDAY_ALIASES: Array<{ aliases: string[]; day: number }> = [
+  { aliases: ['воскресенье', 'воскресенья', 'вск'], day: 0 },
+  { aliases: ['понедельник', 'понедельника', 'пн'], day: 1 },
+  { aliases: ['вторник', 'вторника', 'вт'], day: 2 },
+  { aliases: ['среду', 'среда', 'среды', 'ср'], day: 3 },
+  { aliases: ['четверг', 'четверга', 'чт'], day: 4 },
+  { aliases: ['пятницу', 'пятница', 'пятницы', 'пт'], day: 5 },
+  { aliases: ['субботу', 'суббота', 'субботы', 'сб'], day: 6 },
+];
+
+const MONTH_ALIASES: Array<{ aliases: string[]; month: number }> = [
+  { aliases: ['января', 'январь'], month: 1 },
+  { aliases: ['февраля', 'февраль'], month: 2 },
+  { aliases: ['марта', 'март'], month: 3 },
+  { aliases: ['апреля', 'апрель'], month: 4 },
+  { aliases: ['мая', 'май'], month: 5 },
+  { aliases: ['июня', 'июнь'], month: 6 },
+  { aliases: ['июля', 'июль'], month: 7 },
+  { aliases: ['августа', 'август'], month: 8 },
+  { aliases: ['сентября', 'сентябрь'], month: 9 },
+  { aliases: ['октября', 'октябрь'], month: 10 },
+  { aliases: ['ноября', 'ноябрь'], month: 11 },
+  { aliases: ['декабря', 'декабрь'], month: 12 },
+];
+
+function eventDateWindowFromPrompt(prompt: string | null, now = new Date()) {
+  const text = normalizeText(prompt ?? '');
+  if (!text) {
+    return null;
+  }
+  const currentDate = zonedDateParts(now, DEFAULT_TIMEZONE);
+  const todayWindow = () => eventDateWindowForLocalDate('today', currentDate, now, true);
+
+  if (/(?:^|\s)сегодня(?=$|\s|[,.!?;:])/.test(text)) {
+    return todayWindow();
+  }
+  if (/(?:^|\s)послезавтра(?=$|\s|[,.!?;:])/.test(text)) {
+    return eventDateWindowForLocalDate(
+      'day_after_tomorrow',
+      addLocalDays(currentDate, 2),
+      now,
+    );
+  }
+  if (/(?:^|\s)завтра(?=$|\s|[,.!?;:])/.test(text)) {
+    return eventDateWindowForLocalDate('tomorrow', addLocalDays(currentDate, 1), now);
+  }
+
+  const isoMatch = text.match(/(?:^|\s)(\d{4})-(\d{1,2})-(\d{1,2})(?=$|\s|[,.!?;:])/);
+  if (isoMatch) {
+    const parts = localDateFromValues(isoMatch[1], isoMatch[2], isoMatch[3]);
+    return parts ? eventDateWindowForLocalDate('date', parts, now, true) : null;
+  }
+
+  const numericDateMatch = text.match(/(?:^|\s)(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?(?=$|\s|[,.!?;:])/);
+  if (numericDateMatch) {
+    const parts = localDateFromValues(
+      numericDateMatch[3] ?? currentDate.year,
+      numericDateMatch[2],
+      numericDateMatch[1],
+      numericDateMatch[3] == null ? currentDate : null,
+    );
+    return parts ? eventDateWindowForLocalDate('date', parts, now, true) : null;
+  }
+
+  for (const month of MONTH_ALIASES) {
+    const aliases = month.aliases.map(escapeRegExp).join('|');
+    const match = text.match(new RegExp(`(?:^|\\s)(\\d{1,2})\\s+(?:${aliases})(?:\\s+(\\d{4}))?(?=$|\\s|[,.!?;:])`));
+    if (!match) {
+      continue;
+    }
+    const parts = localDateFromValues(
+      match[2] ?? currentDate.year,
+      month.month,
+      match[1],
+      match[2] == null ? currentDate : null,
+    );
+    return parts ? eventDateWindowForLocalDate('date', parts, now, true) : null;
+  }
+
+  for (const weekday of WEEKDAY_ALIASES) {
+    if (!weekday.aliases.some((alias) => new RegExp(`(?:^|\\s)(?:в\\s+)?${escapeRegExp(alias)}(?=$|\\s|[,.!?;:])`).test(text))) {
+      continue;
+    }
+    const currentWeekday = weekdayForLocalDate(currentDate);
+    const offset = (weekday.day - currentWeekday + 7) % 7;
+    return eventDateWindowForLocalDate('weekday', addLocalDays(currentDate, offset), now, offset === 0);
+  }
+
+  return null;
+}
+
+function eventDateWindowForLocalDate(
+  label: string,
+  date: LocalDateParts,
+  now: Date,
+  fromNowIfToday = false,
+): EventDateWindow {
+  const start = zonedTimeToUtc(date, 0, 0, 0, 0, DEFAULT_TIMEZONE);
+  const end = zonedTimeToUtc(date, 23, 59, 59, 999, DEFAULT_TIMEZONE);
+  const from =
+    fromNowIfToday && sameLocalDate(date, zonedDateParts(now, DEFAULT_TIMEZONE)) && now.getTime() > start.getTime()
+      ? now
+      : start;
+  return { label, from, to: end };
+}
+
+function localDateFromValues(
+  rawYear: unknown,
+  rawMonth: unknown,
+  rawDay: unknown,
+  rollForwardFrom: LocalDateParts | null = null,
+): LocalDateParts | null {
+  const parsedYear = normalizedCount(rawYear, 9999, 1);
+  const month = normalizedCount(rawMonth, 12, 1);
+  const day = normalizedCount(rawDay, 31, 1);
+  if (parsedYear == null || month == null || day == null) {
+    return null;
+  }
+  let year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
+  if (!validLocalDate({ year, month, day })) {
+    return null;
+  }
+  if (rollForwardFrom && compareLocalDate({ year, month, day }, rollForwardFrom) < 0) {
+    year += 1;
+  }
+  return validLocalDate({ year, month, day }) ? { year, month, day } : null;
+}
+
+function zonedDateParts(date: Date, timeZone: string): LocalDateParts {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = (type: string) => Number.parseInt(parts.find((part) => part.type === type)?.value ?? '', 10);
+  return {
+    year: value('year'),
+    month: value('month'),
+    day: value('day'),
+  };
+}
+
+function zonedTimeToUtc(
+  date: LocalDateParts,
+  hour: number,
+  minute: number,
+  second: number,
+  millisecond: number,
+  timeZone: string,
+) {
+  const utcGuess = Date.UTC(date.year, date.month - 1, date.day, hour, minute, second, millisecond);
+  const actualParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(new Date(utcGuess));
+  const value = (type: string) => Number.parseInt(actualParts.find((part) => part.type === type)?.value ?? '', 10);
+  const actualAsUtc = Date.UTC(
+    value('year'),
+    value('month') - 1,
+    value('day'),
+    value('hour'),
+    value('minute'),
+    value('second'),
+    millisecond,
+  );
+  return new Date(utcGuess - (actualAsUtc - utcGuess));
+}
+
+function addLocalDays(date: LocalDateParts, days: number): LocalDateParts {
+  const shifted = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  };
+}
+
+function weekdayForLocalDate(date: LocalDateParts) {
+  return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
+}
+
+function sameLocalDate(left: LocalDateParts, right: LocalDateParts) {
+  return left.year === right.year && left.month === right.month && left.day === right.day;
+}
+
+function compareLocalDate(left: LocalDateParts, right: LocalDateParts) {
+  return Date.UTC(left.year, left.month - 1, left.day) - Date.UTC(right.year, right.month - 1, right.day);
+}
+
+function validLocalDate(date: LocalDateParts) {
+  const parsed = new Date(Date.UTC(date.year, date.month - 1, date.day));
+  return parsed.getUTCFullYear() === date.year &&
+    parsed.getUTCMonth() === date.month - 1 &&
+    parsed.getUTCDate() === date.day;
 }
 
 function intentStepCountFromGenerated(generated: GeneratedIntentJson, maxStepCount: number) {

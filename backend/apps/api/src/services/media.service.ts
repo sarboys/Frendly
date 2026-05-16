@@ -203,7 +203,7 @@ export class MediaService {
   }
 
   private isPublicKind(kind: string) {
-    return kind === 'avatar' || kind === 'poster_cover';
+    return kind === 'avatar';
   }
 
   private buildCacheMetadata(asset: {

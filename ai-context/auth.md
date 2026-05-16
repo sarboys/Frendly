@@ -148,7 +148,11 @@ Public routes:
 
 Setup routes:
 
-- `/permissions`, `/add-photo`, `/onboarding`.
+- `/onboarding`.
+
+Legacy setup deep links:
+
+- `/permissions`, `/add-photo` redirect into the current onboarding flow, or to `/tonight` when setup is already complete.
 
 ## Tests
 

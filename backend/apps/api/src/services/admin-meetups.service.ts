@@ -657,15 +657,6 @@ export class AdminMeetupsService {
       rules: true,
       canceledAt: true,
       cancelReason: true,
-      sourcePoster: {
-        select: {
-          id: true,
-          title: true,
-          venue: true,
-          startsAt: true,
-          status: true,
-        },
-      },
       sourceExternalContentItem: {
         select: {
           id: true,
@@ -738,12 +729,6 @@ export class AdminMeetupsService {
       canceledAt: event.canceledAt?.toISOString() ?? null,
       cancelReason: event.cancelReason,
       chatId: event.chat?.id ?? null,
-      sourcePoster: event.sourcePoster
-        ? {
-            ...event.sourcePoster,
-            startsAt: event.sourcePoster.startsAt.toISOString(),
-          }
-        : null,
       sourceExternalContentItem: event.sourceExternalContentItem
         ? {
             ...event.sourceExternalContentItem,

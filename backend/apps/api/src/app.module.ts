@@ -28,7 +28,6 @@ import { PartnerAuthController } from './controllers/partner-auth.controller';
 import { PartnerPortalController } from './controllers/partner-portal.controller';
 import { PaymentsController } from './controllers/payments.controller';
 import { PlacesController } from './controllers/places.controller';
-import { PostersController } from './controllers/posters.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { PublicCodeController } from './controllers/public-code.controller';
 import { SafetyController } from './controllers/safety.controller';
@@ -81,7 +80,6 @@ import { PartnerOfferCodeService } from './services/partner-offer-code.service';
 import { PartnerPortalService } from './services/partner-portal.service';
 import { PaymentsService } from './services/payments.service';
 import { PlacesService } from './services/places.service';
-import { PostersService } from './services/posters.service';
 import { PrismaService } from './services/prisma.service';
 import { ProfileService } from './services/profile.service';
 import { SafetyService } from './services/safety.service';
@@ -129,7 +127,6 @@ import { VerificationService } from './services/verification.service';
     PartnerPortalController,
     PaymentsController,
     PlacesController,
-    PostersController,
     ProfileController,
     PublicCodeController,
     SafetyController,
@@ -182,7 +179,6 @@ import { VerificationService } from './services/verification.service';
     PaymentsService,
     PlacesService,
     PhoneOtpService,
-    PostersService,
     PrismaService,
     ProfileService,
     SafetyService,

@@ -2,7 +2,6 @@ import { PrismaClient } from '@prisma/client';
 const {
   seededEveningRoutes,
   seededEvents,
-  seededPosters,
   seededUsers,
 }: typeof import('./fixtures/seed-data') = require('./fixtures/seed-data.ts');
 const {
@@ -130,11 +129,6 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
     ...event,
     startsAt: shiftSeedDate(event.startsAt, seedDateOffsetMs),
   }));
-  const shiftedSeededPosters = seededPosters.map((poster) => ({
-    ...poster,
-    startsAt: shiftSeedDate(poster.startsAt, seedDateOffsetMs),
-  }));
-
   await prisma.realtimeEvent.deleteMany();
   await prisma.outboxEvent.deleteMany();
   await prisma.authAuditEvent.deleteMany();
@@ -188,7 +182,6 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
   await prisma.chat.deleteMany();
   await prisma.eventParticipant.deleteMany();
   await prisma.event.deleteMany();
-  await prisma.poster.deleteMany();
   await prisma.pushToken.deleteMany();
   await prisma.session.deleteMany();
   await prisma.onboardingPreferences.deleteMany();
@@ -280,13 +273,6 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
 
   await prisma.event.createMany({
     data: shiftedSeededEvents,
-  });
-
-  await prisma.poster.createMany({
-    data: shiftedSeededPosters.map((poster) => ({
-      ...poster,
-      tags: poster.tags,
-    })),
   });
 
   await prisma.eventParticipant.createMany({
@@ -1248,4 +1234,3 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
     ],
   });
 }
-

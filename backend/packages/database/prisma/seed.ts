@@ -28,21 +28,6 @@ const demoEventIds = [
   'ad8',
 ];
 
-const demoPosterIds = [
-  'ps1',
-  'ps2',
-  'ps3',
-  'ps4',
-  'ps5',
-  'ps6',
-  'ps7',
-  'ps8',
-  'ps9',
-  'ps10',
-  'ps11',
-  'ps12',
-];
-
 const demoRouteIds = [
   'r-cozy-circle',
   'r-date-noir',
@@ -214,13 +199,6 @@ async function main() {
       },
     }),
   );
-  await collect(
-    'posters',
-    prisma.poster.deleteMany({
-      where: { id: { in: demoPosterIds } },
-    }),
-  );
-
   await collect(
     'partnerOffers',
     prisma.partnerOffer.deleteMany({

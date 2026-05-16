@@ -6,36 +6,6 @@ function createService(client: Record<string, unknown>) {
   return new AdminAfficheService({ client } as any);
 }
 
-function posterRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 'poster-1',
-    city: 'Москва',
-    category: 'concert',
-    title: 'Concert',
-    emoji: '🎟️',
-    startsAt: now,
-    dateLabel: '05.05',
-    timeLabel: '10:00',
-    venue: 'Club',
-    address: 'Street',
-    distanceKm: 0,
-    priceFrom: 0,
-    ticketUrl: 'https://tickets.example.com/',
-    provider: 'admin',
-    tone: 'warm',
-    tags: [],
-    description: 'Description',
-    status: 'draft',
-    isFeatured: false,
-    coverAssetId: null,
-    partnerId: null,
-    createdAt: now,
-    updatedAt: now,
-    _count: { events: 0 },
-    ...overrides,
-  };
-}
-
 function itemRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'item-1',
@@ -76,77 +46,6 @@ function itemRow(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AdminAfficheService unit', () => {
-  it('passes native poster filters to Prisma', async () => {
-    const findMany = jest.fn().mockResolvedValue([]);
-    const service = createService({
-      poster: { findMany },
-    });
-
-    await service.listPosters({
-      q: ' concert ',
-      city: 'Москва',
-      category: 'concert',
-      status: 'published',
-      featured: 'true',
-      dateFrom: '2026-05-01T00:00:00.000Z',
-      dateTo: '2026-05-31T00:00:00.000Z',
-      limit: '10',
-    });
-
-    const where = findMany.mock.calls[0][0].where;
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        take: 11,
-        orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
-      }),
-    );
-    expect(where.AND).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ OR: expect.any(Array) }),
-        { city: 'Москва' },
-        { category: 'concert' },
-        { status: 'published' },
-        { isFeatured: true },
-        {
-          startsAt: {
-            gte: new Date('2026-05-01T00:00:00.000Z'),
-            lte: new Date('2026-05-31T00:00:00.000Z'),
-          },
-        },
-      ]),
-    );
-  });
-
-  it('updates native poster status and feature actions', async () => {
-    const update = jest
-      .fn()
-      .mockResolvedValueOnce(posterRow({ status: 'published' }))
-      .mockResolvedValueOnce(posterRow({ isFeatured: true }));
-    const service = createService({
-      poster: { update },
-    });
-
-    const published = await service.posterAction('poster-1', 'publish');
-    const featured = await service.posterAction('poster-1', 'feature');
-
-    expect(update).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        where: { id: 'poster-1' },
-        data: { status: 'published' },
-      }),
-    );
-    expect(update).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        where: { id: 'poster-1' },
-        data: { isFeatured: true },
-      }),
-    );
-    expect(published.status).toBe('published');
-    expect(featured.isFeatured).toBe(true);
-  });
-
   it('forces imported list to event content kind', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const service = createService({

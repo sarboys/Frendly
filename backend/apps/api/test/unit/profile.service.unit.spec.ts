@@ -1,6 +1,10 @@
 import { ProfileService } from '../../src/services/profile.service';
 
 describe('ProfileService', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('loads only fields needed for the profile response', async () => {
     const userFindUnique = jest.fn().mockResolvedValue({
       id: 'user-me',
@@ -193,6 +197,280 @@ describe('ProfileService', () => {
     ).rejects.toMatchObject({
       code: 'invalid_avatar_mime_type',
     });
+  });
+
+  it('builds the Frendly season from checked-in events only', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-16T10:00:00.000Z').getTime());
+    const service = new ProfileService({
+      client: {
+        eventAttendance: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              eventId: 'event-1',
+              event: {
+                id: 'event-1',
+                startsAt: new Date('2026-05-03T18:00:00.000Z'),
+                place: 'Brix',
+                latitude: 55.75,
+                longitude: 37.61,
+              },
+            },
+            {
+              eventId: 'event-2',
+              event: {
+                id: 'event-2',
+                startsAt: new Date('2026-05-10T18:00:00.000Z'),
+                place: 'Powerhouse',
+                latitude: 55.76,
+                longitude: 37.62,
+              },
+            },
+            {
+              eventId: 'event-3',
+              event: {
+                id: 'event-3',
+                startsAt: new Date('2026-05-15T18:00:00.000Z'),
+                place: 'Powerhouse',
+                latitude: 55.76,
+                longitude: 37.62,
+              },
+            },
+          ]),
+        },
+        userSeasonRewardClaim: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              rewardKey: 'checkin-1',
+              claimedAt: new Date('2026-05-04T10:00:00.000Z'),
+            },
+          ]),
+        },
+        eventParticipant: {
+          findMany: jest.fn().mockResolvedValue([
+            { userId: 'friend-1' },
+            { userId: 'friend-2' },
+            { userId: 'friend-1' },
+          ]),
+        },
+      },
+    } as any);
+
+    const result = await service.getFrendlySeason('user-me');
+
+    expect(result).toMatchObject({
+      seasonKey: '2026-05',
+      checkedInCount: 3,
+      calendarDays: [3, 10, 15],
+      currentStatus: {
+        key: 'checkin-1',
+        title: 'Искра',
+        threshold: 1,
+      },
+      nextReward: {
+        key: 'checkin-5',
+        threshold: 5,
+        rewardKind: 'tokens',
+        rewardAmount: 150,
+      },
+      stats: {
+        checkIns: 3,
+        places: 2,
+        people: 2,
+      },
+    });
+    expect(result.rewards).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'checkin-1',
+          threshold: 1,
+          unlocked: true,
+          claimed: true,
+        }),
+        expect.objectContaining({
+          key: 'checkin-5',
+          threshold: 5,
+          unlocked: false,
+          claimed: false,
+        }),
+        expect.objectContaining({
+          key: 'checkin-25',
+          threshold: 25,
+          rewardKind: 'subscription',
+          rewardAmount: 180,
+        }),
+      ]),
+    );
+  });
+
+  it('claims an unlocked token season reward once', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-16T10:00:00.000Z').getTime());
+    const prismaClient: any = {
+      eventAttendance: {
+        count: jest.fn().mockResolvedValue(5),
+      },
+      userSeasonRewardClaim: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          rewardKey: 'checkin-5',
+          claimedAt: new Date('2026-05-16T10:00:00.000Z'),
+        }),
+      },
+      tokenWallet: {
+        upsert: jest.fn().mockResolvedValue({
+          id: 'wallet-1',
+          balance: 20,
+        }),
+        update: jest.fn().mockResolvedValue({
+          id: 'wallet-1',
+          balance: 170,
+        }),
+      },
+      tokenLedgerEntry: {
+        create: jest.fn().mockResolvedValue({
+          id: 'ledger-1',
+        }),
+      },
+      $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
+    };
+    const service = new ProfileService({ client: prismaClient } as any);
+
+    await expect(
+      service.claimFrendlySeasonReward('user-me', 'checkin-5'),
+    ).resolves.toMatchObject({
+      claimed: true,
+      alreadyClaimed: false,
+      reward: {
+        key: 'checkin-5',
+        rewardKind: 'tokens',
+        rewardAmount: 150,
+      },
+    });
+
+    expect(prismaClient.tokenLedgerEntry.create).toHaveBeenCalledWith({
+      data: {
+        walletId: 'wallet-1',
+        amount: 150,
+        reason: 'reward_grant',
+      },
+    });
+    expect(prismaClient.tokenWallet.update).toHaveBeenCalledWith({
+      where: { id: 'wallet-1' },
+      data: {
+        balance: {
+          increment: 150,
+        },
+      },
+    });
+    expect(prismaClient.userSeasonRewardClaim.create).toHaveBeenCalledWith({
+      data: {
+        userId: 'user-me',
+        seasonKey: '2026-05',
+        rewardKey: 'checkin-5',
+        rewardKind: 'tokens',
+        rewardAmount: 150,
+      },
+    });
+  });
+
+  it('does not grant the same season reward twice', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-16T10:00:00.000Z').getTime());
+    const prismaClient: any = {
+      userSeasonRewardClaim: {
+        findUnique: jest.fn().mockResolvedValue({
+          rewardKey: 'checkin-5',
+          claimedAt: new Date('2026-05-15T10:00:00.000Z'),
+        }),
+      },
+      tokenLedgerEntry: {
+        create: jest.fn(),
+      },
+      $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
+    };
+    const service = new ProfileService({ client: prismaClient } as any);
+
+    await expect(
+      service.claimFrendlySeasonReward('user-me', 'checkin-5'),
+    ).resolves.toMatchObject({
+      claimed: true,
+      alreadyClaimed: true,
+      reward: {
+        key: 'checkin-5',
+      },
+    });
+
+    expect(prismaClient.tokenLedgerEntry.create).not.toHaveBeenCalled();
+  });
+
+  it('claims an unlocked subscription season reward by extending Frendly+', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-16T10:00:00.000Z').getTime());
+    const currentSubscription = {
+      id: 'sub-1',
+      userId: 'user-me',
+      plan: 'month',
+      status: 'active',
+      startedAt: new Date('2026-05-01T00:00:00.000Z'),
+      renewsAt: new Date('2026-06-01T00:00:00.000Z'),
+      trialEndsAt: null,
+      createdAt: new Date('2026-05-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-01T00:00:00.000Z'),
+    };
+    const prismaClient: any = {
+      eventAttendance: {
+        count: jest.fn().mockResolvedValue(10),
+      },
+      userSeasonRewardClaim: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          rewardKey: 'checkin-10',
+          claimedAt: new Date('2026-05-16T10:00:00.000Z'),
+        }),
+      },
+      userSubscription: {
+        findFirst: jest.fn().mockResolvedValue(currentSubscription),
+        update: jest.fn().mockResolvedValue({
+          ...currentSubscription,
+          renewsAt: new Date('2026-07-01T00:00:00.000Z'),
+        }),
+        create: jest.fn(),
+      },
+      tokenLedgerEntry: {
+        create: jest.fn(),
+      },
+      $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
+    };
+    const service = new ProfileService({ client: prismaClient } as any);
+
+    await expect(
+      service.claimFrendlySeasonReward('user-me', 'checkin-10'),
+    ).resolves.toMatchObject({
+      claimed: true,
+      alreadyClaimed: false,
+      reward: {
+        key: 'checkin-10',
+        rewardKind: 'subscription',
+        rewardAmount: 30,
+      },
+    });
+
+    expect(prismaClient.userSubscription.update).toHaveBeenCalledWith({
+      where: { id: 'sub-1' },
+      data: {
+        plan: 'month',
+        status: 'active',
+        renewsAt: new Date('2026-07-01T00:00:00.000Z'),
+        trialEndsAt: null,
+      },
+    });
+    expect(prismaClient.userSubscription.create).not.toHaveBeenCalled();
+    expect(prismaClient.tokenLedgerEntry.create).not.toHaveBeenCalled();
   });
 
   it('returns an existing avatar asset when avatar complete is retried', async () => {

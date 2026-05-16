@@ -1,3 +1,4 @@
+import { decodeCursor } from '@big-break/database';
 import { DatingService } from '../../src/services/dating.service';
 
 const plusAccess = {
@@ -330,6 +331,176 @@ describe('DatingService unit', () => {
         area: 'Патрики',
         latitude: expect.any(Number),
         longitude: expect.any(Number),
+      }),
+    );
+  });
+
+  it('filters discover profiles by age, interests and radius', async () => {
+    const userFindMany = jest.fn().mockResolvedValue([
+      {
+        id: 'user-anya',
+        displayName: 'Аня',
+        verified: true,
+        online: true,
+        profile: {
+          age: 27,
+          city: 'Москва',
+          area: 'Чистые пруды',
+          bio: 'Люблю выставки.',
+          vibe: 'Спокойно',
+          avatarUrl: null,
+          photos: [],
+        },
+        onboarding: {
+          city: 'Москва',
+          area: 'Чистые пруды',
+          interests: ['Выставки', 'Кофе'],
+        },
+      },
+      {
+        id: 'user-sonya',
+        displayName: 'Соня',
+        verified: true,
+        online: true,
+        profile: {
+          age: 26,
+          city: 'Москва',
+          area: 'Замоскворечье',
+          bio: 'Люблю театр.',
+          vibe: 'Спокойно',
+          avatarUrl: null,
+          photos: [],
+        },
+        onboarding: {
+          city: 'Москва',
+          area: 'Замоскворечье',
+          interests: ['Театр'],
+        },
+      },
+    ]);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              profile: {
+                gender: 'male',
+                city: 'Москва',
+                area: 'Чистые пруды',
+              },
+              onboarding: {
+                gender: 'male',
+                city: 'Москва',
+                area: 'Чистые пруды',
+                interests: [],
+              },
+            }),
+            findMany: userFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me', {
+      ageMin: 26,
+      ageMax: 28,
+      radiusKm: 1,
+      interests: ['выставки'],
+    } as any);
+
+    expect(result.items.map((item) => item.userId)).toEqual(['user-anya']);
+    expect(userFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            { profile: { is: { age: { gte: 26, lte: 28 } } } },
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('moves discover cursor past scanned candidates when post filters return a partial page', async () => {
+    const candidates = Array.from({ length: 11 }, (_, index) => {
+      const number = index + 1;
+      const id = `user-${number.toString().padStart(3, '0')}`;
+      return {
+        id,
+        displayName: `User ${number}`,
+        verified: true,
+        online: true,
+        profile: {
+          age: 27,
+          city: 'Москва',
+          area: 'Патрики',
+          bio: 'Люблю планы без спешки.',
+          vibe: 'Спокойно',
+          avatarUrl: null,
+          photos: [],
+        },
+        onboarding: {
+          city: 'Москва',
+          area: 'Патрики',
+          interests: number === 10 ? ['Вино'] : ['Театр'],
+        },
+      };
+    });
+    const datingActionFindMany = jest.fn().mockResolvedValue([]);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              profile: {
+                gender: 'male',
+                city: 'Москва',
+                area: 'Чистые пруды',
+              },
+              onboarding: {
+                gender: 'male',
+                city: 'Москва',
+                area: 'Чистые пруды',
+                interests: [],
+              },
+            }),
+            findMany: jest.fn().mockResolvedValue(candidates),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: datingActionFindMany,
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me', {
+      limit: 2,
+      interests: ['вино'],
+    } as any);
+
+    expect(result.items.map((item) => item.userId)).toEqual(['user-010']);
+    expect(decodeCursor(result.nextCursor!)).toEqual({ value: 'user-011' });
+    expect(datingActionFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          actorUserId: {
+            in: ['user-010'],
+          },
+        }),
       }),
     );
   });
@@ -763,7 +934,9 @@ describe('DatingService unit', () => {
   });
 
   it('creates a plain central notification when a user receives a dating like', async () => {
-    const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-like' });
+    const notificationCreate = jest
+      .fn()
+      .mockResolvedValue({ id: 'notif-like' });
     const outboxCreateMany = jest.fn().mockResolvedValue({ count: 2 });
     let client: any;
     client = {

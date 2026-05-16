@@ -1,6 +1,10 @@
 import { EveningAiDraftService } from '../../src/services/evening-ai-draft.service';
 
 describe('EveningAiDraftService unit', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   const externalItemFixture = (overrides: Record<string, unknown> = {}) => ({
     id: 'item-1',
     title: 'Brix',
@@ -374,6 +378,18 @@ describe('EveningAiDraftService unit', () => {
   }
 
   function externalItemMatchesQuery(item: any, query: any) {
+    const startsAtFilter = query?.where?.startsAt;
+    if (startsAtFilter && item.startsAt) {
+      const startsAt = item.startsAt instanceof Date ? item.startsAt : new Date(item.startsAt);
+      const gte = startsAtFilter.gte instanceof Date ? startsAtFilter.gte : null;
+      const lte = startsAtFilter.lte instanceof Date ? startsAtFilter.lte : null;
+      if (gte && startsAt.getTime() < gte.getTime()) {
+        return false;
+      }
+      if (lte && startsAt.getTime() > lte.getTime()) {
+        return false;
+      }
+    }
     const terms = query?.where?.OR;
     if (!Array.isArray(terms) || terms.length === 0) {
       return true;
@@ -1097,6 +1113,350 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('filters timed event candidates to today when prompt asks for today', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-16T12:00:00.000Z'));
+
+    const { service, externalFindMany, openRouter } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 3,
+          stepCountReason: 'Пользователь перечислил прогулку, ужин и стендап.',
+          participantsCount: 0,
+          steps: [
+            { role: 'walk', preferredTerms: ['прогулка'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['ужин'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['стендап'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Прогулка по центру',
+            category: 'walk',
+            tags: ['прогулка', 'центр'],
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан для ужина',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан для ужина',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-standup-today',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап сегодня',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-16T17:30:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/standup-today',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+          {
+            id: 'ticketland-standup-tomorrow',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап завтра',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-17T17:30:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/standup-tomorrow',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Прогулка, ужин и стендап',
+            vibe: 'Вечер сегодня',
+            blurb: 'Маршрут на сегодня.',
+            steps: [
+              { externalContentItemId: 'kudago-walk', timeLabel: '18:00' },
+              { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-standup-today', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'прогулка, ужин, стендап сегодня',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    const showCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'show')
+      .map((candidate: any) => candidate.id);
+    expect(showCandidateIds).toEqual(['ticketland-standup-today']);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Прогулка по центру',
+      'Ресторан для ужина',
+      'Стендап сегодня',
+    ]);
+
+    const ticketlandQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'advcake_ticketland');
+    expect(ticketlandQueries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          where: expect.objectContaining({
+            startsAt: expect.objectContaining({
+              gte: new Date('2026-05-16T12:00:00.000Z'),
+              lte: new Date('2026-05-16T20:59:59.999Z'),
+            }),
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it('rejects a dated route when a requested event role has no candidates for that date', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-16T12:00:00.000Z'));
+
+    const { service, draftCreate } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 3,
+          stepCountReason: 'Пользователь перечислил прогулку, ужин и стендап.',
+          participantsCount: 0,
+          steps: [
+            { role: 'walk', preferredTerms: ['прогулка'], avoidTerms: [], instruction: '' },
+            { role: 'place_food', preferredTerms: ['ужин'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['стендап'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Прогулка по центру',
+            category: 'walk',
+            tags: ['прогулка', 'центр'],
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан для ужина',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан для ужина',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-standup-tomorrow',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап завтра',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-17T17:30:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/standup-tomorrow',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+    });
+
+    await expect(
+      service.createDraft('user-1', {
+        prompt: 'прогулка, ужин, стендап сегодня',
+        city: 'Москва',
+      }),
+    ).rejects.toMatchObject({
+      code: 'evening_ai_candidates_not_found',
+    });
+    expect(draftCreate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      prompt: 'ужин и стендап завтра',
+      expectedFrom: '2026-05-16T21:00:00.000Z',
+      expectedTo: '2026-05-17T20:59:59.999Z',
+      targetStartsAt: '2026-05-17T17:30:00.000Z',
+      otherStartsAt: '2026-05-18T17:30:00.000Z',
+    },
+    {
+      prompt: 'ужин и стендап в четверг',
+      expectedFrom: '2026-05-20T21:00:00.000Z',
+      expectedTo: '2026-05-21T20:59:59.999Z',
+      targetStartsAt: '2026-05-21T17:30:00.000Z',
+      otherStartsAt: '2026-05-22T17:30:00.000Z',
+    },
+    {
+      prompt: 'ужин и стендап 24.05',
+      expectedFrom: '2026-05-23T21:00:00.000Z',
+      expectedTo: '2026-05-24T20:59:59.999Z',
+      targetStartsAt: '2026-05-24T17:30:00.000Z',
+      otherStartsAt: '2026-05-25T17:30:00.000Z',
+    },
+  ])('applies prompt date window for "$prompt"', async ({
+    prompt,
+    expectedFrom,
+    expectedTo,
+    targetStartsAt,
+    otherStartsAt,
+  }) => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-16T12:00:00.000Z'));
+
+    const { service, externalFindMany, openRouter } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 2,
+          stepCountReason: 'Пользователь перечислил ужин и стендап.',
+          participantsCount: 0,
+          steps: [
+            { role: 'place_food', preferredTerms: ['ужин'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['стендап'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан для ужина',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан для ужина',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-target-standup',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап в нужный день',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date(targetStartsAt),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/target-standup',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+          {
+            id: 'ticketland-other-standup',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап в другой день',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date(otherStartsAt),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/other-standup',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ужин и стендап',
+            vibe: 'Вечер по дате',
+            blurb: 'Маршрут на указанную дату.',
+            steps: [
+              { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-target-standup', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt,
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    const showCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'show')
+      .map((candidate: any) => candidate.id);
+    expect(showCandidateIds).toEqual(['ticketland-target-standup']);
+
+    const ticketlandQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'advcake_ticketland');
+    expect(ticketlandQueries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          where: expect.objectContaining({
+            startsAt: expect.objectContaining({
+              gte: new Date(expectedFrom),
+              lte: new Date(expectedTo),
+            }),
+          }),
+        }),
+      ]),
+    );
+  });
+
   it('treats step count written in prompt as exact even when intent returns extra roles', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
@@ -1323,7 +1683,7 @@ describe('EveningAiDraftService unit', () => {
 
     const result = await service.createDraft('user-1', {
       prompt:
-        'свидание на двоих завтра вечером, 3 точки. красивый парк, итальянский ресторан, спектакль. бюджет средний, не шумно.',
+        'свидание на двоих вечером, 3 точки. красивый парк, итальянский ресторан, спектакль. бюджет средний, не шумно.',
       city: 'Москва',
     });
 

@@ -163,7 +163,9 @@ describe('dating api flows', () => {
     await prisma.chat.deleteMany({
       where: {
         directKey: {
-          in: datingPairs.map(([left, right]) => buildDirectChatKey(left, right)),
+          in: datingPairs.map(([left, right]) =>
+            buildDirectChatKey(left, right),
+          ),
         },
         sourceEventId: null,
       },
@@ -186,10 +188,14 @@ describe('dating api flows', () => {
       ]),
     );
     expect(
-      response.body.items.some((item: { userId: string }) => item.userId === 'user-oleg'),
+      response.body.items.some(
+        (item: { userId: string }) => item.userId === 'user-oleg',
+      ),
     ).toBe(false);
     expect(
-      response.body.items.some((item: { userId: string }) => item.userId === 'user-mark'),
+      response.body.items.some(
+        (item: { userId: string }) => item.userId === 'user-mark',
+      ),
     ).toBe(false);
     expect(response.body.items).toEqual(
       expect.arrayContaining([
@@ -200,6 +206,26 @@ describe('dating api flows', () => {
         }),
       ]),
     );
+  });
+
+  it('filters discover profiles on the backend', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/dating/discover')
+      .query({
+        ageMin: 26,
+        ageMax: 28,
+        radiusKm: 1,
+        interests: 'выставки',
+      })
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const userIds = response.body.items.map(
+      (item: { userId: string }) => item.userId,
+    );
+    expect(userIds).toContain('user-anya');
+    expect(userIds).not.toContain('user-sonya');
+    expect(userIds).not.toContain('user-liza');
   });
 
   it('requires Frendly+ for incoming likes and returns them for Plus users', async () => {
@@ -488,7 +514,9 @@ describe('dating api flows', () => {
     expect(inviteNotification).toBeDefined();
 
     await request(app.getHttpServer())
-      .post(`/events/${eventId}/invites/${inviteNotification.payload.requestId}/accept`)
+      .post(
+        `/events/${eventId}/invites/${inviteNotification.payload.requestId}/accept`,
+      )
       .set('authorization', `Bearer ${sonyaAccessToken}`)
       .expect(201);
 
@@ -538,7 +566,9 @@ describe('dating api flows', () => {
     expect(inviteNotification).toBeDefined();
 
     await request(app.getHttpServer())
-      .post(`/events/${eventId}/invites/${inviteNotification.payload.requestId}/decline`)
+      .post(
+        `/events/${eventId}/invites/${inviteNotification.payload.requestId}/decline`,
+      )
       .set('authorization', `Bearer ${sonyaAccessToken}`)
       .expect(201);
 
@@ -564,7 +594,9 @@ describe('dating api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
     expect(
-      hostEventsResponse.body.items.some((item: { id: string }) => item.id === eventId),
+      hostEventsResponse.body.items.some(
+        (item: { id: string }) => item.id === eventId,
+      ),
     ).toBe(false);
 
     const hostChatsResponse = await request(app.getHttpServer())
@@ -572,7 +604,9 @@ describe('dating api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
     expect(
-      hostChatsResponse.body.items.some((item: { id: string }) => item.id === meetupChatId),
+      hostChatsResponse.body.items.some(
+        (item: { id: string }) => item.id === meetupChatId,
+      ),
     ).toBe(false);
   });
 
@@ -667,7 +701,9 @@ describe('dating api flows', () => {
       .expect(200);
 
     expect(
-      dayFeed.body.items.some((item: { id: string }) => item.id === createResponse.body.id),
+      dayFeed.body.items.some(
+        (item: { id: string }) => item.id === createResponse.body.id,
+      ),
     ).toBe(false);
 
     const afterDarkFeed = await request(app.getHttpServer())
@@ -677,7 +713,9 @@ describe('dating api flows', () => {
       .expect(200);
 
     expect(
-      afterDarkFeed.body.items.some((item: { id: string }) => item.id === createResponse.body.id),
+      afterDarkFeed.body.items.some(
+        (item: { id: string }) => item.id === createResponse.body.id,
+      ),
     ).toBe(true);
   });
 });

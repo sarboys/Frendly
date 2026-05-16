@@ -14,11 +14,6 @@ export class EveningController {
     private readonly partnerOfferCodeService: PartnerOfferCodeService,
   ) {}
 
-  @Get('options')
-  getOptions() {
-    return this.eveningService.getOptions();
-  }
-
   @Get('route-templates')
   listRouteTemplates(
     @CurrentUser() currentUser: { userId: string },
@@ -60,14 +55,6 @@ export class EveningController {
       templateId,
       body,
     );
-  }
-
-  @Post('routes/resolve')
-  resolveRoute(
-    @CurrentUser() currentUser: { userId: string },
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.eveningService.resolveRoute(currentUser.userId, body);
   }
 
   @Post('routes/ai-drafts')

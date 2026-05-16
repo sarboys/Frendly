@@ -4,7 +4,6 @@ import { AfficheService } from './affiche.service';
 import { AfterDarkService } from './after-dark.service';
 import { EveningRouteTemplateService } from './evening-route-template.service';
 import { EventsService } from './events.service';
-import { PostersService } from './posters.service';
 
 @Injectable()
 export class SearchService {
@@ -12,7 +11,6 @@ export class SearchService {
     private readonly eventsService: EventsService,
     private readonly afterDarkService: AfterDarkService,
     private readonly routeTemplateService: EveningRouteTemplateService,
-    private readonly postersService: PostersService,
     private readonly afficheService: AfficheService,
   ) {}
 
@@ -22,10 +20,9 @@ export class SearchService {
     const meetupsLimit = this.parseLimit(query.meetupsLimit, 4, 20);
     const eveningsLimit = this.parseLimit(query.eveningsLimit, 3, 20);
     const routesLimit = this.parseLimit(query.routesLimit, 3, 20);
-    const postersLimit = this.parseLimit(query.postersLimit, 6, 24);
     const afficheLimit = this.parseLimit(query.afficheLimit, 6, 24);
 
-    const [meetups, evenings, routes, posters, affiche] = await Promise.all([
+    const [meetups, evenings, routes, affiche] = await Promise.all([
       this.eventsService.listEvents(userId, {
         filter: 'nearby',
         q,
@@ -49,12 +46,6 @@ export class SearchService {
         },
         userId,
       ),
-      this.postersService.listPosters({
-        city: this.optionalText(query.city) ?? 'Москва',
-        q,
-        date,
-        limit: postersLimit,
-      }),
       this.afficheService.listEvents({
         city: this.optionalText(query.city) ?? 'Москва',
         q,
@@ -68,12 +59,10 @@ export class SearchService {
       meetups: meetups.items,
       evenings: evenings.items,
       routes: routes.items,
-      posters: posters.items,
       affiche: affiche.items,
       nextCursors: {
         meetups: meetups.nextCursor ?? null,
         evenings: evenings.nextCursor ?? null,
-        posters: posters.nextCursor ?? null,
         affiche: affiche.nextCursor ?? null,
       },
     };

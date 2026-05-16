@@ -772,7 +772,6 @@ describe('EventsService unit', () => {
             findFirst: jest.fn().mockResolvedValue(externalPlace),
             findMany: jest.fn().mockResolvedValue([]),
           },
-          poster: { findUnique: jest.fn() },
           eveningRoute: { findUnique: jest.fn() },
           profile: { findUnique: jest.fn().mockResolvedValue({ gender: 'male' }) },
           userBlock: { findMany: jest.fn().mockResolvedValue([]) },
@@ -829,7 +828,6 @@ describe('EventsService unit', () => {
       {
         client: {
           externalContentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-          poster: { findUnique: jest.fn() },
         },
       } as any,
       {} as any,

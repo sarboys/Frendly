@@ -8,7 +8,6 @@ import {
   EventJoinRequestStatus,
   EventJoinMode,
   EventPriceMode,
-  PosterCategory,
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
@@ -23,9 +22,8 @@ type CurrentPartner = {
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-const FEATURE_TARGET_TYPES = new Set(['event', 'community', 'poster']);
+const FEATURE_TARGET_TYPES = new Set(['event', 'community']);
 const FEATURE_STATUSES = new Set(['draft', 'submitted', 'approved', 'rejected', 'archived']);
-const POSTER_STATUSES = new Set(['draft', 'submitted', 'published', 'rejected', 'archived']);
 
 @Injectable()
 export class PartnerPortalService {
@@ -536,90 +534,6 @@ export class PartnerPortalService {
     return { ok: true };
   }
 
-  async listPosters(current: CurrentPartner, query: Record<string, unknown> = {}) {
-    const partnerId = this.requireApprovedPartner(current);
-    const take = this.parseLimit(query.limit);
-    const rows = await this.prismaService.client.poster.findMany({
-      where: { partnerId },
-      orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
-      take: take + 1,
-    });
-    return this.page(rows, take, (poster) => this.mapPoster(poster));
-  }
-
-  async getPoster(current: CurrentPartner, posterId: string) {
-    const partnerId = this.requireApprovedPartner(current);
-    const poster = await this.prismaService.client.poster.findFirst({ where: { id: posterId, partnerId } });
-    if (!poster) {
-      throw new ApiError(404, 'partner_target_not_found', 'Partner poster not found');
-    }
-    return this.mapPoster(poster);
-  }
-
-  async createPoster(current: CurrentPartner, body: Record<string, unknown>) {
-    const partnerId = this.requireApprovedPartner(current);
-    const input = this.parsePosterInput(body);
-    const poster = await this.prismaService.client.poster.create({
-      data: {
-        id: `poster-${randomUUID()}`,
-        ...input,
-        partnerId,
-        status: 'draft',
-        provider: 'partner',
-        tone: 'warm',
-        distanceKm: 0,
-        isFeatured: false,
-      },
-    });
-    return this.mapPoster(poster);
-  }
-
-  async updatePoster(current: CurrentPartner, posterId: string, body: Record<string, unknown>) {
-    const partnerId = this.requireApprovedPartner(current);
-    const data: Prisma.PosterUpdateInput = {};
-    this.setText(data, body, 'title');
-    this.setText(data, body, 'emoji');
-    this.setText(data, body, 'venue');
-    this.setText(data, body, 'address');
-    this.setText(data, body, 'description');
-    this.setText(data, body, 'ticketUrl');
-    if (body.category !== undefined) {
-      data.category = this.parsePosterCategory(body.category);
-    }
-    if (body.startsAt !== undefined) {
-      const startsAt = this.parseFutureDate(body.startsAt, 'partner_poster_starts_at_invalid');
-      data.startsAt = startsAt;
-      data.dateLabel = this.dateLabel(startsAt);
-      data.timeLabel = this.timeLabel(startsAt);
-    }
-    if (body.priceFrom !== undefined) {
-      data.priceFrom = this.parseIntRange(body.priceFrom, 0, 1_000_000, 'partner_price_invalid');
-    }
-    if (body.tags !== undefined) {
-      data.tags = this.parseStringArray(body.tags);
-    }
-    if (body.status !== undefined) {
-      data.status = this.parsePosterStatus(body.status);
-    }
-
-    const result = await this.prismaService.client.poster.updateMany({
-      where: { id: posterId, partnerId },
-      data,
-    });
-    if (result.count === 0) {
-      throw new ApiError(404, 'partner_target_not_found', 'Partner poster not found');
-    }
-    return this.getPoster(current, posterId);
-  }
-
-  async submitPoster(current: CurrentPartner, posterId: string) {
-    return this.updatePoster(current, posterId, { status: 'submitted' });
-  }
-
-  async archivePoster(current: CurrentPartner, posterId: string) {
-    return this.updatePoster(current, posterId, { status: 'archived' });
-  }
-
   async listFeaturedRequests(current: CurrentPartner, query: Record<string, unknown> = {}) {
     const partnerId = this.requireApprovedPartner(current);
     const take = this.parseLimit(query.limit);
@@ -765,13 +679,6 @@ export class PartnerPortalService {
       });
       if (community) return;
     }
-    if (targetType === 'poster') {
-      const poster = await this.prismaService.client.poster.findFirst({
-        where: { id: targetId, partnerId },
-        select: { id: true },
-      });
-      if (poster) return;
-    }
     throw new ApiError(404, 'partner_target_not_found', 'Partner target not found');
   }
 
@@ -824,25 +731,6 @@ export class PartnerPortalService {
       privacy: this.parseCommunityPrivacy(body.privacy),
       tags: this.parseStringArray(body.tags),
       mood: this.optionalText(body.mood) ?? 'Партнерское сообщество',
-    };
-  }
-
-  private parsePosterInput(body: Record<string, unknown>) {
-    const startsAt = this.parseFutureDate(body.startsAt, 'partner_poster_starts_at_invalid');
-    return {
-      category: this.parsePosterCategory(body.category),
-      city: this.optionalText(body.city) ?? 'Москва',
-      title: this.requiredText(body.title, 'partner_poster_title_required'),
-      emoji: this.optionalText(body.emoji) ?? '🎟️',
-      startsAt,
-      dateLabel: this.dateLabel(startsAt),
-      timeLabel: this.timeLabel(startsAt),
-      venue: this.requiredText(body.venue, 'partner_poster_venue_required'),
-      address: this.requiredText(body.address, 'partner_poster_address_required'),
-      priceFrom: this.parseIntRange(body.priceFrom ?? 0, 0, 1_000_000, 'partner_price_invalid'),
-      ticketUrl: this.requiredText(body.ticketUrl, 'partner_ticket_url_required'),
-      tags: this.parseStringArray(body.tags),
-      description: this.requiredText(body.description, 'partner_poster_description_required'),
     };
   }
 
@@ -991,43 +879,12 @@ export class PartnerPortalService {
     return CommunityMediaKind.photo;
   }
 
-  private parsePosterCategory(value: unknown) {
-    if (
-      value === PosterCategory.concert ||
-      value === PosterCategory.sport ||
-      value === PosterCategory.exhibition ||
-      value === PosterCategory.theatre ||
-      value === PosterCategory.standup ||
-      value === PosterCategory.festival ||
-      value === PosterCategory.cinema
-    ) {
-      return value;
-    }
-    return PosterCategory.concert;
-  }
-
-  private parsePosterStatus(value: unknown) {
-    const status = this.requiredText(value, 'partner_poster_status_required');
-    if (!POSTER_STATUSES.has(status)) {
-      throw new ApiError(400, 'partner_poster_status_invalid', 'Poster status is invalid');
-    }
-    return status;
-  }
-
   private parseFeaturedStatus(value: unknown) {
     const status = this.requiredText(value, 'partner_feature_status_required');
     if (!FEATURE_STATUSES.has(status)) {
       throw new ApiError(400, 'partner_feature_status_invalid', 'Featured request status is invalid');
     }
     return status;
-  }
-
-  private dateLabel(date: Date) {
-    return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`;
-  }
-
-  private timeLabel(date: Date) {
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   }
 
   private mapMeetup(event: any) {
@@ -1072,30 +929,6 @@ export class PartnerPortalService {
       archivedAt: community.archivedAt?.toISOString() ?? null,
       createdAt: community.createdAt.toISOString(),
       updatedAt: community.updatedAt.toISOString(),
-    };
-  }
-
-  private mapPoster(poster: any) {
-    return {
-      id: poster.id,
-      partnerId: poster.partnerId,
-      category: poster.category,
-      title: poster.title,
-      emoji: poster.emoji,
-      startsAt: poster.startsAt.toISOString(),
-      date: poster.dateLabel,
-      time: poster.timeLabel,
-      venue: poster.venue,
-      address: poster.address,
-      priceFrom: poster.priceFrom,
-      ticketUrl: poster.ticketUrl,
-      provider: poster.provider,
-      tags: Array.isArray(poster.tags) ? poster.tags : [],
-      description: poster.description,
-      status: poster.status,
-      isFeatured: poster.isFeatured,
-      createdAt: poster.createdAt.toISOString(),
-      updatedAt: poster.updatedAt.toISOString(),
     };
   }
 

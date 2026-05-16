@@ -61,6 +61,7 @@ Shell tabs:
 Important query params:
 
 - `/phone` and `/phone-auth`
+- `/ai-create`
 - `/ai-voice`
 - `/after-dark`
 - `/streak`
@@ -75,6 +76,9 @@ Important query params:
 - `/publish`
 - `/sos`
 - `/routes/new`
+- `/evening-builder` legacy redirects to `/ai-create`
+- `/permissions` and `/add-photo` legacy setup links redirect to `/onboarding` or `/tonight`
+- `/tokens/focus`, `/tokens/balance`, `/tokens/top-up` and `/tokens/boost` legacy token links redirect to `/wallet`
 - `/evening/:eventId`
 - `/evening-plan/:routeId?launch=1`
 - `/evening-live/:routeId?mode=auto|manual|hybrid`

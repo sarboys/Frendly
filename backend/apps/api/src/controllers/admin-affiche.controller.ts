@@ -7,37 +7,6 @@ import { AdminAfficheService } from '../services/admin-affiche.service';
 export class AdminAfficheController {
   constructor(private readonly adminAfficheService: AdminAfficheService) {}
 
-  @Get('posters')
-  listPosters(@Query() query: Record<string, unknown>) {
-    return this.adminAfficheService.listPosters(query);
-  }
-
-  @Post('posters')
-  createPoster(@Body() body: Record<string, unknown>) {
-    return this.adminAfficheService.createPoster(body);
-  }
-
-  @Get('posters/:posterId')
-  getPoster(@Param('posterId') posterId: string) {
-    return this.adminAfficheService.getPoster(posterId);
-  }
-
-  @Patch('posters/:posterId')
-  updatePoster(
-    @Param('posterId') posterId: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.adminAfficheService.updatePoster(posterId, body);
-  }
-
-  @Post('posters/:posterId/:action')
-  posterAction(
-    @Param('posterId') posterId: string,
-    @Param('action') action: string,
-  ) {
-    return this.adminAfficheService.posterAction(posterId, action);
-  }
-
   @Get('content-items')
   listContentItems(@Query() query: Record<string, unknown>) {
     return this.adminAfficheService.listContentItems(query);
