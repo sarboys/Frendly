@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-16T10:36:03.792Z",
-    "gitCommitHash": "d72b5521566e17e78dd48dcbb6bfb5e7e4644158"
+    "analyzedAt": "2026-05-16T11:15:00.219Z",
+    "gitCommitHash": "3dc8894201c3f55fb804b5a19369adc5731b5a11"
   },
   "nodes": [
     {
@@ -10472,7 +10472,7 @@
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
         135,
-        1367
+        1369
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [
@@ -30558,19 +30558,6 @@
       "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/features/after_party/presentation/after_party_screen.dart",
-      "type": "file",
-      "name": "after_party_screen.dart",
-      "filePath": "mobile/lib/features/after_party/presentation/after_party_screen.dart",
-      "summary": "after_party_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
       "id": "file:mobile/lib/features/ai_create/presentation/ai_create_screen.dart",
       "type": "file",
       "name": "ai_create_screen.dart",
@@ -30667,19 +30654,6 @@
       "name": "chats_screen.dart",
       "filePath": "mobile/lib/features/chats/presentation/chats_screen.dart",
       "summary": "chats_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/check_in/presentation/check_in_screen.dart",
-      "type": "file",
-      "name": "check_in_screen.dart",
-      "filePath": "mobile/lib/features/check_in/presentation/check_in_screen.dart",
-      "summary": "check_in_screen.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -31195,6 +31169,19 @@
       "complexity": "complex"
     },
     {
+      "id": "file:mobile/lib/features/event_detail/presentation/event_entry_requirements_card.dart",
+      "type": "file",
+      "name": "event_entry_requirements_card.dart",
+      "filePath": "mobile/lib/features/event_detail/presentation/event_entry_requirements_card.dart",
+      "summary": "event_entry_requirements_card.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:mobile/lib/features/host_dashboard/presentation/host_dashboard_screen.dart",
       "type": "file",
       "name": "host_dashboard_screen.dart",
@@ -31213,19 +31200,6 @@
       "name": "join_request_screen.dart",
       "filePath": "mobile/lib/features/join_request/presentation/join_request_screen.dart",
       "summary": "join_request_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile/lib/features/live_meetup/presentation/live_meetup_screen.dart",
-      "type": "file",
-      "name": "live_meetup_screen.dart",
-      "filePath": "mobile/lib/features/live_meetup/presentation/live_meetup_screen.dart",
-      "summary": "live_meetup_screen.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -31855,7 +31829,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/shared/models/event.dart",
@@ -50472,7 +50446,6 @@
         "file:mobile/lib/features/affiche/presentation/affiche_events_screen.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_filters.dart",
         "file:mobile/lib/features/after_dark/presentation/after_dark_screen.dart",
-        "file:mobile/lib/features/after_party/presentation/after_party_screen.dart",
         "file:mobile/lib/features/ai_create/presentation/ai_create_screen.dart",
         "file:mobile/lib/features/ai_voice/presentation/ai_voice_screen.dart",
         "file:mobile/lib/features/chat_location/presentation/chat_location_screen.dart",
@@ -50481,7 +50454,6 @@
         "file:mobile/lib/features/chats/presentation/chat_voice_playback_controller.dart",
         "file:mobile/lib/features/chats/presentation/chats_providers.dart",
         "file:mobile/lib/features/chats/presentation/chats_screen.dart",
-        "file:mobile/lib/features/check_in/presentation/check_in_screen.dart",
         "file:mobile/lib/features/communities/domain/community.dart",
         "file:mobile/lib/features/communities/presentation/communities_screen.dart",
         "file:mobile/lib/features/communities/presentation/community_chat_screen.dart",
@@ -50521,9 +50493,9 @@
         "file:mobile/lib/features/evening_routes/presentation/route_form_screen.dart",
         "file:mobile/lib/features/evening_routes/presentation/widgets/custom_evening_route_form.dart",
         "file:mobile/lib/features/event_detail/presentation/event_detail_screen.dart",
+        "file:mobile/lib/features/event_detail/presentation/event_entry_requirements_card.dart",
         "file:mobile/lib/features/host_dashboard/presentation/host_dashboard_screen.dart",
         "file:mobile/lib/features/join_request/presentation/join_request_screen.dart",
-        "file:mobile/lib/features/live_meetup/presentation/live_meetup_screen.dart",
         "file:mobile/lib/features/map/presentation/map_screen.dart",
         "file:mobile/lib/features/match/presentation/match_screen.dart",
         "file:mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart",

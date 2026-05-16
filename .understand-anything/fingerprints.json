@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "d72b5521566e17e78dd48dcbb6bfb5e7e4644158",
-  "generatedAt": "2026-05-16T10:36:04.067Z",
+  "gitCommitHash": "3dc8894201c3f55fb804b5a19369adc5731b5a11",
+  "generatedAt": "2026-05-16T11:15:00.464Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14082,7 +14082,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "eb7db2818f8db74dcf2b79c3cbcead232a85512616fe0879fa5c70b01859ee26",
+      "contentHash": "694b0aa2e745221009e84bd2efdf616b126e5b56a00c5b27ff03f7a4668bc4ce",
       "functions": [],
       "classes": [
         {
@@ -14126,7 +14126,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 1233
+          "lineCount": 1235
         }
       ],
       "imports": [
@@ -14191,7 +14191,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1368,
+      "totalLines": 1370,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {

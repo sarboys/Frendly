@@ -384,6 +384,44 @@ describe('ChatsService unit', () => {
     });
   });
 
+  it('exposes last message timestamp for chat list sorting', async () => {
+    const messageCreatedAt = new Date('2026-04-24T12:34:00.000Z');
+    const chat = {
+      ...makeChatListItem('chat-with-message', messageCreatedAt),
+      messages: [makeMessage('message-1', messageCreatedAt)],
+    } as any;
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([chat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              chatId: 'chat-with-message',
+              unreadCount: 0,
+              isPinned: false,
+              pinnedAt: null,
+            },
+          ]),
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-with-message',
+      lastMessageId: 'message-1',
+      lastMessageAt: '2026-04-24T12:34:00.000Z',
+    });
+  });
+
   it('updates pinned state for the current chat member', async () => {
     const update = jest.fn().mockResolvedValue({
       chatId: 'chat-1',
