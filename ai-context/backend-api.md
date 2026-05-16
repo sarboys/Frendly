@@ -46,6 +46,17 @@ Events:
 - `POST /events/:eventId/invites/:requestId/decline`
 - check-in, live, after-party, feedback endpoints live under `/events/:eventId/*`.
 
+Host:
+
+- `GET /host/dashboard`
+- `GET /host/events/:eventId`
+- `PATCH /host/events/:eventId`
+- `POST /host/requests/:requestId/approve`
+- `POST /host/requests/:requestId/reject`
+- `POST /host/events/:eventId/check-in`
+- `POST /host/events/:eventId/live/start`
+- `POST /host/events/:eventId/live/finish` accepts `{ attendedUserIds: string[] }`. Backend marks only those current event participants as `checked_in`, resets the other current participants to `not_checked_in`, and sets the event live state to `finished`. Missing `attendedUserIds` is treated as an empty list.
+
 Search:
 
 - `GET /search` returns `{ meetups, evenings, routes, posters, affiche, nextCursors }`.

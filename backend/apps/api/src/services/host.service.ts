@@ -848,20 +848,102 @@ export class HostService {
     };
   }
 
-  async finishLive(userId: string, eventId: string) {
-    await this.assertHost(userId, eventId);
+  async finishLive(userId: string, eventId: string, attendedUserIdsInput?: unknown) {
+    const attendedUserIds = this.parseAttendedUserIds(attendedUserIdsInput);
+    const event = await this.prismaService.client.event.findFirst({
+      where: { id: eventId, hostId: userId },
+      select: {
+        id: true,
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
 
-    const liveState = await this.prismaService.client.eventLiveState.upsert({
-      where: { eventId },
-      update: {
-        status: 'finished',
-        finishedAt: new Date(),
-      },
-      create: {
-        eventId,
-        status: 'finished',
-        finishedAt: new Date(),
-      },
+    if (!event) {
+      throw new ApiError(404, 'host_event_not_found', 'Hosted event not found');
+    }
+
+    const participantUserIds = event.participants.map((participant) => participant.userId);
+    const participantUserIdSet = new Set(participantUserIds);
+    const unknownUserId = attendedUserIds.find(
+      (attendedUserId) => !participantUserIdSet.has(attendedUserId),
+    );
+    if (unknownUserId != null) {
+      throw new ApiError(404, 'event_participant_not_found', 'Participant not found');
+    }
+
+    const selectedUserIdSet = new Set(attendedUserIds);
+    const resetUserIds = participantUserIds.filter(
+      (participantUserId) => !selectedUserIdSet.has(participantUserId),
+    );
+
+    const liveState = await this.prismaService.client.$transaction(async (tx) => {
+      const finishedAt = new Date();
+      const nextLiveState = await tx.eventLiveState.upsert({
+        where: { eventId },
+        update: {
+          status: 'finished',
+          finishedAt,
+        },
+        create: {
+          eventId,
+          status: 'finished',
+          finishedAt,
+        },
+      });
+
+      if (resetUserIds.length > 0) {
+        await tx.eventAttendance.updateMany({
+          where: {
+            eventId,
+            userId: {
+              in: resetUserIds,
+            },
+          },
+          data: {
+            status: 'not_checked_in',
+            checkedInAt: null,
+            checkedInById: null,
+            checkInMethod: null,
+            leftAt: null,
+          },
+        });
+      }
+
+      for (const attendedUserId of attendedUserIds) {
+        await tx.eventAttendance.upsert({
+          where: {
+            eventId_userId: {
+              eventId,
+              userId: attendedUserId,
+            },
+          },
+          update: {
+            status: 'checked_in',
+            checkedInAt: finishedAt,
+            checkedInById: userId,
+            checkInMethod: 'host_manual',
+            leftAt: null,
+          },
+          create: {
+            eventId,
+            userId: attendedUserId,
+            status: 'checked_in',
+            checkedInAt: finishedAt,
+            checkedInById: userId,
+            checkInMethod: 'host_manual',
+            leftAt: null,
+          },
+          select: {
+            id: true,
+          },
+        });
+      }
+
+      return nextLiveState;
     });
 
     return {
@@ -869,7 +951,31 @@ export class HostService {
       status: liveState.status,
       startedAt: liveState.startedAt?.toISOString() ?? null,
       finishedAt: liveState.finishedAt?.toISOString() ?? null,
+      attendedUserIds,
     };
+  }
+
+  private parseAttendedUserIds(input: unknown): string[] {
+    if (input == null) {
+      return [];
+    }
+    if (!Array.isArray(input)) {
+      throw new ApiError(400, 'invalid_attended_user_ids', 'attendedUserIds must be an array');
+    }
+
+    const seen = new Set<string>();
+    const userIds: string[] = [];
+    for (const item of input) {
+      if (typeof item !== 'string' || item.trim().length === 0) {
+        throw new ApiError(400, 'invalid_attended_user_ids', 'attendedUserIds must be an array of user ids');
+      }
+      const userId = item.trim();
+      if (!seen.has(userId)) {
+        seen.add(userId);
+        userIds.push(userId);
+      }
+    }
+    return userIds;
   }
 
   private async assertHost(userId: string, eventId: string) {

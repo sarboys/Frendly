@@ -76,7 +76,8 @@ export class HostController {
   finishLive(
     @CurrentUser() currentUser: { userId: string },
     @Param('eventId') eventId: string,
+    @Body() body?: { attendedUserIds?: unknown },
   ) {
-    return this.hostService.finishLive(currentUser.userId, eventId);
+    return this.hostService.finishLive(currentUser.userId, eventId, body?.attendedUserIds);
   }
 }
