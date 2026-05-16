@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-15T14:43:19.634Z",
-    "gitCommitHash": "1fea6994eb713853b8b6a57865136cddbaa980ec"
+    "analyzedAt": "2026-05-16T10:13:33.605Z",
+    "gitCommitHash": "bd632b64849ee3d5e24669e82c9c518cf1b4c38c"
   },
   "nodes": [
     {
@@ -2096,7 +2096,7 @@
       "type": "file",
       "name": "api.ts",
       "filePath": "admin/src/admin/management/api.ts",
-      "summary": "api.ts contains 56 functions.",
+      "summary": "api.ts contains 45 functions.",
       "tags": [
         "admin",
         "code",
@@ -2110,8 +2110,8 @@
       "name": "listAdminUsers",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        15,
-        19
+        14,
+        18
       ],
       "summary": "listAdminUsers in api.ts.",
       "tags": [
@@ -2127,8 +2127,8 @@
       "name": "getAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        21,
-        23
+        20,
+        22
       ],
       "summary": "getAdminUser in api.ts.",
       "tags": [
@@ -2144,8 +2144,8 @@
       "name": "updateAdminUserProfile",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        25,
-        30
+        24,
+        29
       ],
       "summary": "updateAdminUserProfile in api.ts.",
       "tags": [
@@ -2161,8 +2161,8 @@
       "name": "verifyAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        32,
-        34
+        31,
+        33
       ],
       "summary": "verifyAdminUser in api.ts.",
       "tags": [
@@ -2178,8 +2178,8 @@
       "name": "unverifyAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        36,
-        38
+        35,
+        37
       ],
       "summary": "unverifyAdminUser in api.ts.",
       "tags": [
@@ -2195,8 +2195,8 @@
       "name": "suspendAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        40,
-        45
+        39,
+        44
       ],
       "summary": "suspendAdminUser in api.ts.",
       "tags": [
@@ -2212,8 +2212,8 @@
       "name": "unsuspendAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        47,
-        49
+        46,
+        48
       ],
       "summary": "unsuspendAdminUser in api.ts.",
       "tags": [
@@ -2229,8 +2229,8 @@
       "name": "revokeAdminUserSessions",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        51,
-        56
+        50,
+        55
       ],
       "summary": "revokeAdminUserSessions in api.ts.",
       "tags": [
@@ -2246,8 +2246,8 @@
       "name": "listAdminUserMeetups",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        58,
-        62
+        57,
+        61
       ],
       "summary": "listAdminUserMeetups in api.ts.",
       "tags": [
@@ -2263,8 +2263,8 @@
       "name": "listAdminUserReports",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        64,
-        68
+        63,
+        67
       ],
       "summary": "listAdminUserReports in api.ts.",
       "tags": [
@@ -2280,8 +2280,8 @@
       "name": "listAdminUserAudit",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        70,
-        74
+        69,
+        73
       ],
       "summary": "listAdminUserAudit in api.ts.",
       "tags": [
@@ -2297,8 +2297,8 @@
       "name": "listAdminMeetups",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        76,
-        80
+        75,
+        79
       ],
       "summary": "listAdminMeetups in api.ts.",
       "tags": [
@@ -2314,8 +2314,8 @@
       "name": "createAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        82,
-        84
+        81,
+        83
       ],
       "summary": "createAdminMeetup in api.ts.",
       "tags": [
@@ -2331,8 +2331,8 @@
       "name": "getAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        86,
-        88
+        85,
+        87
       ],
       "summary": "getAdminMeetup in api.ts.",
       "tags": [
@@ -2348,8 +2348,8 @@
       "name": "updateAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        90,
-        95
+        89,
+        94
       ],
       "summary": "updateAdminMeetup in api.ts.",
       "tags": [
@@ -2365,8 +2365,8 @@
       "name": "cancelAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        97,
-        102
+        96,
+        101
       ],
       "summary": "cancelAdminMeetup in api.ts.",
       "tags": [
@@ -2382,8 +2382,8 @@
       "name": "restoreAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        104,
-        106
+        103,
+        105
       ],
       "summary": "restoreAdminMeetup in api.ts.",
       "tags": [
@@ -2399,8 +2399,8 @@
       "name": "listAdminMeetupParticipants",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        108,
-        112
+        107,
+        111
       ],
       "summary": "listAdminMeetupParticipants in api.ts.",
       "tags": [
@@ -2416,8 +2416,8 @@
       "name": "removeAdminMeetupParticipant",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        114,
-        119
+        113,
+        118
       ],
       "summary": "removeAdminMeetupParticipant in api.ts.",
       "tags": [
@@ -2433,8 +2433,8 @@
       "name": "listAdminMeetupJoinRequests",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        121,
-        125
+        120,
+        124
       ],
       "summary": "listAdminMeetupJoinRequests in api.ts.",
       "tags": [
@@ -2450,8 +2450,8 @@
       "name": "approveAdminMeetupJoinRequest",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        127,
-        132
+        126,
+        131
       ],
       "summary": "approveAdminMeetupJoinRequest in api.ts.",
       "tags": [
@@ -2467,8 +2467,8 @@
       "name": "rejectAdminMeetupJoinRequest",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        134,
-        139
+        133,
+        138
       ],
       "summary": "rejectAdminMeetupJoinRequest in api.ts.",
       "tags": [
@@ -2484,8 +2484,8 @@
       "name": "listAdminCommunities",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        141,
-        145
+        140,
+        144
       ],
       "summary": "listAdminCommunities in api.ts.",
       "tags": [
@@ -2501,8 +2501,8 @@
       "name": "createAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        147,
-        149
+        146,
+        148
       ],
       "summary": "createAdminCommunity in api.ts.",
       "tags": [
@@ -2518,8 +2518,8 @@
       "name": "getAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        151,
-        153
+        150,
+        152
       ],
       "summary": "getAdminCommunity in api.ts.",
       "tags": [
@@ -2535,8 +2535,8 @@
       "name": "updateAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        155,
-        160
+        154,
+        159
       ],
       "summary": "updateAdminCommunity in api.ts.",
       "tags": [
@@ -2552,8 +2552,8 @@
       "name": "archiveAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        162,
-        167
+        161,
+        166
       ],
       "summary": "archiveAdminCommunity in api.ts.",
       "tags": [
@@ -2569,8 +2569,8 @@
       "name": "restoreAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        169,
-        174
+        168,
+        173
       ],
       "summary": "restoreAdminCommunity in api.ts.",
       "tags": [
@@ -2586,8 +2586,8 @@
       "name": "listAdminCommunityMembers",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        176,
-        180
+        175,
+        179
       ],
       "summary": "listAdminCommunityMembers in api.ts.",
       "tags": [
@@ -2603,8 +2603,8 @@
       "name": "removeAdminCommunityMember",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        182,
-        187
+        181,
+        186
       ],
       "summary": "removeAdminCommunityMember in api.ts.",
       "tags": [
@@ -2620,8 +2620,8 @@
       "name": "updateAdminCommunityMemberRole",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        189,
-        198
+        188,
+        197
       ],
       "summary": "updateAdminCommunityMemberRole in api.ts.",
       "tags": [
@@ -2637,8 +2637,8 @@
       "name": "listAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        200,
-        204
+        199,
+        203
       ],
       "summary": "listAdminCommunityNews in api.ts.",
       "tags": [
@@ -2654,8 +2654,8 @@
       "name": "createAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        206,
-        211
+        205,
+        210
       ],
       "summary": "createAdminCommunityNews in api.ts.",
       "tags": [
@@ -2671,8 +2671,8 @@
       "name": "updateAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        213,
-        218
+        212,
+        217
       ],
       "summary": "updateAdminCommunityNews in api.ts.",
       "tags": [
@@ -2688,8 +2688,8 @@
       "name": "deleteAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        220,
-        225
+        219,
+        224
       ],
       "summary": "deleteAdminCommunityNews in api.ts.",
       "tags": [
@@ -2705,8 +2705,8 @@
       "name": "listAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        227,
-        231
+        226,
+        230
       ],
       "summary": "listAdminCommunityMedia in api.ts.",
       "tags": [
@@ -2722,8 +2722,8 @@
       "name": "createAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        233,
-        238
+        232,
+        237
       ],
       "summary": "createAdminCommunityMedia in api.ts.",
       "tags": [
@@ -2739,8 +2739,8 @@
       "name": "updateAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        240,
-        245
+        239,
+        244
       ],
       "summary": "updateAdminCommunityMedia in api.ts.",
       "tags": [
@@ -2756,180 +2756,10 @@
       "name": "deleteAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        247,
-        252
+        246,
+        251
       ],
       "summary": "deleteAdminCommunityMedia in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:listAdminPosters",
-      "type": "function",
-      "name": "listAdminPosters",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        254,
-        258
-      ],
-      "summary": "listAdminPosters in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:createAdminPoster",
-      "type": "function",
-      "name": "createAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        260,
-        262
-      ],
-      "summary": "createAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:getAdminPoster",
-      "type": "function",
-      "name": "getAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        264,
-        266
-      ],
-      "summary": "getAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:updateAdminPoster",
-      "type": "function",
-      "name": "updateAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        268,
-        273
-      ],
-      "summary": "updateAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:publishAdminPoster",
-      "type": "function",
-      "name": "publishAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        275,
-        277
-      ],
-      "summary": "publishAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:hideAdminPoster",
-      "type": "function",
-      "name": "hideAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        279,
-        281
-      ],
-      "summary": "hideAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:rejectAdminPoster",
-      "type": "function",
-      "name": "rejectAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        283,
-        285
-      ],
-      "summary": "rejectAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:archiveAdminPoster",
-      "type": "function",
-      "name": "archiveAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        287,
-        289
-      ],
-      "summary": "archiveAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:featureAdminPoster",
-      "type": "function",
-      "name": "featureAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        291,
-        293
-      ],
-      "summary": "featureAdminPoster in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:unfeatureAdminPoster",
-      "type": "function",
-      "name": "unfeatureAdminPoster",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        295,
-        297
-      ],
-      "summary": "unfeatureAdminPoster in api.ts.",
       "tags": [
         "admin",
         "function",
@@ -2943,8 +2773,8 @@
       "name": "listAdminAfficheContentItems",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        299,
-        303
+        253,
+        257
       ],
       "summary": "listAdminAfficheContentItems in api.ts.",
       "tags": [
@@ -2960,8 +2790,8 @@
       "name": "getAdminAfficheContentItem",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        305,
-        309
+        259,
+        263
       ],
       "summary": "getAdminAfficheContentItem in api.ts.",
       "tags": [
@@ -2977,8 +2807,8 @@
       "name": "updateAdminAfficheContentItem",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        311,
-        316
+        265,
+        270
       ],
       "summary": "updateAdminAfficheContentItem in api.ts.",
       "tags": [
@@ -2994,8 +2824,8 @@
       "name": "moderateAdminAfficheContentItem",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        318,
-        323
+        272,
+        277
       ],
       "summary": "moderateAdminAfficheContentItem in api.ts.",
       "tags": [
@@ -3011,27 +2841,10 @@
       "name": "withQuery",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        325,
-        335
+        279,
+        289
       ],
       "summary": "withQuery in api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/management/api.ts:posterAction",
-      "type": "function",
-      "name": "posterAction",
-      "filePath": "admin/src/admin/management/api.ts",
-      "lineRange": [
-        337,
-        342
-      ],
-      "summary": "posterAction in api.ts.",
       "tags": [
         "admin",
         "function",
@@ -3045,8 +2858,8 @@
       "name": "json",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        344,
-        349
+        291,
+        296
       ],
       "summary": "json in api.ts.",
       "tags": [
@@ -3749,8 +3562,8 @@
       "name": "AdminFeatured",
       "filePath": "admin/src/admin/pages/Featured.tsx",
       "lineRange": [
-        23,
-        97
+        22,
+        96
       ],
       "summary": "AdminFeatured in Featured.tsx.",
       "tags": [
@@ -3766,8 +3579,8 @@
       "name": "PartnerFeatured",
       "filePath": "admin/src/admin/pages/Featured.tsx",
       "lineRange": [
-        110,
-        274
+        109,
+        266
       ],
       "summary": "PartnerFeatured in Featured.tsx.",
       "tags": [
@@ -3783,8 +3596,8 @@
       "name": "Field",
       "filePath": "admin/src/admin/pages/Featured.tsx",
       "lineRange": [
-        276,
-        293
+        268,
+        285
       ],
       "summary": "Field in Featured.tsx.",
       "tags": [
@@ -4392,7 +4205,7 @@
       "type": "file",
       "name": "Posters.tsx",
       "filePath": "admin/src/admin/pages/Posters.tsx",
-      "summary": "Posters.tsx contains 13 functions.",
+      "summary": "Posters.tsx contains 10 functions.",
       "tags": [
         "admin",
         "code",
@@ -4406,27 +4219,10 @@
       "name": "AdminPosters",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        76,
-        441
+        44,
+        241
       ],
       "summary": "AdminPosters in Posters.tsx.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/pages/Posters.tsx:PartnerPosters",
-      "type": "function",
-      "name": "PartnerPosters",
-      "filePath": "admin/src/admin/pages/Posters.tsx",
-      "lineRange": [
-        443,
-        588
-      ],
-      "summary": "PartnerPosters in Posters.tsx.",
       "tags": [
         "admin",
         "function",
@@ -4440,8 +4236,8 @@
       "name": "Field",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        590,
-        618
+        243,
+        271
       ],
       "summary": "Field in Posters.tsx.",
       "tags": [
@@ -4457,8 +4253,8 @@
       "name": "SelectField",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        620,
-        629
+        273,
+        282
       ],
       "summary": "SelectField in Posters.tsx.",
       "tags": [
@@ -4474,8 +4270,8 @@
       "name": "FilterInput",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        631,
-        642
+        284,
+        295
       ],
       "summary": "FilterInput in Posters.tsx.",
       "tags": [
@@ -4491,8 +4287,8 @@
       "name": "FilterSelect",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        644,
-        658
+        297,
+        311
       ],
       "summary": "FilterSelect in Posters.tsx.",
       "tags": [
@@ -4508,27 +4304,10 @@
       "name": "StateRow",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        660,
-        668
+        313,
+        321
       ],
       "summary": "StateRow in Posters.tsx.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/pages/Posters.tsx:posterPayload",
-      "type": "function",
-      "name": "posterPayload",
-      "filePath": "admin/src/admin/pages/Posters.tsx",
-      "lineRange": [
-        670,
-        688
-      ],
-      "summary": "posterPayload in Posters.tsx.",
       "tags": [
         "admin",
         "function",
@@ -4542,27 +4321,10 @@
       "name": "importedPayload",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        690,
-        711
+        323,
+        344
       ],
       "summary": "importedPayload in Posters.tsx.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/pages/Posters.tsx:runPosterAction",
-      "type": "function",
-      "name": "runPosterAction",
-      "filePath": "admin/src/admin/pages/Posters.tsx",
-      "lineRange": [
-        713,
-        720
-      ],
-      "summary": "runPosterAction in Posters.tsx.",
       "tags": [
         "admin",
         "function",
@@ -4576,8 +4338,8 @@
       "name": "pricePolicyLabel",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        722,
-        726
+        346,
+        350
       ],
       "summary": "pricePolicyLabel in Posters.tsx.",
       "tags": [
@@ -4593,8 +4355,8 @@
       "name": "toDateTimeLocal",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        728,
-        730
+        352,
+        354
       ],
       "summary": "toDateTimeLocal in Posters.tsx.",
       "tags": [
@@ -4610,8 +4372,8 @@
       "name": "splitTags",
       "filePath": "admin/src/admin/pages/Posters.tsx",
       "lineRange": [
-        732,
-        734
+        356,
+        358
       ],
       "summary": "splitTags in Posters.tsx.",
       "tags": [
@@ -5607,13 +5369,13 @@
       "type": "file",
       "name": "portal-api.ts",
       "filePath": "admin/src/admin/partner/portal-api.ts",
-      "summary": "portal-api.ts contains 20 functions.",
+      "summary": "portal-api.ts contains 15 functions.",
       "tags": [
         "admin",
         "code",
         "typescript"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:listPartnerMeetups",
@@ -5621,8 +5383,8 @@
       "name": "listPartnerMeetups",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        10,
-        12
+        9,
+        11
       ],
       "summary": "listPartnerMeetups in portal-api.ts.",
       "tags": [
@@ -5630,7 +5392,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:createPartnerMeetup",
@@ -5638,8 +5400,8 @@
       "name": "createPartnerMeetup",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        14,
-        16
+        13,
+        15
       ],
       "summary": "createPartnerMeetup in portal-api.ts.",
       "tags": [
@@ -5647,7 +5409,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:getPartnerMeetup",
@@ -5655,8 +5417,8 @@
       "name": "getPartnerMeetup",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        18,
-        20
+        17,
+        19
       ],
       "summary": "getPartnerMeetup in portal-api.ts.",
       "tags": [
@@ -5664,7 +5426,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:updatePartnerMeetup",
@@ -5672,8 +5434,8 @@
       "name": "updatePartnerMeetup",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        22,
-        27
+        21,
+        26
       ],
       "summary": "updatePartnerMeetup in portal-api.ts.",
       "tags": [
@@ -5681,7 +5443,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:cancelPartnerMeetup",
@@ -5689,8 +5451,8 @@
       "name": "cancelPartnerMeetup",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        29,
-        34
+        28,
+        33
       ],
       "summary": "cancelPartnerMeetup in portal-api.ts.",
       "tags": [
@@ -5698,7 +5460,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:listPartnerCommunities",
@@ -5706,8 +5468,8 @@
       "name": "listPartnerCommunities",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        36,
-        38
+        35,
+        37
       ],
       "summary": "listPartnerCommunities in portal-api.ts.",
       "tags": [
@@ -5715,7 +5477,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:createPartnerCommunity",
@@ -5723,8 +5485,8 @@
       "name": "createPartnerCommunity",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        40,
-        42
+        39,
+        41
       ],
       "summary": "createPartnerCommunity in portal-api.ts.",
       "tags": [
@@ -5732,7 +5494,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:getPartnerCommunity",
@@ -5740,8 +5502,8 @@
       "name": "getPartnerCommunity",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        44,
-        46
+        43,
+        45
       ],
       "summary": "getPartnerCommunity in portal-api.ts.",
       "tags": [
@@ -5749,7 +5511,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:updatePartnerCommunity",
@@ -5757,8 +5519,8 @@
       "name": "updatePartnerCommunity",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        48,
-        53
+        47,
+        52
       ],
       "summary": "updatePartnerCommunity in portal-api.ts.",
       "tags": [
@@ -5766,7 +5528,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:archivePartnerCommunity",
@@ -5774,8 +5536,8 @@
       "name": "archivePartnerCommunity",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        55,
-        60
+        54,
+        59
       ],
       "summary": "archivePartnerCommunity in portal-api.ts.",
       "tags": [
@@ -5783,92 +5545,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/partner/portal-api.ts:listPartnerPosters",
-      "type": "function",
-      "name": "listPartnerPosters",
-      "filePath": "admin/src/admin/partner/portal-api.ts",
-      "lineRange": [
-        62,
-        64
-      ],
-      "summary": "listPartnerPosters in portal-api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/partner/portal-api.ts:createPartnerPoster",
-      "type": "function",
-      "name": "createPartnerPoster",
-      "filePath": "admin/src/admin/partner/portal-api.ts",
-      "lineRange": [
-        66,
-        68
-      ],
-      "summary": "createPartnerPoster in portal-api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/partner/portal-api.ts:updatePartnerPoster",
-      "type": "function",
-      "name": "updatePartnerPoster",
-      "filePath": "admin/src/admin/partner/portal-api.ts",
-      "lineRange": [
-        70,
-        75
-      ],
-      "summary": "updatePartnerPoster in portal-api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/partner/portal-api.ts:submitPartnerPoster",
-      "type": "function",
-      "name": "submitPartnerPoster",
-      "filePath": "admin/src/admin/partner/portal-api.ts",
-      "lineRange": [
-        77,
-        82
-      ],
-      "summary": "submitPartnerPoster in portal-api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:admin/src/admin/partner/portal-api.ts:archivePartnerPoster",
-      "type": "function",
-      "name": "archivePartnerPoster",
-      "filePath": "admin/src/admin/partner/portal-api.ts",
-      "lineRange": [
-        84,
-        89
-      ],
-      "summary": "archivePartnerPoster in portal-api.ts.",
-      "tags": [
-        "admin",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:listPartnerFeaturedRequests",
@@ -5876,8 +5553,8 @@
       "name": "listPartnerFeaturedRequests",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        91,
-        95
+        61,
+        65
       ],
       "summary": "listPartnerFeaturedRequests in portal-api.ts.",
       "tags": [
@@ -5885,7 +5562,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:createPartnerFeaturedRequest",
@@ -5893,8 +5570,8 @@
       "name": "createPartnerFeaturedRequest",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        97,
-        102
+        67,
+        72
       ],
       "summary": "createPartnerFeaturedRequest in portal-api.ts.",
       "tags": [
@@ -5902,7 +5579,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:submitPartnerFeaturedRequest",
@@ -5910,8 +5587,8 @@
       "name": "submitPartnerFeaturedRequest",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        104,
-        109
+        74,
+        79
       ],
       "summary": "submitPartnerFeaturedRequest in portal-api.ts.",
       "tags": [
@@ -5919,7 +5596,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:archivePartnerFeaturedRequest",
@@ -5927,8 +5604,8 @@
       "name": "archivePartnerFeaturedRequest",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        111,
-        116
+        81,
+        86
       ],
       "summary": "archivePartnerFeaturedRequest in portal-api.ts.",
       "tags": [
@@ -5936,7 +5613,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/partner/portal-api.ts:json",
@@ -5944,8 +5621,8 @@
       "name": "json",
       "filePath": "admin/src/admin/partner/portal-api.ts",
       "lineRange": [
-        118,
-        123
+        88,
+        93
       ],
       "summary": "json in portal-api.ts.",
       "tags": [
@@ -5953,7 +5630,7 @@
         "function",
         "structure"
       ],
-      "complexity": "complex"
+      "complexity": "moderate"
     },
     {
       "id": "file:admin/src/admin/partner/types.ts",
@@ -5987,8 +5664,8 @@
       "name": "resolveAdminPortal",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        93,
-        102
+        92,
+        101
       ],
       "summary": "resolveAdminPortal in portal.ts.",
       "tags": [
@@ -6004,8 +5681,8 @@
       "name": "getEnabledAdminRouteIds",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        106,
-        108
+        105,
+        107
       ],
       "summary": "getEnabledAdminRouteIds in portal.ts.",
       "tags": [
@@ -6021,8 +5698,8 @@
       "name": "isAdminRouteEnabled",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        110,
-        112
+        109,
+        111
       ],
       "summary": "isAdminRouteEnabled in portal.ts.",
       "tags": [
@@ -6038,8 +5715,8 @@
       "name": "getPortalChrome",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        114,
-        116
+        113,
+        115
       ],
       "summary": "getPortalChrome in portal.ts.",
       "tags": [
@@ -7622,8 +7299,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        211,
-        215
+        207,
+        211
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -8429,8 +8106,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        330,
-        389
+        325,
+        365
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -8446,8 +8123,8 @@
       "name": "mapEventBookingSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        391,
-        427
+        367,
+        403
       ],
       "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
@@ -8463,8 +8140,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        429,
-        492
+        405,
+        470
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -8480,8 +8157,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        494,
-        514
+        472,
+        492
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -8661,7 +8338,7 @@
       "filePath": "backend/apps/api/src/controllers/admin-affiche.controller.ts",
       "lineRange": [
         7,
-        66
+        35
       ],
       "summary": "AdminAfficheController in admin-affiche.controller.ts.",
       "tags": [
@@ -9210,11 +8887,45 @@
       "type": "file",
       "name": "dating.controller.ts",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
-      "summary": "dating.controller.ts contains 1 classes.",
+      "summary": "dating.controller.ts contains 1 classes, 2 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/controllers/dating.controller.ts:parseOptionalNumber",
+      "type": "function",
+      "name": "parseOptionalNumber",
+      "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
+      "lineRange": [
+        50,
+        56
+      ],
+      "summary": "parseOptionalNumber in dating.controller.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/controllers/dating.controller.ts:parseQueryList",
+      "type": "function",
+      "name": "parseQueryList",
+      "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
+      "lineRange": [
+        58,
+        64
+      ],
+      "summary": "parseQueryList in dating.controller.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
       ],
       "complexity": "simple"
     },
@@ -9225,7 +8936,7 @@
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
         6,
-        40
+        48
       ],
       "summary": "DatingController in dating.controller.ts.",
       "tags": [
@@ -9255,7 +8966,7 @@
       "filePath": "backend/apps/api/src/controllers/evening.controller.ts",
       "lineRange": [
         9,
-        363
+        350
       ],
       "summary": "EveningController in evening.controller.ts.",
       "tags": [
@@ -9345,7 +9056,7 @@
       "filePath": "backend/apps/api/src/controllers/host.controller.ts",
       "lineRange": [
         6,
-        82
+        83
       ],
       "summary": "HostController in host.controller.ts.",
       "tags": [
@@ -9602,7 +9313,7 @@
       "filePath": "backend/apps/api/src/controllers/partner-portal.controller.ts",
       "lineRange": [
         15,
-        285
+        251
       ],
       "summary": "PartnerPortalController in partner-portal.controller.ts.",
       "tags": [
@@ -9703,36 +9414,6 @@
       "complexity": "simple"
     },
     {
-      "id": "file:backend/apps/api/src/controllers/posters.controller.ts",
-      "type": "file",
-      "name": "posters.controller.ts",
-      "filePath": "backend/apps/api/src/controllers/posters.controller.ts",
-      "summary": "posters.controller.ts contains 1 classes.",
-      "tags": [
-        "backend",
-        "code",
-        "typescript"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "class:backend/apps/api/src/controllers/posters.controller.ts:PostersController",
-      "type": "class",
-      "name": "PostersController",
-      "filePath": "backend/apps/api/src/controllers/posters.controller.ts",
-      "lineRange": [
-        5,
-        33
-      ],
-      "summary": "PostersController in posters.controller.ts.",
-      "tags": [
-        "backend",
-        "class",
-        "structure"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "file:backend/apps/api/src/controllers/profile.controller.ts",
       "type": "file",
       "name": "profile.controller.ts",
@@ -9743,7 +9424,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "class:backend/apps/api/src/controllers/profile.controller.ts:ProfileController",
@@ -9751,8 +9432,8 @@
       "name": "ProfileController",
       "filePath": "backend/apps/api/src/controllers/profile.controller.ts",
       "lineRange": [
-        20,
-        96
+        21,
+        137
       ],
       "summary": "ProfileController in profile.controller.ts.",
       "tags": [
@@ -9760,7 +9441,7 @@
         "class",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:backend/apps/api/src/controllers/public-code.controller.ts",
@@ -10097,28 +9778,11 @@
       "type": "file",
       "name": "admin-affiche.service.ts",
       "filePath": "backend/apps/api/src/services/admin-affiche.service.ts",
-      "summary": "admin-affiche.service.ts contains 1 classes, 2 functions.",
+      "summary": "admin-affiche.service.ts contains 1 classes, 1 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/admin-affiche.service.ts:posterActionData",
-      "type": "function",
-      "name": "posterActionData",
-      "filePath": "backend/apps/api/src/services/admin-affiche.service.ts",
-      "lineRange": [
-        712,
-        729
-      ],
-      "summary": "posterActionData in admin-affiche.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
       ],
       "complexity": "complex"
     },
@@ -10128,8 +9792,8 @@
       "name": "contentActionData",
       "filePath": "backend/apps/api/src/services/admin-affiche.service.ts",
       "lineRange": [
-        731,
-        748
+        433,
+        450
       ],
       "summary": "contentActionData in admin-affiche.service.ts.",
       "tags": [
@@ -10145,8 +9809,8 @@
       "name": "AdminAfficheService",
       "filePath": "backend/apps/api/src/services/admin-affiche.service.ts",
       "lineRange": [
-        11,
-        710
+        10,
+        431
       ],
       "summary": "AdminAfficheService in admin-affiche.service.ts.",
       "tags": [
@@ -10496,7 +10160,7 @@
       "filePath": "backend/apps/api/src/services/admin-meetups.service.ts",
       "lineRange": [
         18,
-        1097
+        1082
       ],
       "summary": "AdminMeetupsService in admin-meetups.service.ts.",
       "tags": [
@@ -10808,7 +10472,7 @@
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
         135,
-        1395
+        1367
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [
@@ -10867,8 +10531,8 @@
       "name": "DatingService",
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
-        156,
-        732
+        199,
+        1003
       ],
       "summary": "DatingService in dating.service.ts.",
       "tags": [
@@ -10883,7 +10547,7 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 1 classes, 34 functions.",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 44 functions.",
       "tags": [
         "backend",
         "code",
@@ -10897,8 +10561,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2376,
-        2380
+        2417,
+        2421
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -10914,8 +10578,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2382,
-        2391
+        2423,
+        2432
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -10931,8 +10595,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2393,
-        2395
+        2434,
+        2436
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10948,8 +10612,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2397,
-        2405
+        2438,
+        2446
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -10965,8 +10629,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2407,
-        2412
+        2448,
+        2453
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -10982,8 +10646,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2414,
-        2422
+        2455,
+        2463
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -10999,8 +10663,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2424,
-        2426
+        2465,
+        2467
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -11016,8 +10680,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2428,
-        2430
+        2469,
+        2471
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -11033,8 +10697,8 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2432,
-        2440
+        2473,
+        2481
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -11050,8 +10714,8 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2442,
-        2444
+        2483,
+        2485
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -11067,8 +10731,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2446,
-        2455
+        2487,
+        2496
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -11084,8 +10748,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2457,
-        2471
+        2498,
+        2512
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -11101,8 +10765,8 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2473,
-        2482
+        2514,
+        2523
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -11118,8 +10782,8 @@
       "name": "stepCountFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2484,
-        2507
+        2525,
+        2548
       ],
       "summary": "stepCountFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
@@ -11135,10 +10799,180 @@
       "name": "participantsCountFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2509,
-        2544
+        2550,
+        2585
       ],
       "summary": "participantsCountFromPrompt in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowFromPrompt",
+      "type": "function",
+      "name": "eventDateWindowFromPrompt",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2618,
+        2682
+      ],
+      "summary": "eventDateWindowFromPrompt in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowForLocalDate",
+      "type": "function",
+      "name": "eventDateWindowForLocalDate",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2684,
+        2697
+      ],
+      "summary": "eventDateWindowForLocalDate in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:localDateFromValues",
+      "type": "function",
+      "name": "localDateFromValues",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2699,
+        2719
+      ],
+      "summary": "localDateFromValues in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:zonedDateParts",
+      "type": "function",
+      "name": "zonedDateParts",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2721,
+        2734
+      ],
+      "summary": "zonedDateParts in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:zonedTimeToUtc",
+      "type": "function",
+      "name": "zonedTimeToUtc",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2736,
+        2766
+      ],
+      "summary": "zonedTimeToUtc in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:addLocalDays",
+      "type": "function",
+      "name": "addLocalDays",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2768,
+        2775
+      ],
+      "summary": "addLocalDays in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:weekdayForLocalDate",
+      "type": "function",
+      "name": "weekdayForLocalDate",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2777,
+        2779
+      ],
+      "summary": "weekdayForLocalDate in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:sameLocalDate",
+      "type": "function",
+      "name": "sameLocalDate",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2781,
+        2783
+      ],
+      "summary": "sameLocalDate in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:compareLocalDate",
+      "type": "function",
+      "name": "compareLocalDate",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2785,
+        2787
+      ],
+      "summary": "compareLocalDate in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:validLocalDate",
+      "type": "function",
+      "name": "validLocalDate",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2789,
+        2794
+      ],
+      "summary": "validLocalDate in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -11152,8 +10986,8 @@
       "name": "intentStepCountFromGenerated",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2546,
-        2553
+        2796,
+        2803
       ],
       "summary": "intentStepCountFromGenerated in evening-ai-draft.service.ts.",
       "tags": [
@@ -11169,8 +11003,8 @@
       "name": "intentParticipantsCountFromGenerated",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2555,
-        2558
+        2805,
+        2808
       ],
       "summary": "intentParticipantsCountFromGenerated in evening-ai-draft.service.ts.",
       "tags": [
@@ -11186,8 +11020,8 @@
       "name": "normalizedCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2560,
-        2575
+        2810,
+        2825
       ],
       "summary": "normalizedCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -11203,8 +11037,8 @@
       "name": "taxonomyTagQueriesForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2704,
-        2730
+        2954,
+        2980
       ],
       "summary": "taxonomyTagQueriesForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -11220,8 +11054,8 @@
       "name": "taxonomyTermMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2732,
-        2734
+        2982,
+        2984
       ],
       "summary": "taxonomyTermMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -11237,8 +11071,8 @@
       "name": "taxonomyAliasMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2736,
-        2741
+        2986,
+        2991
       ],
       "summary": "taxonomyAliasMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -11254,8 +11088,8 @@
       "name": "escapeRegExp",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2743,
-        2745
+        2993,
+        2995
       ],
       "summary": "escapeRegExp in evening-ai-draft.service.ts.",
       "tags": [
@@ -11271,8 +11105,8 @@
       "name": "normalizeTaxonomyToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2747,
-        2754
+        2997,
+        3004
       ],
       "summary": "normalizeTaxonomyToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -11288,8 +11122,8 @@
       "name": "transliterateRu",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2756,
-        2792
+        3006,
+        3042
       ],
       "summary": "transliterateRu in evening-ai-draft.service.ts.",
       "tags": [
@@ -11305,8 +11139,8 @@
       "name": "budgetFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2794,
-        2814
+        3044,
+        3064
       ],
       "summary": "budgetFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
@@ -11322,8 +11156,8 @@
       "name": "areaFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2816,
-        2826
+        3066,
+        3076
       ],
       "summary": "areaFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
@@ -11339,8 +11173,8 @@
       "name": "explicitAreaFromPrompt",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2828,
-        2847
+        3078,
+        3097
       ],
       "summary": "explicitAreaFromPrompt in evening-ai-draft.service.ts.",
       "tags": [
@@ -11356,8 +11190,8 @@
       "name": "normalizeAreaPhrase",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2849,
-        2882
+        3099,
+        3132
       ],
       "summary": "normalizeAreaPhrase in evening-ai-draft.service.ts.",
       "tags": [
@@ -11373,8 +11207,8 @@
       "name": "areaTermsFor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2884,
-        2893
+        3134,
+        3143
       ],
       "summary": "areaTermsFor in evening-ai-draft.service.ts.",
       "tags": [
@@ -11390,8 +11224,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2895,
-        2897
+        3145,
+        3147
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -11407,8 +11241,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2899,
-        2901
+        3149,
+        3151
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -11424,8 +11258,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2903,
-        2909
+        3153,
+        3159
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -11441,8 +11275,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2911,
-        2924
+        3161,
+        3174
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -11458,8 +11292,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2926,
-        2928
+        3176,
+        3178
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -11475,8 +11309,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        188,
-        2137
+        194,
+        2177
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -11764,147 +11598,11 @@
       "type": "file",
       "name": "evening.service.ts",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "summary": "evening.service.ts contains 1 classes, 8 functions.",
+      "summary": "evening.service.ts contains 1 classes.",
       "tags": [
         "backend",
         "code",
         "typescript"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:normalizeEveningPrompt",
-      "type": "function",
-      "name": "normalizeEveningPrompt",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3398,
-        3406
-      ],
-      "summary": "normalizeEveningPrompt in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:hasPromptTerm",
-      "type": "function",
-      "name": "hasPromptTerm",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3408,
-        3410
-      ],
-      "summary": "hasPromptTerm in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:isFiniteNumber",
-      "type": "function",
-      "name": "isFiniteNumber",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3412,
-        3414
-      ],
-      "summary": "isFiniteNumber in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:geoDistanceKm",
-      "type": "function",
-      "name": "geoDistanceKm",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3416,
-        3429
-      ],
-      "summary": "geoDistanceKm in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:degreesToRadians",
-      "type": "function",
-      "name": "degreesToRadians",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3431,
-        3433
-      ],
-      "summary": "degreesToRadians in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:dayRangeFromDate",
-      "type": "function",
-      "name": "dayRangeFromDate",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3435,
-        3441
-      ],
-      "summary": "dayRangeFromDate in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:remainingDayRangeFromDate",
-      "type": "function",
-      "name": "remainingDayRangeFromDate",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3443,
-        3448
-      ],
-      "summary": "remainingDayRangeFromDate in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening.service.ts:nextWeekdayRange",
-      "type": "function",
-      "name": "nextWeekdayRange",
-      "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "lineRange": [
-        3450,
-        3455
-      ],
-      "summary": "nextWeekdayRange in evening.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
       ],
       "complexity": "complex"
     },
@@ -11914,8 +11612,8 @@
       "name": "EveningService",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
-        223,
-        3396
+        144,
+        2431
       ],
       "summary": "EveningService in evening.service.ts.",
       "tags": [
@@ -11974,8 +11672,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        3989,
-        4019
+        4088,
+        4118
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -11991,8 +11689,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4021,
-        4025
+        4120,
+        4124
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -12008,8 +11706,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4027,
-        4029
+        4126,
+        4128
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -12025,8 +11723,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4031,
-        4033
+        4130,
+        4132
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -12042,8 +11740,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4035,
-        4054
+        4134,
+        4153
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -12060,7 +11758,7 @@
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
         177,
-        3987
+        4086
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -12089,8 +11787,8 @@
       "name": "HostService",
       "filePath": "backend/apps/api/src/services/host.service.ts",
       "lineRange": [
-        65,
-        1233
+        74,
+        1469
       ],
       "summary": "HostService in host.service.ts.",
       "tags": [
@@ -12567,8 +12265,8 @@
       "name": "PartnerPortalService",
       "filePath": "backend/apps/api/src/services/partner-portal.service.ts",
       "lineRange": [
-        31,
-        1120
+        29,
+        953
       ],
       "summary": "PartnerPortalService in partner-portal.service.ts.",
       "tags": [
@@ -13086,36 +12784,6 @@
       "complexity": "complex"
     },
     {
-      "id": "file:backend/apps/api/src/services/posters.service.ts",
-      "type": "file",
-      "name": "posters.service.ts",
-      "filePath": "backend/apps/api/src/services/posters.service.ts",
-      "summary": "posters.service.ts contains 1 classes.",
-      "tags": [
-        "backend",
-        "code",
-        "typescript"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "class:backend/apps/api/src/services/posters.service.ts:PostersService",
-      "type": "class",
-      "name": "PostersService",
-      "filePath": "backend/apps/api/src/services/posters.service.ts",
-      "lineRange": [
-        53,
-        322
-      ],
-      "summary": "PostersService in posters.service.ts.",
-      "tags": [
-        "backend",
-        "class",
-        "structure"
-      ],
-      "complexity": "moderate"
-    },
-    {
       "id": "file:backend/apps/api/src/services/prisma.service.ts",
       "type": "file",
       "name": "prisma.service.ts",
@@ -13164,8 +12832,8 @@
       "name": "ProfileService",
       "filePath": "backend/apps/api/src/services/profile.service.ts",
       "lineRange": [
-        48,
-        950
+        109,
+        1615
       ],
       "summary": "ProfileService in profile.service.ts.",
       "tags": [
@@ -13224,8 +12892,8 @@
       "name": "SearchService",
       "filePath": "backend/apps/api/src/services/search.service.ts",
       "lineRange": [
-        10,
-        112
+        9,
+        101
       ],
       "summary": "SearchService in search.service.ts.",
       "tags": [
@@ -13528,8 +13196,8 @@
       "name": "TokensService",
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
       "lineRange": [
-        21,
-        228
+        22,
+        229
       ],
       "summary": "TokensService in tokens.service.ts.",
       "tags": [
@@ -13644,8 +13312,8 @@
       "name": "seedIntegrationTestData",
       "filePath": "backend/apps/api/test/integration/seed-test-data.ts",
       "lineRange": [
-        128,
-        1250
+        127,
+        1236
       ],
       "summary": "seedIntegrationTestData in seed-test-data.ts.",
       "tags": [
@@ -26497,6 +26165,96 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260516102000_drop_legacy_posters/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260516102000_drop_legacy_posters/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260516110000_event_entry_requirements/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260516110000_event_entry_requirements/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "summary": "migration.sql contains 3 definitions.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim",
+      "type": "table",
+      "name": "UserSeasonRewardClaim",
+      "filePath": "backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "lineRange": [
+        3,
+        13
+      ],
+      "summary": "table: UserSeasonRewardClaim (7 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_rewardKey_key",
+      "type": "table",
+      "name": "UserSeasonRewardClaim_userId_seasonKey_rewardKey_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "lineRange": [
+        15,
+        15
+      ],
+      "summary": "index: UserSeasonRewardClaim_userId_seasonKey_rewardKey_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_claimedAt_idx",
+      "type": "table",
+      "name": "UserSeasonRewardClaim_userId_seasonKey_claimedAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "lineRange": [
+        18,
+        18
+      ],
+      "summary": "index: UserSeasonRewardClaim_userId_seasonKey_claimedAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -26822,8 +26580,8 @@
       "name": "main",
       "filePath": "backend/packages/database/prisma/seed.ts",
       "lineRange": [
-        101,
-        268
+        86,
+        246
       ],
       "summary": "main in seed.ts.",
       "tags": [
@@ -30709,19 +30467,6 @@
       "complexity": "simple"
     },
     {
-      "id": "file:mobile/lib/app/theme/app_theme_mode.dart",
-      "type": "file",
-      "name": "app_theme_mode.dart",
-      "filePath": "mobile/lib/app/theme/app_theme_mode.dart",
-      "summary": "app_theme_mode.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "file:mobile/lib/app/theme/app_theme.dart",
       "type": "file",
       "name": "app_theme.dart",
@@ -30733,19 +30478,6 @@
         "dart"
       ],
       "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile/lib/features/add_photo/presentation/add_photo_screen.dart",
-      "type": "file",
-      "name": "add_photo_screen.dart",
-      "filePath": "mobile/lib/features/add_photo/presentation/add_photo_screen.dart",
-      "summary": "add_photo_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/features/affiche/presentation/affiche_event_card.dart",
@@ -31242,19 +30974,6 @@
       "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/features/evening_plan/presentation/evening_builder_screen.dart",
-      "type": "file",
-      "name": "evening_builder_screen.dart",
-      "filePath": "mobile/lib/features/evening_plan/presentation/evening_builder_screen.dart",
-      "summary": "evening_builder_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
       "id": "file:mobile/lib/features/evening_plan/presentation/evening_edit_screen.dart",
       "type": "file",
       "name": "evening_edit_screen.dart",
@@ -31351,19 +31070,6 @@
       "name": "custom_route_controller.dart",
       "filePath": "mobile/lib/features/evening_routes/application/custom_route_controller.dart",
       "summary": "custom_route_controller.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile/lib/features/evening_routes/data/evening_route_template_fallbacks.dart",
-      "type": "file",
-      "name": "evening_route_template_fallbacks.dart",
-      "filePath": "mobile/lib/features/evening_routes/data/evening_route_template_fallbacks.dart",
-      "summary": "evening_route_template_fallbacks.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -31684,19 +31390,6 @@
       "complexity": "complex"
     },
     {
-      "id": "file:mobile/lib/features/permissions/presentation/permissions_screen.dart",
-      "type": "file",
-      "name": "permissions_screen.dart",
-      "filePath": "mobile/lib/features/permissions/presentation/permissions_screen.dart",
-      "summary": "permissions_screen.dart is a code file for mobile.",
-      "tags": [
-        "mobile",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
       "id": "file:mobile/lib/features/personal_chat/presentation/personal_chat_screen.dart",
       "type": "file",
       "name": "personal_chat_screen.dart",
@@ -31996,6 +31689,19 @@
       "complexity": "complex"
     },
     {
+      "id": "file:mobile/lib/shared/data/frendly_season_provider.dart",
+      "type": "file",
+      "name": "frendly_season_provider.dart",
+      "filePath": "mobile/lib/shared/data/frendly_season_provider.dart",
+      "summary": "frendly_season_provider.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:mobile/lib/shared/data/location_override_provider.dart",
       "type": "file",
       "name": "location_override_provider.dart",
@@ -32157,6 +31863,19 @@
       "name": "event.dart",
       "filePath": "mobile/lib/shared/models/event.dart",
       "summary": "event.dart is a code file for mobile.",
+      "tags": [
+        "mobile",
+        "code",
+        "dart"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:mobile/lib/shared/models/frendly_season.dart",
+      "type": "file",
+      "name": "frendly_season.dart",
+      "filePath": "mobile/lib/shared/models/frendly_season.dart",
+      "summary": "frendly_season.dart is a code file for mobile.",
       "tags": [
         "mobile",
         "code",
@@ -35510,76 +35229,6 @@
     },
     {
       "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:listAdminPosters",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:createAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:getAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:updateAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:publishAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:hideAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:rejectAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:archiveAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:featureAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:unfeatureAdminPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
       "target": "function:admin/src/admin/management/api.ts:listAdminAfficheContentItems",
       "type": "contains",
       "direction": "forward",
@@ -35609,13 +35258,6 @@
     {
       "source": "file:admin/src/admin/management/api.ts",
       "target": "function:admin/src/admin/management/api.ts:withQuery",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/management/api.ts",
-      "target": "function:admin/src/admin/management/api.ts:posterAction",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -36077,13 +35719,6 @@
     },
     {
       "source": "file:admin/src/admin/pages/Posters.tsx",
-      "target": "function:admin/src/admin/pages/Posters.tsx:PartnerPosters",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/pages/Posters.tsx",
       "target": "function:admin/src/admin/pages/Posters.tsx:Field",
       "type": "contains",
       "direction": "forward",
@@ -36119,21 +35754,7 @@
     },
     {
       "source": "file:admin/src/admin/pages/Posters.tsx",
-      "target": "function:admin/src/admin/pages/Posters.tsx:posterPayload",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/pages/Posters.tsx",
       "target": "function:admin/src/admin/pages/Posters.tsx:importedPayload",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/pages/Posters.tsx",
-      "target": "function:admin/src/admin/pages/Posters.tsx:runPosterAction",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -36554,41 +36175,6 @@
     {
       "source": "file:admin/src/admin/partner/portal-api.ts",
       "target": "function:admin/src/admin/partner/portal-api.ts:archivePartnerCommunity",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/partner/portal-api.ts",
-      "target": "function:admin/src/admin/partner/portal-api.ts:listPartnerPosters",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/partner/portal-api.ts",
-      "target": "function:admin/src/admin/partner/portal-api.ts:createPartnerPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/partner/portal-api.ts",
-      "target": "function:admin/src/admin/partner/portal-api.ts:updatePartnerPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/partner/portal-api.ts",
-      "target": "function:admin/src/admin/partner/portal-api.ts:submitPartnerPoster",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:admin/src/admin/partner/portal-api.ts",
-      "target": "function:admin/src/admin/partner/portal-api.ts:archivePartnerPoster",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -37449,6 +37035,20 @@
     },
     {
       "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
+      "target": "function:backend/apps/api/src/controllers/dating.controller.ts:parseOptionalNumber",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
+      "target": "function:backend/apps/api/src/controllers/dating.controller.ts:parseQueryList",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
       "target": "class:backend/apps/api/src/controllers/dating.controller.ts:DatingController",
       "type": "contains",
       "direction": "forward",
@@ -37567,13 +37167,6 @@
       "weight": 1
     },
     {
-      "source": "file:backend/apps/api/src/controllers/posters.controller.ts",
-      "target": "class:backend/apps/api/src/controllers/posters.controller.ts:PostersController",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
       "source": "file:backend/apps/api/src/controllers/profile.controller.ts",
       "target": "class:backend/apps/api/src/controllers/profile.controller.ts:ProfileController",
       "type": "contains",
@@ -37653,13 +37246,6 @@
     {
       "source": "file:backend/apps/api/src/main.ts",
       "target": "function:backend/apps/api/src/main.ts:bootstrap",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/admin-affiche.service.ts",
-      "target": "function:backend/apps/api/src/services/admin-affiche.service.ts:posterActionData",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -38002,6 +37588,76 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowFromPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowForLocalDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:localDateFromValues",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:zonedDateParts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:zonedTimeToUtc",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:addLocalDays",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:weekdayForLocalDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:sameLocalDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:compareLocalDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:validLocalDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:intentStepCountFromGenerated",
       "type": "contains",
       "direction": "forward",
@@ -38227,62 +37883,6 @@
     {
       "source": "file:backend/apps/api/src/services/evening-route-template.service.ts",
       "target": "class:backend/apps/api/src/services/evening-route-template.service.ts:EveningRouteTemplateService",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:normalizeEveningPrompt",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:hasPromptTerm",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:isFiniteNumber",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:geoDistanceKm",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:degreesToRadians",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:dayRangeFromDate",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:remainingDayRangeFromDate",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening.service.ts",
-      "target": "function:backend/apps/api/src/services/evening.service.ts:nextWeekdayRange",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -38682,13 +38282,6 @@
     {
       "source": "file:backend/apps/api/src/services/places.service.ts",
       "target": "class:backend/apps/api/src/services/places.service.ts:PlacesService",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/posters.service.ts",
-      "target": "class:backend/apps/api/src/services/posters.service.ts:PostersService",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -43440,6 +43033,27 @@
       "weight": 1
     },
     {
+      "source": "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_rewardKey_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_claimedAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/reset-test-users.ts",
       "target": "function:backend/packages/database/prisma/reset-test-users.ts:main",
       "type": "contains",
@@ -45540,27 +45154,6 @@
       "weight": 0.7
     },
     {
-      "source": "file:admin/src/admin/pages/Posters.tsx",
-      "target": "file:admin/src/admin/partner/portal-api.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:admin/src/admin/pages/Posters.tsx",
-      "target": "file:admin/src/admin/partner/types.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:admin/src/admin/pages/Posters.tsx",
-      "target": "file:admin/src/admin/portal.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
       "source": "file:admin/src/admin/pages/Promos.tsx",
       "target": "file:admin/src/admin/components/Topbar.tsx",
       "type": "imports",
@@ -46374,13 +45967,6 @@
     },
     {
       "source": "file:backend/apps/api/src/app.module.ts",
-      "target": "file:backend/apps/api/src/controllers/posters.controller.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/profile.controller.ts",
       "type": "imports",
       "direction": "forward",
@@ -46739,13 +46325,6 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/services/places.service.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/app.module.ts",
-      "target": "file:backend/apps/api/src/services/posters.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -47530,13 +47109,6 @@
     {
       "source": "file:backend/apps/api/src/controllers/places.controller.ts",
       "target": "file:backend/apps/api/src/services/places.service.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/controllers/posters.controller.ts",
-      "target": "file:backend/apps/api/src/services/posters.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -48487,34 +48059,6 @@
       "weight": 0.7
     },
     {
-      "source": "file:backend/apps/api/src/services/posters.service.ts",
-      "target": "file:backend/apps/api/src/common/api-error.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/services/posters.service.ts",
-      "target": "file:backend/apps/api/src/common/media-presenters.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/services/posters.service.ts",
-      "target": "file:backend/apps/api/src/common/search-query.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/services/posters.service.ts",
-      "target": "file:backend/apps/api/src/services/prisma.service.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
       "source": "file:backend/apps/api/src/services/profile.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
       "type": "imports",
@@ -48587,13 +48131,6 @@
     {
       "source": "file:backend/apps/api/src/services/search.service.ts",
       "target": "file:backend/apps/api/src/services/events.service.ts",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:backend/apps/api/src/services/search.service.ts",
-      "target": "file:backend/apps/api/src/services/posters.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -50225,7 +49762,6 @@
         "file:backend/apps/api/src/controllers/payments.controller.ts",
         "file:backend/apps/api/src/controllers/people.controller.ts",
         "file:backend/apps/api/src/controllers/places.controller.ts",
-        "file:backend/apps/api/src/controllers/posters.controller.ts",
         "file:backend/apps/api/src/controllers/profile.controller.ts",
         "file:backend/apps/api/src/controllers/public-code.controller.ts",
         "file:backend/apps/api/src/controllers/safety.controller.ts",
@@ -50276,7 +49812,6 @@
         "file:backend/apps/api/src/services/people.service.ts",
         "file:backend/apps/api/src/services/phone-otp.service.ts",
         "file:backend/apps/api/src/services/places.service.ts",
-        "file:backend/apps/api/src/services/posters.service.ts",
         "file:backend/apps/api/src/services/prisma.service.ts",
         "file:backend/apps/api/src/services/profile.service.ts",
         "file:backend/apps/api/src/services/safety.service.ts",
@@ -50802,6 +50337,12 @@
         "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_userId_status_createdAt_id_idx",
         "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_expiresAt_idx",
         "index:backend/packages/database/prisma/migrations/20260515130000_evening_ai_route_drafts/migration.sql:EveningAiRouteDraft_routeId_idx",
+        "table:backend/packages/database/prisma/migrations/20260516102000_drop_legacy_posters/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260516110000_event_entry_requirements/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim",
+        "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_rewardKey_key",
+        "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_claimedAt_idx",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",
@@ -50924,9 +50465,7 @@
         "file:mobile/lib/app/theme/app_shadows.dart",
         "file:mobile/lib/app/theme/app_spacing.dart",
         "file:mobile/lib/app/theme/app_text_styles.dart",
-        "file:mobile/lib/app/theme/app_theme_mode.dart",
         "file:mobile/lib/app/theme/app_theme.dart",
-        "file:mobile/lib/features/add_photo/presentation/add_photo_screen.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_event_card.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_event_detail_screen.dart",
         "file:mobile/lib/features/affiche/presentation/affiche_event_picker_sheet.dart",
@@ -50965,7 +50504,6 @@
         "file:mobile/lib/features/edit_profile/presentation/edit_profile_screen.dart",
         "file:mobile/lib/features/evening_flow/presentation/evening_flow_screen.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_after_party_screen.dart",
-        "file:mobile/lib/features/evening_plan/presentation/evening_builder_screen.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_edit_screen.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_edit_state.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_live_meetup_screen.dart",
@@ -50974,7 +50512,6 @@
         "file:mobile/lib/features/evening_plan/presentation/evening_preview_screen.dart",
         "file:mobile/lib/features/evening_plan/presentation/evening_share_card_screen.dart",
         "file:mobile/lib/features/evening_routes/application/custom_route_controller.dart",
-        "file:mobile/lib/features/evening_routes/data/evening_route_template_fallbacks.dart",
         "file:mobile/lib/features/evening_routes/presentation/create_evening_session_screen.dart",
         "file:mobile/lib/features/evening_routes/presentation/evening_route_card.dart",
         "file:mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
@@ -50999,7 +50536,6 @@
         "file:mobile/lib/features/payments/presentation/payment_return_screen.dart",
         "file:mobile/lib/features/paywall/presentation/paywall_screen.dart",
         "file:mobile/lib/features/perks/presentation/perks_screen.dart",
-        "file:mobile/lib/features/permissions/presentation/permissions_screen.dart",
         "file:mobile/lib/features/personal_chat/presentation/personal_chat_screen.dart",
         "file:mobile/lib/features/phone_auth/presentation/phone_auth_screen.dart",
         "file:mobile/lib/features/profile/presentation/profile_screen.dart",
@@ -51023,6 +50559,7 @@
         "file:mobile/lib/main.dart",
         "file:mobile/lib/shared/data/app_providers.dart",
         "file:mobile/lib/shared/data/backend_repository.dart",
+        "file:mobile/lib/shared/data/frendly_season_provider.dart",
         "file:mobile/lib/shared/data/location_override_provider.dart",
         "file:mobile/lib/shared/data/tomesto_promos_provider.dart",
         "file:mobile/lib/shared/models/affiche_event.dart",
@@ -51036,6 +50573,7 @@
         "file:mobile/lib/shared/models/event_check_in.dart",
         "file:mobile/lib/shared/models/event_detail.dart",
         "file:mobile/lib/shared/models/event.dart",
+        "file:mobile/lib/shared/models/frendly_season.dart",
         "file:mobile/lib/shared/models/host_dashboard.dart",
         "file:mobile/lib/shared/models/live_meetup.dart",
         "file:mobile/lib/shared/models/match.dart",
@@ -51167,9 +50705,9 @@
         "file:mobile/lib/app/navigation/app_router.dart",
         "file:mobile/lib/shared/data/app_providers.dart",
         "file:mobile/lib/shared/data/backend_repository.dart",
+        "file:mobile/lib/shared/data/frendly_season_provider.dart",
         "file:mobile/lib/shared/data/location_override_provider.dart",
-        "file:mobile/lib/shared/data/tomesto_promos_provider.dart",
-        "file:mobile/lib/shared/models/affiche_event.dart"
+        "file:mobile/lib/shared/data/tomesto_promos_provider.dart"
       ]
     },
     {

@@ -3,13 +3,13 @@
     "name": "Frendly backend-mobile-admin",
     "description": "Focused graph for backend, mobile Flutter app, admin app, business logic, and their runtime/deploy links."
   },
-  "filesAnalyzed": 650,
+  "filesAnalyzed": 648,
   "fileCategories": {
     "infra": 24,
     "config": 31,
-    "code": 524,
+    "code": 519,
     "markup": 1,
-    "data": 65,
+    "data": 68,
     "docs": 4,
     "script": 1
   },
@@ -17,10 +17,10 @@
     "service": 27,
     "pipeline": 31,
     "config": 31,
-    "file": 525,
-    "function": 915,
-    "class": 145,
-    "table": 410,
+    "file": 520,
+    "function": 899,
+    "class": 143,
+    "table": 416,
     "schema": 1,
     "document": 4,
     "domain": 7,
@@ -28,8 +28,8 @@
     "step": 65
   },
   "edgeTypes": {
-    "contains": 1439,
-    "imports": 671,
+    "contains": 1424,
+    "imports": 660,
     "contains_flow": 12,
     "flow_step": 65,
     "cross_domain": 8

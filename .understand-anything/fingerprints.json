@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "1fea6994eb713853b8b6a57865136cddbaa980ec",
-  "generatedAt": "2026-05-15T14:43:20.156Z",
+  "gitCommitHash": "bd632b64849ee3d5e24669e82c9c518cf1b4c38c",
+  "generatedAt": "2026-05-16T10:13:33.858Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -305,7 +305,7 @@
     },
     "admin/src/admin/components/StatusBadge.tsx": {
       "filePath": "admin/src/admin/components/StatusBadge.tsx",
-      "contentHash": "fb1763a82b9c925ef1da467d0517f2d11428a1c1ddbbe43b27ba6396eb3faf9c",
+      "contentHash": "8456bc276a6e2b52a5cc361ce36b87b0c1a0f8e7b841678678009bc99e1a4050",
       "functions": [
         {
           "name": "StatusBadge",
@@ -388,7 +388,7 @@
     },
     "admin/src/admin/data.ts": {
       "filePath": "admin/src/admin/data.ts",
-      "contentHash": "c1e59439b47feeaccc190ffddbd66da02da6f9bf77540bf5f00ec2f48aa50902",
+      "contentHash": "70120fcbe12be41d16dfaa0327505197ba49a688c8c00042b4e5e7d33b054ef0",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -397,7 +397,6 @@
         "users",
         "meetups",
         "communities",
-        "posters",
         "subscriptions",
         "reports",
         "payments",
@@ -413,7 +412,7 @@
         "banners",
         "featuredItems"
       ],
-      "totalLines": 332,
+      "totalLines": 315,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/evening/api.ts": {
@@ -1709,7 +1708,7 @@
     },
     "admin/src/admin/management/api.ts": {
       "filePath": "admin/src/admin/management/api.ts",
-      "contentHash": "e1438d0e5711e9c6599ac01268370876721f62be0a309b0fb7194d84676cf2a4",
+      "contentHash": "dabf3af9835dd241e99a243a038c8d83175b4d1471475b6d1d54b02dcf527216",
       "functions": [
         {
           "name": "listAdminUsers",
@@ -2051,87 +2050,6 @@
           "lineCount": 6
         },
         {
-          "name": "listAdminPosters",
-          "params": [
-            "params"
-          ],
-          "exported": true,
-          "lineCount": 5
-        },
-        {
-          "name": "createAdminPoster",
-          "params": [
-            "input"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "getAdminPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "updateAdminPoster",
-          "params": [
-            "posterId",
-            "input"
-          ],
-          "exported": true,
-          "lineCount": 6
-        },
-        {
-          "name": "publishAdminPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "hideAdminPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "rejectAdminPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "archiveAdminPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "featureAdminPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "unfeatureAdminPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
           "name": "listAdminAfficheContentItems",
           "params": [
             "params"
@@ -2175,15 +2093,6 @@
           "lineCount": 11
         },
         {
-          "name": "posterAction",
-          "params": [
-            "posterId",
-            "action"
-          ],
-          "exported": false,
-          "lineCount": 6
-        },
-        {
           "name": "json",
           "params": [
             "method",
@@ -2210,7 +2119,6 @@
             "AdminCommunityListItemDto",
             "AdminMeetupDetailDto",
             "AdminMeetupListItemDto",
-            "AdminPosterDto",
             "AdminUserDetailDto",
             "AdminUserListItemDto",
             "CursorPageDto",
@@ -2258,23 +2166,13 @@
         "createAdminCommunityMedia",
         "updateAdminCommunityMedia",
         "deleteAdminCommunityMedia",
-        "listAdminPosters",
-        "createAdminPoster",
-        "getAdminPoster",
-        "updateAdminPoster",
-        "publishAdminPoster",
-        "hideAdminPoster",
-        "rejectAdminPoster",
-        "archiveAdminPoster",
-        "featureAdminPoster",
-        "unfeatureAdminPoster",
         "listAdminAfficheContentItems",
         "getAdminAfficheContentItem",
         "updateAdminAfficheContentItem",
         "moderateAdminAfficheContentItem",
         "withQuery"
       ],
-      "totalLines": 350,
+      "totalLines": 297,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/management/format.ts": {
@@ -2346,12 +2244,12 @@
     },
     "admin/src/admin/management/types.ts": {
       "filePath": "admin/src/admin/management/types.ts",
-      "contentHash": "e4a6665ba28e4b2cdf4db65c8064a95a92adcc82c4f93c7000a6010109535d48",
+      "contentHash": "6e5f0e21bdab60a0d9f4c6a742b0236537b79eb2795a50e57066433b4e07eea0",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 158,
+      "totalLines": 133,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/AdminLogin.tsx": {
@@ -3260,7 +3158,7 @@
     },
     "admin/src/admin/pages/Featured.tsx": {
       "filePath": "admin/src/admin/pages/Featured.tsx",
-      "contentHash": "44bbd7b6c2560a99982f06bbc9712931fdc4e6769fdfbea0444b4ac42f552bdf",
+      "contentHash": "52190cbd1c13b5d389bbfea6c3aea60369dec8c9beacd873fc263f762a4ef108",
       "functions": [
         {
           "name": "AdminFeatured",
@@ -3272,7 +3170,7 @@
           "name": "PartnerFeatured",
           "params": [],
           "exported": false,
-          "lineCount": 165
+          "lineCount": 158
         },
         {
           "name": "Field",
@@ -3367,7 +3265,6 @@
             "listPartnerCommunities",
             "listPartnerFeaturedRequests",
             "listPartnerMeetups",
-            "listPartnerPosters",
             "submitPartnerFeaturedRequest"
           ]
         },
@@ -3376,8 +3273,7 @@
           "specifiers": [
             "PartnerCommunity",
             "PartnerFeaturedRequest",
-            "PartnerMeetup",
-            "PartnerPoster"
+            "PartnerMeetup"
           ]
         },
         {
@@ -3392,7 +3288,7 @@
       "exports": [
         "AdminFeatured"
       ],
-      "totalLines": 294,
+      "totalLines": 286,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/MeetupDetail.tsx": {
@@ -4274,19 +4170,13 @@
     },
     "admin/src/admin/pages/Posters.tsx": {
       "filePath": "admin/src/admin/pages/Posters.tsx",
-      "contentHash": "80b1c7958d4d8fe0caef81dff7575135a03c2519eeca1e49a7b652f9bfbf8c1d",
+      "contentHash": "94a348d7d714bf52f8ac0062d2352d91ce41ea94ab972649908b4bac9ac32f89",
       "functions": [
         {
           "name": "AdminPosters",
           "params": [],
           "exported": true,
-          "lineCount": 366
-        },
-        {
-          "name": "PartnerPosters",
-          "params": [],
-          "exported": false,
-          "lineCount": 146
+          "lineCount": 198
         },
         {
           "name": "Field",
@@ -4329,29 +4219,12 @@
           "lineCount": 9
         },
         {
-          "name": "posterPayload",
-          "params": [
-            "form"
-          ],
-          "exported": false,
-          "lineCount": 19
-        },
-        {
           "name": "importedPayload",
           "params": [
             "form"
           ],
           "exported": false,
           "lineCount": 22
-        },
-        {
-          "name": "runPosterAction",
-          "params": [
-            "posterId",
-            "action"
-          ],
-          "exported": false,
-          "lineCount": 8
         },
         {
           "name": "pricePolicyLabel",
@@ -4391,15 +4264,13 @@
         {
           "source": "react",
           "specifiers": [
-            "FormEvent",
-            "useEffect",
             "useState"
           ]
         },
         {
-          "source": "lucide-react",
+          "source": "react",
           "specifiers": [
-            "MoreHorizontal"
+            "FormEvent"
           ]
         },
         {
@@ -4418,15 +4289,6 @@
           "source": "@/components/ui/label",
           "specifiers": [
             "Label"
-          ]
-        },
-        {
-          "source": "@/components/ui/tabs",
-          "specifiers": [
-            "Tabs",
-            "TabsContent",
-            "TabsList",
-            "TabsTrigger"
           ]
         },
         {
@@ -4467,18 +4329,9 @@
         {
           "source": "../management/api",
           "specifiers": [
-            "archiveAdminPoster",
-            "createAdminPoster",
-            "featureAdminPoster",
-            "hideAdminPoster",
             "listAdminAfficheContentItems",
-            "listAdminPosters",
             "moderateAdminAfficheContentItem",
-            "publishAdminPoster",
-            "rejectAdminPoster",
-            "unfeatureAdminPoster",
-            "updateAdminAfficheContentItem",
-            "updateAdminPoster"
+            "updateAdminAfficheContentItem"
           ]
         },
         {
@@ -4493,35 +4346,14 @@
         {
           "source": "../management/types",
           "specifiers": [
-            "AdminAfficheContentItemDto",
-            "AdminPosterDto"
-          ]
-        },
-        {
-          "source": "../partner/portal-api",
-          "specifiers": [
-            "createPartnerPoster",
-            "listPartnerPosters",
-            "submitPartnerPoster"
-          ]
-        },
-        {
-          "source": "../partner/types",
-          "specifiers": [
-            "PartnerPoster"
-          ]
-        },
-        {
-          "source": "../portal",
-          "specifiers": [
-            "adminPortal"
+            "AdminAfficheContentItemDto"
           ]
         }
       ],
       "exports": [
         "AdminPosters"
       ],
-      "totalLines": 735,
+      "totalLines": 359,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Promos.tsx": {
@@ -5871,7 +5703,7 @@
     },
     "admin/src/admin/partner/portal-api.ts": {
       "filePath": "admin/src/admin/partner/portal-api.ts",
-      "contentHash": "2e4b152183b6849d440ca6f450aef7acbbc012021cdee5641bd93e68804f323a",
+      "contentHash": "e8e6c6d9360feb8bbca36376538215dd2a3e854be53aad122a02187fc9c223d8",
       "functions": [
         {
           "name": "listPartnerMeetups",
@@ -5952,45 +5784,6 @@
           "lineCount": 6
         },
         {
-          "name": "listPartnerPosters",
-          "params": [],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "createPartnerPoster",
-          "params": [
-            "input"
-          ],
-          "exported": true,
-          "lineCount": 3
-        },
-        {
-          "name": "updatePartnerPoster",
-          "params": [
-            "posterId",
-            "input"
-          ],
-          "exported": true,
-          "lineCount": 6
-        },
-        {
-          "name": "submitPartnerPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 6
-        },
-        {
-          "name": "archivePartnerPoster",
-          "params": [
-            "posterId"
-          ],
-          "exported": true,
-          "lineCount": 6
-        },
-        {
           "name": "listPartnerFeaturedRequests",
           "params": [],
           "exported": true,
@@ -6045,8 +5838,7 @@
             "PartnerCommunity",
             "PartnerFeaturedRequest",
             "PartnerListResponse",
-            "PartnerMeetup",
-            "PartnerPoster"
+            "PartnerMeetup"
           ]
         }
       ],
@@ -6061,32 +5853,27 @@
         "getPartnerCommunity",
         "updatePartnerCommunity",
         "archivePartnerCommunity",
-        "listPartnerPosters",
-        "createPartnerPoster",
-        "updatePartnerPoster",
-        "submitPartnerPoster",
-        "archivePartnerPoster",
         "listPartnerFeaturedRequests",
         "createPartnerFeaturedRequest",
         "submitPartnerFeaturedRequest",
         "archivePartnerFeaturedRequest"
       ],
-      "totalLines": 124,
+      "totalLines": 94,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/partner/types.ts": {
       "filePath": "admin/src/admin/partner/types.ts",
-      "contentHash": "5bafe88d6193237db9bd81c02ddfa62400a1aaa4553e42588d7180c23c98e39a",
+      "contentHash": "9d6f22758c13ace49b13a84d9812c99f84acf903d36f6276c7d9f20b545f6da4",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 82,
+      "totalLines": 60,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/portal.ts": {
       "filePath": "admin/src/admin/portal.ts",
-      "contentHash": "e7089ca7a4bc3b544388ddaaa1b2b6b438a19ab125b18ac911b8f4f4a5c1d292",
+      "contentHash": "f3f2ff6bc0d55a4487cc46d5655f334c5f61addeb3dee6ac233c0c4337763551",
       "functions": [
         {
           "name": "resolveAdminPortal",
@@ -6133,7 +5920,7 @@
         "isAdminRouteEnabled",
         "getPortalChrome"
       ],
-      "totalLines": 117,
+      "totalLines": 116,
       "hasStructuralAnalysis": true
     },
     "admin/src/App.tsx": {
@@ -8823,7 +8610,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "a63f3a3fd6a6aaeab1174c6c2aa0a4eaaaaf087d261fb46a2e7646dde47c2fec",
+      "contentHash": "684b4407f6f1709c45ccba30a74b7e8c375b167eb919aa66478a9ce487e083ee",
       "functions": [],
       "classes": [
         {
@@ -9018,12 +8805,6 @@
           "source": "./controllers/places.controller",
           "specifiers": [
             "PlacesController"
-          ]
-        },
-        {
-          "source": "./controllers/posters.controller",
-          "specifiers": [
-            "PostersController"
           ]
         },
         {
@@ -9339,12 +9120,6 @@
           ]
         },
         {
-          "source": "./services/posters.service",
-          "specifiers": [
-            "PostersService"
-          ]
-        },
-        {
           "source": "./services/prisma.service",
           "specifiers": [
             "PrismaService"
@@ -9444,7 +9219,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 216,
+      "totalLines": 212,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -10138,7 +9913,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "151023bd9a70a4aae681104b355ee778a7fa5526011dc9bccfd403b971960a85",
+      "contentHash": "e2a7ae1023c38b17b244133b066cc2cbaf9f18592420e8496735fe7f53a82c70",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10238,7 +10013,7 @@
             "event"
           ],
           "exported": true,
-          "lineCount": 60
+          "lineCount": 41
         },
         {
           "name": "mapEventBookingSummary",
@@ -10254,7 +10029,7 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 64
+          "lineCount": 66
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -10312,7 +10087,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 515,
+      "totalLines": 493,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -10487,18 +10262,13 @@
     },
     "backend/apps/api/src/controllers/admin-affiche.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/admin-affiche.controller.ts",
-      "contentHash": "e106731cc1f45c09611aea846932e83ae1865964ab83a5ae9c5248e43687646e",
+      "contentHash": "0dcabfe9574949ac8b75d08c6be180ddca1117d0d5109f8a4d3cb15d7bc3d36f",
       "functions": [],
       "classes": [
         {
           "name": "AdminAfficheController",
           "methods": [
             "constructor",
-            "listPosters",
-            "createPoster",
-            "getPoster",
-            "updatePoster",
-            "posterAction",
             "listContentItems",
             "getContentItem",
             "updateContentItem",
@@ -10506,7 +10276,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 60
+          "lineCount": 29
         }
       ],
       "imports": [
@@ -10538,7 +10308,7 @@
       "exports": [
         "AdminAfficheController"
       ],
-      "totalLines": 67,
+      "totalLines": 36,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-auth.controller.ts": {
@@ -11379,8 +11149,25 @@
     },
     "backend/apps/api/src/controllers/dating.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
-      "contentHash": "015a84c02eef120979504aca33fa38c95aee4600222bb1b0beb7b919304ad1b1",
-      "functions": [],
+      "contentHash": "a73f8a61c8b2c29ee05b6cb24641d8c34397e99682cf4e6c544b64648319c38c",
+      "functions": [
+        {
+          "name": "parseOptionalNumber",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "parseQueryList",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
       "classes": [
         {
           "name": "DatingController",
@@ -11392,7 +11179,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 35
+          "lineCount": 43
         }
       ],
       "imports": [
@@ -11422,24 +11209,22 @@
       "exports": [
         "DatingController"
       ],
-      "totalLines": 41,
+      "totalLines": 65,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/evening.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/evening.controller.ts",
-      "contentHash": "57c991f6796da461b10bc74c7244ec89d7806705c3429978cde9a13495ec7a56",
+      "contentHash": "b6839006416720fa2165776265f462e6b000089f9228913047298879e64d5a92",
       "functions": [],
       "classes": [
         {
           "name": "EveningController",
           "methods": [
             "constructor",
-            "getOptions",
             "listRouteTemplates",
             "getRouteTemplate",
             "listRouteTemplateSessions",
             "createRouteTemplateSession",
-            "resolveRoute",
             "createAiDraft",
             "getAiDraft",
             "acceptAiDraftStep",
@@ -11471,7 +11256,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 355
+          "lineCount": 342
         }
       ],
       "imports": [
@@ -11520,7 +11305,7 @@
       "exports": [
         "EveningController"
       ],
-      "totalLines": 364,
+      "totalLines": 351,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/events.controller.ts": {
@@ -11624,7 +11409,7 @@
     },
     "backend/apps/api/src/controllers/host.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/host.controller.ts",
-      "contentHash": "be382e73cbcf58a2620b919757482bdd01bcf744af483f1c54c9f7d0346e9baa",
+      "contentHash": "c759ec70d710bc1599a835803b390c743967b0555aaf4b8ea2f69e3eba552160",
       "functions": [],
       "classes": [
         {
@@ -11642,7 +11427,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 77
+          "lineCount": 78
         }
       ],
       "imports": [
@@ -11674,7 +11459,7 @@
       "exports": [
         "HostController"
       ],
-      "totalLines": 83,
+      "totalLines": 84,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/internal-telegram.controller.ts": {
@@ -12084,7 +11869,7 @@
     },
     "backend/apps/api/src/controllers/partner-portal.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/partner-portal.controller.ts",
-      "contentHash": "7c6b39550185b0764eb9805e62309c5d4f94be0b79a7a0143d814f128ae3d5cf",
+      "contentHash": "2fdcb1237da9860c7b9907f7040a04b68ea9279519018643bcf09bb36192fce6",
       "functions": [],
       "classes": [
         {
@@ -12111,12 +11896,6 @@
             "createCommunityMedia",
             "updateCommunityMedia",
             "deleteCommunityMedia",
-            "listPosters",
-            "createPoster",
-            "getPoster",
-            "updatePoster",
-            "submitPoster",
-            "archivePoster",
             "listFeaturedRequests",
             "createFeaturedRequest",
             "getFeaturedRequest",
@@ -12127,7 +11906,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 271
+          "lineCount": 237
         }
       ],
       "imports": [
@@ -12173,7 +11952,7 @@
       "exports": [
         "PartnerPortalController"
       ],
-      "totalLines": 286,
+      "totalLines": 252,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/payments.controller.ts": {
@@ -12234,7 +12013,7 @@
     },
     "backend/apps/api/src/controllers/people.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/people.controller.ts",
-      "contentHash": "5c5db72c789a1bcbb27abb157afd769b0e22515f84c8cd1cb3fc34693dab6654",
+      "contentHash": "7e28ca7a92a4d39633b7644160dda7a3642fd94d9a6dcbcf2e02a5af89106d17",
       "functions": [],
       "classes": [
         {
@@ -12327,49 +12106,9 @@
       "totalLines": 42,
       "hasStructuralAnalysis": true
     },
-    "backend/apps/api/src/controllers/posters.controller.ts": {
-      "filePath": "backend/apps/api/src/controllers/posters.controller.ts",
-      "contentHash": "4f4f95bc60f75278b5157e3e9d7142da082a47307e3e3794549de499e131c59f",
-      "functions": [],
-      "classes": [
-        {
-          "name": "PostersController",
-          "methods": [
-            "constructor",
-            "listPosters",
-            "getPoster"
-          ],
-          "properties": [],
-          "exported": true,
-          "lineCount": 29
-        }
-      ],
-      "imports": [
-        {
-          "source": "@nestjs/common",
-          "specifiers": [
-            "Controller",
-            "Get",
-            "Param",
-            "Query"
-          ]
-        },
-        {
-          "source": "../services/posters.service",
-          "specifiers": [
-            "PostersService"
-          ]
-        }
-      ],
-      "exports": [
-        "PostersController"
-      ],
-      "totalLines": 34,
-      "hasStructuralAnalysis": true
-    },
     "backend/apps/api/src/controllers/profile.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/profile.controller.ts",
-      "contentHash": "aac3aa30e57594c23a5e5a9b9c6a58f0a5260bc777b5e239b00ed28574e5dd7a",
+      "contentHash": "d3bccf75d1cd342ec0e57c664c4054a3b7570ae609f47dbe73a58503f2753e7b",
       "functions": [],
       "classes": [
         {
@@ -12377,6 +12116,10 @@
           "methods": [
             "constructor",
             "getProfile",
+            "getFrendlySeason",
+            "claimFrendlySeasonReward",
+            "listFrendlyHistory",
+            "listFrendlyPeople",
             "updateProfile",
             "getAvatarUploadUrl",
             "completeAvatarUpload",
@@ -12388,7 +12131,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 77
+          "lineCount": 117
         }
       ],
       "imports": [
@@ -12402,6 +12145,7 @@
             "Param",
             "Patch",
             "Post",
+            "Query",
             "UploadedFile",
             "UseInterceptors"
           ]
@@ -12429,7 +12173,7 @@
       "exports": [
         "ProfileController"
       ],
-      "totalLines": 97,
+      "totalLines": 138,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/public-code.controller.ts": {
@@ -12995,16 +12739,8 @@
     },
     "backend/apps/api/src/services/admin-affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-affiche.service.ts",
-      "contentHash": "d58e19035c59ae173ae2f9d12b9327c8ccde7b699fb3268a505027aa6fec3f2a",
+      "contentHash": "3ec45cd920aeb03ab267f526ac578da7877b6a8cd7a0321b48b71b36ff8e2ad0",
       "functions": [
-        {
-          "name": "posterActionData",
-          "params": [
-            "action"
-          ],
-          "exported": false,
-          "lineCount": 18
-        },
         {
           "name": "contentActionData",
           "params": [
@@ -13019,11 +12755,6 @@
           "name": "AdminAfficheService",
           "methods": [
             "constructor",
-            "listPosters",
-            "createPoster",
-            "getPoster",
-            "updatePoster",
-            "posterAction",
             "listContentItems",
             "getContentItem",
             "updateContentItem",
@@ -13036,26 +12767,17 @@
             "parseBoolean",
             "page",
             "encodeCursor",
-            "buildPosterWhere",
             "buildContentItemWhere",
             "addTextFilter",
-            "posterSelect",
-            "posterDetailSelect",
             "contentItemSelect",
-            "mapPoster",
             "mapContentItem",
-            "parsePosterUpdate",
             "parseContentItemUpdate",
             "ensureEventContentItem",
-            "startsAtCursorWhere",
             "contentCursorWhere",
             "requiredCursorDate",
             "parseNullableCursorDate",
             "requiredCursorText",
             "requiredDate",
-            "parsePosterCategory",
-            "parsePosterStatus",
-            "requiredHttpsUrl",
             "optionalSafeUrl",
             "parseInt",
             "optionalNumber",
@@ -13063,13 +12785,11 @@
             "setRequiredText",
             "setNullableText",
             "setNullableDate",
-            "hasOwn",
-            "dateLabel",
-            "timeLabel"
+            "hasOwn"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 700
+          "lineCount": 422
         }
       ],
       "imports": [
@@ -13082,7 +12802,6 @@
         {
           "source": "@prisma/client",
           "specifiers": [
-            "PosterCategory",
             "Prisma"
           ]
         },
@@ -13102,7 +12821,7 @@
       "exports": [
         "AdminAfficheService"
       ],
-      "totalLines": 749,
+      "totalLines": 451,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-auth.service.ts": {
@@ -13625,7 +13344,7 @@
     },
     "backend/apps/api/src/services/admin-meetups.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-meetups.service.ts",
-      "contentHash": "f011bed11b5b6d56c5de68a457ae9a9dd6fe6b3e8be02108c2f02828ed0a3bd0",
+      "contentHash": "b04bb8a248702723c6f7d3dde1d048a1cf68a15ba77062f650a56c3f221468a8",
       "functions": [],
       "classes": [
         {
@@ -13684,7 +13403,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1080
+          "lineCount": 1065
         }
       ],
       "imports": [
@@ -13722,7 +13441,7 @@
       "exports": [
         "AdminMeetupsService"
       ],
-      "totalLines": 1098,
+      "totalLines": 1083,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-route-review.service.ts": {
@@ -14363,7 +14082,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "8f62674c04c33dcc1feb0d4595378dccb7893a715825d2bf498e946ecd2f9fcb",
+      "contentHash": "eb7db2818f8db74dcf2b79c3cbcead232a85512616fe0879fa5c70b01859ee26",
       "functions": [],
       "classes": [
         {
@@ -14407,7 +14126,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 1261
+          "lineCount": 1233
         }
       ],
       "imports": [
@@ -14472,7 +14191,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1396,
+      "totalLines": 1368,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -14586,7 +14305,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "b4a190f18cfea97df97d7e26df50cf78fc573d23e471ef9b2e094bb988bb3998",
+      "contentHash": "af0be2047f0ab1e767fd2513a41b86e9de0ebb4b2064fdbe6b730b0e02997b3f",
       "functions": [],
       "classes": [
         {
@@ -14594,6 +14313,12 @@
           "methods": [
             "constructor",
             "listDiscover",
+            "buildDiscoverWhere",
+            "discoverAndFilters",
+            "discoverCandidateTake",
+            "applyDiscoverPostFilters",
+            "discoverNextCursorId",
+            "toAndArray",
             "listLikes",
             "recordAction",
             "requireFrendlyPlus",
@@ -14603,7 +14328,16 @@
             "resolveDatingProfileLocation",
             "normalizeLocationText",
             "deriveDistanceLabel",
+            "formatDistanceLabel",
+            "normalizeDiscoverFilters",
+            "normalizeAgeFilter",
             "extractInterests",
+            "matchesInterestFilter",
+            "matchesRadiusFilter",
+            "resolveUserDatingLocation",
+            "calculateDistanceKm",
+            "toRadians",
+            "normalizeFilterText",
             "createDatingLikeNotification",
             "isDedupeKeyUniqueError",
             "oppositeGenderForSelf",
@@ -14615,7 +14349,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 577
+          "lineCount": 805
         }
       ],
       "imports": [
@@ -14675,12 +14409,12 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 733,
+      "totalLines": 1004,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "a0eae989f81b915ca5298e9eff8eef4b6fe4a7bab48c7f210b6b6cdaa8ffb349",
+      "contentHash": "9655e7df529675b6a6252b2c7bf7ba35737b71c9f7522791c21e53eaa46f2ac1",
       "functions": [
         {
           "name": "hasCandidateCoords",
@@ -14806,6 +14540,106 @@
           ],
           "exported": false,
           "lineCount": 36
+        },
+        {
+          "name": "eventDateWindowFromPrompt",
+          "params": [
+            "prompt",
+            "now"
+          ],
+          "exported": false,
+          "lineCount": 65
+        },
+        {
+          "name": "eventDateWindowForLocalDate",
+          "params": [
+            "label",
+            "date",
+            "now",
+            "fromNowIfToday"
+          ],
+          "returnType": "EventDateWindow",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "localDateFromValues",
+          "params": [
+            "rawYear",
+            "rawMonth",
+            "rawDay",
+            "rollForwardFrom"
+          ],
+          "returnType": "LocalDateParts | null",
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "zonedDateParts",
+          "params": [
+            "date",
+            "timeZone"
+          ],
+          "returnType": "LocalDateParts",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "zonedTimeToUtc",
+          "params": [
+            "date",
+            "hour",
+            "minute",
+            "second",
+            "millisecond",
+            "timeZone"
+          ],
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "addLocalDays",
+          "params": [
+            "date",
+            "days"
+          ],
+          "returnType": "LocalDateParts",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "weekdayForLocalDate",
+          "params": [
+            "date"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "sameLocalDate",
+          "params": [
+            "left",
+            "right"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "compareLocalDate",
+          "params": [
+            "left",
+            "right"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "validLocalDate",
+          "params": [
+            "date"
+          ],
+          "exported": false,
+          "lineCount": 6
         },
         {
           "name": "intentStepCountFromGenerated",
@@ -15001,6 +14835,7 @@
             "intentFallbackStepCount",
             "intentTargetStepCount",
             "mentionedStepCount",
+            "requiredCandidateRoles",
             "normalizeLlmIntentHint",
             "routeRoleOrNull",
             "resolveRoles",
@@ -15032,7 +14867,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1950
+          "lineCount": 1984
         }
       ],
       "imports": [
@@ -15076,7 +14911,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 2929,
+      "totalLines": 3179,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -15382,84 +15217,13 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "41754febb4eab73e2b1bc04d11e8f864ae989ce47ea7fc04e0cf26fdb9b4e4ca",
-      "functions": [
-        {
-          "name": "normalizeEveningPrompt",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 9
-        },
-        {
-          "name": "hasPromptTerm",
-          "params": [
-            "text",
-            "terms"
-          ],
-          "exported": false,
-          "lineCount": 3
-        },
-        {
-          "name": "isFiniteNumber",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 3
-        },
-        {
-          "name": "geoDistanceKm",
-          "params": [
-            "left",
-            "right"
-          ],
-          "exported": false,
-          "lineCount": 14
-        },
-        {
-          "name": "degreesToRadians",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 3
-        },
-        {
-          "name": "dayRangeFromDate",
-          "params": [
-            "date"
-          ],
-          "returnType": "AggregatedDateRange",
-          "exported": false,
-          "lineCount": 7
-        },
-        {
-          "name": "remainingDayRangeFromDate",
-          "params": [
-            "date"
-          ],
-          "returnType": "AggregatedDateRange",
-          "exported": false,
-          "lineCount": 6
-        },
-        {
-          "name": "nextWeekdayRange",
-          "params": [
-            "day"
-          ],
-          "exported": false,
-          "lineCount": 6
-        }
-      ],
+      "contentHash": "8e0553c2c856cf98d73cc624172762198bc8e0a039f1c76895216514017250f8",
+      "functions": [],
       "classes": [
         {
           "name": "EveningService",
           "methods": [
             "constructor",
-            "getOptions",
-            "resolveRoute",
             "getRoute",
             "markPerkUsed",
             "markTicketBought",
@@ -15480,18 +15244,6 @@
             "addAfterPartyPhoto",
             "finishRoute",
             "loadEveningRouteTemplate",
-            "resolveAggregatedRoute",
-            "buildAggregatedSlots",
-            "aggregatedSlot",
-            "loadAggregatedCandidates",
-            "aggregatedSearchWhere",
-            "aggregatedCandidateScore",
-            "pickNearbyAggregatedSequence",
-            "buildAggregatedRouteRecord",
-            "aggregatedRouteTitle",
-            "findRouteCandidates",
-            "pickBestRoute",
-            "scoreRoute",
             "mapRouteForUser",
             "mapStep",
             "mapUserState",
@@ -15510,10 +15262,6 @@
             "normalizeSessionCurrentStep",
             "parsePrivacy",
             "parseCapacity",
-            "parseStepCount",
-            "resolveStartPoint",
-            "parseAggregatedDateRange",
-            "areaLabel",
             "normalizeSessionLimit",
             "optionalText",
             "requiredText",
@@ -15527,16 +15275,6 @@
             "loadStep",
             "buildSharePreview",
             "mapActionResponse",
-            "parsePromptHints",
-            "inferPromptGoal",
-            "inferPromptMood",
-            "inferPromptBudget",
-            "inferPromptFormat",
-            "inferPromptArea",
-            "routeMatchesArea",
-            "areaTerms",
-            "parseOption",
-            "parseEveningFormat",
             "assertRouteUnlocked",
             "parseLaunchMode",
             "parseStartDelay",
@@ -15544,7 +15282,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3174
+          "lineCount": 2288
         }
       ],
       "imports": [
@@ -15600,7 +15338,7 @@
       "exports": [
         "EveningService"
       ],
-      "totalLines": 3456,
+      "totalLines": 2433,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/event-capacity.ts": {
@@ -15640,7 +15378,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "0fe1f8505b3a42cea7b13987d3b7422883ccc80800cf266e46dfcc7c3d46ba9f",
+      "contentHash": "3e3f8ee79caf44332c91c3b7f7df0eef1d0e10aaa313d26e3d3b376b77b600cd",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -15749,12 +15487,16 @@
             "buildVisibleParticipantWhere",
             "canViewEvent",
             "canAccessGenderRestrictedEvent",
+            "parseEventEntryRequirements",
+            "resolveEventEntryRequirements",
+            "assertHostCanUseEntryRequirements",
+            "assertUserMeetsEntryRequirements",
             "buildCheckInCode",
             "normalizeIdempotencyKey"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3811
+          "lineCount": 3910
         }
       ],
       "imports": [
@@ -15842,12 +15584,12 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4055,
+      "totalLines": 4154,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
       "filePath": "backend/apps/api/src/services/host.service.ts",
-      "contentHash": "cc3eb89a1d896d43a8ce7f61ca26163f2eb0a351ce52ba56c442b7d03dd64ab2",
+      "contentHash": "d79bcbbe474bb6cacdf23d8177cf8e11d1f99b74e691cb67cf2fa575657ba71b",
       "functions": [],
       "classes": [
         {
@@ -15863,7 +15605,13 @@
             "manualCheckIn",
             "startLive",
             "finishLive",
+            "parseAttendedUserIds",
             "assertHost",
+            "resolveEventEntryRequirements",
+            "assertHostCanUseEntryRequirements",
+            "assertUserMeetsEntryRequirements",
+            "hasFrendlyPlus",
+            "resolveSubscriptionStatus",
             "mapRequest",
             "getBlockedUserIds",
             "parseHostedEventUpdate",
@@ -15891,7 +15639,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1169
+          "lineCount": 1396
         }
       ],
       "imports": [
@@ -15953,7 +15701,7 @@
       "exports": [
         "HostService"
       ],
-      "totalLines": 1234,
+      "totalLines": 1470,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/matches.service.ts": {
@@ -16012,7 +15760,7 @@
     },
     "backend/apps/api/src/services/media.service.ts": {
       "filePath": "backend/apps/api/src/services/media.service.ts",
-      "contentHash": "15f2dc0e55e948d8563984fa9f78d84b9b3af716d65a44da6641c967fdaeab62",
+      "contentHash": "a1461fd4452b038e0e351984357dfb050380ec5ee207bb4dccc8ca76cfe2d047",
       "functions": [],
       "classes": [
         {
@@ -16095,7 +15843,7 @@
     },
     "backend/apps/api/src/services/notifications.service.ts": {
       "filePath": "backend/apps/api/src/services/notifications.service.ts",
-      "contentHash": "ae3fa3db2d4a054a7199e97162de359b4936e2e2b972eaa11a10bf5f4249d0b5",
+      "contentHash": "d887abfe5f56f7a50fe00d9b08f6137b18a96d57fdbae3aae3f6d0bf3608f885",
       "functions": [],
       "classes": [
         {
@@ -16580,7 +16328,7 @@
     },
     "backend/apps/api/src/services/partner-portal.service.ts": {
       "filePath": "backend/apps/api/src/services/partner-portal.service.ts",
-      "contentHash": "b6119c067e034a19ddbf98ce567eaf29e30d7fea8ddcc89061038953dd081ad1",
+      "contentHash": "b088c03a01eed4dd3f8b83207e34d0ad38efd5dd95022a8617ca5bf423126cc6",
       "functions": [],
       "classes": [
         {
@@ -16606,12 +16354,6 @@
             "createCommunityMedia",
             "updateCommunityMedia",
             "deleteCommunityMedia",
-            "listPosters",
-            "getPoster",
-            "createPoster",
-            "updatePoster",
-            "submitPoster",
-            "archivePoster",
             "listFeaturedRequests",
             "getFeaturedRequest",
             "createFeaturedRequest",
@@ -16627,7 +16369,6 @@
             "nextMediaSortOrder",
             "parseMeetupInput",
             "parseCommunityInput",
-            "parsePosterInput",
             "parseFeaturedRequestInput",
             "parseLimit",
             "page",
@@ -16646,19 +16387,14 @@
             "parsePriceMode",
             "parseCommunityPrivacy",
             "parseCommunityMediaKind",
-            "parsePosterCategory",
-            "parsePosterStatus",
             "parseFeaturedStatus",
-            "dateLabel",
-            "timeLabel",
             "mapMeetup",
             "mapCommunity",
-            "mapPoster",
             "mapFeaturedRequest"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1090
+          "lineCount": 925
         }
       ],
       "imports": [
@@ -16679,7 +16415,6 @@
             "EventJoinRequestStatus",
             "EventJoinMode",
             "EventPriceMode",
-            "PosterCategory",
             "Prisma"
           ]
         },
@@ -16711,7 +16446,7 @@
       "exports": [
         "PartnerPortalService"
       ],
-      "totalLines": 1121,
+      "totalLines": 954,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/payment-catalog.ts": {
@@ -16878,7 +16613,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "45c2f7aadd44a0a309c7e2e55b5ea68bd082f72a34c52c006d06560285c1bb1b",
+      "contentHash": "4447c039705a3a3913661b1656e5141b0192959cdfad35f13ef24ec128d492b3",
       "functions": [],
       "classes": [
         {
@@ -17244,85 +16979,6 @@
       "totalLines": 491,
       "hasStructuralAnalysis": true
     },
-    "backend/apps/api/src/services/posters.service.ts": {
-      "filePath": "backend/apps/api/src/services/posters.service.ts",
-      "contentHash": "e591a6e80043589cd7838cb9ff6048cbee7dafdb9a4be8e8bdbeff92bc00c9d6",
-      "functions": [],
-      "classes": [
-        {
-          "name": "PostersService",
-          "methods": [
-            "constructor",
-            "listPosters",
-            "getPosterDetail",
-            "parseCategory",
-            "normalizeTags",
-            "normalizeLimit",
-            "parseIsoDateRange",
-            "resolveCursor",
-            "encodePosterCursor",
-            "parseCursorDate",
-            "buildCursorWhere",
-            "mapPoster"
-          ],
-          "properties": [],
-          "exported": true,
-          "lineCount": 270
-        }
-      ],
-      "imports": [
-        {
-          "source": "@nestjs/common",
-          "specifiers": [
-            "Injectable"
-          ]
-        },
-        {
-          "source": "@prisma/client",
-          "specifiers": [
-            "Poster",
-            "PosterCategory",
-            "Prisma"
-          ]
-        },
-        {
-          "source": "@big-break/database",
-          "specifiers": [
-            "decodeCursor",
-            "encodeCursor"
-          ]
-        },
-        {
-          "source": "../common/api-error",
-          "specifiers": [
-            "ApiError"
-          ]
-        },
-        {
-          "source": "../common/media-presenters",
-          "specifiers": [
-            "mapMediaResource"
-          ]
-        },
-        {
-          "source": "../common/search-query",
-          "specifiers": [
-            "normalizeSearchQuery"
-          ]
-        },
-        {
-          "source": "./prisma.service",
-          "specifiers": [
-            "PrismaService"
-          ]
-        }
-      ],
-      "exports": [
-        "PostersService"
-      ],
-      "totalLines": 323,
-      "hasStructuralAnalysis": true
-    },
     "backend/apps/api/src/services/prisma.service.ts": {
       "filePath": "backend/apps/api/src/services/prisma.service.ts",
       "contentHash": "cae5253bc9a3574704e928bae6c2c0d13a16868761720a3f9c915147d753fa42",
@@ -17370,7 +17026,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "86d5f81405978bf3d4cc20c46b266424ed45b72cf517ff8d1a7fd81dad005ed7",
+      "contentHash": "ceb05777ab232d5ccef991b825f9f1863ed3dd59455430cc162d2d69352139dd",
       "functions": [],
       "classes": [
         {
@@ -17380,6 +17036,10 @@
             "getBasicUser",
             "getProfile",
             "updateProfile",
+            "getFrendlySeason",
+            "claimFrendlySeasonReward",
+            "listFrendlyHistory",
+            "listFrendlyPeople",
             "getAvatarUploadUrl",
             "createProfilePhotoUpload",
             "completeAvatarUpload",
@@ -17390,6 +17050,16 @@
             "deleteProfilePhoto",
             "makePrimaryPhoto",
             "reorderProfilePhotos",
+            "currentSeason",
+            "buildSeasonAttendanceWhere",
+            "mapSeasonReward",
+            "findSeasonReward",
+            "grantSeasonTokens",
+            "grantSeasonSubscription",
+            "normalizeFrendlyListLimit",
+            "decodeFrendlyCursor",
+            "encodeFrendlyCursor",
+            "getBlockedUserIds",
             "assertAvatarObjectKey",
             "resolveVerifiedAvatarMetadata",
             "assertAvatarMime",
@@ -17414,7 +17084,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 903
+          "lineCount": 1507
         }
       ],
       "imports": [
@@ -17445,6 +17115,9 @@
             "createPresignedUpload",
             "createS3Client",
             "createS3RequestOptions",
+            "decodeCursor",
+            "encodeCursor",
+            "loadBlockedUserIds",
             "getS3Config",
             "OUTBOX_EVENT_TYPES"
           ]
@@ -17465,7 +17138,8 @@
           "source": "../common/presenters",
           "specifiers": [
             "mapBasicProfile",
-            "mapProfilePhoto"
+            "mapProfilePhoto",
+            "mapUserPreview"
           ]
         },
         {
@@ -17485,7 +17159,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 951,
+      "totalLines": 1616,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -17558,7 +17232,7 @@
     },
     "backend/apps/api/src/services/search.service.ts": {
       "filePath": "backend/apps/api/src/services/search.service.ts",
-      "contentHash": "b73c8effc26b2fa517a7912c256c5c83d3bebe54e925a7faf64b30eb06576458",
+      "contentHash": "e972a03ab8c476e64b4d24058bb6061f8a5ff2f0fda64a3d745f692a01d6dd04",
       "functions": [],
       "classes": [
         {
@@ -17572,7 +17246,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 103
+          "lineCount": 93
         }
       ],
       "imports": [
@@ -17611,18 +17285,12 @@
           "specifiers": [
             "EventsService"
           ]
-        },
-        {
-          "source": "./posters.service",
-          "specifiers": [
-            "PostersService"
-          ]
         }
       ],
       "exports": [
         "SearchService"
       ],
-      "totalLines": 113,
+      "totalLines": 102,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/settings.service.ts": {
@@ -18190,7 +17858,7 @@
     },
     "backend/apps/api/src/services/tokens.service.ts": {
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
-      "contentHash": "e76d63e3334bfc6df8e4f810dbf33c729c1fca7e4ba7337d8393184d986dcfab",
+      "contentHash": "6f95dc45c690909fe6b31cd92d8dc42abdd49014a2c8a66482f91f7453148bd6",
       "functions": [],
       "classes": [
         {
@@ -18247,7 +17915,7 @@
       "exports": [
         "TokensService"
       ],
-      "totalLines": 229,
+      "totalLines": 230,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/uploads.service.ts": {
@@ -18424,22 +18092,21 @@
     },
     "backend/apps/api/test/integration/fixtures/seed-data.ts": {
       "filePath": "backend/apps/api/test/integration/fixtures/seed-data.ts",
-      "contentHash": "a7c4a1fa16d6374785ac35170adcaefbc58ebe3a84be426bac9fe5c2c54ae776",
+      "contentHash": "a4f9ad35f1e55de38bfe7b2e9e5cda420f85f12acab463255249170d416a7392",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [
         "seededUsers",
         "seededEvents",
-        "seededPosters",
         "seededEveningRoutes"
       ],
-      "totalLines": 1329,
+      "totalLines": 1060,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/test/integration/seed-test-data.ts": {
       "filePath": "backend/apps/api/test/integration/seed-test-data.ts",
-      "contentHash": "a4229105a9158e8fa59318e0b91d6e28dd8f1050e2c440f76568bb400c48b38f",
+      "contentHash": "4d378ecb7a8740b05c2f4001c24dc902f845a2f43b93aabdb460a6982ee3deef",
       "functions": [
         {
           "name": "seedIntegrationTestData",
@@ -18447,7 +18114,7 @@
             "prisma"
           ],
           "exported": true,
-          "lineCount": 1123
+          "lineCount": 1110
         }
       ],
       "classes": [],
@@ -18462,7 +18129,7 @@
       "exports": [
         "seedIntegrationTestData"
       ],
-      "totalLines": 1252,
+      "totalLines": 1237,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/test/setup-env.ts": {
@@ -19642,7 +19309,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "63ecd5445267b7f7c1f144a3ef6eea30c555b29ae2a190bf54b2c3854b47ec84",
+      "contentHash": "62ddbecded37b1c773032499d30c746694287cb23365c7e4f8e98e0c2064f04e",
       "functions": [
         {
           "name": "safeJson",
@@ -20821,7 +20488,7 @@
     },
     "backend/apps/worker/src/content/route-planner.ts": {
       "filePath": "backend/apps/worker/src/content/route-planner.ts",
-      "contentHash": "b6bd4f6830bf011c76a1eea867fe8bc819761f68cf26555b8697f84e37e6ee9a",
+      "contentHash": "36fe6faba831494cdbdebb3fa1d735bfbd0e116fbe60c43ece44741459ccf818",
       "functions": [
         {
           "name": "buildRouteSkeletons",
@@ -21489,7 +21156,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "5b6188d4a74403d7a979795414bf3b1113103a33426d5928a4fa3c90fb7415b8",
+      "contentHash": "e9debd34838d766205b21706a602739112fc2d43be72cb551c064e66f9b5acf0",
       "functions": [
         {
           "name": "isDetailPath",
@@ -22622,12 +22289,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "a16b94ecfbc9783364fd27b8c5e2cc084679ae875bbda5cf722f4f399cc6b0ef",
+      "contentHash": "afa9348049af83e052ddd2e7b8309c9c1e351692afb52820fa21ec61be2469e0",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1123,
+      "totalLines": 1122,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {
@@ -23028,13 +22695,13 @@
     },
     "backend/packages/database/prisma/seed.ts": {
       "filePath": "backend/packages/database/prisma/seed.ts",
-      "contentHash": "ed8be5c8f15daf5849e755993df5bd6e48a4e2f96106ec6475b5980d91b0d81a",
+      "contentHash": "610bfc6682331b57241567c91e6cdb4ce568fdc621598017f53bfe4124f35242",
       "functions": [
         {
           "name": "main",
           "params": [],
           "exported": false,
-          "lineCount": 168
+          "lineCount": 161
         }
       ],
       "classes": [],
@@ -23047,7 +22714,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 279,
+      "totalLines": 257,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/verify-chat-unread-counts.ts": {
