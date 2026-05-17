@@ -436,6 +436,67 @@ describe('ChatsService unit', () => {
     });
   });
 
+  it('exposes peer gender for direct chat list items', async () => {
+    const directChat = {
+      ...makeChatListItem('direct-chat', new Date('2026-04-24T12:00:00.000Z')),
+      kind: ChatKind.direct,
+      members: [
+        {
+          userId: 'user-me',
+          user: {
+            id: 'user-me',
+            displayName: 'Me',
+            online: true,
+            profile: {
+              gender: 'male',
+            },
+          },
+        },
+        {
+          userId: 'user-peer',
+          user: {
+            id: 'user-peer',
+            displayName: 'Peer',
+            online: true,
+            profile: {
+              gender: 'female',
+            },
+          },
+        },
+      ],
+    } as any;
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([directChat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              chatId: 'direct-chat',
+              unreadCount: 0,
+              isPinned: false,
+              pinnedAt: null,
+            },
+          ]),
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'direct', { limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'direct-chat',
+      peerUserId: 'user-peer',
+      peerGender: 'female',
+    });
+  });
+
   it('updates pinned state for the current chat member', async () => {
     const update = jest.fn().mockResolvedValue({
       chatId: 'chat-1',

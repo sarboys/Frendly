@@ -253,6 +253,11 @@ export class ChatsService {
                 id: true,
                 displayName: true,
                 online: true,
+                profile: {
+                  select: {
+                    gender: true,
+                  },
+                },
               },
             },
           },
@@ -417,6 +422,7 @@ export class ChatsService {
         return {
           id: chat.id,
           peerUserId: peer.id,
+          peerGender: peer.profile?.gender ?? null,
           name: peer?.displayName ?? 'Личный чат',
           lastMessageId: lastMessage?.id ?? null,
           lastMessage: lastMessagePreview,
