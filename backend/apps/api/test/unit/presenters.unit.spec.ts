@@ -267,6 +267,80 @@ describe('presenters', () => {
     });
   });
 
+  it('maps route points to event summaries for radar pins', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-route',
+        title: 'Три места за вечер',
+        emoji: '🚶',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Центр',
+        distanceKm: 1.2,
+        latitude: 55.7558,
+        longitude: 37.6173,
+        capacity: 8,
+        vibe: 'Маршрут',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'free',
+        priceAmountFrom: null,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        eveningRouteId: 'r-three',
+        isDate: false,
+        eveningRoute: {
+          _count: { steps: 2 },
+          steps: [
+            {
+              id: 'step-a',
+              sortOrder: 0,
+              title: 'Старт',
+              venue: 'Кофейня',
+              address: 'Покровка 1',
+              emoji: '☕',
+              lat: 55.751,
+              lng: 37.611,
+            },
+            {
+              id: 'step-b',
+              sortOrder: 1,
+              title: 'Финиш',
+              venue: 'Джаз',
+              address: 'Покровка 2',
+              emoji: '🎙️',
+              lat: 55.762,
+              lng: 37.642,
+            },
+          ],
+        },
+      } as any,
+      participants: [],
+      currentUserId: 'user-me',
+    });
+
+    expect((summary as any).routePoints).toEqual([
+      {
+        id: 'step-a',
+        title: 'Старт',
+        emoji: '☕',
+        latitude: 55.751,
+        longitude: 37.611,
+      },
+      {
+        id: 'step-b',
+        title: 'Финиш',
+        emoji: '🎙️',
+        latitude: 55.762,
+        longitude: 37.642,
+      },
+    ]);
+  });
+
   it('maps profile photo media variants to proxy urls', () => {
     const photo = mapProfilePhoto({
       id: 'photo-1',

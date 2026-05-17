@@ -62,6 +62,7 @@ const eveningRouteWithStepsSelect = {
   recommendedFor: true,
   hostsCount: true,
   chatId: true,
+  city: true,
   isCurated: true,
   badgeLabel: true,
   steps: {
@@ -100,6 +101,12 @@ type StepActionRecord = {
   ticketBoughtAt: Date | null;
   sentToChatAt: Date | null;
   chatMessageId: string | null;
+};
+
+type TomestoStepBackfill = {
+  url: string;
+  price: number | null;
+  provider: string | null;
 };
 
 const eveningMessageMediaAssetSelect = {
@@ -1518,19 +1525,22 @@ export class EveningService {
   }
 
   private async mapRouteForUser(userId: string, route: EveningRouteWithSteps) {
-    const actions = await this.prismaService.client.userEveningStepAction.findMany({
-      where: {
-        userId,
-        routeId: route.id,
-      },
-      select: {
-        stepId: true,
-        perkUsedAt: true,
-        ticketBoughtAt: true,
-        sentToChatAt: true,
-        chatMessageId: true,
-      },
-    });
+    const [actions, tomestoBackfills] = await Promise.all([
+      this.prismaService.client.userEveningStepAction.findMany({
+        where: {
+          userId,
+          routeId: route.id,
+        },
+        select: {
+          stepId: true,
+          perkUsedAt: true,
+          ticketBoughtAt: true,
+          sentToChatAt: true,
+          chatMessageId: true,
+        },
+      }),
+      this.loadTomestoStepBackfills(route.steps, route.city),
+    ]);
     const actionByStepId = new Map(actions.map((action) => [action.stepId, action]));
     const locked = route.premium && !(await this.hasPremiumAccess(userId));
 
@@ -1552,7 +1562,14 @@ export class EveningService {
       recommendedFor: route.recommendedFor,
       hostsCount: route.hostsCount,
       chatId: route.chatId,
-      steps: route.steps.map((step) => this.mapStep(step, actionByStepId.get(step.id) ?? null)),
+      steps: route.steps.map((step) =>
+        this.mapStep(
+          step,
+          actionByStepId.get(step.id) ?? null,
+          null,
+          tomestoBackfills.get(step.id) ?? null,
+        ),
+      ),
       userState: this.mapUserState(actions),
     };
   }
@@ -1567,6 +1584,7 @@ export class EveningService {
       finishedAt?: Date | null;
       skippedAt?: Date | null;
     } | null,
+    tomestoBackfill?: TomestoStepBackfill | null,
   ) {
     return {
       id: step.id,
@@ -1581,11 +1599,11 @@ export class EveningService {
       walkMin: step.walkMin,
       perk: step.perk,
       perkShort: step.perkShort,
-      ticketPrice: step.ticketPrice,
+      ticketPrice: step.ticketPrice ?? tomestoBackfill?.price ?? null,
       ticketCommission: step.ticketCommission,
-      ticketUrl: step.ticketUrl ?? null,
+      ticketUrl: step.ticketUrl ?? tomestoBackfill?.url ?? null,
       ticketSourceCode: step.ticketSourceCode ?? null,
-      ticketProvider: step.ticketProvider ?? null,
+      ticketProvider: step.ticketProvider ?? tomestoBackfill?.provider ?? null,
       sponsored: step.sponsored,
       premium: step.premium,
       partnerId: step.partnerId,
@@ -1604,7 +1622,10 @@ export class EveningService {
       startedAt: this.dateToIso(sessionState?.startedAt ?? null),
       finishedAt: this.dateToIso(sessionState?.finishedAt ?? null),
       skippedAt: this.dateToIso(sessionState?.skippedAt ?? null),
-      hasShareable: step.perk != null || step.ticketPrice != null,
+      hasShareable:
+        step.perk != null ||
+        step.ticketPrice != null ||
+        tomestoBackfill?.url != null,
       state: {
         perkUsed: action?.perkUsedAt != null,
         ticketBought: action?.ticketBoughtAt != null,
@@ -1612,6 +1633,124 @@ export class EveningService {
         chatMessageId: action?.chatMessageId ?? null,
       },
     };
+  }
+
+  private async loadTomestoStepBackfills(
+    steps: EveningRouteStepForResponse[],
+    city: string,
+  ) {
+    const missing = steps.filter(
+      (step) =>
+        step.ticketSourceCode === 'tomesto' &&
+        (step.ticketUrl == null || step.ticketUrl.trim().length === 0),
+    );
+    if (missing.length === 0) {
+      return new Map<string, TomestoStepBackfill>();
+    }
+
+    const terms = [
+      ...new Set(
+        missing
+          .flatMap((step) => [step.venue, step.title, step.address])
+          .map((value) => value.trim())
+          .filter((value) => value.length >= 2),
+      ),
+    ];
+    if (terms.length === 0) {
+      return new Map<string, TomestoStepBackfill>();
+    }
+
+    const places = await this.prismaService.client.externalContentItem.findMany({
+      where: {
+        source: { code: 'tomesto' },
+        contentKind: 'place',
+        publicStatus: 'published',
+        city,
+        OR: terms.flatMap((term) => [
+          { title: { contains: term, mode: 'insensitive' as const } },
+          { venueName: { contains: term, mode: 'insensitive' as const } },
+          { address: { contains: term, mode: 'insensitive' as const } },
+        ]),
+      },
+      select: {
+        title: true,
+        venueName: true,
+        address: true,
+        actionUrl: true,
+        sourceUrl: true,
+        priceFrom: true,
+        sourceProvider: true,
+      },
+      take: Math.min(100, terms.length * 6),
+    });
+
+    const result = new Map<string, TomestoStepBackfill>();
+    for (const step of missing) {
+      const place = this.findTomestoPlaceForStep(step, places);
+      const url = place?.actionUrl ?? place?.sourceUrl ?? null;
+      if (!url) {
+        continue;
+      }
+      result.set(step.id, {
+        url,
+        price: place?.priceFrom ?? null,
+        provider: place?.sourceProvider ?? 'Tomesto',
+      });
+    }
+    return result;
+  }
+
+  private findTomestoPlaceForStep(
+    step: EveningRouteStepForResponse,
+    places: Array<{
+      title: string;
+      venueName: string | null;
+      address: string | null;
+      actionUrl: string | null;
+      sourceUrl: string | null;
+      priceFrom: number | null;
+      sourceProvider: string | null;
+    }>,
+  ) {
+    const stepNames = [
+      this.normalizeMatchText(step.venue),
+      this.normalizeMatchText(step.title),
+    ].filter(Boolean);
+    const stepAddress = this.normalizeMatchText(step.address);
+
+    return places.find((place) => {
+      const placeNames = [
+        this.normalizeMatchText(place.title),
+        this.normalizeMatchText(place.venueName ?? ''),
+      ].filter(Boolean);
+      const nameMatches = stepNames.some((stepName) =>
+        placeNames.some(
+          (placeName) =>
+            stepName.includes(placeName) || placeName.includes(stepName),
+        ),
+      );
+      if (!nameMatches) {
+        return false;
+      }
+
+      const placeAddress = this.normalizeMatchText(place.address ?? '');
+      return (
+        stepAddress.length === 0 ||
+        placeAddress.length === 0 ||
+        stepAddress.includes(placeAddress) ||
+        placeAddress.includes(stepAddress)
+      );
+    });
+  }
+
+  private normalizeMatchText(value: string) {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/ё/g, 'е')
+      .replace(/[^a-zа-я0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private mapUserState(actions: StepActionRecord[]) {

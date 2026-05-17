@@ -354,6 +354,16 @@ type EventSummaryInput = Pick<
     _count?: {
       steps?: number;
     } | null;
+    steps?: Array<{
+      id: string;
+      sortOrder: number;
+      title: string;
+      venue?: string | null;
+      address?: string | null;
+      emoji: string;
+      lat: number;
+      lng: number;
+    }> | null;
   } | null;
 };
 
@@ -501,6 +511,7 @@ export function mapEventSummary(params: {
     requiresFrendlyPlus: event.requiresFrendlyPlus,
     routeId: event.eveningRouteId,
     routePointCount: event.eveningRoute?._count?.steps ?? null,
+    routePoints: mapEventRoutePoints(event),
     isAfficheBacked: event.sourceExternalContentItem?.contentKind === 'event',
     isDate: event.isDate,
     joined: joined ?? participants.some((participant) => participant.userId === currentUserId),
@@ -512,6 +523,29 @@ export function mapEventSummary(params: {
     ...mapEventTicketSummary(event),
     ...mapEventBookingSummary(event),
   };
+}
+
+function mapEventRoutePoints(event: EventSummaryInput) {
+  const steps = event.eveningRoute?.steps ?? [];
+  return [...steps]
+    .filter(
+      (step) =>
+        Number.isFinite(step.lat) &&
+        Number.isFinite(step.lng) &&
+        step.lat >= -90 &&
+        step.lat <= 90 &&
+        step.lng >= -180 &&
+        step.lng <= 180 &&
+        !(step.lat === 0 && step.lng === 0),
+    )
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map((step) => ({
+      id: step.id,
+      title: step.title,
+      emoji: step.emoji,
+      latitude: step.lat,
+      longitude: step.lng,
+    }));
 }
 
 function mapExternalContentImageUrl(

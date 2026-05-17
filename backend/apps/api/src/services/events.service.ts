@@ -124,6 +124,19 @@ const eventListSummarySelect = {
           steps: true,
         },
       },
+      steps: {
+        orderBy: { sortOrder: 'asc' },
+        select: {
+          id: true,
+          sortOrder: true,
+          title: true,
+          venue: true,
+          address: true,
+          emoji: true,
+          lat: true,
+          lng: true,
+        },
+      },
     },
   },
   canceledAt: true,
@@ -1176,6 +1189,19 @@ export class EventsService {
             select: {
               id: true,
               title: true,
+              steps: {
+                orderBy: { sortOrder: 'asc' },
+                select: {
+                  id: true,
+                  sortOrder: true,
+                  title: true,
+                  venue: true,
+                  address: true,
+                  emoji: true,
+                  lat: true,
+                  lng: true,
+                },
+              },
             },
           });
 
@@ -1238,10 +1264,17 @@ export class EventsService {
         : routeSelection != null
           ? 0
           : 1.0;
+    const routeStartPoint = this.firstRouteStepPoint(existingRoute?.steps ?? []);
     const latitude =
-      typeof body.latitude === 'number' ? body.latitude : afficheEvent?.lat ?? externalPlace?.lat ?? null;
+      routeStartPoint?.latitude ??
+      (typeof body.latitude === 'number'
+        ? body.latitude
+        : afficheEvent?.lat ?? externalPlace?.lat ?? null);
     const longitude =
-      typeof body.longitude === 'number' ? body.longitude : afficheEvent?.lng ?? externalPlace?.lng ?? null;
+      routeStartPoint?.longitude ??
+      (typeof body.longitude === 'number'
+        ? body.longitude
+        : afficheEvent?.lng ?? externalPlace?.lng ?? null);
     const capacity =
       typeof body.capacity === 'number' ? Math.trunc(body.capacity) : 8;
     const startsAtRaw =
@@ -3844,6 +3877,28 @@ export class EventsService {
         title: true,
       },
     });
+  }
+
+  private firstRouteStepPoint(
+    steps: Array<{ lat: number; lng: number }>,
+  ): { latitude: number; longitude: number } | null {
+    const step = steps.find(
+      (item) =>
+        Number.isFinite(item.lat) &&
+        Number.isFinite(item.lng) &&
+        item.lat >= -90 &&
+        item.lat <= 90 &&
+        item.lng >= -180 &&
+        item.lng <= 180 &&
+        !(item.lat === 0 && item.lng === 0),
+    );
+    if (!step) {
+      return null;
+    }
+    return {
+      latitude: step.lat,
+      longitude: step.lng,
+    };
   }
 
   private parseEventRules(raw: unknown) {

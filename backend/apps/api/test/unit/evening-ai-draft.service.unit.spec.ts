@@ -430,7 +430,13 @@ describe('EveningAiDraftService unit', () => {
       route: {
         title: 'Бар и стендап',
         steps: [
-          expect.objectContaining({ title: 'Brix', ticketSourceCode: 'tomesto' }),
+          expect.objectContaining({
+            title: 'Brix',
+            ticketSourceCode: 'tomesto',
+            ticketUrl: 'https://example.test/action',
+            ticketPrice: 1200,
+            hasShareable: true,
+          }),
           expect.objectContaining({
             title: 'Стендап',
             ticketSourceCode: 'advcake_ticketland',

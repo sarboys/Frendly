@@ -2718,6 +2718,28 @@ describe('EventsService unit', () => {
     const eveningRouteFindUnique = jest.fn().mockResolvedValue({
       id: 'r-cozy-circle',
       title: 'Теплый круг на Покровке',
+      steps: [
+        {
+          id: 'step-a',
+          sortOrder: 0,
+          title: 'Старт',
+          venue: 'Кофейня',
+          address: 'Покровка 1',
+          emoji: '☕',
+          lat: 55.751,
+          lng: 37.611,
+        },
+        {
+          id: 'step-b',
+          sortOrder: 1,
+          title: 'Финиш',
+          venue: 'Джаз',
+          address: 'Покровка 2',
+          emoji: '🎙️',
+          lat: 55.762,
+          lng: 37.642,
+        },
+      ],
     });
     const tx = {
       event: { create: eventCreate },
@@ -2759,6 +2781,8 @@ describe('EventsService unit', () => {
       vibe: 'Спокойно',
       startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       capacity: 6,
+      latitude: 55.7558,
+      longitude: 37.6173,
       routeId: 'r-cozy-circle',
     });
 
@@ -2767,6 +2791,19 @@ describe('EventsService unit', () => {
       select: {
         id: true,
         title: true,
+        steps: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            sortOrder: true,
+            title: true,
+            venue: true,
+            address: true,
+            emoji: true,
+            lat: true,
+            lng: true,
+          },
+        },
       },
     });
     expect(eventCreate).toHaveBeenCalledWith(
@@ -2774,6 +2811,8 @@ describe('EventsService unit', () => {
         data: expect.objectContaining({
           place: 'Маршрут: Теплый круг на Покровке',
           distanceKm: 0,
+          latitude: 55.751,
+          longitude: 37.611,
           eveningRouteId: 'r-cozy-circle',
         }),
       }),

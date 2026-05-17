@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "255862526e95841b9bd9957ddd7e3a8215b45173",
-  "generatedAt": "2026-05-17T09:31:08.357Z",
+  "gitCommitHash": "271a42722398f7f1ff43b8786349c288458a1e16",
+  "generatedAt": "2026-05-17T10:56:40.354Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -9913,7 +9913,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "07fc9aa92c0bfa89d8f6505bc236c3c62ab69aab65938d94604c55ae8c2c933c",
+      "contentHash": "96b27645185ced90c71faa4b1c1d6aab65c2c1b76595dd37c83fe6d0b3dac93a",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10038,7 +10038,15 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 68
+          "lineCount": 69
+        },
+        {
+          "name": "mapEventRoutePoints",
+          "params": [
+            "event"
+          ],
+          "exported": false,
+          "lineCount": 22
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -10096,7 +10104,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 538,
+      "totalLines": 572,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -14429,7 +14437,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "9655e7df529675b6a6252b2c7bf7ba35737b71c9f7522791c21e53eaa46f2ac1",
+      "contentHash": "405d061f7ff0d05900b9a9dd2fc94f5d515066b6787b6f5eec19b37ea79707a5",
       "functions": [
         {
           "name": "hasCandidateCoords",
@@ -15232,7 +15240,7 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "8e0553c2c856cf98d73cc624172762198bc8e0a039f1c76895216514017250f8",
+      "contentHash": "267c98bfe6d004196b70031a94da29831a03586c7910a1c8654235b436f3c3a5",
       "functions": [],
       "classes": [
         {
@@ -15261,6 +15269,9 @@
             "loadEveningRouteTemplate",
             "mapRouteForUser",
             "mapStep",
+            "loadTomestoStepBackfills",
+            "findTomestoPlaceForStep",
+            "normalizeMatchText",
             "mapUserState",
             "sessionInclude",
             "mapSession",
@@ -15297,7 +15308,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 2288
+          "lineCount": 2420
         }
       ],
       "imports": [
@@ -15353,7 +15364,7 @@
       "exports": [
         "EveningService"
       ],
-      "totalLines": 2433,
+      "totalLines": 2572,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/event-capacity.ts": {
@@ -15393,7 +15404,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "b81d013dbdec5cb62aeeea63433291de5ed45235eb2e5959556163365f7e234b",
+      "contentHash": "02395be71d7cfc6542529fcd5890a028af46e9525de097be35e8c48fa30d0448",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -15496,6 +15507,7 @@
             "parseEventRouteSelection",
             "parseEventRouteStep",
             "createPrivateEventRoute",
+            "firstRouteStepPoint",
             "parseEventRules",
             "getBlockedUserIds",
             "getUserGender",
@@ -15511,7 +15523,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3912
+          "lineCount": 3954
         }
       ],
       "imports": [
@@ -15599,7 +15611,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4165,
+      "totalLines": 4220,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {

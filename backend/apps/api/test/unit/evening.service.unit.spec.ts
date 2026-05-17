@@ -18,6 +18,7 @@ describe('EveningService unit', () => {
     recommendedFor: 'Для тех, кто впервые',
     hostsCount: 8,
     chatId: 'evening-chat-r-cozy-circle',
+    city: 'Москва',
     steps: [
       {
         id: 's1-1',
@@ -107,6 +108,68 @@ describe('EveningService unit', () => {
       statusCode: 409,
       code: 'evening_perk_not_available',
     });
+  });
+
+  it('backfills missing Tomesto route step links from parsed places', async () => {
+    const route = routeFixture();
+    route.steps = [
+      {
+        ...(route.steps[0] as any),
+        ticketUrl: null,
+        ticketPrice: null,
+        ticketSourceCode: 'tomesto',
+        ticketProvider: null,
+      },
+      route.steps[1],
+    ];
+    const externalFindMany = jest.fn().mockResolvedValue([
+      {
+        title: 'Brix Wine',
+        venueName: 'Brix Wine',
+        address: 'Покровка 12',
+        actionUrl: 'https://tomesto.ru/moskva/places/brix-wine?ref=frendly',
+        sourceUrl: 'https://tomesto.ru/moskva/places/brix-wine',
+        priceFrom: 2100,
+        sourceProvider: 'Tomesto',
+      },
+    ]);
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findUnique: jest.fn().mockResolvedValue(route),
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          externalContentItem: {
+            findMany: externalFindMany,
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+    );
+
+    const result = await service.getRoute('user-me', 'r-cozy-circle');
+
+    expect(result.steps[0]).toMatchObject({
+      ticketSourceCode: 'tomesto',
+      ticketUrl: 'https://tomesto.ru/moskva/places/brix-wine?ref=frendly',
+      ticketPrice: 2100,
+      ticketProvider: 'Tomesto',
+      hasShareable: true,
+    });
+    expect(externalFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          source: { code: 'tomesto' },
+          contentKind: 'place',
+          publicStatus: 'published',
+        }),
+      }),
+    );
   });
 
   it('shares a step to the route chat only once', async () => {

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-17T09:31:07.521Z",
-    "gitCommitHash": "255862526e95841b9bd9957ddd7e3a8215b45173"
+    "analyzedAt": "2026-05-17T10:56:39.812Z",
+    "gitCommitHash": "271a42722398f7f1ff43b8786349c288458a1e16"
   },
   "nodes": [
     {
@@ -7905,7 +7905,7 @@
       "type": "file",
       "name": "presenters.ts",
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "summary": "presenters.ts contains 16 functions.",
+      "summary": "presenters.ts contains 17 functions.",
       "tags": [
         "backend",
         "code",
@@ -8123,8 +8123,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        368,
-        408
+        378,
+        418
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -8140,8 +8140,8 @@
       "name": "mapEventBookingSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        410,
-        446
+        420,
+        456
       ],
       "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
@@ -8157,10 +8157,27 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        448,
-        515
+        458,
+        526
       ],
       "summary": "mapEventSummary in presenters.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/presenters.ts:mapEventRoutePoints",
+      "type": "function",
+      "name": "mapEventRoutePoints",
+      "filePath": "backend/apps/api/src/common/presenters.ts",
+      "lineRange": [
+        528,
+        549
+      ],
+      "summary": "mapEventRoutePoints in presenters.ts.",
       "tags": [
         "backend",
         "function",
@@ -8174,8 +8191,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        517,
-        537
+        551,
+        571
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -11629,8 +11646,8 @@
       "name": "EveningService",
       "filePath": "backend/apps/api/src/services/evening.service.ts",
       "lineRange": [
-        144,
-        2431
+        151,
+        2570
       ],
       "summary": "EveningService in evening.service.ts.",
       "tags": [
@@ -11689,8 +11706,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4099,
-        4129
+        4154,
+        4184
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -11706,8 +11723,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4131,
-        4135
+        4186,
+        4190
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -11723,8 +11740,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4137,
-        4139
+        4192,
+        4194
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -11740,8 +11757,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4141,
-        4143
+        4196,
+        4198
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -11757,8 +11774,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4145,
-        4164
+        4200,
+        4219
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -11774,8 +11791,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        186,
-        4097
+        199,
+        4152
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -36817,6 +36834,13 @@
     {
       "source": "file:backend/apps/api/src/common/presenters.ts",
       "target": "function:backend/apps/api/src/common/presenters.ts:mapEventSummary",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/presenters.ts",
+      "target": "function:backend/apps/api/src/common/presenters.ts:mapEventRoutePoints",
       "type": "contains",
       "direction": "forward",
       "weight": 1

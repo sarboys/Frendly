@@ -712,7 +712,7 @@ export class EveningAiDraftService {
       const timeLabel = stringOrNull(generatedStep.timeLabel) ?? `${pad2(startHour)}:00`;
       const endTimeLabel = stringOrNull(generatedStep.endTimeLabel) ?? `${pad2(startHour + 1)}:00`;
       const ticketUrl =
-        candidate.source === 'advcake_ticketland'
+        candidate.source === 'advcake_ticketland' || candidate.source === 'tomesto'
           ? candidate.actionUrl ?? candidate.sourceUrl
           : null;
       return {
