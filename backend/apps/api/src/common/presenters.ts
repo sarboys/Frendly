@@ -196,7 +196,7 @@ type BasicProfileUser = Pick<User, 'id' | 'displayName' | 'verified' | 'online'>
         photos?: BasicProfilePhoto[];
       })
     | null;
-  onboarding?: { completedAt?: Date | null } | null;
+  onboarding?: { completedAt?: Date | null; interests?: unknown } | null;
   subscriptions?: BasicProfileSubscription[];
 };
 
@@ -233,6 +233,11 @@ export function mapBasicProfile(user: BasicProfileUser) {
       (user.profile?.avatarAssetId
         ? buildMediaProxyPath(user.profile.avatarAssetId)
         : user.profile?.avatarUrl ?? null),
+    interests: Array.isArray(user.onboarding?.interests)
+      ? user.onboarding.interests.filter(
+          (item): item is string => typeof item === 'string',
+        )
+      : [],
     onboardingComplete: user.onboarding?.completedAt != null,
     photos,
   };

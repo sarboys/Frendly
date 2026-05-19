@@ -1277,6 +1277,7 @@ export class ProfileService {
         onboarding: {
           select: {
             completedAt: true,
+            interests: true,
           },
         },
         profile: {

@@ -26,6 +26,7 @@ describe('ProfileService', () => {
       },
       onboarding: {
         completedAt: new Date('2026-05-16T10:00:00.000Z'),
+        interests: ['Кофе', 'Кино'],
       },
       subscriptions: [
         {
@@ -48,6 +49,7 @@ describe('ProfileService', () => {
       displayName: 'Никита',
       frendlyPlus: true,
       onboardingComplete: true,
+      interests: ['Кофе', 'Кино'],
       photos: [],
     });
     expect(userFindUnique).toHaveBeenCalledWith({
@@ -69,6 +71,7 @@ describe('ProfileService', () => {
         onboarding: {
           select: {
             completedAt: true,
+            interests: true,
           },
         },
         profile: {
