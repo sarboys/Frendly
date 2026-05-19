@@ -19,6 +19,7 @@ const onboardingResponseSelect = {
   area: true,
   interests: true,
   vibe: true,
+  completedAt: true,
   user: {
     select: {
       email: true,
@@ -35,6 +36,7 @@ function mapOnboarding(onboarding: {
   area: string | null;
   interests: unknown;
   vibe: string | null;
+  completedAt?: Date | string | null;
   user?: {
     email: string | null;
     phoneNumber: string | null;
@@ -298,6 +300,7 @@ export class OnboardingService {
     const phoneNumber = hasPhoneNumber
       ? normalizePhoneNumber(body.phoneNumber)
       : undefined;
+    const completedAt = new Date();
 
     try {
       const onboarding = await this.prismaService.client.$transaction(async (tx) => {
@@ -355,6 +358,7 @@ export class OnboardingService {
             area,
             interests,
             vibe: typeof body.vibe === 'string' ? body.vibe : null,
+            completedAt,
           },
           create: {
             userId,
@@ -365,6 +369,7 @@ export class OnboardingService {
             area,
             interests,
             vibe: typeof body.vibe === 'string' ? body.vibe : null,
+            completedAt,
           },
           select: onboardingResponseSelect,
         });

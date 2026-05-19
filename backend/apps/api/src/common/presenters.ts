@@ -196,6 +196,7 @@ type BasicProfileUser = Pick<User, 'id' | 'displayName' | 'verified' | 'online'>
         photos?: BasicProfilePhoto[];
       })
     | null;
+  onboarding?: { completedAt?: Date | null } | null;
   subscriptions?: BasicProfileSubscription[];
 };
 
@@ -232,6 +233,7 @@ export function mapBasicProfile(user: BasicProfileUser) {
       (user.profile?.avatarAssetId
         ? buildMediaProxyPath(user.profile.avatarAssetId)
         : user.profile?.avatarUrl ?? null),
+    onboardingComplete: user.onboarding?.completedAt != null,
     photos,
   };
 }

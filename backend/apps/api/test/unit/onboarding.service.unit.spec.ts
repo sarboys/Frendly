@@ -117,6 +117,16 @@ describe('OnboardingService unit', () => {
         }),
       }),
     );
+    expect(onboardingUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          completedAt: expect.any(Date),
+        }),
+        create: expect.objectContaining({
+          completedAt: expect.any(Date),
+        }),
+      }),
+    );
   });
 
   it('rejects duplicate required email before onboarding save', async () => {

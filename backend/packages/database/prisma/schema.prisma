@@ -551,6 +551,7 @@ model OnboardingPreferences {
   area      String?
   interests Json
   vibe      String?
+  completedAt DateTime?
   updatedAt DateTime    @updatedAt
 }
 

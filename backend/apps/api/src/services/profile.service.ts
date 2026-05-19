@@ -1274,6 +1274,11 @@ export class ProfileService {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        onboarding: {
+          select: {
+            completedAt: true,
+          },
+        },
         profile: {
           select: {
             age: true,

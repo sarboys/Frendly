@@ -77,6 +77,7 @@ const DATING_USER_CARD_SELECT = {
   displayName: true,
   verified: true,
   online: true,
+  createdAt: true,
   profile: {
     select: DATING_PROFILE_SELECT,
   },
@@ -90,6 +91,7 @@ type DatingProfileUser = {
   displayName: string;
   verified: boolean;
   online: boolean;
+  createdAt?: Date;
   profile: {
     age: number | null;
     city: string | null;
@@ -689,6 +691,7 @@ export class DatingService {
       longitude: location?.longitude ?? null,
       verified: user.verified,
       online: user.online,
+      createdAt: (user.createdAt ?? new Date(0)).toISOString(),
     };
   }
 

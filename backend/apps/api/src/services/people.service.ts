@@ -549,6 +549,7 @@ export class PeopleService {
           select: {
             interests: true,
             intent: true,
+            completedAt: true,
           },
         },
         settings: {
