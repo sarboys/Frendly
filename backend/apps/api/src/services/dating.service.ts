@@ -775,7 +775,7 @@ export class DatingService {
     const radiusKm =
       params.radiusKm == null || !Number.isFinite(params.radiusKm)
         ? undefined
-        : Math.max(1, Math.min(Math.round(params.radiusKm), 150));
+        : Math.max(1, Math.min(Math.round(params.radiusKm), 500));
     const interests = (params.interests ?? [])
       .map((item) => this.normalizeFilterText(item))
       .filter(
@@ -799,7 +799,7 @@ export class DatingService {
     if (value == null || !Number.isFinite(value)) {
       return undefined;
     }
-    return Math.max(18, Math.min(Math.trunc(value), 80));
+    return Math.max(18, Math.min(Math.trunc(value), 99));
   }
 
   private extractInterests(raw: unknown) {
