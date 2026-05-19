@@ -1201,7 +1201,7 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
         plan: 'month',
         status: 'active',
         startedAt: new Date('2026-04-18T08:00:00.000Z'),
-        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-06-18T08:00:00.000Z'),
         trialEndsAt: null,
       },
       {
@@ -1210,7 +1210,7 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
         plan: 'month',
         status: 'active',
         startedAt: new Date('2026-04-18T08:00:00.000Z'),
-        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-06-18T08:00:00.000Z'),
         trialEndsAt: null,
       },
       {
@@ -1219,7 +1219,7 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
         plan: 'month',
         status: 'active',
         startedAt: new Date('2026-04-18T08:00:00.000Z'),
-        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-06-18T08:00:00.000Z'),
         trialEndsAt: null,
       },
       {
@@ -1228,7 +1228,7 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
         plan: 'month',
         status: 'active',
         startedAt: new Date('2026-04-18T08:00:00.000Z'),
-        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-06-18T08:00:00.000Z'),
         trialEndsAt: null,
       },
     ],

@@ -618,7 +618,7 @@ describe('dating api flows', () => {
         plan: 'month',
         status: 'active',
         startedAt: new Date('2026-04-18T08:00:00.000Z'),
-        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-06-18T08:00:00.000Z'),
       },
     });
 
@@ -652,7 +652,7 @@ describe('dating api flows', () => {
         plan: 'month',
         status: 'active',
         startedAt: new Date('2026-04-18T08:00:00.000Z'),
-        renewsAt: new Date('2026-05-18T08:00:00.000Z'),
+        renewsAt: new Date('2026-06-18T08:00:00.000Z'),
       },
     });
 
