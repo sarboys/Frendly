@@ -104,6 +104,57 @@ describe('DatingService unit', () => {
     );
   });
 
+  it('uses explicit discover gender when self gender is unknown', async () => {
+    const userFindMany = jest.fn().mockResolvedValue([]);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              profile: {
+                gender: null,
+              },
+              onboarding: {
+                gender: null,
+                interests: [],
+              },
+            }),
+            findMany: userFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn(),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    await service.listDiscover('user-me', { gender: 'female' } as any);
+
+    expect(userFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { profile: { is: { gender: 'female' } } },
+            {
+              profile: { is: { gender: null } },
+              onboarding: { is: { gender: 'female' } },
+            },
+            {
+              profile: { is: null },
+              onboarding: { is: { gender: 'female' } },
+            },
+          ],
+        }),
+      }),
+    );
+  });
+
   it('limits incoming likes to opposite gender when self gender is known', async () => {
     const datingActionFindMany = jest.fn().mockResolvedValue([]);
     const service = new DatingService(

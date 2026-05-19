@@ -14,7 +14,11 @@ export class DatingController {
     @Query('ageMin') ageMin?: string,
     @Query('ageMax') ageMax?: string,
     @Query('radiusKm') radiusKm?: string,
+    @Query('gender') gender?: string,
     @Query('interests') interests?: string | string[],
+    @Query('verifiedOnly') verifiedOnly?: string,
+    @Query('onlineOnly') onlineOnly?: string,
+    @Query('newThisWeekOnly') newThisWeekOnly?: string,
   ) {
     return this.datingService.listDiscover(currentUser.userId, {
       cursor,
@@ -22,7 +26,11 @@ export class DatingController {
       ageMin: parseOptionalNumber(ageMin),
       ageMax: parseOptionalNumber(ageMax),
       radiusKm: parseOptionalNumber(radiusKm),
+      gender: parseDatingGender(gender),
       interests: parseQueryList(interests),
+      verifiedOnly: parseOptionalBoolean(verifiedOnly),
+      onlineOnly: parseOptionalBoolean(onlineOnly),
+      newThisWeekOnly: parseOptionalBoolean(newThisWeekOnly),
     });
   }
 
@@ -53,6 +61,20 @@ function parseOptionalNumber(value?: string) {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseOptionalBoolean(value?: string) {
+  if (value == null || value.trim().length === 0) {
+    return undefined;
+  }
+  return value === 'true' || value === '1';
+}
+
+function parseDatingGender(value?: string) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === 'male' || normalized === 'female'
+    ? normalized
+    : undefined;
 }
 
 function parseQueryList(value?: string | string[]) {

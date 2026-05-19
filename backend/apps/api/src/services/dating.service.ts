@@ -138,17 +138,25 @@ type DatingSelfUser = {
 type DatingDiscoverParams = {
   cursor?: string;
   limit?: number;
+  gender?: DatingGender;
   ageMin?: number;
   ageMax?: number;
   radiusKm?: number;
   interests?: string[];
+  verifiedOnly?: boolean;
+  onlineOnly?: boolean;
+  newThisWeekOnly?: boolean;
 };
 
 type NormalizedDatingDiscoverFilters = {
+  gender?: DatingGender;
   ageMin?: number;
   ageMax?: number;
   radiusKm?: number;
   interests: string[];
+  verifiedOnly: boolean;
+  onlineOnly: boolean;
+  newThisWeekOnly: boolean;
 };
 type DatingLocation = { latitude: number; longitude: number };
 
@@ -220,7 +228,7 @@ export class DatingService {
     const candidateTake = this.discoverCandidateTake(take, filters);
     const excludedUserIds = new Set<string>([userId, ...blockedUserIds]);
     const selfInterests = this.extractInterests(self?.onboarding?.interests);
-    const targetGender = this.oppositeGenderForSelf(self);
+    const targetGender = filters.gender ?? this.oppositeGenderForSelf(self);
     const selfLocation = this.resolveUserDatingLocation(self);
     const discoverWhere = this.buildDiscoverWhere({
       userId,
@@ -322,6 +330,7 @@ export class DatingService {
   private discoverAndFilters(
     filters: NormalizedDatingDiscoverFilters,
   ): Prisma.UserWhereInput[] {
+    const and: Prisma.UserWhereInput[] = [];
     const age: Prisma.IntNullableFilter = {};
     if (filters.ageMin != null) {
       age.gte = filters.ageMin;
@@ -329,10 +338,23 @@ export class DatingService {
     if (filters.ageMax != null) {
       age.lte = filters.ageMax;
     }
-    if (Object.keys(age).length === 0) {
-      return [];
+    if (Object.keys(age).length > 0) {
+      and.push({ profile: { is: { age } } });
     }
-    return [{ profile: { is: { age } } }];
+    if (filters.verifiedOnly) {
+      and.push({ verified: true });
+    }
+    if (filters.onlineOnly) {
+      and.push({ online: true });
+    }
+    if (filters.newThisWeekOnly) {
+      and.push({
+        createdAt: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+    return and;
   }
 
   private discoverCandidateTake(
@@ -762,10 +784,14 @@ export class DatingService {
       );
 
     return {
+      gender: params.gender,
       ageMin: normalizedAgeMin,
       ageMax: normalizedAgeMax,
       radiusKm,
       interests,
+      verifiedOnly: params.verifiedOnly === true,
+      onlineOnly: params.onlineOnly === true,
+      newThisWeekOnly: params.newThisWeekOnly === true,
     };
   }
 
