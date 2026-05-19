@@ -499,6 +499,7 @@ describe('PeopleService unit', () => {
       onboarding: {
         interests: ['кино'],
         intent: 'dating',
+        completedAt: new Date('2026-05-16T10:00:00.000Z'),
       },
       settings: {
         discoverable: true,
@@ -519,6 +520,7 @@ describe('PeopleService unit', () => {
       frendlyPlus: true,
       interests: ['кино'],
       intent: 'dating',
+      onboardingComplete: true,
       photos: [],
     });
     expect(userFindUnique).toHaveBeenCalledWith({
@@ -574,6 +576,7 @@ describe('PeopleService unit', () => {
           select: {
             interests: true,
             intent: true,
+            completedAt: true,
           },
         },
         settings: {

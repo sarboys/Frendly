@@ -24,6 +24,9 @@ describe('ProfileService', () => {
         avatarUrl: null,
         photos: [],
       },
+      onboarding: {
+        completedAt: new Date('2026-05-16T10:00:00.000Z'),
+      },
       subscriptions: [
         {
           status: 'active',
@@ -44,6 +47,7 @@ describe('ProfileService', () => {
       id: 'user-me',
       displayName: 'Никита',
       frendlyPlus: true,
+      onboardingComplete: true,
       photos: [],
     });
     expect(userFindUnique).toHaveBeenCalledWith({
@@ -61,6 +65,11 @@ describe('ProfileService', () => {
           },
           orderBy: { createdAt: 'desc' },
           take: 1,
+        },
+        onboarding: {
+          select: {
+            completedAt: true,
+          },
         },
         profile: {
           select: {
