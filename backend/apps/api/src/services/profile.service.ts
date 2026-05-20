@@ -735,23 +735,24 @@ export class ProfileService {
         where: { userId },
         data: {
           avatarAssetId: asset.id,
-          avatarUrl: buildMediaProxyPath(asset.id),
+          avatarUrl: asset.publicUrl ?? buildMediaProxyPath(asset.id),
         },
       });
 
       return { asset, photo };
     });
 
+    const photo = mapProfilePhoto(result.photo);
+    const media = mapMediaResource(result.asset, {
+      visibility: 'public',
+    });
+
     return {
       assetId: result.asset.id,
       status: result.asset.status,
-      url: buildMediaProxyPath(result.asset.id),
-      media: mapMediaResource(result.asset, {
-        visibility: 'public',
-        url: buildMediaProxyPath(result.asset.id),
-        downloadUrl: buildMediaProxyPath(result.asset.id),
-      }),
-      photo: mapProfilePhoto(result.photo),
+      url: photo.url,
+      media,
+      photo,
     };
   }
 
@@ -793,11 +794,12 @@ export class ProfileService {
       publicUrl: inlinePublicUrl,
     });
 
+    const photo = mapProfilePhoto(next.photo);
     return {
       assetId: next.asset.id,
       status: next.asset.status,
-      url: buildMediaProxyPath(next.asset.id),
-      photo: mapProfilePhoto(next.photo),
+      url: photo.url,
+      photo,
     };
   }
 
@@ -839,11 +841,12 @@ export class ProfileService {
       publicUrl: buildPublicAssetUrl(objectKey),
     });
 
+    const photo = mapProfilePhoto(next.photo);
     return {
       assetId: next.asset.id,
       status: next.asset.status,
-      url: buildMediaProxyPath(next.asset.id),
-      photo: mapProfilePhoto(next.photo),
+      url: photo.url,
+      photo,
     };
   }
 
@@ -1356,8 +1359,10 @@ export class ProfileService {
       where: { userId },
       data: {
         avatarAssetId: firstPhoto?.mediaAssetId ?? null,
-        avatarUrl: firstPhoto != null
-            ? buildMediaProxyPath(firstPhoto.mediaAssetId)
+        avatarUrl:
+          firstPhoto != null
+            ? firstPhoto.mediaAsset.publicUrl ??
+              buildMediaProxyPath(firstPhoto.mediaAssetId)
             : null,
       },
     });
@@ -1371,7 +1376,7 @@ export class ProfileService {
       where: { userId },
       data: {
         avatarAssetId: asset.id,
-        avatarUrl: buildMediaProxyPath(asset.id),
+        avatarUrl: asset.publicUrl ?? buildMediaProxyPath(asset.id),
       },
     });
   }

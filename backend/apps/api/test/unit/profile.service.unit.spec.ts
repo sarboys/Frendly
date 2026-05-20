@@ -111,7 +111,7 @@ describe('ProfileService', () => {
     });
   });
 
-  it('keeps profile photos when the media asset has no publicUrl', async () => {
+  it('keeps profile photos on CDN URLs', async () => {
     const service = new ProfileService({
       client: {
         user: {
@@ -143,7 +143,8 @@ describe('ProfileService', () => {
                     mimeType: 'image/jpeg',
                     byteSize: 1024,
                     durationMs: null,
-                    publicUrl: null,
+                    publicUrl:
+                      'https://cdn.frendly.tech/avatars/user-me/photo.jpg',
                     variants: null,
                   },
                 },
@@ -155,11 +156,11 @@ describe('ProfileService', () => {
     } as any);
 
     await expect(service.getProfile('user-me')).resolves.toMatchObject({
-      avatarUrl: '/media/asset-photo-1',
+      avatarUrl: 'https://cdn.frendly.tech/avatars/user-me/photo.jpg',
       photos: [
         {
           id: 'photo-1',
-          url: '/media/asset-photo-1',
+          url: 'https://cdn.frendly.tech/avatars/user-me/photo.jpg',
           order: 0,
         },
       ],
@@ -550,7 +551,7 @@ describe('ProfileService', () => {
       where: { userId: 'user-me' },
       data: {
         avatarAssetId: 'avatar-asset-existing',
-        avatarUrl: '/media/avatar-asset-existing',
+        avatarUrl: 'https://cdn.example.com/avatars/user-me/avatar.png',
       },
     });
   });
@@ -601,13 +602,13 @@ describe('ProfileService', () => {
     expect(result).toMatchObject({
       assetId: 'asset-existing',
       status: 'ready',
-      url: '/media/asset-existing',
+      url: 'https://cdn.example.com/avatars/user-me/photo.png',
       photo: {
         id: 'photo-existing',
-        url: '/media/asset-existing',
+        url: 'https://cdn.example.com/avatars/user-me/photo.png',
         media: {
           id: 'asset-existing',
-          url: '/media/asset-existing',
+          url: 'https://cdn.example.com/avatars/user-me/photo.png',
         },
       },
     });

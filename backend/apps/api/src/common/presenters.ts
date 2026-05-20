@@ -230,9 +230,10 @@ export function mapBasicProfile(user: BasicProfileUser) {
     meetupCount: user.profile?.meetupCount ?? 0,
     avatarUrl:
       photos[0]?.url ??
+      user.profile?.avatarUrl ??
       (user.profile?.avatarAssetId
         ? buildMediaProxyPath(user.profile.avatarAssetId)
-        : user.profile?.avatarUrl ?? null),
+        : null),
     interests: Array.isArray(user.onboarding?.interests)
       ? user.onboarding.interests.filter(
           (item): item is string => typeof item === 'string',
@@ -574,5 +575,5 @@ function mapExternalContentImageUrl(
     return trimmed;
   }
 
-  return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
+  return trimmed;
 }

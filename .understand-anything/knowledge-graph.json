@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T08:12:00.907Z",
-    "gitCommitHash": "d889398e3e3975d7c1c7fbe408c45238f1c92aeb"
+    "analyzedAt": "2026-05-20T08:56:24.278Z",
+    "gitCommitHash": "cae0782793435f0177c9a1451171fb4fa9667196"
   },
   "nodes": [
     {
@@ -8634,7 +8634,7 @@
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
         90,
-        120
+        118
       ],
       "summary": "mapProfilePhoto in media-presenters.ts.",
       "tags": [
@@ -8650,8 +8650,8 @@
       "name": "mapMediaVariants",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        122,
-        138
+        120,
+        136
       ],
       "summary": "mapMediaVariants in media-presenters.ts.",
       "tags": [
@@ -8667,8 +8667,8 @@
       "name": "mapMediaVariant",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        140,
-        162
+        138,
+        160
       ],
       "summary": "mapMediaVariant in media-presenters.ts.",
       "tags": [
@@ -8684,8 +8684,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        164,
-        168
+        162,
+        166
       ],
       "summary": "stringOrNull in media-presenters.ts.",
       "tags": [
@@ -8890,7 +8890,7 @@
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
         209,
-        244
+        245
       ],
       "summary": "mapBasicProfile in presenters.ts.",
       "tags": [
@@ -8906,8 +8906,8 @@
       "name": "hasActiveFrendlyPlus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        246,
-        263
+        247,
+        264
       ],
       "summary": "hasActiveFrendlyPlus in presenters.ts.",
       "tags": [
@@ -8923,8 +8923,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        265,
-        276
+        266,
+        277
       ],
       "summary": "calculateAge in presenters.ts.",
       "tags": [
@@ -8940,8 +8940,8 @@
       "name": "mapUserPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        278,
-        290
+        279,
+        291
       ],
       "summary": "mapUserPreview in presenters.ts.",
       "tags": [
@@ -8957,8 +8957,8 @@
       "name": "mapAttendanceStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        292,
-        296
+        293,
+        297
       ],
       "summary": "mapAttendanceStatus in presenters.ts.",
       "tags": [
@@ -8974,8 +8974,8 @@
       "name": "mapJoinRequestStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        298,
-        302
+        299,
+        303
       ],
       "summary": "mapJoinRequestStatus in presenters.ts.",
       "tags": [
@@ -8991,8 +8991,8 @@
       "name": "mapLiveStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        306,
-        317
+        307,
+        318
       ],
       "summary": "mapLiveStatus in presenters.ts.",
       "tags": [
@@ -9008,8 +9008,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        385,
-        425
+        386,
+        426
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -9025,8 +9025,8 @@
       "name": "mapEventBookingSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        427,
-        463
+        428,
+        464
       ],
       "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
@@ -9042,8 +9042,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        465,
-        533
+        466,
+        534
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -9059,8 +9059,8 @@
       "name": "mapEventRoutePoints",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        535,
-        556
+        536,
+        557
       ],
       "summary": "mapEventRoutePoints in presenters.ts.",
       "tags": [
@@ -9076,8 +9076,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        558,
-        578
+        559,
+        579
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -9278,7 +9278,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:backend/apps/api/src/controllers/admin-auth.controller.ts:cookieOptions",
@@ -9286,8 +9286,8 @@
       "name": "cookieOptions",
       "filePath": "backend/apps/api/src/controllers/admin-auth.controller.ts",
       "lineRange": [
-        77,
-        86
+        76,
+        85
       ],
       "summary": "cookieOptions in admin-auth.controller.ts.",
       "tags": [
@@ -9295,7 +9295,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:backend/apps/api/src/controllers/admin-auth.controller.ts:clearCookieOptions",
@@ -9303,8 +9303,8 @@
       "name": "clearCookieOptions",
       "filePath": "backend/apps/api/src/controllers/admin-auth.controller.ts",
       "lineRange": [
-        88,
-        96
+        87,
+        95
       ],
       "summary": "clearCookieOptions in admin-auth.controller.ts.",
       "tags": [
@@ -9312,7 +9312,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:backend/apps/api/src/controllers/admin-auth.controller.ts:parseCookie",
@@ -9320,8 +9320,8 @@
       "name": "parseCookie",
       "filePath": "backend/apps/api/src/controllers/admin-auth.controller.ts",
       "lineRange": [
-        98,
-        112
+        97,
+        111
       ],
       "summary": "parseCookie in admin-auth.controller.ts.",
       "tags": [
@@ -9329,7 +9329,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:backend/apps/api/src/controllers/admin-auth.controller.ts:safeDecode",
@@ -9337,8 +9337,8 @@
       "name": "safeDecode",
       "filePath": "backend/apps/api/src/controllers/admin-auth.controller.ts",
       "lineRange": [
-        114,
-        120
+        113,
+        119
       ],
       "summary": "safeDecode in admin-auth.controller.ts.",
       "tags": [
@@ -9346,7 +9346,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "class:backend/apps/api/src/controllers/admin-auth.controller.ts:AdminAuthController",
@@ -9354,8 +9354,8 @@
       "name": "AdminAuthController",
       "filePath": "backend/apps/api/src/controllers/admin-auth.controller.ts",
       "lineRange": [
-        14,
-        75
+        13,
+        74
       ],
       "summary": "AdminAuthController in admin-auth.controller.ts.",
       "tags": [
@@ -9363,7 +9363,7 @@
         "class",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "file:backend/apps/api/src/controllers/admin-communities.controller.ts",
@@ -13936,7 +13936,7 @@
       "filePath": "backend/apps/api/src/services/profile.service.ts",
       "lineRange": [
         109,
-        1630
+        1635
       ],
       "summary": "ProfileService in profile.service.ts.",
       "tags": [
@@ -27905,6 +27905,19 @@
         "structure"
       ],
       "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520153500_backfill_profile_avatar_cdn_urls/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260520153500_backfill_profile_avatar_cdn_urls/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "table:backend/packages/database/prisma/migrations/20260520162000_drop_image_url/migration.sql",
@@ -52899,6 +52912,7 @@
         "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_idx",
         "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_userId_key",
         "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_expiresAt_idx",
+        "table:backend/packages/database/prisma/migrations/20260520153500_backfill_profile_avatar_cdn_urls/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260520162000_drop_image_url/migration.sql",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",

@@ -1,4 +1,5 @@
 import {
+  mapBasicProfile,
   mapEventSummary,
   mapMessage,
   mapProfilePhoto,
@@ -28,7 +29,7 @@ describe('presenters', () => {
     Object.assign(process.env, originalEnv);
   });
 
-  it('maps owned external content images to API proxy paths for event cards', () => {
+  it('keeps owned external content images on CDN URLs for event cards', () => {
     const summary = mapEventSummary({
       event: {
         id: 'event-1',
@@ -62,7 +63,7 @@ describe('presenters', () => {
     });
 
     expect((summary as any).imageUrl).toBe(
-      '/affiche/images?key=external-content%2Fadvcake_ticketland%2Foffer-1.jpg',
+      'https://cdn.frendly.tech/external-content/advcake_ticketland/offer-1.jpg',
     );
   });
 
@@ -341,7 +342,7 @@ describe('presenters', () => {
     ]);
   });
 
-  it('maps profile photo media variants to proxy urls', () => {
+  it('maps profile photo urls to public CDN urls', () => {
     const photo = mapProfilePhoto({
       id: 'photo-1',
       sortOrder: 0,
@@ -371,6 +372,12 @@ describe('presenters', () => {
       },
     } as any);
 
+    expect((photo as any).url).toBe(
+      'https://cdn.frendly.tech/avatars/user-me/photo.jpg',
+    );
+    expect((photo as any).media.url).toBe(
+      'https://cdn.frendly.tech/avatars/user-me/photo.jpg',
+    );
     expect((photo as any).media.variants.avatar).toMatchObject({
       url: '/media/asset-1/variants/avatar',
       downloadUrl: '/media/asset-1/variants/avatar',
@@ -380,6 +387,38 @@ describe('presenters', () => {
     });
     expect((photo as any).variants.card.url).toBe(
       '/media/asset-1/variants/card',
+    );
+  });
+
+  it('keeps profile avatarUrl CDN fallback before media proxy', () => {
+    const profile = mapBasicProfile({
+      id: 'user-me',
+      displayName: 'Алекс',
+      verified: true,
+      online: true,
+      subscriptions: [],
+      onboarding: {
+        completedAt: new Date('2026-05-01T00:00:00.000Z'),
+        interests: [],
+      },
+      profile: {
+        age: 29,
+        birthDate: null,
+        gender: 'male',
+        city: 'Москва',
+        area: 'Патрики',
+        bio: null,
+        vibe: null,
+        rating: 0,
+        meetupCount: 0,
+        avatarAssetId: 'asset-1',
+        avatarUrl: 'https://cdn.frendly.tech/avatars/user-me/avatar.jpg',
+        photos: [],
+      },
+    } as any);
+
+    expect((profile as any).avatarUrl).toBe(
+      'https://cdn.frendly.tech/avatars/user-me/avatar.jpg',
     );
   });
 
@@ -424,7 +463,9 @@ describe('presenters', () => {
       attachments: [],
     } as any);
 
-    expect((message as any).senderAvatarUrl).toBe('/media/asset-1');
+    expect((message as any).senderAvatarUrl).toBe(
+      'https://cdn.frendly.tech/avatars/user/photo.jpg',
+    );
     expect((message as any).senderAvatarVariants.avatar.url).toBe(
       'https://cdn.frendly.tech/avatars/user/photo__avatar.webp',
     );

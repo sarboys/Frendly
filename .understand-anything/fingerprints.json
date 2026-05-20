@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "d889398e3e3975d7c1c7fbe408c45238f1c92aeb",
-  "generatedAt": "2026-05-20T08:12:01.189Z",
+  "gitCommitHash": "cae0782793435f0177c9a1451171fb4fa9667196",
+  "generatedAt": "2026-05-20T08:56:24.565Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -10460,7 +10460,7 @@
     },
     "backend/apps/api/src/common/media-presenters.ts": {
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
-      "contentHash": "cf72ddcfd747121b52df281aa6db068b91f7fdbde807477293c05ed2579e93e6",
+      "contentHash": "74ddea8dcfaa60c7f276bb818dc021f0cec6cd2065b434c4f05f44dd76cec922",
       "functions": [
         {
           "name": "resolveMediaVisibility",
@@ -10504,7 +10504,7 @@
             "photo"
           ],
           "exported": true,
-          "lineCount": 31
+          "lineCount": 29
         },
         {
           "name": "mapMediaVariants",
@@ -10554,7 +10554,7 @@
         "mapProfilePhoto",
         "mapMediaVariants"
       ],
-      "totalLines": 169,
+      "totalLines": 167,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/normalize-request-url.ts": {
@@ -10671,7 +10671,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "9bccf732a15259510b6a2df8992c576a2852aae23f7a70fac06417e0727deae6",
+      "contentHash": "af55976c38841fc855275684a3a07470a34124b1fce31ebffa850c442f200e5b",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10721,7 +10721,7 @@
             "user"
           ],
           "exported": true,
-          "lineCount": 36
+          "lineCount": 37
         },
         {
           "name": "hasActiveFrendlyPlus",
@@ -10862,7 +10862,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 579,
+      "totalLines": 580,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -11088,7 +11088,7 @@
     },
     "backend/apps/api/src/controllers/admin-auth.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/admin-auth.controller.ts",
-      "contentHash": "64f06609f9ef56a796fc7891188a21199b88dbf6644b70dcf845512f756f4b80",
+      "contentHash": "633f1ef50b2d7d651b570fc5f556de0980970839009744dd671540cdd0ed083a",
       "functions": [
         {
           "name": "cookieOptions",
@@ -11187,7 +11187,7 @@
       "exports": [
         "AdminAuthController"
       ],
-      "totalLines": 121,
+      "totalLines": 120,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-communities.controller.ts": {
@@ -14690,7 +14690,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "c832289a98e681755939ebef926bb89c9531d8fc1c224e0314d7a6b623cad72c",
+      "contentHash": "d8b4de6aab3a9e6bf27434050e745fc83adc3f9275585d2ce6b127dec6747370",
       "functions": [
         {
           "name": "oneDayRange",
@@ -18266,7 +18266,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "309fc97b204839c525a8b7b938b26f68d4831e5adcdf0e79f09180cec14d3cd7",
+      "contentHash": "9b27d1b0080a20c53275f8c168ec6ebbb844f7626cbeb3508380489488957aad",
       "functions": [],
       "classes": [
         {
@@ -18324,7 +18324,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1522
+          "lineCount": 1527
         }
       ],
       "imports": [
@@ -18399,7 +18399,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 1631,
+      "totalLines": 1636,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -24072,7 +24072,7 @@
     },
     "backend/packages/database/src/auth-tokens.ts": {
       "filePath": "backend/packages/database/src/auth-tokens.ts",
-      "contentHash": "42f327a84036a7db06f7ddd6618186124da1c28ec4e345bf8a25ffae0b3a7ed4",
+      "contentHash": "d7666e6fe00309e628ddc475da9b50d0acb25766415f87597f863a343dae385c",
       "functions": [
         {
           "name": "signAccessToken",

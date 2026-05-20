@@ -556,7 +556,7 @@ describe('DatingService unit', () => {
     );
   });
 
-  it('keeps dating profile photos when the media asset has no publicUrl', async () => {
+  it('keeps dating profile photos on CDN URLs', async () => {
     const service = new DatingService(
       {
         client: {
@@ -594,7 +594,8 @@ describe('DatingService unit', () => {
                         mimeType: 'image/jpeg',
                         byteSize: 1024,
                         durationMs: null,
-                        publicUrl: null,
+                        publicUrl:
+                          'https://cdn.frendly.tech/avatars/user-anya/photo.jpg',
                         variants: null,
                       },
                     },
@@ -621,15 +622,15 @@ describe('DatingService unit', () => {
     const result = await service.listDiscover('user-me');
 
     expect(result.items[0]).toMatchObject({
-      avatarUrl: '/media/asset-photo-1',
+      avatarUrl: 'https://cdn.frendly.tech/avatars/user-anya/photo.jpg',
       primaryPhoto: {
         id: 'photo-1',
-        url: '/media/asset-photo-1',
+        url: 'https://cdn.frendly.tech/avatars/user-anya/photo.jpg',
       },
       photos: [
         {
           id: 'photo-1',
-          url: '/media/asset-photo-1',
+          url: 'https://cdn.frendly.tech/avatars/user-anya/photo.jpg',
         },
       ],
     });

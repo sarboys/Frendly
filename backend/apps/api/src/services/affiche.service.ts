@@ -561,7 +561,7 @@ export class AfficheService {
       return proxiedUrl ? `/affiche/images?url=${encodeURIComponent(proxiedUrl)}` : trimmed;
     }
 
-    return `/affiche/images?key=${encodeURIComponent(objectKey)}`;
+    return trimmed;
   }
 
   private mapImageVariants(raw: unknown): Record<string, MediaVariantDto> {

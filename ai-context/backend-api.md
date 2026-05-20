@@ -72,8 +72,8 @@ Affiche:
 - Query params include `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `featured`, `q`, `cursor`, `limit`.
 - Without `category` and text search, public Affiche lists sort standups first, concerts second, then other events by date. Category and search filters keep their focused date ordering.
 - Paid public ticket events come from `advcake_ticketland` and use external `actionUrl`. Unknown price is not exposed as free.
-- Affiche `imageUrl` should normally point to a mirrored S3 object created by the worker during import. Public API responses expose owned mirrored `external-content/...` objects through `/affiche/images?key=...`, so Flutter Web gets API CORS while clients still receive immutable image cache headers. If mirroring fails, the worker keeps the source image URL as fallback and API can expose it through `/affiche/images?url=...` only for allowed HTTPS hosts.
-- `GET /affiche/images` is the public image proxy for owned mirrored images, allowed third-party fallbacks and legacy key reads. Mirrored images use immutable one-year cache headers, while third-party fallback proxy reads use `max-age` plus `stale-while-revalidate` from env.
+- Affiche `imageUrl` should normally point to a mirrored S3 object created by the worker during import. Public API responses keep owned mirrored `external-content/...` objects on their public CDN URL. If mirroring fails, the worker keeps the source image URL as fallback and API can expose it through `/affiche/images?url=...` only for allowed HTTPS hosts.
+- `GET /affiche/images` remains the public image proxy for allowed third-party fallbacks and legacy key reads. Mirrored images use immutable one-year cache headers, while third-party fallback proxy reads use `max-age` plus `stale-while-revalidate` from env.
 - KudaGo places stay outside affiche and should continue through places/search/route flows.
 
 Chats:
@@ -263,7 +263,7 @@ Admin Evening route review:
 - Dating positive actions create central `like` notifications on the first positive action. Plain `like` uses a plain dating payload without actor navigation. `super_like` includes `payload.source=dating`, `payload.action=super_like`, `payload.userId` and `payload.userName` so mobile can open dating on that profile.
 - Direct upload complete is idempotent by object key, owner, kind and target.
 - Private media download checks chat membership, event participation and blocks.
-- Profile photo and avatar payloads expose stable `/media/:assetId` URLs, not stored CDN URLs. Profile, people and dating payloads must keep photo entries even when `mediaAsset.publicUrl` is null, because `/media/:assetId` is the public proxy source of truth. The media endpoint can redirect S3 assets to a fresh signed URL, so profile screens are not coupled to a stale CDN URL in DB.
+- Profile photo and avatar payloads expose `mediaAsset.publicUrl` CDN URLs when available. `/media/:assetId` stays as a fallback for legacy assets without `publicUrl` and for private media flows.
 - `GET /media/:assetId` sets `ETag` and `Last-Modified`. Fresh `If-None-Match` or `If-Modified-Since` requests return `304` before S3 streaming or signed URL generation. Private media keeps `Cache-Control: private, max-age=300` and adds `Vary: Authorization`.
 - Dating, people, host, notifications and safety services use narrow selects on hot paths.
 - `getBlockedUserIds` from `@big-break/database` is the shared hidden-user helper.

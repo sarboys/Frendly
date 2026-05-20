@@ -103,12 +103,10 @@ export function mapProfilePhoto(
     >;
   },
 ) {
-  const url = buildMediaProxyPath(photo.mediaAsset.id);
   const media = mapMediaResource(photo.mediaAsset, {
     visibility: 'public',
-    url,
-    downloadUrl: url,
   });
+  const url = media.url;
 
   return {
     id: photo.id,

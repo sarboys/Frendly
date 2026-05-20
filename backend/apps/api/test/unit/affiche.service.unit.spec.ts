@@ -183,7 +183,7 @@ describe('AfficheService', () => {
     expect(findFirstArgs.select).not.toHaveProperty('raw');
   });
 
-  it('maps mirrored S3 event images to API proxy paths', async () => {
+  it('keeps mirrored S3 event images on CDN URLs', async () => {
     process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
     process.env.S3_SECRET_KEY = 'secret';
     process.env.S3_BUCKET = 'frendly-backet';
@@ -207,11 +207,11 @@ describe('AfficheService', () => {
     const result = await service.listEvents({ city: 'Москва', limit: '1' });
 
     expect(result.items[0]?.imageUrl).toBe(
-      '/affiche/images?key=external-content%2Fadvcake_ticketland%2Fimage.jpg',
+      'https://cdn.frendly.tech/external-content/advcake_ticketland/image.jpg',
     );
   });
 
-  it('maps mirrored S3 event image variants to API proxy paths', async () => {
+  it('keeps mirrored S3 event image variants on CDN URLs', async () => {
     process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
     process.env.S3_SECRET_KEY = 'secret';
     process.env.S3_BUCKET = 'frendly-backet';
@@ -254,15 +254,15 @@ describe('AfficheService', () => {
 
     expect((result.items[0] as any)?.imageVariants).toMatchObject({
       rail: {
-        url: '/affiche/images?key=external-content%2Fadvcake_ticketland%2Fimage-rail.webp',
+        url: 'https://cdn.frendly.tech/external-content/advcake_ticketland/image-rail.webp',
         downloadUrl:
-          '/affiche/images?key=external-content%2Fadvcake_ticketland%2Fimage-rail.webp',
+          'https://cdn.frendly.tech/external-content/advcake_ticketland/image-rail.webp',
         mimeType: 'image/webp',
         byteSize: 12000,
         cacheKey: 'external-content-image-rail',
       },
       hero: {
-        url: '/affiche/images?key=external-content%2Fadvcake_ticketland%2Fimage-hero.webp',
+        url: 'https://cdn.frendly.tech/external-content/advcake_ticketland/image-hero.webp',
       },
     });
   });
