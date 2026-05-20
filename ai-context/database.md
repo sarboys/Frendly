@@ -76,6 +76,16 @@ Safety and monetization:
 - `UserSeasonRewardClaim` stores one claimed Frendly season reward per `userId + seasonKey + rewardKey`, so reward claim endpoints stay idempotent.
 - `UserFollow` stores normal profile subscriptions. `ProfileReaction` stores normal profile likes and super-likes through `ProfileReactionKind`, separate from dating likes.
 
+Drops:
+
+- `Drop` stores each giveaway with type, status, prize JSON, public seed hash, secret seed after draw, eligibility flags and optional ticket limits.
+- `DropRewardEvent` is the idempotent reward event log. `idempotencyKey` is unique and all ticket grants must go through this event.
+- `DropTicket` stores public ticket codes, source, month key, status and optional assigned `dropId`. A ticket can be assigned to only one Drop at a time.
+- `DropDrawSnapshot` stores fixed ticket and participant JSON before the draw.
+- `DropWinner` stores main and reserve winners with verification and prize delivery statuses. Reserve winners can be promoted when a main winner is rejected or expired.
+- `DropReferral` stores referral link codes, invited user binding and reward state. The invited user is rewarded only after verification.
+- `DropUserRestriction` freezes a user from Drops without changing the global user status.
+
 Notifications and async:
 
 - `Notification`, `PushToken`, `OutboxEvent`, `TelegramBotState`.
@@ -109,6 +119,8 @@ Public:
 - Dating matches and daily super-like quota reads need `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes. Super-like quota counts rows for the current UTC day.
 - Payment lookup uses `PaymentOrder.orderId` and `PaymentOrder.userId + createdAt`; pending expiry scans use `PaymentOrder.status + expiresAt`.
 - Active promotions use `TokenPromotion.eventId + expiresAt`, `chatId + expiresAt` and `userId + expiresAt`.
+- Drops reward idempotency uses unique `DropRewardEvent.idempotencyKey`. Monthly progress reads use `DropTicket.userId + monthKey + status`. Manual apply reads free active tickets by `userId + dropId + status`.
+- Draw participant snapshots read `DropTicket.dropId + status + assignedAt`; winner lookups use `DropWinner.dropId + reserve + position`.
 - Profile social counts use `UserFollow.targetUserId`, `ProfileReaction.targetUserId + kind` and viewer state uses actor plus target. `ProfileReaction` is unique by `actorUserId + targetUserId + kind`, so like and super-like can both exist for one viewer.
 - `db:perf:hot-queries` covers reciprocal dating matches, bounded push token dispatch reads, public Affiche list/search/price filters, and route generation ExternalContentItem event/place scans.
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.

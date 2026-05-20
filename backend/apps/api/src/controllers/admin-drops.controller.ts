@@ -54,6 +54,16 @@ export class AdminDropsController {
     return this.dropsService.listRewardEvents(userId);
   }
 
+  @Get('users/:userId/tickets')
+  listUserTickets(@Param('userId') userId: string) {
+    return this.dropsService.listUserTickets(userId);
+  }
+
+  @Get(':dropId/participants')
+  listParticipants(@Param('dropId') dropId: string) {
+    return this.dropsService.listDropParticipants(dropId);
+  }
+
   @Get(':dropId/tickets')
   listTickets(@Param('dropId') dropId: string) {
     return this.dropsService.listDropTickets(dropId);
@@ -86,6 +96,14 @@ export class AdminDropsController {
   @Post('users/:userId/unfreeze')
   unfreezeUser(@Param('userId') userId: string) {
     return this.dropsService.unfreezeUser(userId);
+  }
+
+  @Post('winners/:winnerId/choose-reserve')
+  chooseReserveWinner(
+    @Param('winnerId') winnerId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.dropsService.chooseReserveWinner(winnerId, body);
   }
 
   @Post('winners/:winnerId/:action')

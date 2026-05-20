@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "06231d4b7c5360f9c12f141da11282f860ca90bd",
-  "generatedAt": "2026-05-20T05:38:40.013Z",
+  "gitCommitHash": "46140d0b5ec8687319ef6ef7eecee2e2863f321a",
+  "generatedAt": "2026-05-20T05:48:03.016Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -10529,7 +10529,7 @@
     },
     "backend/apps/api/src/controllers/admin-drops.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
-      "contentHash": "617ccff66e4222732f144a3becfacb43a317fdb05c65ba65c9f251b75f405359",
+      "contentHash": "231d867264de964999d02833b82f7809177a5df74a30d5706e8e2a26b1ed1475",
       "functions": [],
       "classes": [
         {
@@ -10543,16 +10543,19 @@
             "cancelDrop",
             "runDraw",
             "listRewards",
+            "listUserTickets",
+            "listParticipants",
             "listTickets",
             "manualGrant",
             "cancelTicket",
             "freezeUser",
             "unfreezeUser",
+            "chooseReserveWinner",
             "updateWinner"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 93
+          "lineCount": 111
         }
       ],
       "imports": [
@@ -10584,7 +10587,7 @@
       "exports": [
         "AdminDropsController"
       ],
-      "totalLines": 100,
+      "totalLines": 118,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-evening.controller.ts": {
@@ -11337,7 +11340,7 @@
     },
     "backend/apps/api/src/controllers/drops.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/drops.controller.ts",
-      "contentHash": "45fc679cafcb946e3d52014504e970ecc674c63ad71f74fcc6590b3acfaaf82e",
+      "contentHash": "cdd577111c28977d0a8d4cfe29831a7cbfe6980102258aa25023b7357224d8c9",
       "functions": [],
       "classes": [
         {
@@ -11350,12 +11353,13 @@
             "claimVerification",
             "claimDailyLogin",
             "createReferralLink",
+            "bindReferralLink",
             "getDrop",
             "applyTickets"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 57
+          "lineCount": 68
         }
       ],
       "imports": [
@@ -11386,7 +11390,7 @@
       "exports": [
         "DropsController"
       ],
-      "totalLines": 63,
+      "totalLines": 74,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/evening.controller.ts": {
@@ -14668,7 +14672,7 @@
     },
     "backend/apps/api/src/services/drops-reward.service.ts": {
       "filePath": "backend/apps/api/src/services/drops-reward.service.ts",
-      "contentHash": "2de1df97fbaaba6ac2318e5f9385ec489b74ceae8a08a6e234bde7d644882dd0",
+      "contentHash": "9849de865b21eff4195c1bbea679457695013c46b6dc80d55878ea5fa031fc6b",
       "functions": [],
       "classes": [
         {
@@ -14684,6 +14688,7 @@
             "evaluateMeetingRewards",
             "grantManualTickets",
             "cancelTicketsForReward",
+            "confirmReward",
             "getProgress",
             "grantReward",
             "grantRewardInTransaction",
@@ -14697,7 +14702,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 579
+          "lineCount": 617
         }
       ],
       "imports": [
@@ -14739,12 +14744,12 @@
         "DROPS_TASK_TICKET_COUNTS",
         "DROPS_TASK_MONTHLY_LIMITS"
       ],
-      "totalLines": 651,
+      "totalLines": 689,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/drops.service.ts": {
       "filePath": "backend/apps/api/src/services/drops.service.ts",
-      "contentHash": "cfbcff024311332ec4c8e362e9d60c73a07cabfda55c771d776cde91add285af",
+      "contentHash": "6b7038ea6ef10c02fba4284c0d8be659ed4464187ff646082255bbeb10570c19",
       "functions": [],
       "classes": [
         {
@@ -14760,6 +14765,7 @@
             "claimDailyLogin",
             "applyTickets",
             "createReferralLink",
+            "bindReferralCode",
             "listAdminDrops",
             "createDrop",
             "updateDrop",
@@ -14767,13 +14773,17 @@
             "cancelDrop",
             "runDraw",
             "listDropTickets",
+            "listDropParticipants",
+            "listUserTickets",
             "listRewardEvents",
             "manualGrant",
             "cancelTicket",
             "freezeUser",
             "unfreezeUser",
             "updateWinner",
+            "chooseReserveWinner",
             "mapDropForUser",
+            "listDropWinners",
             "listPastWinners",
             "getUserEligibility",
             "resolveDropEligibility",
@@ -14793,11 +14803,13 @@
             "normalizeLimit",
             "optionalInt",
             "getRewardService",
-            "getDrawService"
+            "getDrawService",
+            "referralSelect",
+            "mapReferral"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 933
+          "lineCount": 1256
         }
       ],
       "imports": [
@@ -14851,7 +14863,7 @@
       "exports": [
         "DropsService"
       ],
-      "totalLines": 1025,
+      "totalLines": 1348,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T05:38:39.745Z",
-    "gitCommitHash": "06231d4b7c5360f9c12f141da11282f860ca90bd"
+    "analyzedAt": "2026-05-20T05:48:02.760Z",
+    "gitCommitHash": "46140d0b5ec8687319ef6ef7eecee2e2863f321a"
   },
   "nodes": [
     {
@@ -8530,7 +8530,7 @@
       "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
       "lineRange": [
         7,
-        99
+        117
       ],
       "summary": "AdminDropsController in admin-drops.controller.ts.",
       "tags": [
@@ -9064,7 +9064,7 @@
       "filePath": "backend/apps/api/src/controllers/drops.controller.ts",
       "lineRange": [
         6,
-        62
+        73
       ],
       "summary": "DropsController in drops.controller.ts.",
       "tags": [
@@ -10720,7 +10720,7 @@
       "filePath": "backend/apps/api/src/services/drops-reward.service.ts",
       "lineRange": [
         58,
-        636
+        674
       ],
       "summary": "DropsRewardService in drops-reward.service.ts.",
       "tags": [
@@ -10750,7 +10750,7 @@
       "filePath": "backend/apps/api/src/services/drops.service.ts",
       "lineRange": [
         92,
-        1024
+        1347
       ],
       "summary": "DropsService in drops.service.ts.",
       "tags": [

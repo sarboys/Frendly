@@ -39,6 +39,17 @@ export class DropsController {
     return this.dropsService.createReferralLink(currentUser.userId);
   }
 
+  @Post('referral-link/bind')
+  bindReferralLink(
+    @CurrentUser() currentUser: { userId: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.dropsService.bindReferralCode(
+      currentUser.userId,
+      typeof body.code === 'string' ? body.code : '',
+    );
+  }
+
   @Get(':dropId')
   getDrop(
     @CurrentUser() currentUser: { userId: string },

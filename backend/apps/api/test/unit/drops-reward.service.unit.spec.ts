@@ -10,12 +10,14 @@ describe('DropsRewardService unit', () => {
       dropRewardEvent: {
         findUnique: jest.fn(),
         create: jest.fn(),
+        update: jest.fn(),
         aggregate: jest.fn(),
       },
       dropTicket: {
         count: jest.fn(),
         createMany: jest.fn(),
         findMany: jest.fn(),
+        updateMany: jest.fn(),
       },
       user: {
         findUnique: jest.fn(),
@@ -165,5 +167,60 @@ describe('DropsRewardService unit', () => {
         source: 'visit_meeting',
       }),
     );
+  });
+
+  it('activates pending rewards and tickets after confirmation', async () => {
+    const { service, prismaClient } = makeService();
+    const now = new Date('2026-06-10T10:00:00.000Z');
+    prismaClient.dropRewardEvent.findUnique.mockResolvedValue({
+      id: 'reward-1',
+      userId: 'user-1',
+      source: 'referral',
+      status: 'pending',
+      ticketCount: 3,
+      title: 'Приглашенный друг',
+      description: null,
+      relatedType: 'user',
+      relatedId: 'user-2',
+      cancellationReason: null,
+      createdAt: new Date('2026-06-09T10:00:00.000Z'),
+    });
+    prismaClient.dropRewardEvent.update.mockResolvedValue({
+      id: 'reward-1',
+      userId: 'user-1',
+      source: 'referral',
+      status: 'active',
+      ticketCount: 3,
+      title: 'Приглашенный друг',
+      description: null,
+      relatedType: 'user',
+      relatedId: 'user-2',
+      cancellationReason: null,
+      createdAt: new Date('2026-06-09T10:00:00.000Z'),
+    });
+
+    await expect(service.confirmReward('reward-1', now)).resolves.toMatchObject({
+      id: 'reward-1',
+      status: 'active',
+      ticketCount: 3,
+    });
+
+    expect(prismaClient.dropTicket.updateMany).toHaveBeenCalledWith({
+      where: {
+        rewardEventId: 'reward-1',
+        status: 'pending',
+      },
+      data: {
+        status: 'active',
+      },
+    });
+    expect(prismaClient.dropRewardEvent.update).toHaveBeenCalledWith({
+      where: { id: 'reward-1' },
+      data: {
+        status: 'active',
+        confirmedAt: now,
+      },
+      select: expect.any(Object),
+    });
   });
 });

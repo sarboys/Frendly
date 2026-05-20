@@ -377,6 +377,44 @@ export class DropsRewardService {
     });
   }
 
+  async confirmReward(rewardEventId: string, now = new Date(Date.now())) {
+    return this.prismaService.client.$transaction(async (tx) => {
+      const reward = await tx.dropRewardEvent.findUnique({
+        where: { id: rewardEventId },
+        select: this.rewardSelect(),
+      });
+      if (!reward) {
+        throw new ApiError(404, 'drops_reward_not_found', 'Drops reward not found');
+      }
+      if (reward.status === 'active') {
+        return this.mapReward(reward);
+      }
+      if (reward.status !== 'pending') {
+        throw new ApiError(409, 'drops_reward_not_pending', 'Drops reward is not pending');
+      }
+
+      await tx.dropTicket.updateMany({
+        where: {
+          rewardEventId,
+          status: 'pending',
+        },
+        data: {
+          status: 'active',
+        },
+      });
+
+      const updated = await tx.dropRewardEvent.update({
+        where: { id: rewardEventId },
+        data: {
+          status: 'active',
+          confirmedAt: now,
+        },
+        select: this.rewardSelect(),
+      });
+      return this.mapReward(updated);
+    });
+  }
+
   async getProgress(userId: string, now = new Date(Date.now())) {
     const month = this.monthBounds(now);
     const [confirmed, reserved, available] = await Promise.all([

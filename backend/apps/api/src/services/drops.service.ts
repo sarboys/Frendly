@@ -409,6 +409,61 @@ export class DropsService {
     };
   }
 
+  async bindReferralCode(userId: string, rawCode: string) {
+    const code = rawCode.trim();
+    if (!code) {
+      throw new ApiError(400, 'invalid_referral_code', 'Referral code is invalid');
+    }
+
+    const referral = await this.prismaService.client.dropReferral.findUnique({
+      where: { code },
+      select: this.referralSelect(),
+    });
+    if (!referral) {
+      throw new ApiError(404, 'referral_not_found', 'Referral not found');
+    }
+    if (referral.inviterUserId === userId) {
+      throw new ApiError(409, 'referral_self_invite', 'Self referral is not allowed');
+    }
+    if (referral.invitedUserId === userId) {
+      return this.mapReferral(referral);
+    }
+    if (referral.invitedUserId != null) {
+      throw new ApiError(409, 'referral_already_used', 'Referral is already used');
+    }
+
+    const existingForUser = await this.prismaService.client.dropReferral.findUnique({
+      where: { invitedUserId: userId },
+      select: this.referralSelect(),
+    });
+    if (existingForUser) {
+      throw new ApiError(409, 'referral_user_already_invited', 'User already has a referral');
+    }
+
+    const claimed = await this.prismaService.client.dropReferral.updateMany({
+      where: {
+        id: referral.id,
+        invitedUserId: null,
+      },
+      data: {
+        invitedUserId: userId,
+        status: 'registered',
+      },
+    });
+    if (claimed.count !== 1) {
+      throw new ApiError(409, 'referral_already_used', 'Referral is already used');
+    }
+
+    const updated = await this.prismaService.client.dropReferral.findUnique({
+      where: { id: referral.id },
+      select: this.referralSelect(),
+    });
+    if (!updated) {
+      throw new ApiError(404, 'referral_not_found', 'Referral not found');
+    }
+    return this.mapReferral(updated);
+  }
+
   async listAdminDrops() {
     const drops = await this.prismaService.client.drop.findMany({
       orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
@@ -508,6 +563,110 @@ export class DropsService {
     };
   }
 
+  async listDropParticipants(dropId: string) {
+    const tickets = await this.prismaService.client.dropTicket.findMany({
+      where: {
+        dropId,
+        status: { in: ['active', 'used_in_draw', 'winner'] },
+      },
+      orderBy: [{ assignedAt: 'asc' }, { id: 'asc' }],
+      take: 10000,
+      select: {
+        userId: true,
+        status: true,
+        user: {
+          select: {
+            displayName: true,
+            verified: true,
+            status: true,
+            profile: {
+              select: { city: true },
+            },
+          },
+        },
+      },
+    });
+    const byUser = new Map<
+      string,
+      {
+        userId: string;
+        name: string;
+        city: string | null;
+        verified: boolean;
+        userStatus: string;
+        ticketCount: number;
+        winnerTicketCount: number;
+      }
+    >();
+
+    for (const ticket of tickets) {
+      const current = byUser.get(ticket.userId);
+      if (current) {
+        current.ticketCount += 1;
+        if (ticket.status === 'winner') {
+          current.winnerTicketCount += 1;
+        }
+        continue;
+      }
+
+      byUser.set(ticket.userId, {
+        userId: ticket.userId,
+        name: ticket.user.displayName,
+        city: ticket.user.profile?.city ?? null,
+        verified: ticket.user.verified,
+        userStatus: ticket.user.status,
+        ticketCount: 1,
+        winnerTicketCount: ticket.status === 'winner' ? 1 : 0,
+      });
+    }
+
+    return { items: [...byUser.values()] };
+  }
+
+  async listUserTickets(userId: string) {
+    const tickets = await this.prismaService.client.dropTicket.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 200,
+      select: {
+        id: true,
+        code: true,
+        status: true,
+        source: true,
+        monthKey: true,
+        dropId: true,
+        assignedAt: true,
+        cancelledAt: true,
+        cancelReason: true,
+        createdAt: true,
+        rewardEvent: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+        drop: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      items: tickets.map((ticket) => ({
+        ...ticket,
+        assignedAt: ticket.assignedAt?.toISOString() ?? null,
+        cancelledAt: ticket.cancelledAt?.toISOString() ?? null,
+        createdAt: ticket.createdAt.toISOString(),
+      })),
+    };
+  }
+
   async listRewardEvents(userId?: string) {
     const rows = await this.prismaService.client.dropRewardEvent.findMany({
       where: userId ? { userId } : {},
@@ -596,6 +755,104 @@ export class DropsService {
     });
   }
 
+  async chooseReserveWinner(winnerId: string, body: Record<string, unknown>) {
+    return this.prismaService.client.$transaction(async (tx) => {
+      const reserveWinner = await tx.dropWinner.findUnique({
+        where: { id: winnerId },
+        select: {
+          id: true,
+          dropId: true,
+          ticketId: true,
+          reserve: true,
+          position: true,
+          status: true,
+        },
+      });
+      if (!reserveWinner) {
+        throw new ApiError(404, 'winner_not_found', 'Winner not found');
+      }
+      if (!reserveWinner.reserve) {
+        throw new ApiError(409, 'winner_not_reserve', 'Winner is not reserve');
+      }
+
+      const replacedWinnerId =
+        typeof body.replacedWinnerId === 'string' && body.replacedWinnerId.trim()
+          ? body.replacedWinnerId.trim()
+          : null;
+      const replacedWinner = replacedWinnerId
+        ? await tx.dropWinner.findUnique({
+            where: { id: replacedWinnerId },
+            select: {
+              id: true,
+              dropId: true,
+              ticketId: true,
+              reserve: true,
+              position: true,
+              status: true,
+            },
+          })
+        : await tx.dropWinner.findFirst({
+            where: {
+              dropId: reserveWinner.dropId,
+              reserve: false,
+              status: { in: ['rejected', 'expired'] },
+            },
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            select: {
+              id: true,
+              dropId: true,
+              ticketId: true,
+              reserve: true,
+              position: true,
+              status: true,
+            },
+          });
+
+      if (!replacedWinner || replacedWinner.dropId !== reserveWinner.dropId) {
+        throw new ApiError(404, 'winner_replacement_not_found', 'Replacement winner not found');
+      }
+      if (replacedWinner.reserve) {
+        throw new ApiError(409, 'winner_replacement_invalid', 'Replacement winner is invalid');
+      }
+
+      const maxReservePosition = await tx.dropWinner.aggregate({
+        where: { dropId: reserveWinner.dropId, reserve: true },
+        _max: { position: true },
+      });
+      const movedReservePosition =
+        Math.max(maxReservePosition._max.position ?? 0, reserveWinner.position) + 1;
+      const reason = typeof body.reason === 'string' && body.reason.trim()
+        ? body.reason.trim()
+        : 'reserve_selected';
+
+      await tx.dropWinner.update({
+        where: { id: replacedWinner.id },
+        data: {
+          status: 'rejected',
+          rejectedReason: reason,
+          reserve: true,
+          position: movedReservePosition,
+        },
+      });
+      await tx.dropTicket.update({
+        where: { id: replacedWinner.ticketId },
+        data: { status: 'used_in_draw' },
+      });
+      await tx.dropTicket.update({
+        where: { id: reserveWinner.ticketId },
+        data: { status: 'winner' },
+      });
+      return tx.dropWinner.update({
+        where: { id: reserveWinner.id },
+        data: {
+          reserve: false,
+          position: replacedWinner.position,
+          status: 'pending_verification',
+        },
+      });
+    });
+  }
+
   private async mapDropForUser(drop: DropRow, userId: string, detailed = false) {
     const [myTickets, tickets] = await Promise.all([
       this.prismaService.client.dropTicket.count({
@@ -616,6 +873,9 @@ export class DropsService {
     ]);
     const eligibility = await this.resolveDropEligibility(userId, drop);
     const participantCount = new Set(tickets.map((ticket) => ticket.userId)).size;
+    const winners = detailed && drop.status === 'finished'
+      ? await this.listDropWinners(drop.id)
+      : [];
     const now = Date.now();
     const daysLeft = Math.max(
       0,
@@ -645,7 +905,46 @@ export class DropsService {
       secretSeed: detailed && drop.status === 'finished' ? drop.secretSeed ?? null : null,
       seedRevealedAt: drop.seedRevealedAt?.toISOString() ?? null,
       cancelReason: drop.cancelReason ?? null,
+      winners,
     };
+  }
+
+  private async listDropWinners(dropId: string) {
+    const winners = await this.prismaService.client.dropWinner.findMany({
+      where: { dropId },
+      orderBy: [{ reserve: 'asc' }, { position: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        status: true,
+        position: true,
+        reserve: true,
+        prize: true,
+        ticket: {
+          select: { code: true },
+        },
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            profile: {
+              select: { city: true },
+            },
+          },
+        },
+      },
+    });
+
+    return winners.map((winner) => ({
+      id: winner.id,
+      status: winner.status,
+      position: winner.position,
+      reserve: winner.reserve,
+      userId: winner.user.id,
+      name: winner.user.displayName,
+      city: winner.user.profile?.city ?? '',
+      prize: this.prizeSummary(winner.prize),
+      ticket: winner.ticket.code,
+    }));
   }
 
   private async listPastWinners() {
@@ -1020,5 +1319,29 @@ export class DropsService {
       return new DropsDrawService(this.prismaService);
     }
     return this.drawService;
+  }
+
+  private referralSelect() {
+    return {
+      id: true,
+      code: true,
+      inviterUserId: true,
+      invitedUserId: true,
+      status: true,
+    } satisfies Prisma.DropReferralSelect;
+  }
+
+  private mapReferral(referral: {
+    code: string;
+    inviterUserId: string;
+    invitedUserId: string | null;
+    status: string;
+  }) {
+    return {
+      code: referral.code,
+      inviterUserId: referral.inviterUserId,
+      invitedUserId: referral.invitedUserId,
+      status: referral.status,
+    };
   }
 }
