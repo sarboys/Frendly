@@ -14,6 +14,10 @@ RUNTIME_SERVICES="${RUNTIME_SERVICES:-}"
 NGINX_SERVICE="${NGINX_SERVICE:-}"
 LOCK_FILE="${LOCK_FILE:-/tmp/frendly-deploy.lock}"
 LOCK_TIMEOUT_SECONDS="${LOCK_TIMEOUT_SECONDS:-1800}"
+HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1/health}"
+HEALTHCHECK_RETRIES="${HEALTHCHECK_RETRIES:-60}"
+HEALTHCHECK_DELAY_SECONDS="${HEALTHCHECK_DELAY_SECONDS:-5}"
+HEALTHCHECK_TIMEOUT_SECONDS="${HEALTHCHECK_TIMEOUT_SECONDS:-10}"
 LANDING_DIR="${LANDING_DIR:-$APP_DIR/landing}"
 LANDING_REPO_URL="${LANDING_REPO_URL:-https://github.com/sarboys/frendly_landing.git}"
 LANDING_BRANCH="${LANDING_BRANCH:-main}"
@@ -187,3 +191,24 @@ docker_compose rm -sf migrate || true
 docker_compose up -d --build --no-deps "${RUNTIME_SERVICE_ARGS[@]}"
 docker_compose up -d --no-deps --force-recreate "${NGINX_SERVICE_ARGS[@]}"
 docker_compose ps
+
+health_ready=false
+echo "Waiting for health endpoint: $HEALTHCHECK_URL"
+for attempt in $(seq 1 "$HEALTHCHECK_RETRIES"); do
+  if curl --fail --silent --show-error --max-time "$HEALTHCHECK_TIMEOUT_SECONDS" "$HEALTHCHECK_URL" >/dev/null; then
+    health_ready=true
+    echo "Health endpoint is ready"
+    break
+  fi
+
+  if [ "$attempt" -lt "$HEALTHCHECK_RETRIES" ]; then
+    echo "Health endpoint is not ready yet, attempt ${attempt}/${HEALTHCHECK_RETRIES}"
+    sleep "$HEALTHCHECK_DELAY_SECONDS"
+  fi
+done
+
+if [ "$health_ready" != "true" ]; then
+  echo "Health endpoint did not become ready after ${HEALTHCHECK_RETRIES} attempts" >&2
+  docker_compose ps || true
+  exit 1
+fi

@@ -248,6 +248,7 @@ Flow:
 - Landing workflow: `landing/.github/workflows/deploy.yml`.
 - Production app path: `/opt/frendly`.
 - Deploy workflow and script discard tracked local changes in server checkouts before switching to the target branch, then use `flock` before Docker cleanup and compose recreate.
+- `scripts/deploy.sh` waits for `http://127.0.0.1/health` after compose recreate before returning. Defaults: `HEALTHCHECK_RETRIES=60`, `HEALTHCHECK_DELAY_SECONDS=5`, `HEALTHCHECK_TIMEOUT_SECONDS=10`.
 - Scale compose: add `COMPOSE_EXTRA_FILES=/opt/frendly/compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
 - Scale nginx config: `deploy/nginx/frendly.scale.conf` balances API and chat through `api_a/api_b` and `chat_a/chat_b`, while the default `deploy/nginx/frendly.conf` stays single-instance.
 - `scripts/deploy.sh` and `scripts/deploy-landing.sh` both read `COMPOSE_EXTRA_FILES` and `NGINX_SERVICE` from env or `.env.production`.
