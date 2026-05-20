@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-17T10:56:39.812Z",
-    "gitCommitHash": "271a42722398f7f1ff43b8786349c288458a1e16"
+    "analyzedAt": "2026-05-20T05:26:04.949Z",
+    "gitCommitHash": "692eebd60acbaee2190dd863b1ced94f96eb265c"
   },
   "nodes": [
     {
@@ -560,7 +560,7 @@
         "user"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
       "lineRange": [
         197,
         300
@@ -650,7 +650,7 @@
         "host"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
       "lineRange": [
         358,
         409
@@ -840,7 +840,7 @@
       "id": "step:evening-route-session:mobile-route-screens",
       "type": "step",
       "name": "Mobile route screens",
-      "summary": "Flutter screens load route/session state and drive the evening UI.",
+      "summary": "Flutter screens load route and evening state.",
       "tags": [
         "business-step",
         "evening",
@@ -848,7 +848,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
+      "filePath": "mobile2/lib/features/routes/presentation/route_detail_screen.dart",
       "lineRange": [
         1,
         200
@@ -927,10 +927,10 @@
       ]
     },
     {
-      "id": "step:partner-offer-code:show-qr-in-mobile",
+      "id": "step:partner-offer-code:show-offer-in-mobile",
       "type": "step",
-      "name": "Show QR in mobile",
-      "summary": "Mobile route screens include partner offer QR entry points.",
+      "name": "Show offer in mobile",
+      "summary": "Mobile route and perk screens expose partner offer entry points.",
       "tags": [
         "business-step",
         "evening",
@@ -938,7 +938,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
+      "filePath": "mobile2/lib/features/routes/presentation/route_detail_screen.dart",
       "lineRange": [
         1,
         200
@@ -992,7 +992,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         90,
         321
@@ -1010,7 +1010,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         509,
         581
@@ -1154,7 +1154,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
+      "filePath": "mobile2/lib/features/onboarding/presentation/onboarding_screen.dart",
       "lineRange": [
         153,
         222
@@ -1226,7 +1226,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/dating/presentation/dating_screen.dart",
+      "filePath": "mobile2/lib/features/dating/presentation/dating_screen.dart",
       "lineRange": [
         460,
         520
@@ -1344,7 +1344,7 @@
       "id": "step:safety-and-blocking:mobile-safety-hub",
       "type": "step",
       "name": "Mobile safety hub",
-      "summary": "SafetyHubScreen exposes settings, reports, blocks, and SOS UI.",
+      "summary": "SOS and safety screens expose emergency and report UI.",
       "tags": [
         "business-step",
         "safety",
@@ -1352,10 +1352,10 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/safety/presentation/safety_hub_screen.dart",
+      "filePath": "mobile2/lib/features/sos/presentation/sos_screen.dart",
       "lineRange": [
-        138,
-        293
+        1,
+        220
       ]
     },
     {
@@ -1442,7 +1442,7 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/app/core/device/app_push_token_service.dart",
+      "filePath": "mobile2/lib/app/core/device/app_push_token_service.dart",
       "lineRange": [
         1,
         160
@@ -1909,7 +1909,7 @@
     },
     {
       "source": "flow:partner-offer-code",
-      "target": "step:partner-offer-code:show-qr-in-mobile",
+      "target": "step:partner-offer-code:show-offer-in-mobile",
       "type": "flow_step",
       "direction": "forward",
       "weight": 1

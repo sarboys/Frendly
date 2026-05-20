@@ -124,6 +124,18 @@ Profile season:
 - `GET /profile/me/frendly-history` returns checked-in past meetups with place, date, coordinates, chat id and bounded visible participant previews.
 - `GET /profile/me/frendly-people` returns users the viewer met at checked-in meetups, excluding blocked users and the viewer.
 
+Drops:
+
+- `GET /drops/home` returns `mainDrop`, visible `drops`, `ticketProgress`, MVP `tasks`, ticket `history`, `pastWinners`, user `eligibility`, `pendingRewards` and `updatedAt`.
+- `GET /drops/:dropId`, `GET /drops/tasks`, `GET /drops/tickets/history?month=YYYY-MM`, `POST /drops/tasks/verification/claim`, `POST /drops/tasks/daily-login/claim`, `POST /drops/:dropId/tickets/apply` and `POST /drops/referral-link/create` are private user endpoints.
+- MVP tasks are verification, daily login, host meeting, visit meeting, referral, Frendly+ subscription and event boost. Partner purchases, bookings, rating and repost tasks are not returned.
+- Tickets are granted only through `DropsRewardService`. It enforces idempotency keys, the 30 ticket monthly limit, task limits and the `Europe/Moscow` calendar month.
+- Tickets are applied manually to one Drop with `POST /drops/:dropId/tickets/apply { ticketCount }`. One ticket can belong to only one Drop. Cancelling an active Drop returns active assigned tickets to the free pool.
+- Meeting rewards are evaluated after `POST /host/events/:eventId/live/finish`. Host reward requires a real finished meetup with enough participants and check-ins. Visit rewards require checked-in non-host participants who joined before start.
+- Frendly+ token subscription, event promotion and admin user verification call Drops rewards as best-effort side effects. The core payment, boost and verification flows must not fail only because Drops reward creation failed.
+- Draws use `DropsDrawService`: activation creates a secret seed and public seed hash, draw snapshots active tickets, sorts tickets by deterministic hash and reveals the seed after finish.
+- Admin Drops endpoints live under `/admin/drops`: create, update before start, activate, cancel, draw, list tickets, list reward events, manual grant, cancel ticket, freeze user and winner status actions.
+
 Evening:
 
 - `GET /evening/route-templates`

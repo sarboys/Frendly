@@ -4,12 +4,12 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 
 ## Fast paths
 
-- Flutter token state: `mobile/lib/app/core/providers/core_providers.dart`.
-- Flutter API retry: `mobile/lib/app/core/network/api_client.dart`.
-- Flutter auth config: `mobile/lib/app/core/config/backend_config.dart`.
-- Flutter auth screens: `features/welcome/`, `features/phone_auth/`, `features/telegram_auth/`, `features/onboarding/`.
-- Social auth controller: `mobile/lib/features/welcome/application/social_auth_controller.dart`.
-- Router redirects: `mobile/lib/app/navigation/app_router.dart`.
+- Flutter token state: `mobile2/lib/app/core/providers/core_providers.dart`.
+- Flutter API retry: `mobile2/lib/app/core/network/api_client.dart`.
+- Flutter auth config: `mobile2/lib/app/core/config/backend_config.dart`.
+- Flutter auth actions: `mobile2/lib/shared/data/app_providers.dart`.
+- Flutter auth screens: `mobile2/lib/features/auth/presentation/phone_auth_screen.dart`, `mobile2/lib/features/auth/presentation/telegram_auth_screen.dart`, `mobile2/lib/features/onboarding/presentation/onboarding_screen.dart`.
+- Router redirects: `mobile2/lib/app/dateasy_router.dart`.
 - API controller: `backend/apps/api/src/controllers/auth.controller.ts`.
 - API service: `backend/apps/api/src/services/auth.service.ts`.
 - Telegram service: `backend/apps/api/src/services/telegram-auth.service.ts`.
@@ -110,12 +110,20 @@ Mobile config:
 - `BIG_BREAK_GOOGLE_SERVER_CLIENT_ID`
 - `BIG_BREAK_YANDEX_CLIENT_ID`
 
+Mobile2 config:
+
+- Default API: `https://api.frendly.tech`.
+- Default WebSocket: `wss://api.frendly.tech/ws`.
+- Default Telegram bot username: `frendly_code_bot`.
+- Seeded repeated-digit phone numbers use `POST /auth/phone/test-login` before SMS fallback.
+- Phone and Telegram auth responses are mapped as a session with tokens, `userId` and `isNewUser`; `isNewUser` decides whether mobile2 opens onboarding or home.
+
 Yandex native bridge:
 
-- Dart: `social_auth_controller.dart`.
+- Dart: `mobile2/lib/features/auth/presentation/`.
 - Method channel: `app.yandex.auth`.
-- Android: `mobile/android/app/src/main/kotlin/com/example/big_break_mobile/MainActivity.kt`.
-- iOS: `mobile/ios/Runner/AppDelegate.swift`, `mobile/ios/Runner/SceneDelegate.swift`.
+- Android: `mobile2/android/app/src/main/`.
+- iOS: `mobile2/ios/Runner/`.
 
 ## Onboarding contact rule
 
@@ -124,6 +132,8 @@ Yandex native bridge:
 - Google or Yandex sessions require phone when missing.
 - `POST /onboarding/contact/check` preflights the required email or phone before the user leaves the contact step.
 - `PUT /onboarding/me` enforces the same server-side rule.
+- `PUT /onboarding/me` marks `OnboardingPreferences.completedAt`. `GET /profile/me` and public profile presenters expose `onboardingComplete` from that persisted backend field, so reinstalling mobile2 does not force onboarding again after the user already completed it.
+- After `PUT /onboarding/me`, mobile2 writes the saved onboarding DTO into the user-scoped local-first cache before invalidating providers. This prevents a fresh stale draft from hiding saved city, interests, vibe or contact fields.
 - Duplicate contact returns `contact_already_used`.
 
 ## Flutter flow
@@ -144,7 +154,7 @@ Yandex native bridge:
 
 Public routes:
 
-- `/splash`, `/welcome`, `/phone-auth`, `/telegram-auth`.
+- `/splash`, `/welcome`, `/auth/phone`, `/auth/telegram`.
 
 Setup routes:
 
@@ -152,13 +162,13 @@ Setup routes:
 
 Legacy setup deep links:
 
-- `/permissions`, `/add-photo` redirect into the current onboarding flow, or to `/tonight` when setup is already complete.
+- Старые setup deep links не являются частью текущего `mobile2` router.
 
 ## Tests
 
-- Flutter token tests: `mobile/test/core/auth_bootstrap_test.dart`, `mobile/test/core/auth_tokens_controller_test.dart`, `mobile/test/app/session/`.
+- Flutter token tests: `mobile2/test/core/`.
 - API auth tests: `backend/apps/api/test/integration/auth.integration.spec.ts`.
-- Welcome social auth tests: `mobile/test/features/welcome/presentation/welcome_screen_test.dart`.
+- Auth flow tests: `mobile2/test/widget_test.dart`.
 
 ## Security notes
 

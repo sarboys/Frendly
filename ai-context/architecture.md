@@ -2,6 +2,11 @@
 
 Общая карта проекта. Перед ней читай `project_map.md` и `ai-context/index.md`.
 
+## Mobile app rule
+
+- `mobile2/` это актуальный Flutter клиент.
+- `mobile/` устарел. Не используй его для поиска, чтения или правок, если пользователь явно не попросил старое приложение.
+
 ## Выбор следующей карты
 
 - Flutter, UI, routes, state, performance: `ai-context/frontend-flutter.md`.
@@ -16,7 +21,7 @@
 ## Product shape
 
 - Product: Frendly.
-- Mobile client: Flutter in `mobile/`.
+- Mobile client: Flutter in `mobile2/`.
 - Backend: NestJS monorepo in `backend/`.
 - Realtime: `backend/apps/chat/`.
 - Background jobs: `backend/apps/worker/`.
@@ -56,10 +61,10 @@ Landing
 
 ## Main paths
 
-- `mobile/lib/main.dart`: Flutter boot.
-- `mobile/lib/app/app.dart`: root widget.
-- `mobile/lib/app/navigation/`: routes, router, shell.
-- `mobile/lib/shared/data/`: repository and shared providers.
+- `mobile2/lib/main.dart`: Flutter boot.
+- `mobile2/lib/app/dateasy_app.dart`: root widget.
+- `mobile2/lib/app/dateasy_router.dart`: routes and redirects.
+- `mobile2/lib/shared/data/`: repository and shared providers.
 - `backend/apps/api/src/`: REST API.
 - `backend/apps/chat/src/`: WebSocket server.
 - `backend/apps/worker/src/`: worker loop.
@@ -72,7 +77,7 @@ Landing
 
 Auth:
 
-- Flutter token state: `mobile/lib/app/core/providers/core_providers.dart`.
+- Flutter token state: `mobile2/lib/app/core/providers/core_providers.dart`.
 - API: `auth.controller.ts`, `auth.service.ts`, `telegram-auth.service.ts`, `social-auth.service.ts`.
 - DB: `Session`, `PhoneOtpChallenge`, `TelegramAccount`, `TelegramLoginSession`, `ExternalAuthAccount`.
 - Details: `ai-context/auth.md`.
@@ -117,7 +122,7 @@ For Flutter visual work, open only the needed docs:
 
 ## Checks
 
-- Flutter: `cd mobile && flutter analyze`, `cd mobile && flutter test`.
+- Flutter: `cd mobile2 && flutter analyze`, `cd mobile2 && flutter test`.
 - API: `cd backend && pnpm --filter @big-break/api test:unit`, `cd backend && pnpm --filter @big-break/api build`.
 - DB: `cd backend && pnpm --filter @big-break/database prisma:generate`.
 - Chat: `cd backend && pnpm --filter @big-break/chat test`.

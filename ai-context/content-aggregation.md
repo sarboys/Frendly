@@ -502,10 +502,10 @@ Admin:
 - `admin/src/admin/evening/routeReviewApi.ts`
 - `admin/src/admin/evening/routeReviewTypes.ts`
 
-Mobile:
+Mobile2:
 
-- `mobile/lib/shared/models/affiche_event.dart`
-- `mobile/lib/shared/data/backend_repository.dart`
-- `mobile/lib/shared/data/app_providers.dart`
-- `mobile/lib/features/affiche/`
-- `mobile/lib/features/tonight/presentation/tonight_screen.dart`
+- `mobile2/lib/shared/models/backend_models.dart`
+- `mobile2/lib/shared/data/backend_repository.dart`
+- `mobile2/lib/shared/data/app_providers.dart`
+- `mobile2/lib/features/posters/`
+- `mobile2/lib/features/home/presentation/home_screen.dart`

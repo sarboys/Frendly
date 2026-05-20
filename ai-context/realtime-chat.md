@@ -4,12 +4,9 @@ Use this for WebSocket, chat sync, unread, typing, messages, attachments and Eve
 
 ## Fast paths
 
-- Flutter socket client: `mobile/lib/app/core/network/chat_socket_client.dart`.
-- Thread state: `mobile/lib/features/chats/presentation/chat_thread_providers.dart`.
-- Thread UI: `mobile/lib/features/chats/presentation/chat_thread_screen.dart`.
-- Meetup wrapper: `mobile/lib/features/meetup_chat/presentation/meetup_chat_screen.dart`.
-- Personal wrapper: `mobile/lib/features/personal_chat/presentation/personal_chat_screen.dart`.
-- Chat list and app sync: `mobile/lib/shared/data/app_providers.dart`.
+- Flutter socket client: `mobile2/lib/app/core/network/chat_socket_client.dart`.
+- Chat screens: `mobile2/lib/features/chats/presentation/`.
+- Chat list and app sync: `mobile2/lib/shared/data/app_providers.dart`.
 - Backend WebSocket: `backend/apps/chat/src/chat-server.service.ts`.
 - REST chat history: `backend/apps/api/src/services/chats.service.ts`.
 - Contracts: `backend/packages/contracts/src/index.ts`.
@@ -30,12 +27,13 @@ Use this for WebSocket, chat sync, unread, typing, messages, attachments and Eve
 3. Keep `nextCursor` from the REST page and request older history when the user scrolls near the top.
 4. Connect socket.
 5. Send `session.authenticate` with access token.
-6. Subscribe with `chat.subscribe`.
-7. Request missed events with `sync.request`.
-8. Store sync cursor per chat.
-9. Store pending send, edit, delete and read commands in the durable outbox.
+6. Wait for `session.authenticated`.
+7. Subscribe with `chat.subscribe`.
+8. Request missed events with `sync.request`.
+9. Store sync cursor per chat.
+10. Store pending send, edit, delete and read commands in the durable outbox.
 
-On reconnect, authenticate, resend queued commands, resubscribe known chat ids and request sync from stored cursor.
+On reconnect, authenticate first, then resend queued commands, resubscribe known chat ids and request sync from stored cursor. Mobile must not flush outbox before auth ack.
 
 When local-first cache is enabled and the current user id is known, mobile uses `DriftChatOutboxStorage` backed by `pending_commands`. It migrates legacy `chat.outbox.commands` from `SharedPreferences`, dedupes by the existing command `dedupeKey`, and falls back to the old SharedPreferences storage when Drift is disabled or unavailable.
 
@@ -49,7 +47,7 @@ Mobile chat delete uses REST `DELETE /chats/:chatId`, not WebSocket. Direct chat
 
 ## App-level sync
 
-`chatRealtimeSyncProvider` starts after auth. `ChatsScreen` uses `chatRealtimeSyncForScopeProvider` so segment-specific tabs only subscribe the chat kinds they loaded.
+`ChatsScreen` starts `chatListRealtimeProvider` only after the current chat list has loaded ids. It uses one `ChatRealtimeSession` for the visible list scope, subscribes those chat ids, and does not start chat realtime on app startup.
 
 It subscribes to known meetup and personal chat ids and handles:
 
@@ -98,7 +96,11 @@ Flutter creates optimistic local message and `clientMessageId`, then sends `mess
 
 `ChatLocalStore` stores recent message JSON in `chat_messages`. Rows have `messageId` plus optional `clientMessageId`; when the server echo arrives with the same client id, the pending local row is replaced by the server row.
 
-Meetup and personal chat lists read cached summaries first and refresh REST in the background. Realtime preview, unread and delete patches still update Riverpod local state immediately; subsequent REST refresh writes the latest summary rows back to Drift.
+`mobile2` `ChatRealtimeSession` patches cached summary rows in `ChatLocalStore`: `message.created` and `message.updated` update preview and unread counters, and `unread.updated` sets unread counters locally. This keeps chat lists warm while REST refresh catches up.
+
+Meetup and personal chat lists read cached summaries first and refresh REST in the background. In `mobile2`, `chatListProvider` is a stream over `ChatLocalStore`, so realtime preview and unread patches repaint the chat list from Drift while REST refresh catches up.
+
+Current user's own message echo updates preview and last message time, but does not increment local unread counters. `message.updated` also must not increment unread, because it edits an existing message rather than creating a new unread item.
 
 Event meetup chat phase becomes `done` once `startsAt` is at least 24 hours old, even without an explicit host finish action.
 
@@ -149,7 +151,7 @@ Voice:
 
 Private media download checks membership and blocks before signed URL.
 
-Flutter `AppAttachmentService` coalesces in-flight signed download URL requests and keeps a four-minute local TTL cache by `downloadUrlPath` or media asset id. Chat thread warmup uses the same service for recent ready voice and image attachments, so private media playback and image widgets should stay on this path to avoid duplicate `/media/:id/download-url` calls while scrolling.
+Flutter `AppAttachmentService` coalesces in-flight signed download URL requests and keeps a short local TTL cache by `downloadUrlPath`. Chat thread warmup uses the same service for recent ready image attachments: it resolves signed URL, then prefetches the image file with the same `DateasyRemoteImage` cache key used by message bubbles. Voice attachments must not go through image cache prewarm.
 
 `GET /media/:assetId` supports `ETag` and `Last-Modified`. Fresh conditional requests return `304` before S3 streaming or signed URL generation, while private media still uses `Cache-Control: private, max-age=300`.
 
@@ -185,5 +187,5 @@ Flutter `AppAttachmentService` coalesces in-flight signed download URL requests 
 
 - Chat server unit: `backend/apps/chat/test/unit/chat-server.service.unit.spec.ts`.
 - Realtime session: `backend/apps/chat/test/realtime/session.realtime.spec.ts`.
-- Flutter chat tests: `mobile/test/features/chats/presentation/`, `mobile/test/shared/models/message_test.dart`.
+- Flutter chat tests: `mobile2/test/`.
 

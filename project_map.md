@@ -19,6 +19,12 @@
 
 Не читай весь проект. Не делай широкий поиск без причины.
 
+## Mobile app rule
+
+- `mobile2/` это актуальное Flutter приложение.
+- `mobile/` это устаревшее Flutter приложение. Не используй его для поиска, `rg`, чтения контекста, графа и правок, если пользователь явно не попросил именно `mobile/`.
+- Для обычного поиска `rg` корневой `.ignore` исключает `mobile/`. Если старое приложение реально нужно, ищи его явно через `rg -u ... mobile/`.
+
 ## Роли источников
 
 - `.understand-anything/`: машинный граф кода, связей и бизнес-флоу.
@@ -31,13 +37,14 @@
 
 ## Верхний уровень
 
-- `mobile/`: Flutter app.
+- `mobile2/`: актуальное Flutter app.
+- `mobile/`: устаревшее Flutter app, только по явному запросу.
 - `backend/`: NestJS monorepo.
 - `admin/`: React admin app.
 - `front/`: визуальный эталон продукта.
 - `landing/`: отдельный landing site.
 - `deploy/`, `compose*.yml`, `scripts/`: infra and automation.
-- `.understand-anything/`: focused graph для backend, mobile, admin.
+- `.understand-anything/`: focused graph для backend, mobile2, admin.
 - `ai-context/`: ручные карты.
 
 ## Куда идти
@@ -57,8 +64,8 @@
 Flutter:
 
 ```bash
-cd mobile && flutter analyze
-cd mobile && flutter test
+cd mobile2 && flutter analyze
+cd mobile2 && flutter test
 ```
 
 Backend:

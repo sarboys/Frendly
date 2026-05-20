@@ -1,0 +1,17 @@
+.dart_tool/
+.DS_Store
+**/.DS_Store
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+.idea/
+*.iml
+*.log
+build/
+**/build/
+coverage/
+ios/Pods/
+ios/Build Runner_*.txt
+android/.gradle/
