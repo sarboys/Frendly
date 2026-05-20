@@ -174,6 +174,7 @@ type DatingUsageClient = Pick<
 type RankedDatingCandidate = {
   user: DatingProfileUser;
   score: number;
+  commonInterestCount: number;
   likedYou: boolean;
   cycle: 'fresh' | 'pass';
 };
@@ -568,18 +569,28 @@ export class DatingService {
     const likedYou = new Set(incomingLikes.map((item) => item.actorUserId));
 
     return params.users
-      .map((user) => ({
-        user,
-        likedYou: likedYou.has(user.id),
-        cycle: params.cycle,
-        score: this.calculateDiscoverScore({
+      .map((user) => {
+        const commonInterests = this.commonInterestsForUser(
           user,
-          selfInterests: params.selfInterests,
-          selfLocation: params.selfLocation,
+          params.selfInterests,
+        );
+        return {
+          user,
+          commonInterestCount: commonInterests.length,
           likedYou: likedYou.has(user.id),
-        }),
-      }))
+          cycle: params.cycle,
+          score: this.calculateDiscoverScore({
+            user,
+            selfInterests: params.selfInterests,
+            selfLocation: params.selfLocation,
+            likedYou: likedYou.has(user.id),
+          }),
+        };
+      })
       .sort((left, right) => {
+        if (right.commonInterestCount !== left.commonInterestCount) {
+          return right.commonInterestCount - left.commonInterestCount;
+        }
         if (right.score !== left.score) {
           return right.score - left.score;
         }
@@ -1266,7 +1277,7 @@ export class DatingService {
     options: { likedYou: boolean; viewerLocation?: DatingLocation | null },
   ) {
     const interests = this.extractInterests(user.onboarding?.interests);
-    const common = interests.filter((item) => selfInterests.includes(item));
+    const common = this.commonInterestsForUser(user, selfInterests);
     const tags = (common.length > 0 ? common : interests).slice(0, 3);
     const photos = (user.profile?.photos ?? [])
       .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -1295,6 +1306,14 @@ export class DatingService {
       about:
         user.profile?.bio ?? 'Лучше знакомиться вживую, чем тянуть переписку.',
       tags,
+      commonInterests: common,
+      matchPercent: this.calculateDatingMatchPercent({
+        commonInterestCount: common.length,
+        likedYou: options.likedYou,
+        verified: user.verified,
+        online: user.online,
+        distanceKm,
+      }),
       prompt:
         _datingPromptByUserId[user.id] ??
         'Позови на свидание, если хочешь увидеться без долгих свайпов.',
@@ -1403,6 +1422,62 @@ export class DatingService {
     return Array.isArray(raw)
       ? raw.filter((item): item is string => typeof item === 'string')
       : [];
+  }
+
+  private commonInterestsForUser(
+    user: DatingProfileUser,
+    selfInterests: string[],
+  ) {
+    const selfInterestSet = new Set(
+      selfInterests
+        .map((item) => this.normalizeFilterText(item))
+        .filter((item) => item.length > 0),
+    );
+    if (selfInterestSet.size === 0) {
+      return [];
+    }
+
+    const seen = new Set<string>();
+    return this.extractInterests(user.onboarding?.interests).filter((item) => {
+      const normalized = this.normalizeFilterText(item);
+      if (
+        normalized.length === 0 ||
+        !selfInterestSet.has(normalized) ||
+        seen.has(normalized)
+      ) {
+        return false;
+      }
+      seen.add(normalized);
+      return true;
+    });
+  }
+
+  private calculateDatingMatchPercent(params: {
+    commonInterestCount: number;
+    likedYou: boolean;
+    verified: boolean;
+    online: boolean;
+    distanceKm: number | null;
+  }) {
+    const hasCommonInterest = params.commonInterestCount > 0;
+    let percent = hasCommonInterest
+      ? 84 + Math.min(12, params.commonInterestCount * 4)
+      : 56;
+    if (params.likedYou) {
+      percent += 5;
+    }
+    if (params.verified) {
+      percent += 2;
+    }
+    if (params.online) {
+      percent += 2;
+    }
+    if (params.distanceKm != null) {
+      percent += Math.max(0, Math.min(5, 5 - Math.floor(params.distanceKm / 2)));
+    }
+
+    const max = hasCommonInterest ? 98 : 72;
+    return Math.max(50, Math.min(max, percent));
   }
 
   private matchesInterestFilter(user: DatingProfileUser, interests: string[]) {

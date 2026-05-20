@@ -1306,7 +1306,7 @@ export class ChatsService {
   }
 
   private async assertMembership(userId: string, chatId: string) {
-    const member = await this.prismaService.client.chatMember.findUnique({
+    let member = await this.prismaService.client.chatMember.findUnique({
       where: {
         chatId_userId: {
           chatId,
@@ -1328,7 +1328,10 @@ export class ChatsService {
     });
 
     if (!member) {
-      throw new ApiError(403, 'chat_forbidden', 'You are not a member of this chat');
+      member = await this.restoreMeetupChatMembership(userId, chatId);
+      if (!member) {
+        throw new ApiError(403, 'chat_forbidden', 'You are not a member of this chat');
+      }
     }
 
     if (member.chat.kind === ChatKind.direct) {
@@ -1357,6 +1360,58 @@ export class ChatsService {
         throw new ApiError(403, 'chat_forbidden', 'You are not a member of this chat');
       }
     }
+  }
+
+  private async restoreMeetupChatMembership(userId: string, chatId: string) {
+    const chat = await this.prismaService.client.chat.findUnique({
+      where: { id: chatId },
+      select: {
+        kind: true,
+        event: {
+          select: {
+            hostId: true,
+            participants: {
+              where: { userId },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (chat?.kind !== ChatKind.meetup || chat.event == null) {
+      return null;
+    }
+
+    const hasEventAccess =
+      chat.event.hostId === userId || chat.event.participants.length > 0;
+    if (!hasEventAccess) {
+      return null;
+    }
+
+    await this.prismaService.client.chatMember.upsert({
+      where: {
+        chatId_userId: {
+          chatId,
+          userId,
+        },
+      },
+      update: {},
+      create: {
+        chatId,
+        userId,
+      },
+    });
+
+    return {
+      chat: {
+        kind: chat.kind,
+        event: {
+          hostId: chat.event.hostId,
+        },
+      },
+    };
   }
 
   private resolveAfterDarkGlow(isAfterDark: boolean, glow: string | null) {

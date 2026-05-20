@@ -1654,6 +1654,88 @@ describe('DatingService unit', () => {
     );
   });
 
+  it('keeps common interest profiles before otherwise stronger profiles', async () => {
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser(['coffee'])),
+            findMany: jest.fn().mockResolvedValue([
+              datingUser('user-no-common', {
+                interests: ['cinema'],
+                verified: true,
+                online: true,
+                createdAt: new Date(),
+              }),
+              datingUser('user-common', {
+                interests: ['coffee'],
+                verified: false,
+                online: false,
+                createdAt: new Date('2026-05-01T00:00:00.000Z'),
+              }),
+            ]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me', { limit: 2 });
+
+    expect(result.items.map((item: { userId: string }) => item.userId)).toEqual(
+      ['user-common', 'user-no-common'],
+    );
+  });
+
+  it('returns match percent and common interests in discover payload', async () => {
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest
+              .fn()
+              .mockResolvedValue(selfUser(['Coffee', 'Vinyl'])),
+            findMany: jest.fn().mockResolvedValue([
+              datingUser('user-common', {
+                interests: ['coffee', 'cinema'],
+                verified: true,
+                online: true,
+              }),
+            ]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me', { limit: 1 });
+
+    const item = result.items[0] as any;
+
+    expect(item).toEqual(
+      expect.objectContaining({
+        userId: 'user-common',
+        commonInterests: ['coffee'],
+        matchPercent: expect.any(Number),
+      }),
+    );
+    expect(item.matchPercent).toBeGreaterThanOrEqual(80);
+  });
+
   it('keeps ranked leftovers in discover cursor buffer', async () => {
     const userFindMany = jest
       .fn()

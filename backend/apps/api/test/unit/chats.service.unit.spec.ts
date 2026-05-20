@@ -1569,6 +1569,64 @@ describe('ChatsService unit', () => {
     expect(findFirst).not.toHaveBeenCalled();
   });
 
+  it('repairs meetup chat membership for joined event participants', async () => {
+    const chatMemberFindUnique = jest.fn().mockResolvedValue(null);
+    const chatMemberUpsert = jest.fn().mockResolvedValue({});
+    const chatFindUnique = jest.fn().mockResolvedValue({
+      kind: ChatKind.meetup,
+      event: {
+        hostId: 'user-host',
+        participants: [{ userId: 'user-me' }],
+      },
+    });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: chatMemberFindUnique,
+          upsert: chatMemberUpsert,
+        },
+        chat: {
+          findUnique: chatFindUnique,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await (service as any).assertMembership('user-me', 'chat-1');
+
+    expect(chatFindUnique).toHaveBeenCalledWith({
+      where: { id: 'chat-1' },
+      select: {
+        kind: true,
+        event: {
+          select: {
+            hostId: true,
+            participants: {
+              where: { userId: 'user-me' },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+    expect(chatMemberUpsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'chat-1',
+          userId: 'user-me',
+        },
+      },
+      update: {},
+      create: {
+        chatId: 'chat-1',
+        userId: 'user-me',
+      },
+    });
+  });
+
   it('does not advance read markers to messages from blocked senders', async () => {
     const memberUpdate = jest.fn();
     const service = new ChatsService({

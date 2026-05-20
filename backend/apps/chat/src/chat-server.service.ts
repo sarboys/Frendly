@@ -1415,7 +1415,7 @@ export class ChatServerService implements OnModuleDestroy {
       status: 'miss',
     });
 
-    const membership = await this.prismaService.client.chatMember.findUnique({
+    let membership = await this.prismaService.client.chatMember.findUnique({
       where: {
         chatId_userId: {
           chatId,
@@ -1437,7 +1437,10 @@ export class ChatServerService implements OnModuleDestroy {
     });
 
     if (!membership) {
-      throw new ChatServerError('chat_forbidden', 'Not a chat member');
+      membership = await this.restoreMeetupChatMembership(userId, chatId);
+      if (!membership) {
+        throw new ChatServerError('chat_forbidden', 'Not a chat member');
+      }
     }
 
     if (membership.chat.kind === 'direct') {
@@ -1473,6 +1476,58 @@ export class ChatServerService implements OnModuleDestroy {
         now + this.membershipCacheTtlMs,
       );
     }
+  }
+
+  private async restoreMeetupChatMembership(userId: string, chatId: string) {
+    const chat = await this.prismaService.client.chat.findUnique({
+      where: { id: chatId },
+      select: {
+        kind: true,
+        event: {
+          select: {
+            hostId: true,
+            participants: {
+              where: { userId },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (chat?.kind !== 'meetup' || chat.event == null) {
+      return null;
+    }
+
+    const hasEventAccess =
+      chat.event.hostId === userId || chat.event.participants.length > 0;
+    if (!hasEventAccess) {
+      return null;
+    }
+
+    await this.prismaService.client.chatMember.upsert({
+      where: {
+        chatId_userId: {
+          chatId,
+          userId,
+        },
+      },
+      update: {},
+      create: {
+        chatId,
+        userId,
+      },
+    });
+
+    return {
+      chat: {
+        kind: chat.kind,
+        event: {
+          hostId: chat.event.hostId,
+        },
+      },
+    };
   }
 
   private isTypingThrottled(
