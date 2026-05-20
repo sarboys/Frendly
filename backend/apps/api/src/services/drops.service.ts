@@ -34,6 +34,14 @@ type DropRow = {
   cancelReason?: string | null;
 };
 
+type AdminDropStats = {
+  ticketCount: number;
+  participantCount: number;
+  winnerCount: number;
+};
+
+const ADMIN_TICKET_STATUSES = ['active', 'used_in_draw', 'winner'] as const;
+
 const TASK_META = {
   verification: {
     id: 'verify',
@@ -464,12 +472,47 @@ export class DropsService {
     return this.mapReferral(updated);
   }
 
-  async listAdminDrops() {
+  async listAdminDrops(query: Record<string, unknown> = {}) {
+    const limit = this.parseAdminLimit(query.limit);
     const drops = await this.prismaService.client.drop.findMany({
+      where: this.buildAdminDropWhere(query),
       orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
       select: this.dropSelect(true),
     });
-    return { items: drops.map((drop) => this.mapAdminDrop(drop)) };
+    const pageDrops = drops.slice(0, limit);
+    const stats = await this.getAdminDropStats(pageDrops.map((drop) => drop.id));
+    const lastDrop = pageDrops[pageDrops.length - 1];
+
+    return {
+      items: pageDrops.map((drop) => this.mapAdminDrop(drop, stats.get(drop.id))),
+      nextCursor: drops.length > limit && lastDrop
+        ? this.encodeAdminCursor({
+            startsAt: lastDrop.startsAt.toISOString(),
+            id: lastDrop.id,
+          })
+        : null,
+    };
+  }
+
+  async getAdminDrop(dropId: string) {
+    const drop = await this.prismaService.client.drop.findUnique({
+      where: { id: dropId },
+      select: this.dropSelect(true),
+    });
+    if (!drop) {
+      throw new ApiError(404, 'drop_not_found', 'Drop not found');
+    }
+
+    const [stats, winners] = await Promise.all([
+      this.getAdminDropStats([drop.id]),
+      this.listAdminDropWinners(drop.id),
+    ]);
+
+    return {
+      ...this.mapAdminDrop(drop, stats.get(drop.id)),
+      winners,
+    };
   }
 
   async createDrop(body: Record<string, unknown>) {
@@ -539,35 +582,63 @@ export class DropsService {
     });
   }
 
-  async listDropTickets(dropId: string) {
+  async listDropTickets(dropId: string, query: Record<string, unknown> = {}) {
+    const limit = this.parseAdminLimit(query.limit, 200);
+    const where = this.buildDropTicketWhere(dropId, query);
     const tickets = await this.prismaService.client.dropTicket.findMany({
-      where: { dropId },
-      orderBy: [{ assignedAt: 'asc' }, { id: 'asc' }],
-      take: 200,
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
       select: {
         id: true,
         code: true,
         userId: true,
         status: true,
         source: true,
+        monthKey: true,
         assignedAt: true,
         createdAt: true,
+        cancelReason: true,
+        user: {
+          select: {
+            displayName: true,
+          },
+        },
+        rewardEvent: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
       },
     });
+    const pageTickets = tickets.slice(0, limit);
+    const lastTicket = pageTickets[pageTickets.length - 1];
     return {
-      items: tickets.map((ticket) => ({
+      items: pageTickets.map((ticket) => ({
         ...ticket,
+        userName: ticket.user.displayName,
         assignedAt: ticket.assignedAt?.toISOString() ?? null,
         createdAt: ticket.createdAt.toISOString(),
       })),
+      nextCursor: tickets.length > limit && lastTicket
+        ? this.encodeAdminCursor({
+            createdAt: lastTicket.createdAt.toISOString(),
+            id: lastTicket.id,
+          })
+        : null,
     };
   }
 
-  async listDropParticipants(dropId: string) {
+  async listDropParticipants(dropId: string, query: Record<string, unknown> = {}) {
+    const limit = this.parseAdminLimit(query.limit, 100);
+    const cursor = this.parseAdminCursor(query.cursor);
     const tickets = await this.prismaService.client.dropTicket.findMany({
       where: {
         dropId,
         status: { in: ['active', 'used_in_draw', 'winner'] },
+        ...this.participantSearchWhere(query.q),
       },
       orderBy: [{ assignedAt: 'asc' }, { id: 'asc' }],
       take: 10000,
@@ -582,6 +653,12 @@ export class DropsService {
             profile: {
               select: { city: true },
             },
+            dropRestriction: {
+              select: {
+                reason: true,
+                expiresAt: true,
+              },
+            },
           },
         },
       },
@@ -594,6 +671,8 @@ export class DropsService {
         city: string | null;
         verified: boolean;
         userStatus: string;
+        frozen: boolean;
+        freezeReason: string | null;
         ticketCount: number;
         winnerTicketCount: number;
       }
@@ -615,12 +694,29 @@ export class DropsService {
         city: ticket.user.profile?.city ?? null,
         verified: ticket.user.verified,
         userStatus: ticket.user.status,
+        frozen: ticket.user.dropRestriction != null,
+        freezeReason: ticket.user.dropRestriction?.reason ?? null,
         ticketCount: 1,
         winnerTicketCount: ticket.status === 'winner' ? 1 : 0,
       });
     }
 
-    return { items: [...byUser.values()] };
+    let items = [...byUser.values()].sort((left, right) =>
+      left.userId.localeCompare(right.userId),
+    );
+    const cursorUserId = typeof cursor?.userId === 'string' ? cursor.userId : null;
+    if (cursorUserId) {
+      items = items.filter((item) => item.userId > cursorUserId);
+    }
+    const pageItems = items.slice(0, limit);
+    const lastItem = pageItems[pageItems.length - 1];
+
+    return {
+      items: pageItems,
+      nextCursor: items.length > limit && lastItem
+        ? this.encodeAdminCursor({ userId: lastItem.userId })
+        : null,
+    };
   }
 
   async listUserTickets(userId: string) {
@@ -667,27 +763,48 @@ export class DropsService {
     };
   }
 
-  async listRewardEvents(userId?: string) {
+  async listRewardEvents(query: Record<string, unknown> = {}) {
+    const limit = this.parseAdminLimit(query.limit, 200);
+    const where = this.buildRewardEventWhere(query);
     const rows = await this.prismaService.client.dropRewardEvent.findMany({
-      where: userId ? { userId } : {},
+      where,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 200,
+      take: limit + 1,
       select: {
         id: true,
         userId: true,
         source: true,
         status: true,
+        monthKey: true,
+        idempotencyKey: true,
         ticketCount: true,
         title: true,
         cancellationReason: true,
+        relatedType: true,
+        relatedId: true,
         createdAt: true,
+        user: {
+          select: {
+            displayName: true,
+          },
+        },
       },
     });
+    const pageRows = rows.slice(0, limit);
+    const lastRow = pageRows[pageRows.length - 1];
+
     return {
-      items: rows.map((row) => ({
+      items: pageRows.map((row) => ({
         ...row,
+        userName: row.user.displayName,
         createdAt: row.createdAt.toISOString(),
       })),
+      nextCursor: rows.length > limit && lastRow
+        ? this.encodeAdminCursor({
+            createdAt: lastRow.createdAt.toISOString(),
+            id: lastRow.id,
+          })
+        : null,
     };
   }
 
@@ -851,6 +968,282 @@ export class DropsService {
         },
       });
     });
+  }
+
+  private async getAdminDropStats(dropIds: string[]) {
+    const stats = new Map<string, AdminDropStats>();
+    for (const dropId of dropIds) {
+      stats.set(dropId, {
+        ticketCount: 0,
+        participantCount: 0,
+        winnerCount: 0,
+      });
+    }
+    if (dropIds.length === 0) {
+      return stats;
+    }
+
+    const [ticketCounts, participants, winnerCounts] = await Promise.all([
+      this.prismaService.client.dropTicket.groupBy({
+        by: ['dropId'],
+        where: {
+          dropId: { in: dropIds },
+          status: { in: [...ADMIN_TICKET_STATUSES] },
+        },
+        _count: { _all: true },
+      }),
+      this.prismaService.client.dropTicket.findMany({
+        where: {
+          dropId: { in: dropIds },
+          status: { in: [...ADMIN_TICKET_STATUSES] },
+        },
+        distinct: ['dropId', 'userId'],
+        select: {
+          dropId: true,
+          userId: true,
+        },
+      }),
+      this.prismaService.client.dropWinner.groupBy({
+        by: ['dropId'],
+        where: { dropId: { in: dropIds } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    for (const row of ticketCounts) {
+      if (!row.dropId) continue;
+      stats.set(row.dropId, {
+        ...(stats.get(row.dropId) ?? {
+          ticketCount: 0,
+          participantCount: 0,
+          winnerCount: 0,
+        }),
+        ticketCount: row._count._all,
+      });
+    }
+
+    const participantsByDrop = new Map<string, number>();
+    for (const participant of participants) {
+      if (!participant.dropId) continue;
+      participantsByDrop.set(
+        participant.dropId,
+        (participantsByDrop.get(participant.dropId) ?? 0) + 1,
+      );
+    }
+    for (const [dropId, count] of participantsByDrop.entries()) {
+      stats.set(dropId, {
+        ...(stats.get(dropId) ?? {
+          ticketCount: 0,
+          participantCount: 0,
+          winnerCount: 0,
+        }),
+        participantCount: count,
+      });
+    }
+
+    for (const row of winnerCounts) {
+      stats.set(row.dropId, {
+        ...(stats.get(row.dropId) ?? {
+          ticketCount: 0,
+          participantCount: 0,
+          winnerCount: 0,
+        }),
+        winnerCount: row._count._all,
+      });
+    }
+
+    return stats;
+  }
+
+  private async listAdminDropWinners(dropId: string) {
+    const winners = await this.prismaService.client.dropWinner.findMany({
+      where: { dropId },
+      orderBy: [{ reserve: 'asc' }, { position: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        status: true,
+        position: true,
+        reserve: true,
+        prize: true,
+        rejectedReason: true,
+        createdAt: true,
+        updatedAt: true,
+        ticket: {
+          select: {
+            id: true,
+            code: true,
+            source: true,
+            status: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            profile: {
+              select: { city: true },
+            },
+          },
+        },
+      },
+    });
+
+    return winners.map((winner) => ({
+      id: winner.id,
+      status: winner.status,
+      position: winner.position,
+      reserve: winner.reserve,
+      userId: winner.user.id,
+      userName: winner.user.displayName,
+      city: winner.user.profile?.city ?? null,
+      prize: winner.prize,
+      prizeSummary: this.prizeSummary(winner.prize),
+      ticketId: winner.ticket.id,
+      ticket: winner.ticket.code,
+      ticketSource: winner.ticket.source,
+      ticketStatus: winner.ticket.status,
+      rejectedReason: winner.rejectedReason,
+      createdAt: winner.createdAt.toISOString(),
+      updatedAt: winner.updatedAt.toISOString(),
+    }));
+  }
+
+  private buildAdminDropWhere(query: Record<string, unknown>): Prisma.DropWhereInput {
+    const and: Prisma.DropWhereInput[] = [];
+    const status = this.optionalText(query.status);
+    const type = this.optionalText(query.type);
+    const search = this.optionalText(query.q);
+    const cursor = this.parseAdminCursor(query.cursor);
+
+    if (status) {
+      if (!this.isDropStatus(status)) {
+        throw new ApiError(400, 'invalid_drop_status', 'Drop status is invalid');
+      }
+      and.push({ status });
+    }
+    if (type) {
+      if (!this.isDropType(type)) {
+        throw new ApiError(400, 'invalid_drop_type', 'Drop type is invalid');
+      }
+      and.push({ type });
+    }
+    if (search) {
+      and.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (cursor) {
+      const startsAt = this.requiredCursorDate(cursor, 'startsAt');
+      const id = this.requiredCursorText(cursor, 'id');
+      and.push({
+        OR: [
+          { startsAt: { lt: startsAt } },
+          { startsAt, id: { lt: id } },
+        ],
+      });
+    }
+
+    return and.length > 0 ? { AND: and } : {};
+  }
+
+  private buildDropTicketWhere(
+    dropId: string,
+    query: Record<string, unknown>,
+  ): Prisma.DropTicketWhereInput {
+    const and: Prisma.DropTicketWhereInput[] = [{ dropId }];
+    const status = this.optionalText(query.status);
+    const source = this.optionalText(query.source);
+    const userId = this.optionalText(query.userId);
+    const cursor = this.parseAdminCursor(query.cursor);
+
+    if (status) {
+      if (!this.isTicketStatus(status)) {
+        throw new ApiError(400, 'invalid_ticket_status', 'Ticket status is invalid');
+      }
+      and.push({ status });
+    }
+    if (source) {
+      if (!this.isRewardSource(source)) {
+        throw new ApiError(400, 'invalid_reward_source', 'Reward source is invalid');
+      }
+      and.push({ source });
+    }
+    if (userId) {
+      and.push({ userId });
+    }
+    if (cursor) {
+      const createdAt = this.requiredCursorDate(cursor, 'createdAt');
+      const id = this.requiredCursorText(cursor, 'id');
+      and.push({
+        OR: [
+          { createdAt: { lt: createdAt } },
+          { createdAt, id: { lt: id } },
+        ],
+      });
+    }
+
+    return { AND: and };
+  }
+
+  private buildRewardEventWhere(query: Record<string, unknown>): Prisma.DropRewardEventWhereInput {
+    const and: Prisma.DropRewardEventWhereInput[] = [];
+    const userId = this.optionalText(query.userId);
+    const dropId = this.optionalText(query.dropId);
+    const source = this.optionalText(query.source);
+    const status = this.optionalText(query.status);
+    const cursor = this.parseAdminCursor(query.cursor);
+
+    if (userId) {
+      and.push({ userId });
+    }
+    if (dropId) {
+      and.push({ tickets: { some: { dropId } } });
+    }
+    if (source) {
+      if (!this.isRewardSource(source)) {
+        throw new ApiError(400, 'invalid_reward_source', 'Reward source is invalid');
+      }
+      and.push({ source });
+    }
+    if (status) {
+      if (!this.isRewardStatus(status)) {
+        throw new ApiError(400, 'invalid_reward_status', 'Reward status is invalid');
+      }
+      and.push({ status });
+    }
+    if (cursor) {
+      const createdAt = this.requiredCursorDate(cursor, 'createdAt');
+      const id = this.requiredCursorText(cursor, 'id');
+      and.push({
+        OR: [
+          { createdAt: { lt: createdAt } },
+          { createdAt, id: { lt: id } },
+        ],
+      });
+    }
+
+    return and.length > 0 ? { AND: and } : {};
+  }
+
+  private participantSearchWhere(searchValue: unknown): Prisma.DropTicketWhereInput {
+    const search = this.optionalText(searchValue);
+    if (!search) {
+      return {};
+    }
+
+    return {
+      user: {
+        OR: [
+          { id: { contains: search, mode: 'insensitive' } },
+          { displayName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { phoneNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      },
+    };
   }
 
   private async mapDropForUser(drop: DropRow, userId: string, detailed = false) {
@@ -1176,13 +1569,17 @@ export class DropsService {
     return data as Prisma.DropUncheckedCreateInput & Prisma.DropUncheckedUpdateInput;
   }
 
-  private mapAdminDrop(drop: DropRow) {
+  private mapAdminDrop(drop: DropRow, stats?: AdminDropStats) {
     return {
       ...drop,
       startsAt: drop.startsAt.toISOString(),
       endsAt: drop.endsAt.toISOString(),
       drawAt: drop.drawAt.toISOString(),
+      secretSeed: drop.status === 'finished' ? drop.secretSeed ?? null : null,
       seedRevealedAt: drop.seedRevealedAt?.toISOString() ?? null,
+      ticketCount: stats?.ticketCount ?? 0,
+      participantCount: stats?.participantCount ?? 0,
+      winnerCount: stats?.winnerCount ?? 0,
     };
   }
 
@@ -1271,6 +1668,39 @@ export class DropsService {
     );
   }
 
+  private isTicketStatus(value: unknown): value is Prisma.DropTicketCreateInput['status'] {
+    return (
+      value === 'pending' ||
+      value === 'active' ||
+      value === 'cancelled' ||
+      value === 'used_in_draw' ||
+      value === 'winner' ||
+      value === 'expired'
+    );
+  }
+
+  private isRewardStatus(value: unknown): value is Prisma.DropRewardEventCreateInput['status'] {
+    return (
+      value === 'pending' ||
+      value === 'active' ||
+      value === 'cancelled' ||
+      value === 'rejected'
+    );
+  }
+
+  private isRewardSource(value: unknown): value is Prisma.DropRewardEventCreateInput['source'] {
+    return (
+      value === 'verification' ||
+      value === 'daily_login' ||
+      value === 'host_meeting' ||
+      value === 'visit_meeting' ||
+      value === 'referral' ||
+      value === 'subscription' ||
+      value === 'boost' ||
+      value === 'manual_admin'
+    );
+  }
+
   private winnerStatusForAction(action: string) {
     if (action === 'approve') return 'approved';
     if (action === 'reject') return 'rejected';
@@ -1294,6 +1724,71 @@ export class DropsService {
       return 50;
     }
     return Math.max(1, Math.min(Math.trunc(value!), 100));
+  }
+
+  private parseAdminLimit(value: unknown, fallback = 50) {
+    const text = this.optionalText(value);
+    if (!text) {
+      return fallback;
+    }
+
+    const limit = Number(text);
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new ApiError(400, 'admin_invalid_limit', 'Limit is invalid');
+    }
+    return Math.min(limit, 200);
+  }
+
+  private parseAdminCursor(value: unknown) {
+    const text = this.optionalText(value);
+    if (!text) {
+      return null;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(Buffer.from(text, 'base64url').toString('utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Keep every bad cursor error identical for callers.
+    }
+
+    throw new ApiError(400, 'admin_invalid_cursor', 'Cursor is invalid');
+  }
+
+  private encodeAdminCursor(cursor: Record<string, unknown>) {
+    return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+  }
+
+  private requiredCursorDate(cursor: Record<string, unknown>, key: string) {
+    const text = this.optionalText(cursor[key]);
+    if (!text) {
+      throw new ApiError(400, 'admin_invalid_cursor', 'Cursor is invalid');
+    }
+
+    const date = new Date(text);
+    if (Number.isNaN(date.getTime())) {
+      throw new ApiError(400, 'admin_invalid_cursor', 'Cursor is invalid');
+    }
+    return date;
+  }
+
+  private requiredCursorText(cursor: Record<string, unknown>, key: string) {
+    const text = this.optionalText(cursor[key]);
+    if (!text) {
+      throw new ApiError(400, 'admin_invalid_cursor', 'Cursor is invalid');
+    }
+    return text;
+  }
+
+  private optionalText(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const text = value.trim();
+    return text === '' ? null : text;
   }
 
   private optionalInt(value: unknown) {

@@ -136,7 +136,7 @@ Drops:
 - Meeting rewards are evaluated after `POST /host/events/:eventId/live/finish`. Host reward requires a finished meetup created at least 6 hours before start, at least 3 guest participants and at least 2 checked-in guests. Visit rewards require checked-in non-host participants who joined before start.
 - Frendly+ token subscription, event promotion and admin user verification call Drops rewards as best-effort side effects. Drops reward failures must not fail the core subscription, boost or verification flow.
 - Draws use `DropsDrawService`: activation creates a secret seed and public seed hash, draw snapshots active tickets, sorts tickets by deterministic hash and reveals the seed after finish.
-- Admin Drops endpoints live under `/admin/drops`: create, update before start, activate, cancel, draw, list tickets, list participants, list user tickets, list reward events, manual grant, cancel ticket, freeze user, winner status actions and reserve winner promotion.
+- Admin Drops endpoints live under `/admin/drops`: list with `status`, `type`, `q`, `limit`, `cursor`, detail by `GET /admin/drops/:dropId`, create, update before start, activate, cancel, draw, list tickets, list participants, list user tickets, list reward events, manual grant, cancel ticket, freeze user, winner status actions and reserve winner promotion. Admin detail/list never expose `secretSeed` until the Drop is `finished`.
 
 Evening:
 

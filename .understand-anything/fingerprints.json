@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "b46d25c95eca0c4db39e5f61ea3a6c9395e5da82",
-  "generatedAt": "2026-05-20T06:03:49.282Z",
+  "gitCommitHash": "bc1aca0e878d1d13c10d85753ebea22acbf863a9",
+  "generatedAt": "2026-05-20T06:58:17.603Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -205,7 +205,7 @@
     },
     "admin/src/admin/components/Sidebar.tsx": {
       "filePath": "admin/src/admin/components/Sidebar.tsx",
-      "contentHash": "b8df26c8065c4c8537e757dde02ecc4c5c1848ed2a1e591debd8e7f796dcc154",
+      "contentHash": "b3ef063453d3f3abaecdafeae1b5715645f77d33ef14720630126bda07421045",
       "functions": [
         {
           "name": "AdminSidebar",
@@ -244,7 +244,8 @@
             "Handshake",
             "MapPinned",
             "ClipboardCheck",
-            "RouteIcon"
+            "RouteIcon",
+            "Ticket"
           ]
         },
         {
@@ -265,7 +266,7 @@
       "exports": [
         "AdminSidebar"
       ],
-      "totalLines": 107,
+      "totalLines": 109,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/components/StatCard.tsx": {
@@ -305,7 +306,7 @@
     },
     "admin/src/admin/components/StatusBadge.tsx": {
       "filePath": "admin/src/admin/components/StatusBadge.tsx",
-      "contentHash": "8456bc276a6e2b52a5cc361ce36b87b0c1a0f8e7b841678678009bc99e1a4050",
+      "contentHash": "b02e3bd012654d9917f91717e0f269d9da727fc440435034e80eff24a0240164",
       "functions": [
         {
           "name": "StatusBadge",
@@ -328,7 +329,7 @@
       "exports": [
         "StatusBadge"
       ],
-      "totalLines": 147,
+      "totalLines": 179,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/components/Topbar.tsx": {
@@ -413,6 +414,231 @@
         "featuredItems"
       ],
       "totalLines": 315,
+      "hasStructuralAnalysis": true
+    },
+    "admin/src/admin/drops/api.ts": {
+      "filePath": "admin/src/admin/drops/api.ts",
+      "contentHash": "d9ffa30d7f1c18acbf961ec1e01fcfce01168c1bcc18d7dd80eeadd51a392470",
+      "functions": [
+        {
+          "name": "listAdminDrops",
+          "params": [
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "getAdminDrop",
+          "params": [
+            "dropId"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "createAdminDrop",
+          "params": [
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "updateAdminDrop",
+          "params": [
+            "dropId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "activateAdminDrop",
+          "params": [
+            "dropId"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "cancelAdminDrop",
+          "params": [
+            "dropId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "runAdminDropDraw",
+          "params": [
+            "dropId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "listDropParticipants",
+          "params": [
+            "dropId",
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "listDropTickets",
+          "params": [
+            "dropId",
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "listDropRewardEvents",
+          "params": [
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "listUserDropTickets",
+          "params": [
+            "userId"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "manualGrantDropTickets",
+          "params": [
+            "userId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "cancelDropTicket",
+          "params": [
+            "ticketId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "freezeDropUser",
+          "params": [
+            "userId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "unfreezeDropUser",
+          "params": [
+            "userId"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "updateDropWinnerStatus",
+          "params": [
+            "winnerId",
+            "action",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "chooseReserveDropWinner",
+          "params": [
+            "winnerId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "withDropQuery",
+          "params": [
+            "path",
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "json",
+          "params": [
+            "method",
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../api/client",
+          "specifiers": [
+            "adminApiRequest"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "AdminDropDto",
+            "AdminDropInput",
+            "AdminDropParticipantDto",
+            "AdminDropRewardEventDto",
+            "AdminDropTicketDto",
+            "AdminDropWinnerDto",
+            "CursorPageDto",
+            "DropsQueryParams"
+          ]
+        }
+      ],
+      "exports": [
+        "listAdminDrops",
+        "getAdminDrop",
+        "createAdminDrop",
+        "updateAdminDrop",
+        "activateAdminDrop",
+        "cancelAdminDrop",
+        "runAdminDropDraw",
+        "listDropParticipants",
+        "listDropTickets",
+        "listDropRewardEvents",
+        "listUserDropTickets",
+        "manualGrantDropTickets",
+        "cancelDropTicket",
+        "freezeDropUser",
+        "unfreezeDropUser",
+        "updateDropWinnerStatus",
+        "chooseReserveDropWinner",
+        "withDropQuery"
+      ],
+      "totalLines": 141,
+      "hasStructuralAnalysis": true
+    },
+    "admin/src/admin/drops/types.ts": {
+      "filePath": "admin/src/admin/drops/types.ts",
+      "contentHash": "e6960852878ae2686f2cdc06f3d104301079254d98248f51a726874ff8d2ca97",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 166,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/evening/api.ts": {
@@ -2925,6 +3151,448 @@
         "AdminDashboard"
       ],
       "totalLines": 138,
+      "hasStructuralAnalysis": true
+    },
+    "admin/src/admin/pages/DropDetail.tsx": {
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "contentHash": "847b2448d53bede60b5b1266f7a3400fca2df513ea21dd78ceccf39986d9b345",
+      "functions": [
+        {
+          "name": "AdminDropDetail",
+          "params": [],
+          "exported": true,
+          "lineCount": 194
+        },
+        {
+          "name": "Overview",
+          "params": [
+            "{ drop }"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "WinnersTable",
+          "params": [
+            "{\n  winners,\n  readonly,\n  onAction,\n  onReserve,\n}"
+          ],
+          "exported": false,
+          "lineCount": 61
+        },
+        {
+          "name": "ParticipantsTable",
+          "params": [
+            "{\n  query,\n  onFreeze,\n  onUnfreeze,\n}"
+          ],
+          "exported": false,
+          "lineCount": 56
+        },
+        {
+          "name": "TicketsTable",
+          "params": [
+            "{\n  query,\n  filter,\n  onFilterChange,\n  onCancel,\n}"
+          ],
+          "exported": false,
+          "lineCount": 58
+        },
+        {
+          "name": "RewardsTable",
+          "params": [
+            "{ query }"
+          ],
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "Metric",
+          "params": [
+            "{ label, value }"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "Info",
+          "params": [
+            "{ label, value }"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "TablePanel",
+          "params": [
+            "{ children }"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "StateRow",
+          "params": [
+            "{ text, colSpan }"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "PanelText",
+          "params": [
+            "{ text }"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "tabLabel",
+          "params": [
+            "tab"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "numberFromPrompt",
+          "params": [
+            "message",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useMutation",
+            "useQuery",
+            "useQueryClient"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Ban",
+            "CheckCircle2",
+            "Gift",
+            "Play",
+            "XCircle"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "ReactNode"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useParams"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/table",
+          "specifiers": [
+            "Table",
+            "TableBody",
+            "TableCell",
+            "TableHead",
+            "TableHeader",
+            "TableRow"
+          ]
+        },
+        {
+          "source": "../components/StatusBadge",
+          "specifiers": [
+            "StatusBadge"
+          ]
+        },
+        {
+          "source": "../components/Topbar",
+          "specifiers": [
+            "AdminTopbar"
+          ]
+        },
+        {
+          "source": "../management/format",
+          "specifiers": [
+            "adminPageText",
+            "formatDateTime",
+            "valueOrDash"
+          ]
+        },
+        {
+          "source": "../drops/api",
+          "specifiers": [
+            "cancelDropTicket",
+            "chooseReserveDropWinner",
+            "freezeDropUser",
+            "getAdminDrop",
+            "listDropParticipants",
+            "listDropRewardEvents",
+            "listDropTickets",
+            "manualGrantDropTickets",
+            "runAdminDropDraw",
+            "unfreezeDropUser",
+            "updateDropWinnerStatus",
+            "WinnerAction"
+          ]
+        },
+        {
+          "source": "../drops/types",
+          "specifiers": [
+            "AdminDropParticipantDto",
+            "AdminDropRewardEventDto",
+            "AdminDropTicketDto",
+            "AdminDropWinnerDto"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminDropDetail"
+      ],
+      "totalLines": 525,
+      "hasStructuralAnalysis": true
+    },
+    "admin/src/admin/pages/Drops.tsx": {
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "contentHash": "6047958724aad29083a556fa50001a4f789a4105289772e50a351c69dac2f74a",
+      "functions": [
+        {
+          "name": "AdminDrops",
+          "params": [],
+          "exported": true,
+          "lineCount": 173
+        },
+        {
+          "name": "DropFormModal",
+          "params": [
+            "{\n  title,\n  submitLabel,\n  drop,\n  onClose,\n  onSubmit,\n}"
+          ],
+          "exported": false,
+          "lineCount": 127
+        },
+        {
+          "name": "FilterSelect",
+          "params": [
+            "{ label, value, onChange, options }"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "StateRow",
+          "params": [
+            "{ text }"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "statusStats",
+          "params": [
+            "drops"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "canEdit",
+          "params": [
+            "status"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "canActivate",
+          "params": [
+            "status"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "canCancel",
+          "params": [
+            "status"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "toDateTimeInput",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "prizesToText",
+          "params": [
+            "prizes"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "parsePrizes",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "numberOrNull",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useMutation",
+            "useQuery",
+            "useQueryClient"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Eye",
+            "Pencil",
+            "Play",
+            "Plus",
+            "XCircle"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "@/components/ui/table",
+          "specifiers": [
+            "Table",
+            "TableBody",
+            "TableCell",
+            "TableHead",
+            "TableHeader",
+            "TableRow"
+          ]
+        },
+        {
+          "source": "../components/DataToolbar",
+          "specifiers": [
+            "DataToolbar"
+          ]
+        },
+        {
+          "source": "../components/StatCard",
+          "specifiers": [
+            "StatCard"
+          ]
+        },
+        {
+          "source": "../components/StatusBadge",
+          "specifiers": [
+            "StatusBadge"
+          ]
+        },
+        {
+          "source": "../components/Topbar",
+          "specifiers": [
+            "AdminTopbar"
+          ]
+        },
+        {
+          "source": "../management/format",
+          "specifiers": [
+            "adminPageText",
+            "formatDateTime"
+          ]
+        },
+        {
+          "source": "../drops/api",
+          "specifiers": [
+            "activateAdminDrop",
+            "cancelAdminDrop",
+            "createAdminDrop",
+            "listAdminDrops",
+            "updateAdminDrop"
+          ]
+        },
+        {
+          "source": "../drops/types",
+          "specifiers": [
+            "AdminDropDto",
+            "AdminDropInput",
+            "DropStatus",
+            "DropType"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminDrops"
+      ],
+      "totalLines": 414,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/EveningRouteDetail.tsx": {
@@ -5873,7 +6541,7 @@
     },
     "admin/src/admin/portal.ts": {
       "filePath": "admin/src/admin/portal.ts",
-      "contentHash": "f3f2ff6bc0d55a4487cc46d5655f334c5f61addeb3dee6ac233c0c4337763551",
+      "contentHash": "6c9a3a58188e2d2f741800bb9b6c974d5daa6045115331f5063f3a0d614f14be",
       "functions": [
         {
           "name": "resolveAdminPortal",
@@ -5920,12 +6588,12 @@
         "isAdminRouteEnabled",
         "getPortalChrome"
       ],
-      "totalLines": 116,
+      "totalLines": 120,
       "hasStructuralAnalysis": true
     },
     "admin/src/App.tsx": {
       "filePath": "admin/src/App.tsx",
-      "contentHash": "a8c3a8df8618206222d10721f8ca3c52eb5f5e16869888f5d75d2d2ad1e3f875",
+      "contentHash": "5a1e3d54aaa5cf69ada1ebb568394e62e3b60405a0f8f8c2a9e4ea91c6904b0f",
       "functions": [
         {
           "name": "App",
@@ -6004,6 +6672,18 @@
           "source": "./admin/pages/Dashboard",
           "specifiers": [
             "AdminDashboard"
+          ]
+        },
+        {
+          "source": "./admin/pages/DropDetail",
+          "specifiers": [
+            "AdminDropDetail"
+          ]
+        },
+        {
+          "source": "./admin/pages/Drops",
+          "specifiers": [
+            "AdminDrops"
           ]
         },
         {
@@ -6172,7 +6852,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 116,
+      "totalLines": 120,
       "hasStructuralAnalysis": true
     },
     "admin/src/components/ui/accordion.tsx": {
@@ -10529,7 +11209,7 @@
     },
     "backend/apps/api/src/controllers/admin-drops.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
-      "contentHash": "231d867264de964999d02833b82f7809177a5df74a30d5706e8e2a26b1ed1475",
+      "contentHash": "947721726f29d104cd103585bb63b1e4bc65019f184526d694f54449671d5763",
       "functions": [],
       "classes": [
         {
@@ -10537,6 +11217,7 @@
           "methods": [
             "constructor",
             "listDrops",
+            "getDrop",
             "createDrop",
             "updateDrop",
             "activateDrop",
@@ -10555,7 +11236,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 111
+          "lineCount": 122
         }
       ],
       "imports": [
@@ -10587,7 +11268,7 @@
       "exports": [
         "AdminDropsController"
       ],
-      "totalLines": 118,
+      "totalLines": 129,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-evening.controller.ts": {
@@ -14749,7 +15430,7 @@
     },
     "backend/apps/api/src/services/drops.service.ts": {
       "filePath": "backend/apps/api/src/services/drops.service.ts",
-      "contentHash": "6b7038ea6ef10c02fba4284c0d8be659ed4464187ff646082255bbeb10570c19",
+      "contentHash": "f4bd99e248dea14ca373f469d16f93e046275b75f51b7ae68f9f2aef2351a43f",
       "functions": [],
       "classes": [
         {
@@ -14767,6 +15448,7 @@
             "createReferralLink",
             "bindReferralCode",
             "listAdminDrops",
+            "getAdminDrop",
             "createDrop",
             "updateDrop",
             "activateDrop",
@@ -14782,6 +15464,12 @@
             "unfreezeUser",
             "updateWinner",
             "chooseReserveWinner",
+            "getAdminDropStats",
+            "listAdminDropWinners",
+            "buildAdminDropWhere",
+            "buildDropTicketWhere",
+            "buildRewardEventWhere",
+            "participantSearchWhere",
             "mapDropForUser",
             "listDropWinners",
             "listPastWinners",
@@ -14798,9 +15486,18 @@
             "taskCta",
             "isDropType",
             "isDropStatus",
+            "isTicketStatus",
+            "isRewardStatus",
+            "isRewardSource",
             "winnerStatusForAction",
             "normalizeTicketCount",
             "normalizeLimit",
+            "parseAdminLimit",
+            "parseAdminCursor",
+            "encodeAdminCursor",
+            "requiredCursorDate",
+            "requiredCursorText",
+            "optionalText",
             "optionalInt",
             "getRewardService",
             "getDrawService",
@@ -14809,7 +15506,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1256
+          "lineCount": 1743
         }
       ],
       "imports": [
@@ -14863,7 +15560,7 @@
       "exports": [
         "DropsService"
       ],
-      "totalLines": 1348,
+      "totalLines": 1843,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {

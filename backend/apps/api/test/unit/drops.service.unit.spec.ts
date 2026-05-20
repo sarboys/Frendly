@@ -12,6 +12,7 @@ describe('DropsService unit', () => {
       dropTicket: {
         count: jest.fn(),
         findMany: jest.fn(),
+        groupBy: jest.fn().mockResolvedValue([]),
         updateMany: jest.fn(),
         update: jest.fn(),
       },
@@ -30,6 +31,7 @@ describe('DropsService unit', () => {
       dropWinner: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        groupBy: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
         aggregate: jest.fn(),
       },
@@ -250,6 +252,8 @@ describe('DropsService unit', () => {
           city: 'Москва',
           verified: true,
           userStatus: 'active',
+          frozen: false,
+          freezeReason: null,
           ticketCount: 2,
           winnerTicketCount: 1,
         },
@@ -259,10 +263,13 @@ describe('DropsService unit', () => {
           city: null,
           verified: false,
           userStatus: 'active',
+          frozen: false,
+          freezeReason: null,
           ticketCount: 1,
           winnerTicketCount: 0,
         },
       ],
+      nextCursor: null,
     });
   });
 
@@ -413,6 +420,149 @@ describe('DropsService unit', () => {
         dropId: null,
         assignedAt: null,
       },
+    });
+  });
+
+  it('filters admin drops and returns table counts without leaking secret seed before finish', async () => {
+    const { service, prismaClient } = makeService();
+    prismaClient.drop.findMany.mockResolvedValue([
+      {
+        id: 'drop-1',
+        title: 'Free Drop',
+        description: 'Описание',
+        type: 'free',
+        status: 'active',
+        prizes: [{ title: 'Prize' }],
+        startsAt: new Date('2026-06-01T00:00:00.000Z'),
+        endsAt: new Date('2026-06-30T20:00:00.000Z'),
+        drawAt: new Date('2026-06-30T21:00:00.000Z'),
+        conditions: {},
+        maxTicketsPerUser: 10,
+        requiresVerified: true,
+        requiresFrendlyPlus: false,
+        minAge: null,
+        region: null,
+        seedHash: 'seed-hash',
+        secretSeed: 'secret-seed',
+        seedRevealedAt: null,
+        cancelReason: null,
+      },
+    ]);
+    prismaClient.dropTicket.groupBy.mockResolvedValue([
+      { dropId: 'drop-1', _count: { _all: 3 } },
+    ]);
+    prismaClient.dropTicket.findMany.mockResolvedValue([
+      { dropId: 'drop-1', userId: 'user-1' },
+      { dropId: 'drop-1', userId: 'user-2' },
+    ]);
+    prismaClient.dropWinner.groupBy.mockResolvedValue([
+      { dropId: 'drop-1', _count: { _all: 1 } },
+    ]);
+
+    await expect(
+      service.listAdminDrops({
+        status: 'active',
+        type: 'free',
+        q: 'Drop',
+        limit: '10',
+      }),
+    ).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          id: 'drop-1',
+          ticketCount: 3,
+          participantCount: 2,
+          winnerCount: 1,
+          secretSeed: null,
+        }),
+      ],
+      nextCursor: null,
+    });
+
+    expect(prismaClient.drop.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            { status: 'active' },
+            { type: 'free' },
+            {
+              OR: [
+                { title: { contains: 'Drop', mode: 'insensitive' } },
+                { description: { contains: 'Drop', mode: 'insensitive' } },
+              ],
+            },
+          ],
+        },
+        take: 11,
+      }),
+    );
+  });
+
+  it('returns admin drop detail with winners and hides secret seed before finish', async () => {
+    const { service, prismaClient } = makeService();
+    prismaClient.drop.findUnique.mockResolvedValue({
+      id: 'drop-1',
+      title: 'Active Drop',
+      description: 'Описание',
+      type: 'free',
+      status: 'active',
+      prizes: [{ title: 'Prize' }],
+      startsAt: new Date('2026-06-01T00:00:00.000Z'),
+      endsAt: new Date('2026-06-30T20:00:00.000Z'),
+      drawAt: new Date('2026-06-30T21:00:00.000Z'),
+      conditions: {},
+      maxTicketsPerUser: 10,
+      requiresVerified: true,
+      requiresFrendlyPlus: false,
+      minAge: null,
+      region: null,
+      seedHash: 'seed-hash',
+      secretSeed: 'secret-seed',
+      seedRevealedAt: null,
+      cancelReason: null,
+    });
+    prismaClient.dropTicket.groupBy.mockResolvedValue([
+      { dropId: 'drop-1', _count: { _all: 2 } },
+    ]);
+    prismaClient.dropTicket.findMany.mockResolvedValue([
+      { dropId: 'drop-1', userId: 'user-1' },
+    ]);
+    prismaClient.dropWinner.groupBy.mockResolvedValue([]);
+    prismaClient.dropWinner.findMany.mockResolvedValue([
+      {
+        id: 'winner-1',
+        status: 'pending_verification',
+        position: 1,
+        reserve: false,
+        prize: { title: 'Prize' },
+        rejectedReason: null,
+        createdAt: new Date('2026-06-30T21:01:00.000Z'),
+        updatedAt: new Date('2026-06-30T21:01:00.000Z'),
+        ticket: { id: 'ticket-1', code: 'ABC123' },
+        user: {
+          id: 'user-1',
+          displayName: 'Анна',
+          profile: { city: 'Москва' },
+        },
+      },
+    ]);
+
+    await expect(service.getAdminDrop('drop-1')).resolves.toMatchObject({
+      id: 'drop-1',
+      ticketCount: 2,
+      participantCount: 1,
+      secretSeed: null,
+      winners: [
+        {
+          id: 'winner-1',
+          status: 'pending_verification',
+          reserve: false,
+          userId: 'user-1',
+          ticketId: 'ticket-1',
+          ticket: 'ABC123',
+          rejectedReason: null,
+        },
+      ],
     });
   });
 });

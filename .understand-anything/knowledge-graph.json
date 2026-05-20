@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T06:03:49.026Z",
-    "gitCommitHash": "b46d25c95eca0c4db39e5f61ea3a6c9395e5da82"
+    "analyzedAt": "2026-05-20T06:58:16.784Z",
+    "gitCommitHash": "bc1aca0e878d1d13c10d85753ebea22acbf863a9"
   },
   "nodes": [
     {
@@ -591,8 +591,8 @@
       "name": "AdminSidebar",
       "filePath": "admin/src/admin/components/Sidebar.tsx",
       "lineRange": [
-        55,
-        106
+        57,
+        108
       ],
       "summary": "AdminSidebar in Sidebar.tsx.",
       "tags": [
@@ -651,8 +651,8 @@
       "name": "StatusBadge",
       "filePath": "admin/src/admin/components/StatusBadge.tsx",
       "lineRange": [
-        137,
-        146
+        169,
+        178
       ],
       "summary": "StatusBadge in StatusBadge.tsx.",
       "tags": [
@@ -698,6 +698,355 @@
       "name": "data.ts",
       "filePath": "admin/src/admin/data.ts",
       "summary": "data.ts is a code file for admin.",
+      "tags": [
+        "admin",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:admin/src/admin/drops/api.ts",
+      "type": "file",
+      "name": "api.ts",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "summary": "api.ts contains 19 functions.",
+      "tags": [
+        "admin",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:listAdminDrops",
+      "type": "function",
+      "name": "listAdminDrops",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        13,
+        17
+      ],
+      "summary": "listAdminDrops in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:getAdminDrop",
+      "type": "function",
+      "name": "getAdminDrop",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        19,
+        21
+      ],
+      "summary": "getAdminDrop in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:createAdminDrop",
+      "type": "function",
+      "name": "createAdminDrop",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        23,
+        25
+      ],
+      "summary": "createAdminDrop in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:updateAdminDrop",
+      "type": "function",
+      "name": "updateAdminDrop",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        27,
+        29
+      ],
+      "summary": "updateAdminDrop in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:activateAdminDrop",
+      "type": "function",
+      "name": "activateAdminDrop",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        31,
+        33
+      ],
+      "summary": "activateAdminDrop in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:cancelAdminDrop",
+      "type": "function",
+      "name": "cancelAdminDrop",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        35,
+        37
+      ],
+      "summary": "cancelAdminDrop in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:runAdminDropDraw",
+      "type": "function",
+      "name": "runAdminDropDraw",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        39,
+        44
+      ],
+      "summary": "runAdminDropDraw in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:listDropParticipants",
+      "type": "function",
+      "name": "listDropParticipants",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        46,
+        50
+      ],
+      "summary": "listDropParticipants in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:listDropTickets",
+      "type": "function",
+      "name": "listDropTickets",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        52,
+        56
+      ],
+      "summary": "listDropTickets in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:listDropRewardEvents",
+      "type": "function",
+      "name": "listDropRewardEvents",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        58,
+        62
+      ],
+      "summary": "listDropRewardEvents in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:listUserDropTickets",
+      "type": "function",
+      "name": "listUserDropTickets",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        64,
+        68
+      ],
+      "summary": "listUserDropTickets in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:manualGrantDropTickets",
+      "type": "function",
+      "name": "manualGrantDropTickets",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        70,
+        78
+      ],
+      "summary": "manualGrantDropTickets in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:cancelDropTicket",
+      "type": "function",
+      "name": "cancelDropTicket",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        80,
+        85
+      ],
+      "summary": "cancelDropTicket in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:freezeDropUser",
+      "type": "function",
+      "name": "freezeDropUser",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        87,
+        92
+      ],
+      "summary": "freezeDropUser in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:unfreezeDropUser",
+      "type": "function",
+      "name": "unfreezeDropUser",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        94,
+        99
+      ],
+      "summary": "unfreezeDropUser in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:updateDropWinnerStatus",
+      "type": "function",
+      "name": "updateDropWinnerStatus",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        103,
+        112
+      ],
+      "summary": "updateDropWinnerStatus in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:chooseReserveDropWinner",
+      "type": "function",
+      "name": "chooseReserveDropWinner",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        114,
+        122
+      ],
+      "summary": "chooseReserveDropWinner in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:withDropQuery",
+      "type": "function",
+      "name": "withDropQuery",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        124,
+        133
+      ],
+      "summary": "withDropQuery in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:json",
+      "type": "function",
+      "name": "json",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        135,
+        140
+      ],
+      "summary": "json in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:admin/src/admin/drops/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "admin/src/admin/drops/types.ts",
+      "summary": "types.ts is a code file for admin.",
       "tags": [
         "admin",
         "code",
@@ -3450,6 +3799,457 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:admin/src/admin/pages/DropDetail.tsx",
+      "type": "file",
+      "name": "DropDetail.tsx",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "summary": "DropDetail.tsx contains 13 functions.",
+      "tags": [
+        "admin",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:AdminDropDetail",
+      "type": "function",
+      "name": "AdminDropDetail",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        35,
+        228
+      ],
+      "summary": "AdminDropDetail in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:Overview",
+      "type": "function",
+      "name": "Overview",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        230,
+        253
+      ],
+      "summary": "Overview in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:WinnersTable",
+      "type": "function",
+      "name": "WinnersTable",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        255,
+        315
+      ],
+      "summary": "WinnersTable in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:ParticipantsTable",
+      "type": "function",
+      "name": "ParticipantsTable",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        317,
+        372
+      ],
+      "summary": "ParticipantsTable in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:TicketsTable",
+      "type": "function",
+      "name": "TicketsTable",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        374,
+        431
+      ],
+      "summary": "TicketsTable in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:RewardsTable",
+      "type": "function",
+      "name": "RewardsTable",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        433,
+        472
+      ],
+      "summary": "RewardsTable in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:Metric",
+      "type": "function",
+      "name": "Metric",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        474,
+        481
+      ],
+      "summary": "Metric in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:Info",
+      "type": "function",
+      "name": "Info",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        483,
+        490
+      ],
+      "summary": "Info in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:TablePanel",
+      "type": "function",
+      "name": "TablePanel",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        492,
+        494
+      ],
+      "summary": "TablePanel in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:StateRow",
+      "type": "function",
+      "name": "StateRow",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        496,
+        504
+      ],
+      "summary": "StateRow in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:PanelText",
+      "type": "function",
+      "name": "PanelText",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        506,
+        508
+      ],
+      "summary": "PanelText in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:tabLabel",
+      "type": "function",
+      "name": "tabLabel",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        510,
+        516
+      ],
+      "summary": "tabLabel in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/DropDetail.tsx:numberFromPrompt",
+      "type": "function",
+      "name": "numberFromPrompt",
+      "filePath": "admin/src/admin/pages/DropDetail.tsx",
+      "lineRange": [
+        518,
+        524
+      ],
+      "summary": "numberFromPrompt in DropDetail.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:admin/src/admin/pages/Drops.tsx",
+      "type": "file",
+      "name": "Drops.tsx",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "summary": "Drops.tsx contains 12 functions.",
+      "tags": [
+        "admin",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:AdminDrops",
+      "type": "function",
+      "name": "AdminDrops",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        34,
+        206
+      ],
+      "summary": "AdminDrops in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:DropFormModal",
+      "type": "function",
+      "name": "DropFormModal",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        208,
+        334
+      ],
+      "summary": "DropFormModal in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:FilterSelect",
+      "type": "function",
+      "name": "FilterSelect",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        336,
+        348
+      ],
+      "summary": "FilterSelect in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:StateRow",
+      "type": "function",
+      "name": "StateRow",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        350,
+        358
+      ],
+      "summary": "StateRow in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:statusStats",
+      "type": "function",
+      "name": "statusStats",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        360,
+        368
+      ],
+      "summary": "statusStats in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:canEdit",
+      "type": "function",
+      "name": "canEdit",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        370,
+        372
+      ],
+      "summary": "canEdit in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:canActivate",
+      "type": "function",
+      "name": "canActivate",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        374,
+        376
+      ],
+      "summary": "canActivate in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:canCancel",
+      "type": "function",
+      "name": "canCancel",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        378,
+        380
+      ],
+      "summary": "canCancel in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:toDateTimeInput",
+      "type": "function",
+      "name": "toDateTimeInput",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        382,
+        387
+      ],
+      "summary": "toDateTimeInput in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:prizesToText",
+      "type": "function",
+      "name": "prizesToText",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        389,
+        397
+      ],
+      "summary": "prizesToText in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:parsePrizes",
+      "type": "function",
+      "name": "parsePrizes",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        399,
+        407
+      ],
+      "summary": "parsePrizes in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:numberOrNull",
+      "type": "function",
+      "name": "numberOrNull",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        409,
+        413
+      ],
+      "summary": "numberOrNull in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "file:admin/src/admin/pages/EveningRouteDetail.tsx",
       "type": "file",
       "name": "EveningRouteDetail.tsx",
@@ -5664,8 +6464,8 @@
       "name": "resolveAdminPortal",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        92,
-        101
+        96,
+        105
       ],
       "summary": "resolveAdminPortal in portal.ts.",
       "tags": [
@@ -5681,8 +6481,8 @@
       "name": "getEnabledAdminRouteIds",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        105,
-        107
+        109,
+        111
       ],
       "summary": "getEnabledAdminRouteIds in portal.ts.",
       "tags": [
@@ -5698,8 +6498,8 @@
       "name": "isAdminRouteEnabled",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        109,
-        111
+        113,
+        115
       ],
       "summary": "isAdminRouteEnabled in portal.ts.",
       "tags": [
@@ -5715,8 +6515,8 @@
       "name": "getPortalChrome",
       "filePath": "admin/src/admin/portal.ts",
       "lineRange": [
-        113,
-        115
+        117,
+        119
       ],
       "summary": "getPortalChrome in portal.ts.",
       "tags": [
@@ -5745,8 +6545,8 @@
       "name": "App",
       "filePath": "admin/src/App.tsx",
       "lineRange": [
-        83,
-        113
+        87,
+        117
       ],
       "summary": "App in App.tsx.",
       "tags": [
@@ -8521,7 +9321,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "class:backend/apps/api/src/controllers/admin-drops.controller.ts:AdminDropsController",
@@ -8530,7 +9330,7 @@
       "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
       "lineRange": [
         7,
-        117
+        128
       ],
       "summary": "AdminDropsController in admin-drops.controller.ts.",
       "tags": [
@@ -8538,7 +9338,7 @@
         "class",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:backend/apps/api/src/controllers/admin-evening.controller.ts",
@@ -10749,8 +11549,8 @@
       "name": "DropsService",
       "filePath": "backend/apps/api/src/services/drops.service.ts",
       "lineRange": [
-        92,
-        1347
+        100,
+        1842
       ],
       "summary": "DropsService in drops.service.ts.",
       "tags": [
@@ -35227,6 +36027,139 @@
       "weight": 1
     },
     {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:listAdminDrops",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:getAdminDrop",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:createAdminDrop",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:updateAdminDrop",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:activateAdminDrop",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:cancelAdminDrop",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:runAdminDropDraw",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:listDropParticipants",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:listDropTickets",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:listDropRewardEvents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:listUserDropTickets",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:manualGrantDropTickets",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:cancelDropTicket",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:freezeDropUser",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:unfreezeDropUser",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:updateDropWinnerStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:chooseReserveDropWinner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:withDropQuery",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:admin/src/admin/evening/api.ts",
       "target": "function:admin/src/admin/evening/api.ts:listPartners",
       "type": "contains",
@@ -36202,6 +37135,181 @@
     {
       "source": "file:admin/src/admin/pages/Dashboard.tsx",
       "target": "function:admin/src/admin/pages/Dashboard.tsx:AdminDashboard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:AdminDropDetail",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:Overview",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:WinnersTable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:ParticipantsTable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:TicketsTable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:RewardsTable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:Metric",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:Info",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:TablePanel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:StateRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:PanelText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:tabLabel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "function:admin/src/admin/pages/DropDetail.tsx:numberFromPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:AdminDrops",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:DropFormModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:FilterSelect",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:StateRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:statusStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:canEdit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:canActivate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:canCancel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:toDateTimeInput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:prizesToText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:parsePrizes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:numberOrNull",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -45293,6 +46401,20 @@
       "weight": 0.7
     },
     {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "file:admin/src/admin/api/client.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "file:admin/src/admin/drops/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:admin/src/admin/evening/api.ts",
       "target": "file:admin/src/admin/api/client.ts",
       "type": "imports",
@@ -45708,6 +46830,90 @@
     {
       "source": "file:admin/src/admin/pages/Dashboard.tsx",
       "target": "file:admin/src/admin/components/StatusBadge.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "file:admin/src/admin/components/StatusBadge.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "file:admin/src/admin/components/Topbar.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "file:admin/src/admin/management/format.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "file:admin/src/admin/drops/api.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/DropDetail.tsx",
+      "target": "file:admin/src/admin/drops/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "file:admin/src/admin/components/DataToolbar.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "file:admin/src/admin/components/StatCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "file:admin/src/admin/components/StatusBadge.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "file:admin/src/admin/components/Topbar.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "file:admin/src/admin/management/format.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "file:admin/src/admin/drops/api.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "file:admin/src/admin/drops/types.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -46576,6 +47782,20 @@
     {
       "source": "file:admin/src/App.tsx",
       "target": "file:admin/src/admin/pages/Dashboard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/App.tsx",
+      "target": "file:admin/src/admin/pages/DropDetail.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/App.tsx",
+      "target": "file:admin/src/admin/pages/Drops.tsx",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -50747,6 +51967,8 @@
         "file:admin/src/admin/components/StatusBadge.tsx",
         "file:admin/src/admin/components/Topbar.tsx",
         "file:admin/src/admin/data.ts",
+        "file:admin/src/admin/drops/api.ts",
+        "file:admin/src/admin/drops/types.ts",
         "file:admin/src/admin/evening/api.ts",
         "file:admin/src/admin/evening/cities.ts",
         "file:admin/src/admin/evening/components/AiBriefForm.tsx",
@@ -50775,6 +51997,8 @@
         "file:admin/src/admin/pages/CommunityDetail.tsx",
         "file:admin/src/admin/pages/Content.tsx",
         "file:admin/src/admin/pages/Dashboard.tsx",
+        "file:admin/src/admin/pages/DropDetail.tsx",
+        "file:admin/src/admin/pages/Drops.tsx",
         "file:admin/src/admin/pages/EveningRouteDetail.tsx",
         "file:admin/src/admin/pages/EveningRoutes.tsx",
         "file:admin/src/admin/pages/Featured.tsx",

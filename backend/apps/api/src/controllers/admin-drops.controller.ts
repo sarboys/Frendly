@@ -8,8 +8,13 @@ export class AdminDropsController {
   constructor(private readonly dropsService: DropsService) {}
 
   @Get()
-  listDrops() {
-    return this.dropsService.listAdminDrops();
+  listDrops(@Query() query: Record<string, unknown>) {
+    return this.dropsService.listAdminDrops(query);
+  }
+
+  @Get(':dropId')
+  getDrop(@Param('dropId') dropId: string) {
+    return this.dropsService.getAdminDrop(dropId);
   }
 
   @Post()
@@ -50,8 +55,8 @@ export class AdminDropsController {
   }
 
   @Get('reward-events/list')
-  listRewards(@Query('userId') userId?: string) {
-    return this.dropsService.listRewardEvents(userId);
+  listRewards(@Query() query: Record<string, unknown>) {
+    return this.dropsService.listRewardEvents(query);
   }
 
   @Get('users/:userId/tickets')
@@ -60,13 +65,19 @@ export class AdminDropsController {
   }
 
   @Get(':dropId/participants')
-  listParticipants(@Param('dropId') dropId: string) {
-    return this.dropsService.listDropParticipants(dropId);
+  listParticipants(
+    @Param('dropId') dropId: string,
+    @Query() query: Record<string, unknown>,
+  ) {
+    return this.dropsService.listDropParticipants(dropId, query);
   }
 
   @Get(':dropId/tickets')
-  listTickets(@Param('dropId') dropId: string) {
-    return this.dropsService.listDropTickets(dropId);
+  listTickets(
+    @Param('dropId') dropId: string,
+    @Query() query: Record<string, unknown>,
+  ) {
+    return this.dropsService.listDropTickets(dropId, query);
   }
 
   @Post('users/:userId/manual-grant')

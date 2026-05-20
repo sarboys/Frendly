@@ -212,6 +212,7 @@ Landing routes:
 - `admin/src/admin/AdminLayout.tsx`
 - `admin/src/admin/pages/`
 - `admin/src/admin/api/client.ts`
+- Drops admin UI: `admin/src/admin/pages/Drops.tsx`, `admin/src/admin/pages/DropDetail.tsx`, `admin/src/admin/drops/api.ts`.
 
 ## Deploy starts
 
