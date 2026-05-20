@@ -806,6 +806,32 @@ describe('auth flows', () => {
     expect(user?.email).toBe(savedResponse.body.email);
   });
 
+  it('returns persisted onboarding completion from me after reinstall', async () => {
+    const session = await loginWithPhone();
+
+    await request(app.getHttpServer())
+      .put('/onboarding/me')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .send({
+        intent: 'both',
+        gender: 'male',
+        birthDate: '2000-04-24',
+        city: 'Москва',
+        area: 'Покровка',
+        interests: ['Кофе', 'Кино'],
+        vibe: 'calm',
+        email: `reinstall-${randomUUID()}@example.com`,
+      })
+      .expect(200);
+
+    const meResponse = await request(app.getHttpServer())
+      .get('/me')
+      .set('authorization', `Bearer ${session.accessToken}`)
+      .expect(200);
+
+    expect(meResponse.body.onboardingComplete).toBe(true);
+  });
+
   it('checks duplicate onboarding email before profile onboarding is saved', async () => {
     const usedEmail = `used-${randomUUID()}@example.com`;
     await (prisma as any).user.create({

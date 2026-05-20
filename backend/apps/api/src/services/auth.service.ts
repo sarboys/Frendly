@@ -702,6 +702,11 @@ export class AuthService {
             city: true,
           },
         },
+        onboarding: {
+          select: {
+            completedAt: true,
+          },
+        },
       },
     });
 
@@ -716,6 +721,7 @@ export class AuthService {
       online: user.online,
       area: user.profile?.area ?? null,
       city: user.profile?.city ?? null,
+      onboardingComplete: user.onboarding?.completedAt != null,
     };
   }
 
