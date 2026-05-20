@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T08:00:29.319Z",
-    "gitCommitHash": "5335194609bc8bd3f363c0c3d55fdfe6bc9dfc24"
+    "analyzedAt": "2026-05-20T08:12:00.907Z",
+    "gitCommitHash": "d889398e3e3975d7c1c7fbe408c45238f1c92aeb"
   },
   "nodes": [
     {
@@ -4103,7 +4103,7 @@
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
         222,
-        448
+        457
       ],
       "summary": "DropFormModal in Drops.tsx.",
       "tags": [
@@ -4119,8 +4119,8 @@
       "name": "Field",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        450,
-        473
+        459,
+        482
       ],
       "summary": "Field in Drops.tsx.",
       "tags": [
@@ -4136,8 +4136,8 @@
       "name": "FilterSelect",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        475,
-        487
+        484,
+        496
       ],
       "summary": "FilterSelect in Drops.tsx.",
       "tags": [
@@ -4153,8 +4153,8 @@
       "name": "StateRow",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        489,
-        497
+        498,
+        506
       ],
       "summary": "StateRow in Drops.tsx.",
       "tags": [
@@ -4170,8 +4170,8 @@
       "name": "statusStats",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        499,
-        507
+        508,
+        516
       ],
       "summary": "statusStats in Drops.tsx.",
       "tags": [
@@ -4187,8 +4187,8 @@
       "name": "canEdit",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        509,
-        511
+        518,
+        520
       ],
       "summary": "canEdit in Drops.tsx.",
       "tags": [
@@ -4204,8 +4204,8 @@
       "name": "canActivate",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        513,
-        515
+        522,
+        524
       ],
       "summary": "canActivate in Drops.tsx.",
       "tags": [
@@ -4221,8 +4221,8 @@
       "name": "canCancel",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        517,
-        519
+        526,
+        528
       ],
       "summary": "canCancel in Drops.tsx.",
       "tags": [
@@ -4238,8 +4238,8 @@
       "name": "defaultMonthlyDateInputs",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        523,
-        535
+        532,
+        544
       ],
       "summary": "defaultMonthlyDateInputs in Drops.tsx.",
       "tags": [
@@ -4255,8 +4255,8 @@
       "name": "toMoscowDateTimeInput",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        537,
-        542
+        546,
+        551
       ],
       "summary": "toMoscowDateTimeInput in Drops.tsx.",
       "tags": [
@@ -4272,8 +4272,8 @@
       "name": "moscowInputToDate",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        544,
-        555
+        553,
+        564
       ],
       "summary": "moscowInputToDate in Drops.tsx.",
       "tags": [
@@ -4289,8 +4289,8 @@
       "name": "prizesToText",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        557,
-        565
+        566,
+        574
       ],
       "summary": "prizesToText in Drops.tsx.",
       "tags": [
@@ -4306,8 +4306,8 @@
       "name": "parsePrizes",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        567,
-        575
+        576,
+        584
       ],
       "summary": "parsePrizes in Drops.tsx.",
       "tags": [
@@ -4323,8 +4323,8 @@
       "name": "numberOrNull",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        577,
-        581
+        586,
+        590
       ],
       "summary": "numberOrNull in Drops.tsx.",
       "tags": [

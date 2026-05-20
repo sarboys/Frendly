@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "5335194609bc8bd3f363c0c3d55fdfe6bc9dfc24",
-  "generatedAt": "2026-05-20T08:00:29.586Z",
+  "gitCommitHash": "d889398e3e3975d7c1c7fbe408c45238f1c92aeb",
+  "generatedAt": "2026-05-20T08:12:01.189Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -3399,7 +3399,7 @@
     },
     "admin/src/admin/pages/Drops.tsx": {
       "filePath": "admin/src/admin/pages/Drops.tsx",
-      "contentHash": "119500b8dd078ef6b5b32a9eda45c7b80edaa07319391be390a084e67aa56ab6",
+      "contentHash": "9a3aa03df15eb43d851e821e6a61c25874ebaf77436c0bc1d7782d1f62e0ab58",
       "functions": [
         {
           "name": "AdminDrops",
@@ -3413,7 +3413,7 @@
             "{\n  title,\n  submitLabel,\n  drop,\n  onClose,\n  onSubmit,\n}"
           ],
           "exported": false,
-          "lineCount": 227
+          "lineCount": 236
         },
         {
           "name": "Field",
@@ -3640,7 +3640,7 @@
       "exports": [
         "AdminDrops"
       ],
-      "totalLines": 582,
+      "totalLines": 591,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/EveningRouteDetail.tsx": {
