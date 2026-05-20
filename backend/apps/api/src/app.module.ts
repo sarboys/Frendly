@@ -9,6 +9,7 @@ import { AdminEveningController } from './controllers/admin-evening.controller';
 import { AdminMeetupsController } from './controllers/admin-meetups.controller';
 import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
 import { AdminUsersController } from './controllers/admin-users.controller';
+import { AdminVerificationController } from './controllers/admin-verification.controller';
 import { AfficheController } from './controllers/affiche.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { ChatsController } from './controllers/chats.controller';
@@ -112,6 +113,7 @@ import { VerificationService } from './services/verification.service';
     AdminDropsController,
     AdminPartnerAccountsController,
     AdminUsersController,
+    AdminVerificationController,
     AfficheController,
     AfterDarkController,
     AuthController,

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { randomUUID } from 'crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
@@ -20,6 +21,29 @@ describe('extended rollout api flows', () => {
         balance,
       },
     });
+  }
+
+  async function createVerificationAsset(
+    userId: string,
+    kind: 'verification_selfie' | 'verification_document',
+    fileName: string,
+    mimeType: string,
+  ) {
+    const segment = kind === 'verification_selfie' ? 'selfie' : 'document';
+    const asset = await prisma.mediaAsset.create({
+      data: {
+        ownerId: userId,
+        kind,
+        status: 'ready',
+        bucket: 'test-bucket',
+        objectKey: `verification/${userId}/${segment}/${randomUUID()}-${fileName}`,
+        mimeType,
+        byteSize: 2048,
+        originalFileName: fileName,
+        publicUrl: null,
+      },
+    });
+    return asset.id;
   }
 
   beforeAll(async () => {
@@ -152,7 +176,11 @@ describe('extended rollout api flows', () => {
         status: 'not_started',
         selfieDone: false,
         documentDone: false,
+        selfieAssetId: null,
+        documentAssetId: null,
+        submittedAt: null,
         reviewedAt: null,
+        reviewNote: null,
       },
       create: {
         userId: 'user-mark',
@@ -167,26 +195,39 @@ describe('extended rollout api flows', () => {
       .post('/auth/dev/login')
       .send({ userId: 'user-mark' })
       .expect(201);
+    const selfieAssetId = await createVerificationAsset(
+      'user-mark',
+      'verification_selfie',
+      'selfie-flow.jpg',
+      'image/jpeg',
+    );
 
     const selfieSubmitted = await request(app.getHttpServer())
       .post('/verification/submit')
       .set('authorization', `Bearer ${freshUserLogin.body.accessToken}`)
-      .send({ step: 'selfie' })
+      .send({ step: 'selfie', assetId: selfieAssetId })
       .expect(201);
 
     expect(selfieSubmitted.body.status).toBe('selfie_submitted');
     expect(selfieSubmitted.body.selfieDone).toBe(true);
     expect(selfieSubmitted.body.documentDone).toBe(false);
+    const documentAssetId = await createVerificationAsset(
+      'user-mark',
+      'verification_document',
+      'document-flow.pdf',
+      'application/pdf',
+    );
 
     const documentSubmitted = await request(app.getHttpServer())
       .post('/verification/submit')
       .set('authorization', `Bearer ${freshUserLogin.body.accessToken}`)
-      .send({ step: 'document' })
+      .send({ step: 'document', assetId: documentAssetId })
       .expect(201);
 
     expect(documentSubmitted.body.status).toBe('under_review');
     expect(documentSubmitted.body.selfieDone).toBe(true);
     expect(documentSubmitted.body.documentDone).toBe(true);
+    expect(documentSubmitted.body.submittedAt).toBeTruthy();
   });
 
   it('rejects invalid verification step without mutating state', async () => {
@@ -196,7 +237,11 @@ describe('extended rollout api flows', () => {
         status: 'not_started',
         selfieDone: false,
         documentDone: false,
+        selfieAssetId: null,
+        documentAssetId: null,
+        submittedAt: null,
         reviewedAt: null,
+        reviewNote: null,
       },
       create: {
         userId: 'user-mark',

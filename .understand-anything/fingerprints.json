@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "09a28f14bb581619974f3184154a3021f34a4e16",
-  "generatedAt": "2026-05-20T09:02:44.959Z",
+  "gitCommitHash": "866a51f0abb8edfe8547b20542adddd262e19cae",
+  "generatedAt": "2026-05-20T09:51:19.144Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -306,7 +306,7 @@
     },
     "admin/src/admin/components/StatusBadge.tsx": {
       "filePath": "admin/src/admin/components/StatusBadge.tsx",
-      "contentHash": "b02e3bd012654d9917f91717e0f269d9da727fc440435034e80eff24a0240164",
+      "contentHash": "d715002bacf6246d95c46b1fecf65f482390b0ac4368a69b51dcc5790a07f34f",
       "functions": [
         {
           "name": "StatusBadge",
@@ -329,7 +329,7 @@
       "exports": [
         "StatusBadge"
       ],
-      "totalLines": 179,
+      "totalLines": 189,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/components/Topbar.tsx": {
@@ -1954,7 +1954,7 @@
     },
     "admin/src/admin/management/api.ts": {
       "filePath": "admin/src/admin/management/api.ts",
-      "contentHash": "dabf3af9835dd241e99a243a038c8d83175b4d1471475b6d1d54b02dcf527216",
+      "contentHash": "6c553a45932f71b155ae665a83e0ad1d67040b2d7ed391e54d8d137a634877e2",
       "functions": [
         {
           "name": "listAdminUsers",
@@ -2018,6 +2018,39 @@
           "name": "revokeAdminUserSessions",
           "params": [
             "userId"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "listAdminVerifications",
+          "params": [
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "getAdminVerification",
+          "params": [
+            "userId"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "approveAdminVerification",
+          "params": [
+            "userId"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "returnAdminVerification",
+          "params": [
+            "userId",
+            "input"
           ],
           "exported": true,
           "lineCount": 6
@@ -2365,6 +2398,9 @@
             "AdminCommunityListItemDto",
             "AdminMeetupDetailDto",
             "AdminMeetupListItemDto",
+            "AdminVerificationDetailDto",
+            "AdminVerificationListItemDto",
+            "AdminVerificationStateDto",
             "AdminUserDetailDto",
             "AdminUserListItemDto",
             "CursorPageDto",
@@ -2381,6 +2417,10 @@
         "suspendAdminUser",
         "unsuspendAdminUser",
         "revokeAdminUserSessions",
+        "listAdminVerifications",
+        "getAdminVerification",
+        "approveAdminVerification",
+        "returnAdminVerification",
         "listAdminUserMeetups",
         "listAdminUserReports",
         "listAdminUserAudit",
@@ -2418,7 +2458,7 @@
         "moderateAdminAfficheContentItem",
         "withQuery"
       ],
-      "totalLines": 297,
+      "totalLines": 324,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/management/format.ts": {
@@ -2490,12 +2530,12 @@
     },
     "admin/src/admin/management/types.ts": {
       "filePath": "admin/src/admin/management/types.ts",
-      "contentHash": "6e5f0e21bdab60a0d9f4c6a742b0236537b79eb2795a50e57066433b4e07eea0",
+      "contentHash": "1477ae1559d3aeac53dd4eabe8bd01847c70ee830999d46d7722fab72a6dfc9e",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 133,
+      "totalLines": 178,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/AdminLogin.tsx": {
@@ -6132,17 +6172,108 @@
     },
     "admin/src/admin/pages/Verification.tsx": {
       "filePath": "admin/src/admin/pages/Verification.tsx",
-      "contentHash": "04d7b13eceba5f9469174e24f2d29f996fd3aaeb90bd6e984e7b5963426eb041",
+      "contentHash": "9a0c2ef7abb41ff7d6d2724f69e4adc31b2306cf2bd056cb0dc8c11d6bf66324",
       "functions": [
         {
           "name": "AdminVerification",
           "params": [],
           "exported": true,
-          "lineCount": 96
+          "lineCount": 188
+        },
+        {
+          "name": "SummaryCard",
+          "params": [
+            "{ label, value }"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "VerificationCard",
+          "params": [
+            "{\n  item,\n  approveDisabled,\n  returnDisabled,\n  onApprove,\n  onReturn,\n  onDetails,\n}"
+          ],
+          "exported": false,
+          "lineCount": 55
+        },
+        {
+          "name": "AssetLink",
+          "params": [
+            "{ label, url }"
+          ],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "StateText",
+          "params": [
+            "{ children }"
+          ],
+          "exported": false,
+          "lineCount": 7
         }
       ],
       "classes": [],
       "imports": [
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useMutation",
+            "useQuery",
+            "useQueryClient"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "FormEvent",
+            "useMemo",
+            "useState"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Check",
+            "FileText",
+            "ImageIcon",
+            "RotateCcw"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogDescription",
+            "DialogFooter",
+            "DialogHeader",
+            "DialogTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "@/components/ui/table",
+          "specifiers": [
+            "Table",
+            "TableBody",
+            "TableCell",
+            "TableHead",
+            "TableHeader",
+            "TableRow"
+          ]
+        },
         {
           "source": "../components/Topbar",
           "specifiers": [
@@ -6162,42 +6293,33 @@
           ]
         },
         {
-          "source": "@/components/ui/table",
+          "source": "../management/api",
           "specifiers": [
-            "Table",
-            "TableBody",
-            "TableCell",
-            "TableHead",
-            "TableHeader",
-            "TableRow"
+            "approveAdminVerification",
+            "getAdminVerification",
+            "listAdminVerifications",
+            "returnAdminVerification"
           ]
         },
         {
-          "source": "@/components/ui/button",
+          "source": "../management/format",
           "specifiers": [
-            "Button"
+            "adminPageText",
+            "formatDateTime",
+            "valueOrDash"
           ]
         },
         {
-          "source": "../data",
+          "source": "../management/types",
           "specifiers": [
-            "verifications"
-          ]
-        },
-        {
-          "source": "lucide-react",
-          "specifiers": [
-            "Check",
-            "X",
-            "MessageSquare",
-            "ImageIcon"
+            "AdminVerificationListItemDto"
           ]
         }
       ],
       "exports": [
         "AdminVerification"
       ],
-      "totalLines": 105,
+      "totalLines": 308,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/partner/admin-accounts-api.ts": {
@@ -9338,7 +9460,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "17a635af7ade6ae35b9b22f7f042f79d0155bdb57b324cc44ad8020c88f3e768",
+      "contentHash": "59ad84089d7b37e9530c30b4c8cbfa5e49681c08fd15f3d4ab31534bdc935c66",
       "functions": [],
       "classes": [
         {
@@ -9419,6 +9541,12 @@
           "source": "./controllers/admin-users.controller",
           "specifiers": [
             "AdminUsersController"
+          ]
+        },
+        {
+          "source": "./controllers/admin-verification.controller",
+          "specifiers": [
+            "AdminVerificationController"
           ]
         },
         {
@@ -9977,7 +10105,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 222,
+      "totalLines": 224,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -11599,6 +11727,56 @@
         "AdminUsersController"
       ],
       "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/controllers/admin-verification.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/admin-verification.controller.ts",
+      "contentHash": "ff36d9214aa2cc3d984199e538873112c36803938e610f40fe9c3c9c671cda11",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AdminVerificationController",
+          "methods": [
+            "constructor",
+            "listVerifications",
+            "getVerification",
+            "approveVerification",
+            "returnVerification"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 26
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "Param",
+            "Post",
+            "Query"
+          ]
+        },
+        {
+          "source": "../common/admin.decorator",
+          "specifiers": [
+            "Admin"
+          ]
+        },
+        {
+          "source": "../services/verification.service",
+          "specifiers": [
+            "VerificationService"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminVerificationController"
+      ],
+      "totalLines": 33,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/affiche.controller.ts": {
@@ -14508,7 +14686,7 @@
     },
     "backend/apps/api/src/services/admin-users.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-users.service.ts",
-      "contentHash": "afaeee0098f77e60074a3abbc1eb9b39c483c108ede6fcbaf11e9d8b89340c07",
+      "contentHash": "301cef1bc2a778353c707297ec31b514e1740a89416b90a9298e61953afbacc8",
       "functions": [],
       "classes": [
         {
@@ -14564,14 +14742,15 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 910
+          "lineCount": 918
         }
       ],
       "imports": [
         {
           "source": "@nestjs/common",
           "specifiers": [
-            "Injectable"
+            "Injectable",
+            "Optional"
           ]
         },
         {
@@ -14597,12 +14776,18 @@
           "specifiers": [
             "PrismaService"
           ]
+        },
+        {
+          "source": "./verification.service",
+          "specifiers": [
+            "VerificationService"
+          ]
         }
       ],
       "exports": [
         "AdminUsersService"
       ],
-      "totalLines": 981,
+      "totalLines": 990,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-venue.service.ts": {
@@ -19174,7 +19359,7 @@
     },
     "backend/apps/api/src/services/uploads.service.ts": {
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
-      "contentHash": "e8b17e90c36f573cd7dd672b26f45704a227969b5cd55f787a77a95ec615e451",
+      "contentHash": "85b5ac223ba22337b97f21ffd130dac32bc41b6285d94f5aab954eb1bc3cfaa4",
       "functions": [],
       "classes": [
         {
@@ -19190,7 +19375,11 @@
             "createStoryMediaUpload",
             "completeStoryMediaUpload",
             "uploadStoryMediaFile",
+            "createVerificationMediaUpload",
+            "completeVerificationMediaUpload",
+            "uploadVerificationMediaFile",
             "resolveScope",
+            "isVerificationScope",
             "requireMediaFile",
             "resolveChatUploadMeta",
             "parseChatUploadMeta",
@@ -19209,6 +19398,13 @@
             "assertStoryMediaSize",
             "assertStoryMediaObjectKey",
             "createStoryUploadAsset",
+            "createVerificationUploadAsset",
+            "assertExistingVerificationUploadAsset",
+            "assertVerificationMime",
+            "assertVerificationSize",
+            "assertVerificationObjectKey",
+            "verificationObjectSegment",
+            "resolveVerifiedVerificationUploadMetadata",
             "assertExistingStoryUploadAsset",
             "isUniqueConstraintError",
             "resolveVerifiedStoryUploadMetadata"
@@ -19218,7 +19414,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 849
+          "lineCount": 1134
         }
       ],
       "imports": [
@@ -19288,12 +19484,12 @@
         "MAX_STORY_MEDIA_UPLOAD_BYTES",
         "UploadsService"
       ],
-      "totalLines": 895,
+      "totalLines": 1196,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/verification.service.ts": {
       "filePath": "backend/apps/api/src/services/verification.service.ts",
-      "contentHash": "bb086adc7db2aaacee79761ea7980cd59333c391d6166bf6abfb0f4ee1c68959",
+      "contentHash": "7a2ee379851c8f5df4f21b02751f3422bf9fdf67fa57bd40f9bc8d99542f78cd",
       "functions": [],
       "classes": [
         {
@@ -19301,24 +19497,73 @@
           "methods": [
             "constructor",
             "getVerification",
-            "submitVerification"
+            "listAdminVerifications",
+            "submitVerification",
+            "getAdminVerification",
+            "approveVerification",
+            "returnVerification",
+            "mapVerificationResponse",
+            "mapAdminVerificationListItem",
+            "mapAdminAsset",
+            "adminStatusWhere",
+            "assertVerificationAsset",
+            "expectedAssetKind",
+            "grantVerificationTrial",
+            "subscriptionBaseTime",
+            "resolveSubscriptionStatus",
+            "createVerificationNotification",
+            "deleteVerificationAssets",
+            "handleDropsVerifiedUser",
+            "parseLimit",
+            "optionalText",
+            "requiredText"
           ],
-          "properties": [],
+          "properties": [
+            "s3"
+          ],
           "exported": true,
-          "lineCount": 71
+          "lineCount": 711
         }
       ],
       "imports": [
         {
+          "source": "@aws-sdk/client-s3",
+          "specifiers": [
+            "DeleteObjectCommand"
+          ]
+        },
+        {
           "source": "@nestjs/common",
           "specifiers": [
-            "Injectable"
+            "Injectable",
+            "Optional"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "OUTBOX_EVENT_TYPES",
+            "createPresignedDownload",
+            "createS3Client",
+            "createS3RequestOptions"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
           ]
         },
         {
           "source": "../common/api-error",
           "specifiers": [
             "ApiError"
+          ]
+        },
+        {
+          "source": "./drops-reward.service",
+          "specifiers": [
+            "DropsRewardService"
           ]
         },
         {
@@ -19331,7 +19576,7 @@
       "exports": [
         "VerificationService"
       ],
-      "totalLines": 84,
+      "totalLines": 773,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/types/express-multer.ts": {

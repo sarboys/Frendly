@@ -31,9 +31,25 @@ const ALLOWED_CHAT_ATTACHMENT_MIME_TYPES = new Set([
   'image/webp',
   'text/plain',
 ]);
+const ALLOWED_VERIFICATION_IMAGE_MIME_TYPES = new Set([
+  'image/heic',
+  'image/heif',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+const ALLOWED_VERIFICATION_DOCUMENT_MIME_TYPES = new Set([
+  ...ALLOWED_VERIFICATION_IMAGE_MIME_TYPES,
+  'application/pdf',
+]);
 
 type ChatUploadKind = 'chat_attachment' | 'chat_voice';
-type MediaUploadScope = 'chat' | 'profile_photo' | 'story_media';
+type VerificationUploadScope = 'verification_selfie' | 'verification_document';
+type MediaUploadScope =
+  | 'chat'
+  | 'profile_photo'
+  | 'story_media'
+  | VerificationUploadScope;
 
 interface ChatUploadMeta {
   chatId: string;
@@ -77,6 +93,19 @@ export class UploadsService {
         completeUrl: '/uploads/media/complete',
       };
     }
+    if (this.isVerificationScope(scope)) {
+      const upload = await this.createVerificationMediaUpload(
+        userId,
+        scope,
+        body,
+      );
+      return {
+        ...upload,
+        scope,
+        uploadStrategy: 'direct',
+        completeUrl: '/uploads/media/complete',
+      };
+    }
 
     const upload = await this.createChatAttachmentUpload(userId, body);
     return {
@@ -95,6 +124,9 @@ export class UploadsService {
     if (scope === 'story_media') {
       return this.completeStoryMediaUpload(userId, body);
     }
+    if (this.isVerificationScope(scope)) {
+      return this.completeVerificationMediaUpload(userId, scope, body);
+    }
     return this.completeChatAttachmentUpload(userId, body);
   }
 
@@ -109,6 +141,9 @@ export class UploadsService {
     }
     if (scope === 'story_media') {
       return this.uploadStoryMediaFile(userId, body, file);
+    }
+    if (this.isVerificationScope(scope)) {
+      return this.uploadVerificationMediaFile(userId, scope, file);
     }
     return this.uploadChatAttachmentFile(userId, body, file);
   }
@@ -389,6 +424,120 @@ export class UploadsService {
     };
   }
 
+  async createVerificationMediaUpload(
+    userId: string,
+    scope: VerificationUploadScope,
+    body: Record<string, unknown>,
+  ) {
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName : 'verification.bin';
+    const contentType =
+      typeof body.contentType === 'string'
+        ? body.contentType
+        : 'application/octet-stream';
+    this.assertVerificationMime(scope, contentType);
+
+    const objectKey = `verification/${userId}/${this.verificationObjectSegment(scope)}/${randomUUID()}-${fileName}`;
+    return createPresignedUpload({ objectKey, contentType });
+  }
+
+  async completeVerificationMediaUpload(
+    userId: string,
+    scope: VerificationUploadScope,
+    body: Record<string, unknown>,
+  ) {
+    const objectKey =
+      typeof body.objectKey === 'string' ? body.objectKey : undefined;
+    const mimeType =
+      typeof body.mimeType === 'string' ? body.mimeType : 'application/octet-stream';
+    const byteSize = typeof body.byteSize === 'number' ? body.byteSize : 0;
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName : 'verification.bin';
+
+    if (!objectKey) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
+    }
+
+    this.assertVerificationObjectKey(userId, scope, objectKey);
+    const existing = await this.prismaService.client.mediaAsset.findUnique({
+      where: { objectKey },
+      select: {
+        id: true,
+        ownerId: true,
+        kind: true,
+        status: true,
+      },
+    });
+    if (existing) {
+      this.assertExistingVerificationUploadAsset(existing, userId, scope);
+      return {
+        assetId: existing.id,
+        status: existing.status,
+      };
+    }
+
+    const verified = await this.resolveVerifiedVerificationUploadMetadata(
+      objectKey,
+      mimeType,
+      byteSize,
+    );
+    this.assertVerificationMime(scope, verified.mimeType);
+    this.assertVerificationSize(verified.byteSize);
+
+    const asset = await this.createVerificationUploadAsset({
+      userId,
+      scope,
+      objectKey,
+      mimeType: verified.mimeType,
+      byteSize: verified.byteSize,
+      fileName,
+    });
+
+    return {
+      assetId: asset.id,
+      status: asset.status,
+    };
+  }
+
+  async uploadVerificationMediaFile(
+    userId: string,
+    scope: VerificationUploadScope,
+    file?: Express.Multer.File,
+  ) {
+    const uploadFile = this.requireMediaFile(file);
+    this.assertVerificationMime(scope, uploadFile.mimetype);
+    this.assertVerificationSize(uploadFile.size);
+
+    const objectKey =
+      `verification/${userId}/${this.verificationObjectSegment(scope)}/${randomUUID()}-${uploadFile.originalname}`;
+    if (!BYPASS_S3_UPLOAD) {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: objectKey,
+          ContentType: uploadFile.mimetype,
+          CacheControl: PRIVATE_MEDIA_CACHE_CONTROL,
+          Body: uploadFile.buffer,
+        }),
+        createS3RequestOptions(),
+      );
+    }
+
+    const asset = await this.createVerificationUploadAsset({
+      userId,
+      scope,
+      objectKey,
+      mimeType: uploadFile.mimetype,
+      byteSize: uploadFile.size,
+      fileName: uploadFile.originalname,
+    });
+
+    return {
+      assetId: asset.id,
+      status: asset.status,
+    };
+  }
+
   private resolveScope(body: Record<string, unknown>): MediaUploadScope {
     const scope =
       typeof body.scope === 'string' ? body.scope : 'chat';
@@ -396,12 +545,18 @@ export class UploadsService {
     if (
       scope !== 'chat' &&
       scope !== 'profile_photo' &&
-      scope !== 'story_media'
+      scope !== 'story_media' &&
+      scope !== 'verification_selfie' &&
+      scope !== 'verification_document'
     ) {
       throw new ApiError(400, 'invalid_upload_scope', 'Upload scope is invalid');
     }
 
     return scope;
+  }
+
+  private isVerificationScope(scope: MediaUploadScope): scope is VerificationUploadScope {
+    return scope === 'verification_selfie' || scope === 'verification_document';
   }
 
   private requireMediaFile(file?: Express.Multer.File) {
@@ -825,6 +980,152 @@ export class UploadsService {
       );
       return existing;
     }
+  }
+
+  private async createVerificationUploadAsset(input: {
+    userId: string;
+    scope: VerificationUploadScope;
+    objectKey: string;
+    mimeType: string;
+    byteSize: number;
+    fileName: string;
+  }) {
+    try {
+      return await this.prismaService.client.mediaAsset.create({
+        data: {
+          ownerId: input.userId,
+          kind: input.scope,
+          status: 'ready',
+          bucket: this.s3Bucket,
+          objectKey: input.objectKey,
+          mimeType: input.mimeType,
+          byteSize: input.byteSize,
+          originalFileName: input.fileName,
+          publicUrl: null,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      const existing = await this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey: input.objectKey },
+        select: {
+          id: true,
+          ownerId: true,
+          kind: true,
+          status: true,
+        },
+      });
+      if (!existing) {
+        throw error;
+      }
+      this.assertExistingVerificationUploadAsset(
+        existing,
+        input.userId,
+        input.scope,
+      );
+      return existing;
+    }
+  }
+
+  private assertExistingVerificationUploadAsset(
+    asset: {
+      ownerId: string;
+      kind: string;
+      status: string;
+    },
+    userId: string,
+    scope: VerificationUploadScope,
+  ) {
+    if (
+      asset.ownerId !== userId ||
+      asset.kind !== scope ||
+      asset.status !== 'ready'
+    ) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+  }
+
+  private assertVerificationMime(
+    scope: VerificationUploadScope,
+    mimeType: string,
+  ) {
+    const allowed =
+      scope === 'verification_selfie'
+        ? ALLOWED_VERIFICATION_IMAGE_MIME_TYPES
+        : ALLOWED_VERIFICATION_DOCUMENT_MIME_TYPES;
+    if (!allowed.has(mimeType.toLowerCase())) {
+      throw new ApiError(
+        400,
+        'invalid_verification_media_mime_type',
+        'Verification media MIME type is invalid',
+      );
+    }
+  }
+
+  private assertVerificationSize(byteSize: number) {
+    if (!Number.isSafeInteger(byteSize) || byteSize <= 0) {
+      throw new ApiError(
+        400,
+        'invalid_verification_media_size',
+        'Verification media size is invalid',
+      );
+    }
+    if (byteSize > MAX_GENERIC_MEDIA_UPLOAD_BYTES) {
+      throw new ApiError(
+        400,
+        'verification_media_too_large',
+        'Verification media is too large',
+      );
+    }
+  }
+
+  private assertVerificationObjectKey(
+    userId: string,
+    scope: VerificationUploadScope,
+    objectKey: string,
+  ) {
+    const prefix = `verification/${userId}/${this.verificationObjectSegment(scope)}/`;
+    if (!objectKey.startsWith(prefix)) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
+    }
+  }
+
+  private verificationObjectSegment(scope: VerificationUploadScope) {
+    return scope === 'verification_selfie' ? 'selfie' : 'document';
+  }
+
+  private async resolveVerifiedVerificationUploadMetadata(
+    objectKey: string,
+    mimeType: string,
+    byteSize: number,
+  ) {
+    if (BYPASS_S3_UPLOAD) {
+      return { mimeType, byteSize };
+    }
+
+    const object = await this.s3.send(
+      new HeadObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: objectKey,
+      }),
+      createS3RequestOptions(),
+    );
+
+    return {
+      mimeType: object.ContentType ?? mimeType,
+      byteSize: object.ContentLength ?? byteSize,
+    };
   }
 
   private async assertExistingStoryUploadAsset(

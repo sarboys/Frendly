@@ -2,8 +2,16 @@ import { AdminUsersService } from '../../src/services/admin-users.service';
 
 const now = new Date('2026-05-05T10:00:00.000Z');
 
-function createService(client: Record<string, unknown>, dropsRewardService?: Record<string, unknown>) {
-  return new AdminUsersService({ client } as any, dropsRewardService as any);
+function createService(
+  client: Record<string, unknown>,
+  dropsRewardService?: Record<string, unknown>,
+  verificationService?: Record<string, unknown>,
+) {
+  return new AdminUsersService(
+    { client } as any,
+    dropsRewardService as any,
+    verificationService as any,
+  );
 }
 
 function detailRow(overrides: Record<string, unknown> = {}) {
@@ -222,6 +230,32 @@ describe('AdminUsersService unit', () => {
     await service.verifyUser('user-1');
 
     expect(dropsRewardService.handleUserVerified).toHaveBeenCalledWith('user-1');
+  });
+
+  it('returns fresh user detail after delegating manual verification approval', async () => {
+    const userFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce(detailRow({ verified: true }));
+    const verificationService = {
+      approveVerification: jest.fn().mockResolvedValue({
+        status: 'verified',
+      }),
+    };
+    const service = createService(
+      {
+        user: { findUnique: userFindUnique },
+        session: { count: jest.fn().mockResolvedValue(1) },
+        userReport: { count: jest.fn().mockResolvedValue(0) },
+      },
+      undefined,
+      verificationService,
+    );
+
+    const result = await service.verifyUser('user-1');
+
+    expect(verificationService.approveVerification).toHaveBeenCalledWith('user-1');
+    expect(result.id).toBe('user-1');
+    expect(result.verified).toBe(true);
   });
 
   it('revokes only active sessions', async () => {

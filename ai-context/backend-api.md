@@ -117,6 +117,16 @@ People:
 - Own profile and public profile payloads expose `frendlyPlus`, derived from the latest subscription. Active access means a live trial, active, or paid-through canceled subscription; expired or inactive subscriptions return `false`.
 - `GET /people/following` accepts `eventId`, `q`, `cursor`, `limit` and returns only users followed by the current user, with social preview and `inviteState` for event invite UI.
 
+Verification:
+
+- `GET /verification/me` returns `{ status, selfieDone, documentDone, submittedAt, reviewedAt, reviewNote }`.
+- `POST /verification/submit` accepts `{ step, assetId }`, where `step` is `selfie` or `document`. Selfie requires a ready `verification_selfie` media asset owned by the user and moves the request to `selfie_submitted`. Document requires an existing selfie asset, accepts a ready `verification_document` asset and moves the request to `under_review`.
+- Verification uploads use `/uploads/media/*` scopes `verification_selfie` and `verification_document`. Selfies allow JPEG, PNG, WEBP, HEIC and HEIF. Documents allow those image types plus PDF.
+- Admin verification endpoints live under `/admin/verification`: list, detail by user id, approve and return with `{ reason }`. Detail returns signed URLs for selfie and document assets.
+- Approve sets `User.verified=true`, marks `UserVerification.status=verified`, sends a `verification` notification with `payload.source=verification`, deletes verification assets and adds one 3-day Frendly+ trial or extension. Repeated approve does not add another 3 days.
+- Return requires a reason, resets the request to `not_started`, clears uploaded verification assets, stores `reviewNote` and sends a `verification` notification. User must start the verification flow again.
+- `/admin/users/:id/verify` delegates to the same approve flow, so manual admin verification also sends the notification and grants the 3-day benefit only once.
+
 Profile season:
 
 - `GET /profile/me/frendly-season` returns the current calendar month season from checked-in events only: `checkedInCount`, `calendarDays`, `currentStatus`, `nextReward`, `stats` and reward steps for 1, 5, 10, 15 and 25 check-ins.

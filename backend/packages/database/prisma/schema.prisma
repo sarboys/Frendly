@@ -42,6 +42,8 @@ enum MediaAssetKind {
   chat_attachment
   chat_voice
   story_media
+  verification_selfie
+  verification_document
 }
 
 enum MediaAssetStatus {
@@ -58,6 +60,7 @@ enum NotificationKind {
   event_starting
   like
   subscription_expiring
+  verification
 }
 
 enum PushProvider {
@@ -459,14 +462,24 @@ model UserSettings {
 }
 
 model UserVerification {
-  userId       String             @id
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status       VerificationStatus @default(not_started)
-  selfieDone   Boolean            @default(false)
-  documentDone Boolean            @default(false)
-  reviewedAt   DateTime?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  userId          String             @id
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          VerificationStatus @default(not_started)
+  selfieDone      Boolean            @default(false)
+  documentDone    Boolean            @default(false)
+  selfieAssetId   String?
+  selfieAsset     MediaAsset?        @relation("VerificationSelfieAsset", fields: [selfieAssetId], references: [id], onDelete: SetNull)
+  documentAssetId String?
+  documentAsset   MediaAsset?        @relation("VerificationDocumentAsset", fields: [documentAssetId], references: [id], onDelete: SetNull)
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewNote      String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([selfieAssetId])
+  @@unique([documentAssetId])
+  @@index([status, submittedAt])
 }
 
 model PhoneOtpChallenge {
@@ -2215,6 +2228,8 @@ model MediaAsset {
   profileAvatar           Profile?                 @relation("ProfileAvatar")
   profilePhotos           ProfilePhoto[]
   storyAsset              EventStory?
+  verificationSelfie      UserVerification?        @relation("VerificationSelfieAsset")
+  verificationDocument    UserVerification?        @relation("VerificationDocumentAsset")
   messageLinks            MessageAttachment[]
   eveningAfterPartyPhotos EveningAfterPartyPhoto[]
 

@@ -390,6 +390,78 @@ describe('UploadsService', () => {
     );
   });
 
+  it('creates verification document direct upload assets', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: 'verification-document-asset',
+      status: 'ready',
+    });
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create,
+      },
+    };
+    const service = new UploadsService(
+      { client } as any,
+      {} as any,
+      {} as any,
+    );
+
+    await expect(
+      service.completeMediaUpload('user-me', {
+        scope: 'verification_document',
+        objectKey: 'verification/user-me/document/passport.pdf',
+        mimeType: 'application/pdf',
+        byteSize: 2048,
+        fileName: 'passport.pdf',
+      }),
+    ).resolves.toEqual({
+      assetId: 'verification-document-asset',
+      status: 'ready',
+    });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ownerId: 'user-me',
+          kind: 'verification_document',
+          objectKey: 'verification/user-me/document/passport.pdf',
+          mimeType: 'application/pdf',
+        }),
+        select: {
+          id: true,
+          status: true,
+        },
+      }),
+    );
+  });
+
+  it('rejects PDF selfie uploads', async () => {
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
+    };
+    const service = new UploadsService(
+      { client } as any,
+      {} as any,
+      {} as any,
+    );
+
+    await expect(
+      service.completeMediaUpload('user-me', {
+        scope: 'verification_selfie',
+        objectKey: 'verification/user-me/selfie/selfie.pdf',
+        mimeType: 'application/pdf',
+        byteSize: 2048,
+        fileName: 'selfie.pdf',
+      }),
+    ).rejects.toMatchObject({
+      code: 'invalid_verification_media_mime_type',
+    });
+    expect(client.mediaAsset.create).not.toHaveBeenCalled();
+  });
+
   it('rejects empty chat voice direct completes', async () => {
     const client = {
       chatMember: {

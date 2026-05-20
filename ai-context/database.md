@@ -62,7 +62,8 @@ Chat and realtime:
 
 Media:
 
-- `MediaAsset` covers avatars, profile photos, chat attachments, voice and stories.
+- `MediaAsset` covers avatars, profile photos, chat attachments, voice, stories and private verification uploads.
+- Verification files use `MediaAssetKind.verification_selfie` and `MediaAssetKind.verification_document`. They are private assets linked from `UserVerification.selfieAssetId` and `UserVerification.documentAssetId`.
 
 Communities:
 
@@ -89,6 +90,7 @@ Drops:
 Notifications and async:
 
 - `Notification`, `PushToken`, `OutboxEvent`, `TelegramBotState`.
+- `NotificationKind.verification` is used for verification approve and return notifications. Payloads use `source=verification` so mobile can refresh profile, verification and subscription state.
 
 Public:
 
@@ -97,6 +99,7 @@ Public:
 ## Important relations
 
 - `User` owns profile, settings, sessions, messages, media, notifications, push tokens and safety records.
+- `UserVerification` stores the current verification state, step completion flags, selfie/document asset links, `submittedAt`, `reviewedAt` and the latest `reviewNote`. Queue reads use the `status + submittedAt` index.
 - `Event` owns primary chat, participants, requests, attendance, feedback, stories and public shares. It can optionally point to `EveningRoute` via `eveningRouteId` when a meetup is created from a ready or custom route.
 - `Event.requiresVerification` and `Event.requiresFrendlyPlus` gate new entry into a meetup. Both default to `false`; existing participants stay participants when the flags change.
 - `Event` can optionally point to `ExternalContentItem` through `sourceExternalContentItemId` when created from public affiche or a selected Tomesto place. Presenters must branch by `contentKind`: event sources produce ticket fields, place sources produce booking fields.

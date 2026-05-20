@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T09:02:44.683Z",
-    "gitCommitHash": "09a28f14bb581619974f3184154a3021f34a4e16"
+    "analyzedAt": "2026-05-20T09:51:18.016Z",
+    "gitCommitHash": "866a51f0abb8edfe8547b20542adddd262e19cae"
   },
   "nodes": [
     {
@@ -651,8 +651,8 @@
       "name": "StatusBadge",
       "filePath": "admin/src/admin/components/StatusBadge.tsx",
       "lineRange": [
-        169,
-        178
+        179,
+        188
       ],
       "summary": "StatusBadge in StatusBadge.tsx.",
       "tags": [
@@ -2479,7 +2479,7 @@
       "type": "file",
       "name": "api.ts",
       "filePath": "admin/src/admin/management/api.ts",
-      "summary": "api.ts contains 45 functions.",
+      "summary": "api.ts contains 49 functions.",
       "tags": [
         "admin",
         "code",
@@ -2493,8 +2493,8 @@
       "name": "listAdminUsers",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        14,
-        18
+        17,
+        21
       ],
       "summary": "listAdminUsers in api.ts.",
       "tags": [
@@ -2510,8 +2510,8 @@
       "name": "getAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        20,
-        22
+        23,
+        25
       ],
       "summary": "getAdminUser in api.ts.",
       "tags": [
@@ -2527,8 +2527,8 @@
       "name": "updateAdminUserProfile",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        24,
-        29
+        27,
+        32
       ],
       "summary": "updateAdminUserProfile in api.ts.",
       "tags": [
@@ -2544,8 +2544,8 @@
       "name": "verifyAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        31,
-        33
+        34,
+        36
       ],
       "summary": "verifyAdminUser in api.ts.",
       "tags": [
@@ -2561,8 +2561,8 @@
       "name": "unverifyAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        35,
-        37
+        38,
+        40
       ],
       "summary": "unverifyAdminUser in api.ts.",
       "tags": [
@@ -2578,8 +2578,8 @@
       "name": "suspendAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        39,
-        44
+        42,
+        47
       ],
       "summary": "suspendAdminUser in api.ts.",
       "tags": [
@@ -2595,8 +2595,8 @@
       "name": "unsuspendAdminUser",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        46,
-        48
+        49,
+        51
       ],
       "summary": "unsuspendAdminUser in api.ts.",
       "tags": [
@@ -2612,10 +2612,78 @@
       "name": "revokeAdminUserSessions",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        50,
-        55
+        53,
+        58
       ],
       "summary": "revokeAdminUserSessions in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/management/api.ts:listAdminVerifications",
+      "type": "function",
+      "name": "listAdminVerifications",
+      "filePath": "admin/src/admin/management/api.ts",
+      "lineRange": [
+        60,
+        64
+      ],
+      "summary": "listAdminVerifications in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/management/api.ts:getAdminVerification",
+      "type": "function",
+      "name": "getAdminVerification",
+      "filePath": "admin/src/admin/management/api.ts",
+      "lineRange": [
+        66,
+        68
+      ],
+      "summary": "getAdminVerification in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/management/api.ts:approveAdminVerification",
+      "type": "function",
+      "name": "approveAdminVerification",
+      "filePath": "admin/src/admin/management/api.ts",
+      "lineRange": [
+        70,
+        75
+      ],
+      "summary": "approveAdminVerification in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/management/api.ts:returnAdminVerification",
+      "type": "function",
+      "name": "returnAdminVerification",
+      "filePath": "admin/src/admin/management/api.ts",
+      "lineRange": [
+        77,
+        82
+      ],
+      "summary": "returnAdminVerification in api.ts.",
       "tags": [
         "admin",
         "function",
@@ -2629,8 +2697,8 @@
       "name": "listAdminUserMeetups",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        57,
-        61
+        84,
+        88
       ],
       "summary": "listAdminUserMeetups in api.ts.",
       "tags": [
@@ -2646,8 +2714,8 @@
       "name": "listAdminUserReports",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        63,
-        67
+        90,
+        94
       ],
       "summary": "listAdminUserReports in api.ts.",
       "tags": [
@@ -2663,8 +2731,8 @@
       "name": "listAdminUserAudit",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        69,
-        73
+        96,
+        100
       ],
       "summary": "listAdminUserAudit in api.ts.",
       "tags": [
@@ -2680,8 +2748,8 @@
       "name": "listAdminMeetups",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        75,
-        79
+        102,
+        106
       ],
       "summary": "listAdminMeetups in api.ts.",
       "tags": [
@@ -2697,8 +2765,8 @@
       "name": "createAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        81,
-        83
+        108,
+        110
       ],
       "summary": "createAdminMeetup in api.ts.",
       "tags": [
@@ -2714,8 +2782,8 @@
       "name": "getAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        85,
-        87
+        112,
+        114
       ],
       "summary": "getAdminMeetup in api.ts.",
       "tags": [
@@ -2731,8 +2799,8 @@
       "name": "updateAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        89,
-        94
+        116,
+        121
       ],
       "summary": "updateAdminMeetup in api.ts.",
       "tags": [
@@ -2748,8 +2816,8 @@
       "name": "cancelAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        96,
-        101
+        123,
+        128
       ],
       "summary": "cancelAdminMeetup in api.ts.",
       "tags": [
@@ -2765,8 +2833,8 @@
       "name": "restoreAdminMeetup",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        103,
-        105
+        130,
+        132
       ],
       "summary": "restoreAdminMeetup in api.ts.",
       "tags": [
@@ -2782,8 +2850,8 @@
       "name": "listAdminMeetupParticipants",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        107,
-        111
+        134,
+        138
       ],
       "summary": "listAdminMeetupParticipants in api.ts.",
       "tags": [
@@ -2799,8 +2867,8 @@
       "name": "removeAdminMeetupParticipant",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        113,
-        118
+        140,
+        145
       ],
       "summary": "removeAdminMeetupParticipant in api.ts.",
       "tags": [
@@ -2816,8 +2884,8 @@
       "name": "listAdminMeetupJoinRequests",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        120,
-        124
+        147,
+        151
       ],
       "summary": "listAdminMeetupJoinRequests in api.ts.",
       "tags": [
@@ -2833,8 +2901,8 @@
       "name": "approveAdminMeetupJoinRequest",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        126,
-        131
+        153,
+        158
       ],
       "summary": "approveAdminMeetupJoinRequest in api.ts.",
       "tags": [
@@ -2850,8 +2918,8 @@
       "name": "rejectAdminMeetupJoinRequest",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        133,
-        138
+        160,
+        165
       ],
       "summary": "rejectAdminMeetupJoinRequest in api.ts.",
       "tags": [
@@ -2867,8 +2935,8 @@
       "name": "listAdminCommunities",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        140,
-        144
+        167,
+        171
       ],
       "summary": "listAdminCommunities in api.ts.",
       "tags": [
@@ -2884,8 +2952,8 @@
       "name": "createAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        146,
-        148
+        173,
+        175
       ],
       "summary": "createAdminCommunity in api.ts.",
       "tags": [
@@ -2901,8 +2969,8 @@
       "name": "getAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        150,
-        152
+        177,
+        179
       ],
       "summary": "getAdminCommunity in api.ts.",
       "tags": [
@@ -2918,8 +2986,8 @@
       "name": "updateAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        154,
-        159
+        181,
+        186
       ],
       "summary": "updateAdminCommunity in api.ts.",
       "tags": [
@@ -2935,8 +3003,8 @@
       "name": "archiveAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        161,
-        166
+        188,
+        193
       ],
       "summary": "archiveAdminCommunity in api.ts.",
       "tags": [
@@ -2952,8 +3020,8 @@
       "name": "restoreAdminCommunity",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        168,
-        173
+        195,
+        200
       ],
       "summary": "restoreAdminCommunity in api.ts.",
       "tags": [
@@ -2969,8 +3037,8 @@
       "name": "listAdminCommunityMembers",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        175,
-        179
+        202,
+        206
       ],
       "summary": "listAdminCommunityMembers in api.ts.",
       "tags": [
@@ -2986,8 +3054,8 @@
       "name": "removeAdminCommunityMember",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        181,
-        186
+        208,
+        213
       ],
       "summary": "removeAdminCommunityMember in api.ts.",
       "tags": [
@@ -3003,8 +3071,8 @@
       "name": "updateAdminCommunityMemberRole",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        188,
-        197
+        215,
+        224
       ],
       "summary": "updateAdminCommunityMemberRole in api.ts.",
       "tags": [
@@ -3020,8 +3088,8 @@
       "name": "listAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        199,
-        203
+        226,
+        230
       ],
       "summary": "listAdminCommunityNews in api.ts.",
       "tags": [
@@ -3037,8 +3105,8 @@
       "name": "createAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        205,
-        210
+        232,
+        237
       ],
       "summary": "createAdminCommunityNews in api.ts.",
       "tags": [
@@ -3054,8 +3122,8 @@
       "name": "updateAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        212,
-        217
+        239,
+        244
       ],
       "summary": "updateAdminCommunityNews in api.ts.",
       "tags": [
@@ -3071,8 +3139,8 @@
       "name": "deleteAdminCommunityNews",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        219,
-        224
+        246,
+        251
       ],
       "summary": "deleteAdminCommunityNews in api.ts.",
       "tags": [
@@ -3088,8 +3156,8 @@
       "name": "listAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        226,
-        230
+        253,
+        257
       ],
       "summary": "listAdminCommunityMedia in api.ts.",
       "tags": [
@@ -3105,8 +3173,8 @@
       "name": "createAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        232,
-        237
+        259,
+        264
       ],
       "summary": "createAdminCommunityMedia in api.ts.",
       "tags": [
@@ -3122,8 +3190,8 @@
       "name": "updateAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        239,
-        244
+        266,
+        271
       ],
       "summary": "updateAdminCommunityMedia in api.ts.",
       "tags": [
@@ -3139,8 +3207,8 @@
       "name": "deleteAdminCommunityMedia",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        246,
-        251
+        273,
+        278
       ],
       "summary": "deleteAdminCommunityMedia in api.ts.",
       "tags": [
@@ -3156,8 +3224,8 @@
       "name": "listAdminAfficheContentItems",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        253,
-        257
+        280,
+        284
       ],
       "summary": "listAdminAfficheContentItems in api.ts.",
       "tags": [
@@ -3173,8 +3241,8 @@
       "name": "getAdminAfficheContentItem",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        259,
-        263
+        286,
+        290
       ],
       "summary": "getAdminAfficheContentItem in api.ts.",
       "tags": [
@@ -3190,8 +3258,8 @@
       "name": "updateAdminAfficheContentItem",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        265,
-        270
+        292,
+        297
       ],
       "summary": "updateAdminAfficheContentItem in api.ts.",
       "tags": [
@@ -3207,8 +3275,8 @@
       "name": "moderateAdminAfficheContentItem",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        272,
-        277
+        299,
+        304
       ],
       "summary": "moderateAdminAfficheContentItem in api.ts.",
       "tags": [
@@ -3224,8 +3292,8 @@
       "name": "withQuery",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        279,
-        289
+        306,
+        316
       ],
       "summary": "withQuery in api.ts.",
       "tags": [
@@ -3241,8 +3309,8 @@
       "name": "json",
       "filePath": "admin/src/admin/management/api.ts",
       "lineRange": [
-        291,
-        296
+        318,
+        323
       ],
       "summary": "json in api.ts.",
       "tags": [
@@ -5896,13 +5964,13 @@
       "type": "file",
       "name": "Verification.tsx",
       "filePath": "admin/src/admin/pages/Verification.tsx",
-      "summary": "Verification.tsx contains 1 functions.",
+      "summary": "Verification.tsx contains 5 functions.",
       "tags": [
         "admin",
         "code",
         "typescript"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "function:admin/src/admin/pages/Verification.tsx:AdminVerification",
@@ -5910,8 +5978,8 @@
       "name": "AdminVerification",
       "filePath": "admin/src/admin/pages/Verification.tsx",
       "lineRange": [
-        9,
-        104
+        27,
+        214
       ],
       "summary": "AdminVerification in Verification.tsx.",
       "tags": [
@@ -5919,7 +5987,75 @@
         "function",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Verification.tsx:SummaryCard",
+      "type": "function",
+      "name": "SummaryCard",
+      "filePath": "admin/src/admin/pages/Verification.tsx",
+      "lineRange": [
+        216,
+        223
+      ],
+      "summary": "SummaryCard in Verification.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Verification.tsx:VerificationCard",
+      "type": "function",
+      "name": "VerificationCard",
+      "filePath": "admin/src/admin/pages/Verification.tsx",
+      "lineRange": [
+        225,
+        279
+      ],
+      "summary": "VerificationCard in Verification.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Verification.tsx:AssetLink",
+      "type": "function",
+      "name": "AssetLink",
+      "filePath": "admin/src/admin/pages/Verification.tsx",
+      "lineRange": [
+        281,
+        299
+      ],
+      "summary": "AssetLink in Verification.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Verification.tsx:StateText",
+      "type": "function",
+      "name": "StateText",
+      "filePath": "admin/src/admin/pages/Verification.tsx",
+      "lineRange": [
+        301,
+        307
+      ],
+      "summary": "StateText in Verification.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
     },
     {
       "id": "file:admin/src/admin/partner/admin-accounts-api.ts",
@@ -8184,8 +8320,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        217,
-        221
+        219,
+        223
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -9538,6 +9674,36 @@
         79
       ],
       "summary": "AdminUsersController in admin-users.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/apps/api/src/controllers/admin-verification.controller.ts",
+      "type": "file",
+      "name": "admin-verification.controller.ts",
+      "filePath": "backend/apps/api/src/controllers/admin-verification.controller.ts",
+      "summary": "admin-verification.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/admin-verification.controller.ts:AdminVerificationController",
+      "type": "class",
+      "name": "AdminVerificationController",
+      "filePath": "backend/apps/api/src/controllers/admin-verification.controller.ts",
+      "lineRange": [
+        7,
+        32
+      ],
+      "summary": "AdminVerificationController in admin-verification.controller.ts.",
       "tags": [
         "backend",
         "class",
@@ -11317,8 +11483,8 @@
       "name": "AdminUsersService",
       "filePath": "backend/apps/api/src/services/admin-users.service.ts",
       "lineRange": [
-        71,
-        980
+        72,
+        989
       ],
       "summary": "AdminUsersService in admin-users.service.ts.",
       "tags": [
@@ -14329,8 +14495,8 @@
       "name": "UploadsService",
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
       "lineRange": [
-        46,
-        894
+        62,
+        1195
       ],
       "summary": "UploadsService in uploads.service.ts.",
       "tags": [
@@ -14351,7 +14517,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "simple"
+      "complexity": "complex"
     },
     {
       "id": "class:backend/apps/api/src/services/verification.service.ts:VerificationService",
@@ -14359,8 +14525,8 @@
       "name": "VerificationService",
       "filePath": "backend/apps/api/src/services/verification.service.ts",
       "lineRange": [
-        13,
-        83
+        62,
+        772
       ],
       "summary": "VerificationService in verification.service.ts.",
       "tags": [
@@ -14368,7 +14534,7 @@
         "class",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/api/src/types/express-multer.ts",
@@ -27933,6 +28099,70 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "summary": "migration.sql contains 3 definitions.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_selfieAssetId_key",
+      "type": "table",
+      "name": "UserVerification_selfieAssetId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "lineRange": [
+        12,
+        12
+      ],
+      "summary": "index: UserVerification_selfieAssetId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_documentAssetId_key",
+      "type": "table",
+      "name": "UserVerification_documentAssetId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "lineRange": [
+        15,
+        15
+      ],
+      "summary": "index: UserVerification_documentAssetId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_status_submittedAt_idx",
+      "type": "table",
+      "name": "UserVerification_status_submittedAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "lineRange": [
+        18,
+        18
+      ],
+      "summary": "index: UserVerification_status_submittedAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -36811,6 +37041,34 @@
     },
     {
       "source": "file:admin/src/admin/management/api.ts",
+      "target": "function:admin/src/admin/management/api.ts:listAdminVerifications",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/management/api.ts",
+      "target": "function:admin/src/admin/management/api.ts:getAdminVerification",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/management/api.ts",
+      "target": "function:admin/src/admin/management/api.ts:approveAdminVerification",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/management/api.ts",
+      "target": "function:admin/src/admin/management/api.ts:returnAdminVerification",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/management/api.ts",
       "target": "function:admin/src/admin/management/api.ts:listAdminUserMeetups",
       "type": "contains",
       "direction": "forward",
@@ -37986,6 +38244,34 @@
       "weight": 1
     },
     {
+      "source": "file:admin/src/admin/pages/Verification.tsx",
+      "target": "function:admin/src/admin/pages/Verification.tsx:SummaryCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Verification.tsx",
+      "target": "function:admin/src/admin/pages/Verification.tsx:VerificationCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Verification.tsx",
+      "target": "function:admin/src/admin/pages/Verification.tsx:AssetLink",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Verification.tsx",
+      "target": "function:admin/src/admin/pages/Verification.tsx:StateText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:admin/src/admin/partner/admin-accounts-api.ts",
       "target": "function:admin/src/admin/partner/admin-accounts-api.ts:listPartnerAccounts",
       "type": "contains",
@@ -38954,6 +39240,13 @@
     {
       "source": "file:backend/apps/api/src/controllers/admin-users.controller.ts",
       "target": "class:backend/apps/api/src/controllers/admin-users.controller.ts:AdminUsersController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/admin-verification.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/admin-verification.controller.ts:AdminVerificationController",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -45322,6 +45615,27 @@
       "weight": 1
     },
     {
+      "source": "table:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_selfieAssetId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_documentAssetId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_status_submittedAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/reset-test-users.ts",
       "target": "function:backend/packages/database/prisma/reset-test-users.ts:main",
       "type": "contains",
@@ -47843,7 +48157,21 @@
     },
     {
       "source": "file:admin/src/admin/pages/Verification.tsx",
-      "target": "file:admin/src/admin/data.ts",
+      "target": "file:admin/src/admin/management/api.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Verification.tsx",
+      "target": "file:admin/src/admin/management/format.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:admin/src/admin/pages/Verification.tsx",
+      "target": "file:admin/src/admin/management/types.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -48208,6 +48536,13 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/admin-users.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/controllers/admin-verification.controller.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -49165,6 +49500,20 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/controllers/admin-verification.controller.ts",
+      "target": "file:backend/apps/api/src/common/admin.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/admin-verification.controller.ts",
+      "target": "file:backend/apps/api/src/services/verification.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/controllers/affiche.controller.ts",
       "target": "file:backend/apps/api/src/common/public.decorator.ts",
       "type": "imports",
@@ -49909,6 +50258,13 @@
     {
       "source": "file:backend/apps/api/src/services/admin-users.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/admin-users.service.ts",
+      "target": "file:backend/apps/api/src/services/verification.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -50854,6 +51210,13 @@
     {
       "source": "file:backend/apps/api/src/services/verification.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/verification.service.ts",
+      "target": "file:backend/apps/api/src/services/drops-reward.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -52273,6 +52636,7 @@
         "file:backend/apps/api/src/controllers/admin-meetups.controller.ts",
         "file:backend/apps/api/src/controllers/admin-partner-accounts.controller.ts",
         "file:backend/apps/api/src/controllers/admin-users.controller.ts",
+        "file:backend/apps/api/src/controllers/admin-verification.controller.ts",
         "file:backend/apps/api/src/controllers/affiche.controller.ts",
         "file:backend/apps/api/src/controllers/after-dark.controller.ts",
         "file:backend/apps/api/src/controllers/auth.controller.ts",
@@ -52914,6 +53278,10 @@
         "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_expiresAt_idx",
         "table:backend/packages/database/prisma/migrations/20260520153500_backfill_profile_avatar_cdn_urls/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260520162000_drop_image_url/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql",
+        "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_selfieAssetId_key",
+        "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_documentAssetId_key",
+        "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_status_submittedAt_idx",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",
