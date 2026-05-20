@@ -15,6 +15,7 @@ export function emptyProfileSocialPreview(): ProfileSocialDto {
     iFollow: false,
     iLike: false,
     iSuper: false,
+    followNotifications: false,
   };
 }
 
@@ -72,7 +73,7 @@ export async function loadProfileSocialPreviews(
             followerUserId: currentUserId,
             targetUserId: { in: activeTargetIds },
           },
-          select: { targetUserId: true },
+          select: { targetUserId: true, notifyEnabled: true },
         }),
     activeTargetIds.length === 0
       ? Promise.resolve([])
@@ -112,6 +113,7 @@ export async function loadProfileSocialPreviews(
     const preview = result.get(entry.targetUserId);
     if (preview != null) {
       preview.iFollow = true;
+      preview.followNotifications = entry.notifyEnabled === true;
     }
   }
 

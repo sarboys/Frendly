@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { PeopleService } from '../services/people.service';
 
@@ -66,6 +66,19 @@ export class PeopleController {
     @Param('userId') userId: string,
   ) {
     return this.peopleService.setFollow(currentUser.userId, userId, false);
+  }
+
+  @Patch(':userId/follow/notifications')
+  setFollowNotifications(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('userId') userId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.peopleService.setFollowNotifications(
+      currentUser.userId,
+      userId,
+      body.enabled === true,
+    );
   }
 
   @Put(':userId/reactions/:kind')

@@ -321,6 +321,7 @@ export interface ProfileSocialDto {
   iFollow: boolean;
   iLike: boolean;
   iSuper: boolean;
+  followNotifications: boolean;
 }
 
 export type EventInviteState =

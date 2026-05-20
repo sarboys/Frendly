@@ -160,6 +160,7 @@ describe('HostService unit', () => {
       $queryRaw: jest.fn().mockResolvedValue([
         {
           meetups_count: BigInt(12),
+          guests_count: BigInt(34),
           fill_rate: 75,
         },
       ]),
@@ -173,6 +174,7 @@ describe('HostService unit', () => {
 
     expect(result.stats).toMatchObject({
       meetupsCount: 12,
+      guestsCount: 34,
       fillRate: 75,
       rating: 4.8,
     });
@@ -223,6 +225,71 @@ describe('HostService unit', () => {
     );
     expect(result.events[0]?.going).toBe(9);
     expect(client.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns verified and Frendly+ flags for dashboard requests', async () => {
+    const request = {
+      ...makeDashboardRequest(
+        'request-1',
+        new Date('2026-04-24T10:00:00.000Z'),
+      ),
+      user: {
+        id: 'guest-request-1',
+        displayName: 'Guest',
+        verified: true,
+        subscriptions: [
+          {
+            status: 'active',
+            renewsAt: new Date('2026-06-24T10:00:00.000Z'),
+            trialEndsAt: null,
+          },
+        ],
+        profile: {
+          avatarUrl: null,
+        },
+      },
+    };
+    const client = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'host-user',
+          profile: {
+            rating: 5,
+          },
+        }),
+      },
+      event: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      eventJoinRequest: {
+        count: jest.fn().mockResolvedValue(1),
+        findMany: jest.fn().mockResolvedValue([request]),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      userBlock: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      $queryRaw: jest.fn().mockResolvedValue([
+        {
+          meetups_count: BigInt(0),
+          guests_count: BigInt(0),
+          fill_rate: 0,
+        },
+      ]),
+    };
+    const service = new HostService({ client } as any);
+
+    const result = await service.getDashboard('host-user', {
+      eventsLimit: 1,
+      requestsLimit: 1,
+    });
+
+    expect(result.requests[0]).toMatchObject({
+      id: 'request-1',
+      verified: true,
+      frendlyPlus: true,
+    });
   });
 
   it('rejects plus-only hosted event update for a non-plus host', async () => {
@@ -483,6 +550,16 @@ describe('HostService unit', () => {
             select: {
               id: true,
               displayName: true,
+              verified: true,
+              subscriptions: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: {
+                  status: true,
+                  renewsAt: true,
+                  trialEndsAt: true,
+                },
+              },
               profile: {
                 select: {
                   avatarUrl: true,
@@ -728,6 +805,16 @@ describe('HostService unit', () => {
                 select: {
                   id: true,
                   displayName: true,
+                  verified: true,
+                  subscriptions: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: {
+                      status: true,
+                      renewsAt: true,
+                      trialEndsAt: true,
+                    },
+                  },
                   profile: {
                     select: {
                       avatarUrl: true,

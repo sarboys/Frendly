@@ -1782,6 +1782,7 @@ model UserFollow {
   id             String   @id @default(cuid())
   followerUserId String
   targetUserId   String
+  notifyEnabled  Boolean  @default(true)
   createdAt      DateTime @default(now())
   followerUser   User     @relation("UserFollowFollower", fields: [followerUserId], references: [id], onDelete: Cascade)
   targetUser     User     @relation("UserFollowTarget", fields: [targetUserId], references: [id], onDelete: Cascade)

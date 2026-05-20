@@ -187,6 +187,16 @@ export class HostService {
             select: {
               id: true,
               displayName: true,
+              verified: true,
+              subscriptions: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: {
+                  status: true,
+                  renewsAt: true,
+                  trialEndsAt: true,
+                },
+              },
               profile: {
                 select: {
                   avatarUrl: true,
@@ -221,6 +231,7 @@ export class HostService {
       stats: {
         meetupsCount: dashboardStats.meetupsCount,
         rating: host?.profile?.rating ?? 0,
+        guestsCount: dashboardStats.guestsCount,
         fillRate: dashboardStats.fillRate,
       },
       pendingRequestsCount,
@@ -244,10 +255,12 @@ export class HostService {
 
     const rows = await this.prismaService.client.$queryRaw<Array<{
       meetups_count: bigint | number;
+      guests_count: bigint | number;
       fill_rate: bigint | number | string | null;
     }>>`
       SELECT
         COUNT(e."id") AS meetups_count,
+        COALESCE(SUM(COALESCE(participants."participantCount", 0)), 0) AS guests_count,
         COALESCE(
           ROUND(
             AVG(
@@ -271,6 +284,7 @@ export class HostService {
 
     return {
       meetupsCount: Number(row?.meetups_count ?? 0),
+      guestsCount: Number(row?.guests_count ?? 0),
       fillRate: Number(row?.fill_rate ?? 0),
     };
   }
@@ -337,6 +351,16 @@ export class HostService {
               select: {
                 id: true,
                 displayName: true,
+                verified: true,
+                subscriptions: {
+                  orderBy: { createdAt: 'desc' },
+                  take: 1,
+                  select: {
+                    status: true,
+                    renewsAt: true,
+                    trialEndsAt: true,
+                  },
+                },
                 profile: {
                   select: {
                     avatarUrl: true,
@@ -537,6 +561,16 @@ export class HostService {
             select: {
               id: true,
               displayName: true,
+              verified: true,
+              subscriptions: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: {
+                  status: true,
+                  renewsAt: true,
+                  trialEndsAt: true,
+                },
+              },
               profile: {
                 select: {
                   avatarUrl: true,
@@ -717,6 +751,16 @@ export class HostService {
             select: {
               id: true,
               displayName: true,
+              verified: true,
+              subscriptions: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: {
+                  status: true,
+                  renewsAt: true,
+                  trialEndsAt: true,
+                },
+              },
               profile: {
                 select: {
                   avatarUrl: true,
@@ -1128,9 +1172,22 @@ export class HostService {
       createdAt: Date;
       reviewedAt: Date | null;
       event: { id: string; title: string };
-      user: { id: string; displayName: string; profile: { avatarUrl: string | null } | null };
+      user: {
+        id: string;
+        displayName: string;
+        verified?: boolean;
+        subscriptions?: Array<{
+          status: 'inactive' | 'trial' | 'active' | 'canceled';
+          renewsAt: Date | null;
+          trialEndsAt: Date | null;
+        }>;
+        profile: { avatarUrl: string | null } | null;
+      };
     },
   ) {
+    const subscriptionStatus = this.resolveSubscriptionStatus(
+      request.user.subscriptions?.[0] ?? null,
+    );
     return {
       id: request.id,
       eventId: request.eventId,
@@ -1143,6 +1200,8 @@ export class HostService {
       userId: request.user.id,
       userName: request.user.displayName,
       avatarUrl: request.user.profile?.avatarUrl ?? null,
+      verified: request.user.verified === true,
+      frendlyPlus: subscriptionStatus === 'trial' || subscriptionStatus === 'active',
     };
   }
 

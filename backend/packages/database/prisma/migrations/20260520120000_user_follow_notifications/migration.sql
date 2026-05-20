@@ -1,0 +1,2 @@
+ALTER TABLE "UserFollow"
+  ADD COLUMN "notifyEnabled" BOOLEAN NOT NULL DEFAULT true;

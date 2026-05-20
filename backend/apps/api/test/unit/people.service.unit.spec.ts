@@ -218,7 +218,7 @@ describe('PeopleService unit', () => {
               { targetUserId: 'user-anna', _count: { _all: 7 } },
             ]),
             findMany: jest.fn().mockResolvedValue([
-              { targetUserId: 'user-anna' },
+              { targetUserId: 'user-anna', notifyEnabled: true },
             ]),
           },
           profileReaction: {
@@ -251,6 +251,7 @@ describe('PeopleService unit', () => {
         likes: 12,
         superLikes: 2,
         iFollow: true,
+        followNotifications: true,
         iLike: true,
         iSuper: false,
       },
@@ -262,9 +263,159 @@ describe('PeopleService unit', () => {
         likes: 0,
         superLikes: 0,
         iFollow: false,
+        followNotifications: false,
         iLike: false,
         iSuper: false,
       },
+    });
+  });
+
+  it('creates a follow with notifications enabled by default', async () => {
+    const upsert = jest.fn().mockResolvedValue({});
+    const service = new PeopleService({
+      client: {
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            settings: {
+              discoverable: true,
+            },
+          }),
+        },
+        userFollow: {
+          upsert,
+          groupBy: jest.fn().mockResolvedValue([
+            { targetUserId: 'user-peer', _count: { _all: 1 } },
+          ]),
+          findMany: jest.fn().mockResolvedValue([
+            { targetUserId: 'user-peer', notifyEnabled: true },
+          ]),
+        },
+        profileReaction: {
+          groupBy: jest.fn().mockResolvedValue([]),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.setFollow('user-me', 'user-peer', true);
+
+    expect(upsert).toHaveBeenCalledWith({
+      where: {
+        followerUserId_targetUserId: {
+          followerUserId: 'user-me',
+          targetUserId: 'user-peer',
+        },
+      },
+      update: {},
+      create: {
+        followerUserId: 'user-me',
+        targetUserId: 'user-peer',
+        notifyEnabled: true,
+      },
+    });
+    expect(result).toMatchObject({
+      followers: 1,
+      iFollow: true,
+      followNotifications: true,
+    });
+  });
+
+  it('clears follow state and notifications after unfollow', async () => {
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new PeopleService({
+      client: {
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            settings: {
+              discoverable: true,
+            },
+          }),
+        },
+        userFollow: {
+          deleteMany,
+          groupBy: jest.fn().mockResolvedValue([]),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        profileReaction: {
+          groupBy: jest.fn().mockResolvedValue([]),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.setFollow('user-me', 'user-peer', false);
+
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: {
+        followerUserId: 'user-me',
+        targetUserId: 'user-peer',
+      },
+    });
+    expect(result).toMatchObject({
+      followers: 0,
+      iFollow: false,
+      followNotifications: false,
+    });
+  });
+
+  it('toggles follow notifications for an existing follow', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new PeopleService({
+      client: {
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            settings: {
+              discoverable: true,
+            },
+          }),
+        },
+        userFollow: {
+          updateMany,
+          groupBy: jest.fn().mockResolvedValue([
+            { targetUserId: 'user-peer', _count: { _all: 3 } },
+          ]),
+          findMany: jest.fn().mockResolvedValue([
+            { targetUserId: 'user-peer', notifyEnabled: false },
+          ]),
+        },
+        profileReaction: {
+          groupBy: jest.fn().mockResolvedValue([]),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const result = await service.setFollowNotifications(
+      'user-me',
+      'user-peer',
+      false,
+    );
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        followerUserId: 'user-me',
+        targetUserId: 'user-peer',
+      },
+      data: {
+        notifyEnabled: false,
+      },
+    });
+    expect(result).toMatchObject({
+      followers: 3,
+      iFollow: true,
+      followNotifications: false,
     });
   });
 

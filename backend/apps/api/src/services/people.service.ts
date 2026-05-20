@@ -32,6 +32,7 @@ type ProfileSocialSnapshot = {
   iFollow: boolean;
   iLike: boolean;
   iSuper: boolean;
+  followNotifications: boolean;
 };
 
 type InviteState =
@@ -618,6 +619,7 @@ export class PeopleService {
         create: {
           followerUserId: currentUserId,
           targetUserId,
+          notifyEnabled: true,
         },
       });
     } else {
@@ -627,6 +629,30 @@ export class PeopleService {
           targetUserId,
         },
       });
+    }
+
+    return this.getProfileSocialSnapshot(currentUserId, targetUserId);
+  }
+
+  async setFollowNotifications(
+    currentUserId: string,
+    targetUserId: string,
+    enabled: boolean,
+  ): Promise<ProfileSocialSnapshot> {
+    await this.assertSocialTargetVisible(currentUserId, targetUserId);
+
+    const updated = await this.prismaService.client.userFollow.updateMany({
+      where: {
+        followerUserId: currentUserId,
+        targetUserId,
+      },
+      data: {
+        notifyEnabled: enabled,
+      },
+    });
+
+    if (updated.count === 0) {
+      throw new ApiError(404, 'follow_not_found', 'Follow not found');
     }
 
     return this.getProfileSocialSnapshot(currentUserId, targetUserId);
