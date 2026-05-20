@@ -26,9 +26,14 @@ describe('TokensService unit', () => {
       $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
       ...overrides.prismaClient,
     };
+    const dropsRewardService = {
+      grantBoostReward: jest.fn(),
+      ...overrides.dropsRewardService,
+    };
     return {
-      service: new TokensService({ client: prismaClient } as any),
+      service: new TokensService({ client: prismaClient } as any, dropsRewardService as any),
       prismaClient,
+      dropsRewardService,
     };
   };
 
@@ -210,5 +215,32 @@ describe('TokensService unit', () => {
         reason: 'subscription_spend',
       },
     });
+  });
+
+  it('grants a Drops boost reward after promoting an event', async () => {
+    const { service, prismaClient, dropsRewardService } = makeService();
+    prismaClient.event.findFirst.mockResolvedValue({ id: 'event-1' });
+    prismaClient.tokenWallet.upsert.mockResolvedValue({
+      id: 'wallet-1',
+      userId: 'user-1',
+      balance: 100,
+    });
+    prismaClient.tokenWallet.updateMany.mockResolvedValue({ count: 1 });
+    prismaClient.tokenLedgerEntry.create.mockResolvedValue({ id: 'ledger-1' });
+    prismaClient.tokenPromotion.create.mockResolvedValue({ id: 'promotion-1' });
+
+    await service.createPromotion('user-1', {
+      targetKind: 'event',
+      targetId: 'event-1',
+      optionId: 'boost-24',
+    });
+
+    expect(dropsRewardService.grantBoostReward).toHaveBeenCalledWith(
+      'user-1',
+      'promotion-1',
+      'event-1',
+      expect.any(Date),
+      prismaClient,
+    );
   });
 });

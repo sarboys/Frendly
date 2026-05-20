@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
+import { DropsRewardService } from './drops-reward.service';
 import { PrismaService } from './prisma.service';
 
 const DEFAULT_LIMIT = 20;
@@ -68,7 +69,10 @@ type AdminProfileTextUpdate = {
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly dropsRewardService?: DropsRewardService,
+  ) {}
 
   async listUsers(query: Record<string, unknown> = {}) {
     const limit = this.parseLimit(query.limit);
@@ -168,8 +172,21 @@ export class AdminUsersService {
         },
       });
     });
+    await this.handleDropsVerifiedUser(userId);
 
     return this.getUser(userId);
+  }
+
+  private async handleDropsVerifiedUser(userId: string) {
+    if (!this.dropsRewardService) {
+      return;
+    }
+
+    try {
+      await this.dropsRewardService.handleUserVerified(userId);
+    } catch {
+      // Drops rewards must not block admin verification.
+    }
   }
 
   async unverifyUser(userId: string) {

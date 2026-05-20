@@ -2,8 +2,8 @@ import { AdminUsersService } from '../../src/services/admin-users.service';
 
 const now = new Date('2026-05-05T10:00:00.000Z');
 
-function createService(client: Record<string, unknown>) {
-  return new AdminUsersService({ client } as any);
+function createService(client: Record<string, unknown>, dropsRewardService?: Record<string, unknown>) {
+  return new AdminUsersService({ client } as any, dropsRewardService as any);
 }
 
 function detailRow(overrides: Record<string, unknown> = {}) {
@@ -191,6 +191,37 @@ describe('AdminUsersService unit', () => {
     });
     expect(result.status).toBe('active');
     expect(result.suspensionReason).toBeNull();
+  });
+
+  it('notifies Drops rewards after admin verification', async () => {
+    const userFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'user-1' })
+      .mockResolvedValueOnce(detailRow({ verified: true }));
+    const tx = {
+      user: {
+        update: jest.fn(),
+      },
+      userVerification: {
+        upsert: jest.fn(),
+      },
+    };
+    const dropsRewardService = {
+      handleUserVerified: jest.fn().mockResolvedValue({}),
+    };
+    const service = createService(
+      {
+        user: { findUnique: userFindUnique },
+        session: { count: jest.fn().mockResolvedValue(1) },
+        userReport: { count: jest.fn().mockResolvedValue(0) },
+        $transaction: jest.fn((callback) => callback(tx)),
+      },
+      dropsRewardService,
+    );
+
+    await service.verifyUser('user-1');
+
+    expect(dropsRewardService.handleUserVerified).toHaveBeenCalledWith('user-1');
   });
 
   it('revokes only active sessions', async () => {

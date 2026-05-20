@@ -4,6 +4,7 @@ import { AuthController } from './controllers/auth.controller';
 import { AdminAfficheController } from './controllers/admin-affiche.controller';
 import { AdminCommunitiesController } from './controllers/admin-communities.controller';
 import { AdminAuthController } from './controllers/admin-auth.controller';
+import { AdminDropsController } from './controllers/admin-drops.controller';
 import { AdminEveningController } from './controllers/admin-evening.controller';
 import { AdminMeetupsController } from './controllers/admin-meetups.controller';
 import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
@@ -13,6 +14,7 @@ import { AfterDarkController } from './controllers/after-dark.controller';
 import { ChatsController } from './controllers/chats.controller';
 import { CommunitiesController } from './controllers/communities.controller';
 import { DatingController } from './controllers/dating.controller';
+import { DropsController } from './controllers/drops.controller';
 import { EveningController } from './controllers/evening.controller';
 import { EventsController } from './controllers/events.controller';
 import { HealthController } from './controllers/health.controller';
@@ -61,6 +63,9 @@ import { AfterDarkService } from './services/after-dark.service';
 import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
 import { DatingService } from './services/dating.service';
+import { DropsDrawService } from './services/drops-draw.service';
+import { DropsRewardService } from './services/drops-reward.service';
+import { DropsService } from './services/drops.service';
 import { EveningAnalyticsService } from './services/evening-analytics.service';
 import { EveningAiDraftService } from './services/evening-ai-draft.service';
 import { EveningRouteAiCandidatesService } from './services/evening-route-ai-candidates.service';
@@ -104,6 +109,7 @@ import { VerificationService } from './services/verification.service';
     AdminEveningController,
     AdminMeetupsController,
     AdminAuthController,
+    AdminDropsController,
     AdminPartnerAccountsController,
     AdminUsersController,
     AfficheController,
@@ -112,6 +118,7 @@ import { VerificationService } from './services/verification.service';
     ChatsController,
     CommunitiesController,
     DatingController,
+    DropsController,
     EveningController,
     EventsController,
     HealthController,
@@ -159,6 +166,9 @@ import { VerificationService } from './services/verification.service';
     ChatsService,
     CommunitiesService,
     DatingService,
+    DropsDrawService,
+    DropsRewardService,
+    DropsService,
     EveningAnalyticsService,
     EveningAiDraftService,
     EveningRouteAiCandidatesService,

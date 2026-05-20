@@ -72,6 +72,59 @@ enum OutboxStatus {
   failed
 }
 
+enum DropType {
+  main_monthly
+  free
+  frendly_plus
+  partner
+  special
+}
+
+enum DropStatus {
+  draft
+  scheduled
+  active
+  drawing_pending
+  finished
+  cancelled
+}
+
+enum DropTicketStatus {
+  pending
+  active
+  cancelled
+  used_in_draw
+  winner
+  expired
+}
+
+enum DropRewardStatus {
+  pending
+  active
+  cancelled
+  rejected
+}
+
+enum DropRewardSource {
+  verification
+  daily_login
+  host_meeting
+  visit_meeting
+  referral
+  subscription
+  boost
+  manual_admin
+}
+
+enum DropWinnerStatus {
+  pending_verification
+  approved
+  rejected
+  prize_delivered
+  prize_replaced
+  expired
+}
+
 enum EventTone {
   warm
   evening
@@ -302,6 +355,12 @@ model User {
   tokenWallet                        TokenWallet?
   tokenPromotions                    TokenPromotion[]
   seasonRewardClaims                 UserSeasonRewardClaim[]
+  dropTickets                        DropTicket[]
+  dropRewardEvents                   DropRewardEvent[]
+  dropWinners                        DropWinner[]
+  dropReferralsSent                  DropReferral[]              @relation("DropReferralInviter")
+  dropReferralInvite                 DropReferral?               @relation("DropReferralInvited")
+  dropRestriction                    DropUserRestriction?
   chatMembers                        ChatMember[]
   createdCommunities                 Community[]                 @relation("CommunityCreator")
   communityMemberships               CommunityMember[]
@@ -624,6 +683,7 @@ model Event {
   stories           EventStory[]
   publicShares      PublicShare[]
   tokenPromotions   TokenPromotion[]
+  dropRewardEvents  DropRewardEvent[]
   safetySosAlerts   SafetySosAlert[]
   chat              Chat?
   sourceChats       Chat[]              @relation("ChatSourceEvent")
@@ -1745,6 +1805,149 @@ model TokenPromotion {
   @@index([eventId, expiresAt])
   @@index([chatId, expiresAt])
   @@index([userId, expiresAt])
+}
+
+model Drop {
+  id                   String             @id @default(cuid())
+  title                String
+  description          String
+  type                 DropType
+  status               DropStatus         @default(draft)
+  prizes               Json               @default("[]")
+  startsAt             DateTime
+  endsAt               DateTime
+  drawAt               DateTime
+  conditions           Json               @default("{}")
+  userLimit            Int?
+  maxTicketsPerUser    Int?
+  requiresVerified     Boolean            @default(true)
+  requiresFrendlyPlus  Boolean            @default(false)
+  minAge               Int?
+  region               String?
+  seedHash             String?
+  secretSeed           String?
+  seedRevealedAt       DateTime?
+  cancelReason         String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  tickets              DropTicket[]
+  drawSnapshot         DropDrawSnapshot?
+  winners              DropWinner[]
+
+  @@index([status, startsAt, endsAt])
+  @@index([type, status, drawAt])
+}
+
+model DropRewardEvent {
+  id                 String           @id @default(cuid())
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source             DropRewardSource
+  status             DropRewardStatus @default(active)
+  idempotencyKey     String           @unique
+  monthKey           String
+  ticketCount        Int
+  title              String
+  description        String?
+  relatedType        String?
+  relatedId          String?
+  eventId            String?
+  event              Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  cancellationReason String?
+  confirmedAt        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  tickets            DropTicket[]
+
+  @@index([userId, monthKey, status])
+  @@index([userId, source, monthKey, status])
+  @@index([eventId, source])
+  @@index([createdAt, id])
+}
+
+model DropTicket {
+  id            String           @id @default(cuid())
+  code          String           @unique
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dropId        String?
+  drop          Drop?            @relation(fields: [dropId], references: [id], onDelete: SetNull)
+  rewardEventId String
+  rewardEvent   DropRewardEvent  @relation(fields: [rewardEventId], references: [id], onDelete: Cascade)
+  source        DropRewardSource
+  monthKey      String
+  status        DropTicketStatus  @default(active)
+  assignedAt    DateTime?
+  cancelledAt   DateTime?
+  cancelReason  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  winner        DropWinner?
+
+  @@index([userId, status, dropId, createdAt, id])
+  @@index([userId, monthKey, status])
+  @@index([dropId, status, createdAt, id])
+  @@index([rewardEventId])
+}
+
+model DropDrawSnapshot {
+  id               String   @id @default(cuid())
+  dropId           String   @unique
+  drop             Drop     @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  seedHash         String
+  secretSeed       String
+  ticketCount      Int
+  participantCount Int
+  tickets          Json
+  createdAt        DateTime @default(now())
+}
+
+model DropWinner {
+  id             String           @id @default(cuid())
+  dropId         String
+  drop           Drop             @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticketId       String           @unique
+  ticket         DropTicket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  status         DropWinnerStatus @default(pending_verification)
+  position       Int
+  reserve        Boolean          @default(false)
+  prize          Json             @default("{}")
+  rejectedReason String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([dropId, position, reserve])
+  @@index([dropId, reserve, position])
+  @@index([userId, status, createdAt])
+}
+
+model DropReferral {
+  id             String   @id @default(cuid())
+  inviterUserId  String
+  inviter        User     @relation("DropReferralInviter", fields: [inviterUserId], references: [id], onDelete: Cascade)
+  invitedUserId  String?  @unique
+  invited        User?    @relation("DropReferralInvited", fields: [invitedUserId], references: [id], onDelete: SetNull)
+  code           String   @unique
+  status         String   @default("created")
+  rewardEventId  String?
+  createdAt      DateTime @default(now())
+  verifiedAt     DateTime?
+
+  @@index([inviterUserId, status, createdAt])
+  @@index([code])
+}
+
+model DropUserRestriction {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  @@index([expiresAt])
 }
 
 model UserSeasonRewardClaim {

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TokenLedgerReason } from '@prisma/client';
 import { ApiError } from '../common/api-error';
+import { DropsRewardService } from './drops-reward.service';
 import { PrismaService } from './prisma.service';
 import {
   findTokenPackProduct,
@@ -20,7 +21,10 @@ const ledgerNotes: Record<string, string> = {
 
 @Injectable()
 export class TokensService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly dropsRewardService?: DropsRewardService,
+  ) {}
 
   async getWallet(userId: string, client: PrismaLike = this.prismaService.client) {
     const wallet = await this.ensureWallet(userId, client);
@@ -163,7 +167,7 @@ export class TokensService {
         },
         client,
       );
-      await client.tokenPromotion.create({
+      const promotion = await client.tokenPromotion.create({
         data: {
           userId,
           eventId: targetKind === 'event' ? targetId : null,
@@ -173,9 +177,35 @@ export class TokensService {
           ledgerEntryId: ledgerEntry.id,
         },
       });
+      if (targetKind === 'event') {
+        await this.grantDropsBoostReward(userId, promotion.id, targetId, client);
+      }
 
       return this.getWallet(userId, client);
     });
+  }
+
+  private async grantDropsBoostReward(
+    userId: string,
+    promotionId: string,
+    eventId: string,
+    client: PrismaLike,
+  ) {
+    if (!this.dropsRewardService) {
+      return;
+    }
+
+    try {
+      await this.dropsRewardService.grantBoostReward(
+        userId,
+        promotionId,
+        eventId,
+        new Date(Date.now()),
+        client,
+      );
+    } catch {
+      // Drops rewards must not block promotion activation.
+    }
   }
 
   private async ensureWallet(userId: string, client: PrismaLike) {

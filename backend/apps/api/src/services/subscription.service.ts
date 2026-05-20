@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
+import { DropsRewardService } from './drops-reward.service';
 import { findSubscriptionProduct, subscriptionProducts } from './payment-catalog';
 import { PrismaService } from './prisma.service';
 import { TokensService } from './tokens.service';
@@ -19,6 +20,7 @@ export class SubscriptionService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly tokensService: TokensService,
+    private readonly dropsRewardService?: DropsRewardService,
   ) {}
 
   getPlans() {
@@ -120,7 +122,7 @@ export class SubscriptionService {
     const product = findSubscriptionProduct(plan);
 
     return this.prismaService.client.$transaction(async (client) => {
-      await this.tokensService.spendTokens(
+      const ledgerEntry = await this.tokensService.spendTokens(
         userId,
         {
           amount: product.tokenCost,
@@ -135,6 +137,7 @@ export class SubscriptionService {
         null,
         client,
       );
+      await this.grantDropsSubscriptionReward(userId, ledgerEntry.id, client);
 
       return this.mapCurrent(subscription);
     });
@@ -143,7 +146,7 @@ export class SubscriptionService {
   async activatePaidSubscription(
     userId: string,
     plan: string,
-    _paymentOrderId: string | null,
+    paymentOrderId: string | null,
     client: Prisma.TransactionClient = this.prismaService.client,
   ) {
     const product = findSubscriptionProduct(plan);
@@ -159,8 +162,8 @@ export class SubscriptionService {
         : now.getTime();
     const renewsAt = new Date(baseTime + product.durationDays * 24 * 60 * 60 * 1000);
 
-    if (current && (currentStatus === 'trial' || currentStatus === 'active')) {
-      return client.userSubscription.update({
+    const subscription = current && (currentStatus === 'trial' || currentStatus === 'active')
+      ? await client.userSubscription.update({
         where: { id: current.id },
         data: {
           plan: product.id,
@@ -168,19 +171,44 @@ export class SubscriptionService {
           renewsAt,
           trialEndsAt: null,
         },
+      })
+      : await client.userSubscription.create({
+        data: {
+          userId,
+          plan: product.id,
+          status: 'active',
+          startedAt: now,
+          renewsAt,
+          trialEndsAt: null,
+        },
       });
+
+    if (paymentOrderId != null) {
+      await this.grantDropsSubscriptionReward(userId, paymentOrderId, client);
     }
 
-    return client.userSubscription.create({
-      data: {
+    return subscription;
+  }
+
+  private async grantDropsSubscriptionReward(
+    userId: string,
+    sourceId: string,
+    client: Prisma.TransactionClient,
+  ) {
+    if (!this.dropsRewardService) {
+      return;
+    }
+
+    try {
+      await this.dropsRewardService.grantSubscriptionReward(
         userId,
-        plan: product.id,
-        status: 'active',
-        startedAt: now,
-        renewsAt,
-        trialEndsAt: null,
-      },
-    });
+        sourceId,
+        new Date(Date.now()),
+        client,
+      );
+    } catch {
+      // Drops rewards must not block subscription activation.
+    }
   }
 
   async restore(userId: string) {

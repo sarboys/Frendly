@@ -4,9 +4,13 @@ describe('SubscriptionService unit', () => {
   const tokensService = {
     spendTokens: jest.fn(),
   };
+  const dropsRewardService = {
+    grantSubscriptionReward: jest.fn(),
+  };
 
   beforeEach(() => {
     tokensService.spendTokens.mockReset();
+    dropsRewardService.grantSubscriptionReward.mockReset();
   });
 
   it('loads only fields needed for the current subscription response', async () => {
@@ -153,6 +157,7 @@ describe('SubscriptionService unit', () => {
     const service = new SubscriptionService(
       { client: prismaClient } as any,
       tokensService as any,
+      dropsRewardService as any,
     );
 
     await expect(
@@ -171,6 +176,12 @@ describe('SubscriptionService unit', () => {
         amount: 799,
         reason: 'subscription_spend',
       },
+      prismaClient,
+    );
+    expect(dropsRewardService.grantSubscriptionReward).toHaveBeenCalledWith(
+      'user-1',
+      'ledger-1',
+      expect.any(Date),
       prismaClient,
     );
   });
@@ -202,6 +213,7 @@ describe('SubscriptionService unit', () => {
     const service = new SubscriptionService(
       { client: prismaClient } as any,
       tokensService as any,
+      dropsRewardService as any,
     );
 
     await service.subscribeWithTokens('user-1', { plan: 'month' });
@@ -224,5 +236,42 @@ describe('SubscriptionService unit', () => {
       },
     });
     expect(prismaClient.userSubscription.create).not.toHaveBeenCalled();
+  });
+
+  it('grants a Drops subscription reward after a confirmed paid subscription', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-13T10:00:00.000Z').getTime());
+    const prismaClient: any = {
+      userSubscription: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          plan: 'month',
+          status: 'active',
+          startedAt: new Date('2026-05-13T10:00:00.000Z'),
+          renewsAt: new Date('2026-06-12T10:00:00.000Z'),
+          trialEndsAt: null,
+        }),
+      },
+    };
+    const service = new SubscriptionService(
+      { client: prismaClient } as any,
+      tokensService as any,
+      dropsRewardService as any,
+    );
+
+    await service.activatePaidSubscription(
+      'user-1',
+      'month',
+      'payment-order-1',
+      prismaClient,
+    );
+
+    expect(dropsRewardService.grantSubscriptionReward).toHaveBeenCalledWith(
+      'user-1',
+      'payment-order-1',
+      expect.any(Date),
+      prismaClient,
+    );
   });
 });

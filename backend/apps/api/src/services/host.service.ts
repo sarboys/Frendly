@@ -22,6 +22,7 @@ import {
   mapUserPreview,
 } from '../common/presenters';
 import { assertEventCapacityAvailable } from './event-capacity';
+import { DropsRewardService } from './drops-reward.service';
 import { PrismaService } from './prisma.service';
 
 const HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT = 6;
@@ -72,7 +73,10 @@ type EventEntryRequirementsInput = {
 
 @Injectable()
 export class HostService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly dropsRewardService?: DropsRewardService,
+  ) {}
 
   async getDashboard(
     userId: string,
@@ -1003,6 +1007,8 @@ export class HostService {
       return nextLiveState;
     });
 
+    await this.evaluateDropsMeetingRewards(eventId);
+
     return {
       eventId,
       status: liveState.status,
@@ -1010,6 +1016,18 @@ export class HostService {
       finishedAt: liveState.finishedAt?.toISOString() ?? null,
       attendedUserIds,
     };
+  }
+
+  private async evaluateDropsMeetingRewards(eventId: string) {
+    if (!this.dropsRewardService) {
+      return;
+    }
+
+    try {
+      await this.dropsRewardService.evaluateMeetingRewards(eventId);
+    } catch {
+      // Drops rewards must not break the host flow.
+    }
   }
 
   private parseAttendedUserIds(input: unknown): string[] {

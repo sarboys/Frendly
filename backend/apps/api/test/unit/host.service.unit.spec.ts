@@ -958,6 +958,46 @@ describe('HostService unit', () => {
     });
   });
 
+  it('asks Drops rewards to evaluate meeting rewards after finishing live', async () => {
+    const eventFindFirst = jest.fn().mockResolvedValue({
+      id: 'event-1',
+      participants: [{ userId: 'guest-present' }],
+    });
+    const liveStateUpsert = jest.fn().mockResolvedValue({
+      status: 'finished',
+      startedAt: null,
+      finishedAt: new Date('2026-04-28T20:00:00.000Z'),
+    });
+    const dropsRewardService = {
+      evaluateMeetingRewards: jest.fn().mockResolvedValue({ granted: 1 }),
+    };
+    const service = new HostService(
+      {
+        client: {
+          event: {
+            findFirst: eventFindFirst,
+          },
+          $transaction: jest.fn((callback) =>
+            callback({
+              eventLiveState: {
+                upsert: liveStateUpsert,
+              },
+              eventAttendance: {
+                updateMany: jest.fn(),
+                upsert: jest.fn(),
+              },
+            }),
+          ),
+        },
+      } as any,
+      dropsRewardService as any,
+    );
+
+    await service.finishLive('host-user', 'event-1', ['guest-present']);
+
+    expect(dropsRewardService.evaluateMeetingRewards).toHaveBeenCalledWith('event-1');
+  });
+
   it('treats missing finish attendees as an empty host selection', async () => {
     const eventFindFirst = jest.fn().mockResolvedValue({
       id: 'event-1',
