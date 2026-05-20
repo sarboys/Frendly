@@ -11,6 +11,9 @@ describe('AuthService unit', () => {
         city: 'Москва',
         area: 'Покровка',
       },
+      onboarding: {
+        completedAt: new Date('2026-05-20T02:00:00.000Z'),
+      },
     });
     const service = new AuthService(
       {
@@ -30,6 +33,7 @@ describe('AuthService unit', () => {
       online: false,
       city: 'Москва',
       area: 'Покровка',
+      onboardingComplete: true,
     });
     expect(userFindUnique).toHaveBeenCalledWith({
       where: { id: 'user-me' },
@@ -42,6 +46,11 @@ describe('AuthService unit', () => {
           select: {
             area: true,
             city: true,
+          },
+        },
+        onboarding: {
+          select: {
+            completedAt: true,
           },
         },
       },
