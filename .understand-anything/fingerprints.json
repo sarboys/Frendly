@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "271a42722398f7f1ff43b8786349c288458a1e16",
-  "generatedAt": "2026-05-17T10:56:40.354Z",
+  "gitCommitHash": "06231d4b7c5360f9c12f141da11282f860ca90bd",
+  "generatedAt": "2026-05-20T05:38:40.013Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -8610,7 +8610,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "684b4407f6f1709c45ccba30a74b7e8c375b167eb919aa66478a9ce487e083ee",
+      "contentHash": "17a635af7ade6ae35b9b22f7f042f79d0155bdb57b324cc44ad8020c88f3e768",
       "functions": [],
       "classes": [
         {
@@ -8661,6 +8661,12 @@
           "source": "./controllers/admin-auth.controller",
           "specifiers": [
             "AdminAuthController"
+          ]
+        },
+        {
+          "source": "./controllers/admin-drops.controller",
+          "specifiers": [
+            "AdminDropsController"
           ]
         },
         {
@@ -8715,6 +8721,12 @@
           "source": "./controllers/dating.controller",
           "specifiers": [
             "DatingController"
+          ]
+        },
+        {
+          "source": "./controllers/drops.controller",
+          "specifiers": [
+            "DropsController"
           ]
         },
         {
@@ -9006,6 +9018,24 @@
           ]
         },
         {
+          "source": "./services/drops-draw.service",
+          "specifiers": [
+            "DropsDrawService"
+          ]
+        },
+        {
+          "source": "./services/drops-reward.service",
+          "specifiers": [
+            "DropsRewardService"
+          ]
+        },
+        {
+          "source": "./services/drops.service",
+          "specifiers": [
+            "DropsService"
+          ]
+        },
+        {
           "source": "./services/evening-analytics.service",
           "specifiers": [
             "EveningAnalyticsService"
@@ -9219,7 +9249,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 212,
+      "totalLines": 222,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -9913,7 +9943,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "96b27645185ced90c71faa4b1c1d6aab65c2c1b76595dd37c83fe6d0b3dac93a",
+      "contentHash": "9bccf732a15259510b6a2df8992c576a2852aae23f7a70fac06417e0727deae6",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -9963,7 +9993,7 @@
             "user"
           ],
           "exported": true,
-          "lineCount": 30
+          "lineCount": 36
         },
         {
           "name": "hasActiveFrendlyPlus",
@@ -10104,19 +10134,19 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 572,
+      "totalLines": 579,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
       "filePath": "backend/apps/api/src/common/profile-social-preview.ts",
-      "contentHash": "f94bcb49c6403da60f5d95225885f5257b1e3d167a3feb871cb6aa55dfc6ab9f",
+      "contentHash": "bb964594df39a4f2326832269a523e023d0b4c7b3d1a38132eeebe8917bb1cdb",
       "functions": [
         {
           "name": "emptyProfileSocialPreview",
           "params": [],
           "returnType": "ProfileSocialDto",
           "exported": true,
-          "lineCount": 10
+          "lineCount": 11
         },
         {
           "name": "loadProfileSocialPreviews",
@@ -10127,7 +10157,7 @@
           ],
           "returnType": "Promise<Map<string, ProfileSocialDto>>",
           "exported": true,
-          "lineCount": 111
+          "lineCount": 112
         }
       ],
       "classes": [],
@@ -10155,7 +10185,7 @@
         "emptyProfileSocialPreview",
         "loadProfileSocialPreviews"
       ],
-      "totalLines": 132,
+      "totalLines": 134,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/public.decorator.ts": {
@@ -10495,6 +10525,66 @@
         "AdminCommunitiesController"
       ],
       "totalLines": 134,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/controllers/admin-drops.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "contentHash": "617ccff66e4222732f144a3becfacb43a317fdb05c65ba65c9f251b75f405359",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AdminDropsController",
+          "methods": [
+            "constructor",
+            "listDrops",
+            "createDrop",
+            "updateDrop",
+            "activateDrop",
+            "cancelDrop",
+            "runDraw",
+            "listRewards",
+            "listTickets",
+            "manualGrant",
+            "cancelTicket",
+            "freezeUser",
+            "unfreezeUser",
+            "updateWinner"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 93
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "Param",
+            "Patch",
+            "Post",
+            "Query"
+          ]
+        },
+        {
+          "source": "../common/admin.decorator",
+          "specifiers": [
+            "Admin"
+          ]
+        },
+        {
+          "source": "../services/drops.service",
+          "specifiers": [
+            "DropsService"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminDropsController"
+      ],
+      "totalLines": 100,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-evening.controller.ts": {
@@ -11166,7 +11256,7 @@
     },
     "backend/apps/api/src/controllers/dating.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
-      "contentHash": "a73f8a61c8b2c29ee05b6cb24641d8c34397e99682cf4e6c544b64648319c38c",
+      "contentHash": "60a7a4fe3b8549d0cf3bdc4c8fb121ad5933be88dbc1443e365ffaaff92c138e",
       "functions": [
         {
           "name": "parseOptionalNumber",
@@ -11175,6 +11265,22 @@
           ],
           "exported": false,
           "lineCount": 7
+        },
+        {
+          "name": "parseOptionalBoolean",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "parseDatingGender",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
         },
         {
           "name": "parseQueryList",
@@ -11196,7 +11302,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 43
+          "lineCount": 51
         }
       ],
       "imports": [
@@ -11226,7 +11332,61 @@
       "exports": [
         "DatingController"
       ],
-      "totalLines": 65,
+      "totalLines": 87,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/controllers/drops.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/drops.controller.ts",
+      "contentHash": "45fc679cafcb946e3d52014504e970ecc674c63ad71f74fcc6590b3acfaaf82e",
+      "functions": [],
+      "classes": [
+        {
+          "name": "DropsController",
+          "methods": [
+            "constructor",
+            "getHome",
+            "getTasks",
+            "getTicketHistory",
+            "claimVerification",
+            "claimDailyLogin",
+            "createReferralLink",
+            "getDrop",
+            "applyTickets"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 57
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "Param",
+            "Post",
+            "Query"
+          ]
+        },
+        {
+          "source": "../common/current-user.decorator",
+          "specifiers": [
+            "CurrentUser"
+          ]
+        },
+        {
+          "source": "../services/drops.service",
+          "specifiers": [
+            "DropsService"
+          ]
+        }
+      ],
+      "exports": [
+        "DropsController"
+      ],
+      "totalLines": 63,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/evening.controller.ts": {
@@ -12030,7 +12190,7 @@
     },
     "backend/apps/api/src/controllers/people.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/people.controller.ts",
-      "contentHash": "7e28ca7a92a4d39633b7644160dda7a3642fd94d9a6dcbcf2e02a5af89106d17",
+      "contentHash": "6a58e271e06cd8e54eb11b0ce6cc4e91cc23eb5781481b22897794eca96198d1",
       "functions": [],
       "classes": [
         {
@@ -12043,23 +12203,26 @@
             "getSocial",
             "follow",
             "unfollow",
+            "setFollowNotifications",
             "setReaction",
             "removeReaction",
             "createDirectChat"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 98
+          "lineCount": 111
         }
       ],
       "imports": [
         {
           "source": "@nestjs/common",
           "specifiers": [
+            "Body",
             "Controller",
             "Delete",
             "Get",
             "Param",
+            "Patch",
             "Post",
             "Put",
             "Query"
@@ -12081,7 +12244,7 @@
       "exports": [
         "PeopleController"
       ],
-      "totalLines": 104,
+      "totalLines": 117,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/places.controller.ts": {
@@ -13602,7 +13765,7 @@
     },
     "backend/apps/api/src/services/admin-users.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-users.service.ts",
-      "contentHash": "fbe236dba9e99dbd8b975087fe0ad00aee5137df254e6e9b78a6fc0c1ac14b6a",
+      "contentHash": "afaeee0098f77e60074a3abbc1eb9b39c483c108ede6fcbaf11e9d8b89340c07",
       "functions": [],
       "classes": [
         {
@@ -13613,6 +13776,7 @@
             "getUser",
             "updateProfile",
             "verifyUser",
+            "handleDropsVerifiedUser",
             "unverifyUser",
             "suspendUser",
             "unsuspendUser",
@@ -13657,7 +13821,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 894
+          "lineCount": 910
         }
       ],
       "imports": [
@@ -13680,6 +13844,12 @@
           ]
         },
         {
+          "source": "./drops-reward.service",
+          "specifiers": [
+            "DropsRewardService"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -13689,7 +13859,7 @@
       "exports": [
         "AdminUsersService"
       ],
-      "totalLines": 964,
+      "totalLines": 981,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-venue.service.ts": {
@@ -14003,7 +14173,7 @@
     },
     "backend/apps/api/src/services/auth.service.ts": {
       "filePath": "backend/apps/api/src/services/auth.service.ts",
-      "contentHash": "2eb256947332bfc1165318f3aa5c5ecc3c23bd922f6883d41e60f83d672f5270",
+      "contentHash": "451f445834c194274b68a9ba6ab11d09c033ac73993e5b4f0ef333a2cc65e520",
       "functions": [],
       "classes": [
         {
@@ -14034,7 +14204,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 840
+          "lineCount": 846
         }
       ],
       "imports": [
@@ -14100,7 +14270,7 @@
       "exports": [
         "AuthService"
       ],
-      "totalLines": 878,
+      "totalLines": 884,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/chats.service.ts": {
@@ -14328,7 +14498,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "af0be2047f0ab1e767fd2513a41b86e9de0ebb4b2064fdbe6b730b0e02997b3f",
+      "contentHash": "dd55ffb79154a4e9f6d97027897690a07314fb7d792740e7a4e306b52385de0f",
       "functions": [],
       "classes": [
         {
@@ -14372,7 +14542,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 805
+          "lineCount": 824
         }
       ],
       "imports": [
@@ -14432,7 +14602,256 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 1004,
+      "totalLines": 1033,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/drops-draw.service.ts": {
+      "filePath": "backend/apps/api/src/services/drops-draw.service.ts",
+      "contentHash": "9084bb456f0263a1680afbd23b164fc2ea2f18ec048f642860b7841bec43a4da",
+      "functions": [],
+      "classes": [
+        {
+          "name": "DropsDrawService",
+          "methods": [
+            "constructor",
+            "hashSeed",
+            "orderTicketsForDraw",
+            "ticketDrawHash",
+            "activateDrop",
+            "runDraw",
+            "normalizePositiveInt",
+            "dropSelect"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 212
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "createHash",
+            "randomBytes"
+          ]
+        },
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "DropsDrawService"
+      ],
+      "totalLines": 226,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/drops-reward.service.ts": {
+      "filePath": "backend/apps/api/src/services/drops-reward.service.ts",
+      "contentHash": "2de1df97fbaaba6ac2318e5f9385ec489b74ceae8a08a6e234bde7d644882dd0",
+      "functions": [],
+      "classes": [
+        {
+          "name": "DropsRewardService",
+          "methods": [
+            "constructor",
+            "claimDailyLogin",
+            "claimVerification",
+            "handleUserVerified",
+            "grantSubscriptionReward",
+            "grantBoostReward",
+            "grantReferralReward",
+            "evaluateMeetingRewards",
+            "grantManualTickets",
+            "cancelTicketsForReward",
+            "getProgress",
+            "grantReward",
+            "grantRewardInTransaction",
+            "assertMonthlyLimit",
+            "monthBounds",
+            "localDateKey",
+            "normalizeTicketCount",
+            "createTicketCode",
+            "rewardSelect",
+            "mapReward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 579
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "randomBytes"
+          ]
+        },
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "DropsRewardService",
+        "DROPS_TASK_SOURCES",
+        "DROPS_MAX_TICKETS_PER_MONTH",
+        "DROPS_TASK_TICKET_COUNTS",
+        "DROPS_TASK_MONTHLY_LIMITS"
+      ],
+      "totalLines": 651,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/drops.service.ts": {
+      "filePath": "backend/apps/api/src/services/drops.service.ts",
+      "contentHash": "cfbcff024311332ec4c8e362e9d60c73a07cabfda55c771d776cde91add285af",
+      "functions": [],
+      "classes": [
+        {
+          "name": "DropsService",
+          "methods": [
+            "constructor",
+            "getHome",
+            "listVisibleDrops",
+            "getDrop",
+            "getTasks",
+            "listHistory",
+            "claimVerification",
+            "claimDailyLogin",
+            "applyTickets",
+            "createReferralLink",
+            "listAdminDrops",
+            "createDrop",
+            "updateDrop",
+            "activateDrop",
+            "cancelDrop",
+            "runDraw",
+            "listDropTickets",
+            "listRewardEvents",
+            "manualGrant",
+            "cancelTicket",
+            "freezeUser",
+            "unfreezeUser",
+            "updateWinner",
+            "mapDropForUser",
+            "listPastWinners",
+            "getUserEligibility",
+            "resolveDropEligibility",
+            "assertUserEligibleForDrop",
+            "hasPremiumAccess",
+            "isOldEnough",
+            "parseDropInput",
+            "mapAdminDrop",
+            "dropSelect",
+            "prizeSummary",
+            "formatShortDate",
+            "taskCta",
+            "isDropType",
+            "isDropStatus",
+            "winnerStatusForAction",
+            "normalizeTicketCount",
+            "normalizeLimit",
+            "optionalInt",
+            "getRewardService",
+            "getDrawService"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 933
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "randomBytes"
+          ]
+        },
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "./drops-reward.service",
+          "specifiers": [
+            "DROPS_MAX_TICKETS_PER_MONTH",
+            "DROPS_TASK_MONTHLY_LIMITS",
+            "DROPS_TASK_SOURCES",
+            "DROPS_TASK_TICKET_COUNTS",
+            "DropsRewardService"
+          ]
+        },
+        {
+          "source": "./drops-draw.service",
+          "specifiers": [
+            "DropsDrawService"
+          ]
+        }
+      ],
+      "exports": [
+        "DropsService"
+      ],
+      "totalLines": 1025,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
@@ -15616,7 +16035,7 @@
     },
     "backend/apps/api/src/services/host.service.ts": {
       "filePath": "backend/apps/api/src/services/host.service.ts",
-      "contentHash": "908fd9f5de4d53866fed75fe798cdded2f2904eba6573c538e645ef4a7aa4637",
+      "contentHash": "6db805a1408385bfa0a6e59ae34181f767f058835b38059859f71546071d1619",
       "functions": [],
       "classes": [
         {
@@ -15632,6 +16051,7 @@
             "manualCheckIn",
             "startLive",
             "finishLive",
+            "evaluateDropsMeetingRewards",
             "parseAttendedUserIds",
             "assertHost",
             "resolveEventEntryRequirements",
@@ -15666,7 +16086,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1396
+          "lineCount": 1472
         }
       ],
       "imports": [
@@ -15719,6 +16139,12 @@
           ]
         },
         {
+          "source": "./drops-reward.service",
+          "specifiers": [
+            "DropsRewardService"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -15728,7 +16154,7 @@
       "exports": [
         "HostService"
       ],
-      "totalLines": 1470,
+      "totalLines": 1547,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/matches.service.ts": {
@@ -15944,7 +16370,7 @@
     },
     "backend/apps/api/src/services/onboarding.service.ts": {
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
-      "contentHash": "7971a3102f2a843a3c9b2436107b71753b8c5f07d107320fd78034897a0ebd38",
+      "contentHash": "592475326962cc1602eb8a839a29f5284e8652f68bb976a3ab4382897cf20a52",
       "functions": [
         {
           "name": "mapOnboarding",
@@ -15952,7 +16378,7 @@
             "onboarding"
           ],
           "exported": false,
-          "lineCount": 29
+          "lineCount": 30
         },
         {
           "name": "formatDateOnly",
@@ -16019,7 +16445,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 293
+          "lineCount": 296
         }
       ],
       "imports": [
@@ -16052,7 +16478,7 @@
       "exports": [
         "OnboardingService"
       ],
-      "totalLines": 469,
+      "totalLines": 474,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/openrouter.service.ts": {
@@ -16640,7 +17066,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "1bb9ac94eccadfef939054b2bb3fe07e664ce4d29373b5eb33e2c933ae9b436f",
+      "contentHash": "79c17569fdab66d6cfd2c52893f4b043903181d03071e5df0aca811b828b7802",
       "functions": [],
       "classes": [
         {
@@ -16653,6 +17079,7 @@
             "getPersonProfile",
             "getProfileSocial",
             "setFollow",
+            "setFollowNotifications",
             "setProfileReaction",
             "normalizeProfileReactionKind",
             "getBlockedUserIds",
@@ -16669,7 +17096,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 883
+          "lineCount": 909
         }
       ],
       "imports": [
@@ -16730,7 +17157,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 927,
+      "totalLines": 954,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -17053,7 +17480,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "46c34ccf6e129e5428752aa2ce79bbb48a0afadd4475a6efdb726a4dfbd6e3b9",
+      "contentHash": "309fc97b204839c525a8b7b938b26f68d4831e5adcdf0e79f09180cec14d3cd7",
       "functions": [],
       "classes": [
         {
@@ -17111,7 +17538,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1516
+          "lineCount": 1522
         }
       ],
       "imports": [
@@ -17186,7 +17613,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 1625,
+      "totalLines": 1631,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -17652,7 +18079,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "daeb0c68e786543ea2f90573d3073c89c94fa9ecab44fe5d5236f02671c94613",
+      "contentHash": "1485d38c3aedd95b7910cd3d4e47e30e0a91f852679c29f2c48c6d05544daddf",
       "functions": [],
       "classes": [
         {
@@ -17665,6 +18092,7 @@
             "subscribe",
             "subscribeWithTokens",
             "activatePaidSubscription",
+            "grantDropsSubscriptionReward",
             "restore",
             "hasPremiumAccess",
             "isPremiumStatus",
@@ -17672,7 +18100,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 213
+          "lineCount": 240
         }
       ],
       "imports": [
@@ -17692,6 +18120,12 @@
           "source": "../common/api-error",
           "specifiers": [
             "ApiError"
+          ]
+        },
+        {
+          "source": "./drops-reward.service",
+          "specifiers": [
+            "DropsRewardService"
           ]
         },
         {
@@ -17717,7 +18151,7 @@
       "exports": [
         "SubscriptionService"
       ],
-      "totalLines": 231,
+      "totalLines": 259,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/tbank-acquiring.service.ts": {
@@ -17885,7 +18319,7 @@
     },
     "backend/apps/api/src/services/tokens.service.ts": {
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
-      "contentHash": "6f95dc45c690909fe6b31cd92d8dc42abdd49014a2c8a66482f91f7453148bd6",
+      "contentHash": "d60061280fda5ecc6d2ce507900397351e0851672ac4fcd0f86f587c97ea2949",
       "functions": [],
       "classes": [
         {
@@ -17896,12 +18330,13 @@
             "creditPurchasedTokens",
             "spendTokens",
             "createPromotion",
+            "grantDropsBoostReward",
             "ensureWallet",
             "assertPromotionAccess"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 208
+          "lineCount": 237
         }
       ],
       "imports": [
@@ -17925,6 +18360,12 @@
           ]
         },
         {
+          "source": "./drops-reward.service",
+          "specifiers": [
+            "DropsRewardService"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -17942,7 +18383,7 @@
       "exports": [
         "TokensService"
       ],
-      "totalLines": 230,
+      "totalLines": 260,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/uploads.service.ts": {
@@ -18133,7 +18574,7 @@
     },
     "backend/apps/api/test/integration/seed-test-data.ts": {
       "filePath": "backend/apps/api/test/integration/seed-test-data.ts",
-      "contentHash": "4d378ecb7a8740b05c2f4001c24dc902f845a2f43b93aabdb460a6982ee3deef",
+      "contentHash": "ddf647b19a175432e96eebe25460eba1207eee85d540fbd57e858e4dbf995629",
       "functions": [
         {
           "name": "seedIntegrationTestData",
@@ -22316,12 +22757,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "afa9348049af83e052ddd2e7b8309c9c1e351692afb52820fa21ec61be2469e0",
+      "contentHash": "dcd3d6a210e0047707216d2183c6364bbdf59c814085086d90d3d0f797ed7c68",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1122,
+      "totalLines": 1123,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {

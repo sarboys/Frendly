@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-17T10:56:39.812Z",
-    "gitCommitHash": "271a42722398f7f1ff43b8786349c288458a1e16"
+    "analyzedAt": "2026-05-20T05:38:39.745Z",
+    "gitCommitHash": "06231d4b7c5360f9c12f141da11282f860ca90bd"
   },
   "nodes": [
     {
@@ -7299,8 +7299,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        207,
-        211
+        217,
+        221
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -8004,8 +8004,8 @@
       "name": "mapBasicProfile",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        208,
-        237
+        209,
+        244
       ],
       "summary": "mapBasicProfile in presenters.ts.",
       "tags": [
@@ -8021,8 +8021,8 @@
       "name": "hasActiveFrendlyPlus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        239,
-        256
+        246,
+        263
       ],
       "summary": "hasActiveFrendlyPlus in presenters.ts.",
       "tags": [
@@ -8038,8 +8038,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        258,
-        269
+        265,
+        276
       ],
       "summary": "calculateAge in presenters.ts.",
       "tags": [
@@ -8055,8 +8055,8 @@
       "name": "mapUserPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        271,
-        283
+        278,
+        290
       ],
       "summary": "mapUserPreview in presenters.ts.",
       "tags": [
@@ -8072,8 +8072,8 @@
       "name": "mapAttendanceStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        285,
-        289
+        292,
+        296
       ],
       "summary": "mapAttendanceStatus in presenters.ts.",
       "tags": [
@@ -8089,8 +8089,8 @@
       "name": "mapJoinRequestStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        291,
-        295
+        298,
+        302
       ],
       "summary": "mapJoinRequestStatus in presenters.ts.",
       "tags": [
@@ -8106,8 +8106,8 @@
       "name": "mapLiveStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        299,
-        310
+        306,
+        317
       ],
       "summary": "mapLiveStatus in presenters.ts.",
       "tags": [
@@ -8123,8 +8123,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        378,
-        418
+        385,
+        425
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -8140,8 +8140,8 @@
       "name": "mapEventBookingSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        420,
-        456
+        427,
+        463
       ],
       "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
@@ -8157,8 +8157,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        458,
-        526
+        465,
+        533
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -8174,8 +8174,8 @@
       "name": "mapEventRoutePoints",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        528,
-        549
+        535,
+        556
       ],
       "summary": "mapEventRoutePoints in presenters.ts.",
       "tags": [
@@ -8191,8 +8191,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        551,
-        571
+        558,
+        578
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -8222,7 +8222,7 @@
       "filePath": "backend/apps/api/src/common/profile-social-preview.ts",
       "lineRange": [
         10,
-        19
+        20
       ],
       "summary": "emptyProfileSocialPreview in profile-social-preview.ts.",
       "tags": [
@@ -8238,8 +8238,8 @@
       "name": "loadProfileSocialPreviews",
       "filePath": "backend/apps/api/src/common/profile-social-preview.ts",
       "lineRange": [
-        21,
-        131
+        22,
+        133
       ],
       "summary": "loadProfileSocialPreviews in profile-social-preview.ts.",
       "tags": [
@@ -8509,6 +8509,36 @@
         "structure"
       ],
       "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "type": "file",
+      "name": "admin-drops.controller.ts",
+      "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "summary": "admin-drops.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/admin-drops.controller.ts:AdminDropsController",
+      "type": "class",
+      "name": "AdminDropsController",
+      "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "lineRange": [
+        7,
+        99
+      ],
+      "summary": "AdminDropsController in admin-drops.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "file:backend/apps/api/src/controllers/admin-evening.controller.ts",
@@ -8921,7 +8951,7 @@
       "type": "file",
       "name": "dating.controller.ts",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
-      "summary": "dating.controller.ts contains 1 classes, 2 functions.",
+      "summary": "dating.controller.ts contains 1 classes, 4 functions.",
       "tags": [
         "backend",
         "code",
@@ -8935,10 +8965,44 @@
       "name": "parseOptionalNumber",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
-        50,
-        56
+        58,
+        64
       ],
       "summary": "parseOptionalNumber in dating.controller.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/controllers/dating.controller.ts:parseOptionalBoolean",
+      "type": "function",
+      "name": "parseOptionalBoolean",
+      "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
+      "lineRange": [
+        66,
+        71
+      ],
+      "summary": "parseOptionalBoolean in dating.controller.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/controllers/dating.controller.ts:parseDatingGender",
+      "type": "function",
+      "name": "parseDatingGender",
+      "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
+      "lineRange": [
+        73,
+        78
+      ],
+      "summary": "parseDatingGender in dating.controller.ts.",
       "tags": [
         "backend",
         "function",
@@ -8952,8 +9016,8 @@
       "name": "parseQueryList",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
-        58,
-        64
+        80,
+        86
       ],
       "summary": "parseQueryList in dating.controller.ts.",
       "tags": [
@@ -8970,9 +9034,39 @@
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
         6,
-        48
+        56
       ],
       "summary": "DatingController in dating.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/apps/api/src/controllers/drops.controller.ts",
+      "type": "file",
+      "name": "drops.controller.ts",
+      "filePath": "backend/apps/api/src/controllers/drops.controller.ts",
+      "summary": "drops.controller.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/drops.controller.ts:DropsController",
+      "type": "class",
+      "name": "DropsController",
+      "filePath": "backend/apps/api/src/controllers/drops.controller.ts",
+      "lineRange": [
+        6,
+        62
+      ],
+      "summary": "DropsController in drops.controller.ts.",
       "tags": [
         "backend",
         "class",
@@ -9407,7 +9501,7 @@
       "filePath": "backend/apps/api/src/controllers/people.controller.ts",
       "lineRange": [
         6,
-        103
+        116
       ],
       "summary": "PeopleController in people.controller.ts.",
       "tags": [
@@ -10338,8 +10432,8 @@
       "name": "AdminUsersService",
       "filePath": "backend/apps/api/src/services/admin-users.service.ts",
       "lineRange": [
-        70,
-        963
+        71,
+        980
       ],
       "summary": "AdminUsersService in admin-users.service.ts.",
       "tags": [
@@ -10476,7 +10570,7 @@
       "filePath": "backend/apps/api/src/services/auth.service.ts",
       "lineRange": [
         38,
-        877
+        883
       ],
       "summary": "AuthService in auth.service.ts.",
       "tags": [
@@ -10565,10 +10659,100 @@
       "name": "DatingService",
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
-        199,
-        1003
+        209,
+        1032
       ],
       "summary": "DatingService in dating.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/drops-draw.service.ts",
+      "type": "file",
+      "name": "drops-draw.service.ts",
+      "filePath": "backend/apps/api/src/services/drops-draw.service.ts",
+      "summary": "drops-draw.service.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/drops-draw.service.ts:DropsDrawService",
+      "type": "class",
+      "name": "DropsDrawService",
+      "filePath": "backend/apps/api/src/services/drops-draw.service.ts",
+      "lineRange": [
+        14,
+        225
+      ],
+      "summary": "DropsDrawService in drops-draw.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "type": "file",
+      "name": "drops-reward.service.ts",
+      "filePath": "backend/apps/api/src/services/drops-reward.service.ts",
+      "summary": "drops-reward.service.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/drops-reward.service.ts:DropsRewardService",
+      "type": "class",
+      "name": "DropsRewardService",
+      "filePath": "backend/apps/api/src/services/drops-reward.service.ts",
+      "lineRange": [
+        58,
+        636
+      ],
+      "summary": "DropsRewardService in drops-reward.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/drops.service.ts",
+      "type": "file",
+      "name": "drops.service.ts",
+      "filePath": "backend/apps/api/src/services/drops.service.ts",
+      "summary": "drops.service.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/drops.service.ts:DropsService",
+      "type": "class",
+      "name": "DropsService",
+      "filePath": "backend/apps/api/src/services/drops.service.ts",
+      "lineRange": [
+        92,
+        1024
+      ],
+      "summary": "DropsService in drops.service.ts.",
       "tags": [
         "backend",
         "class",
@@ -11821,8 +12005,8 @@
       "name": "HostService",
       "filePath": "backend/apps/api/src/services/host.service.ts",
       "lineRange": [
-        74,
-        1469
+        75,
+        1546
       ],
       "summary": "HostService in host.service.ts.",
       "tags": [
@@ -11941,8 +12125,8 @@
       "name": "mapOnboarding",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        30,
-        58
+        31,
+        60
       ],
       "summary": "mapOnboarding in onboarding.service.ts.",
       "tags": [
@@ -11958,8 +12142,8 @@
       "name": "formatDateOnly",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        60,
-        70
+        62,
+        72
       ],
       "summary": "formatDateOnly in onboarding.service.ts.",
       "tags": [
@@ -11975,8 +12159,8 @@
       "name": "parseBirthDate",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        72,
-        105
+        74,
+        107
       ],
       "summary": "parseBirthDate in onboarding.service.ts.",
       "tags": [
@@ -11992,8 +12176,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        107,
-        118
+        109,
+        120
       ],
       "summary": "calculateAge in onboarding.service.ts.",
       "tags": [
@@ -12009,8 +12193,8 @@
       "name": "normalizeEmail",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        120,
-        134
+        122,
+        136
       ],
       "summary": "normalizeEmail in onboarding.service.ts.",
       "tags": [
@@ -12026,8 +12210,8 @@
       "name": "normalizePhoneNumber",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        136,
-        160
+        138,
+        162
       ],
       "summary": "normalizePhoneNumber in onboarding.service.ts.",
       "tags": [
@@ -12043,8 +12227,8 @@
       "name": "requiredContactFor",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        162,
-        173
+        164,
+        175
       ],
       "summary": "requiredContactFor in onboarding.service.ts.",
       "tags": [
@@ -12060,8 +12244,8 @@
       "name": "OnboardingService",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        176,
-        468
+        178,
+        473
       ],
       "summary": "OnboardingService in onboarding.service.ts.",
       "tags": [
@@ -12440,8 +12624,8 @@
       "name": "PeopleService",
       "filePath": "backend/apps/api/src/services/people.service.ts",
       "lineRange": [
-        44,
-        926
+        45,
+        953
       ],
       "summary": "PeopleService in people.service.ts.",
       "tags": [
@@ -12867,7 +13051,7 @@
       "filePath": "backend/apps/api/src/services/profile.service.ts",
       "lineRange": [
         109,
-        1624
+        1630
       ],
       "summary": "ProfileService in profile.service.ts.",
       "tags": [
@@ -13123,8 +13307,8 @@
       "name": "SubscriptionService",
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
       "lineRange": [
-        18,
-        230
+        19,
+        258
       ],
       "summary": "SubscriptionService in subscription.service.ts.",
       "tags": [
@@ -13230,8 +13414,8 @@
       "name": "TokensService",
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
       "lineRange": [
-        22,
-        229
+        23,
+        259
       ],
       "summary": "TokensService in tokens.service.ts.",
       "tags": [
@@ -26289,6 +26473,555 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260519180000_onboarding_completed_at/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260519180000_onboarding_completed_at/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520120000_user_follow_notifications/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260520120000_user_follow_notifications/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "summary": "migration.sql contains 30 definitions.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop",
+      "type": "table",
+      "name": "Drop",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        54,
+        79
+      ],
+      "summary": "table: Drop (22 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent",
+      "type": "table",
+      "name": "DropRewardEvent",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        81,
+        100
+      ],
+      "summary": "table: DropRewardEvent (16 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket",
+      "type": "table",
+      "name": "DropTicket",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        102,
+        118
+      ],
+      "summary": "table: DropTicket (13 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropDrawSnapshot",
+      "type": "table",
+      "name": "DropDrawSnapshot",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        120,
+        131
+      ],
+      "summary": "table: DropDrawSnapshot (8 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner",
+      "type": "table",
+      "name": "DropWinner",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        133,
+        147
+      ],
+      "summary": "table: DropWinner (11 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral",
+      "type": "table",
+      "name": "DropReferral",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        149,
+        160
+      ],
+      "summary": "table: DropReferral (8 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction",
+      "type": "table",
+      "name": "DropUserRestriction",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        162,
+        170
+      ],
+      "summary": "table: DropUserRestriction (5 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop_status_startsAt_endsAt_idx",
+      "type": "table",
+      "name": "Drop_status_startsAt_endsAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        172,
+        172
+      ],
+      "summary": "index: Drop_status_startsAt_endsAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop_type_status_drawAt_idx",
+      "type": "table",
+      "name": "Drop_type_status_drawAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        173,
+        173
+      ],
+      "summary": "index: Drop_type_status_drawAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_idempotencyKey_key",
+      "type": "table",
+      "name": "DropRewardEvent_idempotencyKey_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        175,
+        175
+      ],
+      "summary": "index: DropRewardEvent_idempotencyKey_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_userId_monthKey_status_idx",
+      "type": "table",
+      "name": "DropRewardEvent_userId_monthKey_status_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        176,
+        176
+      ],
+      "summary": "index: DropRewardEvent_userId_monthKey_status_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_userId_source_monthKey_status_idx",
+      "type": "table",
+      "name": "DropRewardEvent_userId_source_monthKey_status_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        177,
+        177
+      ],
+      "summary": "index: DropRewardEvent_userId_source_monthKey_status_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_eventId_source_idx",
+      "type": "table",
+      "name": "DropRewardEvent_eventId_source_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        178,
+        178
+      ],
+      "summary": "index: DropRewardEvent_eventId_source_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_createdAt_id_idx",
+      "type": "table",
+      "name": "DropRewardEvent_createdAt_id_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        179,
+        179
+      ],
+      "summary": "index: DropRewardEvent_createdAt_id_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_code_key",
+      "type": "table",
+      "name": "DropTicket_code_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        181,
+        181
+      ],
+      "summary": "index: DropTicket_code_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_userId_status_dropId_createdAt_id_idx",
+      "type": "table",
+      "name": "DropTicket_userId_status_dropId_createdAt_id_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        182,
+        182
+      ],
+      "summary": "index: DropTicket_userId_status_dropId_createdAt_id_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_userId_monthKey_status_idx",
+      "type": "table",
+      "name": "DropTicket_userId_monthKey_status_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        183,
+        183
+      ],
+      "summary": "index: DropTicket_userId_monthKey_status_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_dropId_status_createdAt_id_idx",
+      "type": "table",
+      "name": "DropTicket_dropId_status_createdAt_id_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        184,
+        184
+      ],
+      "summary": "index: DropTicket_dropId_status_createdAt_id_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_rewardEventId_idx",
+      "type": "table",
+      "name": "DropTicket_rewardEventId_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        185,
+        185
+      ],
+      "summary": "index: DropTicket_rewardEventId_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropDrawSnapshot_dropId_key",
+      "type": "table",
+      "name": "DropDrawSnapshot_dropId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        187,
+        187
+      ],
+      "summary": "index: DropDrawSnapshot_dropId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_ticketId_key",
+      "type": "table",
+      "name": "DropWinner_ticketId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        189,
+        189
+      ],
+      "summary": "index: DropWinner_ticketId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_dropId_position_reserve_key",
+      "type": "table",
+      "name": "DropWinner_dropId_position_reserve_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        190,
+        190
+      ],
+      "summary": "index: DropWinner_dropId_position_reserve_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_dropId_reserve_position_idx",
+      "type": "table",
+      "name": "DropWinner_dropId_reserve_position_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        191,
+        191
+      ],
+      "summary": "index: DropWinner_dropId_reserve_position_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_userId_status_createdAt_idx",
+      "type": "table",
+      "name": "DropWinner_userId_status_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        192,
+        192
+      ],
+      "summary": "index: DropWinner_userId_status_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_invitedUserId_key",
+      "type": "table",
+      "name": "DropReferral_invitedUserId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        194,
+        194
+      ],
+      "summary": "index: DropReferral_invitedUserId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_key",
+      "type": "table",
+      "name": "DropReferral_code_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        195,
+        195
+      ],
+      "summary": "index: DropReferral_code_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_inviterUserId_status_createdAt_idx",
+      "type": "table",
+      "name": "DropReferral_inviterUserId_status_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        196,
+        196
+      ],
+      "summary": "index: DropReferral_inviterUserId_status_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_idx",
+      "type": "table",
+      "name": "DropReferral_code_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        197,
+        197
+      ],
+      "summary": "index: DropReferral_code_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_userId_key",
+      "type": "table",
+      "name": "DropUserRestriction_userId_key",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        199,
+        199
+      ],
+      "summary": "index: DropUserRestriction_userId_key (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_expiresAt_idx",
+      "type": "table",
+      "name": "DropUserRestriction_expiresAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "lineRange": [
+        200,
+        200
+      ],
+      "summary": "index: DropUserRestriction_expiresAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -36937,6 +37670,13 @@
       "weight": 1
     },
     {
+      "source": "file:backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/admin-drops.controller.ts:AdminDropsController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/apps/api/src/controllers/admin-evening.controller.ts",
       "target": "class:backend/apps/api/src/controllers/admin-evening.controller.ts:AdminEveningController",
       "type": "contains",
@@ -37064,6 +37804,20 @@
     },
     {
       "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
+      "target": "function:backend/apps/api/src/controllers/dating.controller.ts:parseOptionalBoolean",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
+      "target": "function:backend/apps/api/src/controllers/dating.controller.ts:parseDatingGender",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
       "target": "function:backend/apps/api/src/controllers/dating.controller.ts:parseQueryList",
       "type": "contains",
       "direction": "forward",
@@ -37072,6 +37826,13 @@
     {
       "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
       "target": "class:backend/apps/api/src/controllers/dating.controller.ts:DatingController",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/drops.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/drops.controller.ts:DropsController",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -37499,6 +38260,27 @@
     {
       "source": "file:backend/apps/api/src/services/dating.service.ts",
       "target": "class:backend/apps/api/src/services/dating.service.ts:DatingService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops-draw.service.ts",
+      "target": "class:backend/apps/api/src/services/drops-draw.service.ts:DropsDrawService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "target": "class:backend/apps/api/src/services/drops-reward.service.ts:DropsRewardService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops.service.ts",
+      "target": "class:backend/apps/api/src/services/drops.service.ts:DropsService",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -43076,6 +43858,216 @@
       "weight": 1
     },
     {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropDrawSnapshot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop_status_startsAt_endsAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop_type_status_drawAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_idempotencyKey_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_userId_monthKey_status_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_userId_source_monthKey_status_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_eventId_source_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_createdAt_id_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_code_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_userId_status_dropId_createdAt_id_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_userId_monthKey_status_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_dropId_status_createdAt_id_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_rewardEventId_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropDrawSnapshot_dropId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_ticketId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_dropId_position_reserve_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_dropId_reserve_position_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_userId_status_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_invitedUserId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_inviterUserId_status_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_userId_key",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_expiresAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/reset-test-users.ts",
       "target": "function:backend/packages/database/prisma/reset-test-users.ts:main",
       "type": "contains",
@@ -45821,6 +46813,13 @@
     },
     {
       "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/admin-evening.controller.ts",
       "type": "imports",
       "direction": "forward",
@@ -45878,6 +46877,13 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/controllers/dating.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/controllers/drops.controller.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -46214,6 +47220,27 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/services/dating.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/drops-draw.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/drops.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -46674,6 +47701,20 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "target": "file:backend/apps/api/src/common/admin.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/admin-drops.controller.ts",
+      "target": "file:backend/apps/api/src/services/drops.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/controllers/admin-evening.controller.ts",
       "target": "file:backend/apps/api/src/common/admin.decorator.ts",
       "type": "imports",
@@ -46865,6 +47906,20 @@
     {
       "source": "file:backend/apps/api/src/controllers/dating.controller.ts",
       "target": "file:backend/apps/api/src/services/dating.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/drops.controller.ts",
+      "target": "file:backend/apps/api/src/common/current-user.decorator.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/drops.controller.ts",
+      "target": "file:backend/apps/api/src/services/drops.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -47480,6 +48535,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/admin-users.service.ts",
+      "target": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/admin-users.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -47675,6 +48737,62 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/services/drops-draw.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops-draw.service.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops.service.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops.service.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops.service.ts",
+      "target": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/drops.service.ts",
+      "target": "file:backend/apps/api/src/services/drops-draw.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
       "type": "imports",
@@ -47838,6 +48956,13 @@
     {
       "source": "file:backend/apps/api/src/services/host.service.ts",
       "target": "file:backend/apps/api/src/services/event-capacity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/host.service.ts",
+      "target": "file:backend/apps/api/src/services/drops-reward.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -48250,6 +49375,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/subscription.service.ts",
+      "target": "file:backend/apps/api/src/services/drops-reward.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/subscription.service.ts",
       "target": "file:backend/apps/api/src/services/payment-catalog.ts",
       "type": "imports",
       "direction": "forward",
@@ -48300,6 +49432,13 @@
     {
       "source": "file:backend/apps/api/src/services/tokens.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/tokens.service.ts",
+      "target": "file:backend/apps/api/src/services/drops-reward.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -49759,6 +50898,7 @@
         "file:backend/apps/api/src/controllers/admin-affiche.controller.ts",
         "file:backend/apps/api/src/controllers/admin-auth.controller.ts",
         "file:backend/apps/api/src/controllers/admin-communities.controller.ts",
+        "file:backend/apps/api/src/controllers/admin-drops.controller.ts",
         "file:backend/apps/api/src/controllers/admin-evening.controller.ts",
         "file:backend/apps/api/src/controllers/admin-meetups.controller.ts",
         "file:backend/apps/api/src/controllers/admin-partner-accounts.controller.ts",
@@ -49769,6 +50909,7 @@
         "file:backend/apps/api/src/controllers/chats.controller.ts",
         "file:backend/apps/api/src/controllers/communities.controller.ts",
         "file:backend/apps/api/src/controllers/dating.controller.ts",
+        "file:backend/apps/api/src/controllers/drops.controller.ts",
         "file:backend/apps/api/src/controllers/evening.controller.ts",
         "file:backend/apps/api/src/controllers/events.controller.ts",
         "file:backend/apps/api/src/controllers/health.controller.ts",
@@ -49812,6 +50953,9 @@
         "file:backend/apps/api/src/services/chats.service.ts",
         "file:backend/apps/api/src/services/communities.service.ts",
         "file:backend/apps/api/src/services/dating.service.ts",
+        "file:backend/apps/api/src/services/drops-draw.service.ts",
+        "file:backend/apps/api/src/services/drops-reward.service.ts",
+        "file:backend/apps/api/src/services/drops.service.ts",
         "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
         "file:backend/apps/api/src/services/evening-analytics.service.ts",
         "file:backend/apps/api/src/services/evening-route-ai-candidates.service.ts",
@@ -50365,6 +51509,39 @@
         "table:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim",
         "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_rewardKey_key",
         "index:backend/packages/database/prisma/migrations/20260516120000_frendly_season_rewards/migration.sql:UserSeasonRewardClaim_userId_seasonKey_claimedAt_idx",
+        "table:backend/packages/database/prisma/migrations/20260519180000_onboarding_completed_at/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260520120000_user_follow_notifications/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropDrawSnapshot",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral",
+        "table:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop_status_startsAt_endsAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:Drop_type_status_drawAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_idempotencyKey_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_userId_monthKey_status_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_userId_source_monthKey_status_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_eventId_source_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropRewardEvent_createdAt_id_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_code_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_userId_status_dropId_createdAt_id_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_userId_monthKey_status_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_dropId_status_createdAt_id_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropTicket_rewardEventId_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropDrawSnapshot_dropId_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_ticketId_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_dropId_position_reserve_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_dropId_reserve_position_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropWinner_userId_status_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_invitedUserId_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_inviterUserId_status_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_idx",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_userId_key",
+        "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_expiresAt_idx",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",
