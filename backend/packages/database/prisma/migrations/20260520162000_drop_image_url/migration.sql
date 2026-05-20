@@ -1,0 +1,1 @@
+ALTER TABLE "Drop" ADD COLUMN "imageUrl" TEXT;

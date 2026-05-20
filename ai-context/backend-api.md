@@ -129,6 +129,7 @@ Drops:
 - `GET /drops/home` returns `mainDrop`, visible `drops`, monthly `ticketProgress`, MVP `tasks`, ticket `history`, `pastWinners`, user `eligibility`, `pendingRewards` and `updatedAt`.
 - `GET /drops/:dropId`, `GET /drops/tasks`, `GET /drops/tickets/history?month=YYYY-MM`, `POST /drops/tasks/verification/claim`, `POST /drops/tasks/daily-login/claim`, `POST /drops/:dropId/tickets/apply`, `POST /drops/referral-link/create` and `POST /drops/referral-link/bind` are private user endpoints.
 - `GET /drops/:dropId` returns `winners` after the Drop is finished. It exposes `secretSeed` only for finished Drops and keeps `seedHash` public before and after draw.
+- Drop payloads include optional `imageUrl` for the public/admin card image.
 - MVP reward sources are verification, daily login, host meeting, visit meeting, referral, Frendly+ subscription and event boost. Partner purchases, bookings, rating and repost rewards are not returned in tasks.
 - Tickets are granted only through `DropsRewardService`. It enforces idempotency keys, the 30 ticket monthly limit, task limits and the `Europe/Moscow` calendar month. Pending tickets reserve monthly capacity, and cancelled tickets release it.
 - `DropsRewardService.confirmReward` promotes a pending reward and its pending tickets to active after the external action is confirmed.
@@ -136,7 +137,7 @@ Drops:
 - Meeting rewards are evaluated after `POST /host/events/:eventId/live/finish`. Host reward requires a finished meetup created at least 6 hours before start, at least 3 guest participants and at least 2 checked-in guests. Visit rewards require checked-in non-host participants who joined before start.
 - Frendly+ token subscription, event promotion and admin user verification call Drops rewards as best-effort side effects. Drops reward failures must not fail the core subscription, boost or verification flow.
 - Draws use `DropsDrawService`: activation creates a secret seed and public seed hash, draw snapshots active tickets, sorts tickets by deterministic hash and reveals the seed after finish.
-- Admin Drops endpoints live under `/admin/drops`: list with `status`, `type`, `q`, `limit`, `cursor`, detail by `GET /admin/drops/:dropId`, create, update before start, activate, cancel, draw, list tickets, list participants, list user tickets, list reward events, manual grant, cancel ticket, freeze user, winner status actions and reserve winner promotion. Admin detail/list never expose `secretSeed` until the Drop is `finished`.
+- Admin Drops endpoints live under `/admin/drops`: list with `status`, `type`, `q`, `limit`, `cursor`, detail by `GET /admin/drops/:dropId`, create, update before start, upload image with `POST /admin/drops/images/file`, activate, cancel, draw, list tickets, list participants, list user tickets, list reward events, manual grant, cancel ticket, freeze user, winner status actions and reserve winner promotion. Admin detail/list never expose `secretSeed` until the Drop is `finished`.
 
 Evening:
 

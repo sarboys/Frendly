@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "812dc8f4548efc92c421e5c4a8fe33a6e31a3ea5",
-  "generatedAt": "2026-05-20T07:34:54.649Z",
+  "gitCommitHash": "5335194609bc8bd3f363c0c3d55fdfe6bc9dfc24",
+  "generatedAt": "2026-05-20T08:00:29.586Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -418,7 +418,7 @@
     },
     "admin/src/admin/drops/api.ts": {
       "filePath": "admin/src/admin/drops/api.ts",
-      "contentHash": "d9ffa30d7f1c18acbf961ec1e01fcfce01168c1bcc18d7dd80eeadd51a392470",
+      "contentHash": "c668ca3022f41a40755fe7eaa49a9694e5f38ac3c1d46136f6ab3e462d0aeec2",
       "functions": [
         {
           "name": "listAdminDrops",
@@ -452,6 +452,14 @@
           ],
           "exported": true,
           "lineCount": 3
+        },
+        {
+          "name": "uploadDropImageFile",
+          "params": [
+            "file"
+          ],
+          "exported": true,
+          "lineCount": 16
         },
         {
           "name": "activateAdminDrop",
@@ -584,6 +592,14 @@
           ],
           "exported": false,
           "lineCount": 6
+        },
+        {
+          "name": "readUploadError",
+          "params": [
+            "response"
+          ],
+          "exported": false,
+          "lineCount": 14
         }
       ],
       "classes": [],
@@ -591,6 +607,8 @@
         {
           "source": "../api/client",
           "specifiers": [
+            "AdminApiError",
+            "adminApiBaseUrl",
             "adminApiRequest"
           ]
         },
@@ -604,6 +622,7 @@
             "AdminDropTicketDto",
             "AdminDropWinnerDto",
             "CursorPageDto",
+            "DropImageUploadDto",
             "DropsQueryParams"
           ]
         }
@@ -613,6 +632,7 @@
         "getAdminDrop",
         "createAdminDrop",
         "updateAdminDrop",
+        "uploadDropImageFile",
         "activateAdminDrop",
         "cancelAdminDrop",
         "runAdminDropDraw",
@@ -628,17 +648,17 @@
         "chooseReserveDropWinner",
         "withDropQuery"
       ],
-      "totalLines": 141,
+      "totalLines": 174,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/drops/types.ts": {
       "filePath": "admin/src/admin/drops/types.ts",
-      "contentHash": "e6960852878ae2686f2cdc06f3d104301079254d98248f51a726874ff8d2ca97",
+      "contentHash": "e17c0716dd1a501de637ddc3ca04224c7ea7e5af01bd16bf414fa864ea779a67",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 166,
+      "totalLines": 173,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/evening/api.ts": {
@@ -3155,13 +3175,13 @@
     },
     "admin/src/admin/pages/DropDetail.tsx": {
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
-      "contentHash": "847b2448d53bede60b5b1266f7a3400fca2df513ea21dd78ceccf39986d9b345",
+      "contentHash": "e47b7993495a4f14f9357de4f50d632eca6dde65c7aeee06885de8bc281aff9a",
       "functions": [
         {
           "name": "AdminDropDetail",
           "params": [],
           "exported": true,
-          "lineCount": 194
+          "lineCount": 203
         },
         {
           "name": "Overview",
@@ -3374,18 +3394,18 @@
       "exports": [
         "AdminDropDetail"
       ],
-      "totalLines": 525,
+      "totalLines": 534,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Drops.tsx": {
       "filePath": "admin/src/admin/pages/Drops.tsx",
-      "contentHash": "6047958724aad29083a556fa50001a4f789a4105289772e50a351c69dac2f74a",
+      "contentHash": "119500b8dd078ef6b5b32a9eda45c7b80edaa07319391be390a084e67aa56ab6",
       "functions": [
         {
           "name": "AdminDrops",
           "params": [],
           "exported": true,
-          "lineCount": 173
+          "lineCount": 186
         },
         {
           "name": "DropFormModal",
@@ -3393,7 +3413,15 @@
             "{\n  title,\n  submitLabel,\n  drop,\n  onClose,\n  onSubmit,\n}"
           ],
           "exported": false,
-          "lineCount": 127
+          "lineCount": 227
+        },
+        {
+          "name": "Field",
+          "params": [
+            "{\n  label,\n  help,\n  required = false,\n  className = \"\",\n  children,\n}"
+          ],
+          "exported": false,
+          "lineCount": 24
         },
         {
           "name": "FilterSelect",
@@ -3444,12 +3472,28 @@
           "lineCount": 3
         },
         {
-          "name": "toDateTimeInput",
+          "name": "defaultMonthlyDateInputs",
+          "params": [
+            "now"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "toMoscowDateTimeInput",
           "params": [
             "value"
           ],
           "exported": false,
           "lineCount": 6
+        },
+        {
+          "name": "moscowInputToDate",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 12
         },
         {
           "name": "prizesToText",
@@ -3490,16 +3534,19 @@
           "source": "lucide-react",
           "specifiers": [
             "Eye",
+            "ImageIcon",
             "Pencil",
             "Play",
             "Plus",
+            "Upload",
             "XCircle"
           ]
         },
         {
           "source": "react",
           "specifiers": [
-            "useState"
+            "useState",
+            "ReactNode"
           ]
         },
         {
@@ -3576,7 +3623,8 @@
             "cancelAdminDrop",
             "createAdminDrop",
             "listAdminDrops",
-            "updateAdminDrop"
+            "updateAdminDrop",
+            "uploadDropImageFile"
           ]
         },
         {
@@ -3592,7 +3640,7 @@
       "exports": [
         "AdminDrops"
       ],
-      "totalLines": 414,
+      "totalLines": 582,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/EveningRouteDetail.tsx": {
@@ -11209,7 +11257,7 @@
     },
     "backend/apps/api/src/controllers/admin-drops.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
-      "contentHash": "947721726f29d104cd103585bb63b1e4bc65019f184526d694f54449671d5763",
+      "contentHash": "6faeedd6a7bde06060256f6bd29b6d9fc05e289818b738e063d4bf0ab46fbf68",
       "functions": [],
       "classes": [
         {
@@ -11219,6 +11267,7 @@
             "listDrops",
             "getDrop",
             "createDrop",
+            "uploadDropImage",
             "updateDrop",
             "activateDrop",
             "cancelDrop",
@@ -11236,7 +11285,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 122
+          "lineCount": 134
         }
       ],
       "imports": [
@@ -11249,7 +11298,15 @@
             "Param",
             "Patch",
             "Post",
-            "Query"
+            "Query",
+            "UploadedFile",
+            "UseInterceptors"
+          ]
+        },
+        {
+          "source": "@nestjs/platform-express",
+          "specifiers": [
+            "FileInterceptor"
           ]
         },
         {
@@ -11261,14 +11318,15 @@
         {
           "source": "../services/drops.service",
           "specifiers": [
-            "DropsService"
+            "DropsService",
+            "MAX_DROP_IMAGE_UPLOAD_BYTES"
           ]
         }
       ],
       "exports": [
         "AdminDropsController"
       ],
-      "totalLines": 129,
+      "totalLines": 155,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-evening.controller.ts": {
@@ -15430,7 +15488,7 @@
     },
     "backend/apps/api/src/services/drops.service.ts": {
       "filePath": "backend/apps/api/src/services/drops.service.ts",
-      "contentHash": "f4bd99e248dea14ca373f469d16f93e046275b75f51b7ae68f9f2aef2351a43f",
+      "contentHash": "73a2b67c551b7faa777ec58306ceb80080f0f2e69b856ce24ec1a56d1223e9f6",
       "functions": [],
       "classes": [
         {
@@ -15451,6 +15509,7 @@
             "getAdminDrop",
             "createDrop",
             "updateDrop",
+            "uploadDropImageFile",
             "activateDrop",
             "cancelDrop",
             "runDraw",
@@ -15498,6 +15557,7 @@
             "requiredCursorDate",
             "requiredCursorText",
             "optionalText",
+            "safeFileName",
             "optionalInt",
             "getRewardService",
             "getDrawService",
@@ -15506,14 +15566,21 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1743
+          "lineCount": 1786
         }
       ],
       "imports": [
         {
           "source": "node:crypto",
           "specifiers": [
-            "randomBytes"
+            "randomBytes",
+            "randomUUID"
+          ]
+        },
+        {
+          "source": "@aws-sdk/client-s3",
+          "specifiers": [
+            "PutObjectCommand"
           ]
         },
         {
@@ -15526,6 +15593,15 @@
           "source": "@prisma/client",
           "specifiers": [
             "Prisma"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "buildPublicAssetUrl",
+            "createS3Client",
+            "createS3RequestOptions",
+            "getS3Config"
           ]
         },
         {
@@ -15558,9 +15634,10 @@
         }
       ],
       "exports": [
+        "MAX_DROP_IMAGE_UPLOAD_BYTES",
         "DropsService"
       ],
-      "totalLines": 1843,
+      "totalLines": 1896,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {

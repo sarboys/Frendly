@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T07:34:54.382Z",
-    "gitCommitHash": "812dc8f4548efc92c421e5c4a8fe33a6e31a3ea5"
+    "analyzedAt": "2026-05-20T08:00:29.319Z",
+    "gitCommitHash": "5335194609bc8bd3f363c0c3d55fdfe6bc9dfc24"
   },
   "nodes": [
     {
@@ -710,7 +710,7 @@
       "type": "file",
       "name": "api.ts",
       "filePath": "admin/src/admin/drops/api.ts",
-      "summary": "api.ts contains 19 functions.",
+      "summary": "api.ts contains 21 functions.",
       "tags": [
         "admin",
         "code",
@@ -724,8 +724,8 @@
       "name": "listAdminDrops",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        13,
-        17
+        14,
+        18
       ],
       "summary": "listAdminDrops in api.ts.",
       "tags": [
@@ -741,8 +741,8 @@
       "name": "getAdminDrop",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        19,
-        21
+        20,
+        22
       ],
       "summary": "getAdminDrop in api.ts.",
       "tags": [
@@ -758,8 +758,8 @@
       "name": "createAdminDrop",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        23,
-        25
+        24,
+        26
       ],
       "summary": "createAdminDrop in api.ts.",
       "tags": [
@@ -775,10 +775,27 @@
       "name": "updateAdminDrop",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        27,
-        29
+        28,
+        30
       ],
       "summary": "updateAdminDrop in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:uploadDropImageFile",
+      "type": "function",
+      "name": "uploadDropImageFile",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        32,
+        47
+      ],
+      "summary": "uploadDropImageFile in api.ts.",
       "tags": [
         "admin",
         "function",
@@ -792,8 +809,8 @@
       "name": "activateAdminDrop",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        31,
-        33
+        49,
+        51
       ],
       "summary": "activateAdminDrop in api.ts.",
       "tags": [
@@ -809,8 +826,8 @@
       "name": "cancelAdminDrop",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        35,
-        37
+        53,
+        55
       ],
       "summary": "cancelAdminDrop in api.ts.",
       "tags": [
@@ -826,8 +843,8 @@
       "name": "runAdminDropDraw",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        39,
-        44
+        57,
+        62
       ],
       "summary": "runAdminDropDraw in api.ts.",
       "tags": [
@@ -843,8 +860,8 @@
       "name": "listDropParticipants",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        46,
-        50
+        64,
+        68
       ],
       "summary": "listDropParticipants in api.ts.",
       "tags": [
@@ -860,8 +877,8 @@
       "name": "listDropTickets",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        52,
-        56
+        70,
+        74
       ],
       "summary": "listDropTickets in api.ts.",
       "tags": [
@@ -877,8 +894,8 @@
       "name": "listDropRewardEvents",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        58,
-        62
+        76,
+        80
       ],
       "summary": "listDropRewardEvents in api.ts.",
       "tags": [
@@ -894,8 +911,8 @@
       "name": "listUserDropTickets",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        64,
-        68
+        82,
+        86
       ],
       "summary": "listUserDropTickets in api.ts.",
       "tags": [
@@ -911,8 +928,8 @@
       "name": "manualGrantDropTickets",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        70,
-        78
+        88,
+        96
       ],
       "summary": "manualGrantDropTickets in api.ts.",
       "tags": [
@@ -928,8 +945,8 @@
       "name": "cancelDropTicket",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        80,
-        85
+        98,
+        103
       ],
       "summary": "cancelDropTicket in api.ts.",
       "tags": [
@@ -945,8 +962,8 @@
       "name": "freezeDropUser",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        87,
-        92
+        105,
+        110
       ],
       "summary": "freezeDropUser in api.ts.",
       "tags": [
@@ -962,8 +979,8 @@
       "name": "unfreezeDropUser",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        94,
-        99
+        112,
+        117
       ],
       "summary": "unfreezeDropUser in api.ts.",
       "tags": [
@@ -979,8 +996,8 @@
       "name": "updateDropWinnerStatus",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        103,
-        112
+        121,
+        130
       ],
       "summary": "updateDropWinnerStatus in api.ts.",
       "tags": [
@@ -996,8 +1013,8 @@
       "name": "chooseReserveDropWinner",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        114,
-        122
+        132,
+        140
       ],
       "summary": "chooseReserveDropWinner in api.ts.",
       "tags": [
@@ -1013,8 +1030,8 @@
       "name": "withDropQuery",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        124,
-        133
+        142,
+        151
       ],
       "summary": "withDropQuery in api.ts.",
       "tags": [
@@ -1030,10 +1047,27 @@
       "name": "json",
       "filePath": "admin/src/admin/drops/api.ts",
       "lineRange": [
-        135,
-        140
+        153,
+        158
       ],
       "summary": "json in api.ts.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/drops/api.ts:readUploadError",
+      "type": "function",
+      "name": "readUploadError",
+      "filePath": "admin/src/admin/drops/api.ts",
+      "lineRange": [
+        160,
+        173
+      ],
+      "summary": "readUploadError in api.ts.",
       "tags": [
         "admin",
         "function",
@@ -3818,7 +3852,7 @@
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
         35,
-        228
+        237
       ],
       "summary": "AdminDropDetail in DropDetail.tsx.",
       "tags": [
@@ -3834,8 +3868,8 @@
       "name": "Overview",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        230,
-        253
+        239,
+        262
       ],
       "summary": "Overview in DropDetail.tsx.",
       "tags": [
@@ -3851,8 +3885,8 @@
       "name": "WinnersTable",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        255,
-        315
+        264,
+        324
       ],
       "summary": "WinnersTable in DropDetail.tsx.",
       "tags": [
@@ -3868,8 +3902,8 @@
       "name": "ParticipantsTable",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        317,
-        372
+        326,
+        381
       ],
       "summary": "ParticipantsTable in DropDetail.tsx.",
       "tags": [
@@ -3885,8 +3919,8 @@
       "name": "TicketsTable",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        374,
-        431
+        383,
+        440
       ],
       "summary": "TicketsTable in DropDetail.tsx.",
       "tags": [
@@ -3902,8 +3936,8 @@
       "name": "RewardsTable",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        433,
-        472
+        442,
+        481
       ],
       "summary": "RewardsTable in DropDetail.tsx.",
       "tags": [
@@ -3919,8 +3953,8 @@
       "name": "Metric",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        474,
-        481
+        483,
+        490
       ],
       "summary": "Metric in DropDetail.tsx.",
       "tags": [
@@ -3936,8 +3970,8 @@
       "name": "Info",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        483,
-        490
+        492,
+        499
       ],
       "summary": "Info in DropDetail.tsx.",
       "tags": [
@@ -3953,8 +3987,8 @@
       "name": "TablePanel",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        492,
-        494
+        501,
+        503
       ],
       "summary": "TablePanel in DropDetail.tsx.",
       "tags": [
@@ -3970,8 +4004,8 @@
       "name": "StateRow",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        496,
-        504
+        505,
+        513
       ],
       "summary": "StateRow in DropDetail.tsx.",
       "tags": [
@@ -3987,8 +4021,8 @@
       "name": "PanelText",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        506,
-        508
+        515,
+        517
       ],
       "summary": "PanelText in DropDetail.tsx.",
       "tags": [
@@ -4004,8 +4038,8 @@
       "name": "tabLabel",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        510,
-        516
+        519,
+        525
       ],
       "summary": "tabLabel in DropDetail.tsx.",
       "tags": [
@@ -4021,8 +4055,8 @@
       "name": "numberFromPrompt",
       "filePath": "admin/src/admin/pages/DropDetail.tsx",
       "lineRange": [
-        518,
-        524
+        527,
+        533
       ],
       "summary": "numberFromPrompt in DropDetail.tsx.",
       "tags": [
@@ -4037,7 +4071,7 @@
       "type": "file",
       "name": "Drops.tsx",
       "filePath": "admin/src/admin/pages/Drops.tsx",
-      "summary": "Drops.tsx contains 12 functions.",
+      "summary": "Drops.tsx contains 15 functions.",
       "tags": [
         "admin",
         "code",
@@ -4051,8 +4085,8 @@
       "name": "AdminDrops",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        34,
-        206
+        35,
+        220
       ],
       "summary": "AdminDrops in Drops.tsx.",
       "tags": [
@@ -4068,10 +4102,27 @@
       "name": "DropFormModal",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        208,
-        334
+        222,
+        448
       ],
       "summary": "DropFormModal in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:Field",
+      "type": "function",
+      "name": "Field",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        450,
+        473
+      ],
+      "summary": "Field in Drops.tsx.",
       "tags": [
         "admin",
         "function",
@@ -4085,8 +4136,8 @@
       "name": "FilterSelect",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        336,
-        348
+        475,
+        487
       ],
       "summary": "FilterSelect in Drops.tsx.",
       "tags": [
@@ -4102,8 +4153,8 @@
       "name": "StateRow",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        350,
-        358
+        489,
+        497
       ],
       "summary": "StateRow in Drops.tsx.",
       "tags": [
@@ -4119,8 +4170,8 @@
       "name": "statusStats",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        360,
-        368
+        499,
+        507
       ],
       "summary": "statusStats in Drops.tsx.",
       "tags": [
@@ -4136,8 +4187,8 @@
       "name": "canEdit",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        370,
-        372
+        509,
+        511
       ],
       "summary": "canEdit in Drops.tsx.",
       "tags": [
@@ -4153,8 +4204,8 @@
       "name": "canActivate",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        374,
-        376
+        513,
+        515
       ],
       "summary": "canActivate in Drops.tsx.",
       "tags": [
@@ -4170,8 +4221,8 @@
       "name": "canCancel",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        378,
-        380
+        517,
+        519
       ],
       "summary": "canCancel in Drops.tsx.",
       "tags": [
@@ -4182,15 +4233,49 @@
       "complexity": "complex"
     },
     {
-      "id": "function:admin/src/admin/pages/Drops.tsx:toDateTimeInput",
+      "id": "function:admin/src/admin/pages/Drops.tsx:defaultMonthlyDateInputs",
       "type": "function",
-      "name": "toDateTimeInput",
+      "name": "defaultMonthlyDateInputs",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        382,
-        387
+        523,
+        535
       ],
-      "summary": "toDateTimeInput in Drops.tsx.",
+      "summary": "defaultMonthlyDateInputs in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:toMoscowDateTimeInput",
+      "type": "function",
+      "name": "toMoscowDateTimeInput",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        537,
+        542
+      ],
+      "summary": "toMoscowDateTimeInput in Drops.tsx.",
+      "tags": [
+        "admin",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:admin/src/admin/pages/Drops.tsx:moscowInputToDate",
+      "type": "function",
+      "name": "moscowInputToDate",
+      "filePath": "admin/src/admin/pages/Drops.tsx",
+      "lineRange": [
+        544,
+        555
+      ],
+      "summary": "moscowInputToDate in Drops.tsx.",
       "tags": [
         "admin",
         "function",
@@ -4204,8 +4289,8 @@
       "name": "prizesToText",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        389,
-        397
+        557,
+        565
       ],
       "summary": "prizesToText in Drops.tsx.",
       "tags": [
@@ -4221,8 +4306,8 @@
       "name": "parsePrizes",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        399,
-        407
+        567,
+        575
       ],
       "summary": "parsePrizes in Drops.tsx.",
       "tags": [
@@ -4238,8 +4323,8 @@
       "name": "numberOrNull",
       "filePath": "admin/src/admin/pages/Drops.tsx",
       "lineRange": [
-        409,
-        413
+        577,
+        581
       ],
       "summary": "numberOrNull in Drops.tsx.",
       "tags": [
@@ -9329,8 +9414,8 @@
       "name": "AdminDropsController",
       "filePath": "backend/apps/api/src/controllers/admin-drops.controller.ts",
       "lineRange": [
-        7,
-        128
+        21,
+        154
       ],
       "summary": "AdminDropsController in admin-drops.controller.ts.",
       "tags": [
@@ -11549,8 +11634,8 @@
       "name": "DropsService",
       "filePath": "backend/apps/api/src/services/drops.service.ts",
       "lineRange": [
-        100,
-        1842
+        110,
+        1895
       ],
       "summary": "DropsService in drops.service.ts.",
       "tags": [
@@ -27822,6 +27907,19 @@
       "complexity": "complex"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260520162000_drop_image_url/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260520162000_drop_image_url/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -36056,6 +36154,13 @@
     },
     {
       "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:uploadDropImageFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
       "target": "function:admin/src/admin/drops/api.ts:activateAdminDrop",
       "type": "contains",
       "direction": "forward",
@@ -36155,6 +36260,13 @@
     {
       "source": "file:admin/src/admin/drops/api.ts",
       "target": "function:admin/src/admin/drops/api.ts:json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/drops/api.ts",
+      "target": "function:admin/src/admin/drops/api.ts:readUploadError",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -37246,6 +37358,13 @@
     },
     {
       "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:Field",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
       "target": "function:admin/src/admin/pages/Drops.tsx:FilterSelect",
       "type": "contains",
       "direction": "forward",
@@ -37288,7 +37407,21 @@
     },
     {
       "source": "file:admin/src/admin/pages/Drops.tsx",
-      "target": "function:admin/src/admin/pages/Drops.tsx:toDateTimeInput",
+      "target": "function:admin/src/admin/pages/Drops.tsx:defaultMonthlyDateInputs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:toMoscowDateTimeInput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:admin/src/admin/pages/Drops.tsx",
+      "target": "function:admin/src/admin/pages/Drops.tsx:moscowInputToDate",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -52766,6 +52899,7 @@
         "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropReferral_code_idx",
         "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_userId_key",
         "index:backend/packages/database/prisma/migrations/20260520143000_frendly_drops_mvp/migration.sql:DropUserRestriction_expiresAt_idx",
+        "table:backend/packages/database/prisma/migrations/20260520162000_drop_image_url/migration.sql",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",

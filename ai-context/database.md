@@ -78,7 +78,7 @@ Safety and monetization:
 
 Drops:
 
-- `Drop` stores each giveaway with type, status, prize JSON, public seed hash, secret seed after draw, eligibility flags and optional ticket limits.
+- `Drop` stores each giveaway with type, status, optional `imageUrl`, prize JSON, public seed hash, secret seed after draw, eligibility flags and optional ticket limits.
 - `DropRewardEvent` is the idempotent reward event log. `idempotencyKey` is unique and all ticket grants must go through this event.
 - `DropTicket` stores public ticket codes, source, month key, status and optional assigned `dropId`. A ticket can be assigned to only one Drop at a time.
 - `DropDrawSnapshot` stores fixed ticket and participant JSON before the draw.

@@ -1811,6 +1811,7 @@ model Drop {
   id                   String             @id @default(cuid())
   title                String
   description          String
+  imageUrl             String?
   type                 DropType
   status               DropStatus         @default(draft)
   prizes               Json               @default("[]")

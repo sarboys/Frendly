@@ -1,6 +1,20 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Admin } from '../common/admin.decorator';
-import { DropsService } from '../services/drops.service';
+import {
+  DropsService,
+  MAX_DROP_IMAGE_UPLOAD_BYTES,
+} from '../services/drops.service';
 
 @Admin()
 @Controller('admin/drops')
@@ -20,6 +34,18 @@ export class AdminDropsController {
   @Post()
   createDrop(@Body() body: Record<string, unknown>) {
     return this.dropsService.createDrop(body);
+  }
+
+  @Post('images/file')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: MAX_DROP_IMAGE_UPLOAD_BYTES,
+      },
+    }),
+  )
+  uploadDropImage(@UploadedFile() file: Express.Multer.File) {
+    return this.dropsService.uploadDropImageFile(file);
   }
 
   @Patch(':dropId')

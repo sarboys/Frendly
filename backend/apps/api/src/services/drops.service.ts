@@ -1,6 +1,13 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  buildPublicAssetUrl,
+  createS3Client,
+  createS3RequestOptions,
+  getS3Config,
+} from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 import {
@@ -16,6 +23,7 @@ type DropRow = {
   id: string;
   title: string;
   description: string;
+  imageUrl: string | null;
   type: string;
   status: string;
   prizes: unknown;
@@ -41,6 +49,8 @@ type AdminDropStats = {
 };
 
 const ADMIN_TICKET_STATUSES = ['active', 'used_in_draw', 'winner'] as const;
+export const MAX_DROP_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
+const DROP_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const TASK_META = {
   verification: {
@@ -539,6 +549,36 @@ export class DropsService {
       data: this.parseDropInput(body, false),
       select: this.dropSelect(true),
     });
+  }
+
+  async uploadDropImageFile(file?: Express.Multer.File) {
+    if (!file) {
+      throw new ApiError(400, 'drop_image_file_required', 'Drop image file is required');
+    }
+    if (!DROP_IMAGE_MIME_TYPES.has(file.mimetype)) {
+      throw new ApiError(400, 'invalid_drop_image_mime_type', 'Drop image must be JPEG, PNG or WebP');
+    }
+    if (file.size <= 0 || file.size > MAX_DROP_IMAGE_UPLOAD_BYTES) {
+      throw new ApiError(400, 'invalid_drop_image_size', 'Drop image size is invalid');
+    }
+
+    const objectKey = `drop-images/${randomUUID()}-${this.safeFileName(file.originalname)}`;
+    const client = createS3Client();
+    const config = getS3Config();
+    await client.send(
+      new PutObjectCommand({
+        Bucket: config.bucket,
+        Key: objectKey,
+        ContentType: file.mimetype,
+        Body: file.buffer,
+      }),
+      createS3RequestOptions(),
+    );
+
+    return {
+      imageUrl: buildPublicAssetUrl(objectKey),
+      objectKey,
+    };
   }
 
   async activateDrop(dropId: string) {
@@ -1547,6 +1587,9 @@ export class DropsService {
     const drawAt = requiredDate('drawAt');
     if (title !== undefined) data.title = title;
     if (description !== undefined) data.description = description;
+    if (Object.prototype.hasOwnProperty.call(body, 'imageUrl')) {
+      data.imageUrl = this.optionalText(body.imageUrl);
+    }
     if (startsAt !== undefined) data.startsAt = startsAt;
     if (endsAt !== undefined) data.endsAt = endsAt;
     if (drawAt !== undefined) data.drawAt = drawAt;
@@ -1588,6 +1631,7 @@ export class DropsService {
       id: true,
       title: true,
       description: true,
+      imageUrl: true,
       type: true,
       status: true,
       prizes: true,
@@ -1789,6 +1833,15 @@ export class DropsService {
 
     const text = value.trim();
     return text === '' ? null : text;
+  }
+
+  private safeFileName(fileName: string) {
+    const safe = fileName
+      .trim()
+      .replace(/[^\w.-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 120);
+    return safe || 'drop-image';
   }
 
   private optionalInt(value: unknown) {

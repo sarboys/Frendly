@@ -64,6 +64,52 @@ describe('DropsService unit', () => {
     };
   };
 
+  it('creates drop with image URL', async () => {
+    const { service, prismaClient } = makeService();
+    prismaClient.drop.create.mockResolvedValue({
+      id: 'drop-1',
+      title: 'Июньский Drop',
+      description: 'Описание',
+      imageUrl: 'https://cdn.frendly.test/drop.jpg',
+      type: 'main_monthly',
+      status: 'draft',
+      prizes: [{ title: 'iPhone' }],
+      startsAt: new Date('2026-06-01T00:00:00.000Z'),
+      endsAt: new Date('2026-06-30T20:59:00.000Z'),
+      drawAt: new Date('2026-07-01T09:00:00.000Z'),
+      conditions: {},
+      maxTicketsPerUser: 30,
+      requiresVerified: true,
+      requiresFrendlyPlus: false,
+      minAge: null,
+      region: null,
+      seedHash: null,
+      secretSeed: null,
+      seedRevealedAt: null,
+      cancelReason: null,
+    });
+
+    await service.createDrop({
+      title: 'Июньский Drop',
+      description: 'Описание',
+      imageUrl: 'https://cdn.frendly.test/drop.jpg',
+      type: 'main_monthly',
+      prizes: [{ title: 'iPhone' }],
+      startsAt: '2026-06-01T00:00:00.000Z',
+      endsAt: '2026-06-30T20:59:00.000Z',
+      drawAt: '2026-07-01T09:00:00.000Z',
+      maxTicketsPerUser: 30,
+    });
+
+    expect(prismaClient.drop.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          imageUrl: 'https://cdn.frendly.test/drop.jpg',
+        }),
+      }),
+    );
+  });
+
   it('applies only free active tickets to one active drop', async () => {
     const { service, prismaClient } = makeService();
     prismaClient.drop.findUnique.mockResolvedValue({
