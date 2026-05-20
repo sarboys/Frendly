@@ -10,3 +10,11 @@ paths = [
   '''^\.codex/skills/aif-security-checklist/SKILL\.md$''',
   '''^\.opencode/skills/aif-security-checklist/SKILL\.md$''',
 ]
+
+[[allowlists]]
+description = "Ignore historical Podfile.lock checksum false positives from reverted mobile2 import"
+targetRules = ["generic-api-key"]
+paths = [
+  '''^mobile2/ios/Podfile\.lock$''',
+  '''^mobile2/macos/Podfile\.lock$''',
+]
