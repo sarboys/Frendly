@@ -3,6 +3,8 @@ export interface JwtConfig {
   refreshSecret: string;
   accessTtl: string;
   refreshTtl: string;
+  adminAccessTtl: string;
+  adminRefreshTtl: string;
 }
 
 export function getJwtConfig(): JwtConfig {
@@ -23,5 +25,7 @@ export function getJwtConfig(): JwtConfig {
     refreshSecret: refreshSecret ?? 'dev-refresh-secret',
     accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
     refreshTtl: process.env.JWT_REFRESH_TTL ?? '30d',
+    adminAccessTtl: process.env.ADMIN_JWT_ACCESS_TTL ?? '1d',
+    adminRefreshTtl: process.env.ADMIN_JWT_REFRESH_TTL ?? '1d',
   };
 }

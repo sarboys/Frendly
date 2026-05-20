@@ -7,8 +7,7 @@ import { AdminAuthService, AdminTokenPair } from '../services/admin-auth.service
 
 const ACCESS_COOKIE = 'frendly_admin_access';
 const REFRESH_COOKIE = 'frendly_admin_refresh';
-const ACCESS_MAX_AGE_MS = 15 * 60 * 1000;
-const REFRESH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const ADMIN_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 @Controller('admin/auth')
 export class AdminAuthController {
@@ -57,8 +56,8 @@ export class AdminAuthController {
   }
 
   private setAuthCookies(response: Response, tokens: AdminTokenPair) {
-    response.cookie(ACCESS_COOKIE, tokens.accessToken, cookieOptions(ACCESS_MAX_AGE_MS));
-    response.cookie(REFRESH_COOKIE, tokens.refreshToken, cookieOptions(REFRESH_MAX_AGE_MS));
+    response.cookie(ACCESS_COOKIE, tokens.accessToken, cookieOptions(ADMIN_SESSION_MAX_AGE_MS));
+    response.cookie(REFRESH_COOKIE, tokens.refreshToken, cookieOptions(ADMIN_SESSION_MAX_AGE_MS));
   }
 
   private clearAuthCookies(response: Response) {

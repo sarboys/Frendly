@@ -32,6 +32,7 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - Refresh rotates `refreshTokenId`.
 - Logout sets `revokedAt`.
 - Admin access and refresh tokens use the same JWT secrets with `kind=admin_access` and `kind=admin_refresh`.
+- Admin browser session TTL is 1 day by default. Admin JWT TTLs are separate from mobile user JWT TTLs: `ADMIN_JWT_ACCESS_TTL` and `ADMIN_JWT_REFRESH_TTL`, both default to `1d`.
 - Admin refresh rotates `AdminSession.refreshTokenId`.
 
 ## API protection

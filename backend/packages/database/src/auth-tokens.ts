@@ -97,7 +97,7 @@ export function signAdminAccessToken(
 ): string {
   const config = getJwtConfig();
   const options: SignOptions = {
-    expiresIn: config.accessTtl as SignOptions['expiresIn'],
+    expiresIn: config.adminAccessTtl as SignOptions['expiresIn'],
   };
 
   return jwt.sign(
@@ -114,7 +114,7 @@ export function signAdminRefreshToken(
 ): string {
   const config = getJwtConfig();
   const options: SignOptions = {
-    expiresIn: config.refreshTtl as SignOptions['expiresIn'],
+    expiresIn: config.adminRefreshTtl as SignOptions['expiresIn'],
   };
 
   return jwt.sign(
