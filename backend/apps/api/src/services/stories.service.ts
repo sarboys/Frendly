@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-  createPresignedDownload,
   decodeCursor,
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
@@ -18,7 +17,6 @@ type StoryCursor = {
 const STORY_MEDIA_ASSET_SELECT = {
   id: true,
   kind: true,
-  objectKey: true,
   mimeType: true,
   byteSize: true,
   durationMs: true,
@@ -403,7 +401,6 @@ export class StoriesService {
       mediaAsset: {
         id: string;
         kind: string;
-        objectKey: string;
         mimeType: string;
         byteSize: number;
         durationMs: number | null;
@@ -412,19 +409,12 @@ export class StoriesService {
     },
   ) {
     const mediaAsset = story.mediaAsset;
-    const signed = mediaAsset
-      ? await createPresignedDownload(mediaAsset.objectKey ?? '')
-      : null;
-
     const media = mediaAsset
       ? mapMediaResource(
           mediaAsset as Parameters<typeof mapMediaResource>[0],
           {
-          visibility: 'private',
-          url: signed?.url ?? null,
-          downloadUrl: signed?.url ?? null,
-          expiresAt: signed?.expiresAt ?? null,
-        },
+            visibility: 'private',
+          },
         )
       : null;
     const mediaKind = mediaAsset == null

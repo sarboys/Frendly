@@ -1,6 +1,24 @@
 import { DropsService } from '../../src/services/drops.service';
 
+jest.mock('@aws-sdk/client-s3', () => {
+  const mockS3Send = jest.fn();
+  return {
+    PutObjectCommand: jest.fn((input) => ({ input })),
+    S3Client: jest.fn(() => ({ send: mockS3Send })),
+    __mockS3Send: mockS3Send,
+  };
+});
+
 describe('DropsService unit', () => {
+  const s3Mock = jest.requireMock('@aws-sdk/client-s3') as {
+    __mockS3Send: jest.Mock;
+  };
+
+  beforeEach(() => {
+    s3Mock.__mockS3Send.mockReset();
+    s3Mock.__mockS3Send.mockResolvedValue({});
+  });
+
   const makeService = (overrides: any = {}) => {
     const prismaClient: any = {
       drop: {
@@ -108,6 +126,28 @@ describe('DropsService unit', () => {
         }),
       }),
     );
+  });
+
+  it('uploads drop images with immutable public cache headers', async () => {
+    const { service } = makeService();
+
+    await expect(
+      service.uploadDropImageFile({
+        originalname: 'drop.png',
+        mimetype: 'image/png',
+        size: 1024,
+        buffer: Buffer.from('drop'),
+      } as Express.Multer.File),
+    ).resolves.toMatchObject({
+      imageUrl: expect.stringContaining('/drop-images/'),
+      objectKey: expect.stringContaining('drop-images/'),
+    });
+
+    expect(s3Mock.__mockS3Send).toHaveBeenCalledTimes(1);
+    expect(s3Mock.__mockS3Send.mock.calls[0]?.[0].input).toMatchObject({
+      ContentType: 'image/png',
+      CacheControl: 'public, max-age=31536000, immutable',
+    });
   });
 
   it('applies only free active tickets to one active drop', async () => {

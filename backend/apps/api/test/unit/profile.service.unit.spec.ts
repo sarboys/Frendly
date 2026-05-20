@@ -231,6 +231,23 @@ describe('ProfileService', () => {
     });
   });
 
+  it('creates avatar upload urls with immutable public cache headers', async () => {
+    const service = new ProfileService({ client: {} } as any);
+
+    const result = await service.getAvatarUploadUrl('user-me', {
+      fileName: 'avatar.jpg',
+      contentType: 'image/jpeg',
+    });
+
+    expect(result).toMatchObject({
+      objectKey: expect.stringContaining('avatars/user-me/'),
+      headers: {
+        'content-type': 'image/jpeg',
+        'cache-control': 'public, max-age=31536000, immutable',
+      },
+    });
+  });
+
   it('builds the Frendly season from checked-in events only', async () => {
     jest
       .spyOn(Date, 'now')

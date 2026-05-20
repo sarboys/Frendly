@@ -1,8 +1,14 @@
 import {
   buildPublicAssetUrl,
+  createPresignedUpload,
   getS3Config,
   objectKeyFromPublicAssetUrl,
 } from '../../src/s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest.fn().mockResolvedValue('https://signed.example/upload'),
+}));
 
 const S3_ENV_KEYS = [
   'S3_ENDPOINT',
@@ -23,6 +29,7 @@ describe('getS3Config', () => {
     }
 
     Object.assign(process.env, originalEnv);
+    jest.clearAllMocks();
   });
 
   it('requires Cloud S3 credentials', () => {
@@ -84,6 +91,76 @@ describe('getS3Config', () => {
     expect(buildPublicAssetUrl('avatars/user-me/photo.png')).toBe(
       'https://cdn.frendly.tech/avatars/user-me/photo.png',
     );
+  });
+
+  it('normalizes trailing slashes in public asset URL endpoints', () => {
+    for (const key of S3_ENV_KEYS) {
+      delete process.env[key];
+    }
+
+    process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
+    process.env.S3_SECRET_KEY = 'secret';
+    process.env.S3_BUCKET = 'frendly-backet';
+    process.env.S3_PUBLIC_ENDPOINT = 'https://s3.twcstorage.ru/';
+    process.env.S3_CDN_ENDPOINT = 'https://cdn.frendly.tech/';
+
+    expect(buildPublicAssetUrl('avatars/user-me/photo.png')).toBe(
+      'https://cdn.frendly.tech/avatars/user-me/photo.png',
+    );
+
+    process.env.S3_CDN_ENDPOINT = '';
+
+    expect(buildPublicAssetUrl('avatars/user-me/photo.png')).toBe(
+      'https://s3.twcstorage.ru/frendly-backet/avatars/user-me/photo.png',
+    );
+  });
+
+  it('encodes public asset object key path segments', () => {
+    for (const key of S3_ENV_KEYS) {
+      delete process.env[key];
+    }
+
+    process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
+    process.env.S3_SECRET_KEY = 'secret';
+    process.env.S3_BUCKET = 'frendly-backet';
+    process.env.S3_CDN_ENDPOINT = 'https://cdn.frendly.tech';
+
+    expect(buildPublicAssetUrl('avatars/user-me/мое фото #1.jpg')).toBe(
+      'https://cdn.frendly.tech/avatars/user-me/%D0%BC%D0%BE%D0%B5%20%D1%84%D0%BE%D1%82%D0%BE%20%231.jpg',
+    );
+  });
+
+  it('signs presigned uploads with cache control and returns the required header', async () => {
+    for (const key of S3_ENV_KEYS) {
+      delete process.env[key];
+    }
+
+    process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
+    process.env.S3_SECRET_KEY = 'secret';
+    process.env.S3_BUCKET = 'frendly-backet';
+
+    await expect(
+      createPresignedUpload({
+        objectKey: 'avatars/user-me/photo.png',
+        contentType: 'image/png',
+        cacheControl: 'public, max-age=31536000, immutable',
+      }),
+    ).resolves.toEqual({
+      uploadUrl: 'https://signed.example/upload',
+      objectKey: 'avatars/user-me/photo.png',
+      headers: {
+        'content-type': 'image/png',
+        'cache-control': 'public, max-age=31536000, immutable',
+      },
+    });
+
+    const signedCommand = (getSignedUrl as jest.Mock).mock.calls[0]?.[1];
+    expect(signedCommand.input).toMatchObject({
+      Bucket: 'frendly-backet',
+      Key: 'avatars/user-me/photo.png',
+      ContentType: 'image/png',
+      CacheControl: 'public, max-age=31536000, immutable',
+    });
   });
 
   it('extracts object keys from configured CDN URLs', () => {

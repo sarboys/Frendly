@@ -64,6 +64,7 @@ Media:
 
 - `MediaAsset` covers avatars, profile photos, chat attachments, voice, stories and private verification uploads.
 - Verification files use `MediaAssetKind.verification_selfie` and `MediaAssetKind.verification_document`. They are private assets linked from `UserVerification.selfieAssetId` and `UserVerification.documentAssetId`.
+- Private media kinds `chat_attachment`, `chat_voice`, `story_media`, `verification_selfie` and `verification_document` must keep `publicUrl=null`. Use `db:verify:private-media-public-urls` to check historical rows and `db:backfill:private-media-public-urls` to clean them.
 
 Communities:
 
@@ -140,7 +141,9 @@ cd backend && pnpm --filter @big-break/database prisma:generate
 cd backend && pnpm --filter @big-break/database db:deploy
 cd backend && pnpm --filter @big-break/database db:indexes:hot-path
 cd backend && pnpm --filter @big-break/database db:backfill:chat-unread
+cd backend && pnpm --filter @big-break/database db:backfill:private-media-public-urls
 cd backend && pnpm --filter @big-break/database db:verify:chat-unread
+cd backend && pnpm --filter @big-break/database db:verify:private-media-public-urls
 cd backend && pnpm --filter @big-break/database db:cleanup:retention
 cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 cd backend && pnpm --filter @big-break/database db:seed:test-accounts

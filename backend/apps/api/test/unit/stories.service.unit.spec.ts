@@ -257,7 +257,6 @@ describe('StoriesService', () => {
             select: {
               id: true,
               kind: true,
-              objectKey: true,
               mimeType: true,
               byteSize: true,
               durationMs: true,

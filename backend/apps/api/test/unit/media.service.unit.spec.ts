@@ -119,7 +119,7 @@ describe('MediaService', () => {
     expect(s3Send).not.toHaveBeenCalled();
   });
 
-  it('redirects public S3 avatars to a signed url instead of the stored CDN url', async () => {
+  it('redirects public S3 avatars to the stored CDN url', async () => {
     const s3Send = jest.fn();
     const client = {
       mediaAsset: {
@@ -131,7 +131,7 @@ describe('MediaService', () => {
           chatId: null,
           bucket: 'media',
           objectKey: 'avatars/user-owner/avatar.jpg',
-          publicUrl: 'https://cdn.example.com/broken/avatar.jpg',
+          publicUrl: 'https://cdn.example.com/avatars/user-owner/avatar.jpg',
           mimeType: 'image/jpeg',
           byteSize: 100,
           updatedAt: mediaUpdatedAt,
@@ -145,12 +145,9 @@ describe('MediaService', () => {
 
     expect(media).toEqual(
       expect.objectContaining({
-        redirectUrl: expect.stringContaining('X-Amz-Signature='),
+        redirectUrl: 'https://cdn.example.com/avatars/user-owner/avatar.jpg',
         cacheControl: 'public, max-age=31536000, immutable',
       }),
-    );
-    expect((media as any).redirectUrl).not.toBe(
-      'https://cdn.example.com/broken/avatar.jpg',
     );
     expect(s3Send).not.toHaveBeenCalled();
   });

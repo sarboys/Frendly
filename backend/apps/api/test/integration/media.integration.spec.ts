@@ -2,7 +2,6 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
-import { buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
 import { seedIntegrationTestData } from './seed-test-data';
@@ -210,7 +209,7 @@ describe('media integration', () => {
           mimeType: 'image/png',
           byteSize: 1024,
           originalFileName: 'story.png',
-          publicUrl: buildPublicAssetUrl(objectKey),
+          publicUrl: null,
         } as any,
       });
 
@@ -237,6 +236,9 @@ describe('media integration', () => {
             media: expect.objectContaining({
               id: assetId,
               visibility: 'private',
+              url: `/media/${assetId}`,
+              downloadUrl: null,
+              downloadUrlPath: `/media/${assetId}/download-url`,
             }),
           }),
         ]),

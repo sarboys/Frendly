@@ -2,7 +2,6 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ChatKind, ChatOrigin, PrismaClient } from '@prisma/client';
-import { buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
 import { seedIntegrationTestData } from './seed-test-data';
@@ -882,7 +881,7 @@ describe('core api flows', () => {
           durationMs: 12000,
           waveform,
           originalFileName: 'voice.webm',
-          publicUrl: buildPublicAssetUrl(objectKey),
+          publicUrl: null,
           chatId: 'p1',
         } as any,
       });
@@ -920,6 +919,9 @@ describe('core api flows', () => {
       expect(voiceMessage.attachments[0]).toMatchObject({
         id: assetId,
         kind: 'chat_voice',
+        url: `/media/${assetId}`,
+        downloadUrl: null,
+        downloadUrlPath: `/media/${assetId}/download-url`,
         durationMs: 12000,
         waveform,
       });

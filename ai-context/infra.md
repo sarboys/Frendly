@@ -181,7 +181,9 @@ Worker owns async side effects. Do not put push, unread fanout or S3 finalize on
 cd backend && pnpm --filter @big-break/database db:deploy
 cd backend && pnpm --filter @big-break/database db:indexes:hot-path
 cd backend && pnpm --filter @big-break/database db:backfill:chat-unread
+cd backend && pnpm --filter @big-break/database db:backfill:private-media-public-urls
 cd backend && pnpm --filter @big-break/database db:verify:chat-unread
+cd backend && pnpm --filter @big-break/database db:verify:private-media-public-urls
 cd backend && pnpm --filter @big-break/database db:cleanup:retention
 cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 cd backend && pnpm --filter @big-break/database db:postgis:event-geo
@@ -199,20 +201,26 @@ Concurrent index scripts must not run inside a transaction wrapper.
 - Production requires explicit `S3_BUCKET`; uploads and `HeadObject` use `getS3Config().bucket`.
 - `S3_PUBLIC_ENDPOINT` is the S3-compatible public API endpoint used for presigned upload/download URLs.
 - `S3_CDN_ENDPOINT` is optional and only builds public read URLs for assets served through CDN.
-- `/media/:assetId` redirects non-inline assets to public or signed S3 URLs by default. Set `MEDIA_PROXY_STREAMING_ENABLED=true` to force API streaming fallback.
+- Public asset URLs must be built through `buildPublicAssetUrl`, not by string concatenation. The helper prefers `S3_CDN_ENDPOINT` when set, normalizes trailing slashes on S3/CDN endpoints and URL-encodes object key path segments.
+- Presigned PUT responses include every header the client must send to S3. When `cacheControl` is set, `createPresignedUpload` signs `CacheControl` and returns `headers['cache-control']`. Profile avatars and photos use `public, max-age=31536000, immutable`; chat, story and verification media use `private, max-age=300`.
+- Private media assets such as chat attachments, voice, story media and verification files keep `publicUrl=null` in DB even when uploaded to S3. Reads go through signed download URLs or authenticated `/media/:assetId`.
+- Existing private media with stale `publicUrl` can be checked with `pnpm --filter @big-break/database db:verify:private-media-public-urls` and cleaned with `pnpm --filter @big-break/database db:backfill:private-media-public-urls`.
+- Before enabling mobile direct uploads with `cache-control`, verify bucket CORS with `pnpm --filter @big-break/database s3:verify-upload-cors`. CORS must allow `PUT`, `content-type` and `cache-control`.
+- `/media/:assetId` redirects public non-inline assets to their stored public URL, normally CDN, and private assets to signed S3 URLs by default. Set `MEDIA_PROXY_STREAMING_ENABLED=true` to force API streaming fallback.
 
 Uses:
 
 - profile avatars and photos
 - chat attachments and voice
 - story media
+- Drop images
 - poster covers
 - imported external content images
 
 Flow:
 
-1. API creates presigned PUT URL.
-2. Client uploads directly.
+1. API creates presigned PUT URL and upload headers.
+2. Client uploads directly and sends all returned headers.
 3. Client calls complete endpoint.
 4. Worker can verify object through `HeadObject`.
 5. Reads use public URL, `/media/:assetId`, or signed download URL.

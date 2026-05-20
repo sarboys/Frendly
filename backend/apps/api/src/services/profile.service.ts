@@ -571,7 +571,11 @@ export class ProfileService {
     const contentType = typeof body.contentType === 'string' ? body.contentType : 'image/jpeg';
     this.assertAvatarMime(contentType);
     const objectKey = `avatars/${userId}/${randomUUID()}-${fileName}`;
-    return createPresignedUpload({ objectKey, contentType });
+    return createPresignedUpload({
+      objectKey,
+      contentType,
+      cacheControl: IMMUTABLE_MEDIA_CACHE_CONTROL,
+    });
   }
 
   async createProfilePhotoUpload(userId: string, body: Record<string, unknown>) {
@@ -580,7 +584,11 @@ export class ProfileService {
       typeof body.contentType === 'string' ? body.contentType : 'image/jpeg';
     this.assertAvatarMime(contentType);
     const objectKey = `avatars/${userId}/${randomUUID()}-${fileName}`;
-    return createPresignedUpload({ objectKey, contentType });
+    return createPresignedUpload({
+      objectKey,
+      contentType,
+      cacheControl: IMMUTABLE_MEDIA_CACHE_CONTROL,
+    });
   }
 
   async completeAvatarUpload(userId: string, body: Record<string, unknown>) {

@@ -15,6 +15,7 @@ export interface S3Config {
 export interface PresignedUploadInput {
   objectKey: string;
   contentType: string;
+  cacheControl?: string;
 }
 
 export const PRESIGNED_DOWNLOAD_TTL_SECONDS = 300;
@@ -139,6 +140,7 @@ export async function createPresignedUpload(input: PresignedUploadInput) {
     Bucket: config.bucket,
     Key: input.objectKey,
     ContentType: input.contentType,
+    ...(input.cacheControl ? { CacheControl: input.cacheControl } : {}),
   });
 
   const uploadUrl = await recordS3Operation('presign_upload', () =>
@@ -150,6 +152,7 @@ export async function createPresignedUpload(input: PresignedUploadInput) {
     objectKey: input.objectKey,
     headers: {
       'content-type': input.contentType,
+      ...(input.cacheControl ? { 'cache-control': input.cacheControl } : {}),
     },
   };
 }
@@ -197,10 +200,10 @@ function metricsServiceName() {
 export function buildPublicAssetUrl(objectKey: string): string {
   const config = getS3Config();
   if (optionalEnv('S3_CDN_ENDPOINT')) {
-    return `${config.cdnEndpoint}/${objectKey}`;
+    return buildEndpointAssetUrl(config.cdnEndpoint, objectKey);
   }
 
-  return `${config.publicEndpoint}/${config.bucket}/${objectKey}`;
+  return buildEndpointAssetUrl(config.publicEndpoint, config.bucket, objectKey);
 }
 
 export function objectKeyFromPublicAssetUrl(assetUrl: string): string | null {
@@ -264,6 +267,22 @@ function objectKeyFromEndpointUrl(
 
 function trimSlashes(value: string) {
   return value.replace(/^\/+|\/+$/g, '');
+}
+
+function buildEndpointAssetUrl(endpoint: string, ...segments: string[]) {
+  const normalizedEndpoint = endpoint.replace(/\/+$/g, '');
+  const normalizedSegments = segments
+    .map(encodeObjectKeyPath)
+    .filter(Boolean);
+  return [normalizedEndpoint, ...normalizedSegments].join('/');
+}
+
+function encodeObjectKeyPath(value: string) {
+  return trimSlashes(value)
+    .split('/')
+    .filter(Boolean)
+    .map(encodeURIComponent)
+    .join('/');
 }
 
 function decodeObjectKey(value: string): string | null {

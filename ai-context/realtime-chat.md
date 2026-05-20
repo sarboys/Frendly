@@ -136,7 +136,7 @@ Payloads include ids, sender summary, text, `kind`, optional `systemKind`, `repl
 Generic file:
 
 - `/uploads/chat-attachment/upload-url`
-- direct upload to S3-compatible storage
+- direct upload to S3-compatible storage with all returned upload headers
 - `/uploads/chat-attachment/complete`
 - send returned asset id in `message.send`
 

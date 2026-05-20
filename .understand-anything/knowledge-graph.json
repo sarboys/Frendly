@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T09:51:18.016Z",
-    "gitCommitHash": "866a51f0abb8edfe8547b20542adddd262e19cae"
+    "analyzedAt": "2026-05-20T10:52:30.150Z",
+    "gitCommitHash": "b4c359aea57a439b18c44a2c7e021fc1ae3f0d5d"
   },
   "nodes": [
     {
@@ -11800,8 +11800,8 @@
       "name": "DropsService",
       "filePath": "backend/apps/api/src/services/drops.service.ts",
       "lineRange": [
-        110,
-        1895
+        111,
+        1897
       ],
       "summary": "DropsService in drops.service.ts.",
       "tags": [
@@ -13117,7 +13117,7 @@
       "filePath": "backend/apps/api/src/services/media.service.ts",
       "lineRange": [
         40,
-        488
+        517
       ],
       "summary": "MediaService in media.service.ts.",
       "tags": [
@@ -14102,7 +14102,7 @@
       "filePath": "backend/apps/api/src/services/profile.service.ts",
       "lineRange": [
         109,
-        1635
+        1643
       ],
       "summary": "ProfileService in profile.service.ts.",
       "tags": [
@@ -14328,8 +14328,8 @@
       "name": "StoriesService",
       "filePath": "backend/apps/api/src/services/stories.service.ts",
       "lineRange": [
-        51,
-        451
+        49,
+        441
       ],
       "summary": "StoriesService in stories.service.ts.",
       "tags": [
@@ -14496,7 +14496,7 @@
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
       "lineRange": [
         62,
-        1195
+        1206
       ],
       "summary": "UploadsService in uploads.service.ts.",
       "tags": [
@@ -20490,6 +20490,53 @@
         32
       ],
       "summary": "resolveBatchSize in backfill-chat-unread-counts.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "type": "file",
+      "name": "backfill-private-media-public-urls.ts",
+      "filePath": "backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "summary": "backfill-private-media-public-urls.ts contains 2 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/prisma/backfill-private-media-public-urls.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "lineRange": [
+        8,
+        21
+      ],
+      "summary": "main in backfill-private-media-public-urls.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/prisma/backfill-private-media-public-urls.ts:resolveBatchSize",
+      "type": "function",
+      "name": "resolveBatchSize",
+      "filePath": "backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "lineRange": [
+        23,
+        32
+      ],
+      "summary": "resolveBatchSize in backfill-private-media-public-urls.ts.",
       "tags": [
         "backend",
         "function",
@@ -28547,6 +28594,66 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/packages/database/prisma/verify-private-media-public-urls.ts",
+      "type": "file",
+      "name": "verify-private-media-public-urls.ts",
+      "filePath": "backend/packages/database/prisma/verify-private-media-public-urls.ts",
+      "summary": "verify-private-media-public-urls.ts contains 1 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/prisma/verify-private-media-public-urls.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/packages/database/prisma/verify-private-media-public-urls.ts",
+      "lineRange": [
+        6,
+        17
+      ],
+      "summary": "main in verify-private-media-public-urls.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/packages/database/prisma/verify-s3-upload-cors.ts",
+      "type": "file",
+      "name": "verify-s3-upload-cors.ts",
+      "filePath": "backend/packages/database/prisma/verify-s3-upload-cors.ts",
+      "summary": "verify-s3-upload-cors.ts contains 1 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/prisma/verify-s3-upload-cors.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/packages/database/prisma/verify-s3-upload-cors.ts",
+      "lineRange": [
+        3,
+        18
+      ],
+      "summary": "main in verify-s3-upload-cors.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:backend/packages/database/src/auth-tokens.d.ts",
       "type": "file",
       "name": "auth-tokens.d.ts",
@@ -29973,6 +30080,87 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/packages/database/src/private-media-public-url-backfill.ts",
+      "type": "file",
+      "name": "private-media-public-url-backfill.ts",
+      "filePath": "backend/packages/database/src/private-media-public-url-backfill.ts",
+      "summary": "private-media-public-url-backfill.ts contains 4 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/private-media-public-url-backfill.ts:backfillPrivateMediaPublicUrls",
+      "type": "function",
+      "name": "backfillPrivateMediaPublicUrls",
+      "filePath": "backend/packages/database/src/private-media-public-url-backfill.ts",
+      "lineRange": [
+        44,
+        118
+      ],
+      "summary": "backfillPrivateMediaPublicUrls in private-media-public-url-backfill.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/private-media-public-url-backfill.ts:normalizePrivateMediaPublicUrlBackfillBatchSize",
+      "type": "function",
+      "name": "normalizePrivateMediaPublicUrlBackfillBatchSize",
+      "filePath": "backend/packages/database/src/private-media-public-url-backfill.ts",
+      "lineRange": [
+        120,
+        126
+      ],
+      "summary": "normalizePrivateMediaPublicUrlBackfillBatchSize in private-media-public-url-backfill.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/private-media-public-url-backfill.ts:verifyPrivateMediaPublicUrls",
+      "type": "function",
+      "name": "verifyPrivateMediaPublicUrls",
+      "filePath": "backend/packages/database/src/private-media-public-url-backfill.ts",
+      "lineRange": [
+        128,
+        139
+      ],
+      "summary": "verifyPrivateMediaPublicUrls in private-media-public-url-backfill.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/src/private-media-public-url-backfill.ts:privateMediaWithPublicUrlWhere",
+      "type": "function",
+      "name": "privateMediaWithPublicUrlWhere",
+      "filePath": "backend/packages/database/src/private-media-public-url-backfill.ts",
+      "lineRange": [
+        141,
+        150
+      ],
+      "summary": "privateMediaWithPublicUrlWhere in private-media-public-url-backfill.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:backend/packages/database/src/pubsub.d.ts",
       "type": "file",
       "name": "pubsub.d.ts",
@@ -30361,6 +30549,87 @@
       "complexity": "moderate"
     },
     {
+      "id": "file:backend/packages/database/src/s3-cors-verifier.ts",
+      "type": "file",
+      "name": "s3-cors-verifier.ts",
+      "filePath": "backend/packages/database/src/s3-cors-verifier.ts",
+      "summary": "s3-cors-verifier.ts contains 4 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3-cors-verifier.ts:analyzeS3UploadCorsRules",
+      "type": "function",
+      "name": "analyzeS3UploadCorsRules",
+      "filePath": "backend/packages/database/src/s3-cors-verifier.ts",
+      "lineRange": [
+        18,
+        34
+      ],
+      "summary": "analyzeS3UploadCorsRules in s3-cors-verifier.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3-cors-verifier.ts:verifyS3UploadCors",
+      "type": "function",
+      "name": "verifyS3UploadCors",
+      "filePath": "backend/packages/database/src/s3-cors-verifier.ts",
+      "lineRange": [
+        36,
+        47
+      ],
+      "summary": "verifyS3UploadCors in s3-cors-verifier.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3-cors-verifier.ts:hasCorsValue",
+      "type": "function",
+      "name": "hasCorsValue",
+      "filePath": "backend/packages/database/src/s3-cors-verifier.ts",
+      "lineRange": [
+        49,
+        53
+      ],
+      "summary": "hasCorsValue in s3-cors-verifier.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3-cors-verifier.ts:missingUploadHeaders",
+      "type": "function",
+      "name": "missingUploadHeaders",
+      "filePath": "backend/packages/database/src/s3-cors-verifier.ts",
+      "lineRange": [
+        55,
+        64
+      ],
+      "summary": "missingUploadHeaders in s3-cors-verifier.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:backend/packages/database/src/s3.d.ts",
       "type": "file",
       "name": "s3.d.ts",
@@ -30459,13 +30728,13 @@
       "type": "file",
       "name": "s3.ts",
       "filePath": "backend/packages/database/src/s3.ts",
-      "summary": "s3.ts contains 17 functions.",
+      "summary": "s3.ts contains 19 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:optionalEnv",
@@ -30473,8 +30742,8 @@
       "name": "optionalEnv",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        34,
-        37
+        35,
+        38
       ],
       "summary": "optionalEnv in s3.ts.",
       "tags": [
@@ -30482,7 +30751,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:getS3Config",
@@ -30490,8 +30759,8 @@
       "name": "getS3Config",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        39,
-        62
+        40,
+        63
       ],
       "summary": "getS3Config in s3.ts.",
       "tags": [
@@ -30499,7 +30768,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:createS3Client",
@@ -30507,8 +30776,8 @@
       "name": "createS3Client",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        64,
-        76
+        65,
+        77
       ],
       "summary": "createS3Client in s3.ts.",
       "tags": [
@@ -30516,7 +30785,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:createS3RequestOptions",
@@ -30524,8 +30793,8 @@
       "name": "createS3RequestOptions",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        78,
-        91
+        79,
+        92
       ],
       "summary": "createS3RequestOptions in s3.ts.",
       "tags": [
@@ -30533,7 +30802,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:createPublicS3Client",
@@ -30541,8 +30810,8 @@
       "name": "createPublicS3Client",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        93,
-        105
+        94,
+        106
       ],
       "summary": "createPublicS3Client in s3.ts.",
       "tags": [
@@ -30550,7 +30819,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:getPublicS3Client",
@@ -30558,8 +30827,8 @@
       "name": "getPublicS3Client",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        107,
-        122
+        108,
+        123
       ],
       "summary": "getPublicS3Client in s3.ts.",
       "tags": [
@@ -30567,7 +30836,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:resolveNonNegativeInteger",
@@ -30575,8 +30844,8 @@
       "name": "resolveNonNegativeInteger",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        124,
-        133
+        125,
+        134
       ],
       "summary": "resolveNonNegativeInteger in s3.ts.",
       "tags": [
@@ -30584,7 +30853,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:createPresignedUpload",
@@ -30592,8 +30861,8 @@
       "name": "createPresignedUpload",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        135,
-        155
+        136,
+        158
       ],
       "summary": "createPresignedUpload in s3.ts.",
       "tags": [
@@ -30601,7 +30870,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:createPresignedDownload",
@@ -30609,8 +30878,8 @@
       "name": "createPresignedDownload",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        157,
-        171
+        160,
+        174
       ],
       "summary": "createPresignedDownload in s3.ts.",
       "tags": [
@@ -30618,7 +30887,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:recordS3Operation",
@@ -30626,8 +30895,8 @@
       "name": "recordS3Operation",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        173,
-        191
+        176,
+        194
       ],
       "summary": "recordS3Operation in s3.ts.",
       "tags": [
@@ -30635,7 +30904,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:metricsServiceName",
@@ -30643,8 +30912,8 @@
       "name": "metricsServiceName",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        193,
-        195
+        196,
+        198
       ],
       "summary": "metricsServiceName in s3.ts.",
       "tags": [
@@ -30652,7 +30921,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:buildPublicAssetUrl",
@@ -30660,8 +30929,8 @@
       "name": "buildPublicAssetUrl",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        197,
-        204
+        200,
+        207
       ],
       "summary": "buildPublicAssetUrl in s3.ts.",
       "tags": [
@@ -30669,7 +30938,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:objectKeyFromPublicAssetUrl",
@@ -30677,8 +30946,8 @@
       "name": "objectKeyFromPublicAssetUrl",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        206,
-        221
+        209,
+        224
       ],
       "summary": "objectKeyFromPublicAssetUrl in s3.ts.",
       "tags": [
@@ -30686,7 +30955,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:buildMediaProxyPath",
@@ -30694,8 +30963,8 @@
       "name": "buildMediaProxyPath",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        223,
-        225
+        226,
+        228
       ],
       "summary": "buildMediaProxyPath in s3.ts.",
       "tags": [
@@ -30703,7 +30972,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:objectKeyFromEndpointUrl",
@@ -30711,8 +30980,8 @@
       "name": "objectKeyFromEndpointUrl",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        227,
-        263
+        230,
+        266
       ],
       "summary": "objectKeyFromEndpointUrl in s3.ts.",
       "tags": [
@@ -30720,7 +30989,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:trimSlashes",
@@ -30728,8 +30997,8 @@
       "name": "trimSlashes",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        265,
-        267
+        268,
+        270
       ],
       "summary": "trimSlashes in s3.ts.",
       "tags": [
@@ -30737,7 +31006,41 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3.ts:buildEndpointAssetUrl",
+      "type": "function",
+      "name": "buildEndpointAssetUrl",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        272,
+        278
+      ],
+      "summary": "buildEndpointAssetUrl in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/s3.ts:encodeObjectKeyPath",
+      "type": "function",
+      "name": "encodeObjectKeyPath",
+      "filePath": "backend/packages/database/src/s3.ts",
+      "lineRange": [
+        280,
+        286
+      ],
+      "summary": "encodeObjectKeyPath in s3.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "function:backend/packages/database/src/s3.ts:decodeObjectKey",
@@ -30745,8 +31048,8 @@
       "name": "decodeObjectKey",
       "filePath": "backend/packages/database/src/s3.ts",
       "lineRange": [
-        269,
-        276
+        288,
+        295
       ],
       "summary": "decodeObjectKey in s3.ts.",
       "tags": [
@@ -30754,7 +31057,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:backend/packages/database/src/seed-dates.ts",
@@ -33386,7 +33689,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/features/streak/presentation/streak_screen.dart",
@@ -42892,6 +43195,20 @@
       "weight": 1
     },
     {
+      "source": "file:backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "target": "function:backend/packages/database/prisma/backfill-private-media-public-urls.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "target": "function:backend/packages/database/prisma/backfill-private-media-public-urls.ts:resolveBatchSize",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/cleanup-retention.ts",
       "target": "function:backend/packages/database/prisma/cleanup-retention.ts:resolvePositiveInteger",
       "type": "contains",
@@ -45762,6 +46079,20 @@
       "weight": 1
     },
     {
+      "source": "file:backend/packages/database/prisma/verify-private-media-public-urls.ts",
+      "target": "function:backend/packages/database/prisma/verify-private-media-public-urls.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/prisma/verify-s3-upload-cors.ts",
+      "target": "function:backend/packages/database/prisma/verify-s3-upload-cors.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/src/auth-tokens.js",
       "target": "function:backend/packages/database/src/auth-tokens.js:signAccessToken",
       "type": "contains",
@@ -46210,6 +46541,34 @@
       "weight": 1
     },
     {
+      "source": "file:backend/packages/database/src/private-media-public-url-backfill.ts",
+      "target": "function:backend/packages/database/src/private-media-public-url-backfill.ts:backfillPrivateMediaPublicUrls",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/private-media-public-url-backfill.ts",
+      "target": "function:backend/packages/database/src/private-media-public-url-backfill.ts:normalizePrivateMediaPublicUrlBackfillBatchSize",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/private-media-public-url-backfill.ts",
+      "target": "function:backend/packages/database/src/private-media-public-url-backfill.ts:verifyPrivateMediaPublicUrls",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/private-media-public-url-backfill.ts",
+      "target": "function:backend/packages/database/src/private-media-public-url-backfill.ts:privateMediaWithPublicUrlWhere",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/src/pubsub.js",
       "target": "function:backend/packages/database/src/pubsub.js:createRedisPublisher",
       "type": "contains",
@@ -46338,6 +46697,34 @@
     {
       "source": "file:backend/packages/database/src/retention-cleanup.ts",
       "target": "function:backend/packages/database/src/retention-cleanup.ts:daysAgo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3-cors-verifier.ts",
+      "target": "function:backend/packages/database/src/s3-cors-verifier.ts:analyzeS3UploadCorsRules",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3-cors-verifier.ts",
+      "target": "function:backend/packages/database/src/s3-cors-verifier.ts:verifyS3UploadCors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3-cors-verifier.ts",
+      "target": "function:backend/packages/database/src/s3-cors-verifier.ts:hasCorsValue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3-cors-verifier.ts",
+      "target": "function:backend/packages/database/src/s3-cors-verifier.ts:missingUploadHeaders",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -46478,6 +46865,20 @@
     {
       "source": "file:backend/packages/database/src/s3.ts",
       "target": "function:backend/packages/database/src/s3.ts:trimSlashes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:buildEndpointAssetUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/s3.ts",
+      "target": "function:backend/packages/database/src/s3.ts:encodeObjectKeyPath",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -51684,6 +52085,13 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "target": "file:backend/packages/database/src/private-media-public-url-backfill.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/packages/database/prisma/cleanup-retention.ts",
       "target": "file:backend/packages/database/src/retention-cleanup.ts",
       "type": "imports",
@@ -51733,8 +52141,29 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/packages/database/prisma/verify-private-media-public-urls.ts",
+      "target": "file:backend/packages/database/src/private-media-public-url-backfill.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/packages/database/prisma/verify-s3-upload-cors.ts",
+      "target": "file:backend/packages/database/src/s3-cors-verifier.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/packages/database/src/pubsub.ts",
       "target": "file:backend/packages/database/src/metrics.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/packages/database/src/s3-cors-verifier.ts",
+      "target": "file:backend/packages/database/src/s3.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -52823,6 +53252,7 @@
         "config:backend/packages/database/jest.config.js",
         "config:backend/packages/database/package.json",
         "file:backend/packages/database/prisma/backfill-chat-unread-counts.ts",
+        "file:backend/packages/database/prisma/backfill-private-media-public-urls.ts",
         "file:backend/packages/database/prisma/cleanup-retention.ts",
         "file:backend/packages/database/prisma/create-hot-path-indexes.ts",
         "file:backend/packages/database/prisma/enable-postgis-event-geo.ts",
@@ -53288,6 +53718,8 @@
         "file:backend/packages/database/prisma/seed-test-accounts.ts",
         "file:backend/packages/database/prisma/seed.ts",
         "file:backend/packages/database/prisma/verify-chat-unread-counts.ts",
+        "file:backend/packages/database/prisma/verify-private-media-public-urls.ts",
+        "file:backend/packages/database/prisma/verify-s3-upload-cors.ts",
         "file:backend/packages/database/src/auth-tokens.d.ts",
         "file:backend/packages/database/src/auth-tokens.js",
         "file:backend/packages/database/src/auth-tokens.ts",
@@ -53314,11 +53746,13 @@
         "file:backend/packages/database/src/outbox.d.ts",
         "file:backend/packages/database/src/outbox.js",
         "file:backend/packages/database/src/outbox.ts",
+        "file:backend/packages/database/src/private-media-public-url-backfill.ts",
         "file:backend/packages/database/src/pubsub.d.ts",
         "file:backend/packages/database/src/pubsub.js",
         "file:backend/packages/database/src/pubsub.ts",
         "file:backend/packages/database/src/push-providers.ts",
         "file:backend/packages/database/src/retention-cleanup.ts",
+        "file:backend/packages/database/src/s3-cors-verifier.ts",
         "file:backend/packages/database/src/s3.d.ts",
         "file:backend/packages/database/src/s3.js",
         "file:backend/packages/database/src/s3.ts",
@@ -53629,7 +54063,7 @@
         "file:backend/packages/contracts/src/index.d.ts",
         "file:backend/packages/contracts/src/index.js",
         "file:backend/packages/database/prisma/backfill-chat-unread-counts.ts",
-        "file:backend/packages/database/prisma/cleanup-retention.ts"
+        "file:backend/packages/database/prisma/backfill-private-media-public-urls.ts"
       ]
     },
     {

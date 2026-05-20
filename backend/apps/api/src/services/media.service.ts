@@ -99,6 +99,15 @@ export class MediaService {
     }
 
     if (process.env.MEDIA_PROXY_STREAMING_ENABLED !== 'true') {
+      const publicRedirectUrl = this.resolvePublicRedirectUrl(asset);
+      if (publicRedirectUrl != null) {
+        return {
+          redirectUrl: publicRedirectUrl,
+          cacheControl,
+          ...cacheMetadata,
+        };
+      }
+
       const signed = await createPresignedDownload(asset.objectKey);
       return {
         redirectUrl: signed.url,
@@ -204,6 +213,26 @@ export class MediaService {
 
   private isPublicKind(kind: string) {
     return kind === 'avatar';
+  }
+
+  private resolvePublicRedirectUrl(asset: {
+    kind: string;
+    publicUrl: string | null;
+  }) {
+    if (!this.isPublicKind(asset.kind) || asset.publicUrl == null) {
+      return null;
+    }
+
+    let url: URL;
+    try {
+      url = new URL(asset.publicUrl);
+    } catch {
+      return null;
+    }
+
+    return url.protocol === 'https:' || url.protocol === 'http:'
+      ? asset.publicUrl
+      : null;
   }
 
   private buildCacheMetadata(asset: {

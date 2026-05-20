@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "866a51f0abb8edfe8547b20542adddd262e19cae",
-  "generatedAt": "2026-05-20T09:51:19.144Z",
+  "gitCommitHash": "b4c359aea57a439b18c44a2c7e021fc1ae3f0d5d",
+  "generatedAt": "2026-05-20T10:52:30.427Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -15673,7 +15673,7 @@
     },
     "backend/apps/api/src/services/drops.service.ts": {
       "filePath": "backend/apps/api/src/services/drops.service.ts",
-      "contentHash": "73a2b67c551b7faa777ec58306ceb80080f0f2e69b856ce24ec1a56d1223e9f6",
+      "contentHash": "0616d40a25f94f2fbcb3d88dbd6f4ecdfc909ff790e9570e98982464bc01b115",
       "functions": [],
       "classes": [
         {
@@ -15751,7 +15751,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1786
+          "lineCount": 1787
         }
       ],
       "imports": [
@@ -15822,7 +15822,7 @@
         "MAX_DROP_IMAGE_UPLOAD_BYTES",
         "DropsService"
       ],
-      "totalLines": 1896,
+      "totalLines": 1898,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
@@ -17184,7 +17184,7 @@
     },
     "backend/apps/api/src/services/media.service.ts": {
       "filePath": "backend/apps/api/src/services/media.service.ts",
-      "contentHash": "a1461fd4452b038e0e351984357dfb050380ec5ee207bb4dccc8ca76cfe2d047",
+      "contentHash": "ca01ccfb6ea4634323831a69a2442014449c6b980c267675eb491cd78dc7b5c1",
       "functions": [],
       "classes": [
         {
@@ -17195,6 +17195,7 @@
             "getDownloadUrl",
             "resolveCachePolicy",
             "isPublicKind",
+            "resolvePublicRedirectUrl",
             "buildCacheMetadata",
             "isFreshRequest",
             "resolveAssetAccess",
@@ -17208,7 +17209,7 @@
             "s3"
           ],
           "exported": true,
-          "lineCount": 449
+          "lineCount": 478
         }
       ],
       "imports": [
@@ -17262,7 +17263,7 @@
       "exports": [
         "MediaService"
       ],
-      "totalLines": 489,
+      "totalLines": 518,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/notifications.service.ts": {
@@ -18451,7 +18452,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "9b27d1b0080a20c53275f8c168ec6ebbb844f7626cbeb3508380489488957aad",
+      "contentHash": "2a5547060f621f1438e7e22a247a0c63c32c85444ff919617e36daf12c40cd36",
       "functions": [],
       "classes": [
         {
@@ -18509,7 +18510,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1527
+          "lineCount": 1535
         }
       ],
       "imports": [
@@ -18584,7 +18585,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 1636,
+      "totalLines": 1644,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -18975,7 +18976,7 @@
     },
     "backend/apps/api/src/services/stories.service.ts": {
       "filePath": "backend/apps/api/src/services/stories.service.ts",
-      "contentHash": "fd63653c3e1cb19683a062d173f1a31f6af90302706e36edb46d21a65eeb33b5",
+      "contentHash": "ae02a29acdf0ba40494f9a9fbc337b6187e8ade2d08abdbe48d3051e79532ab1",
       "functions": [],
       "classes": [
         {
@@ -18998,7 +18999,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 401
+          "lineCount": 393
         }
       ],
       "imports": [
@@ -19011,7 +19012,6 @@
         {
           "source": "@big-break/database",
           "specifiers": [
-            "createPresignedDownload",
             "decodeCursor",
             "encodeCursor",
             "loadBlockedUserIds"
@@ -19045,7 +19045,7 @@
       "exports": [
         "StoriesService"
       ],
-      "totalLines": 452,
+      "totalLines": 442,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/subscription.service.ts": {
@@ -19359,7 +19359,7 @@
     },
     "backend/apps/api/src/services/uploads.service.ts": {
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
-      "contentHash": "85b5ac223ba22337b97f21ffd130dac32bc41b6285d94f5aab954eb1bc3cfaa4",
+      "contentHash": "d4f358a3dc4b5edaa2f591360a5a19d0f89190fa0fb4d9f5daaf4dac77d3f737",
       "functions": [],
       "classes": [
         {
@@ -19414,7 +19414,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1134
+          "lineCount": 1145
         }
       ],
       "imports": [
@@ -19434,7 +19434,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
-            "buildPublicAssetUrl",
+            "buildMediaProxyPath",
             "createPresignedUpload",
             "createS3Client",
             "createS3RequestOptions",
@@ -19484,7 +19484,7 @@
         "MAX_STORY_MEDIA_UPLOAD_BYTES",
         "UploadsService"
       ],
-      "totalLines": 1196,
+      "totalLines": 1207,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/verification.service.ts": {
@@ -23832,6 +23832,42 @@
       "totalLines": 42,
       "hasStructuralAnalysis": true
     },
+    "backend/packages/database/prisma/backfill-private-media-public-urls.ts": {
+      "filePath": "backend/packages/database/prisma/backfill-private-media-public-urls.ts",
+      "contentHash": "6147c29d71fe8241b4d49e43b23888acd025ed902889f54a8581b0944cffc504",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "resolveBatchSize",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "PrismaClient"
+          ]
+        },
+        {
+          "source": "../src/private-media-public-url-backfill",
+          "specifiers": [
+            "backfillPrivateMediaPublicUrls"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 42,
+      "hasStructuralAnalysis": true
+    },
     "backend/packages/database/prisma/cleanup-retention.ts": {
       "filePath": "backend/packages/database/prisma/cleanup-retention.ts",
       "contentHash": "79c2eca466e99be945ca21bef059d57ea8c847d10b2b27ff1979c148e9f53426",
@@ -24250,6 +24286,60 @@
       ],
       "exports": [],
       "totalLines": 51,
+      "hasStructuralAnalysis": true
+    },
+    "backend/packages/database/prisma/verify-private-media-public-urls.ts": {
+      "filePath": "backend/packages/database/prisma/verify-private-media-public-urls.ts",
+      "contentHash": "efd88f18c184f9e78c1977fced1178dd66981a9d942e7bc79344c05a97650108",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 12
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "PrismaClient"
+          ]
+        },
+        {
+          "source": "../src/private-media-public-url-backfill",
+          "specifiers": [
+            "verifyPrivateMediaPublicUrls"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "backend/packages/database/prisma/verify-s3-upload-cors.ts": {
+      "filePath": "backend/packages/database/prisma/verify-s3-upload-cors.ts",
+      "contentHash": "e879b4f2b49b6ebc79b873bac06a6941c8a966aecec57fc33e7d31737f62a410",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../src/s3-cors-verifier",
+          "specifiers": [
+            "verifyS3UploadCors"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 24,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/auth-tokens.d.ts": {
@@ -25013,12 +25103,12 @@
     },
     "backend/packages/database/src/index.ts": {
       "filePath": "backend/packages/database/src/index.ts",
-      "contentHash": "8e5a74be7bd8cc492385ada8da230a566ee0f41af8eb419a1bbab8cda33ccaff",
+      "contentHash": "4c8128a0a9781e4007c9693034e5c7ea1c8587d191ab9cf11ed09a96b645031e",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 20,
+      "totalLines": 22,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/metrics.ts": {
@@ -25192,6 +25282,55 @@
         "OUTBOX_EVENT_TYPES"
       ],
       "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "backend/packages/database/src/private-media-public-url-backfill.ts": {
+      "filePath": "backend/packages/database/src/private-media-public-url-backfill.ts",
+      "contentHash": "f756f456b130b0aa0daa9d434c2a6a20423d7200c7ef9d24451149fbcc1a94da",
+      "functions": [
+        {
+          "name": "backfillPrivateMediaPublicUrls",
+          "params": [
+            "client",
+            "options"
+          ],
+          "returnType": "Promise<PrivateMediaPublicUrlBackfillReport>",
+          "exported": true,
+          "lineCount": 75
+        },
+        {
+          "name": "normalizePrivateMediaPublicUrlBackfillBatchSize",
+          "params": [
+            "raw"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "verifyPrivateMediaPublicUrls",
+          "params": [
+            "client"
+          ],
+          "returnType": "Promise<PrivateMediaPublicUrlVerificationReport>",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "privateMediaWithPublicUrlWhere",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "PRIVATE_MEDIA_ASSET_KINDS",
+        "backfillPrivateMediaPublicUrls",
+        "normalizePrivateMediaPublicUrlBackfillBatchSize",
+        "verifyPrivateMediaPublicUrls"
+      ],
+      "totalLines": 151,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/pubsub.d.ts": {
@@ -25478,6 +25617,68 @@
       "totalLines": 184,
       "hasStructuralAnalysis": true
     },
+    "backend/packages/database/src/s3-cors-verifier.ts": {
+      "filePath": "backend/packages/database/src/s3-cors-verifier.ts",
+      "contentHash": "e5ed16fc2dbec0d24249d366a7a428a64920862a867aa930f2e88613761cb269",
+      "functions": [
+        {
+          "name": "analyzeS3UploadCorsRules",
+          "params": [
+            "rules"
+          ],
+          "returnType": "S3UploadCorsAnalysis",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "verifyS3UploadCors",
+          "params": [],
+          "returnType": "Promise<S3UploadCorsAnalysis>",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "hasCorsValue",
+          "params": [
+            "values",
+            "expected"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "missingUploadHeaders",
+          "params": [
+            "rule"
+          ],
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@aws-sdk/client-s3",
+          "specifiers": [
+            "GetBucketCorsCommand"
+          ]
+        },
+        {
+          "source": "./s3",
+          "specifiers": [
+            "createS3Client",
+            "createS3RequestOptions",
+            "getS3Config"
+          ]
+        }
+      ],
+      "exports": [
+        "analyzeS3UploadCorsRules",
+        "verifyS3UploadCors"
+      ],
+      "totalLines": 65,
+      "hasStructuralAnalysis": true
+    },
     "backend/packages/database/src/s3.d.ts": {
       "filePath": "backend/packages/database/src/s3.d.ts",
       "contentHash": "5ab8bfb89747d1f4eb79a626cf62e307f7b3cbf59a91ddcfaef064b51dddf7e9",
@@ -25536,7 +25737,7 @@
     },
     "backend/packages/database/src/s3.ts": {
       "filePath": "backend/packages/database/src/s3.ts",
-      "contentHash": "7a66a67059dda71bb334d06499f79242d43667512b57d18355d8076c3187edd5",
+      "contentHash": "7c38989d82d5ce17bc9e1bec8c234344c95f419c2241953914a5c0fe593a379a",
       "functions": [
         {
           "name": "optionalEnv",
@@ -25597,7 +25798,7 @@
             "input"
           ],
           "exported": true,
-          "lineCount": 21
+          "lineCount": 23
         },
         {
           "name": "createPresignedDownload",
@@ -25670,6 +25871,23 @@
           "lineCount": 3
         },
         {
+          "name": "buildEndpointAssetUrl",
+          "params": [
+            "endpoint",
+            "...segments"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "encodeObjectKeyPath",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
           "name": "decodeObjectKey",
           "params": [
             "value"
@@ -25713,7 +25931,7 @@
         "objectKeyFromPublicAssetUrl",
         "buildMediaProxyPath"
       ],
-      "totalLines": 277,
+      "totalLines": 296,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/seed-dates.ts": {

@@ -1,6 +1,88 @@
 import { UploadsService } from '../../src/services/uploads.service';
 
 describe('UploadsService', () => {
+  it('creates chat direct upload urls with private cache headers', async () => {
+    const client = {
+      chatMember: {
+        findUnique: jest.fn().mockResolvedValue({
+          chatId: 'p1',
+          userId: 'user-me',
+        }),
+      },
+    };
+    const service = new UploadsService(
+      { client } as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.createChatAttachmentUpload('user-me', {
+      chatId: 'p1',
+      fileName: 'file.png',
+      contentType: 'image/png',
+    });
+
+    expect(result).toMatchObject({
+      objectKey: expect.stringContaining('chat-attachments/user-me/'),
+      chatId: 'p1',
+      headers: {
+        'content-type': 'image/png',
+        'cache-control': 'private, max-age=300',
+      },
+    });
+  });
+
+  it('creates verification direct upload urls with private cache headers', async () => {
+    const service = new UploadsService(
+      { client: {} } as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.createVerificationMediaUpload(
+      'user-me',
+      'verification_document',
+      {
+        fileName: 'passport.pdf',
+        contentType: 'application/pdf',
+      },
+    );
+
+    expect(result).toMatchObject({
+      objectKey: expect.stringContaining('verification/user-me/document/'),
+      headers: {
+        'content-type': 'application/pdf',
+        'cache-control': 'private, max-age=300',
+      },
+    });
+  });
+
+  it('creates story direct upload urls with private cache headers', async () => {
+    const storiesService = {
+      assertStoryParticipant: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new UploadsService(
+      { client: {} } as any,
+      {} as any,
+      storiesService as any,
+    );
+
+    const result = await service.createStoryMediaUpload('user-me', {
+      eventId: 'event-1',
+      fileName: 'story.png',
+      contentType: 'image/png',
+    });
+
+    expect(result).toMatchObject({
+      objectKey: expect.stringContaining('stories/user-me/'),
+      eventId: 'event-1',
+      headers: {
+        'content-type': 'image/png',
+        'cache-control': 'private, max-age=300',
+      },
+    });
+  });
+
   it('returns an existing chat upload asset when complete is retried', async () => {
     const client = {
       chatMember: {
@@ -156,6 +238,9 @@ describe('UploadsService', () => {
     });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
+        data: expect.objectContaining({
+          publicUrl: null,
+        }),
         select: {
           id: true,
           status: true,
@@ -382,6 +467,9 @@ describe('UploadsService', () => {
     });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
+        data: expect.objectContaining({
+          publicUrl: null,
+        }),
         select: {
           id: true,
           status: true,
@@ -521,7 +609,6 @@ describe('UploadsService', () => {
     const create = jest.fn().mockResolvedValue({
       id: 'asset-new',
       status: 'ready',
-      publicUrl: 'https://cdn.test/chat-attachments/user-me/file.png',
     });
     const client = {
       chatMember: {
@@ -554,14 +641,16 @@ describe('UploadsService', () => {
     ).resolves.toEqual({
       assetId: 'asset-new',
       status: 'ready',
-      url: 'https://cdn.test/chat-attachments/user-me/file.png',
+      url: '/media/asset-new',
     });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
+        data: expect.objectContaining({
+          publicUrl: null,
+        }),
         select: {
           id: true,
           status: true,
-          publicUrl: true,
         },
       }),
     );
@@ -627,6 +716,9 @@ describe('UploadsService', () => {
     });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
+        data: expect.objectContaining({
+          publicUrl: null,
+        }),
         select: {
           id: true,
           status: true,

@@ -1,7 +1,7 @@
 import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import {
-  buildPublicAssetUrl,
+  buildMediaProxyPath,
   createPresignedUpload,
   createS3Client,
   createS3RequestOptions,
@@ -155,7 +155,11 @@ export class UploadsService {
     this.assertChatUploadMime(uploadMeta.kind, contentType);
     const objectKey = `chat-attachments/${userId}/${randomUUID()}-${fileName}`;
     return {
-      ...(await createPresignedUpload({ objectKey, contentType })),
+      ...(await createPresignedUpload({
+        objectKey,
+        contentType,
+        cacheControl: PRIVATE_MEDIA_CACHE_CONTROL,
+      })),
       chatId: uploadMeta.chatId,
     };
   }
@@ -276,19 +280,18 @@ export class UploadsService {
         waveform: uploadMeta.waveform,
         originalFileName: uploadFile.originalname,
         chatId: uploadMeta.chatId,
-        publicUrl: buildPublicAssetUrl(objectKey),
+        publicUrl: null,
       },
       select: {
         id: true,
         status: true,
-        publicUrl: true,
       },
     });
 
     return {
       assetId: asset.id,
       status: asset.status,
-      url: asset.publicUrl,
+      url: buildMediaProxyPath(asset.id),
     };
   }
 
@@ -304,7 +307,11 @@ export class UploadsService {
 
     const objectKey = `stories/${userId}/${randomUUID()}-${fileName}`;
     return {
-      ...(await createPresignedUpload({ objectKey, contentType })),
+      ...(await createPresignedUpload({
+        objectKey,
+        contentType,
+        cacheControl: PRIVATE_MEDIA_CACHE_CONTROL,
+      })),
       eventId,
     };
   }
@@ -409,7 +416,7 @@ export class UploadsService {
         mimeType: uploadFile.mimetype,
         byteSize: uploadFile.size,
         originalFileName: uploadFile.originalname,
-        publicUrl: buildPublicAssetUrl(objectKey),
+        publicUrl: null,
       },
       select: {
         id: true,
@@ -438,7 +445,11 @@ export class UploadsService {
     this.assertVerificationMime(scope, contentType);
 
     const objectKey = `verification/${userId}/${this.verificationObjectSegment(scope)}/${randomUUID()}-${fileName}`;
-    return createPresignedUpload({ objectKey, contentType });
+    return createPresignedUpload({
+      objectKey,
+      contentType,
+      cacheControl: PRIVATE_MEDIA_CACHE_CONTROL,
+    });
   }
 
   async completeVerificationMediaUpload(
@@ -756,7 +767,7 @@ export class UploadsService {
           waveform: input.uploadMeta.waveform,
           originalFileName: input.fileName,
           chatId: input.uploadMeta.chatId,
-          publicUrl: buildPublicAssetUrl(input.objectKey),
+          publicUrl: null,
         },
         select: {
           id: true,
@@ -949,7 +960,7 @@ export class UploadsService {
               ? null
               : Math.max(0, Math.trunc(input.durationMs)),
           originalFileName: input.fileName,
-          publicUrl: buildPublicAssetUrl(input.objectKey),
+          publicUrl: null,
         },
         select: {
           id: true,

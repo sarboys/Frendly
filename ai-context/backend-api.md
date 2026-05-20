@@ -140,6 +140,7 @@ Drops:
 - `GET /drops/:dropId`, `GET /drops/tasks`, `GET /drops/tickets/history?month=YYYY-MM`, `POST /drops/tasks/verification/claim`, `POST /drops/tasks/daily-login/claim`, `POST /drops/:dropId/tickets/apply`, `POST /drops/referral-link/create` and `POST /drops/referral-link/bind` are private user endpoints.
 - `GET /drops/:dropId` returns `winners` after the Drop is finished. It exposes `secretSeed` only for finished Drops and keeps `seedHash` public before and after draw.
 - Drop payloads include optional `imageUrl` for the public/admin card image.
+- Admin Drop image uploads write public S3 objects with immutable one-year cache control and return the CDN URL.
 - MVP reward sources are verification, daily login, host meeting, visit meeting, referral, Frendly+ subscription and event boost. Partner purchases, bookings, rating and repost rewards are not returned in tasks.
 - Tickets are granted only through `DropsRewardService`. It enforces idempotency keys, the 30 ticket monthly limit, task limits and the `Europe/Moscow` calendar month. Pending tickets reserve monthly capacity, and cancelled tickets release it.
 - `DropsRewardService.confirmReward` promotes a pending reward and its pending tickets to active after the external action is confirmed.
@@ -185,6 +186,10 @@ Uploads and media:
 - `POST /uploads/chat-attachment/file`
 - `GET /media/:assetId`
 - `GET /media/:assetId/download-url`
+- Upload-url responses include the S3 upload headers the client must send. Public profile avatar and photo uploads return immutable public cache control. Chat, story and verification uploads return private five-minute cache control.
+- Chat, story and verification media assets store `publicUrl=null`; clients must use `/media/:assetId/download-url` or private `/media/:assetId` access, not CDN URLs.
+- Story list payloads must not embed signed S3 URLs. Story media returns private media shape with `url=/media/:assetId`, `downloadUrl=null` and `downloadUrlPath=/media/:assetId/download-url`.
+- Public non-inline `GET /media/:assetId` redirects to the asset's stored public URL, normally CDN. Private media keeps signed download URLs after membership checks.
 
 Public sharing:
 

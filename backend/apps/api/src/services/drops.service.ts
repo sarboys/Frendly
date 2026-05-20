@@ -51,6 +51,7 @@ type AdminDropStats = {
 const ADMIN_TICKET_STATUSES = ['active', 'used_in_draw', 'winner'] as const;
 export const MAX_DROP_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
 const DROP_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const IMMUTABLE_MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 const TASK_META = {
   verification: {
@@ -570,6 +571,7 @@ export class DropsService {
         Bucket: config.bucket,
         Key: objectKey,
         ContentType: file.mimetype,
+        CacheControl: IMMUTABLE_MEDIA_CACHE_CONTROL,
         Body: file.buffer,
       }),
       createS3RequestOptions(),
