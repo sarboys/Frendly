@@ -209,8 +209,8 @@ describe('DatingService unit', () => {
     );
   });
 
-  it('rejects incoming likes without Frendly+', async () => {
-    const datingActionFindMany = jest.fn();
+  it('allows incoming likes without Frendly+ so mobile can show a locked real count', async () => {
+    const datingActionFindMany = jest.fn().mockResolvedValue([]);
     const service = new DatingService(
       {
         client: {
@@ -240,11 +240,11 @@ describe('DatingService unit', () => {
       } as any,
     );
 
-    await expect(service.listLikes('user-me')).rejects.toMatchObject({
-      statusCode: 403,
-      code: 'frendly_plus_required',
+    await expect(service.listLikes('user-me')).resolves.toMatchObject({
+      items: [],
+      nextCursor: null,
     });
-    expect(datingActionFindMany).not.toHaveBeenCalled();
+    expect(datingActionFindMany).toHaveBeenCalledTimes(1);
   });
 
   it('does not match stale onboarding gender when profile gender conflicts', async () => {

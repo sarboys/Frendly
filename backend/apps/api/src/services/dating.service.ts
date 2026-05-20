@@ -687,8 +687,6 @@ export class DatingService {
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
-    await this.requireFrendlyPlus(userId);
-
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
