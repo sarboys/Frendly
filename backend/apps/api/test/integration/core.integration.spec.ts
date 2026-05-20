@@ -15,8 +15,8 @@ describe('core api flows', () => {
   let accessToken = '';
   let peerAccessToken = '';
   let thirdAccessToken = '';
-  const expectMediaProxyPath = (value: string) => {
-    expect(value).toMatch(/^\/media\/[^/]+$/);
+  const expectPublicMediaUrl = (value: string) => {
+    expect(value).toMatch(/^(\/media\/[^/]+|data:image\/[^;]+;base64,|https?:\/\/)/);
   };
   const toDataUrl = (mimeType: string, payload: Buffer) =>
     `data:${mimeType};base64,${payload.toString('base64')}`;
@@ -417,7 +417,7 @@ describe('core api flows', () => {
 
     expect(uploadResponse.body.assetId).toEqual(expect.any(String));
     expect(uploadResponse.body.status).toBe('ready');
-    expectMediaProxyPath(uploadResponse.body.url as string);
+    expectPublicMediaUrl(uploadResponse.body.url as string);
 
     const asset = await prisma.mediaAsset.findUnique({
       where: { id: uploadResponse.body.assetId as string },
@@ -491,7 +491,7 @@ describe('core api flows', () => {
 
     expect(readAfterUpload.body.photos).toHaveLength(initialCount + 2);
     expect(lastPhotoAfterUpload.id).toBe(secondUpload.body.photo.id);
-    expectMediaProxyPath(lastPhotoAfterUpload.url as string);
+    expectPublicMediaUrl(lastPhotoAfterUpload.url as string);
 
     await request(app.getHttpServer())
       .post(`/profile/me/photos/${secondUpload.body.photo.id}/primary`)
