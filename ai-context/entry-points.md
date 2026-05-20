@@ -2,15 +2,11 @@
 
 Use this for boot files, routes and app starts.
 
-## Mobile app rule
-
-- `mobile2/` это актуальный Flutter клиент.
-- `mobile/` устарел. Не используй его для поиска, чтения или правок, если пользователь явно не попросил старое приложение.
-
 ## Fast paths
 
-- Flutter boot: `mobile2/lib/main.dart`, `mobile2/lib/app/dateasy_app.dart`.
-- Flutter routes: `mobile2/lib/app/dateasy_router.dart`.
+- Flutter boot: `mobile/lib/main.dart`, `mobile/lib/app/app.dart`.
+- Flutter routes: `mobile/lib/app/navigation/app_routes.dart`, `mobile/lib/app/navigation/app_router.dart`.
+- Flutter shell: `mobile/lib/app/navigation/app_shell.dart`, `mobile/lib/shared/widgets/bb_bottom_nav.dart`.
 - API boot: `backend/apps/api/src/main.ts`, `backend/apps/api/src/app.module.ts`.
 - Chat boot: `backend/apps/chat/src/main.ts`, `backend/apps/chat/src/chat-server.service.ts`.
 - Worker boot: `backend/apps/worker/src/main.ts`, `backend/apps/worker/src/worker.service.ts`.
@@ -22,21 +18,20 @@ Use this for boot files, routes and app starts.
 
 ## Flutter app
 
-`mobile2/lib/main.dart`:
+`mobile/lib/main.dart`:
 
 - ensures widgets binding
 - starts edge-to-edge system UI setup and `SharedPreferences` init concurrently
 - restores auth tokens after prefs are ready. Secure storage read starts before sync prefs inspection inside `restoreInitialAuthTokens`
 - starts Riverpod root
 
-`mobile2/lib/app/dateasy_app.dart`:
+`mobile/lib/app/app.dart`:
 
 - builds `MaterialApp.router`
 - wires theme, router and session clear
-- listens to app links for payment return URLs. `frendly://payment/<success|fail>?orderId=...` and `dateasy://payment/<success|fail>?orderId=...` close the in-app browser, invalidate wallet/payment/subscription providers and route to `/wallet`
 - does not start chat realtime or `/settings/me` on authenticated startup
 
-`mobile2/lib/app/core/config/backend_config.dart`:
+`mobile/lib/app/core/config/backend_config.dart`:
 
 - API URL
 - chat WebSocket URL
@@ -44,11 +39,24 @@ Use this for boot files, routes and app starts.
 
 ## Flutter navigation
 
-`mobile2/lib/app/dateasy_router.dart`:
+`mobile/lib/app/navigation/app_routes.dart`:
+
+- route enum
+- `pushRoute` and `goRoute`
+
+`mobile/lib/app/navigation/app_router.dart`:
 
 - `GoRouter`
 - public/setup/auth redirects
-- route table for current mobile2 screens
+- shell tabs and push screens
+
+Shell tabs:
+
+- `tonight` -> `TonightScreen`
+- `chats` -> `ChatsScreen`
+- `communities` -> `CommunitiesScreen`
+- `dating` -> `DatingScreen`
+- `profile` -> `ProfileScreen`
 
 Important query params:
 
@@ -62,7 +70,6 @@ Important query params:
 - `/map?eventId=<id>`
 - `/meetups`
 - `/host`
-- `/giveaways`
 - `/create?inviteeUserId=<id>`
 - `/create?communityId=<id>`
 - `/create?mode=dating`
@@ -72,33 +79,25 @@ Important query params:
 - `/evening-builder` legacy redirects to `/ai-create`
 - `/permissions` and `/add-photo` legacy setup links redirect to `/onboarding` or `/tonight`
 - `/tokens/focus`, `/tokens/balance`, `/tokens/top-up` and `/tokens/boost` legacy token links redirect to `/wallet`
-- `/wallet?paymentResult=<success|fail>&orderId=<id>&productKind=<kind>` is the mobile landing route after T-Bank redirects back through `frendly://payment/...`
-- `/chats`
-- `/chats/:chatId`
-- `/posters`
-- `/posters/:posterId`
-- `/meetings/new?afficheEventId=<id>`
-- `/meetings/:meetingId?inviteRequestId=<requestId>` opens meeting detail with invite accept CTA
 - `/evening/:eventId`
 - `/evening-plan/:routeId?launch=1`
 - `/evening-live/:routeId?mode=auto|manual|hybrid`
 
 ## Flutter network
 
-- HTTP: `mobile2/lib/app/core/network/api_client.dart`.
-- Repository: `mobile2/lib/shared/data/backend_repository.dart`.
-- WebSocket: `mobile2/lib/app/core/network/chat_socket_client.dart`.
-- App realtime providers live in `mobile2/lib/shared/data/app_providers.dart`.
+- HTTP: `mobile/lib/app/core/network/api_client.dart`.
+- Repository: `mobile/lib/shared/data/backend_repository.dart`.
+- WebSocket: `mobile/lib/app/core/network/chat_socket_client.dart`.
+- App realtime sync: `chatRealtimeSyncProvider` in `mobile/lib/shared/data/app_providers.dart`, started by `ChatsScreen` after chats are opened.
 
 ## Flutter features
 
 - Tonight: `features/tonight/presentation/tonight_screen.dart`.
 - V5 search modal: `features/tonight/presentation/v5_search_modal.dart`.
 - Map: `features/map/presentation/map_screen.dart`.
-- Meetups list: `features/meetings/presentation/meetings_screen.dart`.
-- New meeting: `features/meetings/presentation/new_meeting_screen.dart`.
-- Affiche: `features/posters/presentation/posters_screen.dart`, `features/posters/presentation/poster_detail_screen.dart`.
-- Event detail: `features/meetings/presentation/meeting_detail_screen.dart`.
+- Meetups list: `features/meetups/presentation/meetups_screen.dart`.
+- Affiche: `features/affiche/presentation/`.
+- Event detail: `features/event_detail/presentation/`.
 - Streak: `features/streak/presentation/streak_screen.dart`.
 - Memory map: `features/memory_map/presentation/memory_map_screen.dart`.
 - Perks: `features/perks/presentation/perks_screen.dart`.
@@ -106,9 +105,9 @@ Important query params:
 - After Dark: `features/after_dark/presentation/after_dark_screen.dart`.
 - Create meetup: `features/create_meetup/presentation/create_meetup_screen.dart`.
 - Host dashboard: `features/host_dashboard/presentation/host_dashboard_screen.dart`.
-- Giveaways: `features/giveaways/presentation/giveaways_screen.dart`.
 - Chat hub: `features/chats/presentation/chats_screen.dart`.
-- Chat thread: `features/chats/presentation/meeting_chat_screen.dart`.
+- Meetup chat: `features/meetup_chat/presentation/meetup_chat_screen.dart`.
+- Personal chat: `features/personal_chat/presentation/personal_chat_screen.dart`.
 - Evening: `features/evening_plan/presentation/`, `features/evening_routes/presentation/`.
 - Unified meetup evening flow: `features/evening_flow/presentation/evening_flow_screen.dart`.
 - Communities: `features/communities/presentation/`.

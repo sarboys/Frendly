@@ -43,10 +43,10 @@ mkdirSync(tmpDir, { recursive: true });
 
 const includeRoots = [
   "backend",
-  "mobile2/lib",
-  "mobile2/pubspec.yaml",
-  "mobile2/analysis_options.yaml",
-  "mobile2/README.md",
+  "mobile/lib",
+  "mobile/pubspec.yaml",
+  "mobile/analysis_options.yaml",
+  "mobile/README.md",
   "admin/src",
   "admin/package.json",
   "admin/tsconfig.json",
@@ -283,14 +283,14 @@ function detectFrameworks(files) {
       warnings.push(`Cannot parse ${file}: ${error.message}`);
     }
   }
-  if (files.some((file) => file === "mobile2/pubspec.yaml")) frameworks.add("Flutter");
+  if (files.some((file) => file === "mobile/pubspec.yaml")) frameworks.add("Flutter");
   if (files.some((file) => file.endsWith("schema.prisma"))) frameworks.add("Prisma");
   return [...frameworks].sort((a, b) => a.localeCompare(b));
 }
 
 function layerFor(filePath, nodeType) {
   if (["domain", "flow", "step"].includes(nodeType)) return "Business Logic";
-  if (filePath.startsWith("mobile2/")) return "Mobile Flutter";
+  if (filePath.startsWith("mobile/")) return "Mobile Flutter";
   if (filePath.startsWith("admin/")) return "Admin React";
   if (filePath.startsWith("backend/apps/api/")) return "Backend API";
   if (filePath.startsWith("backend/apps/chat/")) return "Backend Realtime";
@@ -456,7 +456,7 @@ function domainDefinition() {
         ["Validate identity proof", "AuthService, TelegramAuthService, or SocialAuthService validates the submitted proof.", "backend/apps/api/src/services/auth.service.ts", [65, 439]],
         ["Find or create user", "The backend links the verified identity to a user record.", "backend/apps/api/src/services/auth.service.ts", [574, 617]],
         ["Create session", "A session record and token pair are created for the client.", "backend/apps/api/src/services/auth.service.ts", [618, 699]],
-        ["Bootstrap mobile session", "Mobile stores tokens and loads the current user through BackendRepository.", "mobile2/lib/shared/data/backend_repository.dart", [197, 300]],
+        ["Bootstrap mobile session", "Mobile stores tokens and loads the current user through BackendRepository.", "mobile/lib/shared/data/backend_repository.dart", [197, 300]],
       ],
     },
     {
@@ -471,7 +471,7 @@ function domainDefinition() {
         ["Build query constraints", "EventsService resolves blocked users, viewer gender, filters, cursor, and geo query.", "backend/apps/api/src/services/events.service.ts", [94, 175]],
         ["Load and order events", "Events are loaded through Prisma and optional PostGIS candidates, then ordered and paginated.", "backend/apps/api/src/services/events.service.ts", [176, 284]],
         ["Map event cards", "Event summaries include participant state, attendance, live state, and viewer-specific fields.", "backend/apps/api/src/services/events.service.ts", [176, 284]],
-        ["Render mobile surfaces", "Mobile fetches events through BackendRepository and shows tonight, map, search, and event detail screens.", "mobile2/lib/shared/data/backend_repository.dart", [358, 409]],
+        ["Render mobile surfaces", "Mobile fetches events through BackendRepository and shows tonight, map, search, and event detail screens.", "mobile/lib/shared/data/backend_repository.dart", [358, 409]],
       ],
     },
     {
@@ -502,7 +502,7 @@ function domainDefinition() {
         ["Join session", "Session privacy rules decide whether joining is immediate, request based, or blocked.", "backend/apps/api/src/services/evening.service.ts", [660, 882]],
         ["Check in and progress steps", "Participants check in to route steps, then host or user advances, skips, or finishes.", "backend/apps/api/src/services/evening.service.ts", [1103, 1173]],
         ["After-party and feedback", "Finished sessions expose after-party data and accept feedback/photos.", "backend/apps/api/src/services/evening.service.ts", [1237, 1384]],
-        ["Mobile route screens", "Flutter screens load route and evening state.", "mobile2/lib/features/routes/presentation/route_detail_screen.dart", [1, 200]],
+        ["Mobile route screens", "Flutter screens load route/session state and drive the evening UI.", "mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart", [1, 200]],
       ],
     },
     {
@@ -517,7 +517,7 @@ function domainDefinition() {
         ["Issue code", "PartnerOfferCodeService checks access and creates a code for the user and offer.", "backend/apps/api/src/services/partner-offer-code.service.ts", [70, 153]],
         ["Read code status", "The user can query code status from the authenticated evening API.", "backend/apps/api/src/services/partner-offer-code.service.ts", [154, 188]],
         ["Activate public code", "Public code activation validates and marks the code as used.", "backend/apps/api/src/services/partner-offer-code.service.ts", [189, 260]],
-        ["Show offer in mobile", "Mobile route and perk screens expose partner offer entry points.", "mobile2/lib/features/routes/presentation/route_detail_screen.dart", [1, 200]],
+        ["Show QR in mobile", "Mobile route screens include partner offer QR entry points.", "mobile/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart", [1, 200]],
       ],
     },
     {
@@ -530,8 +530,8 @@ function domainDefinition() {
       steps: [
         ["Load chat list", "ChatsService lists meetup or direct chats for the current user and filters blocked users.", "backend/apps/api/src/services/chats.service.ts", [29, 450]],
         ["Load messages", "ChatsService returns paginated message history with attachments and sender data.", "backend/apps/api/src/services/chats.service.ts", [451, 545]],
-        ["Connect socket", "ChatSocketClient opens WebSocket auth and reconnect recovery on mobile.", "mobile2/lib/app/core/network/chat_socket_client.dart", [90, 321]],
-        ["Send queued command", "Mobile persists outgoing commands and restores them after reconnect.", "mobile2/lib/app/core/network/chat_socket_client.dart", [509, 581]],
+        ["Connect socket", "ChatSocketClient opens WebSocket auth and reconnect recovery on mobile.", "mobile/lib/app/core/network/chat_socket_client.dart", [90, 321]],
+        ["Send queued command", "Mobile persists outgoing commands and restores them after reconnect.", "mobile/lib/app/core/network/chat_socket_client.dart", [509, 581]],
         ["Fan out realtime events", "ChatServerService handles live commands and broadcasts updates.", "backend/apps/chat/src/chat-server.service.ts", [1, 220]],
         ["Mark read", "REST and socket state update read cursor and unread counts.", "backend/apps/api/src/services/chats.service.ts", [546, 620]],
       ],
@@ -549,7 +549,7 @@ function domainDefinition() {
         ["Save onboarding", "OnboardingService persists profile and preference data.", "backend/apps/api/src/services/onboarding.service.ts", [250, 330]],
         ["Update profile", "ProfileService updates current user's profile fields.", "backend/apps/api/src/services/profile.service.ts", [56, 84]],
         ["Manage photos", "ProfileService handles avatar and profile photo upload, ordering, primary photo, and delete.", "backend/apps/api/src/services/profile.service.ts", [85, 420]],
-        ["Mobile onboarding UI", "Flutter onboarding collects contact, birthday, location, and preferences.", "mobile2/lib/features/onboarding/presentation/onboarding_screen.dart", [153, 222]],
+        ["Mobile onboarding UI", "Flutter onboarding collects contact, birthday, location, and preferences.", "mobile/lib/features/onboarding/presentation/onboarding_screen.dart", [153, 222]],
       ],
     },
     {
@@ -563,7 +563,7 @@ function domainDefinition() {
         ["List discover cards", "DatingService loads eligible profiles for the viewer.", "backend/apps/api/src/services/dating.service.ts", [130, 211]],
         ["List incoming likes", "DatingService returns users who liked the viewer.", "backend/apps/api/src/services/dating.service.ts", [212, 278]],
         ["Record action", "DatingService saves like, skip, or other action and computes match result.", "backend/apps/api/src/services/dating.service.ts", [279, 360]],
-        ["Show mobile swipe flow", "DatingScreen sends user action from the mobile card UI.", "mobile2/lib/features/dating/presentation/dating_screen.dart", [460, 520]],
+        ["Show mobile swipe flow", "DatingScreen sends user action from the mobile card UI.", "mobile/lib/features/dating/presentation/dating_screen.dart", [460, 520]],
         ["List matches", "MatchesService exposes current matches.", "backend/apps/api/src/services/matches.service.ts", [16, 80]],
       ],
     },
@@ -580,7 +580,7 @@ function domainDefinition() {
         ["Create report", "SafetyService records reports from the current user.", "backend/apps/api/src/services/safety.service.ts", [157, 282]],
         ["Block user", "SafetyService creates blocks that other domains use for filtering.", "backend/apps/api/src/services/safety.service.ts", [283, 352]],
         ["Fire SOS", "SafetyService creates an SOS event with current user context.", "backend/apps/api/src/services/safety.service.ts", [353, 410]],
-        ["Mobile safety hub", "SOS and safety screens expose emergency and report UI.", "mobile2/lib/features/sos/presentation/sos_screen.dart", [1, 220]],
+        ["Mobile safety hub", "SafetyHubScreen exposes settings, reports, blocks, and SOS UI.", "mobile/lib/features/safety/presentation/safety_hub_screen.dart", [138, 293]],
       ],
     },
     {
@@ -595,7 +595,7 @@ function domainDefinition() {
         ["Create outbox event", "Business services create outbox events for async delivery.", "backend/packages/database/src/outbox.ts", [1, 120]],
         ["Poll worker", "WorkerService reads and processes outbox events.", "backend/apps/worker/src/worker.service.ts", [164, 260]],
         ["Dispatch provider", "Push providers send platform-specific push messages.", "backend/apps/worker/src/push.providers.ts", [1, 120]],
-        ["Receive on mobile", "Mobile push token service keeps device token state in sync.", "mobile2/lib/app/core/device/app_push_token_service.dart", [1, 160]],
+        ["Receive on mobile", "Mobile push token service keeps device token state in sync.", "mobile/lib/app/core/device/app_push_token_service.dart", [1, 160]],
       ],
     },
     {
@@ -749,10 +749,10 @@ function buildTour(graph) {
     ...pick("backend/packages/database/prisma/", 2),
   ]);
   push("Mobile Client", "Inspect Flutter app shell, navigation, features, and shared data layer.", [
-    "file:mobile2/lib/main.dart",
-    "file:mobile2/lib/app/dateasy_app.dart",
-    "file:mobile2/lib/app/dateasy_router.dart",
-    ...pick("mobile2/lib/shared/", 5),
+    "file:mobile/lib/main.dart",
+    "file:mobile/lib/app/app.dart",
+    "file:mobile/lib/app/navigation/app_router.dart",
+    ...pick("mobile/lib/shared/", 5),
   ]);
   push("Admin Client", "Review admin routes, layout, pages, and API client.", [
     ...pick("admin/src/", 8),
@@ -804,7 +804,7 @@ for (const file of files) {
 
 const gitCommitHash = commitHash();
 const analyzedAt = new Date().toISOString();
-const builder = new GraphBuilder("Frendly backend-mobile2-admin", gitCommitHash);
+const builder = new GraphBuilder("Frendly backend-mobile-admin", gitCommitHash);
 
 for (const item of scan) {
   const analysis = analyses.get(item.path);
@@ -843,7 +843,7 @@ for (const item of scan) {
 
 let graph = builder.build();
 graph.project = {
-  name: "Frendly backend-mobile2-admin",
+  name: "Frendly backend-mobile-admin",
   description: "Focused graph for backend, mobile Flutter app, admin app, business logic, and their runtime/deploy links.",
   languages: [...new Set(scan.map((item) => item.language).filter((lang) => lang !== "unknown"))].sort(),
   frameworks: detectFrameworks(files),

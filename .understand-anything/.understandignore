@@ -1,5 +1,5 @@
 # Strict scope for understand-anything.
-# Goal: backend-mobile2-admin graph without generated or unrelated files.
+# Goal: backend-mobile-admin graph without generated or unrelated files.
 
 # Hidden and AI/tooling folders
 .ai-factory/
@@ -64,29 +64,28 @@ yarn.lock
 pnpm-lock.yaml
 bun.lock
 bun.lockb
-mobile/
-mobile2/pubspec.lock
-mobile2/.dart_tool/
-mobile2/.flutter-plugins
-mobile2/.flutter-plugins-dependencies
-mobile2/**/GeneratedPluginRegistrant.*
-mobile2/**/Flutter/Generated.xcconfig
-mobile2/**/Flutter/flutter_export_environment.sh
-mobile2/android/
-mobile2/ios/
-mobile2/linux/
-mobile2/macos/
-mobile2/windows/
-mobile2/web/
-mobile2/test/
+mobile/pubspec.lock
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/**/GeneratedPluginRegistrant.*
+mobile/**/Flutter/Generated.xcconfig
+mobile/**/Flutter/flutter_export_environment.sh
+mobile/android/
+mobile/ios/
+mobile/linux/
+mobile/macos/
+mobile/windows/
+mobile/web/
+mobile/test/
 
 # Native generated dependency folders
-mobile2/ios/Pods/
-mobile2/macos/Pods/
-mobile2/ios/.symlinks/
-mobile2/macos/.symlinks/
-mobile2/ios/Flutter/ephemeral/
-mobile2/macos/Flutter/ephemeral/
+mobile/ios/Pods/
+mobile/macos/Pods/
+mobile/ios/.symlinks/
+mobile/macos/.symlinks/
+mobile/ios/Flutter/ephemeral/
+mobile/macos/Flutter/ephemeral/
 
 # Tests are useful for QA, but noisy for this architecture graph.
 **/__tests__/

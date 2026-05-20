@@ -1,10 +1,6 @@
 # Frontend Flutter Map
 
-Legacy note: this file describes the old `mobile/` Flutter app. Do not use it for normal mobile work, search, `rg`, code reading, or edits unless the user explicitly asks for `mobile/`.
-
-For current Flutter work use `mobile2/` and start with `ai-context/mobile2-backend-performance.md`.
-
-Use this file only for old `mobile/` screens, navigation, state, UI parity and performance.
+Use this for Flutter screens, navigation, state, UI parity and performance.
 
 For concrete files, run `./scripts/ua-query.mjs "<feature keywords>"` first.
 
