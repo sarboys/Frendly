@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T10:52:30.150Z",
-    "gitCommitHash": "b4c359aea57a439b18c44a2c7e021fc1ae3f0d5d"
+    "analyzedAt": "2026-05-20T11:22:20.790Z",
+    "gitCommitHash": "16e8d9d31cf9bf328aba7997d3788f84c4b9da23"
   },
   "nodes": [
     {
@@ -10016,8 +10016,8 @@
       "name": "parseOptionalNumber",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
-        58,
-        64
+        68,
+        74
       ],
       "summary": "parseOptionalNumber in dating.controller.ts.",
       "tags": [
@@ -10033,8 +10033,8 @@
       "name": "parseOptionalBoolean",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
-        66,
-        71
+        76,
+        81
       ],
       "summary": "parseOptionalBoolean in dating.controller.ts.",
       "tags": [
@@ -10050,8 +10050,8 @@
       "name": "parseDatingGender",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
-        73,
-        78
+        83,
+        88
       ],
       "summary": "parseDatingGender in dating.controller.ts.",
       "tags": [
@@ -10067,8 +10067,8 @@
       "name": "parseQueryList",
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
-        80,
-        86
+        90,
+        96
       ],
       "summary": "parseQueryList in dating.controller.ts.",
       "tags": [
@@ -10085,7 +10085,7 @@
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
       "lineRange": [
         6,
-        56
+        66
       ],
       "summary": "DatingController in dating.controller.ts.",
       "tags": [
@@ -11710,8 +11710,8 @@
       "name": "DatingService",
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
-        209,
-        1032
+        233,
+        1671
       ],
       "summary": "DatingService in dating.service.ts.",
       "tags": [
@@ -14465,8 +14465,8 @@
       "name": "TokensService",
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
       "lineRange": [
-        23,
-        259
+        24,
+        263
       ],
       "summary": "TokensService in tokens.service.ts.",
       "tags": [
@@ -20610,8 +20610,8 @@
       "name": "main",
       "filePath": "backend/packages/database/prisma/create-hot-path-indexes.ts",
       "lineRange": [
-        128,
-        141
+        136,
+        149
       ],
       "summary": "main in create-hot-path-indexes.ts.",
       "tags": [
@@ -28210,6 +28210,104 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "summary": "migration.sql contains 5 definitions.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent",
+      "type": "table",
+      "name": "DatingUsageEvent",
+      "filePath": "backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "lineRange": [
+        11,
+        20
+      ],
+      "summary": "table: DatingUsageEvent (6 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_userId_kind_createdAt_idx",
+      "type": "table",
+      "name": "DatingUsageEvent_userId_kind_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "lineRange": [
+        26,
+        26
+      ],
+      "summary": "index: DatingUsageEvent_userId_kind_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_userId_createdAt_idx",
+      "type": "table",
+      "name": "DatingUsageEvent_userId_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "lineRange": [
+        29,
+        29
+      ],
+      "summary": "index: DatingUsageEvent_userId_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_targetUserId_kind_createdAt_idx",
+      "type": "table",
+      "name": "DatingUsageEvent_targetUserId_kind_createdAt_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "lineRange": [
+        32,
+        32
+      ],
+      "summary": "index: DatingUsageEvent_targetUserId_kind_createdAt_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:OnboardingPreferences_interests_gin_idx",
+      "type": "table",
+      "name": "OnboardingPreferences_interests_gin_idx",
+      "filePath": "backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "lineRange": [
+        35,
+        35
+      ],
+      "summary": "index: OnboardingPreferences_interests_gin_idx (0 fields)",
+      "tags": [
+        "backend",
+        "table",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -33988,7 +34086,7 @@
         "code",
         "dart"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:mobile/lib/shared/models/evening_route_template.dart",
@@ -45953,6 +46051,41 @@
       "weight": 1
     },
     {
+      "source": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "target": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_userId_kind_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_userId_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_targetUserId_kind_createdAt_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+      "target": "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:OnboardingPreferences_interests_gin_idx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/reset-test-users.ts",
       "target": "function:backend/packages/database/prisma/reset-test-users.ts:main",
       "type": "contains",
@@ -50860,6 +50993,13 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/services/dating.service.ts",
+      "target": "file:backend/apps/api/src/services/tokens.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/services/drops-draw.service.ts",
       "target": "file:backend/apps/api/src/common/api-error.ts",
       "type": "imports",
@@ -53712,6 +53852,12 @@
         "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_selfieAssetId_key",
         "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_documentAssetId_key",
         "index:backend/packages/database/prisma/migrations/20260520170000_verification_review_assets/migration.sql:UserVerification_status_submittedAt_idx",
+        "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent",
+        "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_userId_kind_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_userId_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:DatingUsageEvent_targetUserId_kind_createdAt_idx",
+        "index:backend/packages/database/prisma/migrations/20260520183000_dating_usage_events/migration.sql:OnboardingPreferences_interests_gin_idx",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",

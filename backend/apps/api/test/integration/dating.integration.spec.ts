@@ -150,6 +150,20 @@ describe('dating api flows', () => {
         ],
       },
     });
+    await prisma.datingUsageEvent.deleteMany({
+      where: {
+        userId: {
+          in: ['user-me', 'user-sonya', 'user-oleg', 'user-mark'],
+        },
+      },
+    });
+    await prisma.tokenWallet.deleteMany({
+      where: {
+        userId: {
+          in: ['user-me', 'user-sonya', 'user-oleg', 'user-mark'],
+        },
+      },
+    });
 
     const datingPairs: Array<[string, string]> = [
       ['user-me', 'user-sonya'],
@@ -286,6 +300,108 @@ describe('dating api flows', () => {
     });
 
     expect(directChat?.id).toBe(response.body.chatId);
+  });
+
+  it('rewinds a pass with tokens and then opens match after mutual like', async () => {
+    await prisma.tokenWallet.create({
+      data: {
+        userId: 'user-me',
+        balance: 100,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/dating/actions')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({ targetUserId: 'user-sonya', action: 'pass' })
+      .expect(201);
+
+    const rewindResponse = await request(app.getHttpServer())
+      .post('/dating/rewind')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    expect(rewindResponse.body).toMatchObject({
+      ok: true,
+      action: 'rewind',
+      chargedTokens: 25,
+      peer: {
+        userId: 'user-sonya',
+      },
+    });
+
+    const walletAfterRewind = await prisma.tokenWallet.findUnique({
+      where: { userId: 'user-me' },
+    });
+    expect(walletAfterRewind?.balance).toBe(75);
+
+    const datingSpend = await prisma.tokenLedgerEntry.findFirst({
+      where: {
+        wallet: {
+          userId: 'user-me',
+        },
+        reason: 'dating_spend',
+      },
+    });
+    expect(datingSpend?.amount).toBe(-25);
+
+    await request(app.getHttpServer())
+      .post('/dating/actions')
+      .set('authorization', `Bearer ${sonyaAccessToken}`)
+      .send({ targetUserId: 'user-me', action: 'like' })
+      .expect(201);
+
+    const matchResponse = await request(app.getHttpServer())
+      .post('/dating/actions')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({ targetUserId: 'user-sonya', action: 'like' })
+      .expect(201);
+
+    expect(matchResponse.body).toMatchObject({
+      matched: true,
+      chatId: expect.any(String),
+    });
+  });
+
+  it('updates dating limits after actions', async () => {
+    const initialLimits = await request(app.getHttpServer())
+      .get('/dating/limits')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(initialLimits.body).toMatchObject({
+      premium: false,
+      hourlySwipes: {
+        unlimited: false,
+        limit: 50,
+        remaining: 50,
+      },
+      superLikes: {
+        freeLimit: 1,
+        freeRemaining: 1,
+        paidCost: 50,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/dating/actions')
+      .set('authorization', `Bearer ${accessToken}`)
+      .send({ targetUserId: 'user-sonya', action: 'super_like' })
+      .expect(201);
+
+    const updatedLimits = await request(app.getHttpServer())
+      .get('/dating/limits')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(updatedLimits.body).toMatchObject({
+      hourlySwipes: {
+        remaining: 49,
+      },
+      superLikes: {
+        freeRemaining: 0,
+      },
+    });
   });
 
   it('returns shared photo payload for discover and likes surfaces', async () => {

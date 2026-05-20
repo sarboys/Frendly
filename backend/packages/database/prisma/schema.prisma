@@ -162,6 +162,14 @@ enum DatingActionKind {
   super_like
 }
 
+enum DatingUsageEventKind {
+  swipe
+  super_like_free
+  super_like_paid
+  rewind_free
+  rewind_paid
+}
+
 enum ProfileReactionKind {
   like
   super_like
@@ -272,6 +280,7 @@ enum TokenLedgerReason {
   purchase
   promotion_spend
   subscription_spend
+  dating_spend
   reward_grant
   admin_adjustment
 }
@@ -374,6 +383,7 @@ model User {
   authAuditEvents                    AuthAuditEvent[]
   datingActionsSent                  DatingAction[]              @relation("DatingActionActor")
   datingActionsReceived              DatingAction[]              @relation("DatingActionTarget")
+  datingUsageEvents                  DatingUsageEvent[]
   followsSent                         UserFollow[]                @relation("UserFollowFollower")
   followsReceived                     UserFollow[]                @relation("UserFollowTarget")
   profileReactionsSent                ProfileReaction[]           @relation("ProfileReactionActor")
@@ -1993,6 +2003,20 @@ model DatingAction {
   @@index([targetUserId, action, actorUserId])
   @@index([actorUserId, action, createdAt])
   @@index([actorUserId, action, updatedAt, targetUserId])
+}
+
+model DatingUsageEvent {
+  id            String                @id @default(cuid())
+  userId        String
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetUserId  String?
+  kind          DatingUsageEventKind
+  chargedTokens Int                   @default(0)
+  createdAt     DateTime              @default(now())
+
+  @@index([userId, kind, createdAt])
+  @@index([userId, createdAt])
+  @@index([targetUserId, kind, createdAt])
 }
 
 model UserFollow {

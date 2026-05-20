@@ -544,7 +544,12 @@ describe('DatingService unit', () => {
     } as any);
 
     expect(result.items.map((item) => item.userId)).toEqual(['user-010']);
-    expect(decodeCursor(result.nextCursor!)).toEqual({ value: 'user-011' });
+    expect(decodeCursor(result.nextCursor!)).toEqual({
+      value: 'user-011',
+      createdAt: '1970-01-01T00:00:00.000Z',
+      cycle: 'fresh',
+      buffer: [],
+    });
     expect(datingActionFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -843,11 +848,30 @@ describe('DatingService unit', () => {
     });
   });
 
-  it('rejects a second free super like in the UTC day', async () => {
+  it('spends 50 tokens for a second free super like in the Moscow day', async () => {
     const upsert = jest.fn();
+    const spendTokens = jest.fn().mockResolvedValue({ id: 'dating-spend-1' });
+    const transaction = jest.fn((callback) =>
+      callback({
+        datingAction: {
+          upsert,
+        },
+        datingUsageEvent: {
+          count: jest.fn().mockResolvedValue(1),
+          create: jest.fn().mockResolvedValue({}),
+        },
+        notification: {
+          create: jest.fn().mockResolvedValue({ id: 'notif-super-like' }),
+        },
+        outboxEvent: {
+          createMany: jest.fn().mockResolvedValue({ count: 2 }),
+        },
+      }),
+    );
     const service = new DatingService(
       {
         client: {
+          $transaction: transaction,
           user: {
             findUnique: jest.fn().mockResolvedValue({
               id: 'user-me',
@@ -886,11 +910,18 @@ describe('DatingService unit', () => {
             count: jest.fn().mockResolvedValue(1),
             upsert,
           },
+          datingUsageEvent: {
+            count: jest.fn().mockResolvedValue(1),
+            create: jest.fn().mockResolvedValue({}),
+          },
         },
       } as any,
       {} as any,
       {
         hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+      {
+        spendTokens,
       } as any,
     );
 
@@ -899,14 +930,26 @@ describe('DatingService unit', () => {
         targetUserId: 'user-sonya',
         action: 'super_like',
       }),
-    ).rejects.toMatchObject({
-      statusCode: 402,
-      code: 'super_like_limit_reached',
+    ).resolves.toMatchObject({
+      ok: true,
+      action: 'super_like',
+      chargedTokens: 50,
+      superLikeQuota: {
+        freeLimit: 1,
+        freeRemaining: 0,
+        paidCost: 50,
+        premium: false,
+      },
     });
-    expect(upsert).not.toHaveBeenCalled();
+    expect(spendTokens).toHaveBeenCalledWith(
+      'user-me',
+      { amount: 50, reason: 'dating_spend' },
+      expect.anything(),
+    );
+    expect(upsert).toHaveBeenCalled();
   });
 
-  it('returns remaining premium super likes after a super like', async () => {
+  it('returns remaining premium super likes after a free super like', async () => {
     const datingActionFindUnique = jest
       .fn()
       .mockResolvedValueOnce({ action: 'like' })
@@ -949,8 +992,11 @@ describe('DatingService unit', () => {
       },
       datingAction: {
         findUnique: datingActionFindUnique,
-        count: jest.fn().mockResolvedValue(14),
         upsert: jest.fn().mockResolvedValue({}),
+      },
+      datingUsageEvent: {
+        count: jest.fn().mockResolvedValue(9),
+        create: jest.fn().mockResolvedValue({}),
       },
       notification: {
         create: jest.fn().mockResolvedValue({ id: 'notif-super-like' }),
@@ -978,8 +1024,11 @@ describe('DatingService unit', () => {
       ok: true,
       action: 'super_like',
       superLikeQuota: {
-        limit: 15,
+        limit: 10,
+        freeLimit: 10,
         remaining: 0,
+        freeRemaining: 0,
+        paidCost: 50,
         premium: true,
       },
     });
@@ -1335,4 +1384,404 @@ describe('DatingService unit', () => {
     });
     expect(outboxCreateMany).not.toHaveBeenCalled();
   });
+
+  it('rejects the 51st free swipe in one hour', async () => {
+    const upsert = jest.fn();
+    const service = new DatingService(
+      {
+        client: {
+          $transaction: jest.fn((callback) =>
+            callback({
+              datingUsageEvent: {
+                count: jest.fn().mockResolvedValue(50),
+                create: jest.fn(),
+              },
+              datingAction: {
+                upsert,
+              },
+            }),
+          ),
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser()),
+            findFirst: jest.fn().mockResolvedValue(datingUser('user-sonya')),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            upsert,
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+      {
+        spendTokens: jest.fn(),
+      } as any,
+    );
+
+    await expect(
+      service.recordAction('user-me', {
+        targetUserId: 'user-sonya',
+        action: 'pass',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'dating_swipe_rate_limited',
+    });
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('does not rate limit Frendly Plus swipes', async () => {
+    const datingActionFindUnique = jest.fn().mockResolvedValue(null);
+    const tx = {
+      datingUsageEvent: {
+        count: jest.fn().mockResolvedValue(50),
+        create: jest.fn().mockResolvedValue({}),
+      },
+      datingAction: {
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const service = new DatingService(
+      {
+        client: {
+          $transaction: jest.fn((callback) => callback(tx)),
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser()),
+            findFirst: jest.fn().mockResolvedValue(datingUser('user-sonya')),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findUnique: datingActionFindUnique,
+            upsert: jest.fn().mockResolvedValue({}),
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+      {
+        spendTokens: jest.fn(),
+      } as any,
+    );
+
+    await expect(
+      service.recordAction('user-me', {
+        targetUserId: 'user-sonya',
+        action: 'pass',
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      action: 'pass',
+    });
+    expect(tx.datingUsageEvent.count).not.toHaveBeenCalled();
+  });
+
+  it('rewinds the latest free pass by charging 25 tokens', async () => {
+    const spendTokens = jest.fn().mockResolvedValue({ id: 'dating-rewind-1' });
+    const tx = {
+      datingUsageEvent: {
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn().mockResolvedValue({}),
+      },
+      datingAction: {
+        delete: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const service = new DatingService(
+      {
+        client: {
+          $transaction: jest.fn((callback) => callback(tx)),
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser()),
+            findFirst: jest.fn().mockResolvedValue(datingUser('user-sonya')),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'action-pass',
+              targetUserId: 'user-sonya',
+              action: 'pass',
+            }),
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+      {
+        spendTokens,
+      } as any,
+    );
+
+    await expect(service.rewindLastPass('user-me')).resolves.toMatchObject({
+      ok: true,
+      action: 'rewind',
+      chargedTokens: 25,
+      peer: {
+        userId: 'user-sonya',
+      },
+      rewindQuota: {
+        freeLimit: 0,
+        freeRemaining: 0,
+        paidCost: 25,
+      },
+    });
+    expect(spendTokens).toHaveBeenCalledWith(
+      'user-me',
+      { amount: 25, reason: 'dating_spend' },
+      expect.anything(),
+    );
+    expect(tx.datingAction.delete).toHaveBeenCalledWith({
+      where: { id: 'action-pass' },
+    });
+  });
+
+  it('rejects rewind when the latest action is not a pass', async () => {
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser()),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'action-like',
+              targetUserId: 'user-sonya',
+              action: 'like',
+            }),
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+      {
+        spendTokens: jest.fn(),
+      } as any,
+    );
+
+    await expect(service.rewindLastPass('user-me')).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'dating_rewind_unavailable',
+    });
+  });
+
+  it('returns dating limits for a free user', async () => {
+    const usageCount = jest
+      .fn()
+      .mockResolvedValueOnce(12)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0);
+    const service = new DatingService(
+      {
+        client: {
+          datingUsageEvent: {
+            count: usageCount,
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      } as any,
+      {
+        spendTokens: jest.fn(),
+      } as any,
+    );
+
+    await expect(service.getLimits('user-me')).resolves.toMatchObject({
+      premium: false,
+      hourlySwipes: {
+        unlimited: false,
+        limit: 50,
+        remaining: 38,
+      },
+      superLikes: {
+        freeLimit: 1,
+        freeRemaining: 0,
+        paidCost: 50,
+      },
+      rewinds: {
+        freeLimit: 0,
+        freeRemaining: 0,
+        paidCost: 25,
+      },
+    });
+  });
+
+  it('ranks profiles with common interests before lower score profiles', async () => {
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser(['coffee'])),
+            findMany: jest.fn().mockResolvedValue([
+              datingUser('user-low', { interests: ['cinema'] }),
+              datingUser('user-high', { interests: ['coffee'] }),
+            ]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me', { limit: 2 });
+
+    expect(result.items.map((item: { userId: string }) => item.userId)).toEqual(
+      ['user-high', 'user-low'],
+    );
+  });
+
+  it('keeps ranked leftovers in discover cursor buffer', async () => {
+    const userFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([
+        datingUser('user-low', { interests: ['cinema'] }),
+        datingUser('user-high', { interests: ['coffee'] }),
+      ])
+      .mockResolvedValueOnce([
+        datingUser('user-low', { interests: ['cinema'] }),
+      ]);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser(['coffee'])),
+            findMany: userFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const firstPage = await service.listDiscover('user-me', { limit: 1 });
+
+    expect(
+      firstPage.items.map((item: { userId: string }) => item.userId),
+    ).toEqual(['user-high']);
+    expect(decodeCursor(firstPage.nextCursor!)).toMatchObject({
+      buffer: ['user-low'],
+      cycle: 'fresh',
+    });
+
+    const secondPage = await service.listDiscover('user-me', {
+      limit: 1,
+      cursor: firstPage.nextCursor!,
+    });
+
+    expect(
+      secondPage.items.map((item: { userId: string }) => item.userId),
+    ).toEqual(['user-low']);
+  });
+
+  it('shows previous pass profiles after fresh candidates are exhausted', async () => {
+    const userFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([datingUser('user-passed')]);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue(selfUser(['coffee'])),
+            findMany: userFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me', { limit: 1 });
+
+    expect(result.items).toEqual([
+      expect.objectContaining({ userId: 'user-passed' }),
+    ]);
+    expect(userFindMany).toHaveBeenCalledTimes(2);
+  });
 });
+
+function selfUser(interests: string[] = []) {
+  return {
+    id: 'user-me',
+    displayName: 'Никита',
+    profile: {
+      gender: 'male',
+      city: 'Москва',
+      area: 'Центр',
+    },
+    onboarding: {
+      gender: 'male',
+      city: 'Москва',
+      area: 'Центр',
+      interests,
+    },
+  };
+}
+
+function datingUser(
+  id: string,
+  options: {
+    interests?: string[];
+    createdAt?: Date;
+    verified?: boolean;
+    online?: boolean;
+  } = {},
+) {
+  return {
+    id,
+    displayName: id,
+    verified: options.verified ?? true,
+    online: options.online ?? false,
+    createdAt: options.createdAt ?? new Date('2026-05-01T00:00:00.000Z'),
+    profile: {
+      age: 26,
+      city: 'Москва',
+      area: 'Центр',
+      bio: 'Люблю тихие ужины.',
+      vibe: 'Спокойно',
+      avatarUrl: null,
+      photos: [],
+    },
+    onboarding: {
+      city: 'Москва',
+      area: 'Центр',
+      interests: options.interests ?? [],
+    },
+  };
+}

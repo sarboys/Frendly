@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "b4c359aea57a439b18c44a2c7e021fc1ae3f0d5d",
-  "generatedAt": "2026-05-20T10:52:30.427Z",
+  "gitCommitHash": "16e8d9d31cf9bf328aba7997d3788f84c4b9da23",
+  "generatedAt": "2026-05-20T11:22:21.113Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -12176,7 +12176,7 @@
     },
     "backend/apps/api/src/controllers/dating.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/dating.controller.ts",
-      "contentHash": "60a7a4fe3b8549d0cf3bdc4c8fb121ad5933be88dbc1443e365ffaaff92c138e",
+      "contentHash": "ee01c1d1f2d7a049424acbd2775f3094711cbf3a9cdc491c28e884e1f6bee943",
       "functions": [
         {
           "name": "parseOptionalNumber",
@@ -12218,11 +12218,13 @@
             "constructor",
             "listDiscover",
             "listLikes",
-            "recordAction"
+            "getLimits",
+            "recordAction",
+            "rewind"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 51
+          "lineCount": 61
         }
       ],
       "imports": [
@@ -12252,7 +12254,7 @@
       "exports": [
         "DatingController"
       ],
-      "totalLines": 87,
+      "totalLines": 97,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/drops.controller.ts": {
@@ -15426,7 +15428,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "dd55ffb79154a4e9f6d97027897690a07314fb7d792740e7a4e306b52385de0f",
+      "contentHash": "eccbdcbe49b499bfa0641408b39d0dd50462e0b93317fbdad0052dbebd3b4422",
       "functions": [],
       "classes": [
         {
@@ -15435,16 +15437,29 @@
             "constructor",
             "listDiscover",
             "buildDiscoverWhere",
+            "loadDiscoverBufferCandidates",
             "discoverAndFilters",
             "discoverCandidateTake",
+            "discoverCursorFilter",
             "applyDiscoverPostFilters",
-            "discoverNextCursorId",
+            "rankDiscoverCandidates",
+            "calculateDiscoverScore",
+            "discoverNextCursor",
             "toAndArray",
             "listLikes",
             "recordAction",
+            "rewindLastPass",
+            "getLimits",
             "requireFrendlyPlus",
-            "ensureSuperLikeQuota",
-            "currentUtcDayWindow",
+            "ensureSwipeAllowed",
+            "consumeSuperLikeQuota",
+            "consumeRewindQuota",
+            "spendDatingTokens",
+            "countUsage",
+            "createUsageEvent",
+            "withDatingTransaction",
+            "currentRollingHourWindow",
+            "currentMoscowDayWindow",
             "mapDatingProfile",
             "resolveDatingProfileLocation",
             "normalizeLocationText",
@@ -15465,12 +15480,13 @@
             "oppositeGenderWhere",
             "normalizeListLimit",
             "decodeCursor",
+            "decodeDiscoverCursor",
             "parseAction",
             "getBlockedUserIds"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 824
+          "lineCount": 1439
         }
       ],
       "imports": [
@@ -15525,12 +15541,18 @@
           "specifiers": [
             "SubscriptionService"
           ]
+        },
+        {
+          "source": "./tokens.service",
+          "specifiers": [
+            "TokensService"
+          ]
         }
       ],
       "exports": [
         "DatingService"
       ],
-      "totalLines": 1033,
+      "totalLines": 1672,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/drops-draw.service.ts": {
@@ -15673,7 +15695,7 @@
     },
     "backend/apps/api/src/services/drops.service.ts": {
       "filePath": "backend/apps/api/src/services/drops.service.ts",
-      "contentHash": "0616d40a25f94f2fbcb3d88dbd6f4ecdfc909ff790e9570e98982464bc01b115",
+      "contentHash": "541ddd54114bd6352dd26a960841933ea5f2d553c3929b651bbf34564e3e4639",
       "functions": [],
       "classes": [
         {
@@ -17184,7 +17206,7 @@
     },
     "backend/apps/api/src/services/media.service.ts": {
       "filePath": "backend/apps/api/src/services/media.service.ts",
-      "contentHash": "ca01ccfb6ea4634323831a69a2442014449c6b980c267675eb491cd78dc7b5c1",
+      "contentHash": "cd08bda2f4cf3505b0c829ee93f565454200116461506579f731c40a0001c069",
       "functions": [],
       "classes": [
         {
@@ -18452,7 +18474,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "2a5547060f621f1438e7e22a247a0c63c32c85444ff919617e36daf12c40cd36",
+      "contentHash": "7cfd49594964e2e3d04701fc35725bfb43491cde0f5e69a1002c5461fe51130a",
       "functions": [],
       "classes": [
         {
@@ -18976,7 +18998,7 @@
     },
     "backend/apps/api/src/services/stories.service.ts": {
       "filePath": "backend/apps/api/src/services/stories.service.ts",
-      "contentHash": "ae02a29acdf0ba40494f9a9fbc337b6187e8ade2d08abdbe48d3051e79532ab1",
+      "contentHash": "4674aa81b21b55c007a8aebe94eb307520eb5769a4563a49a5f5a549db5b61b6",
       "functions": [],
       "classes": [
         {
@@ -19290,7 +19312,7 @@
     },
     "backend/apps/api/src/services/tokens.service.ts": {
       "filePath": "backend/apps/api/src/services/tokens.service.ts",
-      "contentHash": "d60061280fda5ecc6d2ce507900397351e0851672ac4fcd0f86f587c97ea2949",
+      "contentHash": "98c9290f17b853523c7380ad9a1a21a92799bc4e34dc039fe04fc5d6f9b13577",
       "functions": [],
       "classes": [
         {
@@ -19307,7 +19329,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 237
+          "lineCount": 240
         }
       ],
       "imports": [
@@ -19354,12 +19376,12 @@
       "exports": [
         "TokensService"
       ],
-      "totalLines": 260,
+      "totalLines": 264,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/uploads.service.ts": {
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
-      "contentHash": "d4f358a3dc4b5edaa2f591360a5a19d0f89190fa0fb4d9f5daaf4dac77d3f737",
+      "contentHash": "93e01966c31beb16122534ef17bc1d068d174f26f9c6cb469e659cc3f4783c8e",
       "functions": [],
       "classes": [
         {
@@ -23834,7 +23856,7 @@
     },
     "backend/packages/database/prisma/backfill-private-media-public-urls.ts": {
       "filePath": "backend/packages/database/prisma/backfill-private-media-public-urls.ts",
-      "contentHash": "6147c29d71fe8241b4d49e43b23888acd025ed902889f54a8581b0944cffc504",
+      "contentHash": "087732f85d0c21ffb0028519ed2dbe8ca04876d4410efd18d2a0ed2b4dc1a8dd",
       "functions": [
         {
           "name": "main",
@@ -23909,7 +23931,7 @@
     },
     "backend/packages/database/prisma/create-hot-path-indexes.ts": {
       "filePath": "backend/packages/database/prisma/create-hot-path-indexes.ts",
-      "contentHash": "05b0a97439784d0e268a04ad7d69db46099e92f85141e182ec58558e16d393db",
+      "contentHash": "5762f8e7c97be4c0c8d8d2d0a919e6b6f3ca9dcc38b775a6ae9bd3ee000993e7",
       "functions": [
         {
           "name": "main",
@@ -23935,7 +23957,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 151,
+      "totalLines": 159,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/enable-postgis-event-geo.ts": {
@@ -24290,7 +24312,7 @@
     },
     "backend/packages/database/prisma/verify-private-media-public-urls.ts": {
       "filePath": "backend/packages/database/prisma/verify-private-media-public-urls.ts",
-      "contentHash": "efd88f18c184f9e78c1977fced1178dd66981a9d942e7bc79344c05a97650108",
+      "contentHash": "28721e484cf93e358265a156e5cec28df5f135f7449108a14a0dee865a7f1f9d",
       "functions": [
         {
           "name": "main",
@@ -24320,7 +24342,7 @@
     },
     "backend/packages/database/prisma/verify-s3-upload-cors.ts": {
       "filePath": "backend/packages/database/prisma/verify-s3-upload-cors.ts",
-      "contentHash": "e879b4f2b49b6ebc79b873bac06a6941c8a966aecec57fc33e7d31737f62a410",
+      "contentHash": "2ed1416b1e1b8846d4a8984eea379012386d877eb2370df782d8216cbaf56f71",
       "functions": [
         {
           "name": "main",
@@ -25103,7 +25125,7 @@
     },
     "backend/packages/database/src/index.ts": {
       "filePath": "backend/packages/database/src/index.ts",
-      "contentHash": "4c8128a0a9781e4007c9693034e5c7ea1c8587d191ab9cf11ed09a96b645031e",
+      "contentHash": "503c1b25835fdf818c28036969ccb53fcac485b4d0517256d85670373d57a35a",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -25286,7 +25308,7 @@
     },
     "backend/packages/database/src/private-media-public-url-backfill.ts": {
       "filePath": "backend/packages/database/src/private-media-public-url-backfill.ts",
-      "contentHash": "f756f456b130b0aa0daa9d434c2a6a20423d7200c7ef9d24451149fbcc1a94da",
+      "contentHash": "6d0609a50951c3d95bf9a36ecf031ba9a7429e0303fbcde10ca1475eed2b9e46",
       "functions": [
         {
           "name": "backfillPrivateMediaPublicUrls",
@@ -25619,7 +25641,7 @@
     },
     "backend/packages/database/src/s3-cors-verifier.ts": {
       "filePath": "backend/packages/database/src/s3-cors-verifier.ts",
-      "contentHash": "e5ed16fc2dbec0d24249d366a7a428a64920862a867aa930f2e88613761cb269",
+      "contentHash": "8d83f008d75ac5fc56e8134a6a3f422a2ac52e271431e1062e7dc0b8e5aa4991",
       "functions": [
         {
           "name": "analyzeS3UploadCorsRules",
@@ -25737,7 +25759,7 @@
     },
     "backend/packages/database/src/s3.ts": {
       "filePath": "backend/packages/database/src/s3.ts",
-      "contentHash": "7c38989d82d5ce17bc9e1bec8c234344c95f419c2241953914a5c0fe593a379a",
+      "contentHash": "465c70656b6ae0c6ad73ca6760c5681f94b69dd72acc75767da3158b657af989",
       "functions": [
         {
           "name": "optionalEnv",

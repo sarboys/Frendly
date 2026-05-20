@@ -72,9 +72,10 @@ Communities:
 
 Safety and monetization:
 
-- `DatingAction`, `UserFollow`, `ProfileReaction`, `TrustedContact`, `SafetySosAlert`, `UserReport`, `UserBlock`, `UserSubscription`.
+- `DatingAction`, `DatingUsageEvent`, `UserFollow`, `ProfileReaction`, `TrustedContact`, `SafetySosAlert`, `UserReport`, `UserBlock`, `UserSubscription`.
 - One-time T-Bank payments use `PaymentOrder` with provider `tbank`, product kind `tokens`, unique `orderId`, optional unique provider payment id, amount in kopecks, status, raw status and raw notification. Legacy subscription orders may exist, but new Frendly+ purchases spend tokens instead of creating payment orders.
-- Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`; Frendly+ token purchases use `TokenLedgerReason.subscription_spend`. Frendly season gifts use `TokenLedgerReason.reward_grant`.
+- Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`; Frendly+ token purchases use `TokenLedgerReason.subscription_spend`. Frendly season gifts use `TokenLedgerReason.reward_grant`. Paid dating super-likes and rewinds use `TokenLedgerReason.dating_spend`.
+- `DatingUsageEvent` is the server source for dating swipe hour limits, daily free super-like quota, daily rewind quota and paid dating spend history. Kinds are `swipe`, `super_like_free`, `super_like_paid`, `rewind_free` and `rewind_paid`.
 - `UserSeasonRewardClaim` stores one claimed Frendly season reward per `userId + seasonKey + rewardKey`, so reward claim endpoints stay idempotent.
 - `UserFollow` stores normal profile subscriptions. `ProfileReaction` stores normal profile likes and super-likes through `ProfileReactionKind`, separate from dating likes.
 
@@ -120,7 +121,9 @@ Public:
 - Community unread fallback keeps the DB `UserBlock` visibility filter in SQL.
 - Incoming dating likes use `DatingAction.targetUserId + action + actorUserId`.
 - `/matches` reads reciprocal positive `DatingAction` rows, not event favorites.
-- Dating matches and daily super-like quota reads need `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes. Super-like quota counts rows for the current UTC day.
+- Dating matches read `DatingAction.actorUserId + action + updatedAt + targetUserId` and reciprocal `targetUserId + action + actorUserId` indexes.
+- Dating usage limits read `DatingUsageEvent.userId + kind + createdAt`, `userId + createdAt` and optional `targetUserId + kind + createdAt`. Super-like and rewind daily quotas use the Moscow calendar day; free hourly swipe limit uses a rolling hour.
+- Dating discover interest ranking uses a GIN index on `OnboardingPreferences.interests`.
 - Payment lookup uses `PaymentOrder.orderId` and `PaymentOrder.userId + createdAt`; pending expiry scans use `PaymentOrder.status + expiresAt`.
 - Active promotions use `TokenPromotion.eventId + expiresAt`, `chatId + expiresAt` and `userId + expiresAt`.
 - Drops reward idempotency uses unique `DropRewardEvent.idempotencyKey`. Monthly progress reads use `DropTicket.userId + monthKey + status`. Manual apply reads free active tickets by `userId + dropId + status`.

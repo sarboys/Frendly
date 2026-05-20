@@ -46,12 +46,22 @@ export class DatingController {
     });
   }
 
+  @Get('limits')
+  getLimits(@CurrentUser() currentUser: { userId: string }) {
+    return this.datingService.getLimits(currentUser.userId);
+  }
+
   @Post('actions')
   recordAction(
     @CurrentUser() currentUser: { userId: string },
     @Body() body: Record<string, unknown>,
   ) {
     return this.datingService.recordAction(currentUser.userId, body);
+  }
+
+  @Post('rewind')
+  rewind(@CurrentUser() currentUser: { userId: string }) {
+    return this.datingService.rewindLastPass(currentUser.userId);
   }
 }
 

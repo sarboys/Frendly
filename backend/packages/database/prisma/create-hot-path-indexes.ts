@@ -88,6 +88,14 @@ const statements: ConcurrentIndexStatement[] = [
     sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "DatingAction_target_action_actor_idx" ON "DatingAction"("targetUserId", "action", "actorUserId")',
   },
   {
+    name: 'DatingUsageEvent_userId_kind_createdAt_idx',
+    sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "DatingUsageEvent_userId_kind_createdAt_idx" ON "DatingUsageEvent"("userId", "kind", "createdAt")',
+  },
+  {
+    name: 'OnboardingPreferences_interests_gin_idx',
+    sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "OnboardingPreferences_interests_gin_idx" ON "OnboardingPreferences" USING GIN ("interests")',
+  },
+  {
     name: 'UserSubscription_status_renewsAt_id_idx',
     sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "UserSubscription_status_renewsAt_id_idx" ON "UserSubscription"("status", "renewsAt", "id")',
   },

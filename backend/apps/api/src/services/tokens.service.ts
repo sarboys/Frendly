@@ -15,6 +15,7 @@ const ledgerNotes: Record<string, string> = {
   purchase: 'Пополнение токенов',
   promotion_spend: 'Продвижение',
   subscription_spend: 'Frendly+',
+  dating_spend: 'Дейтинг',
   reward_grant: 'Подарок сезона',
   admin_adjustment: 'Корректировка',
 };
@@ -107,7 +108,10 @@ export class TokensService {
     userId: string,
     input: {
       amount: number;
-      reason: Extract<TokenLedgerReason, 'promotion_spend' | 'subscription_spend'>;
+      reason: Extract<
+        TokenLedgerReason,
+        'promotion_spend' | 'subscription_spend' | 'dating_spend'
+      >;
     },
     client: PrismaLike = this.prismaService.client,
   ) {
