@@ -242,7 +242,7 @@ describe('dating api flows', () => {
     expect(userIds).not.toContain('user-liza');
   });
 
-  it('requires Frendly+ for incoming likes and returns them for Plus users', async () => {
+  it('returns incoming likes before and after Frendly+ access', async () => {
     await request(app.getHttpServer())
       .post('/dating/actions')
       .set('authorization', `Bearer ${sonyaAccessToken}`)
@@ -252,9 +252,13 @@ describe('dating api flows', () => {
     const lockedResponse = await request(app.getHttpServer())
       .get('/dating/likes')
       .set('authorization', `Bearer ${accessToken}`)
-      .expect(403);
+      .expect(200);
 
-    expect(lockedResponse.body.code).toBe('frendly_plus_required');
+    expect(lockedResponse.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ userId: 'user-sonya' }),
+      ]),
+    );
 
     await grantPlus('user-me', 'dating-plus-user-me-likes');
 
