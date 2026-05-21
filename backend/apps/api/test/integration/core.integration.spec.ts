@@ -571,7 +571,7 @@ describe('core api flows', () => {
   });
 
   it('rejects oversized chat attachment uploads', async () => {
-    const oversized = Buffer.alloc(21 * 1024 * 1024, 7);
+    const oversized = Buffer.alloc(51 * 1024 * 1024, 7);
 
     const response = await request(app.getHttpServer())
       .post('/uploads/chat-attachment/file')
