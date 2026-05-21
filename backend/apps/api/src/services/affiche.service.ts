@@ -592,11 +592,23 @@ export class AfficheService {
       variants[key] = {
         url,
         downloadUrl,
+        downloadUrlPath:
+          typeof variant.downloadUrlPath === 'string'
+            ? variant.downloadUrlPath.trim()
+            : null,
         mimeType:
           typeof variant.mimeType === 'string' ? variant.mimeType.trim() : null,
         byteSize:
           typeof variant.byteSize === 'number' && Number.isFinite(variant.byteSize)
             ? Math.max(0, Math.trunc(variant.byteSize))
+            : null,
+        width:
+          typeof variant.width === 'number' && Number.isFinite(variant.width)
+            ? Math.max(0, Math.trunc(variant.width))
+            : null,
+        height:
+          typeof variant.height === 'number' && Number.isFinite(variant.height)
+            ? Math.max(0, Math.trunc(variant.height))
             : null,
         cacheKey:
           typeof variant.cacheKey === 'string' ? variant.cacheKey.trim() : null,

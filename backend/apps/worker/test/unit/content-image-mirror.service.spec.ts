@@ -91,7 +91,7 @@ describe('ContentImageMirrorService', () => {
     );
   });
 
-  it('returns rail, card and hero variants for imported event images', async () => {
+  it('returns responsive variants for imported event images', async () => {
     process.env.CONTENT_IMPORT_IMAGE_RETRY_DELAY_MS = '1';
     mockS3Send.mockRejectedValueOnce(new Error('missing')).mockResolvedValue({});
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
@@ -116,8 +116,8 @@ describe('ContentImageMirrorService', () => {
       /^https:\/\/cdn\.frendly\.tech\/external-content\/kudago\/event-variants-/,
     );
     expect(result.imageVariants).toMatchObject({
-      rail: {
-        url: expect.stringContaining('__rail.webp'),
+      thumb: {
+        url: expect.stringContaining('__thumb.webp'),
         mimeType: 'image/webp',
         byteSize: expect.any(Number),
       },

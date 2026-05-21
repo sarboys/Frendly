@@ -8,8 +8,10 @@ import sharp from 'sharp';
 
 export type ImageVariantSpec = {
   key: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
+  maxLongEdge?: number;
+  fit: 'cover' | 'inside';
 };
 
 export type ImageVariantMetadata = {
@@ -18,19 +20,24 @@ export type ImageVariantMetadata = {
   mimeType: string;
   byteSize: number;
   cacheKey: string;
+  objectKey: string;
+  width: number;
+  height: number;
 };
 
 export const PROFILE_IMAGE_VARIANT_SPECS: ImageVariantSpec[] = [
-  { key: 'avatar', width: 320, height: 320 },
-  { key: 'card', width: 900, height: 1200 },
-  { key: 'hero', width: 1200, height: 1600 },
-  { key: 'fullscreen', width: 1600, height: 2200 },
+  { key: 'avatar', width: 320, height: 320, fit: 'cover' },
+  { key: 'thumb', maxLongEdge: 480, fit: 'inside' },
+  { key: 'card', maxLongEdge: 900, fit: 'inside' },
+  { key: 'hero', maxLongEdge: 1600, fit: 'inside' },
+  { key: 'fullscreen', maxLongEdge: 2200, fit: 'inside' },
 ];
 
 export const AFFICHE_IMAGE_VARIANT_SPECS: ImageVariantSpec[] = [
-  { key: 'rail', width: 560, height: 320 },
-  { key: 'card', width: 900, height: 520 },
-  { key: 'hero', width: 1400, height: 900 },
+  { key: 'thumb', maxLongEdge: 480, fit: 'inside' },
+  { key: 'card', maxLongEdge: 900, fit: 'inside' },
+  { key: 'hero', maxLongEdge: 1600, fit: 'inside' },
+  { key: 'fullscreen', maxLongEdge: 2200, fit: 'inside' },
 ];
 
 export async function createImageVariants(input: {
@@ -42,16 +49,13 @@ export async function createImageVariants(input: {
   const variants: Record<string, ImageVariantMetadata> = {};
   for (const spec of input.specs) {
     const objectKey = variantObjectKey(input.sourceObjectKey, spec.key);
-    const bytes = await sharp(input.sourceBytes)
+    const resized = sharp(input.sourceBytes)
       .rotate()
-      .resize({
-        width: spec.width,
-        height: spec.height,
-        fit: 'cover',
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 82 })
-      .toBuffer();
+      .resize(resizeOptions(spec))
+      .webp({ quality: 82 });
+    const { data: bytes, info } = await resized.toBuffer({
+      resolveWithObject: true,
+    });
 
     await input.s3.send(
       new PutObjectCommand({
@@ -71,9 +75,30 @@ export async function createImageVariants(input: {
       mimeType: 'image/webp',
       byteSize: bytes.byteLength,
       cacheKey: `image-variant-${spec.key}-${objectKey}`,
+      objectKey,
+      width: info.width,
+      height: info.height,
     };
   }
   return variants;
+}
+
+function resizeOptions(spec: ImageVariantSpec) {
+  if (spec.fit === 'cover') {
+    return {
+      width: spec.width,
+      height: spec.height,
+      fit: 'cover' as const,
+      withoutEnlargement: true,
+    };
+  }
+
+  return {
+    width: spec.maxLongEdge,
+    height: spec.maxLongEdge,
+    fit: 'inside' as const,
+    withoutEnlargement: true,
+  };
 }
 
 export function variantObjectKey(sourceObjectKey: string, variantKey: string) {

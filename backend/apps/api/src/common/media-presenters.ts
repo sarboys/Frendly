@@ -17,8 +17,11 @@ type PresentableMediaAsset = Pick<
 type MediaVariantInput = {
   url?: unknown;
   downloadUrl?: unknown;
+  downloadUrlPath?: unknown;
   mimeType?: unknown;
   byteSize?: unknown;
+  width?: unknown;
+  height?: unknown;
   cacheKey?: unknown;
   expiresAt?: unknown;
 };
@@ -149,11 +152,14 @@ function mapMediaVariant(raw: unknown) {
   return {
     url,
     downloadUrl,
+    downloadUrlPath: stringOrNull(input.downloadUrlPath),
     mimeType: stringOrNull(input.mimeType),
     byteSize:
       typeof input.byteSize === 'number' && Number.isFinite(input.byteSize)
         ? Math.max(0, Math.trunc(input.byteSize))
         : null,
+    width: positiveIntegerOrNull(input.width),
+    height: positiveIntegerOrNull(input.height),
     cacheKey: stringOrNull(input.cacheKey),
     expiresAt: stringOrNull(input.expiresAt),
   };
@@ -162,5 +168,11 @@ function mapMediaVariant(raw: unknown) {
 function stringOrNull(value: unknown) {
   return typeof value === 'string' && value.trim().length > 0
     ? value.trim()
+    : null;
+}
+
+function positiveIntegerOrNull(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.trunc(value)
     : null;
 }

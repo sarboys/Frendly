@@ -20,13 +20,15 @@ import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
 const ALLOWED_AVATAR_MIME_TYPES = new Set([
+  'image/heic',
+  'image/heif',
   'image/gif',
   'image/jpeg',
   'image/png',
   'image/webp',
 ]);
 const BYPASS_S3_UPLOAD = process.env.NODE_ENV !== 'production';
-export const MAX_PROFILE_ASSET_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_PROFILE_ASSET_UPLOAD_BYTES = 50 * 1024 * 1024;
 const INLINE_MEDIA_BUCKET = '__inline__';
 const IMMUTABLE_MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const FR_PERIOD_DAY_MS = 24 * 60 * 60 * 1000;

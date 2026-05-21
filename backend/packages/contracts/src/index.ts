@@ -1026,8 +1026,11 @@ export type MediaVisibility = 'public' | 'private';
 export interface MediaVariantDto {
   url: string | null;
   downloadUrl: string | null;
+  downloadUrlPath?: string | null;
   mimeType?: string | null;
   byteSize?: number | null;
+  width?: number | null;
+  height?: number | null;
   cacheKey?: string | null;
   expiresAt?: string | null;
 }

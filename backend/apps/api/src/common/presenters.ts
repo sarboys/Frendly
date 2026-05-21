@@ -234,6 +234,7 @@ export function mapBasicProfile(user: BasicProfileUser) {
       (user.profile?.avatarAssetId
         ? buildMediaProxyPath(user.profile.avatarAssetId)
         : null),
+    avatarVariants: photos[0]?.variants ?? {},
     interests: Array.isArray(user.onboarding?.interests)
       ? user.onboarding.interests.filter(
           (item): item is string => typeof item === 'string',

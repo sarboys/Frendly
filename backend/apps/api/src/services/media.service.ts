@@ -36,6 +36,19 @@ type MediaNotModifiedDelivery = {
   lastModified: string;
 };
 
+type MediaVariantRecord = {
+  url: string | null;
+  downloadUrl: string | null;
+  downloadUrlPath: string | null;
+  objectKey: string | null;
+  mimeType: string | null;
+  byteSize: number | null;
+  width: number | null;
+  height: number | null;
+  cacheKey: string | null;
+  expiresAt: string | null;
+};
+
 @Injectable()
 export class MediaService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -189,6 +202,91 @@ export class MediaService {
     });
   }
 
+  async getVariant(
+    assetId: string,
+    variantKey: string,
+    authorizationHeader?: string,
+    ifNoneMatch?: string,
+    ifModifiedSince?: string,
+  ): Promise<
+    MediaStreamDelivery | MediaRedirectDelivery | MediaNotModifiedDelivery
+  > {
+    const { asset, variant } = await this.loadAssetVariant(assetId, variantKey);
+    const cacheControl = await this.resolveCachePolicy(asset, authorizationHeader);
+    const cacheMetadata = this.buildVariantCacheMetadata(asset, variantKey, variant);
+    if (this.isFreshRequest(cacheMetadata, ifNoneMatch, ifModifiedSince)) {
+      return {
+        notModified: true,
+        cacheControl,
+        ...cacheMetadata,
+      };
+    }
+
+    if (process.env.MEDIA_PROXY_STREAMING_ENABLED !== 'true') {
+      const publicRedirectUrl = this.resolveVariantPublicRedirectUrl(asset, variant);
+      if (publicRedirectUrl != null) {
+        return {
+          redirectUrl: publicRedirectUrl,
+          cacheControl,
+          ...cacheMetadata,
+        };
+      }
+      const signed = await createPresignedDownload(this.requireVariantObjectKey(variant));
+      return {
+        redirectUrl: signed.url,
+        cacheControl,
+        ...cacheMetadata,
+      };
+    }
+
+    const object = await this.s3.send(
+      new GetObjectCommand({
+        Bucket: asset.bucket,
+        Key: this.requireVariantObjectKey(variant),
+      }),
+      createS3RequestOptions(),
+    );
+
+    if (!object.Body) {
+      throw new ApiError(404, 'media_not_found', 'Media variant not found');
+    }
+
+    return {
+      stream: object.Body as unknown as Readable,
+      mimeType: variant.mimeType ?? 'image/webp',
+      cacheControl,
+      ...cacheMetadata,
+      contentLength: variant.byteSize ?? Number(object.ContentLength ?? 0),
+      contentRange: null,
+    };
+  }
+
+  async getVariantDownloadUrl(
+    userId: string,
+    assetId: string,
+    variantKey: string,
+  ) {
+    const { asset, variant } = await this.loadAssetVariant(assetId, variantKey);
+    const access = await this.resolveAssetAccess(asset, userId);
+
+    if (access.visibility === 'public' && variant.url != null) {
+      return {
+        ...this.presentVariant(variant),
+        url: variant.url,
+        downloadUrl: variant.url,
+        expiresAt: null,
+      };
+    }
+
+    const signed = await createPresignedDownload(this.requireVariantObjectKey(variant));
+    return {
+      ...this.presentVariant(variant),
+      url: signed.url,
+      downloadUrl: signed.url,
+      expiresAt: signed.expiresAt.toISOString(),
+    };
+  }
+
   private async resolveCachePolicy(
     asset: {
       id: string;
@@ -244,6 +342,122 @@ export class MediaService {
       etag: `W/"media-${asset.id}-${asset.byteSize}-${asset.updatedAt.getTime()}"`,
       lastModified: asset.updatedAt.toUTCString(),
     };
+  }
+
+  private buildVariantCacheMetadata(
+    asset: { id: string; updatedAt: Date },
+    variantKey: string,
+    variant: { byteSize: number | null },
+  ) {
+    return {
+      etag: `W/"media-${asset.id}-${variantKey}-${variant.byteSize ?? 0}-${asset.updatedAt.getTime()}"`,
+      lastModified: asset.updatedAt.toUTCString(),
+    };
+  }
+
+  private async loadAssetVariant(assetId: string, variantKey: string) {
+    const asset = await this.prismaService.client.mediaAsset.findUnique({
+      where: { id: assetId },
+      select: {
+        id: true,
+        status: true,
+        ownerId: true,
+        kind: true,
+        chatId: true,
+        bucket: true,
+        variants: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!asset || asset.status !== 'ready') {
+      throw new ApiError(404, 'media_not_found', 'Media asset not found');
+    }
+
+    const variant = this.mapVariant(asset.variants, variantKey);
+    if (!variant) {
+      throw new ApiError(404, 'media_not_found', 'Media variant not found');
+    }
+
+    return { asset, variant };
+  }
+
+  private mapVariant(raw: unknown, variantKey: string): MediaVariantRecord | null {
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+      return null;
+    }
+    const value = (raw as Record<string, unknown>)[variantKey];
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    const input = value as Record<string, unknown>;
+    const objectKey = this.stringOrNull(input.objectKey);
+    const url = this.stringOrNull(input.url);
+    if (objectKey == null && url == null) {
+      return null;
+    }
+    return {
+      url,
+      downloadUrl: this.stringOrNull(input.downloadUrl),
+      downloadUrlPath: this.stringOrNull(input.downloadUrlPath),
+      objectKey,
+      mimeType: this.stringOrNull(input.mimeType),
+      byteSize: this.positiveIntegerOrNull(input.byteSize),
+      width: this.positiveIntegerOrNull(input.width),
+      height: this.positiveIntegerOrNull(input.height),
+      cacheKey: this.stringOrNull(input.cacheKey),
+      expiresAt: this.stringOrNull(input.expiresAt),
+    };
+  }
+
+  private resolveVariantPublicRedirectUrl(
+    asset: { kind: string },
+    variant: { url: string | null },
+  ) {
+    if (!this.isPublicKind(asset.kind) || variant.url == null) {
+      return null;
+    }
+    try {
+      const url = new URL(variant.url);
+      return url.protocol === 'https:' || url.protocol === 'http:'
+        ? variant.url
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private requireVariantObjectKey(variant: { objectKey: string | null }) {
+    if (variant.objectKey == null) {
+      throw new ApiError(404, 'media_not_found', 'Media variant not found');
+    }
+    return variant.objectKey;
+  }
+
+  private presentVariant(variant: MediaVariantRecord) {
+    return {
+      url: variant.url,
+      downloadUrl: variant.downloadUrl,
+      downloadUrlPath: variant.downloadUrlPath,
+      mimeType: variant.mimeType,
+      byteSize: variant.byteSize,
+      width: variant.width,
+      height: variant.height,
+      cacheKey: variant.cacheKey,
+      expiresAt: variant.expiresAt,
+    };
+  }
+
+  private stringOrNull(value: unknown) {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : null;
+  }
+
+  private positiveIntegerOrNull(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? Math.trunc(value)
+      : null;
   }
 
   private isFreshRequest(

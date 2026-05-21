@@ -7,6 +7,7 @@ import {
   createS3Client,
   createS3RequestOptions,
   getS3Config,
+  OUTBOX_EVENT_TYPES,
 } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
@@ -18,9 +19,9 @@ import { StoriesService } from './stories.service';
 const BYPASS_S3_UPLOAD = process.env.NODE_ENV === 'test';
 const MAX_CHAT_VOICE_DURATION_MS = 180000;
 const MAX_CHAT_VOICE_BYTES = 8 * 1024 * 1024;
-export const MAX_CHAT_ATTACHMENT_UPLOAD_BYTES = 20 * 1024 * 1024;
-export const MAX_GENERIC_MEDIA_UPLOAD_BYTES = 25 * 1024 * 1024;
-export const MAX_STORY_MEDIA_UPLOAD_BYTES = 12 * 1024 * 1024;
+export const MAX_CHAT_ATTACHMENT_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAX_GENERIC_MEDIA_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAX_STORY_MEDIA_UPLOAD_BYTES = 50 * 1024 * 1024;
 const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=300';
 const ENABLE_MEDIA_VIDEO_UPLOAD = process.env.ENABLE_MEDIA_VIDEO_UPLOAD === 'true';
 const ALLOWED_CHAT_ATTACHMENT_MIME_TYPES = new Set([
@@ -888,7 +889,7 @@ export class UploadsService {
     fileName: string;
   }) {
     try {
-      return await this.prismaService.client.mediaAsset.create({
+      const asset = await this.prismaService.client.mediaAsset.create({
         data: {
           ownerId: input.userId,
           kind: input.uploadMeta.kind,
@@ -908,6 +909,8 @@ export class UploadsService {
           status: true,
         },
       });
+      await this.queueMediaFinalizeForImage(asset.id, input.mimeType);
+      return asset;
     } catch (error) {
       if (!this.isUniqueConstraintError(error)) {
         throw error;
@@ -1125,7 +1128,7 @@ export class UploadsService {
     eventId: string;
   }) {
     try {
-      return await this.prismaService.client.mediaAsset.create({
+      const asset = await this.prismaService.client.mediaAsset.create({
         data: {
           ownerId: input.userId,
           kind: 'story_media',
@@ -1146,6 +1149,8 @@ export class UploadsService {
           status: true,
         },
       });
+      await this.queueMediaFinalizeForImage(asset.id, input.mimeType);
+      return asset;
     } catch (error) {
       if (!this.isUniqueConstraintError(error)) {
         throw error;
@@ -1232,7 +1237,7 @@ export class UploadsService {
     fileName: string;
   }) {
     try {
-      return await this.prismaService.client.mediaAsset.create({
+      const asset = await this.prismaService.client.mediaAsset.create({
         data: {
           ownerId: input.userId,
           kind: 'avatar',
@@ -1250,6 +1255,8 @@ export class UploadsService {
           publicUrl: true,
         },
       });
+      await this.queueMediaFinalizeForImage(asset.id, input.mimeType);
+      return asset;
     } catch (error) {
       if (!this.isUniqueConstraintError(error)) {
         throw error;
@@ -1292,6 +1299,22 @@ export class UploadsService {
         'Upload object was completed for another target',
       );
     }
+  }
+
+  private async queueMediaFinalizeForImage(assetId: string, mimeType: string) {
+    if (BYPASS_S3_UPLOAD || !this.shouldCreateImageVariants(mimeType)) {
+      return;
+    }
+    await this.prismaService.client.outboxEvent.create({
+      data: {
+        type: OUTBOX_EVENT_TYPES.mediaFinalize,
+        payload: { assetId },
+      },
+    });
+  }
+
+  private shouldCreateImageVariants(mimeType: string) {
+    return mimeType.startsWith('image/') && mimeType !== 'image/gif';
   }
 
   private assertExistingVerificationUploadAsset(

@@ -15,6 +15,7 @@ jest.mock('@big-break/database', () => ({
     realtimePublish: 'realtime.publish',
     attachmentReady: 'attachment.ready',
   },
+  buildMediaProxyPath: jest.fn((id: string) => `/media/${id}`),
   buildPublicAssetUrl: jest.fn((key: string) => `/media/${key}`),
   createRedisPublisher: jest.fn(() => ({
     on: jest.fn(),
@@ -521,6 +522,7 @@ describe('worker outbox recovery', () => {
             kind: 'avatar',
             bucket: 'frendly-backet',
             objectKey: 'avatars/user-me/photo.png',
+            mimeType: 'image/png',
             chatId: null,
           }),
           update: mediaAssetUpdate,
@@ -700,6 +702,7 @@ describe('worker outbox recovery', () => {
             kind: 'avatar',
             bucket: 'frendly-backet',
             objectKey: 'avatars/user-me/photo.png',
+            mimeType: 'image/png',
             chatId: null,
           }),
           update: mediaAssetUpdate,

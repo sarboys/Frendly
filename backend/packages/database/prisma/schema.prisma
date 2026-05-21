@@ -1837,6 +1837,7 @@ model Drop {
   title                String
   description          String
   imageUrl             String?
+  imageVariants        Json?
   type                 DropType
   status               DropStatus         @default(draft)
   prizes               Json               @default("[]")

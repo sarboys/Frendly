@@ -3,10 +3,13 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   OUTBOX_EVENT_TYPES,
   appMetrics,
+  buildMediaProxyPath,
   buildPublicAssetUrl,
   createRedisPublisher,
   createS3Client,
   createS3RequestOptions,
+  getS3Config,
+  objectKeyFromPublicAssetUrl,
   publishBusEvent,
   runRetentionCleanup,
 } from '@big-break/database';
@@ -43,6 +46,8 @@ const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_IMAGE_BACKFILL_BATCH_SIZE = 50;
+const DEFAULT_MEDIA_VARIANT_BACKFILL_INTERVAL_MS = 10 * 60 * 1000;
+const DEFAULT_MEDIA_VARIANT_BACKFILL_BATCH_SIZE = 50;
 const DEFAULT_TOMESTO_WINDOW_DAYS = 30;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
@@ -71,6 +76,7 @@ export class WorkerService implements OnModuleDestroy {
   private contentManualImportTimer?: NodeJS.Timeout;
   private contentManualGenerationTimer?: NodeJS.Timeout;
   private contentRouteGenerationTimer?: NodeJS.Timeout;
+  private mediaVariantBackfillTimer?: NodeJS.Timeout;
   private running = false;
   private systemNotificationRunning = false;
   private retentionCleanupRunning = false;
@@ -79,6 +85,7 @@ export class WorkerService implements OnModuleDestroy {
   private contentManualImportRunning = false;
   private contentManualGenerationRunning = false;
   private contentRouteGenerationRunning = false;
+  private mediaVariantBackfillRunning = false;
   private shuttingDown = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
     process.env.WORKER_MAX_EVENTS_PER_RUN,
@@ -144,6 +151,16 @@ export class WorkerService implements OnModuleDestroy {
   private readonly contentImageBackfillBatchSize = this.resolvePositiveInteger(
     process.env.CONTENT_IMPORT_IMAGE_BACKFILL_BATCH_SIZE,
     DEFAULT_CONTENT_IMAGE_BACKFILL_BATCH_SIZE,
+  );
+  private readonly mediaVariantBackfillEnabled =
+    process.env.MEDIA_VARIANT_BACKFILL_ENABLED === 'true';
+  private readonly mediaVariantBackfillIntervalMs = this.resolvePositiveInteger(
+    process.env.MEDIA_VARIANT_BACKFILL_INTERVAL_MS,
+    DEFAULT_MEDIA_VARIANT_BACKFILL_INTERVAL_MS,
+  );
+  private readonly mediaVariantBackfillBatchSize = this.resolvePositiveInteger(
+    process.env.MEDIA_VARIANT_BACKFILL_BATCH_SIZE,
+    DEFAULT_MEDIA_VARIANT_BACKFILL_BATCH_SIZE,
   );
   private readonly contentImportIntervalMs = this.resolvePositiveInteger(
     process.env.CONTENT_IMPORT_INTERVAL_MS,
@@ -242,6 +259,14 @@ export class WorkerService implements OnModuleDestroy {
         );
       }, this.contentRouteGenerationIntervalMs);
     }
+    if (this.outboxEnabled && this.mediaVariantBackfillEnabled) {
+      this.mediaVariantBackfillTimer = setInterval(() => {
+        void this.runScheduledTask(
+          'media-variant-backfill',
+          () => this.runMediaVariantBackfillScan(),
+        );
+      }, this.mediaVariantBackfillIntervalMs);
+    }
     this.unrefTimers();
 
     if (this.outboxEnabled) {
@@ -289,6 +314,12 @@ export class WorkerService implements OnModuleDestroy {
         () => this.runContentRouteGenerationScan(),
       );
     }
+    if (this.outboxEnabled && this.mediaVariantBackfillEnabled) {
+      void this.runScheduledTask(
+        'media-variant-backfill',
+        () => this.runMediaVariantBackfillScan(),
+      );
+    }
   }
 
   async onModuleDestroy() {
@@ -328,6 +359,7 @@ export class WorkerService implements OnModuleDestroy {
     this.contentManualImportTimer = undefined;
     this.contentManualGenerationTimer = undefined;
     this.contentRouteGenerationTimer = undefined;
+    this.mediaVariantBackfillTimer = undefined;
   }
 
   private getTimers() {
@@ -340,6 +372,7 @@ export class WorkerService implements OnModuleDestroy {
       this.contentManualImportTimer,
       this.contentManualGenerationTimer,
       this.contentRouteGenerationTimer,
+      this.mediaVariantBackfillTimer,
     ];
   }
 
@@ -742,7 +775,11 @@ export class WorkerService implements OnModuleDestroy {
     }
   }
 
-  private async handleMediaFinalize(payload: { assetId: string; chatId?: string }) {
+  private async handleMediaFinalize(payload: {
+    assetId: string;
+    chatId?: string;
+    notifyChat?: boolean;
+  }) {
     const asset = await this.prismaService.client.mediaAsset.findUnique({
       where: { id: payload.assetId },
       select: {
@@ -750,6 +787,7 @@ export class WorkerService implements OnModuleDestroy {
         kind: true,
         bucket: true,
         objectKey: true,
+        mimeType: true,
         chatId: true,
       },
     });
@@ -766,18 +804,24 @@ export class WorkerService implements OnModuleDestroy {
       createS3RequestOptions(),
     );
 
-    const variants = await this.tryCreateMediaVariants(asset);
+    const rawVariants = await this.tryCreateMediaVariants(asset);
+    const publicMedia = this.isPublicMediaAsset(asset);
+    const variants = publicMedia
+      ? rawVariants
+      : this.toPrivateMediaVariants(asset.id, rawVariants);
+
+    const data: Prisma.MediaAssetUpdateInput = {
+      status: 'ready',
+      ...(publicMedia ? { publicUrl: buildPublicAssetUrl(asset.objectKey) } : {}),
+      ...(Object.keys(variants).length > 0 ? { variants } : {}),
+    };
 
     await this.prismaService.client.mediaAsset.update({
       where: { id: asset.id },
-      data: {
-        status: 'ready',
-        publicUrl: buildPublicAssetUrl(asset.objectKey),
-        ...(Object.keys(variants).length > 0 ? { variants } : {}),
-      },
+      data,
     });
 
-    if (asset.chatId ?? payload.chatId) {
+    if (payload.notifyChat !== false && (asset.chatId ?? payload.chatId)) {
       const chatId = asset.chatId ?? payload.chatId!;
       await this.prismaService.client.realtimeEvent.create({
         data: {
@@ -800,12 +844,96 @@ export class WorkerService implements OnModuleDestroy {
     }
   }
 
+  private async runMediaVariantBackfillScan() {
+    if (this.mediaVariantBackfillRunning) {
+      return;
+    }
+    this.mediaVariantBackfillRunning = true;
+    try {
+      const rows = await this.prismaService.client.mediaAsset.findMany({
+        where: {
+          status: 'ready',
+          kind: { in: ['avatar', 'chat_attachment', 'story_media'] },
+          mimeType: { startsWith: 'image/' },
+          NOT: { mimeType: 'image/gif' },
+        },
+        select: {
+          id: true,
+          variants: true,
+        },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        take: this.mediaVariantBackfillBatchSize * 3,
+      });
+
+      const targets = rows
+        .filter((row) => !this.hasAllProfileImageVariants(row.variants))
+        .slice(0, this.mediaVariantBackfillBatchSize);
+      let processed = 0;
+      for (const target of targets) {
+        await this.handleMediaFinalize({
+          assetId: target.id,
+          notifyChat: false,
+        });
+        processed += 1;
+      }
+      const dropProcessed = await this.runDropImageVariantBackfillScan();
+      if (rows.length > 0) {
+        console.info('[worker] media variant backfill completed', {
+          scanned: rows.length,
+          processed,
+          dropProcessed,
+        });
+      }
+    } finally {
+      this.mediaVariantBackfillRunning = false;
+    }
+  }
+
+  private async runDropImageVariantBackfillScan() {
+    const rows = await this.prismaService.client.drop.findMany({
+      where: {
+        imageUrl: { not: null },
+      },
+      select: {
+        id: true,
+        imageUrl: true,
+        imageVariants: true,
+      },
+      orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
+      take: this.mediaVariantBackfillBatchSize * 3,
+    });
+    const targets = rows
+      .filter((row) => !this.hasAllPublicCardImageVariants(row.imageVariants))
+      .slice(0, this.mediaVariantBackfillBatchSize);
+
+    let processed = 0;
+    for (const target of targets) {
+      const objectKey = target.imageUrl
+        ? objectKeyFromPublicAssetUrl(target.imageUrl)
+        : null;
+      if (!objectKey) {
+        continue;
+      }
+      const variants = await this.createPublicImageVariantsForObjectKey(objectKey);
+      if (Object.keys(variants).length === 0) {
+        continue;
+      }
+      await this.prismaService.client.drop.update({
+        where: { id: target.id },
+        data: { imageVariants: variants },
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
   private async tryCreateMediaVariants(asset: {
     kind: string;
     bucket: string;
     objectKey: string;
+    mimeType: string;
   }) {
-    if (asset.kind !== 'avatar') {
+    if (!this.shouldCreateMediaVariants(asset)) {
       return {};
     }
 
@@ -834,6 +962,94 @@ export class WorkerService implements OnModuleDestroy {
       });
       return {};
     }
+  }
+
+  private async createPublicImageVariantsForObjectKey(objectKey: string) {
+    try {
+      const object = await this.s3.send(
+        new GetObjectCommand({
+          Bucket: getS3Config().bucket,
+          Key: objectKey,
+        }),
+        createS3RequestOptions(),
+      );
+      if (!object.Body) {
+        return {};
+      }
+      const sourceBytes = await streamToBuffer(object.Body as unknown as Readable);
+      return await createImageVariants({
+        s3: this.s3,
+        sourceBytes,
+        sourceObjectKey: objectKey,
+        specs: PROFILE_IMAGE_VARIANT_SPECS,
+      });
+    } catch (caught) {
+      console.warn('[worker] public image variants failed', {
+        objectKey,
+        reason: caught instanceof Error ? caught.message : 'unknown',
+      });
+      return {};
+    }
+  }
+
+  private shouldCreateMediaVariants(asset: { kind: string; mimeType: string }) {
+    if (!asset.mimeType.startsWith('image/')) {
+      return false;
+    }
+    if (asset.mimeType === 'image/gif') {
+      return false;
+    }
+    return (
+      asset.kind === 'avatar' ||
+      asset.kind === 'chat_attachment' ||
+      asset.kind === 'story_media'
+    );
+  }
+
+  private isPublicMediaAsset(asset: { kind: string }) {
+    return asset.kind === 'avatar';
+  }
+
+  private hasAllProfileImageVariants(raw: unknown) {
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+      return false;
+    }
+    const variants = raw as Record<string, unknown>;
+    return PROFILE_IMAGE_VARIANT_SPECS.every((spec) => {
+      const value = variants[spec.key];
+      return value != null && typeof value === 'object' && !Array.isArray(value);
+    });
+  }
+
+  private hasAllPublicCardImageVariants(raw: unknown) {
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+      return false;
+    }
+    const variants = raw as Record<string, unknown>;
+    return ['thumb', 'card', 'hero', 'fullscreen'].every((key) => {
+      const value = variants[key];
+      return value != null && typeof value === 'object' && !Array.isArray(value);
+    });
+  }
+
+  private toPrivateMediaVariants(
+    assetId: string,
+    variants: Record<string, Record<string, unknown>>,
+  ) {
+    return Object.fromEntries(
+      Object.entries(variants).map(([key, variant]) => {
+        const url = `${buildMediaProxyPath(assetId)}/variants/${key}`;
+        return [
+          key,
+          {
+            ...variant,
+            url,
+            downloadUrl: null,
+            downloadUrlPath: `${url}/download-url`,
+          },
+        ];
+      }),
+    );
   }
 
   private async handlePushDispatch(payload: { userId: string; notificationId: string }) {

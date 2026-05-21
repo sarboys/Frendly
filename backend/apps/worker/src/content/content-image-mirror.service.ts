@@ -57,7 +57,7 @@ export class ContentImageMirrorService {
 
   private async mirrorImageAsset(input: MirrorImageInput): Promise<MirroredImageAsset> {
     const imageUrl = input.imageUrl?.trim();
-    if (!imageUrl || !isHttpsUrl(imageUrl) || this.isOwnAssetUrl(imageUrl)) {
+    if (!imageUrl || !isHttpsUrl(imageUrl)) {
       return { imageUrl: imageUrl ?? null, imageVariants: {} };
     }
 

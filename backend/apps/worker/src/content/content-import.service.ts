@@ -271,6 +271,11 @@ export class ContentImportService {
       select: {
         id: true,
         sourceItemId: true,
+        title: true,
+        contentKind: true,
+        city: true,
+        timezone: true,
+        imageVariants: true,
         imageUrl: true,
         source: {
           select: {
@@ -284,18 +289,22 @@ export class ContentImportService {
 
     let mirrored = 0;
     for (const row of rows) {
-      const nextUrl = await this.imageMirror.mirrorImageUrl({
+      const next = await this.imageMirror.mirrorExternalImage({
+        ...(row as object),
         sourceCode: row.source.code,
         sourceItemId: row.sourceItemId,
         imageUrl: row.imageUrl,
-      });
-      if (!nextUrl || nextUrl === row.imageUrl) {
+      } as any);
+      if (!next.imageUrl || next.imageUrl === row.imageUrl) {
         continue;
       }
 
       await this.prismaService.client.externalContentItem.update({
         where: { id: row.id },
-        data: { imageUrl: nextUrl },
+        data: {
+          imageUrl: next.imageUrl,
+          imageVariants: safeJson(next.imageVariants),
+        },
       });
       mirrored += 1;
     }

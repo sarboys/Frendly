@@ -9,6 +9,7 @@ import {
   getS3Config,
 } from '@big-break/database';
 import { ApiError } from '../common/api-error';
+import { mapMediaVariants } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 import {
   DROPS_MAX_TICKETS_PER_MONTH,
@@ -24,6 +25,7 @@ type DropRow = {
   title: string;
   description: string;
   imageUrl: string | null;
+  imageVariants?: unknown;
   type: string;
   status: string;
   prizes: unknown;
@@ -579,6 +581,7 @@ export class DropsService {
 
     return {
       imageUrl: buildPublicAssetUrl(objectKey),
+      imageVariants: {},
       objectKey,
     };
   }
@@ -1323,6 +1326,8 @@ export class DropsService {
       status: drop.status,
       title: drop.title,
       description: drop.description,
+      imageUrl: drop.imageUrl,
+      imageVariants: mapMediaVariants(drop.imageVariants),
       prizes: drop.prizes,
       prizeSummary: this.prizeSummary(drop.prizes),
       startsAt: drop.startsAt.toISOString(),
@@ -1592,6 +1597,9 @@ export class DropsService {
     if (Object.prototype.hasOwnProperty.call(body, 'imageUrl')) {
       data.imageUrl = this.optionalText(body.imageUrl);
     }
+    if (body.imageVariants && typeof body.imageVariants === 'object') {
+      data.imageVariants = body.imageVariants as Prisma.InputJsonValue;
+    }
     if (startsAt !== undefined) data.startsAt = startsAt;
     if (endsAt !== undefined) data.endsAt = endsAt;
     if (drawAt !== undefined) data.drawAt = drawAt;
@@ -1617,6 +1625,7 @@ export class DropsService {
   private mapAdminDrop(drop: DropRow, stats?: AdminDropStats) {
     return {
       ...drop,
+      imageVariants: mapMediaVariants(drop.imageVariants),
       startsAt: drop.startsAt.toISOString(),
       endsAt: drop.endsAt.toISOString(),
       drawAt: drop.drawAt.toISOString(),
@@ -1634,6 +1643,7 @@ export class DropsService {
       title: true,
       description: true,
       imageUrl: true,
+      imageVariants: true,
       type: true,
       status: true,
       prizes: true,

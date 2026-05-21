@@ -7,6 +7,7 @@ import {
 import { ChatKind, ChatOrigin, CommunityMemberRole, CommunityPrivacy, Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
+import { mapMediaVariants } from '../common/media-presenters';
 import { formatRelativeTime } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
@@ -900,6 +901,7 @@ export class CommunitiesService {
         select: {
           id: true,
           publicUrl: true,
+          variants: true,
         },
       },
       description: true,
@@ -1276,6 +1278,7 @@ export class CommunitiesService {
       name: community.name,
       avatar: community.avatar,
       imageUrl: this.communityImageUrl(community.imageAsset),
+      imageVariants: mapMediaVariants(community.imageAsset?.variants),
       description: community.description,
       privacy: community.privacy,
       members: community._count.members,
