@@ -373,6 +373,10 @@ type EventSummaryInput = Pick<
       lng: number;
     }> | null;
   } | null;
+  tokenPromotions?: Array<{
+    optionId: string;
+    expiresAt: Date;
+  }> | null;
 };
 
 type EventBookingPromo = {
@@ -528,9 +532,66 @@ export function mapEventSummary(params: {
     attendanceStatus: mapAttendanceStatus(attendance),
     liveStatus: mapLiveStatus(liveState, event.startsAt),
     isHost: event.hostId === currentUserId,
+    ...mapEventBoostSummary(event),
     ...mapEventTicketSummary(event),
     ...mapEventBookingSummary(event),
   };
+}
+
+function mapEventBoostSummary(event: EventSummaryInput) {
+  const promotion = [...(event.tokenPromotions ?? [])]
+    .filter((item) => item.expiresAt.getTime() > Date.now())
+    .sort((left, right) => right.expiresAt.getTime() - left.expiresAt.getTime())[0];
+  if (!promotion) {
+    return {
+      promoted: false,
+      boost: null,
+    };
+  }
+
+  const tier = boostTierForOption(promotion.optionId);
+  return {
+    promoted: true,
+    boost: {
+      optionId: promotion.optionId,
+      tierId: tier.tierId,
+      hours: tier.hours,
+      label: tier.label,
+      badge: tier.badge,
+      tone: tier.tone,
+      expiresAt: promotion.expiresAt.toISOString(),
+    },
+  };
+}
+
+function boostTierForOption(optionId: string) {
+  switch (optionId) {
+    case 'boost-6':
+      return {
+        tierId: '6h',
+        hours: 6,
+        label: 'Импульс',
+        badge: 'Boost 6ч',
+        tone: 'lime',
+      };
+    case 'boost-72':
+      return {
+        tierId: '72h',
+        hours: 72,
+        label: 'Премиум',
+        badge: 'Premium 3д',
+        tone: 'gold',
+      };
+    case 'boost-24':
+    default:
+      return {
+        tierId: '24h',
+        hours: 24,
+        label: 'Сутки',
+        badge: 'Boost 24ч',
+        tone: 'pink',
+      };
+  }
 }
 
 function mapEventRoutePoints(event: EventSummaryInput) {

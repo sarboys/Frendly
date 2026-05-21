@@ -460,6 +460,7 @@ describe('ChatsService unit', () => {
             online: true,
             profile: {
               gender: 'female',
+              avatarUrl: 'https://cdn.example.com/peer.jpg',
             },
           },
         },
@@ -494,6 +495,9 @@ describe('ChatsService unit', () => {
       id: 'direct-chat',
       peerUserId: 'user-peer',
       peerGender: 'female',
+      imageUrl: 'https://cdn.example.com/peer.jpg',
+      avatarUrl: 'https://cdn.example.com/peer.jpg',
+      peerAvatarUrl: 'https://cdn.example.com/peer.jpg',
     });
   });
 
@@ -943,6 +947,7 @@ describe('ChatsService unit', () => {
     ) as any;
     chat.event.sourceExternalContentItem = {
       id: 'affiche-1',
+      imageUrl: 'https://cdn.example.com/affiche.jpg',
       priceFrom: 2500,
       priceMode: 'paid',
       actionUrl: 'https://affiliate.example/show',
@@ -979,6 +984,8 @@ describe('ChatsService unit', () => {
 
     expect(result.items[0]).toMatchObject({
       id: 'chat-affiche',
+      imageUrl: 'https://cdn.example.com/affiche.jpg',
+      eventImageUrl: 'https://cdn.example.com/affiche.jpg',
       ticketUrl: 'https://affiliate.example/show',
       ticketSourceKind: 'affiche',
       ticketSourceId: 'affiche-1',
@@ -1052,6 +1059,9 @@ describe('ChatsService unit', () => {
           id: 'user-me',
           displayName: 'Сергей',
           online: true,
+          profile: {
+            avatarUrl: 'https://cdn.example.com/me.jpg',
+          },
         },
       },
       {
@@ -1060,6 +1070,9 @@ describe('ChatsService unit', () => {
           id: 'user-sonya',
           displayName: 'Соня М',
           online: false,
+          profile: {
+            avatarUrl: 'https://cdn.example.com/sonya.jpg',
+          },
         },
       },
     ];
@@ -1113,12 +1126,14 @@ describe('ChatsService unit', () => {
         {
           userId: 'user-me',
           name: 'Сергей',
+          avatarUrl: 'https://cdn.example.com/me.jpg',
           online: true,
           isCurrentUser: true,
         },
         {
           userId: 'user-sonya',
           name: 'Соня М',
+          avatarUrl: 'https://cdn.example.com/sonya.jpg',
           online: false,
           isCurrentUser: false,
           social: {

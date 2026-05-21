@@ -3,7 +3,7 @@ import {
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
-import { ChatKind, ChatOrigin, CommunityPrivacy, Prisma } from '@prisma/client';
+import { ChatKind, ChatOrigin, CommunityMemberRole, CommunityPrivacy, Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { formatRelativeTime } from '../common/presenters';
@@ -43,36 +43,27 @@ export class CommunitiesService {
 
   async listCommunities(
     userId: string,
-    params: { cursor?: string; limit?: number },
+    params: {
+      cursor?: string;
+      limit?: number;
+      q?: string;
+      topics?: string | string[];
+      privacy?: string;
+      sort?: string;
+    },
   ) {
     const take = this.normalizeLimit(params.limit);
     const cursorCommunity = await this.resolveCursor(params.cursor);
+    const where = this.buildCommunityListWhere(params, cursorCommunity);
 
     const communities = await this.prismaService.client.community.findMany({
-      where:
-        cursorCommunity == null
-          ? {}
-          : {
-              OR: [
-                {
-                  createdAt: {
-                    gt: cursorCommunity.createdAt,
-                  },
-                },
-                {
-                  createdAt: cursorCommunity.createdAt,
-                  id: {
-                    gt: cursorCommunity.id,
-                  },
-                },
-              ],
-            },
+      where,
       select: this.communitySelect({
         news: LIST_NEWS_LIMIT,
         meetups: LIST_MEETUP_LIMIT,
         media: LIST_MEDIA_LIMIT,
       }),
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      orderBy: this.communityListOrderBy(params.sort),
       take: take + 1,
     });
 
@@ -237,6 +228,448 @@ export class CommunitiesService {
     return this.getCommunity(userId, community.id);
   }
 
+  async createJoinRequest(
+    userId: string,
+    communityId: string,
+    body: Record<string, unknown> = {},
+  ) {
+    const community = await this.prismaService.client.community.findFirst({
+      where: { id: communityId },
+      select: {
+        id: true,
+        privacy: true,
+        createdById: true,
+        members: {
+          where: { userId },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!community) {
+      throw new ApiError(404, 'community_not_found', 'Community not found');
+    }
+    if (community.createdById === userId || (community.members ?? []).length > 0) {
+      throw new ApiError(409, 'community_already_joined', 'Community already joined');
+    }
+    if (community.privacy !== CommunityPrivacy.private) {
+      return this.joinCommunity(userId, communityId);
+    }
+
+    const note = this.optionalTrimmedString(body.note, 240);
+    const request = await this.prismaService.client.communityJoinRequest.upsert({
+      where: {
+        communityId_userId: {
+          communityId: community.id,
+          userId,
+        },
+      },
+      create: {
+        communityId: community.id,
+        userId,
+        status: 'pending',
+        ...(note ? { note } : {}),
+      },
+      update: {
+        status: 'pending',
+        reviewedAt: null,
+        reviewedById: null,
+        ...(note ? { note } : {}),
+      },
+      select: this.communityJoinRequestSelect(),
+    });
+
+    return this.mapJoinRequest(request);
+  }
+
+  async cancelJoinRequest(userId: string, communityId: string) {
+    await this.prismaService.client.communityJoinRequest.deleteMany({
+      where: {
+        communityId,
+        userId,
+        status: 'pending',
+      },
+    });
+
+    return this.getCommunity(userId, communityId);
+  }
+
+  async listAdminOverview(userId: string, communityId: string) {
+    const community = await this.getAdminCommunity(userId, communityId);
+    const [pendingRequests, meetups, posts] = await Promise.all([
+      this.prismaService.client.communityJoinRequest.count({
+        where: { communityId, status: 'pending' },
+      }),
+      this.prismaService.client.communityMeetupItem.count({
+        where: { communityId },
+      }),
+      this.prismaService.client.communityNewsItem.count({
+        where: { communityId },
+      }),
+    ]);
+
+    return {
+      id: community.id,
+      name: community.name,
+      role: community.members[0]?.role ?? CommunityMemberRole.owner,
+      stats: {
+        members: community._count.members,
+        requests: pendingRequests,
+        meetups,
+        posts,
+      },
+    };
+  }
+
+  async listAdminMembers(userId: string, communityId: string) {
+    await this.getAdminCommunity(userId, communityId);
+    const rows = await this.prismaService.client.communityMember.findMany({
+      where: { communityId },
+      select: {
+        id: true,
+        userId: true,
+        role: true,
+        joinedAt: true,
+        user: {
+          select: {
+            displayName: true,
+            profile: { select: { avatarUrl: true } },
+          },
+        },
+      },
+      orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        userId: row.userId,
+        name: row.user.displayName,
+        avatarUrl: row.user.profile?.avatarUrl ?? null,
+        role: row.role,
+        joinedAt: row.joinedAt.toISOString(),
+      })),
+    };
+  }
+
+  async updateAdminMemberRole(
+    userId: string,
+    communityId: string,
+    memberId: string,
+    body: Record<string, unknown>,
+  ) {
+    await this.getAdminCommunity(userId, communityId);
+    const role =
+      body.role === CommunityMemberRole.moderator
+        ? CommunityMemberRole.moderator
+        : CommunityMemberRole.member;
+    const member = await this.prismaService.client.communityMember.findFirst({
+      where: { id: memberId, communityId },
+      select: { id: true, role: true },
+    });
+    if (!member) {
+      throw new ApiError(404, 'community_member_not_found', 'Community member not found');
+    }
+    if (member.role === CommunityMemberRole.owner) {
+      throw new ApiError(409, 'community_owner_protected', 'Community owner is protected');
+    }
+    const updated = await this.prismaService.client.communityMember.update({
+      where: { id: member.id },
+      data: { role },
+      select: { id: true, userId: true, role: true, joinedAt: true },
+    });
+    return {
+      ...updated,
+      joinedAt: updated.joinedAt.toISOString(),
+    };
+  }
+
+  async removeAdminMember(userId: string, communityId: string, memberId: string) {
+    const community = await this.getAdminCommunity(userId, communityId);
+    const member = await this.prismaService.client.communityMember.findFirst({
+      where: { id: memberId, communityId },
+      select: { id: true, userId: true, role: true },
+    });
+    if (!member) {
+      throw new ApiError(404, 'community_member_not_found', 'Community member not found');
+    }
+    if (member.role === CommunityMemberRole.owner) {
+      throw new ApiError(409, 'community_owner_protected', 'Community owner is protected');
+    }
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.communityMember.delete({ where: { id: member.id } });
+      await tx.chatMember.deleteMany({
+        where: { chatId: community.chatId, userId: member.userId },
+      });
+    });
+    return { ok: true };
+  }
+
+  async listJoinRequests(userId: string, communityId: string) {
+    await this.getAdminCommunity(userId, communityId);
+    const rows = await this.prismaService.client.communityJoinRequest.findMany({
+      where: { communityId, status: 'pending' },
+      select: this.communityJoinRequestSelect(),
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+    return { items: rows.map((row) => this.mapJoinRequest(row)) };
+  }
+
+  async reviewJoinRequest(
+    userId: string,
+    communityId: string,
+    requestId: string,
+    status: 'approved' | 'rejected',
+  ) {
+    const community = await this.getAdminCommunity(userId, communityId);
+    const request = await this.prismaService.client.communityJoinRequest.findFirst({
+      where: { id: requestId, communityId, status: 'pending' },
+      select: {
+        id: true,
+        communityId: true,
+        userId: true,
+        status: true,
+      },
+    });
+    if (!request) {
+      throw new ApiError(404, 'community_join_request_not_found', 'Community join request not found');
+    }
+
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.communityJoinRequest.update({
+        where: { id: request.id },
+        data: {
+          status,
+          reviewedAt: new Date(),
+          reviewedById: userId,
+        },
+      });
+      if (status === 'approved') {
+        await tx.communityMember.upsert({
+          where: {
+            communityId_userId: {
+              communityId,
+              userId: request.userId,
+            },
+          },
+          create: {
+            communityId,
+            userId: request.userId,
+            role: 'member',
+          },
+          update: {},
+        });
+        await tx.chatMember.upsert({
+          where: {
+            chatId_userId: {
+              chatId: community.chatId,
+              userId: request.userId,
+            },
+          },
+          create: {
+            chatId: community.chatId,
+            userId: request.userId,
+          },
+          update: {},
+        });
+      }
+    });
+
+    return this.getCommunity(userId, communityId);
+  }
+
+  async listAdminNews(userId: string, communityId: string) {
+    await this.getAdminCommunity(userId, communityId);
+    const rows = await this.prismaService.client.communityNewsItem.findMany({
+      where: { communityId },
+      select: {
+        id: true,
+        title: true,
+        blurb: true,
+        timeLabel: true,
+        pinned: true,
+        sortOrder: true,
+        createdAt: true,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+    return { items: rows.map((row) => this.mapNews(row)) };
+  }
+
+  async createAdminNews(
+    userId: string,
+    communityId: string,
+    body: Record<string, unknown>,
+  ) {
+    await this.getAdminCommunity(userId, communityId);
+    return this.createCommunityNews(userId, communityId, body);
+  }
+
+  async updateAdminNews(
+    userId: string,
+    communityId: string,
+    newsId: string,
+    body: Record<string, unknown>,
+  ) {
+    await this.getAdminCommunity(userId, communityId);
+    const data: Prisma.CommunityNewsItemUpdateManyMutationInput = {};
+    const title = this.optionalTrimmedString(body.title, 120);
+    const blurb = this.optionalTrimmedString(body.body ?? body.blurb, 600);
+    if (title != null) {
+      data.title = title;
+    }
+    if (blurb != null) {
+      data.blurb = blurb;
+    }
+    if (typeof body.pinned === 'boolean') {
+      data.pinned = body.pinned;
+      data.sortOrder = body.pinned ? 0 : await this.nextCommunityNewsSortOrder(
+        this.prismaService.client,
+        communityId,
+      );
+    }
+    const result = await this.prismaService.client.communityNewsItem.updateMany({
+      where: { id: newsId, communityId },
+      data,
+    });
+    if (result.count === 0) {
+      throw new ApiError(404, 'community_news_not_found', 'Community news not found');
+    }
+    return { ok: true };
+  }
+
+  async deleteAdminNews(userId: string, communityId: string, newsId: string) {
+    await this.getAdminCommunity(userId, communityId);
+    await this.prismaService.client.communityNewsItem.deleteMany({
+      where: { id: newsId, communityId },
+    });
+    return { ok: true };
+  }
+
+  async listAdminMeetups(userId: string, communityId: string) {
+    await this.getAdminCommunity(userId, communityId);
+    const rows = await this.prismaService.client.communityMeetupItem.findMany({
+      where: { communityId },
+      select: {
+        id: true,
+        title: true,
+        emoji: true,
+        timeLabel: true,
+        place: true,
+        format: true,
+        going: true,
+        startsAt: true,
+      },
+      orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        emoji: row.emoji,
+        time: row.timeLabel,
+        place: row.place,
+        format: row.format,
+        going: row.going,
+        startsAt: row.startsAt?.toISOString() ?? null,
+      })),
+    };
+  }
+
+  async cancelAdminMeetup(userId: string, communityId: string, eventId: string) {
+    await this.getAdminCommunity(userId, communityId);
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.event.updateMany({
+        where: { id: eventId },
+        data: { canceledAt: new Date(), cancelReason: 'community_admin' },
+      });
+      await tx.communityMeetupItem.deleteMany({
+        where: { id: eventId, communityId },
+      });
+    });
+    return { ok: true };
+  }
+
+  async updateAdminSettings(
+    userId: string,
+    communityId: string,
+    body: Record<string, unknown>,
+  ) {
+    await this.getAdminCommunity(userId, communityId);
+    const data: Prisma.CommunityUpdateInput = {};
+    const name = this.optionalTrimmedString(body.name, 80);
+    const description = this.optionalTrimmedString(body.description, 600);
+    const rules = this.optionalTrimmedString(body.rules, 1000);
+    if (name != null) {
+      data.name = name;
+    }
+    if (description != null) {
+      data.description = description;
+    }
+    if (rules != null || Object.prototype.hasOwnProperty.call(body, 'rules')) {
+      data.rules = rules;
+    }
+    if (body.privacy === CommunityPrivacy.private || body.privacy === CommunityPrivacy.public) {
+      data.privacy = body.privacy;
+      data.joinRule =
+        body.privacy === CommunityPrivacy.private
+          ? 'Ручное одобрение'
+          : 'Открытое вступление';
+    }
+    if (Object.keys(data).length > 0) {
+      await this.prismaService.client.community.update({
+        where: { id: communityId },
+        data,
+      });
+    }
+    return this.getCommunity(userId, communityId);
+  }
+
+  async archiveAdminCommunity(userId: string, communityId: string) {
+    await this.getAdminCommunity(userId, communityId);
+    await this.prismaService.client.community.update({
+      where: { id: communityId },
+      data: { archivedAt: new Date() },
+    });
+    return { ok: true };
+  }
+
+  async transferAdminOwnership(
+    userId: string,
+    communityId: string,
+    body: Record<string, unknown>,
+  ) {
+    const community = await this.getAdminCommunity(userId, communityId);
+    const nextOwnerId = this.requiredTrimmedString(body.userId, 'userId', 80);
+    const member = await this.prismaService.client.communityMember.findFirst({
+      where: { communityId, userId: nextOwnerId },
+      select: { id: true },
+    });
+    if (!member) {
+      throw new ApiError(404, 'community_member_not_found', 'Community member not found');
+    }
+    await this.prismaService.client.$transaction(async (tx) => {
+      await tx.community.update({
+        where: { id: community.id },
+        data: { createdById: nextOwnerId },
+      });
+      await tx.communityMember.updateMany({
+        where: { communityId, role: CommunityMemberRole.owner },
+        data: { role: CommunityMemberRole.moderator },
+      });
+      await tx.communityMember.update({
+        where: { id: member.id },
+        data: { role: CommunityMemberRole.owner },
+      });
+    });
+    return this.getCommunity(userId, communityId);
+  }
+
   async leaveCommunity(userId: string, communityId: string) {
     const community = await this.prismaService.client.community.findFirst({
       where: {
@@ -339,6 +772,7 @@ export class CommunitiesService {
           title: input.title,
           blurb: input.body,
           timeLabel: 'сейчас',
+          pinned: input.pin,
           sortOrder,
         },
         select: { id: true },
@@ -463,6 +897,7 @@ export class CommunitiesService {
       privacy: true,
       tags: true,
       joinRule: true,
+      rules: true,
       premiumOnly: true,
       mood: true,
       sharedMediaLabel: true,
@@ -490,8 +925,11 @@ export class CommunitiesService {
           title: true,
           blurb: true,
           timeLabel: true,
+          pinned: true,
+          sortOrder: true,
+          createdAt: true,
         },
-        orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
+        orderBy: [{ pinned: 'desc' as const }, { sortOrder: 'asc' as const }, { id: 'asc' as const }],
         ...(limits?.news == null ? {} : { take: limits.news }),
       },
       meetups: {
@@ -546,6 +984,82 @@ export class CommunitiesService {
     };
   }
 
+  private buildCommunityListWhere(
+    params: {
+      q?: string;
+      topics?: string | string[];
+      privacy?: string;
+    },
+    cursorCommunity: CommunityCursor | null,
+  ): Prisma.CommunityWhereInput {
+    const and: Prisma.CommunityWhereInput[] = [{ archivedAt: null }];
+    const q = this.optionalTrimmedString(params.q, 80);
+    if (q != null) {
+      and.push({
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+          { mood: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    const topics = this.normalizeTopicFilters(params.topics);
+    if (topics.length > 0) {
+      and.push({
+        OR: topics.map((topic) => ({
+          tags: {
+            array_contains: topic,
+          },
+        })),
+      });
+    }
+
+    if (params.privacy === CommunityPrivacy.public || params.privacy === 'open') {
+      and.push({ privacy: CommunityPrivacy.public });
+    }
+    if (params.privacy === CommunityPrivacy.private || params.privacy === 'closed') {
+      and.push({ privacy: CommunityPrivacy.private });
+    }
+
+    if (cursorCommunity != null) {
+      and.push({
+        OR: [
+          { createdAt: { gt: cursorCommunity.createdAt } },
+          {
+            createdAt: cursorCommunity.createdAt,
+            id: { gt: cursorCommunity.id },
+          },
+        ],
+      });
+    }
+
+    return and.length === 1 ? and[0] ?? {} : { AND: and };
+  }
+
+  private communityListOrderBy(sort?: string): Prisma.CommunityOrderByWithRelationInput[] {
+    if (sort === 'popular') {
+      return [{ members: { _count: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }];
+    }
+    if (sort === 'new') {
+      return [{ createdAt: 'desc' }, { id: 'desc' }];
+    }
+    return [{ createdAt: 'asc' }, { id: 'asc' }];
+  }
+
+  private normalizeTopicFilters(raw: unknown) {
+    const values = Array.isArray(raw)
+      ? raw
+      : typeof raw === 'string'
+        ? raw.split(',')
+        : [];
+    return values
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+      .slice(0, 12);
+  }
+
   private upcomingCommunityMeetupWhere(): Prisma.CommunityMeetupItemWhereInput {
     return {
       OR: [
@@ -568,6 +1082,7 @@ export class CommunitiesService {
         onlineByCommunityId: new Map<string, number>(),
         unreadByChatId: new Map<string, number>(),
         membershipByCommunityId: new Map<string, { role: string }>(),
+        joinRequestByCommunityId: new Map<string, { status: string }>(),
       };
     }
 
@@ -582,7 +1097,7 @@ export class CommunitiesService {
         ? this.loadUnreadCounters(userId, chatIds)
         : this.countUnreadMessages(userId, chatIds);
 
-    const [onlineGroups, unreadByChatId, memberships] = await Promise.all([
+    const [onlineGroups, unreadByChatId, memberships, joinRequests] = await Promise.all([
       this.prismaService.client.communityMember.groupBy({
         by: ['communityId'],
         where: {
@@ -604,6 +1119,19 @@ export class CommunitiesService {
           role: true,
         },
       }),
+      typeof this.prismaService.client.communityJoinRequest?.findMany === 'function'
+        ? this.prismaService.client.communityJoinRequest.findMany({
+            where: {
+              communityId: { in: communityIds },
+              userId,
+              status: 'pending',
+            },
+            select: {
+              communityId: true,
+              status: true,
+            },
+          })
+        : Promise.resolve([]),
     ]);
 
     const onlineByCommunityId = new Map(
@@ -621,6 +1149,12 @@ export class CommunitiesService {
       onlineByCommunityId,
       unreadByChatId,
       membershipByCommunityId,
+      joinRequestByCommunityId: new Map(
+        joinRequests.map((request) => [
+          request.communityId,
+          { status: request.status },
+        ]),
+      ),
     };
   }
 
@@ -704,6 +1238,7 @@ export class CommunitiesService {
       onlineByCommunityId: Map<string, number>;
       unreadByChatId: Map<string, number>;
       membershipByCommunityId: Map<string, { role: string }>;
+      joinRequestByCommunityId: Map<string, { status: string }>;
     },
     currentUserId: string,
   ) {
@@ -717,8 +1252,11 @@ export class CommunitiesService {
       going: meetup.going,
     }));
     const membership = counters.membershipByCommunityId.get(community.id);
+    const joinRequest = counters.joinRequestByCommunityId.get(community.id);
     const isOwner =
       community.createdById === currentUserId || membership?.role === 'owner';
+    const role =
+      isOwner ? 'owner' : membership?.role ?? null;
     const joined = membership != null || community.createdById === currentUserId;
     const canViewPrivateContent =
       community.privacy !== CommunityPrivacy.private || joined;
@@ -734,18 +1272,18 @@ export class CommunitiesService {
       online: counters.onlineByCommunityId.get(community.id) ?? 0,
       tags: this.stringArrayFromJson(community.tags),
       joinRule: community.joinRule,
+      rules: community.rules ?? null,
       joined,
       isOwner,
+      role,
+      joinRequestStatus: joinRequest?.status ?? null,
       premiumOnly: community.premiumOnly,
       unread: counters.unreadByChatId.get(community.chatId) ?? 0,
       mood: community.mood,
       sharedMediaLabel: community.sharedMediaLabel,
       nextMeetup: meetups[0] ?? null,
       news: community.news.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        blurb: item.blurb,
-        time: item.timeLabel,
+        ...this.mapNews(item),
       })),
       meetups,
       media: canViewPrivateContent
@@ -927,6 +1465,96 @@ export class CommunitiesService {
         { createdById: userId },
         { members: { some: { userId } } },
       ],
+    };
+  }
+
+  private async getAdminCommunity(userId: string, communityId: string) {
+    const community = await this.prismaService.client.community.findFirst({
+      where: {
+        id: communityId,
+        OR: [
+          { createdById: userId },
+          {
+            members: {
+              some: {
+                userId,
+                role: { in: [CommunityMemberRole.owner, CommunityMemberRole.moderator] },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        chatId: true,
+        createdById: true,
+        members: {
+          where: { userId },
+          select: { role: true },
+          take: 1,
+        },
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+    });
+    if (!community) {
+      throw new ApiError(403, 'community_admin_required', 'Community admin access is required');
+    }
+    return community;
+  }
+
+  private communityJoinRequestSelect() {
+    return {
+      id: true,
+      communityId: true,
+      userId: true,
+      status: true,
+      note: true,
+      createdAt: true,
+      user: {
+        select: {
+          displayName: true,
+          profile: {
+            select: {
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private mapJoinRequest(request: any) {
+    return {
+      id: request.id,
+      communityId: request.communityId,
+      userId: request.userId,
+      status: request.status,
+      note: request.note ?? null,
+      createdAt: request.createdAt?.toISOString?.() ?? null,
+      user: request.user
+        ? {
+            name: request.user.displayName,
+            avatarUrl: request.user.profile?.avatarUrl ?? null,
+          }
+        : null,
+    };
+  }
+
+  private mapNews(item: any) {
+    return {
+      id: item.id,
+      title: item.title,
+      blurb: item.blurb,
+      body: item.blurb,
+      time: item.timeLabel,
+      pinned: item.pinned ?? item.sortOrder === 0,
+      sortOrder: item.sortOrder ?? 0,
+      createdAt: item.createdAt?.toISOString?.() ?? null,
     };
   }
 

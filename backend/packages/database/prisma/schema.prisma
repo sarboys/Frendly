@@ -376,6 +376,8 @@ model User {
   chatMembers                        ChatMember[]
   createdCommunities                 Community[]                 @relation("CommunityCreator")
   communityMemberships               CommunityMember[]
+  communityJoinRequests              CommunityJoinRequest[]      @relation("CommunityJoinRequestUser")
+  reviewedCommunityJoinRequests      CommunityJoinRequest[]      @relation("CommunityJoinRequestReviewer")
   messages                           Message[]
   mediaAssets                        MediaAsset[]
   telegramAccount                    TelegramAccount?
@@ -2055,6 +2057,7 @@ model Community {
   privacy          CommunityPrivacy      @default(public)
   tags             Json
   joinRule         String
+  rules            String?
   premiumOnly      Boolean               @default(true)
   mood             String
   sharedMediaLabel String
@@ -2067,6 +2070,7 @@ model Community {
   partner          Partner?              @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   chat             Chat                  @relation(fields: [chatId], references: [id], onDelete: Cascade)
   members          CommunityMember[]
+  joinRequests     CommunityJoinRequest[]
   news             CommunityNewsItem[]
   meetups          CommunityMeetupItem[]
   media            CommunityMediaItem[]
@@ -2079,6 +2083,25 @@ model Community {
   @@index([privacy, createdAt, id])
   @@index([partnerId, createdAt, id])
   @@index([archivedAt, createdAt, id])
+}
+
+model CommunityJoinRequest {
+  id          String    @id @default(cuid())
+  communityId String
+  userId      String
+  status      String    @default("pending")
+  note        String?
+  reviewedAt  DateTime?
+  reviewedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User      @relation("CommunityJoinRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy  User?     @relation("CommunityJoinRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([communityId, userId])
+  @@index([communityId, status, createdAt, id])
+  @@index([userId, status, createdAt, id])
 }
 
 model CommunityMember {
@@ -2101,6 +2124,7 @@ model CommunityNewsItem {
   title       String
   blurb       String
   timeLabel   String
+  pinned      Boolean   @default(false)
   sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now())
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)

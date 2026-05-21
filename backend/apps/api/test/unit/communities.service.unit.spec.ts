@@ -357,22 +357,26 @@ describe('CommunitiesService unit', () => {
 
     expect(communityFindUnique).not.toHaveBeenCalled();
     expect(communityFindMany.mock.calls[1][0].where).toEqual({
-      OR: [
+      AND: [
+        { archivedAt: null },
         {
-          createdAt: {
-            gt: firstCommunity.createdAt,
-          },
-        },
-        {
-          createdAt: firstCommunity.createdAt,
-          id: {
-            gt: firstCommunity.id,
-          },
+          OR: [
+            {
+              createdAt: {
+                gt: firstCommunity.createdAt,
+              },
+            },
+            {
+              createdAt: firstCommunity.createdAt,
+              id: {
+                gt: firstCommunity.id,
+              },
+            },
+          ],
         },
       ],
     });
   });
-
 	  it('returns the existing community when a retry hits the same idempotency key',
     async () => {
       const duplicateKeyError = new Prisma.PrismaClientKnownRequestError(
@@ -827,6 +831,7 @@ describe('CommunitiesService unit', () => {
         title: 'Новая встреча',
         blurb: 'Открыли запись на воскресный brunch.',
         timeLabel: 'сейчас',
+        pinned: true,
         sortOrder: 0,
       },
       select: { id: true },
@@ -1035,5 +1040,138 @@ describe('CommunitiesService unit', () => {
         userId: 'user-me',
       },
     });
+  });
+
+  it('creates a private community join request instead of direct membership', async () => {
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'community-1',
+              privacy: 'private',
+              createdById: 'owner-user',
+            }),
+          },
+          communityJoinRequest: {
+            upsert: jest.fn().mockResolvedValue({
+              id: 'request-1',
+              communityId: 'community-1',
+              userId: 'user-me',
+              status: 'pending',
+            }),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await (service as any).createJoinRequest(
+      'user-me',
+      'community-1',
+    );
+
+    expect(result).toMatchObject({
+      id: 'request-1',
+      communityId: 'community-1',
+      status: 'pending',
+    });
+    expect(
+      (service as any).prismaService.client.communityJoinRequest.upsert,
+    ).toHaveBeenCalledWith({
+      where: {
+        communityId_userId: {
+          communityId: 'community-1',
+          userId: 'user-me',
+        },
+      },
+      create: {
+        communityId: 'community-1',
+        userId: 'user-me',
+        status: 'pending',
+      },
+      update: {
+        status: 'pending',
+        reviewedAt: null,
+        reviewedById: null,
+      },
+      select: expect.any(Object),
+    });
+  });
+
+  it('approves a join request and adds community and chat membership', async () => {
+    const tx = {
+      communityJoinRequest: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      communityMember: {
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      chatMember: {
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'community-1',
+              chatId: 'chat-1',
+              createdById: 'owner-user',
+              members: [{ role: 'owner' }],
+            }),
+          },
+          communityJoinRequest: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'request-1',
+              communityId: 'community-1',
+              userId: 'user-me',
+              status: 'pending',
+            }),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getCommunity').mockResolvedValue({
+      id: 'community-1',
+      joined: true,
+    } as any);
+
+    const result = await (service as any).reviewJoinRequest(
+      'owner-user',
+      'community-1',
+      'request-1',
+      'approved',
+    );
+
+    expect(result).toMatchObject({ id: 'community-1', joined: true });
+    expect(tx.communityJoinRequest.update).toHaveBeenCalledWith({
+      where: { id: 'request-1' },
+      data: {
+        status: 'approved',
+        reviewedAt: expect.any(Date),
+        reviewedById: 'owner-user',
+      },
+    });
+    expect(tx.communityMember.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: {
+          communityId: 'community-1',
+          userId: 'user-me',
+          role: 'member',
+        },
+      }),
+    );
+    expect(tx.chatMember.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: {
+          chatId: 'chat-1',
+          userId: 'user-me',
+        },
+      }),
+    );
   });
 });

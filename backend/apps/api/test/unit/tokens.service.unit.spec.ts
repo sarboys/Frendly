@@ -243,4 +243,40 @@ describe('TokensService unit', () => {
       prismaClient,
     );
   });
+
+  it('spends 20 tokens for the 6 hour boost option', async () => {
+    const { service, prismaClient } = makeService();
+    prismaClient.event.findFirst.mockResolvedValue({ id: 'event-1' });
+    prismaClient.tokenWallet.upsert.mockResolvedValue({
+      id: 'wallet-1',
+      userId: 'user-1',
+      balance: 25,
+    });
+    prismaClient.tokenWallet.updateMany.mockResolvedValue({ count: 1 });
+    prismaClient.tokenLedgerEntry.create.mockResolvedValue({ id: 'ledger-1' });
+    prismaClient.tokenPromotion.create.mockResolvedValue({ id: 'promotion-1' });
+
+    await service.createPromotion('user-1', {
+      targetKind: 'event',
+      targetId: 'event-1',
+      optionId: 'boost-6',
+    });
+
+    expect(prismaClient.tokenWallet.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          balance: { gte: 20 },
+        }),
+        data: { balance: { decrement: 20 } },
+      }),
+    );
+    expect(prismaClient.tokenPromotion.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          optionId: 'boost-6',
+          eventId: 'event-1',
+        }),
+      }),
+    );
+  });
 });

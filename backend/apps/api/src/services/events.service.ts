@@ -155,6 +155,14 @@ const eventListSummarySelect = {
       currency: true,
     },
   },
+  tokenPromotions: {
+    select: {
+      optionId: true,
+      expiresAt: true,
+    },
+    orderBy: { expiresAt: 'desc' },
+    take: 1,
+  },
 } satisfies Prisma.EventSelect;
 
 const eventMessageMediaAssetSelect = {
@@ -349,6 +357,7 @@ export class EventsService {
         ),
       );
     }
+    cursorFilteredEvents = this.orderPromotedEventsFirst(cursorFilteredEvents);
     const hasMore = cursorFilteredEvents.length > take;
     let page = hasMore
       ? cursorFilteredEvents.slice(0, take)
@@ -359,6 +368,7 @@ export class EventsService {
         userId,
         blockedUserIds,
       );
+      page = this.orderPromotedEventsFirst(page);
     }
     const pageEventIds = page.map((event) => event.id);
     const [participantCounts, currentParticipations] =
@@ -578,6 +588,19 @@ export class EventsService {
       event.hostId === userId || viewerState.isParticipant
         ? { canJoin: true, missing: [] as EventEntryRequirement[] }
         : await this.resolveEventEntryRequirements(userId, event);
+    const communityMeetup =
+      (await this.prismaService.client.communityMeetupItem?.findUnique?.({
+        where: { id: event.id },
+        select: {
+          community: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+            },
+          },
+        },
+      })) ?? null;
 
     return {
       ...mapEventSummary({
@@ -602,6 +625,13 @@ export class EventsService {
         meetupCount: event.host.profile?.meetupCount ?? 0,
         avatarUrl: event.host.profile?.avatarUrl ?? null,
       },
+      community: communityMeetup?.community
+        ? {
+            id: communityMeetup.community.id,
+            name: communityMeetup.community.name,
+            avatar: communityMeetup.community.avatar,
+          }
+        : null,
       attendees: attendeePreview.map((participant) => ({
         id: participant.user.id,
         displayName: participant.user.displayName,
@@ -3876,6 +3906,24 @@ export class EventsService {
         id: true,
         title: true,
       },
+    });
+  }
+
+  private orderPromotedEventsFirst<T extends { tokenPromotions?: Array<{ expiresAt: Date }> | null }>(
+    events: T[],
+  ) {
+    const now = Date.now();
+    return [...events].sort((left, right) => {
+      const leftPromoted = (left.tokenPromotions ?? []).some(
+        (promotion) => promotion.expiresAt.getTime() > now,
+      );
+      const rightPromoted = (right.tokenPromotions ?? []).some(
+        (promotion) => promotion.expiresAt.getTime() > now,
+      );
+      if (leftPromoted !== rightPromoted) {
+        return leftPromoted ? -1 : 1;
+      }
+      return 0;
     });
   }
 

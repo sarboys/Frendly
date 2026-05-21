@@ -32,7 +32,7 @@ export type TokenPackProduct = {
 export type PaymentProduct = SubscriptionProduct | TokenPackProduct;
 
 export type TokenPromotionOption = {
-  id: 'boost-24' | 'boost-72' | 'spotlight';
+  id: 'boost-6' | 'boost-24' | 'boost-72';
   title: string;
   subtitle: string;
   cost: number;
@@ -119,25 +119,25 @@ export const tokenPackProducts: readonly TokenPackProduct[] = [
 
 export const tokenPromotionOptions: readonly TokenPromotionOption[] = [
   {
+    id: 'boost-6',
+    title: 'Импульс',
+    subtitle: 'Топ радара · 6 часов',
+    cost: 20,
+    durationHours: 6,
+  },
+  {
     id: 'boost-24',
-    title: 'Буст · 24 часа',
-    subtitle: 'Топ ленты + бейдж',
-    cost: 80,
+    title: 'Сутки',
+    subtitle: 'Топ радара + карта · 24 часа',
+    cost: 50,
     durationHours: 24,
   },
   {
     id: 'boost-72',
-    title: 'Буст · 3 дня',
-    subtitle: 'Закреп в карусели',
-    cost: 200,
+    title: 'Премиум',
+    subtitle: 'Закреп в радаре, карте, афише · 3 дня',
+    cost: 120,
     durationHours: 72,
-  },
-  {
-    id: 'spotlight',
-    title: 'Spotlight · неделя',
-    subtitle: 'Главный экран + push',
-    cost: 500,
-    durationHours: 168,
   },
 ];
 

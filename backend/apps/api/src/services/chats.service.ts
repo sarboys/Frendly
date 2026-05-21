@@ -8,7 +8,12 @@ import { ChatKind, MediaAssetKind, Prisma } from '@prisma/client';
 import { Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { ApiError } from '../common/api-error';
-import { formatEventTime, formatRelativeTime, mapMessage } from '../common/presenters';
+import {
+  formatEventTime,
+  formatRelativeTime,
+  mapMessage,
+  mapProfilePhoto,
+} from '../common/presenters';
 import {
   emptyProfileSocialPreview,
   loadProfileSocialPreviews,
@@ -132,6 +137,11 @@ interface ChatListMemberState {
   pinnedAt: Date | null;
 }
 
+type ChatListMemberProfile = {
+  avatarUrl?: string | null;
+  photos?: Array<Parameters<typeof mapProfilePhoto>[0]>;
+} | null;
+
 @Injectable()
 export class ChatsService {
   private readonly logger = new Logger(ChatsService.name);
@@ -221,6 +231,7 @@ export class ChatsService {
                 priceFrom: true,
                 priceMode: true,
                 actionUrl: true,
+                imageUrl: true,
                 sourceProvider: true,
                 venueName: true,
               },
@@ -238,6 +249,11 @@ export class ChatsService {
             hostId: true,
             isAfterDark: true,
             afterDarkGlow: true,
+            sourceExternalContentItem: {
+              select: {
+                imageUrl: true,
+              },
+            },
           },
         },
         members: {
@@ -256,6 +272,14 @@ export class ChatsService {
                 profile: {
                   select: {
                     gender: true,
+                    avatarUrl: true,
+                    photos: {
+                      orderBy: {
+                        sortOrder: 'asc',
+                      },
+                      take: 1,
+                      select: chatSenderProfilePhotoSelect,
+                    },
                   },
                 },
               },
@@ -374,11 +398,16 @@ export class ChatsService {
           const eventTime = chat.event ? formatEventTime(chat.event.startsAt) : '';
           const parts = eventTime.split('·');
           const ticket = this.mapTicketSummary(chat.event);
+          const eventImageUrl =
+            chat.event?.sourceExternalContentItem?.imageUrl ??
+            chat.sourceEvent?.sourceExternalContentItem?.imageUrl ??
+            null;
           const memberProfiles = chat.members
             .filter((entry) => !blockedUserIds.has(entry.userId))
             .map((entry) => ({
               userId: entry.user.id,
               name: entry.user.displayName,
+              avatarUrl: this.resolveChatListAvatarUrl(entry.user.profile),
               online: entry.user.online ?? false,
               isCurrentUser: entry.userId === userId,
               social:
@@ -390,6 +419,9 @@ export class ChatsService {
             id: chat.id,
             eventId: chat.event?.id,
             title: chat.title,
+            imageUrl: eventImageUrl,
+            eventImageUrl,
+            coverImageUrl: eventImageUrl,
             emoji: chat.emoji,
             time: parts[1]?.trim() ?? '',
             status: parts[0]?.trim() ?? '',
@@ -418,11 +450,15 @@ export class ChatsService {
         if (!peer || blockedUserIds.has(peer.id)) {
           return null;
         }
+        const peerAvatarUrl = this.resolveChatListAvatarUrl(peer.profile);
 
         return {
           id: chat.id,
           peerUserId: peer.id,
           peerGender: peer.profile?.gender ?? null,
+          imageUrl: peerAvatarUrl,
+          avatarUrl: peerAvatarUrl,
+          peerAvatarUrl,
           name: peer?.displayName ?? 'Личный чат',
           lastMessageId: lastMessage?.id ?? null,
           lastMessage: lastMessagePreview,
@@ -468,6 +504,13 @@ export class ChatsService {
       .split(',')
       .map((value) => value.trim())
       .some((value) => value === '*' || value === etag);
+  }
+
+  private resolveChatListAvatarUrl(profile: ChatListMemberProfile) {
+    const photo = [...(profile?.photos ?? [])]
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((entry) => mapProfilePhoto(entry))[0];
+    return photo?.url ?? profile?.avatarUrl ?? null;
   }
 
   async setPinned(userId: string, chatId: string, isPinned: boolean) {
