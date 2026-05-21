@@ -36,6 +36,7 @@ services:
     environment:
       METRICS_SERVICE_NAME: worker_realtime
       WORKER_OUTBOX_ENABLED: "true"
+      MEDIA_VARIANT_BACKFILL_ENABLED: "true"
       WORKER_CONTENT_ENABLED: "false"
       WORKER_SCHEDULES_ENABLED: "false"
       CONTENT_IMPORT_ENABLED: "false"
