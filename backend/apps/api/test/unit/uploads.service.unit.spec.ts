@@ -32,6 +32,56 @@ describe('UploadsService', () => {
     });
   });
 
+  it('restores meetup chat membership before creating voice upload urls', async () => {
+    const client = {
+      chatMember: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      chat: {
+        findUnique: jest.fn().mockResolvedValue({
+          kind: 'meetup',
+          event: {
+            hostId: 'host-1',
+            participants: [{ userId: 'user-me' }],
+          },
+        }),
+      },
+    };
+    const service = new UploadsService(
+      { client } as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.createChatAttachmentUpload('user-me', {
+      chatId: 'meetup-chat-1',
+      kind: 'chat_voice',
+      fileName: 'voice.m4a',
+      contentType: 'audio/mp4',
+      durationMs: 3000,
+      waveform: [0.2, 0.6],
+    });
+
+    expect(result).toMatchObject({
+      objectKey: expect.stringContaining('chat-attachments/user-me/'),
+      chatId: 'meetup-chat-1',
+    });
+    expect(client.chatMember.upsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'meetup-chat-1',
+          userId: 'user-me',
+        },
+      },
+      update: {},
+      create: {
+        chatId: 'meetup-chat-1',
+        userId: 'user-me',
+      },
+    });
+  });
+
   it('creates verification direct upload urls with private cache headers', async () => {
     const service = new UploadsService(
       { client: {} } as any,

@@ -868,9 +868,54 @@ export class UploadsService {
       },
     });
 
-    if (!membership) {
+    if (!membership && !(await this.restoreMeetupChatAttachmentMember(userId, chatId))) {
       throw new ApiError(403, 'chat_attachment_forbidden', 'You are not a member of this chat');
     }
+  }
+
+  private async restoreMeetupChatAttachmentMember(userId: string, chatId: string) {
+    const chat = await this.prismaService.client.chat.findUnique({
+      where: { id: chatId },
+      select: {
+        kind: true,
+        event: {
+          select: {
+            hostId: true,
+            participants: {
+              where: { userId },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (chat?.kind !== 'meetup' || chat.event == null) {
+      return false;
+    }
+
+    const hasEventAccess =
+      chat.event.hostId === userId || chat.event.participants.length > 0;
+    if (!hasEventAccess) {
+      return false;
+    }
+
+    await this.prismaService.client.chatMember.upsert({
+      where: {
+        chatId_userId: {
+          chatId,
+          userId,
+        },
+      },
+      update: {},
+      create: {
+        chatId,
+        userId,
+      },
+    });
+
+    return true;
   }
 
   private async requireStoryEventId(userId: string, body: Record<string, unknown>) {
