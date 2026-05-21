@@ -119,6 +119,38 @@ describe('MediaService', () => {
     expect(s3Send).not.toHaveBeenCalled();
   });
 
+  it('returns signed private download url with server expiry', async () => {
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-1',
+          status: 'ready',
+          ownerId: 'user-owner',
+          kind: 'chat_attachment',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'chat-attachments/user-owner/photo.jpg',
+          publicUrl: null,
+          mimeType: 'image/jpeg',
+          byteSize: 100,
+          durationMs: null,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+
+    const media = await service.getDownloadUrl('user-owner', 'asset-1');
+
+    expect(media).toMatchObject({
+      id: 'asset-1',
+      visibility: 'private',
+      downloadUrl: expect.stringContaining('X-Amz-Signature='),
+      expiresAt: expect.any(String),
+    });
+    expect(typeof media.expiresAt).toBe('string');
+    expect(Date.parse(media.expiresAt as string)).not.toBeNaN();
+  });
+
   it('redirects public S3 avatars to the stored CDN url', async () => {
     const s3Send = jest.fn();
     const client = {
