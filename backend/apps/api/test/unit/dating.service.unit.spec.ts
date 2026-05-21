@@ -1107,6 +1107,8 @@ describe('DatingService unit', () => {
         title: 'Новый лайк',
         dedupeKey: 'dating_like:user-sonya:user-me',
         payload: {
+          userId: 'user-me',
+          userName: 'Никита',
           source: 'dating',
           action: 'like',
         },

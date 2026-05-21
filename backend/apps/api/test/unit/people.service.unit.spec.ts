@@ -854,6 +854,16 @@ describe('PeopleService unit', () => {
           findMany: jest.fn().mockResolvedValue([]),
           findUnique: jest.fn().mockResolvedValue(null),
         },
+        $transaction: jest.fn(async (callback) =>
+          callback({
+            notification: {
+              create: jest.fn().mockResolvedValue({ id: 'notification-1' }),
+            },
+            outboxEvent: {
+              createMany: jest.fn().mockResolvedValue({ count: 2 }),
+            },
+          }),
+        ),
       },
     } as any);
 
@@ -886,6 +896,89 @@ describe('PeopleService unit', () => {
           },
         }),
       );
+  });
+
+  it('creates a notification with liker profile route payload on profile like', async () => {
+    const notificationCreate = jest.fn().mockResolvedValue({
+      id: 'notification-1',
+    });
+    const outboxCreateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const service = new PeopleService({
+      client: {
+        user: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValueOnce({
+              id: 'user-peer',
+              settings: { discoverable: true },
+            })
+            .mockResolvedValueOnce({
+              id: 'user-me',
+              displayName: 'Алекс',
+            }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        profileReaction: {
+          upsert: jest.fn().mockResolvedValue({}),
+          groupBy: jest.fn().mockResolvedValue([]),
+          count: jest.fn().mockResolvedValue(1),
+          findMany: jest.fn().mockResolvedValue([
+            { targetUserId: 'user-peer', kind: 'like' },
+          ]),
+        },
+        userFollow: {
+          groupBy: jest.fn().mockResolvedValue([]),
+          count: jest.fn().mockResolvedValue(0),
+          findMany: jest.fn().mockResolvedValue([]),
+          findUnique: jest.fn().mockResolvedValue(null),
+        },
+        $transaction: jest.fn(async (callback) =>
+          callback({
+            notification: { create: notificationCreate },
+            outboxEvent: { createMany: outboxCreateMany },
+          }),
+        ),
+      },
+    } as any);
+
+    await service.setProfileReaction('user-me', 'user-peer', 'like');
+
+    expect(notificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-peer',
+          actorUserId: 'user-me',
+          kind: 'like',
+          payload: expect.objectContaining({
+            userId: 'user-me',
+            userName: 'Алекс',
+            source: 'profile',
+            action: 'like',
+          }),
+        }),
+      }),
+    );
+    expect(outboxCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'push.dispatch',
+            payload: {
+              userId: 'user-peer',
+              notificationId: 'notification-1',
+            },
+          }),
+          expect.objectContaining({
+            type: 'notification.create',
+            payload: {
+              notificationId: 'notification-1',
+            },
+          }),
+        ]),
+      }),
+    );
   });
 
   it('rejects profile social actions on yourself', async () => {

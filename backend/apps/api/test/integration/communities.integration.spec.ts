@@ -78,10 +78,29 @@ describe('communities api flows', () => {
         where: { id: { in: chatIds } },
       });
     }
+    await prisma.mediaAsset.deleteMany({
+      where: { objectKey: { startsWith: 'integration/community-image/' } },
+    });
     await prisma.userSubscription.deleteMany({
       where: { id: 'community-test-subscription' },
     });
   });
+
+  const createCommunityImageAsset = () => {
+    return prisma.mediaAsset.create({
+      data: {
+        ownerId: 'user-me',
+        kind: 'avatar',
+        status: 'ready',
+        bucket: 'integration',
+        objectKey: `integration/community-image/${Date.now()}-${Math.random()}`,
+        mimeType: 'image/jpeg',
+        byteSize: 1200,
+        originalFileName: 'community.jpg',
+        publicUrl: 'https://cdn.test/community.jpg',
+      },
+    });
+  };
 
   it('returns lightweight community cards with chat id and bounded preview data', async () => {
     const response = await request(app.getHttpServer())
@@ -180,12 +199,14 @@ describe('communities api flows', () => {
 
   it('creates a community with its own chat for Frendly Plus users', async () => {
     const name = `API Club ${Date.now()}`;
+    const imageAsset = await createCommunityImageAsset();
     const response = await request(app.getHttpServer())
       .post('/communities')
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         name,
         avatar: '🎨',
+        imageAssetId: imageAsset.id,
         description: 'Новый клуб с отдельным быстрым чатом.',
         privacy: 'private',
         purpose: 'Городской клуб',
@@ -200,6 +221,7 @@ describe('communities api flows', () => {
     expect(response.body).toMatchObject({
       name,
       avatar: '🎨',
+      imageUrl: 'https://cdn.test/community.jpg',
       privacy: 'private',
       chatId: expect.any(String),
       joined: true,
@@ -216,12 +238,14 @@ describe('communities api flows', () => {
 
   it('shows private communities to non-members while keeping request-only access', async () => {
     const name = `API Club Private ${Date.now()}`;
+    const imageAsset = await createCommunityImageAsset();
     const created = await request(app.getHttpServer())
       .post('/communities')
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         name,
         avatar: '🍸',
+        imageAssetId: imageAsset.id,
         description: 'Закрытый клуб виден всем, вступление только по заявке.',
         privacy: 'private',
         purpose: 'Private dining',
@@ -260,12 +284,14 @@ describe('communities api flows', () => {
 
   it('lets the owner publish a community news item', async () => {
     const name = `API Club ${Date.now()}`;
+    const imageAsset = await createCommunityImageAsset();
     const created = await request(app.getHttpServer())
       .post('/communities')
       .set('authorization', `Bearer ${accessToken}`)
       .send({
         name,
         avatar: '📣',
+        imageAssetId: imageAsset.id,
         description: 'Клуб для проверки публикаций.',
         privacy: 'public',
         purpose: 'Городской клуб',

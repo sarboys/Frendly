@@ -1,4 +1,5 @@
 import {
+  buildMediaProxyPath,
   decodeCursor,
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
@@ -808,6 +809,7 @@ export class CommunitiesService {
     }
 
     const input = this.parseCreateInput(body);
+    await this.assertCommunityImageAsset(userId, input.imageAssetId);
 
     let created: { id: string };
     try {
@@ -826,6 +828,7 @@ export class CommunitiesService {
           data: {
             name: input.name,
             avatar: input.avatar,
+            imageAssetId: input.imageAssetId,
             description: input.description,
             privacy: input.privacy,
             tags: input.tags,
@@ -893,6 +896,12 @@ export class CommunitiesService {
       chatId: true,
       name: true,
       avatar: true,
+      imageAsset: {
+        select: {
+          id: true,
+          publicUrl: true,
+        },
+      },
       description: true,
       privacy: true,
       tags: true,
@@ -1266,6 +1275,7 @@ export class CommunitiesService {
       chatId: community.chatId,
       name: community.name,
       avatar: community.avatar,
+      imageUrl: this.communityImageUrl(community.imageAsset),
       description: community.description,
       privacy: community.privacy,
       members: community._count.members,
@@ -1315,6 +1325,7 @@ export class CommunitiesService {
   private parseCreateInput(body: Record<string, unknown>) {
     const name = this.requiredTrimmedString(body.name, 'name', 80);
     const avatar = this.requiredTrimmedString(body.avatar, 'avatar', 8);
+    const imageAssetId = this.requiredCommunityImageAssetId(body.imageAssetId);
     const description = this.requiredTrimmedString(
       body.description,
       'description',
@@ -1344,6 +1355,7 @@ export class CommunitiesService {
     return {
       name,
       avatar,
+      imageAssetId,
       description,
       privacy,
       purpose,
@@ -1466,6 +1478,46 @@ export class CommunitiesService {
         { members: { some: { userId } } },
       ],
     };
+  }
+
+  private async assertCommunityImageAsset(userId: string, imageAssetId: string) {
+    const asset = await this.prismaService.client.mediaAsset.findFirst({
+      where: {
+        id: imageAssetId,
+        ownerId: userId,
+        status: 'ready',
+        kind: 'avatar',
+      },
+      select: { id: true },
+    });
+    if (!asset) {
+      throw new ApiError(
+        400,
+        'community_image_required',
+        'Community image is required',
+      );
+    }
+  }
+
+  private requiredCommunityImageAssetId(raw: unknown) {
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    if (value.length === 0 || value.length > 80) {
+      throw new ApiError(
+        400,
+        'community_image_required',
+        'Community image is required',
+      );
+    }
+    return value;
+  }
+
+  private communityImageUrl(
+    imageAsset?: { id: string; publicUrl: string | null } | null,
+  ) {
+    if (!imageAsset) {
+      return null;
+    }
+    return imageAsset.publicUrl ?? buildMediaProxyPath(imageAsset.id);
   }
 
   private async getAdminCommunity(userId: string, communityId: string) {

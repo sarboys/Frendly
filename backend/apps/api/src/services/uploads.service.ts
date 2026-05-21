@@ -2,6 +2,7 @@ import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 import {
   buildMediaProxyPath,
+  buildPublicAssetUrl,
   createPresignedUpload,
   createS3Client,
   createS3RequestOptions,
@@ -45,10 +46,12 @@ const ALLOWED_VERIFICATION_DOCUMENT_MIME_TYPES = new Set([
 
 type ChatUploadKind = 'chat_attachment' | 'chat_voice';
 type VerificationUploadScope = 'verification_selfie' | 'verification_document';
+type CommunityImageUploadScope = 'community_image';
 type MediaUploadScope =
   | 'chat'
   | 'profile_photo'
   | 'story_media'
+  | CommunityImageUploadScope
   | VerificationUploadScope;
 
 interface ChatUploadMeta {
@@ -93,6 +96,15 @@ export class UploadsService {
         completeUrl: '/uploads/media/complete',
       };
     }
+    if (scope === 'community_image') {
+      const upload = await this.createCommunityImageUpload(userId, body);
+      return {
+        ...upload,
+        scope,
+        uploadStrategy: 'direct',
+        completeUrl: '/uploads/media/complete',
+      };
+    }
     if (this.isVerificationScope(scope)) {
       const upload = await this.createVerificationMediaUpload(
         userId,
@@ -124,6 +136,9 @@ export class UploadsService {
     if (scope === 'story_media') {
       return this.completeStoryMediaUpload(userId, body);
     }
+    if (scope === 'community_image') {
+      return this.completeCommunityImageUpload(userId, body);
+    }
     if (this.isVerificationScope(scope)) {
       return this.completeVerificationMediaUpload(userId, scope, body);
     }
@@ -141,6 +156,9 @@ export class UploadsService {
     }
     if (scope === 'story_media') {
       return this.uploadStoryMediaFile(userId, body, file);
+    }
+    if (scope === 'community_image') {
+      return this.uploadCommunityImageFile(userId, file);
     }
     if (this.isVerificationScope(scope)) {
       return this.uploadVerificationMediaFile(userId, scope, file);
@@ -549,6 +567,121 @@ export class UploadsService {
     };
   }
 
+  async createCommunityImageUpload(
+    userId: string,
+    body: Record<string, unknown>,
+  ) {
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName : 'community.jpg';
+    const contentType =
+      typeof body.contentType === 'string' ? body.contentType : 'image/jpeg';
+    this.assertCommunityImageMime(contentType);
+
+    const objectKey = `community-images/${userId}/${randomUUID()}-${fileName}`;
+    return createPresignedUpload({
+      objectKey,
+      contentType,
+      cacheControl: 'public, max-age=31536000, immutable',
+    });
+  }
+
+  async completeCommunityImageUpload(
+    userId: string,
+    body: Record<string, unknown>,
+  ) {
+    const objectKey =
+      typeof body.objectKey === 'string' ? body.objectKey : undefined;
+    const mimeType =
+      typeof body.mimeType === 'string' ? body.mimeType : 'image/jpeg';
+    const byteSize = typeof body.byteSize === 'number' ? body.byteSize : 0;
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName : 'community.jpg';
+
+    if (!objectKey) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
+    }
+
+    this.assertCommunityImageObjectKey(userId, objectKey);
+    const existing = await this.prismaService.client.mediaAsset.findUnique({
+      where: { objectKey },
+      select: {
+        id: true,
+        ownerId: true,
+        kind: true,
+        status: true,
+        publicUrl: true,
+      },
+    });
+    if (existing) {
+      this.assertExistingCommunityImageAsset(existing, userId);
+      return {
+        assetId: existing.id,
+        status: existing.status,
+        url: existing.publicUrl ?? buildMediaProxyPath(existing.id),
+      };
+    }
+
+    const verified = await this.resolveVerifiedCommunityImageMetadata(
+      objectKey,
+      mimeType,
+      byteSize,
+    );
+    this.assertCommunityImageMime(verified.mimeType);
+    this.assertCommunityImageSize(verified.byteSize);
+
+    const asset = await this.createCommunityImageAsset({
+      userId,
+      objectKey,
+      mimeType: verified.mimeType,
+      byteSize: verified.byteSize,
+      fileName,
+    });
+
+    return {
+      assetId: asset.id,
+      status: asset.status,
+      url: asset.publicUrl ?? buildMediaProxyPath(asset.id),
+    };
+  }
+
+  async uploadCommunityImageFile(
+    userId: string,
+    file?: Express.Multer.File,
+  ) {
+    const uploadFile = this.requireMediaFile(file);
+    this.assertCommunityImageMime(uploadFile.mimetype);
+    this.assertCommunityImageSize(uploadFile.size);
+
+    const objectKey =
+      `community-images/${userId}/${randomUUID()}-${uploadFile.originalname}`;
+    if (!BYPASS_S3_UPLOAD) {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: objectKey,
+          ContentType: uploadFile.mimetype,
+          CacheControl: 'public, max-age=31536000, immutable',
+          Body: uploadFile.buffer,
+        }),
+        createS3RequestOptions(),
+      );
+    }
+
+    const asset = await this.createCommunityImageAsset({
+      userId,
+      objectKey,
+      mimeType: uploadFile.mimetype,
+      byteSize: uploadFile.size,
+      fileName: uploadFile.originalname,
+    });
+
+    return {
+      assetId: asset.id,
+      status: asset.status,
+      url: asset.publicUrl ?? buildMediaProxyPath(asset.id),
+    };
+  }
+
   private resolveScope(body: Record<string, unknown>): MediaUploadScope {
     const scope =
       typeof body.scope === 'string' ? body.scope : 'chat';
@@ -557,6 +690,7 @@ export class UploadsService {
       scope !== 'chat' &&
       scope !== 'profile_photo' &&
       scope !== 'story_media' &&
+      scope !== 'community_image' &&
       scope !== 'verification_selfie' &&
       scope !== 'verification_document'
     ) {
@@ -1090,6 +1224,76 @@ export class UploadsService {
     }
   }
 
+  private async createCommunityImageAsset(input: {
+    userId: string;
+    objectKey: string;
+    mimeType: string;
+    byteSize: number;
+    fileName: string;
+  }) {
+    try {
+      return await this.prismaService.client.mediaAsset.create({
+        data: {
+          ownerId: input.userId,
+          kind: 'avatar',
+          status: 'ready',
+          bucket: this.s3Bucket,
+          objectKey: input.objectKey,
+          mimeType: input.mimeType,
+          byteSize: input.byteSize,
+          originalFileName: input.fileName,
+          publicUrl: buildPublicAssetUrl(input.objectKey),
+        },
+        select: {
+          id: true,
+          status: true,
+          publicUrl: true,
+        },
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      const existing = await this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey: input.objectKey },
+        select: {
+          id: true,
+          ownerId: true,
+          kind: true,
+          status: true,
+          publicUrl: true,
+        },
+      });
+      if (!existing) {
+        throw error;
+      }
+      this.assertExistingCommunityImageAsset(existing, input.userId);
+      return existing;
+    }
+  }
+
+  private assertExistingCommunityImageAsset(
+    asset: {
+      ownerId: string;
+      kind: string;
+      status: string;
+    },
+    userId: string,
+  ) {
+    if (
+      asset.ownerId !== userId ||
+      asset.kind !== 'avatar' ||
+      asset.status !== 'ready'
+    ) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+  }
+
   private assertExistingVerificationUploadAsset(
     asset: {
       ownerId: string;
@@ -1154,6 +1358,63 @@ export class UploadsService {
     const prefix = `verification/${userId}/${this.verificationObjectSegment(scope)}/`;
     if (!objectKey.startsWith(prefix)) {
       throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
+    }
+  }
+
+  private assertCommunityImageObjectKey(userId: string, objectKey: string) {
+    const prefix = `community-images/${userId}/`;
+    if (!objectKey.startsWith(prefix)) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
+    }
+  }
+
+  private async resolveVerifiedCommunityImageMetadata(
+    objectKey: string,
+    mimeType: string,
+    byteSize: number,
+  ) {
+    if (BYPASS_S3_UPLOAD) {
+      return { mimeType, byteSize };
+    }
+
+    const object = await this.s3.send(
+      new HeadObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: objectKey,
+      }),
+      createS3RequestOptions(),
+    );
+
+    return {
+      mimeType: object.ContentType ?? mimeType,
+      byteSize: object.ContentLength ?? byteSize,
+    };
+  }
+
+  private assertCommunityImageMime(mimeType: string) {
+    if (!ALLOWED_VERIFICATION_IMAGE_MIME_TYPES.has(mimeType)) {
+      throw new ApiError(
+        400,
+        'invalid_community_image_mime_type',
+        'Community image MIME type is invalid',
+      );
+    }
+  }
+
+  private assertCommunityImageSize(byteSize: number) {
+    if (!Number.isSafeInteger(byteSize) || byteSize <= 0) {
+      throw new ApiError(
+        400,
+        'invalid_community_image_size',
+        'Community image size is invalid',
+      );
+    }
+    if (byteSize > MAX_GENERIC_MEDIA_UPLOAD_BYTES) {
+      throw new ApiError(
+        400,
+        'community_image_too_large',
+        'Community image is too large',
+      );
     }
   }
 

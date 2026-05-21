@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  OUTBOX_EVENT_TYPES,
   buildDirectChatKey,
   decodeCursor,
   encodeCursor,
@@ -682,6 +683,11 @@ export class PeopleService {
           kind,
         },
       });
+      await this.createProfileReactionNotification({
+        userId: currentUserId,
+        targetUserId,
+        kind,
+      });
     } else {
       await this.prismaService.client.profileReaction.deleteMany({
         where: {
@@ -693,6 +699,72 @@ export class PeopleService {
     }
 
     return this.getProfileSocialSnapshot(currentUserId, targetUserId);
+  }
+
+  private async createProfileReactionNotification(params: {
+    userId: string;
+    targetUserId: string;
+    kind: ProfileReactionKind;
+  }) {
+    const actor = await this.prismaService.client.user.findUnique({
+      where: { id: params.userId },
+      select: {
+        displayName: true,
+      },
+    });
+    const userName = actor?.displayName?.trim() || 'Пользователь';
+    const isSuperLike = params.kind === ProfileReactionKind.super_like;
+    const action = isSuperLike ? 'super_like' : 'like';
+    const dedupeKey = `profile_${action}:${params.targetUserId}:${params.userId}`;
+
+    try {
+      await this.prismaService.client.$transaction(async (tx) => {
+        const notification = await tx.notification.create({
+          data: {
+            userId: params.targetUserId,
+            actorUserId: params.userId,
+            kind: 'like',
+            title: isSuperLike ? 'Суперлайк профиля' : 'Новый лайк',
+            body: isSuperLike
+              ? `${userName} поставил(а) суперлайк профилю`
+              : `${userName} лайкнул(а) профиль`,
+            dedupeKey,
+            payload: {
+              userId: params.userId,
+              userName,
+              source: 'profile',
+              action,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await tx.outboxEvent.createMany({
+          data: [
+            {
+              type: OUTBOX_EVENT_TYPES.pushDispatch,
+              payload: {
+                userId: params.targetUserId,
+                notificationId: notification.id,
+              },
+            },
+            {
+              type: OUTBOX_EVENT_TYPES.notificationCreate,
+              payload: {
+                notificationId: notification.id,
+              },
+            },
+          ],
+        });
+      });
+    } catch (error) {
+      if (this.isDedupeKeyUniqueError(error)) {
+        return;
+      }
+      throw error;
+    }
   }
 
   normalizeProfileReactionKind(raw: string): ProfileReactionKind {
@@ -707,6 +779,30 @@ export class PeopleService {
       'invalid_profile_reaction_kind',
       'Invalid profile reaction kind',
     );
+  }
+
+  private isDedupeKeyUniqueError(error: unknown) {
+    if (error == null || typeof error !== 'object') {
+      return false;
+    }
+
+    const maybeError = error as {
+      code?: unknown;
+      meta?: { target?: unknown };
+    };
+
+    if (maybeError.code !== 'P2002') {
+      return false;
+    }
+
+    const target = maybeError.meta?.target;
+    if (target == null) {
+      return true;
+    }
+    if (Array.isArray(target)) {
+      return target.includes('dedupeKey');
+    }
+    return typeof target === 'string' && target.includes('dedupeKey');
   }
 
   private async getBlockedUserIds(userId: string) {

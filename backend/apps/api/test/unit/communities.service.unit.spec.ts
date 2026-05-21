@@ -30,6 +30,7 @@ describe('CommunitiesService unit', () => {
     chatId: `${id}-chat`,
     name: `Community ${id}`,
     avatar: '*',
+    imageAsset: null,
     description: 'Community',
     privacy: 'public',
     createdById: 'owner-user',
@@ -377,6 +378,82 @@ describe('CommunitiesService unit', () => {
       ],
     });
   });
+
+  it('maps community image asset to imageUrl in list cards', async () => {
+    const communityFindMany = jest.fn().mockResolvedValue([
+      {
+        ...makeCommunity('community-1', new Date('2026-05-21T12:00:00.000Z')),
+        imageAsset: {
+          id: 'asset-community-cover',
+          kind: 'avatar',
+          mimeType: 'image/jpeg',
+          byteSize: 1200,
+          durationMs: null,
+          publicUrl: 'https://cdn.test/community.jpg',
+          variants: {},
+        },
+      },
+    ]);
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findMany: communityFindMany,
+          },
+          communityMember: {
+            groupBy: jest.fn().mockResolvedValue([]),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          chatMember: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          notification: {
+            groupBy: jest.fn(),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listCommunities('user-me', {});
+
+    expect(result.items[0]).toMatchObject({
+      id: 'community-1',
+      imageUrl: 'https://cdn.test/community.jpg',
+    });
+  });
+
+  it('rejects community creation without an uploaded image asset', async () => {
+    const service = new CommunitiesService(
+      {
+        client: {
+          community: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          $transaction: jest.fn(),
+        },
+      } as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+      } as any,
+    );
+
+    await expect(
+      service.createCommunity(
+        'user-me',
+        {
+          name: 'Клуб без картинки',
+          avatar: '🌿',
+          description: 'Проверяем обязательную картинку',
+          privacy: 'public',
+          purpose: 'Городской клуб',
+        },
+        'create-community-key',
+      ),
+    ).rejects.toMatchObject({
+      code: 'community_image_required',
+    });
+  });
 	  it('returns the existing community when a retry hits the same idempotency key',
     async () => {
       const duplicateKeyError = new Prisma.PrismaClientKnownRequestError(
@@ -392,6 +469,9 @@ describe('CommunitiesService unit', () => {
             .fn()
             .mockResolvedValueOnce(null)
             .mockResolvedValueOnce({ id: 'community-existing' }),
+        },
+        mediaAsset: {
+          findFirst: jest.fn().mockResolvedValue({ id: 'asset-community' }),
         },
         $transaction: jest.fn().mockRejectedValue(duplicateKeyError),
       };
@@ -415,6 +495,7 @@ describe('CommunitiesService unit', () => {
           {
             name: 'Повторный клуб',
             avatar: '🌿',
+            imageAssetId: 'asset-community',
             description: 'Проверяем повторный submit формы',
             privacy: 'public',
             purpose: 'Городской клуб',

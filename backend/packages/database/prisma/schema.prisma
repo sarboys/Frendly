@@ -2053,6 +2053,8 @@ model Community {
   id               String                @id @default(cuid())
   name             String
   avatar           String
+  imageAssetId     String?
+  imageAsset       MediaAsset?           @relation("CommunityImageAsset", fields: [imageAssetId], references: [id], onDelete: SetNull)
   description      String
   privacy          CommunityPrivacy      @default(public)
   tags             Json
@@ -2083,6 +2085,7 @@ model Community {
   @@index([privacy, createdAt, id])
   @@index([partnerId, createdAt, id])
   @@index([archivedAt, createdAt, id])
+  @@index([imageAssetId])
 }
 
 model CommunityJoinRequest {
@@ -2275,6 +2278,7 @@ model MediaAsset {
   updatedAt               DateTime                 @updatedAt
   profileAvatar           Profile?                 @relation("ProfileAvatar")
   profilePhotos           ProfilePhoto[]
+  communityImages         Community[]              @relation("CommunityImageAsset")
   storyAsset              EventStory?
   verificationSelfie      UserVerification?        @relation("VerificationSelfieAsset")
   verificationDocument    UserVerification?        @relation("VerificationDocumentAsset")

@@ -1564,6 +1564,8 @@ export class DatingService {
                   action: 'super_like',
                 }
               : {
+                  userId: params.userId,
+                  userName: params.userName,
                   source: 'dating',
                   action: 'like',
                 },
