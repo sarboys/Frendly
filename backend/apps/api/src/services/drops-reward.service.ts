@@ -21,6 +21,19 @@ type RewardSource =
   | 'manual_admin';
 
 type RewardStatus = 'pending' | 'active' | 'cancelled' | 'rejected';
+type DropRewardResult = {
+  id: string;
+  source: string;
+  status: string;
+  ticketCount: number;
+  title: string;
+  description: string | null;
+  relatedType: string | null;
+  relatedId: string | null;
+  cancellationReason: string | null;
+  createdAt: string;
+  alreadyClaimed: boolean;
+};
 
 const DROPS_TIME_ZONE = 'Europe/Moscow';
 const MOSCOW_UTC_OFFSET_HOURS = 3;
@@ -466,7 +479,7 @@ export class DropsRewardService {
     eventId?: string | null;
     now?: Date;
     client?: PrismaLike;
-  }) {
+  }): Promise<DropRewardResult> {
     const now = input.now ?? new Date(Date.now());
     const client = input.client ?? this.prismaService.client;
     const month = this.monthBounds(now);
@@ -475,9 +488,9 @@ export class DropsRewardService {
       const runTransaction = client.$transaction as <T>(
         callback: (tx: Prisma.TransactionClient) => Promise<T>,
       ) => Promise<T>;
-      return runTransaction((tx) =>
+      return runTransaction.call(client, (tx) =>
         this.grantRewardInTransaction(tx as PrismaLike, input, month, now),
-      );
+      ) as Promise<DropRewardResult>;
     }
 
     return this.grantRewardInTransaction(client, input, month, now);

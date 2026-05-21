@@ -86,6 +86,42 @@ describe('DropsRewardService unit', () => {
     });
   });
 
+  it('keeps Prisma transaction bound to its client when granting daily login', async () => {
+    const { service, prismaClient } = makeService({
+      prismaClient: {
+        $transaction: async function (this: unknown, callback: any) {
+          if (this !== prismaClient) {
+            throw new TypeError('unbound transaction client');
+          }
+          return callback(prismaClient);
+        },
+      },
+    });
+    prismaClient.dropRewardEvent.findUnique.mockResolvedValue(null);
+    prismaClient.dropTicket.count.mockResolvedValue(0);
+    prismaClient.dropRewardEvent.aggregate.mockResolvedValue({
+      _sum: { ticketCount: 0 },
+    });
+    prismaClient.dropRewardEvent.create.mockResolvedValue({
+      id: 'reward-1',
+      userId: 'user-1',
+      source: 'daily_login',
+      status: 'active',
+      ticketCount: 1,
+      title: 'Ежедневный вход',
+      description: null,
+      relatedType: null,
+      relatedId: null,
+      cancellationReason: null,
+      createdAt: new Date('2026-06-09T10:00:00.000Z'),
+    });
+
+    await expect(service.claimDailyLogin('user-1')).resolves.toMatchObject({
+      id: 'reward-1',
+      alreadyClaimed: false,
+    });
+  });
+
   it('returns the existing reward when the same idempotency key is retried', async () => {
     const { service, prismaClient } = makeService();
     prismaClient.dropRewardEvent.findUnique.mockResolvedValue({
