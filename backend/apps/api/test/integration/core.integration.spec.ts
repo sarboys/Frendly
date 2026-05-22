@@ -995,6 +995,92 @@ describe('core api flows', () => {
     }
   });
 
+  it('orders promoted events before applying the event feed page limit', async () => {
+    const eventIds = [
+      'boost-page-1',
+      'boost-page-2',
+      'boost-page-3',
+      'boost-page-4',
+    ];
+    const ledgerEntryId = 'boost-page-ledger';
+    const promotionId = 'boost-page-promotion';
+    const query = 'Boost before pagination test event';
+
+    await prisma.tokenPromotion.deleteMany({ where: { id: promotionId } });
+    await prisma.tokenLedgerEntry.deleteMany({ where: { id: ledgerEntryId } });
+    await prisma.event.deleteMany({
+      where: {
+        id: {
+          in: eventIds,
+        },
+      },
+    });
+
+    const wallet = await prisma.tokenWallet.upsert({
+      where: { userId: 'user-me' },
+      update: {},
+      create: {
+        userId: 'user-me',
+        balance: 0,
+      },
+    });
+
+    await prisma.event.createMany({
+      data: eventIds.map((id, index) => ({
+        id,
+        title: `Boost page event ${index + 1}`,
+        emoji: '🚀',
+        startsAt: new Date(futureIso(1, 18, index)),
+        place: 'Boost page test place',
+        distanceKm: index + 0.1,
+        vibe: 'Спокойно',
+        description: query,
+        capacity: 4,
+        hostId: 'user-anya',
+      })),
+    });
+    await prisma.tokenLedgerEntry.create({
+      data: {
+        id: ledgerEntryId,
+        walletId: wallet.id,
+        amount: -20,
+        reason: 'promotion_spend',
+      },
+    });
+    await prisma.tokenPromotion.create({
+      data: {
+        id: promotionId,
+        userId: 'user-me',
+        eventId: 'boost-page-4',
+        optionId: 'boost-6',
+        expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
+        ledgerEntryId,
+      },
+    });
+
+    try {
+      const response = await request(app.getHttpServer())
+        .get(`/events?filter=nearby&limit=2&q=${encodeURIComponent(query)}`)
+        .set('authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.items.map((item: { id: string }) => item.id)[0]).toBe(
+        'boost-page-4',
+      );
+      expect(response.body.items[0].promoted).toBe(true);
+    } finally {
+      await prisma.tokenPromotion.deleteMany({ where: { id: promotionId } });
+      await prisma.tokenLedgerEntry.deleteMany({ where: { id: ledgerEntryId } });
+      await prisma.event.deleteMany({
+        where: {
+          id: {
+            in: eventIds,
+          },
+        },
+      });
+    }
+  });
+
   it('returns stable event cards for feed filters', async () => {
     const eventIds = ['stable-filter-calm', 'stable-filter-date'];
     const query = 'Stable filter test event';

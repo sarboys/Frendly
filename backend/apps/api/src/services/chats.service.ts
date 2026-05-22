@@ -1286,68 +1286,6 @@ export class ChatsService {
     return Number.isFinite(date.getTime()) ? date : null;
   }
 
-  private async getUnreadCountsByChat(
-    userId: string,
-    chatIds: string[],
-    blockedUserIds: Set<string>,
-  ) {
-    if (chatIds.length === 0) {
-      return new Map<string, number>();
-    }
-
-    const canReadUnreadCounters =
-      process.env.CHAT_UNREAD_COUNTER_READS !== 'false' &&
-      typeof this.prismaService.client.chatMember?.findMany === 'function';
-
-    if (canReadUnreadCounters) {
-      const rows = await this.prismaService.client.chatMember.findMany({
-        where: {
-          userId,
-          chatId: {
-            in: chatIds,
-          },
-        },
-        select: {
-          chatId: true,
-          unreadCount: true,
-        },
-      });
-
-      return new Map(
-        rows.map((item) => [item.chatId, item.unreadCount]),
-      );
-    }
-
-    const blockedSenderFilter = blockedUserIds.size === 0
-      ? Prisma.empty
-      : Prisma.sql`AND m."senderId" NOT IN (${Prisma.join([...blockedUserIds])})`;
-    const rows = await this.prismaService.client.$queryRaw<Array<{
-      chat_id: string;
-      unread_count: bigint | number;
-    }>>`
-      SELECT cm."chatId" AS chat_id, COUNT(m."id") AS unread_count
-      FROM "ChatMember" cm
-      LEFT JOIN "Message" last_read
-        ON last_read."chatId" = cm."chatId"
-        AND last_read."id" = cm."lastReadMessageId"
-      LEFT JOIN "Message" m
-        ON m."chatId" = cm."chatId"
-        AND m."senderId" <> cm."userId"
-        AND (
-          COALESCE(cm."lastReadAt", last_read."createdAt") IS NULL
-          OR m."createdAt" > COALESCE(cm."lastReadAt", last_read."createdAt")
-        )
-        ${blockedSenderFilter}
-      WHERE cm."userId" = ${userId}
-        AND cm."chatId" IN (${Prisma.join(chatIds)})
-      GROUP BY cm."chatId"
-    `;
-
-    return new Map(
-      rows.map((item) => [item.chat_id, Number(item.unread_count)]),
-    );
-  }
-
   private async assertMembership(userId: string, chatId: string) {
     let member = await this.prismaService.client.chatMember.findUnique({
       where: {

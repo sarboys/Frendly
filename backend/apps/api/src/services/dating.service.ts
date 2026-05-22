@@ -1027,17 +1027,6 @@ export class DatingService {
     };
   }
 
-  private async requireFrendlyPlus(userId: string) {
-    const hasPremium = await this.subscriptionService.hasPremiumAccess(userId);
-    if (!hasPremium) {
-      throw new ApiError(
-        403,
-        'frendly_plus_required',
-        'Frendly Plus is required',
-      );
-    }
-  }
-
   private async ensureSwipeAllowed(
     userId: string,
     premium: boolean,

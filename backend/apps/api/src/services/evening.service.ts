@@ -2164,10 +2164,6 @@ export class EveningService {
     return value instanceof Date ? value.toISOString() : null;
   }
 
-  private createId(prefix: string) {
-    return `${prefix}_${randomBytes(12).toString('hex')}`;
-  }
-
   private sessionPhaseToChatPhase(value: string | null | undefined) {
     if (value === 'live') {
       return 'live';
@@ -2562,9 +2558,9 @@ export class EveningService {
     }
 
     return (
-      (subscription.status === 'active' || subscription.status === 'trial') &&
       subscription.renewsAt != null &&
-      subscription.renewsAt.getTime() > now
+      subscription.renewsAt.getTime() > now &&
+      subscription.status !== 'inactive'
     );
   }
 }

@@ -29,42 +29,6 @@ export class AfterDarkService {
     return this.buildAccess(userId);
   }
 
-  async unlock(userId: string, body: Record<string, unknown>) {
-    const plan = typeof body.plan === 'string' ? body.plan : '';
-    if (plan !== 'month' && plan !== 'year') {
-      throw new ApiError(400, 'invalid_subscription_plan', 'Subscription plan is invalid');
-    }
-
-    if (body.ageConfirmed !== true || body.codeAccepted !== true) {
-      throw new ApiError(
-        400,
-        'after_dark_consent_required',
-        'Age confirmation and code acceptance are required',
-      );
-    }
-
-    const current = await this.subscriptionService.getCurrent(userId);
-    if (current.status !== 'trial' && current.status !== 'active') {
-      await this.subscriptionService.subscribe(userId, { plan });
-    }
-
-    const now = new Date();
-    await this.prismaService.client.userSettings.upsert({
-      where: { userId },
-      update: {
-        afterDarkAgeConfirmedAt: now,
-        afterDarkCodeAcceptedAt: now,
-      },
-      create: {
-        userId,
-        afterDarkAgeConfirmedAt: now,
-        afterDarkCodeAcceptedAt: now,
-      },
-    });
-
-    return this.buildAccess(userId);
-  }
-
   async listEvents(
     userId: string,
     params: { q?: string; date?: string; cursor?: string; limit?: number } = {},

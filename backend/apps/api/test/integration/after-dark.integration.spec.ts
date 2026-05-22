@@ -118,6 +118,32 @@ describe('after dark api flows', () => {
     await app.close();
   });
 
+  const grantAfterDarkAccess = async (userId: string, plan: 'month' | 'year' = 'month') => {
+    const now = new Date();
+    await prisma.userSubscription.create({
+      data: {
+        userId,
+        plan,
+        status: 'active',
+        startedAt: now,
+        renewsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+        trialEndsAt: null,
+      },
+    });
+    await prisma.userSettings.upsert({
+      where: { userId },
+      update: {
+        afterDarkAgeConfirmedAt: now,
+        afterDarkCodeAcceptedAt: now,
+      },
+      create: {
+        userId,
+        afterDarkAgeConfirmedAt: now,
+        afterDarkCodeAcceptedAt: now,
+      },
+    });
+  };
+
   it('returns locked access state and gates the feed before unlock', async () => {
     const accessResponse = await request(app.getHttpServer())
       .get('/after-dark/access')
@@ -140,28 +166,28 @@ describe('after dark api flows', () => {
     expect(feedResponse.body.code).toBe('after_dark_locked');
   });
 
-  it('requires both checkboxes to unlock the section', async () => {
+  it('does not expose the legacy unlock endpoint', async () => {
     const response = await request(app.getHttpServer())
       .post('/after-dark/unlock')
       .set('authorization', `Bearer ${meAccessToken}`)
       .send({ plan: 'month', ageConfirmed: true, codeAccepted: false });
 
-    expect(response.status).toBe(400);
-    expect(response.body.code).toBe('after_dark_consent_required');
+    expect(response.status).toBe(404);
   });
 
   it('unlocks after dark, lists events and joins an open event', async () => {
-    const unlockResponse = await request(app.getHttpServer())
-      .post('/after-dark/unlock')
-      .set('authorization', `Bearer ${meAccessToken}`)
-      .send({ plan: 'month', ageConfirmed: true, codeAccepted: true })
-      .expect(201);
+    await grantAfterDarkAccess('user-me');
 
-    expect(unlockResponse.body.unlocked).toBe(true);
-    expect(unlockResponse.body.plan).toBe('month');
-    expect(unlockResponse.body.subscriptionStatus).toBe('active');
-    expect(unlockResponse.body.ageConfirmed).toBe(true);
-    expect(unlockResponse.body.codeAccepted).toBe(true);
+    const accessResponse = await request(app.getHttpServer())
+      .get('/after-dark/access')
+      .set('authorization', `Bearer ${meAccessToken}`)
+      .expect(200);
+
+    expect(accessResponse.body.unlocked).toBe(true);
+    expect(accessResponse.body.plan).toBe('month');
+    expect(accessResponse.body.subscriptionStatus).toBe('active');
+    expect(accessResponse.body.ageConfirmed).toBe(true);
+    expect(accessResponse.body.codeAccepted).toBe(true);
 
     const listResponse = await request(app.getHttpServer())
       .get('/after-dark/events')
@@ -213,11 +239,7 @@ describe('after dark api flows', () => {
   });
 
   it('paginates after dark events by cursor with stable order', async () => {
-    await request(app.getHttpServer())
-      .post('/after-dark/unlock')
-      .set('authorization', `Bearer ${meAccessToken}`)
-      .send({ plan: 'month', ageConfirmed: true, codeAccepted: true })
-      .expect(201);
+    await grantAfterDarkAccess('user-me');
 
     const firstPage = await request(app.getHttpServer())
       .get('/after-dark/events')
@@ -239,11 +261,7 @@ describe('after dark api flows', () => {
   });
 
   it('requires explicit rules consent for consent-based after dark events and keeps request idempotent', async () => {
-    await request(app.getHttpServer())
-      .post('/after-dark/unlock')
-      .set('authorization', `Bearer ${sonyaAccessToken}`)
-      .send({ plan: 'year', ageConfirmed: true, codeAccepted: true })
-      .expect(201);
+    await grantAfterDarkAccess('user-sonya', 'year');
 
     const missingConsent = await request(app.getHttpServer())
       .post('/after-dark/events/ad3/join')
@@ -273,11 +291,7 @@ describe('after dark api flows', () => {
   });
 
   it('blocks kink join for unlocked users without verification', async () => {
-    await request(app.getHttpServer())
-      .post('/after-dark/unlock')
-      .set('authorization', `Bearer ${dimaAccessToken}`)
-      .send({ plan: 'month', ageConfirmed: true, codeAccepted: true })
-      .expect(201);
+    await grantAfterDarkAccess('user-dima');
 
     const response = await request(app.getHttpServer())
       .post('/after-dark/events/ad7/join')

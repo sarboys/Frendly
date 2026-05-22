@@ -11,14 +11,6 @@ export class AfterDarkController {
     return this.afterDarkService.getAccess(currentUser.userId);
   }
 
-  @Post('unlock')
-  unlock(
-    @CurrentUser() currentUser: { userId: string },
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.afterDarkService.unlock(currentUser.userId, body);
-  }
-
   @Get('events')
   listEvents(
     @CurrentUser() currentUser: { userId: string },

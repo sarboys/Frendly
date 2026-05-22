@@ -110,6 +110,57 @@ describe('EveningService unit', () => {
     });
   });
 
+  it('allows premium route access for paid-through canceled subscriptions', async () => {
+    const upsert = jest.fn().mockResolvedValue({
+      perkUsedAt: new Date('2026-05-22T12:00:00.000Z'),
+      ticketBoughtAt: null,
+      sentToChatAt: null,
+      chatMessageId: null,
+    });
+    const service = new EveningService(
+      {
+        client: {
+          eveningRouteStep: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 's1-1',
+              routeId: 'r-cozy-circle',
+              timeLabel: '19:00',
+              endTimeLabel: null,
+              ticketPrice: null,
+              title: 'Аперитив',
+              perk: '-15%',
+              perkShort: '-15%',
+              venue: 'Brix Wine',
+              route: {
+                id: 'r-cozy-circle',
+                premium: true,
+                chatId: null,
+              },
+            }),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue({
+              status: 'canceled',
+              renewsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              trialEndsAt: null,
+            }),
+          },
+          userEveningStepAction: {
+            upsert,
+          },
+        },
+      } as any,
+    );
+
+    await expect(
+      service.markPerkUsed('user-me', 'r-cozy-circle', 's1-1'),
+    ).resolves.toMatchObject({
+      stepId: 's1-1',
+      perkUsed: true,
+    });
+    expect(upsert).toHaveBeenCalled();
+  });
+
   it('backfills missing Tomesto route step links from parsed places', async () => {
     const route = routeFixture();
     route.steps = [

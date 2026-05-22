@@ -45,6 +45,7 @@ Events:
 - `POST /events/:eventId/invites/:requestId/accept`
 - `POST /events/:eventId/invites/:requestId/decline`
 - check-in, live, after-party, feedback endpoints live under `/events/:eventId/*`.
+- `GET /events/:eventId` includes `community: { id, name, avatar } | null` when the meetup was created from a community. Mobile uses it as the link back to the community from the meeting detail screen.
 
 Host:
 
@@ -88,20 +89,25 @@ Chats:
 - Chat list items expose `lastMessageId` and `isPinned`; pinned items are returned before normal recency ordering.
 - Chat list endpoints set a weak `ETag` on the response body, `Cache-Control: private, max-age=0, must-revalidate` and `Vary: Authorization`. Fresh `If-None-Match` requests return `304` with an empty body. Clients are not required to send the header.
 - Event meetups are treated as finished 24 hours after `startsAt` in effective live status and meetup chat phase, even if the host never pressed finish.
-- Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, online, isCurrentUser }` for profile and direct-chat actions.
-- Meetup chat list items expose paid ticket summary from linked public Affiche event sources. It uses `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.
+- Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, avatarUrl, online, isCurrentUser }` for profile and direct-chat actions.
+- Meetup chat list items expose `imageUrl`/`eventImageUrl` from linked public Affiche event sources when available, plus paid ticket summary from `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.
 
 Communities:
 
-- `GET /communities`
+- `GET /communities` accepts `q`, `topics`, `privacy`, `sort`, `cursor`, `limit`.
 - `GET /communities/:communityId`
 - `POST /communities/:communityId/join`
 - `DELETE /communities/:communityId/join`
+- `POST /communities/:communityId/join-request`
+- `DELETE /communities/:communityId/join-request`
 - `GET /communities/:communityId/media`
 - `POST /communities/:communityId/news`
 - `POST /communities`
+- Host-safe admin routes live under `/communities/:communityId/admin/*`: overview, settings, members, news, meetups, join-requests, archive and transfer-owner. These are for community owners and moderators. Mobile must not use global `/admin/communities` for host admin.
 - Public community join writes both `CommunityMember` and `ChatMember` in one transaction and returns a fresh community detail payload. Leaving removes both memberships for non-owner members. Private communities reject direct join with `community_join_request_required`.
-- `POST /communities` requires Frendly+ access. Non-plus users get `403 community_plus_required`.
+- Private community requests use `CommunityJoinRequest`. Approve writes both `CommunityMember` and `ChatMember`; reject stores the reviewed status without adding membership.
+- `POST /communities` requires Frendly+ access and a ready `imageAssetId` owned by the user. Non-plus users get `403 community_plus_required`; missing or invalid image gets `400 community_image_required`.
+- Community list and detail payloads expose `imageUrl` from the linked community image asset. Mobile uses it for community cards and "Мои сообщества" rows.
 
 People:
 
@@ -114,6 +120,7 @@ People:
 - `DELETE /people/:userId/reactions/:kind`
 - `POST /people/:userId/direct-chat`
 - Public profile responses include `social` with follower, like, super-like counts and viewer flags. Profile social actions are independent from dating actions. Backend rejects follow, like and super-like on yourself.
+- New profile `like` and `super_like` reactions create deduped central `like` notifications with `payload.source=profile`, `payload.action`, `payload.userId` and `payload.userName`. Mobile opens `/u/:userId` from that payload.
 - Own profile and public profile payloads expose `frendlyPlus`, derived from the latest subscription. Active access means a live trial, active, or paid-through canceled subscription; expired or inactive subscriptions return `false`.
 - `GET /people/following` accepts `eventId`, `q`, `cursor`, `limit` and returns only users followed by the current user, with social preview and `inviteState` for event invite UI.
 
@@ -137,7 +144,7 @@ Profile season:
 Drops:
 
 - `GET /drops/home` returns `mainDrop`, visible `drops`, monthly `ticketProgress`, MVP `tasks`, ticket `history`, `pastWinners`, user `eligibility`, `pendingRewards` and `updatedAt`.
-- `GET /drops/:dropId`, `GET /drops/tasks`, `GET /drops/tickets/history?month=YYYY-MM`, `POST /drops/tasks/verification/claim`, `POST /drops/tasks/daily-login/claim`, `POST /drops/:dropId/tickets/apply`, `POST /drops/referral-link/create` and `POST /drops/referral-link/bind` are private user endpoints.
+- `GET /drops/:dropId`, `GET /drops/tasks`, `GET /drops/tickets/history?month=YYYY-MM`, `POST /drops/tasks/verify/claim`, `POST /drops/tasks/daily-login/claim`, `POST /drops/:dropId/tickets/apply`, `POST /drops/referral-link/meetings/new` and `POST /drops/referral-link/bind` are private user endpoints.
 - `GET /drops/:dropId` returns `winners` after the Drop is finished. It exposes `secretSeed` only for finished Drops and keeps `seedHash` public before and after draw.
 - Drop payloads include optional `imageUrl` for the public/admin card image.
 - Admin Drop image uploads write public S3 objects with immutable one-year cache control and return the CDN URL.
@@ -186,10 +193,12 @@ Uploads and media:
 - `POST /uploads/chat-attachment/file`
 - `GET /media/:assetId`
 - `GET /media/:assetId/download-url`
-- Upload-url responses include the S3 upload headers the client must send. Public profile avatar and photo uploads return immutable public cache control. Chat, story and verification uploads return private five-minute cache control.
+- Upload-url responses include the S3 upload headers the client must send. Public profile avatar, profile photo and community image uploads return immutable public cache control. Chat, story and verification uploads return private five-minute cache control.
+- Community image uploads use `/uploads/media/*` with scope `community_image`, accept image MIME types only, create a public ready `MediaAsset` with kind `avatar`, and return `{ assetId, status, url }`.
 - Chat, story and verification media assets store `publicUrl=null`; clients must use `/media/:assetId/download-url` or private `/media/:assetId` access, not CDN URLs.
 - Story list payloads must not embed signed S3 URLs. Story media returns private media shape with `url=/media/:assetId`, `downloadUrl=null` and `downloadUrlPath=/media/:assetId/download-url`.
 - Public non-inline `GET /media/:assetId` redirects to the asset's stored public URL, normally CDN. Private media keeps signed download URLs after membership checks.
+- Image media can expose `variants` keyed by `avatar`, `thumb`, `card`, `hero` and `fullscreen`. Variant DTOs may include `width`, `height` and `downloadUrlPath`. Public variants use CDN URLs. Private chat and story image variants use `/media/:assetId/variants/:variantKey` and `/media/:assetId/variants/:variantKey/download-url` after the same access checks as the original asset.
 
 Public sharing:
 
@@ -206,6 +215,7 @@ Payments and tokens:
 - `POST /payments/tbank/webhook` is public, validates T-Bank token and terminal, then uses the same idempotent confirm path as manual check.
 - `POST /subscription/subscribe` spends tokens server-side and activates or extends Frendly+; it does not create a T-Bank payment order.
 - `GET /tokens/wallet` returns server balance, history and active promoted targets. `POST /tokens/promotions` and `POST /subscription/subscribe` spend tokens server-side. Season reward grants appear in wallet history as `Подарок сезона`.
+- Public event boost options are `boost-6` for 20 FT and 6 hours, `boost-24` for 50 FT and 24 hours, and `boost-72` for 120 FT and 72 hours. `GET /events` sorts active boosted events before normal events before applying the page limit, and `GET /events` plus `GET /events/:eventId` expose active boost as `{ promoted, boost }`, with tier metadata for mobile badges and map pins.
 
 Admin auth:
 
@@ -238,46 +248,46 @@ Admin Evening route review:
 ## Important behavior
 
 - Event joins are idempotent for existing participants.
-- Requestable private meetup detail can be opened by exact event id for a non-member, with `chatId=null`, so mobile can render the join-request form. Private meetups still stay out of public lists unless the viewer is host, participant, attended before, or otherwise has viewer-specific access.
+- Requestable private meetup detail can be opened by exact event id for a non-member, with `chatId=null`, so Flutter app can render the join-request form. Private meetups still stay out of public lists unless the viewer is host, participant, attended before, or otherwise has viewer-specific access.
 - `POST /events` accepts route selection for meetup creation. Existing routes use `routeId`; custom routes use a route payload with at least two titled steps and are saved as private `EveningRoute` records, not published templates. It also accepts `afficheEventId` for creating a meetup from a published affiche event; `afficheEventId` and route selection are mutually exclusive.
 - Event list and detail summaries expose `imageUrl` from linked public Affiche content, so meetups created from `afficheEventId` can reuse the same external event image.
 - Event list and detail summaries expose paid ticket summary from linked public Affiche event sources: `ticketUrl`, `ticketSourceKind`, `ticketSourceId`, `ticketPriceFrom`, `ticketProvider`, `ticketVenue`. Free Affiche sources keep these fields null.
-- Event list summaries expose radar category fields: `routeId` from `eveningRouteId`, `routePointCount` from route steps count, `routePoints` with valid route step coordinates, and `isAfficheBacked` for events created from public Affiche content. Mobile uses them with ticket source fields to calculate Radar counts and draw meetings, routes and affiche without extra requests.
+- Event list summaries expose radar category fields: `routeId` from `eveningRouteId`, `routePointCount` from route steps count, `routePoints` with valid route step coordinates, and `isAfficheBacked` for events created from public Affiche content. Flutter app uses them with ticket source fields to calculate Radar counts and draw meetings, routes and affiche without extra requests.
 - Event list and detail summaries expose entry flags: `requiresVerification` and `requiresFrendlyPlus`. `POST /events` and `PATCH /host/events/:eventId` accept both booleans. A host can enable verified-only only when verified, and Plus-only only with `trial` or `active` Frendly+.
 - `GET /events` accepts `date=yyyy-mm-dd` for one-day filtering.
 - `GET /events` keeps recently started meetups visible in discovery for 3 hours, including nearby, calm, newcomers and date feeds. This prevents a just-started meetup from disappearing while users switch accounts or open the feed.
-- `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
+- After Dark no longer has `POST /after-dark/unlock`; Frendly+ access is activated only through token subscription flows. `GET /after-dark/events` accepts `q` and `date`; `GET /evening/route-templates` accepts `q`.
 - `GET /evening/route-templates` list uses summary payload only: route summary fields, first 4 steps and bounded partner offer preview. Template detail loads full steps separately.
 - Direct joins lock the event row and check capacity inside the transaction.
 - Event detail includes `entryRequirements: { canJoin, missing }`, where `missing` uses `verification` and `frendly_plus`. New entry is blocked on direct join, join request, invite create, invite accept and host approve. Blocked paths return `403 event_entry_requirements_not_met` with `details.missing`. Existing participants are not removed, and pending requests are rechecked on approve.
 - `POST /events/:eventId/join-request` keeps duplicate pending requests idempotent. If the previous request was `canceled` or `rejected`, the same request row is reopened as `pending`, review fields are cleared and the host gets a fresh notification.
 - `POST /events/:eventId/invites` is allowed for the host or any participant. It requires the inviter to follow the target user, checks blocks, visibility, self-invite, canceled event and capacity, then creates or reopens a pre-approved `EventJoinRequest` and sends an `event_invite` notification with the real inviter as actor.
-- Accepting an event invite checks capacity again in the transaction and adds `EventParticipant`, `EventAttendance` and `ChatMember`, then touches the chat summary so mobile lists refresh participant counts.
+- Accepting an event invite checks capacity again in the transaction and adds `EventParticipant`, `EventAttendance` and `ChatMember`, then touches the chat summary so Flutter app lists refresh participant counts.
 - Existing direct chats can be reopened after one user deleted the chat. `createOrGetDirectChat` restores missing `ChatMember` rows for both sides instead of leaving the old direct chat hidden.
 - Concurrent join request review must not reset an approved request back to pending.
 - Duplicate pending event join requests are idempotent: the note can refresh, the request stays pending and host notifications stay deduped by event and user.
 - Event detail uses bounded previews and separate counts. `attendees` preview excludes the host because the host is exposed in the separate `host` block.
 - `GET /places/search` is an authenticated Create Meetup lookup over imported Tomesto places. It searches only `ExternalContentItem` rows with `source.code=tomesto`, `contentKind=place` and `publicStatus=published`, returns booking URL, average check, rating, provider and up to 3 nested active promos. It never exposes `raw`.
-- `GET /places/promos` is an authenticated Tomesto promo surface for mobile. Query params include `city`, optional `latitude`/`longitude`, optional `category` and `limit`. It returns active Tomesto promo rows for the requested city, matched to published Tomesto places when possible, with place category, address, booking URL and distance. It never exposes `raw`.
+- `GET /places/promos` is an authenticated Tomesto promo surface for Flutter app. Query params include `city`, optional `latitude`/`longitude`, optional `category` and `limit`. It returns active Tomesto promo rows for the requested city, matched to published Tomesto places when possible, with place category, address, booking URL and distance. It never exposes `raw`.
 - `POST /events` accepts optional `externalPlaceId` for a selected Tomesto place. It must point to a published Tomesto place, cannot be combined with `afficheEventId`, and returns `404 external_place_not_found` when missing or hidden. The event reuses `sourceExternalContentItemId` for this place link.
 - Event ticket fields are only for `contentKind=event` sources. Tomesto place links expose separate booking fields: `bookingUrl`, `bookingProvider`, `bookingPlaceId`, `bookingAverageCheck`, `bookingCurrency`, `bookingPromos`. Table booking CTAs must not be rendered as ticket CTAs.
 - Nearby event list without PostGIS uses two-phase loading: light candidate rows with ids and coordinates first, then full list includes only for the selected page ids. Geo bounds are strict for events that have coordinates, including viewer-owned, joined and attended events; those viewer-specific exceptions only bypass bounds when the event has no coordinates. Optional PostGIS candidate scan stays behind `ENABLE_POSTGIS_EVENT_FEED=true`; it must apply the same key public feed filters before returning candidate ids, including canceled state, visibility, gender visibility, date window, route flags, text query, lifestyle, gender, access and price.
-- Mobile remote search keeps grouped search limits bounded instead of requesting 20 items per group.
+- Flutter app remote search keeps grouped search limits bounded instead of requesting 20 items per group.
 - Chat list member previews are bounded and block-aware. Meetup previews include `memberProfiles` so clients do not use display names as ids.
 - Profile social snapshots are local to a profile request or explicit `/people/:userId/social` request. Do not hydrate profile social for every list row unless the endpoint explicitly returns a bounded preview.
-- Meetup ticket summary is part of chat summary. Mobile must not fetch affiche detail just to render the chat buy-ticket block.
+- Meetup ticket summary is part of chat summary. Flutter app must not fetch affiche detail just to render the chat buy-ticket block.
 - Chat history hides blocked `replyTo` previews.
 - Cursors carry sort keys plus id when possible.
 - Dating discover remains available to all authenticated users. Do not gate dating profiles or `POST /events` with `mode=dating` behind Frendly+.
-- `GET /dating/discover` accepts backend filters: `ageMin`, `ageMax`, `radiusKm` and comma-separated or repeated `interests`. Age is applied in the Prisma query. Interests are matched case-insensitively from onboarding JSON. Radius is approximate, based on known city/area coordinates for the viewer and candidate profiles. Discover ranks fresh profiles before old passes, then boosts shared interests, incoming likes, distance, verified and online state. Old `pass` rows enter a second cycle only after fresh profiles are exhausted. Previous `like` and `super_like` rows never return to the feed.
-- Dating discover profile payloads include `city`, `area`, `latitude` and `longitude` for Radar. Coordinates are approximate from known city/area labels, with city-level fallback when area is unknown.
+- `GET /dating/discover` accepts backend filters: `ageMin`, `ageMax`, `radiusKm` and comma-separated or repeated `interests`. Age is applied in the Prisma query. Interests are matched case-insensitively from onboarding JSON. Radius is approximate, based on known city/area coordinates for the viewer and candidate profiles. Discover ranks fresh profiles before old passes. Inside each cycle, candidates with more shared interests go first, then score by incoming likes, distance, verified and online state. Old `pass` rows enter a second cycle only after fresh profiles are exhausted. Previous `like` and `super_like` rows never return to the feed.
+- Dating discover profile payloads include `city`, `area`, `latitude`, `longitude`, `commonInterests` and `matchPercent`. `matchPercent` is high for shared interests and lower-capped when interests do not overlap. Coordinates are approximate from known city/area labels, with city-level fallback when area is unknown.
 - `POST /events` with `mode=dating` requires `inviteeUserId` and `sourceChatId` for an existing direct chat between host and invitee. Dating events stay private: the invitee cannot open event detail until the invite is accepted and they become a participant.
 - Declining a pending dating invite cancels the private dating event with `cancelReason=dating_invite_declined` and removes its meetup chat from user chat lists.
-- `GET /dating/likes` requires Frendly+ access. Non-plus users get `403 frendly_plus_required`.
+- `GET /dating/likes` returns real incoming dating likes for authenticated users. Frendly+ gating is applied by clients: Plus users show open profiles, non-plus users show the same real entries as locked/blurred previews and send upgrade actions to `/paywall`.
 - `GET /dating/limits` returns `premium`, hourly swipe limits, super-like quota and rewind quota. Daily free quota resets use the Moscow calendar day.
 - `POST /dating/actions` remains available to all authenticated users. Free users have 50 swipe actions per rolling hour, 1 free super-like per Moscow day, then paid super-likes spend 50 tokens with `TokenLedgerReason.dating_spend`. Frendly+ users have no hourly swipe limit, get 10 free super-likes per Moscow day, then paid super-likes also cost 50 tokens. Rate limit errors return `429 dating_swipe_rate_limited`; insufficient wallet returns `402 tokens_insufficient`. Match responses include `matched=true` and `chatId`.
 - `POST /dating/rewind` removes only the latest `pass` action and returns the restored `peer`. Free users pay 25 tokens from the first rewind. Frendly+ users get 5 free rewinds per Moscow day, then pay 25 tokens. If the latest action is not a pass, the endpoint returns `409 dating_rewind_unavailable`.
-- Dating positive actions create central `like` notifications on the first positive action. Plain `like` uses a plain dating payload without actor navigation. `super_like` includes `payload.source=dating`, `payload.action=super_like`, `payload.userId` and `payload.userName` so mobile can open dating on that profile.
+- Dating positive actions create central `like` notifications on the first positive action. Plain `like` and `super_like` include `payload.source=dating`, `payload.action`, `payload.userId` and `payload.userName` so Flutter app can open the liker profile from the notification.
 - Direct upload complete is idempotent by object key, owner, kind and target.
 - Private media download checks chat membership, event participation and blocks.
 - Profile photo and avatar payloads expose `mediaAsset.publicUrl` CDN URLs when available. `/media/:assetId` stays as a fallback for legacy assets without `publicUrl` and for private media flows.
@@ -298,7 +308,7 @@ Admin Evening route review:
 - AI route builder can use Tomesto place taxonomy from `ExternalContentItem.tags`, not raw copied page text. Important tags are `area:center`, `occasion:food`, `budget:cheap`, `metro:*`, `feature:*` and `set:*`.
 - User-facing AI drafts use `EveningAiDraftService`, separate from admin route review drafts. First it parses prompt count, participant count, event date window, budget and area, then makes a fast OpenRouter Qwen intent call (`evening_ai_route_intent`) that turns arbitrary prompt text into ordered roles, per-step hints, `routeStepCount` and `participantsCount`. Local rules are only fallback. Prompt-only drafts do not need structured filters; explicit route count words in the prompt are enforced before the LLM call, while people counts such as `на 4 человека` are kept separate and ignored for step count. If the prompt lists activities like `прогуляться` and `потом в бар`, backend uses that list as the fallback step count; if the prompt does not imply a count, backend uses 5 steps by default. Date words are parsed before candidate selection. `сегодня` starts at current time and ends at the end of the Moscow day; `завтра`, `послезавтра`, weekdays and exact dates use full local-day windows. The route call then sends compact cards to Qwen (`qwen/qwen3-next-80b-a3b-instruct:free`) and asks for ids plus short copy only. Establishments come from Tomesto, concerts/theatre/standup/show steps from `advcake_ticketland` Ticketland/MTS Live, and walks/parks/free activities from KudaGo. Role order and repeated roles can come from the LLM intent, for example food -> show -> food. Full draft regenerate keeps the saved candidate pack and intent, adds all current route step ids to rejected ids, resets accepted indexes, and asks Qwen for a new route from the remaining candidates. Role hints preserve details such as pasta/Italian, sushi, burgers, Georgian food, theatre, standup, concert, beer bar, infusions, wine bar and cocktails. Budget words in prompt are parsed before candidate selection; low budget prefers cheap Tomesto taxonomy and lower `priceFrom`, while medium budget is stored as `mid`. Area words are also parsed before candidate selection. Known aliases include `центр`, `ЦАО`, `садовое`, `патрики`, `арбат`, `китай-город`, `тверская`, common districts and city sides such as `на севере`. Explicit phrases like `в районе ...`, `метро ...` and `рядом с ...` are kept as normalized area terms. Area terms are added to candidate loading and give a strong scoring boost, but they are not a hard filter. Tomesto candidates and KudaGo candidates require stored coordinates, but KudaGo walk can use both event and place rows, so parks can enter the AI pack. Walk candidates also pass a strict backend filter that keeps parks, embankments, boulevards and walking routes, but rejects skating rinks, sport and active entertainment, museums, exhibitions, theatres, cinemas, restaurants, bars and clubs even when their text contains `парк`. Ticketland/MTS Live show candidates can enter the AI pack without coordinates; for those steps the API skips walking distance validation and uses a start, parsed area or city fallback point when saving the current non-null `EveningRouteStep` coordinates. Worker import enriches KudaGo events from expanded `place` data or existing KudaGo place rows, and enriches Ticketland only from exact imported venue place matches or high-confidence geocoder results. The API validates unknown ids, duplicate ids, source-role mismatch, expired events, requested date mismatch, budget mismatch, role intent mismatch, missing ticket metadata and long walking legs when both adjacent steps have coordinates. Bad LLM output gets one retry; if it still fails, the service saves a deterministic fallback draft with a warning.
 - Route generation scopes commercial place steps to Tomesto candidates: restaurant, cafe, bar, wine bar, dancing bar, karaoke, lounge and food. Walks, parks, museums, culture and outdoor steps can still prefer KudaGo or Overpass. If an explicit commercial venue request cannot be backed by Tomesto, return a warning rather than silently replacing it with a generic place.
-- Tomesto promos stay hidden from public Affiche. They appear in the mobile promo surface through `/places/promos`, plus nested under selected Tomesto places in place lookup and meetup detail.
+- Tomesto promos stay hidden from public Affiche. They appear in the Flutter app promo surface through `/places/promos`, plus nested under selected Tomesto places in place lookup and meetup detail.
 
 ## Shared packages
 

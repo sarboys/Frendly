@@ -67,6 +67,7 @@ type EventListCursor = {
   id: string;
   distanceKm: number;
   startsAt: Date;
+  promoted: boolean;
 };
 
 type NormalizedEventRouteStep = {
@@ -270,18 +271,6 @@ export class EventsService {
       access: params.access as EventAccessFilter | undefined,
       date: params.date,
     });
-    const shouldApplyDatabaseCursor =
-      cursorEvent != null &&
-      geoQuery?.center == null &&
-      postgisCandidates == null;
-    const cursorWhere = shouldApplyDatabaseCursor
-      ? this.buildListCursorWhere(cursorEvent, filter)
-      : null;
-
-    if (cursorWhere) {
-      const conditions = (where.AND as Prisma.EventWhereInput[] | undefined) ?? [];
-      where.AND = [...conditions, cursorWhere];
-    }
     if (postgisCandidates != null && postgisCandidates.length === 0) {
       return {
         items: [],
@@ -310,27 +299,24 @@ export class EventsService {
     }
 
     let cursorFilteredEvents: any[];
-    if (postgisCandidates == null && geoQuery?.center != null) {
-      const candidates = await this.prismaService.client.event.findMany({
+    if (postgisCandidates == null && geoQuery?.center == null) {
+      cursorFilteredEvents = await this.loadPromotedEventListPage({
         where,
-        select: {
-          id: true,
-          distanceKm: true,
-          latitude: true,
-          longitude: true,
-          startsAt: true,
-        },
         orderBy: this.listOrderBy(filter, geoQuery),
-        take: this.listTake(take, geoQuery),
-      });
-      const orderedCandidates = this.orderEventsByGeo(candidates, geoQuery);
-      const candidatesWithEffectiveDistance = orderedCandidates.map((event) =>
-        this.eventWithGeoDistance(event, geoQuery),
-      );
-      cursorFilteredEvents = this.applyGeoCursor(
-        candidatesWithEffectiveDistance,
         cursorEvent,
-      );
+        filter,
+        take,
+        userId,
+        blockedUserIds,
+      });
+    } else if (postgisCandidates == null && geoQuery?.center != null) {
+      cursorFilteredEvents = await this.loadPromotedGeoEventCandidates({
+        where,
+        geoQuery,
+        cursorEvent,
+        take,
+        filter,
+      });
     } else {
       const events = await this.prismaService.client.event.findMany({
         where,
@@ -354,10 +340,9 @@ export class EventsService {
           event,
           geoQuery,
           postgisDistanceByEventId.get(event.id),
-        ),
+          ),
       );
     }
-    cursorFilteredEvents = this.orderPromotedEventsFirst(cursorFilteredEvents);
     const hasMore = cursorFilteredEvents.length > take;
     let page = hasMore
       ? cursorFilteredEvents.slice(0, take)
@@ -368,7 +353,6 @@ export class EventsService {
         userId,
         blockedUserIds,
       );
-      page = this.orderPromotedEventsFirst(page);
     }
     const pageEventIds = page.map((event) => event.id);
     const [participantCounts, currentParticipations] =
@@ -2998,6 +2982,145 @@ export class EventsService {
     return Math.max(take + 1, Math.min(take * 6, 300));
   }
 
+  private async loadPromotedEventListPage(params: {
+    where: Prisma.EventWhereInput;
+    orderBy: Prisma.EventOrderByWithRelationInput[];
+    cursorEvent: EventListCursor | null;
+    filter?: EventFilter;
+    take: number;
+    userId: string;
+    blockedUserIds: Set<string>;
+  }) {
+    const now = new Date();
+    const promotedRows = params.cursorEvent?.promoted === false
+      ? []
+      : await this.prismaService.client.event.findMany({
+          where: this.combineEventWhere(
+            params.where,
+            this.activePromotionWhere(now),
+            params.cursorEvent?.promoted === true
+              ? this.buildListCursorWhere(params.cursorEvent, params.filter)
+              : null,
+          ),
+          select: this.eventListSelect(params.userId, params.blockedUserIds),
+          orderBy: params.orderBy,
+          take: params.take + 1,
+        });
+
+    const remaining = params.take + 1 - promotedRows.length;
+    if (remaining <= 0) {
+      return promotedRows;
+    }
+
+    const unpromotedRows = await this.prismaService.client.event.findMany({
+      where: this.combineEventWhere(
+        params.where,
+        this.inactivePromotionWhere(now),
+        params.cursorEvent?.promoted === false
+          ? this.buildListCursorWhere(params.cursorEvent, params.filter)
+          : null,
+      ),
+      select: this.eventListSelect(params.userId, params.blockedUserIds),
+      orderBy: params.orderBy,
+      take: remaining,
+    });
+
+    return [...promotedRows, ...unpromotedRows];
+  }
+
+  private async loadPromotedGeoEventCandidates(params: {
+    where: Prisma.EventWhereInput;
+    geoQuery: EventGeoQuery;
+    cursorEvent: EventListCursor | null;
+    take: number;
+    filter?: EventFilter;
+  }) {
+    const now = new Date();
+    const candidateLimit = this.listTake(params.take, params.geoQuery);
+    const select = {
+      id: true,
+      distanceKm: true,
+      latitude: true,
+      longitude: true,
+      startsAt: true,
+    } satisfies Prisma.EventSelect;
+
+    const loadGroup = async (
+      promotionWhere: Prisma.EventWhereInput,
+      applyCursor: boolean,
+      take: number,
+    ) => {
+      if (take <= 0) {
+        return [];
+      }
+
+      const rows = await this.prismaService.client.event.findMany({
+        where: this.combineEventWhere(params.where, promotionWhere),
+        select,
+        orderBy: this.listOrderBy(params.filter, params.geoQuery),
+        take: candidateLimit,
+      });
+      const ordered = this.orderEventsByGeo(rows, params.geoQuery).map((event) =>
+        this.eventWithGeoDistance(event, params.geoQuery),
+      );
+      const filtered = applyCursor
+        ? this.applyGeoCursor(ordered, params.cursorEvent)
+        : ordered;
+      return filtered.slice(0, take);
+    };
+
+    const promotedRows = params.cursorEvent?.promoted === false
+      ? []
+      : await loadGroup(
+          this.activePromotionWhere(now),
+          params.cursorEvent?.promoted === true,
+          params.take + 1,
+        );
+
+    const remaining = params.take + 1 - promotedRows.length;
+    if (remaining <= 0) {
+      return promotedRows;
+    }
+
+    const unpromotedRows = await loadGroup(
+      this.inactivePromotionWhere(now),
+      params.cursorEvent?.promoted === false,
+      remaining,
+    );
+
+    return [...promotedRows, ...unpromotedRows];
+  }
+
+  private activePromotionWhere(now: Date): Prisma.EventWhereInput {
+    return {
+      tokenPromotions: {
+        some: {
+          expiresAt: {
+            gt: now,
+          },
+        },
+      },
+    };
+  }
+
+  private inactivePromotionWhere(now: Date): Prisma.EventWhereInput {
+    return {
+      NOT: this.activePromotionWhere(now),
+    };
+  }
+
+  private combineEventWhere(
+    ...parts: Array<Prisma.EventWhereInput | null | undefined>
+  ): Prisma.EventWhereInput {
+    const defined = parts.filter((part): part is Prisma.EventWhereInput => part != null);
+    if (defined.length === 1) {
+      return defined[0]!;
+    }
+    return {
+      AND: defined,
+    };
+  }
+
   private async loadPostgisEventCandidates(params: {
     geoQuery?: EventGeoQuery;
     cursorEvent: EventListCursor | null;
@@ -3087,16 +3210,31 @@ export class EventsService {
       params.blockedUserIds.size === 0
         ? Prisma.empty
         : Prisma.sql`AND e."hostId" NOT IN (${Prisma.join([...params.blockedUserIds])})`;
-    const cursorFilter =
+    const cursorPositionFilter =
       params.cursorEvent == null
         ? Prisma.empty
         : Prisma.sql`
-          WHERE candidate.distance_km > ${params.cursorEvent.distanceKm}
-            OR (
-              candidate.distance_km = ${params.cursorEvent.distanceKm}
-              AND candidate.event_id > ${params.cursorEvent.id}
-            )
+          candidate.distance_km > ${params.cursorEvent.distanceKm}
+          OR (
+            candidate.distance_km = ${params.cursorEvent.distanceKm}
+            AND candidate.event_id > ${params.cursorEvent.id}
+          )
         `;
+    const cursorFilter =
+      params.cursorEvent == null
+        ? Prisma.empty
+        : params.cursorEvent.promoted
+          ? Prisma.sql`
+            WHERE (
+              candidate.promoted = true
+              AND (${cursorPositionFilter})
+            )
+            OR candidate.promoted = false
+          `
+          : Prisma.sql`
+            WHERE candidate.promoted = false
+              AND (${cursorPositionFilter})
+          `;
     const rows = await this.prismaService.client.$queryRaw<Array<{
       event_id: string;
       distance_km: bigint | number | string;
@@ -3113,7 +3251,13 @@ export class EventsService {
               ST_SetSRID(ST_MakePoint(${center.longitude}, ${center.latitude}), 4326)::geography
             ) / 1000
             ELSE COALESCE(e."distanceKm", ${radiusKm})
-          END AS distance_km
+          END AS distance_km,
+          EXISTS (
+            SELECT 1
+            FROM "TokenPromotion" tp
+            WHERE tp."eventId" = e."id"
+              AND tp."expiresAt" > ${now}
+          ) AS promoted
         FROM "Event" e
         WHERE e."canceledAt" IS NULL
           AND e."isAfterDark" = false
@@ -3147,7 +3291,7 @@ export class EventsService {
           )
       ) candidate
       ${cursorFilter}
-      ORDER BY candidate.distance_km ASC, candidate.event_id ASC
+      ORDER BY candidate.promoted DESC, candidate.distance_km ASC, candidate.event_id ASC
       LIMIT ${candidateLimit}
     `);
 
@@ -3512,29 +3656,55 @@ export class EventsService {
 
     const distanceKm = this.parseCursorNumber(decoded?.distanceKm);
     const startsAt = this.parseCursorDate(decoded?.startsAt);
-    if (distanceKm != null && startsAt) {
+    const promoted = this.parseCursorBoolean(decoded?.promoted);
+    if (distanceKm != null && startsAt && promoted != null) {
       return {
         id: cursorId,
         distanceKm,
         startsAt,
+        promoted,
       };
     }
 
+    const now = new Date();
     return this.prismaService.client.event.findUnique({
       where: { id: cursorId },
       select: {
         id: true,
         distanceKm: true,
         startsAt: true,
+        tokenPromotions: {
+          where: {
+            expiresAt: {
+              gt: now,
+            },
+          },
+          select: {
+            id: true,
+          },
+          take: 1,
+        },
       },
-    });
+    }).then((event) =>
+      event == null
+        ? null
+        : {
+            id: event.id,
+            distanceKm: event.distanceKm,
+            startsAt: event.startsAt,
+            promoted: event.tokenPromotions.length > 0,
+          },
+    );
   }
 
-  private encodeListCursor(event: EventListCursor) {
+  private encodeListCursor(
+    event: EventListCursor & { tokenPromotions?: Array<{ expiresAt: Date }> | null },
+  ) {
     return encodeCursor({
       value: event.id,
       distanceKm: event.distanceKm,
       startsAt: event.startsAt.toISOString(),
+      promoted: this.isEventPromoted(event),
     });
   }
 
@@ -3553,6 +3723,10 @@ export class EventsService {
 
     const date = new Date(value);
     return Number.isFinite(date.getTime()) ? date : null;
+  }
+
+  private parseCursorBoolean(value: unknown) {
+    return typeof value === 'boolean' ? value : null;
   }
 
   private buildListCursorWhere(
@@ -3909,22 +4083,11 @@ export class EventsService {
     });
   }
 
-  private orderPromotedEventsFirst<T extends { tokenPromotions?: Array<{ expiresAt: Date }> | null }>(
-    events: T[],
-  ) {
+  private isEventPromoted(event: { tokenPromotions?: Array<{ expiresAt: Date }> | null }) {
     const now = Date.now();
-    return [...events].sort((left, right) => {
-      const leftPromoted = (left.tokenPromotions ?? []).some(
-        (promotion) => promotion.expiresAt.getTime() > now,
-      );
-      const rightPromoted = (right.tokenPromotions ?? []).some(
-        (promotion) => promotion.expiresAt.getTime() > now,
-      );
-      if (leftPromoted !== rightPromoted) {
-        return leftPromoted ? -1 : 1;
-      }
-      return 0;
-    });
+    return (event.tokenPromotions ?? []).some(
+      (promotion) => promotion.expiresAt.getTime() > now,
+    );
   }
 
   private firstRouteStepPoint(

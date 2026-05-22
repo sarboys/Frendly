@@ -454,25 +454,6 @@ export class AdminMeetupsService {
     return date;
   }
 
-  private parseBoolean(value: unknown, code = 'admin_invalid_boolean') {
-    if (typeof value === 'boolean') {
-      return value;
-    }
-
-    const text = this.optionalText(value)?.toLowerCase();
-    if (!text) {
-      return null;
-    }
-    if (text === 'true' || text === '1') {
-      return true;
-    }
-    if (text === 'false' || text === '0') {
-      return false;
-    }
-
-    throw new ApiError(400, code, 'Boolean is invalid');
-  }
-
   private page<T, R>(
     rows: T[],
     limit: number,

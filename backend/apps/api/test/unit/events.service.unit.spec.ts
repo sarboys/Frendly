@@ -36,6 +36,9 @@ describe('EventsService unit', () => {
     ...overrides,
   });
 
+  const baseEventWhere = (where: any) =>
+    Array.isArray(where?.AND) && where.AND[0]?.AND ? where.AND[0] : where;
+
   const makeCreateEventService = ({
     hostVerified = true,
     hostPremium = true,
@@ -127,7 +130,7 @@ describe('EventsService unit', () => {
       q: `  ${'вечер'.repeat(20)}  `,
     });
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
     const searchCondition = where.AND.find(
       (condition: any) =>
         Array.isArray(condition.OR) && condition.OR[0]?.title?.contains != null,
@@ -162,7 +165,7 @@ describe('EventsService unit', () => {
       date: '2026-05-03',
     } as any);
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
     const dateCondition = where.AND.find(
       (condition: any) =>
         condition.startsAt?.gte?.toISOString?.() ===
@@ -198,7 +201,7 @@ describe('EventsService unit', () => {
       filter: 'nearby',
     } as any);
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
     const startCondition = where.AND.find(
       (condition: any) => condition.startsAt?.gte instanceof Date,
     );
@@ -235,7 +238,7 @@ describe('EventsService unit', () => {
       radiusKm: 5,
     } as any);
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
     const geoCondition = where.AND.find(
       (condition: any) =>
         Array.isArray(condition.OR) &&
@@ -311,7 +314,7 @@ describe('EventsService unit', () => {
       radiusKm: 50,
     } as any);
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
     const geoCondition = where.AND.find(
       (condition: any) =>
         Array.isArray(condition.OR) &&
@@ -380,7 +383,7 @@ describe('EventsService unit', () => {
       radiusKm: 240,
     } as any);
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
     const geoCondition = where.AND.find(
       (condition: any) =>
         Array.isArray(condition.OR) &&
@@ -393,38 +396,41 @@ describe('EventsService unit', () => {
   });
 
   it('limits participant preview in event feed queries', async () => {
-    const eventFindMany = jest.fn().mockResolvedValue([
-      {
-        id: 'event-1',
-        title: 'Большая встреча',
-        emoji: '☕',
-        startsAt: new Date(Date.now() + 60 * 60 * 1000),
-        place: 'Кафе',
-        distanceKm: 0.4,
-        latitude: null,
-        longitude: null,
-        vibe: 'Спокойно',
-        tone: 'warm',
-        hostNote: null,
-        lifestyle: 'neutral',
-        priceMode: 'free',
-        priceAmountFrom: null,
-        priceAmountTo: null,
-        accessMode: 'open',
-        genderMode: 'all',
-        visibilityMode: 'public',
-        joinMode: 'open',
-        capacity: 100,
-        hostId: 'host-1',
-        participants: Array.from({ length: 20 }, (_, index) => ({
-          userId: `user-${index}`,
-          user: { displayName: `User ${index}` },
-        })),
-        joinRequests: [],
-        attendances: [],
-        liveState: null,
-      },
-    ]);
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'event-1',
+          title: 'Большая встреча',
+          emoji: '☕',
+          startsAt: new Date(Date.now() + 60 * 60 * 1000),
+          place: 'Кафе',
+          distanceKm: 0.4,
+          latitude: null,
+          longitude: null,
+          vibe: 'Спокойно',
+          tone: 'warm',
+          hostNote: null,
+          lifestyle: 'neutral',
+          priceMode: 'free',
+          priceAmountFrom: null,
+          priceAmountTo: null,
+          accessMode: 'open',
+          genderMode: 'all',
+          visibilityMode: 'public',
+          joinMode: 'open',
+          capacity: 100,
+          hostId: 'host-1',
+          participants: Array.from({ length: 20 }, (_, index) => ({
+            userId: `user-${index}`,
+            user: { displayName: `User ${index}` },
+          })),
+          joinRequests: [],
+          attendances: [],
+          liveState: null,
+        },
+      ])
+      .mockResolvedValueOnce([]);
     const participantGroupBy = jest.fn().mockResolvedValue([
       {
         eventId: 'event-1',
@@ -473,6 +479,80 @@ describe('EventsService unit', () => {
       },
       _count: { _all: true },
     });
+  });
+
+  it('loads promoted events before applying the event feed page limit', async () => {
+    const boostedEvent = eventFixture({
+      id: 'event-boosted',
+      distanceKm: 99,
+      tokenPromotions: [
+        {
+          optionId: 'boost-6',
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      ],
+    });
+    const normalEvent = eventFixture({
+      id: 'event-normal',
+      distanceKm: 0.1,
+      tokenPromotions: [],
+    });
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([boostedEvent])
+      .mockResolvedValueOnce([normalEvent]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          eventParticipant: {
+            findMany: jest.fn().mockResolvedValue([]),
+            groupBy: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      limit: 1,
+    });
+
+    expect(eventFindMany.mock.calls[0][0].where.AND).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tokenPromotions: {
+            some: {
+              expiresAt: {
+                gt: expect.any(Date),
+              },
+            },
+          },
+        }),
+      ]),
+    );
+    expect(eventFindMany.mock.calls[1][0].where.AND).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          NOT: expect.objectContaining({
+            tokenPromotions: expect.any(Object),
+          }),
+        }),
+      ]),
+    );
+    expect(result.items.map((item) => item.id)).toEqual(['event-boosted']);
+    expect(result.items[0]!.promoted).toBe(true);
+    expect(result.nextCursor).toEqual(expect.any(String));
   });
 
   it('uses event list cursor payload without reading the cursor event again', async () => {
@@ -1228,7 +1308,7 @@ describe('EventsService unit', () => {
 
     await service.listEvents('user-female', { filter: 'nearby' });
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
     expect(where.AND).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1242,22 +1322,25 @@ describe('EventsService unit', () => {
   });
 
   it('orders nearby events by real coordinates when user point is provided', async () => {
-    const eventFindMany = jest.fn().mockResolvedValue([
-      eventFixture({
-        id: 'event-far',
-        title: 'Дальняя встреча',
-        distanceKm: 0.2,
-        latitude: 55.82,
-        longitude: 37.75,
-      }),
-      eventFixture({
-        id: 'event-near',
-        title: 'Ближняя встреча',
-        distanceKm: 20,
-        latitude: 55.751,
-        longitude: 37.611,
-      }),
-    ]);
+    const farEvent = eventFixture({
+      id: 'event-far',
+      title: 'Дальняя встреча',
+      distanceKm: 0.2,
+      latitude: 55.82,
+      longitude: 37.75,
+    });
+    const nearEvent = eventFixture({
+      id: 'event-near',
+      title: 'Ближняя встреча',
+      distanceKm: 20,
+      latitude: 55.751,
+      longitude: 37.611,
+    });
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([farEvent, nearEvent])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([farEvent, nearEvent]);
     const service = new EventsService(
       {
         client: {
@@ -1299,8 +1382,8 @@ describe('EventsService unit', () => {
       limit: 2,
     } as any);
 
-    const where = eventFindMany.mock.calls[0][0].where as any;
-    expect(eventFindMany).toHaveBeenCalledTimes(2);
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
+    expect(eventFindMany).toHaveBeenCalledTimes(3);
     expect(eventFindMany.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         select: expect.objectContaining({
@@ -1313,7 +1396,7 @@ describe('EventsService unit', () => {
       }),
     );
     expect(eventFindMany.mock.calls[0][0]).not.toHaveProperty('include');
-    expect(eventFindMany.mock.calls[1][0]).toEqual(
+    expect(eventFindMany.mock.calls[2][0]).toEqual(
       expect.objectContaining({
         where: {
           id: {
