@@ -92,6 +92,12 @@ type NormalizedEventRouteSelection =
 
 const EARTH_RADIUS_KM = 6371;
 const EVENT_DETAIL_ATTENDEE_LIMIT = 24;
+const MOSCOW_BOUNDS = {
+  south: 55.1424,
+  west: 36.8031,
+  north: 56.0212,
+  east: 37.9674,
+};
 
 const eventListSummarySelect = {
   id: true,
@@ -411,6 +417,93 @@ export class EventsService {
         hasMore && page.length > 0
           ? this.encodeListCursor(page[page.length - 1]!)
           : null,
+    };
+  }
+
+  async listPublicActiveMeetups(params: { city?: string; limit?: number }) {
+    const take = this.normalizePublicMeetupLimit(params.limit);
+    const city = this.normalizePublicMeetupCity(params.city);
+    const cityWhere = this.buildPublicMeetupCityWhere(city);
+    const now = new Date();
+
+    const events = await this.prismaService.client.event.findMany({
+      where: {
+        canceledAt: null,
+        isAfterDark: false,
+        visibilityMode: 'public',
+        startsAt: {
+          gte: this.recentEventStartBoundary(now),
+        },
+        ...(cityWhere ? { AND: [cityWhere] } : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        emoji: true,
+        startsAt: true,
+        place: true,
+        capacity: true,
+        vibe: true,
+        priceMode: true,
+        priceAmountFrom: true,
+        priceAmountTo: true,
+        isDate: true,
+        eveningRoute: {
+          select: {
+            _count: {
+              select: {
+                steps: true,
+              },
+            },
+          },
+        },
+        sourceExternalContentItem: {
+          select: {
+            imageUrl: true,
+          },
+        },
+      },
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      take,
+    });
+
+    const eventIds = events.map((event) => event.id);
+    const participantCounts =
+      eventIds.length === 0
+        ? []
+        : await this.prismaService.client.eventParticipant.groupBy({
+            by: ['eventId'],
+            where: {
+              eventId: {
+                in: eventIds,
+              },
+            },
+            _count: {
+              _all: true,
+            },
+          });
+    const participantCountByEventId = new Map(
+      participantCounts.map((item) => [item.eventId, item._count._all]),
+    );
+
+    return {
+      items: events.map((event) => ({
+        id: event.id,
+        title: event.title,
+        emoji: event.emoji,
+        startsAt: event.startsAt.toISOString(),
+        time: formatEventTime(event.startsAt),
+        place: event.place,
+        going: participantCountByEventId.get(event.id) ?? 0,
+        capacity: event.capacity,
+        vibe: event.vibe,
+        priceMode: event.priceMode,
+        priceAmountFrom: event.priceAmountFrom,
+        priceAmountTo: event.priceAmountTo,
+        imageUrl: event.sourceExternalContentItem?.imageUrl ?? null,
+        routePointCount: event.eveningRoute?._count.steps ?? null,
+        isDate: event.isDate,
+      })),
     };
   }
 
@@ -2838,6 +2931,65 @@ export class EventsService {
     }
 
     return where;
+  }
+
+  private normalizePublicMeetupLimit(limit?: number) {
+    if (limit == null || !Number.isFinite(limit)) {
+      return 5;
+    }
+
+    return Math.max(1, Math.min(Math.trunc(limit), 10));
+  }
+
+  private normalizePublicMeetupCity(city?: string) {
+    return typeof city === 'string' && city.trim().length > 0
+      ? city.trim()
+      : 'Москва';
+  }
+
+  private buildPublicMeetupCityWhere(city: string): Prisma.EventWhereInput | null {
+    if (city.length === 0) {
+      return null;
+    }
+
+    const textFilters: Prisma.EventWhereInput[] = [
+      {
+        place: {
+          contains: city,
+          mode: 'insensitive',
+        },
+      },
+      {
+        sourceExternalContentItem: {
+          is: {
+            city: {
+              equals: city,
+              mode: 'insensitive',
+            },
+          },
+        },
+      },
+    ];
+
+    if (city.toLocaleLowerCase('ru-RU') !== 'москва') {
+      return { OR: textFilters };
+    }
+
+    return {
+      OR: [
+        ...textFilters,
+        {
+          latitude: {
+            gte: MOSCOW_BOUNDS.south,
+            lte: MOSCOW_BOUNDS.north,
+          },
+          longitude: {
+            gte: MOSCOW_BOUNDS.west,
+            lte: MOSCOW_BOUNDS.east,
+          },
+        },
+      ],
+    };
   }
 
   private buildPriceWhere(price?: EventPriceFilter): Prisma.EventWhereInput | null {

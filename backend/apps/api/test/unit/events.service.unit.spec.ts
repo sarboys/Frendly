@@ -555,6 +555,109 @@ describe('EventsService unit', () => {
     expect(result.nextCursor).toEqual(expect.any(String));
   });
 
+  it('lists public active Moscow meetups without private participant previews', async () => {
+    const startsAt = new Date(Date.now() + 60 * 60 * 1000);
+    const eventFindMany = jest.fn().mockResolvedValue([
+      eventFixture({
+        id: 'event-moscow',
+        title: 'Вечер в Москве',
+        startsAt,
+        place: 'Москва, Патрики',
+        capacity: 8,
+        sourceExternalContentItem: { imageUrl: 'https://cdn.test/meetup.jpg' },
+        eveningRoute: { _count: { steps: 3 } },
+        isDate: false,
+      }),
+    ]);
+    const participantGroupBy = jest.fn().mockResolvedValue([
+      {
+        eventId: 'event-moscow',
+        _count: { _all: 4 },
+      },
+    ]);
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findMany: eventFindMany,
+          },
+          eventParticipant: {
+            groupBy: participantGroupBy,
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listPublicActiveMeetups({
+      city: 'Москва',
+      limit: 5,
+    });
+
+    expect(eventFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          canceledAt: null,
+          isAfterDark: false,
+          visibilityMode: 'public',
+          startsAt: {
+            gte: expect.any(Date),
+          },
+          AND: [
+            expect.objectContaining({
+              OR: expect.arrayContaining([
+                {
+                  place: {
+                    contains: 'Москва',
+                    mode: 'insensitive',
+                  },
+                },
+                expect.objectContaining({
+                  latitude: expect.objectContaining({
+                    gte: expect.any(Number),
+                    lte: expect.any(Number),
+                  }),
+                  longitude: expect.objectContaining({
+                    gte: expect.any(Number),
+                    lte: expect.any(Number),
+                  }),
+                }),
+              ]),
+            }),
+          ],
+        }),
+        select: expect.not.objectContaining({
+          participants: expect.anything(),
+        }),
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        take: 5,
+      }),
+    );
+    expect(participantGroupBy).toHaveBeenCalledWith({
+      by: ['eventId'],
+      where: {
+        eventId: {
+          in: ['event-moscow'],
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 'event-moscow',
+        title: 'Вечер в Москве',
+        startsAt: startsAt.toISOString(),
+        going: 4,
+        capacity: 8,
+        imageUrl: 'https://cdn.test/meetup.jpg',
+        routePointCount: 3,
+      }),
+    ]);
+    expect(result.items[0]).not.toHaveProperty('attendees');
+  });
+
   it('uses event list cursor payload without reading the cursor event again', async () => {
     const firstEvent = eventFixture({
       id: 'event-near',

@@ -35,6 +35,7 @@ Auth:
 
 Events:
 
+- `GET /events/public/active` is public and returns active public non-After-Dark meetups for the landing page. Query params: `city`, `limit`. It defaults to Moscow and 5 items, caps at 10, filters canceled/private/After-Dark events out, keeps recently started meetings eligible, and returns no participant names or private viewer state.
 - `GET /events`
 - `GET /events/:eventId`
 - `POST /events`

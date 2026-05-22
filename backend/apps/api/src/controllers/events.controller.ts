@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Headers, Param, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
+import { Public } from '../common/public.decorator';
 import { EventsService } from '../services/events.service';
 
 @Controller('events')
@@ -43,6 +44,18 @@ export class EventsController {
       southWestLongitude: southWestLongitude ? Number(southWestLongitude) : undefined,
       northEastLatitude: northEastLatitude ? Number(northEastLatitude) : undefined,
       northEastLongitude: northEastLongitude ? Number(northEastLongitude) : undefined,
+    });
+  }
+
+  @Public()
+  @Get('public/active')
+  listPublicActiveMeetups(
+    @Query('city') city?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.eventsService.listPublicActiveMeetups({
+      city,
+      limit: limit ? Number(limit) : undefined,
     });
   }
 
