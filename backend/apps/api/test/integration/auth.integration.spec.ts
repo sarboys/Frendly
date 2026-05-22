@@ -298,6 +298,40 @@ describe('auth flows', () => {
     expect(account.user.email).toMatch(/^yandex\.user-[a-f0-9-]+@example\.com$/);
   });
 
+  it('links yandex auth to an existing user with the same trusted email', async () => {
+    const providerUserId = `yandex-${randomUUID()}`;
+    const email = `linked.yandex-${randomUUID()}@example.com`;
+    const existing = await createSocialAccessToken('google', email);
+    socialIdentityVerifier.verifyYandexOAuthToken.mockResolvedValue({
+      provider: 'yandex',
+      providerUserId,
+      email: email.toUpperCase(),
+      displayName: 'Yandex Linked User',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/yandex/verify')
+      .send({
+        oauthToken: 'yandex-oauth-token',
+      })
+      .expect(201);
+
+    expect(response.body.userId).toBe(existing.userId);
+    expect(response.body.isNewUser).toBe(false);
+
+    const account = await (prisma as any).externalAuthAccount.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider: 'yandex',
+          providerUserId,
+        },
+      },
+    });
+
+    expect(account.userId).toBe(existing.userId);
+    expect(account.email).toBe(email);
+  });
+
   it('returns access and refresh token for dev login when dev auth is enabled', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/dev/login')

@@ -162,9 +162,9 @@ export class SocialAuthService {
     normalizedEmail?: string,
   ) {
     const canLinkByEmail =
-      identity.provider === 'google' &&
-      identity.emailVerified === true &&
-      normalizedEmail != null;
+      normalizedEmail != null &&
+      (identity.provider === 'yandex' ||
+        (identity.provider === 'google' && identity.emailVerified === true));
     const existingUser = canLinkByEmail
       ? await tx.user.findUnique({ where: { email: normalizedEmail } })
       : null;
