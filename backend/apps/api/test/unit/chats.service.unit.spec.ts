@@ -433,6 +433,117 @@ describe('ChatsService unit', () => {
     });
   });
 
+  it('lists community chats with community metadata', async () => {
+    const messageCreatedAt = new Date('2026-04-24T12:34:00.000Z');
+    const communityChat = {
+      ...makeChatListItem('community-chat', messageCreatedAt),
+      kind: ChatKind.community,
+      event: null,
+      sourceEvent: null,
+      title: 'Wine club',
+      community: {
+        id: 'community-1',
+        name: 'Wine club',
+        imageAsset: {
+          publicUrl: 'https://cdn.example.com/community.jpg',
+          variants: null,
+        },
+        _count: {
+          members: 3,
+        },
+      },
+      members: [
+        {
+          userId: 'user-me',
+          user: {
+            id: 'user-me',
+            displayName: 'Me',
+            online: true,
+            profile: {
+              avatarUrl: null,
+              photos: [],
+            },
+          },
+        },
+        {
+          userId: 'user-peer',
+          user: {
+            id: 'user-peer',
+            displayName: 'Peer',
+            online: true,
+            profile: {
+              avatarUrl: 'https://cdn.example.com/peer.jpg',
+              photos: [],
+            },
+          },
+        },
+      ],
+      messages: [makeMessage('message-1', messageCreatedAt)],
+    } as any;
+    const chatFindMany = jest.fn().mockResolvedValue([communityChat]);
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: chatFindMany,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              chatId: 'community-chat',
+              unreadCount: 2,
+              isPinned: true,
+              pinnedAt: new Date('2026-04-24T13:00:00.000Z'),
+            },
+          ]),
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'community', {
+      limit: 20,
+    });
+
+    expect(chatFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          kind: ChatKind.community,
+        }),
+      }),
+    );
+    expect(result.items[0]).toMatchObject({
+      id: 'community-chat',
+      kind: 'community',
+      communityId: 'community-1',
+      title: 'Wine club',
+      name: 'Wine club',
+      imageUrl: 'https://cdn.example.com/community.jpg',
+      lastMessageId: 'message-1',
+      lastMessageAt: '2026-04-24T12:34:00.000Z',
+      unread: 2,
+      isPinned: true,
+      membersCount: 3,
+      memberProfiles: [
+        {
+          userId: 'user-me',
+          name: 'Me',
+          online: true,
+          isCurrentUser: true,
+        },
+        {
+          userId: 'user-peer',
+          name: 'Peer',
+          avatarUrl: 'https://cdn.example.com/peer.jpg',
+          online: true,
+          isCurrentUser: false,
+        },
+      ],
+    });
+  });
+
   it('updates pinned state for the current chat member', async () => {
     const update = jest.fn().mockResolvedValue({
       chatId: 'chat-1',

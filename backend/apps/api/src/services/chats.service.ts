@@ -14,6 +14,7 @@ import {
   mapMessage,
   mapProfilePhoto,
 } from '../common/presenters';
+import { mapMediaVariants } from '../common/media-presenters';
 import {
   emptyProfileSocialPreview,
   loadProfileSocialPreviews,
@@ -22,6 +23,7 @@ import { PrismaService } from './prisma.service';
 
 const CHAT_MEMBER_PREVIEW_LIMIT = 8;
 const MEETUP_AUTO_FINISH_MS = 24 * 60 * 60 * 1000;
+type ChatListRequestKind = 'meetup' | 'direct' | 'community';
 
 const chatMessageMediaAssetSelect = {
   id: true,
@@ -150,7 +152,7 @@ export class ChatsService {
 
   async listChatsWithCache(
     userId: string,
-    kind: 'meetup' | 'direct',
+    kind: ChatListRequestKind,
     params: { cursor?: string; limit?: number; includeSocial?: boolean },
     ifNoneMatch?: string,
   ) {
@@ -172,7 +174,7 @@ export class ChatsService {
 
   async listChats(
     userId: string,
-    kind: 'meetup' | 'direct',
+    kind: ChatListRequestKind,
     params: { cursor?: string; limit?: number; includeSocial?: boolean },
   ) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
@@ -182,7 +184,7 @@ export class ChatsService {
 
     const chats = await this.prismaService.client.chat.findMany({
       where: {
-        kind: kind === 'meetup' ? ChatKind.meetup : ChatKind.direct,
+        kind: this.chatKindForList(kind),
         members: {
           some: {
             userId,
@@ -352,6 +354,23 @@ export class ChatsService {
             },
           },
         },
+        community: {
+          select: {
+            id: true,
+            name: true,
+            imageAsset: {
+              select: {
+                publicUrl: true,
+                variants: true,
+              },
+            },
+            _count: {
+              select: {
+                members: true,
+              },
+            },
+          },
+        },
       },
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       take: take + 1,
@@ -446,6 +465,47 @@ export class ChatsService {
           };
         }
 
+        if (kind === 'community') {
+          if (chat.community == null) {
+            return null;
+          }
+
+          const memberProfiles = chat.members
+            .filter((entry) => !blockedUserIds.has(entry.userId))
+            .map((entry) => ({
+              userId: entry.user.id,
+              name: entry.user.displayName,
+              avatarUrl: this.resolveChatListAvatarUrl(entry.user.profile),
+              online: entry.user.online ?? false,
+              isCurrentUser: entry.userId === userId,
+            }));
+          const title = chat.community.name || chat.title || 'Сообщество';
+          const imageUrl = chat.community.imageAsset?.publicUrl ?? null;
+
+          return {
+            id: chat.id,
+            kind: 'community',
+            communityId: chat.community.id,
+            title,
+            name: title,
+            imageUrl,
+            avatarUrl: imageUrl,
+            imageVariants: mapMediaVariants(chat.community.imageAsset?.variants),
+            lastMessageId: lastMessage?.id ?? null,
+            lastMessage: lastMessagePreview,
+            lastAuthor: lastMessage?.sender.displayName ?? '',
+            lastTime: lastMessage ? formatRelativeTime(lastMessage.createdAt) : '',
+            lastMessageAt: lastMessage?.createdAt.toISOString() ?? null,
+            unread,
+            isPinned,
+            membersCount: chat.community._count.members,
+            members: memberProfiles.map((entry) => entry.name),
+            memberProfiles,
+            onlineCount: memberProfiles.filter((entry) => entry.online).length,
+            typing: false,
+          };
+        }
+
         const peer = chat.members.find((entry) => entry.userId !== userId)?.user;
         if (!peer || blockedUserIds.has(peer.id)) {
           return null;
@@ -504,6 +564,16 @@ export class ChatsService {
       .split(',')
       .map((value) => value.trim())
       .some((value) => value === '*' || value === etag);
+  }
+
+  private chatKindForList(kind: ChatListRequestKind) {
+    if (kind === 'meetup') {
+      return ChatKind.meetup;
+    }
+    if (kind === 'community') {
+      return ChatKind.community;
+    }
+    return ChatKind.direct;
   }
 
   private resolveChatListAvatarUrl(profile: ChatListMemberProfile) {

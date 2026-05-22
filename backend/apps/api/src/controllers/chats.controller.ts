@@ -63,6 +63,28 @@ export class ChatsController {
     );
   }
 
+  @Get('communities')
+  listCommunityChats(
+    @CurrentUser() currentUser: { userId: string },
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @Headers('if-none-match') ifNoneMatch?: string,
+    @Res({ passthrough: true }) response?: Response,
+  ) {
+    return this.respondWithChatListCache(
+      response,
+      this.chatsService.listChatsWithCache(
+        currentUser.userId,
+        'community',
+        {
+          cursor,
+          limit: limit ? Number(limit) : undefined,
+        },
+        ifNoneMatch,
+      ),
+    );
+  }
+
   @Get(':chatId/messages')
   getMessages(
     @CurrentUser() currentUser: { userId: string },
