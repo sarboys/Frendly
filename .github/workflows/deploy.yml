@@ -30,6 +30,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
           script_stop: true
+          command_timeout: 30m
           script: |
             set -eu
             export APP_DIR="/opt/frendly"
