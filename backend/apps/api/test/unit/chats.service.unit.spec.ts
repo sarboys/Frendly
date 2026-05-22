@@ -1685,6 +1685,65 @@ describe('ChatsService unit', () => {
     });
   });
 
+  it('repairs community chat membership for community owners', async () => {
+    const chatMemberFindUnique = jest.fn().mockResolvedValue(null);
+    const chatMemberUpsert = jest.fn().mockResolvedValue({});
+    const chatFindUnique = jest.fn().mockResolvedValue({
+      kind: ChatKind.community,
+      event: null,
+      community: {
+        createdById: 'user-me',
+        members: [],
+      },
+    });
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: chatMemberFindUnique,
+          upsert: chatMemberUpsert,
+        },
+        chat: {
+          findUnique: chatFindUnique,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await (service as any).assertMembership('user-me', 'chat-1');
+
+    expect(chatFindUnique).toHaveBeenLastCalledWith({
+      where: { id: 'chat-1' },
+      select: {
+        kind: true,
+        community: {
+          select: {
+            createdById: true,
+            members: {
+              where: { userId: 'user-me' },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+    expect(chatMemberUpsert).toHaveBeenCalledWith({
+      where: {
+        chatId_userId: {
+          chatId: 'chat-1',
+          userId: 'user-me',
+        },
+      },
+      update: {},
+      create: {
+        chatId: 'chat-1',
+        userId: 'user-me',
+      },
+    });
+  });
+
   it('does not advance read markers to messages from blocked senders', async () => {
     const memberUpdate = jest.fn();
     const service = new ChatsService({

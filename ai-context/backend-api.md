@@ -82,13 +82,15 @@ Chats:
 
 - `GET /chats/meetups`
 - `GET /chats/personal`
+- `GET /chats/communities`
 - `GET /chats/:chatId/messages`
 - `POST /chats/:chatId/read`
 - `POST /chats/:chatId/pin` with `{ isPinned }` toggles the current user's pinned state for that chat.
 - `DELETE /chats/:chatId` deletes the chat only for the current user. Event meetup delete makes a non-host leave the event, marks attendance as `left` and removes `ChatMember`; host delete hides only the host's `ChatMember` so the hosted event stays intact. Evening-session meetup delete marks non-host participants `left`; host delete hides only the host's `ChatMember`. Community chat delete makes a non-owner leave the club by removing both `CommunityMember` and `ChatMember`; owner delete hides only the owner's `ChatMember` so the club stays intact. Direct chat delete removes only the current `ChatMember`.
 - After chat delete, backend starts best-effort background cleanup. If the chat has no remaining members, it removes messages, chat media assets, notifications and realtime events; direct chats are then removed too.
-- Chat list items expose `lastMessageId` and `isPinned`; pinned items are returned before normal recency ordering.
+- Chat list items expose `lastMessageId` and `isPinned`; pinned items are returned before normal recency ordering. Community chat list items expose `kind=community`, `communityId`, community image, member count and member previews.
 - Chat list endpoints set a weak `ETag` on the response body, `Cache-Control: private, max-age=0, must-revalidate` and `Vary: Authorization`. Fresh `If-None-Match` requests return `304` with an empty body. Clients are not required to send the header.
+- If a community chat is missing `ChatMember` for a current community owner or member, opening REST history restores that chat membership so the unified chat and chat lists can see the same community chat.
 - Event meetups are treated as finished 24 hours after `startsAt` in effective live status and meetup chat phase, even if the host never pressed finish.
 - Meetup chat list items keep `members` as display-name previews and also expose `memberProfiles` with `{ userId, name, avatarUrl, online, isCurrentUser }` for profile and direct-chat actions.
 - Meetup chat list items expose `imageUrl`/`eventImageUrl` from linked public Affiche event sources when available, plus paid ticket summary from `sourceExternalContentItem.actionUrl`, `priceFrom`, `priceMode`, `sourceProvider` and `venueName`. Clients render the ticket block only when URL exists and price is paid.

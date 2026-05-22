@@ -1379,7 +1379,9 @@ export class ChatsService {
     });
 
     if (!member) {
-      member = await this.restoreMeetupChatMembership(userId, chatId);
+      member =
+        (await this.restoreMeetupChatMembership(userId, chatId)) ??
+        (await this.restoreCommunityChatMembership(userId, chatId));
       if (!member) {
         throw new ApiError(403, 'chat_forbidden', 'You are not a member of this chat');
       }
@@ -1461,6 +1463,57 @@ export class ChatsService {
         event: {
           hostId: chat.event.hostId,
         },
+      },
+    };
+  }
+
+  private async restoreCommunityChatMembership(userId: string, chatId: string) {
+    const chat = await this.prismaService.client.chat.findUnique({
+      where: { id: chatId },
+      select: {
+        kind: true,
+        community: {
+          select: {
+            createdById: true,
+            members: {
+              where: { userId },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (chat?.kind !== ChatKind.community || chat.community == null) {
+      return null;
+    }
+
+    const hasCommunityAccess =
+      chat.community.createdById === userId ||
+      chat.community.members.length > 0;
+    if (!hasCommunityAccess) {
+      return null;
+    }
+
+    await this.prismaService.client.chatMember.upsert({
+      where: {
+        chatId_userId: {
+          chatId,
+          userId,
+        },
+      },
+      update: {},
+      create: {
+        chatId,
+        userId,
+      },
+    });
+
+    return {
+      chat: {
+        kind: chat.kind,
+        event: null,
       },
     };
   }
