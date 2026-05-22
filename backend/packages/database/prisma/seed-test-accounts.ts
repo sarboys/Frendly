@@ -68,6 +68,7 @@ type TestAccountDraft = {
   latitude: number;
   longitude: number;
   birthDate: Date;
+  age: number;
   bio: string;
   vibe: string;
   interests: string[];
@@ -136,6 +137,7 @@ export function buildTestAccountsSeedPlan(now = new Date()): TestAccountsSeedPla
           ? `${MALE_NAMES[index]} Тест`
           : `${FEMALE_NAMES[index - 5]} Тест`;
       const userId = accountIds[index]!;
+      const birthDate = new Date(Date.UTC(1993 + (index % 8), index % 12, 10 + index));
 
       return {
         id: userId,
@@ -147,7 +149,8 @@ export function buildTestAccountsSeedPlan(now = new Date()): TestAccountsSeedPla
         area: area.name,
         latitude: area.lat,
         longitude: area.lng,
-        birthDate: new Date(Date.UTC(1993 + (index % 8), index % 12, 10 + index)),
+        birthDate,
+        age: calculateAge(birthDate, now),
         bio: `Тестовый профиль для проверки встреч, клубов и френдли подписки. Район: ${area.name}.`,
         vibe: VIBES[index % VIBES.length]!,
         interests: buildInterests(index),
@@ -217,6 +220,7 @@ export async function seedTestAccounts(
           profile: {
             create: {
               birthDate: account.birthDate,
+              age: account.age,
               gender: account.gender as UserGender,
               city: account.city,
               area: account.area,
@@ -790,6 +794,18 @@ function moscowWallTimeUtc(
       hour * 60 * 60 * 1000 +
       minute * 60 * 1000,
   );
+}
+
+function calculateAge(birthDate: Date, now: Date) {
+  let age = now.getUTCFullYear() - birthDate.getUTCFullYear();
+  const monthDiff = now.getUTCMonth() - birthDate.getUTCMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && now.getUTCDate() < birthDate.getUTCDate())
+  ) {
+    age -= 1;
+  }
+  return age;
 }
 
 function escapeSvg(value: string) {

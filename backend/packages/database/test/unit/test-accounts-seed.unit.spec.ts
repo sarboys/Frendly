@@ -15,6 +15,10 @@ describe('test accounts seed plan', () => {
     expect(plan.accounts.filter((account) => account.gender === 'female')).toHaveLength(5);
   });
 
+  it('sets profile age for dating filters', () => {
+    expect(plan.accounts.every((account) => account.age >= 18)).toBe(true);
+  });
+
   it('attaches two gender-specific photos to every user', () => {
     for (const account of plan.accounts) {
       expect(account.photos).toHaveLength(2);
