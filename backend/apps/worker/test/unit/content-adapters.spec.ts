@@ -520,6 +520,48 @@ describe('content source adapters', () => {
     });
   });
 
+  it('skips Tomesto booking links discovered on event lists', async () => {
+    process.env.TOMESTO_REQUEST_DELAY_MS = '0';
+    const adapter = new TomestoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/moskva/places') {
+        return textResponse('');
+      }
+      if (url.pathname === '/moskva/events') {
+        return textResponse(`
+          <a href="/moskva/events/standup-night">event</a>
+          <a href="/moskva/events/standup-night/book">book</a>
+        `);
+      }
+      if (url.pathname === '/moskva/events/page/2') {
+        return textResponse('');
+      }
+      if (url.pathname === '/moskva/events/standup-night') {
+        return textResponse(tomestoEventHtml());
+      }
+      if (url.pathname === '/moskva/events/standup-night/book') {
+        return {
+          ok: false,
+          status: 406,
+          text: async () => '',
+          headers: { get: () => null },
+        } as unknown as Response;
+      }
+      if (url.pathname === '/moskva/promos') {
+        return textResponse('');
+      }
+      throw new Error(`unexpected_url_${url.pathname}`);
+    });
+
+    const items = await adapter.fetchItems(fetchInput({ cityCode: 'moskva' }));
+
+    expect(items.map((item) => item.sourceItemId)).toEqual(['event:stendap:standup-night']);
+    expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).not.toContain(
+      '/moskva/events/standup-night/book',
+    );
+  });
+
   it('returns no Tomesto items outside Moscow and logs a warning', async () => {
     process.env.TOMESTO_REQUEST_DELAY_MS = '0';
     const adapter = new TomestoAdapter();

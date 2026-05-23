@@ -33,6 +33,14 @@ Auth:
 - `POST /auth/logout`
 - `GET /me`
 
+App overlays:
+
+- `GET /app/overlay?platform=ios|android&buildNumber=<number>` is an authenticated mobile startup check. It returns `{ overlay, checkAfterSeconds }`. `overlay=null` means nothing should be shown. Version policy wins over campaigns.
+- Version policy overlays use `source=version_policy`, `kind=force_update`, `dismissible=false` and CTA `action=store_update`. They are shown when the user's build is lower than `minSupportedBuild` for the platform.
+- Campaign overlays use `source=campaign`, `kind=announcement`, admin text fields, optional CTA and `dismissible` from the campaign.
+- Campaign matching filters by selected user ids, platform, min/max build, Frendly+ access, verification and profile city. Highest `priority` wins.
+- `POST /app/overlay/events` accepts `{ overlayId, source, event }`, where event is `impression`, `cta_click` or `dismiss`. Campaign events increment aggregate stats. Version policy events are accepted but do not create stats.
+
 Events:
 
 - `GET /events/public/active` is public and returns active public non-After-Dark meetups for the landing page. Query params: `city`, `limit`. It defaults to Moscow and 5 items, caps at 10, filters canceled/private/After-Dark events out, keeps recently started meetings eligible, and returns no participant names or private viewer state.
@@ -212,11 +220,13 @@ Public sharing:
 Payments and tokens:
 
 - `GET /payments/catalog` returns backend-owned Frendly+ plans, token packs, promo options and `tbankEnabled`.
+- Frendly+ plans and Plus benefit copy are admin-managed. Public catalog responses include dynamic subscription `id`, token costs, monthly token cost, duration days, optional badge and benefit text.
 - `POST /payments/init` accepts token packs only. `productKind=subscription` is rejected with `subscription_paid_with_tokens`; Frendly+ is paid from the token wallet.
 - Payment order responses include `productKind` and `productId`, so clients can return token payments to wallet screens.
 - `POST /payments/:orderId/check` verifies order ownership, calls T-Bank `GetState`, checks amount and fulfills only confirmed payments.
 - `POST /payments/tbank/webhook` is public, validates T-Bank token and terminal, then uses the same idempotent confirm path as manual check.
 - `POST /subscription/subscribe` spends tokens server-side and activates or extends Frendly+; it does not create a T-Bank payment order.
+- Admin subscription settings live under `/admin/subscription-settings`: `GET` returns all Plus plans and global benefits, `PUT` upserts plans and benefit text. Removing a plan in admin disables it for future purchases instead of deleting user subscription history.
 - `GET /tokens/wallet` returns server balance, history and active promoted targets. `POST /tokens/promotions` and `POST /subscription/subscribe` spend tokens server-side. Season reward grants appear in wallet history as `Подарок сезона`.
 - Public event boost options are `boost-6` for 20 FT and 6 hours, `boost-24` for 50 FT and 24 hours, and `boost-72` for 120 FT and 72 hours. `GET /events` sorts active boosted events before normal events before applying the page limit, and `GET /events` plus `GET /events/:eventId` expose active boost as `{ promoted, boost }`, with tier metadata for mobile badges and map pins.
 
@@ -226,6 +236,21 @@ Admin auth:
 - `POST /admin/auth/refresh`
 - `POST /admin/auth/logout`
 - `GET /admin/auth/me`
+
+Admin dashboard and users:
+
+- `GET /admin/dashboard` returns real admin dashboard data. KPI analytics come from `AdminDashboardSnapshot` with a 5 minute TTL. Nearby lists for upcoming meetups and new users are still live bounded queries.
+- Dashboard activity is composed from current tables: user registration and suspension, meetups, reports, confirmed payments and verification changes. API DTO keys stay English, while the React admin maps visible labels to Russian.
+- User management endpoints include `POST /admin/users/:id/frendly-plus`, `POST /admin/users/:id/frendly-plus/revoke` and `GET /admin/users/:id/activity`.
+- Granting Frendly+ creates or extends `UserSubscription`. Revoking Frendly+ marks active access inactive. Suspending a user revokes active sessions so the user cannot keep using an existing login.
+- `GET /admin/users/:id/activity` is user history from product tables: registration, hosted and joined meetups, reports, payments, Frendly+, tokens, verification, suspension and recent messages without long message text. Admin audit stays separate under `/admin/users/:id/audit`.
+
+Admin app overlays:
+
+- `GET /admin/app-overlays/campaigns`, `POST /admin/app-overlays/campaigns`, `PATCH /admin/app-overlays/campaigns/:campaignId`.
+- `POST /admin/app-overlays/campaigns/:campaignId/activate`, `pause`, `archive`.
+- `GET /admin/app-overlays/version-policies` and `PATCH /admin/app-overlays/version-policies/:platform`.
+- Admin responses include Russian labels for status, platform, Frendly+, verification, audience and button action, so the React admin can show Russian values without duplicating mapping logic.
 
 Admin Evening route review:
 
@@ -294,6 +319,7 @@ Admin Evening route review:
 - Direct upload complete is idempotent by object key, owner, kind and target.
 - Private media download checks chat membership, event participation and blocks.
 - Profile photo and avatar payloads expose `mediaAsset.publicUrl` CDN URLs when available. `/media/:assetId` stays as a fallback for legacy assets without `publicUrl` and for private media flows.
+- `GET /onboarding/me` includes uploaded profile `photos` in profile-photo DTO shape so mobile onboarding can restore the photo step after app restart.
 - `GET /media/:assetId` sets `ETag` and `Last-Modified`. Fresh `If-None-Match` or `If-Modified-Since` requests return `304` before S3 streaming or signed URL generation. Private media keeps `Cache-Control: private, max-age=300` and adds `Vary: Authorization`.
 - Dating, people, host, notifications and safety services use narrow selects on hot paths.
 - `getBlockedUserIds` from `@big-break/database` is the shared hidden-user helper.

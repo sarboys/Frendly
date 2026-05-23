@@ -139,6 +139,7 @@ describe('AdminUsersService unit', () => {
 
   it('sets suspended status and reason', async () => {
     const userUpdate = jest.fn().mockResolvedValue({ id: 'user-1' });
+    const sessionUpdateMany = jest.fn().mockResolvedValue({ count: 2 });
     const userFindUnique = jest
       .fn()
       .mockResolvedValueOnce({ id: 'user-1' })
@@ -154,7 +155,10 @@ describe('AdminUsersService unit', () => {
         findUnique: userFindUnique,
         update: userUpdate,
       },
-      session: { count: jest.fn().mockResolvedValue(1) },
+      session: {
+        updateMany: sessionUpdateMany,
+        count: jest.fn().mockResolvedValue(1),
+      },
       userReport: { count: jest.fn().mockResolvedValue(0) },
     });
 
@@ -166,6 +170,15 @@ describe('AdminUsersService unit', () => {
         status: 'suspended',
         suspendedAt: expect.any(Date),
         suspensionReason: 'spam',
+      },
+    });
+    expect(sessionUpdateMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: expect.any(Date),
       },
     });
     expect(result.status).toBe('suspended');
@@ -277,5 +290,81 @@ describe('AdminUsersService unit', () => {
       },
     });
     expect(result).toEqual({ revokedCount: 2 });
+  });
+
+  it('grants Frendly+ for a manual number of days', async () => {
+    const currentRenewal = new Date('2026-06-10T10:00:00.000Z');
+    const subscriptionUpdate = jest.fn().mockResolvedValue({});
+    const userFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'user-1' })
+      .mockResolvedValueOnce(detailRow({
+        subscriptions: [{
+          id: 'sub-1',
+          plan: 'month',
+          status: 'active',
+          startedAt: now,
+          renewsAt: new Date('2026-06-09T10:00:00.000Z'),
+          trialEndsAt: null,
+        }],
+      }));
+    const service = createService({
+      user: { findUnique: userFindUnique },
+      userSubscription: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'sub-1',
+          plan: 'month',
+          status: 'active',
+          startedAt: now,
+          renewsAt: currentRenewal,
+          trialEndsAt: null,
+        }),
+        update: subscriptionUpdate,
+      },
+      session: { count: jest.fn().mockResolvedValue(0) },
+      userReport: { count: jest.fn().mockResolvedValue(0) },
+    });
+
+    const result = await service.grantFrendlyPlus('user-1', { days: 30 });
+
+    expect(subscriptionUpdate).toHaveBeenCalledWith({
+      where: { id: 'sub-1' },
+      data: {
+        plan: 'month',
+        status: 'active',
+        renewsAt: expect.any(Date),
+        trialEndsAt: null,
+      },
+    });
+    expect(result.plan).toBe('plus');
+  });
+
+  it('revokes active Frendly+ subscriptions', async () => {
+    const subscriptionUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const userFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'user-1' })
+      .mockResolvedValueOnce(detailRow());
+    const service = createService({
+      user: { findUnique: userFindUnique },
+      userSubscription: { updateMany: subscriptionUpdateMany },
+      session: { count: jest.fn().mockResolvedValue(0) },
+      userReport: { count: jest.fn().mockResolvedValue(0) },
+    });
+
+    const result = await service.revokeFrendlyPlus('user-1');
+
+    expect(subscriptionUpdateMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        status: { in: ['active', 'trial', 'canceled'] },
+      },
+      data: {
+        status: 'inactive',
+        renewsAt: expect.any(Date),
+        trialEndsAt: null,
+      },
+    });
+    expect(result.plan).toBe('free');
   });
 });

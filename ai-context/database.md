@@ -26,7 +26,7 @@ Auth and user:
 - `User`, `Profile`, `ProfilePhoto`, `OnboardingPreferences`, `UserSettings`, `UserVerification`.
 - `Session`, `PhoneOtpChallenge`, `TelegramAccount`, `TelegramLoginSession`, `ExternalAuthAccount`, `AuthAuditEvent`.
 - Partner auth: `PartnerAccount`, `PartnerSession`.
-- Admin auth: `AdminUser`, `AdminSession`, `AdminAuditEvent`.
+- Admin auth and analytics: `AdminUser`, `AdminSession`, `AdminAuditEvent`, `AdminDashboardSnapshot`.
 
 Discovery and events:
 
@@ -73,6 +73,7 @@ Communities:
 Safety and monetization:
 
 - `DatingAction`, `DatingUsageEvent`, `UserFollow`, `ProfileReaction`, `TrustedContact`, `SafetySosAlert`, `UserReport`, `UserBlock`, `UserSubscription`.
+- Frendly+ plan catalog uses `SubscriptionCatalogPlan` and `SubscriptionCatalogSettings`. `UserSubscription.plan` is a string plan id, not a Prisma enum, so admin can add new durations such as 3 or 6 months without another schema migration.
 - One-time T-Bank payments use `PaymentOrder` with provider `tbank`, product kind `tokens`, unique `orderId`, optional unique provider payment id, amount in kopecks, status, raw status and raw notification. Legacy subscription orders may exist, but new Frendly+ purchases spend tokens instead of creating payment orders.
 - Token balances use `TokenWallet`, `TokenLedgerEntry` and `TokenPromotion`. Purchase idempotency is enforced by unique `TokenLedgerEntry.paymentOrderId`; Frendly+ token purchases use `TokenLedgerReason.subscription_spend`. Frendly season gifts use `TokenLedgerReason.reward_grant`. Paid dating super-likes and rewinds use `TokenLedgerReason.dating_spend`.
 - `DatingUsageEvent` is the server source for dating swipe hour limits, daily free super-like quota, daily rewind quota and paid dating spend history. Kinds are `swipe`, `super_like_free`, `super_like_paid`, `rewind_free` and `rewind_paid`.
@@ -94,6 +95,17 @@ Notifications and async:
 - `Notification`, `PushToken`, `OutboxEvent`, `TelegramBotState`.
 - `NotificationKind.verification` is used for verification approve and return notifications. Payloads use `source=verification` so mobile can refresh profile, verification and subscription state.
 
+Admin analytics:
+
+- `AdminDashboardSnapshot` stores cached dashboard KPI payloads with `computedAt` and `expiresAt`. The admin dashboard uses a 5 minute TTL for aggregate analytics, while recent activity, upcoming meetups and new users stay live bounded queries.
+
+Admin app overlays:
+
+- `AppVersionPolicy` stores forced update policy per platform: enabled flag, minimum supported build, latest build note, store URL and popup copy.
+- `AppPopupCampaign` stores admin-managed popup campaigns with Russian-facing admin fields mapped in API: status, title/body, dismissible flag, priority, optional button action, platform/build filters, Frendly+/verified tri-state filters and city JSON list.
+- `AppPopupTargetUser` stores selected user ids for campaigns where audience is not all users.
+- `AppPopupCampaignStats` stores aggregate impression, CTA click and dismiss counters per campaign.
+
 Public:
 
 - `PublicShare` stores stable public slug for event and Evening session sharing.
@@ -101,6 +113,7 @@ Public:
 ## Important relations
 
 - `User` owns profile, settings, sessions, messages, media, notifications, push tokens and safety records.
+- `User` can be targeted by admin popup campaigns through `AppPopupTargetUser`.
 - `UserVerification` stores the current verification state, step completion flags, selfie/document asset links, `submittedAt`, `reviewedAt` and the latest `reviewNote`. Queue reads use the `status + submittedAt` index.
 - `Event` owns primary chat, participants, requests, attendance, feedback, stories and public shares. It can optionally point to `EveningRoute` via `eveningRouteId` when a meetup is created from a ready or custom route.
 - `Event.requiresVerification` and `Event.requiresFrendlyPlus` gate new entry into a meetup. Both default to `false`; existing participants stay participants when the flags change.
@@ -125,6 +138,8 @@ Public:
 - Dating usage limits read `DatingUsageEvent.userId + kind + createdAt`, `userId + createdAt` and optional `targetUserId + kind + createdAt`. Super-like and rewind daily quotas use the Moscow calendar day; free hourly swipe limit uses a rolling hour.
 - Dating discover interest ranking uses a GIN index on `OnboardingPreferences.interests`.
 - Payment lookup uses `PaymentOrder.orderId` and `PaymentOrder.userId + createdAt`; pending expiry scans use `PaymentOrder.status + expiresAt`.
+- Subscription catalog reads use `SubscriptionCatalogPlan.active + sortOrder`; inactive rows stay for admin history and are hidden from public purchase endpoints.
+- Admin dashboard snapshot reads use `AdminDashboardSnapshot.expiresAt` to avoid recalculating KPI aggregates on every dashboard open.
 - Active promotions use `TokenPromotion.eventId + expiresAt`, `chatId + expiresAt` and `userId + expiresAt`.
 - Drops reward idempotency uses unique `DropRewardEvent.idempotencyKey`. Monthly progress reads use `DropTicket.userId + monthKey + status`. Manual apply reads free active tickets by `userId + dropId + status`.
 - Draw participant snapshots read `DropTicket.dropId + status + assignedAt`; winner lookups use `DropWinner.dropId + reserve + position`.

@@ -2,16 +2,20 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuthController } from './controllers/auth.controller';
 import { AdminAfficheController } from './controllers/admin-affiche.controller';
+import { AdminAppOverlaysController } from './controllers/admin-app-overlays.controller';
 import { AdminCommunitiesController } from './controllers/admin-communities.controller';
+import { AdminDashboardController } from './controllers/admin-dashboard.controller';
 import { AdminAuthController } from './controllers/admin-auth.controller';
 import { AdminDropsController } from './controllers/admin-drops.controller';
 import { AdminEveningController } from './controllers/admin-evening.controller';
 import { AdminMeetupsController } from './controllers/admin-meetups.controller';
 import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
+import { AdminSubscriptionSettingsController } from './controllers/admin-subscription-settings.controller';
 import { AdminUsersController } from './controllers/admin-users.controller';
 import { AdminVerificationController } from './controllers/admin-verification.controller';
 import { AfficheController } from './controllers/affiche.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
+import { AppOverlayController } from './controllers/app-overlay.controller';
 import { ChatsController } from './controllers/chats.controller';
 import { CommunitiesController } from './controllers/communities.controller';
 import { DatingController } from './controllers/dating.controller';
@@ -51,6 +55,7 @@ import { RequestContextMiddleware } from './common/request-context.middleware';
 import { AuthService } from './services/auth.service';
 import { AdminAfficheService } from './services/admin-affiche.service';
 import { AdminCommunitiesService } from './services/admin-communities.service';
+import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AdminAuthService } from './services/admin-auth.service';
 import { AdminEveningAnalyticsService } from './services/admin-evening-analytics.service';
 import { AdminEveningAiService } from './services/admin-evening-ai.service';
@@ -61,6 +66,7 @@ import { AdminUsersService } from './services/admin-users.service';
 import { AdminVenueService } from './services/admin-venue.service';
 import { AfficheService } from './services/affiche.service';
 import { AfterDarkService } from './services/after-dark.service';
+import { AppOverlayService } from './services/app-overlay.service';
 import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
 import { DatingService } from './services/dating.service';
@@ -106,16 +112,20 @@ import { VerificationService } from './services/verification.service';
 @Module({
   controllers: [
     AdminAfficheController,
+    AdminAppOverlaysController,
     AdminCommunitiesController,
+    AdminDashboardController,
     AdminEveningController,
     AdminMeetupsController,
     AdminAuthController,
     AdminDropsController,
     AdminPartnerAccountsController,
+    AdminSubscriptionSettingsController,
     AdminUsersController,
     AdminVerificationController,
     AfficheController,
     AfterDarkController,
+    AppOverlayController,
     AuthController,
     ChatsController,
     CommunitiesController,
@@ -154,6 +164,7 @@ import { VerificationService } from './services/verification.service';
     PartnerAuthGuard,
     AdminAfficheService,
     AdminCommunitiesService,
+    AdminDashboardService,
     AdminEveningAnalyticsService,
     AdminEveningAiService,
     AdminEveningRouteService,
@@ -163,6 +174,7 @@ import { VerificationService } from './services/verification.service';
     AdminVenueService,
     AfficheService,
     AfterDarkService,
+    AppOverlayService,
     AdminAuthService,
     AuthService,
     ChatsService,

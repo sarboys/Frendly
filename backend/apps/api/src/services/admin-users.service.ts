@@ -8,8 +8,10 @@ import { VerificationService } from './verification.service';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const ACTIVE_SUBSCRIPTION_STATUSES = ['active', 'trial', 'canceled'] as const;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 type CurrentSubscription = {
+  id?: string;
   plan: string;
   status: string;
   startedAt: Date | null;
@@ -236,6 +238,76 @@ export class AdminUsersService {
         suspensionReason: this.optionalText(body.reason),
       },
     });
+    await this.prismaService.client.session.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
+    return this.getUser(userId);
+  }
+
+  async grantFrendlyPlus(userId: string, body: Record<string, unknown> = {}) {
+    await this.ensureUserExists(userId);
+    const days = this.parseGrantDays(body.days);
+    const now = new Date();
+    const current = await this.prismaService.client.userSubscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    const active = this.isSubscriptionActive(current);
+    const baseTime = active
+      ? Math.max(
+          current?.renewsAt?.getTime() ?? 0,
+          current?.trialEndsAt?.getTime() ?? 0,
+          now.getTime(),
+        )
+      : now.getTime();
+    const renewsAt = new Date(baseTime + days * DAY_MS);
+
+    if (current && active) {
+      await this.prismaService.client.userSubscription.update({
+        where: { id: current.id },
+        data: {
+          plan: 'month',
+          status: 'active',
+          renewsAt,
+          trialEndsAt: null,
+        },
+      });
+    } else {
+      await this.prismaService.client.userSubscription.create({
+        data: {
+          userId,
+          plan: 'month',
+          status: 'active',
+          startedAt: now,
+          renewsAt,
+          trialEndsAt: null,
+        },
+      });
+    }
+
+    return this.getUser(userId);
+  }
+
+  async revokeFrendlyPlus(userId: string) {
+    await this.ensureUserExists(userId);
+    await this.prismaService.client.userSubscription.updateMany({
+      where: {
+        userId,
+        status: { in: [...ACTIVE_SUBSCRIPTION_STATUSES] },
+      },
+      data: {
+        status: 'inactive',
+        renewsAt: new Date(),
+        trialEndsAt: null,
+      },
+    });
 
     return this.getUser(userId);
   }
@@ -430,6 +502,234 @@ export class AdminUsersService {
     );
   }
 
+  async listUserActivity(userId: string, query: Record<string, unknown> = {}) {
+    const user = await this.prismaService.client.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        displayName: true,
+        createdAt: true,
+        verified: true,
+        suspendedAt: true,
+      },
+    });
+    if (!user) {
+      throw new ApiError(404, 'admin_user_not_found', 'User not found');
+    }
+
+    const limit = this.parseLimit(query.limit);
+    const [
+      hostedEvents,
+      participations,
+      reportsSent,
+      reportsReceived,
+      payments,
+      subscriptions,
+      tokenEntries,
+      verification,
+      messages,
+    ] = await Promise.all([
+      this.prismaService.client.event.findMany({
+        where: { hostId: userId },
+        select: { id: true, title: true, createdAt: true },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+      this.prismaService.client.eventParticipant.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          joinedAt: true,
+          event: { select: { id: true, title: true } },
+        },
+        orderBy: [{ joinedAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+      this.prismaService.client.userReport.findMany({
+        where: { reporterId: userId },
+        select: {
+          id: true,
+          reason: true,
+          createdAt: true,
+          targetUser: { select: { id: true, displayName: true } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+      this.prismaService.client.userReport.findMany({
+        where: { targetUserId: userId },
+        select: {
+          id: true,
+          reason: true,
+          createdAt: true,
+          reporter: { select: { id: true, displayName: true } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+      this.prismaService.client.paymentOrder.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          amountKopecks: true,
+          status: true,
+          productKind: true,
+          createdAt: true,
+          confirmedAt: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+      this.prismaService.client.userSubscription.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          plan: true,
+          status: true,
+          startedAt: true,
+          renewsAt: true,
+          trialEndsAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+      this.prismaService.client.tokenLedgerEntry.findMany({
+        where: { wallet: { userId } },
+        select: {
+          id: true,
+          amount: true,
+          reason: true,
+          createdAt: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      }),
+      this.prismaService.client.userVerification.findUnique({
+        where: { userId },
+        select: {
+          status: true,
+          submittedAt: true,
+          reviewedAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prismaService.client.message.findMany({
+        where: { senderId: userId },
+        select: {
+          id: true,
+          chatId: true,
+          createdAt: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: Math.min(limit, 10),
+      }),
+    ]);
+
+    const items = [
+      this.userActivity(
+        `registration:${user.id}`,
+        'registration',
+        'Регистрация',
+        `${user.displayName} зарегистрировался`,
+        user.createdAt,
+        `/users/${user.id}`,
+      ),
+      ...hostedEvents.map((event) => this.userActivity(
+        `hosted_meetup:${event.id}`,
+        'hosted_meetup',
+        'Создал встречу',
+        event.title,
+        event.createdAt,
+        `/meetups/${event.id}`,
+      )),
+      ...participations.map((participant) => this.userActivity(
+        `joined_meetup:${participant.id}`,
+        'joined_meetup',
+        'Записался на встречу',
+        participant.event.title,
+        participant.joinedAt,
+        `/meetups/${participant.event.id}`,
+      )),
+      ...reportsSent.map((report) => this.userActivity(
+        `report_sent:${report.id}`,
+        'report_sent',
+        'Отправил жалобу',
+        `${report.targetUser.displayName}: ${report.reason}`,
+        report.createdAt,
+        `/reports/${report.id}`,
+      )),
+      ...reportsReceived.map((report) => this.userActivity(
+        `report_received:${report.id}`,
+        'report_received',
+        'Получил жалобу',
+        `${report.reporter.displayName}: ${report.reason}`,
+        report.createdAt,
+        `/reports/${report.id}`,
+      )),
+      ...payments.map((payment) => this.userActivity(
+        `payment:${payment.id}`,
+        'payment',
+        'Платеж',
+        `${payment.productKind} · ${payment.status} · ${Math.round(payment.amountKopecks / 100).toLocaleString('ru-RU')} ₽`,
+        payment.confirmedAt ?? payment.createdAt,
+        '/payments',
+      )),
+      ...subscriptions.map((subscription) => this.userActivity(
+        `frendly_plus:${subscription.id}`,
+        'frendly_plus',
+        'Frendly+',
+        `${subscription.plan} · ${subscription.status}`,
+        subscription.updatedAt,
+        `/users/${userId}`,
+      )),
+      ...tokenEntries.map((entry) => this.userActivity(
+        `tokens:${entry.id}`,
+        'tokens',
+        'Токены',
+        `${entry.reason} · ${entry.amount}`,
+        entry.createdAt,
+        `/users/${userId}`,
+      )),
+      ...(verification ? [
+        this.userActivity(
+          `verification:${userId}`,
+          'verification',
+          'Верификация',
+          verification.status,
+          verification.reviewedAt ?? verification.submittedAt ?? verification.updatedAt,
+          `/users/${userId}`,
+        ),
+      ] : []),
+      ...messages.map((message) => this.userActivity(
+        `message:${message.id}`,
+        'message',
+        'Сообщение',
+        `Чат ${message.chatId}`,
+        message.createdAt,
+        null,
+      )),
+      ...(user.suspendedAt ? [
+        this.userActivity(
+          `suspended:${user.id}`,
+          'suspended',
+          'Блокировка',
+          'Пользователь заблокирован',
+          user.suspendedAt,
+          `/users/${user.id}`,
+        ),
+      ] : []),
+    ]
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .slice(0, limit);
+
+    return {
+      items,
+      nextCursor: null,
+    };
+  }
+
   private parseLimit(value: unknown) {
     const text = this.optionalText(value);
     if (!text) {
@@ -511,6 +811,16 @@ export class AdminUsersService {
     }
 
     throw new ApiError(400, code, 'Boolean is invalid');
+  }
+
+  private parseGrantDays(value: unknown) {
+    const text = typeof value === 'number' ? String(value) : this.optionalText(value);
+    const days = Number(text);
+    if (!Number.isInteger(days) || days < 1 || days > 3650) {
+      throw new ApiError(400, 'admin_frendly_plus_days_invalid', 'Frendly+ days value is invalid');
+    }
+
+    return days;
   }
 
   private page<T, R>(
@@ -623,6 +933,7 @@ export class AdminUsersService {
         orderBy: { createdAt: 'desc' as const },
         take: 1,
         select: {
+          id: true,
           plan: true,
           status: true,
           startedAt: true,
@@ -985,5 +1296,23 @@ export class AdminUsersService {
 
   private hasOwn(source: Record<string, unknown>, key: string) {
     return Object.prototype.hasOwnProperty.call(source, key);
+  }
+
+  private userActivity(
+    id: string,
+    type: string,
+    title: string,
+    description: string,
+    createdAt: Date,
+    href: string | null,
+  ) {
+    return {
+      id,
+      type,
+      title,
+      description,
+      createdAt: createdAt.toISOString(),
+      href,
+    };
   }
 }

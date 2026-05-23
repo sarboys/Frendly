@@ -43,6 +43,19 @@ export class AdminUsersController {
     return this.adminUsersService.suspendUser(userId, body);
   }
 
+  @Post(':userId/frendly-plus')
+  grantFrendlyPlus(
+    @Param('userId') userId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.adminUsersService.grantFrendlyPlus(userId, body);
+  }
+
+  @Post(':userId/frendly-plus/revoke')
+  revokeFrendlyPlus(@Param('userId') userId: string) {
+    return this.adminUsersService.revokeFrendlyPlus(userId);
+  }
+
   @Post(':userId/unsuspend')
   unsuspendUser(@Param('userId') userId: string) {
     return this.adminUsersService.unsuspendUser(userId);
@@ -75,5 +88,13 @@ export class AdminUsersController {
     @Query() query: Record<string, unknown>,
   ) {
     return this.adminUsersService.listUserAudit(userId, query);
+  }
+
+  @Get(':userId/activity')
+  listUserActivity(
+    @Param('userId') userId: string,
+    @Query() query: Record<string, unknown>,
+  ) {
+    return this.adminUsersService.listUserActivity(userId, query);
   }
 }

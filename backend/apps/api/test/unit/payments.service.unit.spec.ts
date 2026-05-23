@@ -25,6 +25,37 @@ describe('PaymentsService unit', () => {
       ...overrides.tbank,
     };
     const subscription: any = {
+      getCatalog: jest.fn().mockResolvedValue({
+        plans: [
+          {
+            id: 'month',
+            label: 'Месячный',
+            description: 'Frendly+ на месяц',
+            priceRub: 799,
+            priceMonthlyRub: 799,
+            tokenCost: 799,
+            tokenMonthlyCost: 799,
+            trialDays: 0,
+            durationDays: 30,
+            badge: null,
+            benefits: [],
+          },
+          {
+            id: 'year',
+            label: 'Годовой',
+            description: 'Frendly+ на год',
+            priceRub: 4788,
+            priceMonthlyRub: 399,
+            tokenCost: 4788,
+            tokenMonthlyCost: 399,
+            trialDays: 0,
+            durationDays: 365,
+            badge: '-50%',
+            benefits: [],
+          },
+        ],
+        plusBenefits: [],
+      }),
       activatePaidSubscription: jest.fn(),
       ...overrides.subscription,
     };
@@ -116,6 +147,51 @@ describe('PaymentsService unit', () => {
         SuccessURL: expect.stringContaining('frendly://payment/success'),
       }),
     );
+  });
+
+  it('returns editable subscription catalog in payments catalog', async () => {
+    const { service, tbank, subscription } = makeService({
+      tbank: {
+        isEnabled: jest.fn().mockReturnValue(false),
+      },
+      subscription: {
+        getCatalog: jest.fn().mockResolvedValue({
+          plans: [
+            {
+              id: 'half-year',
+              label: '6 месяцев',
+              priceRub: 2994,
+              priceMonthlyRub: 499,
+              tokenCost: 2994,
+              tokenMonthlyCost: 499,
+              trialDays: 0,
+              durationDays: 180,
+              badge: '-38%',
+              benefits: ['Приоритет в радаре'],
+            },
+          ],
+          plusBenefits: ['Больше встреч'],
+        }),
+      },
+    });
+
+    await expect(service.getCatalog()).resolves.toMatchObject({
+      tbankEnabled: false,
+      provider: null,
+      subscriptions: [
+        {
+          id: 'half-year',
+          productKind: 'subscription',
+          tokenCost: 2994,
+          tokenMonthlyCost: 499,
+          durationDays: 180,
+          benefits: ['Приоритет в радаре'],
+        },
+      ],
+      plusBenefits: ['Больше встреч'],
+    });
+    expect(tbank.isEnabled).toHaveBeenCalled();
+    expect(subscription.getCatalog).toHaveBeenCalled();
   });
 
   it('rejects direct T-Bank subscription payment init', async () => {

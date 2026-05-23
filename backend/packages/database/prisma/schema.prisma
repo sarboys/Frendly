@@ -68,6 +68,35 @@ enum PushProvider {
   apns
 }
 
+enum AppPlatform {
+  ios
+  android
+}
+
+enum AppPopupCampaignStatus {
+  draft
+  active
+  paused
+  archived
+}
+
+enum AppPopupAudienceKind {
+  all
+  selected_users
+}
+
+enum AppPopupTriState {
+  any
+  yes
+  no
+}
+
+enum AppPopupButtonAction {
+  store_update
+  app_route
+  external_url
+}
+
 enum OutboxStatus {
   pending
   processing
@@ -247,11 +276,6 @@ enum ReportStatus {
   resolved
 }
 
-enum SubscriptionPlan {
-  month
-  year
-}
-
 enum SubscriptionStatus {
   inactive
   trial
@@ -399,6 +423,7 @@ model User {
   eveningAfterPartyFeedbacks         EveningAfterPartyFeedback[]
   eveningAfterPartyPhotos            EveningAfterPartyPhoto[]
   partnerOfferCodes                  PartnerOfferCode[]
+  appPopupTargets                    AppPopupTargetUser[]
 
   @@index([displayName, id])
   @@index([status, createdAt, id])
@@ -452,6 +477,17 @@ model AdminAuditEvent {
   @@index([adminUserId, createdAt, id])
   @@index([action, createdAt, id])
   @@index([path, createdAt, id])
+}
+
+model AdminDashboardSnapshot {
+  id         String   @id
+  payload    Json
+  computedAt DateTime
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([expiresAt])
 }
 
 model UserSettings {
@@ -1747,7 +1783,7 @@ model UserSubscription {
   id          String             @id @default(cuid())
   userId      String
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan        SubscriptionPlan
+  plan        String
   status      SubscriptionStatus @default(inactive)
   startedAt   DateTime?
   renewsAt    DateTime?
@@ -1760,6 +1796,33 @@ model UserSubscription {
   @@index([userId, status, trialEndsAt])
   @@index([status, renewsAt, id])
   @@index([status, trialEndsAt, id])
+}
+
+model SubscriptionCatalogPlan {
+  id               String   @id
+  label            String
+  description      String   @default("")
+  priceRub         Int
+  priceMonthlyRub  Int
+  tokenCost        Int
+  tokenMonthlyCost Int
+  trialDays        Int      @default(0)
+  durationDays     Int
+  badge            String?
+  benefits         String[] @default([])
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
+model SubscriptionCatalogSettings {
+  id        String   @id
+  benefits  String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PaymentOrder {
@@ -2330,6 +2393,71 @@ model PushToken {
   @@index([userId, disabledAt])
   @@index([userId, deviceId])
   @@index([userId, disabledAt, updatedAt, id])
+}
+
+model AppVersionPolicy {
+  id                String      @id @default(cuid())
+  platform          AppPlatform @unique
+  enabled           Boolean     @default(false)
+  minSupportedBuild Int         @default(0)
+  latestBuild       Int?
+  storeUrl          String?
+  title             String      @default("Обновите Frendly")
+  body              String      @default("Чтобы продолжить, установите последнюю версию приложения.")
+  buttonLabel       String      @default("Обновить")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([enabled, platform])
+}
+
+model AppPopupCampaign {
+  id            String                 @id @default(cuid())
+  internalName  String
+  status        AppPopupCampaignStatus @default(draft)
+  title         String
+  body          String
+  dismissible   Boolean                @default(true)
+  priority      Int                    @default(0)
+  buttonEnabled Boolean                @default(false)
+  buttonLabel   String?
+  buttonAction  AppPopupButtonAction?
+  buttonValue   String?
+  audienceKind  AppPopupAudienceKind   @default(all)
+  platform      AppPlatform?
+  minBuild      Int?
+  maxBuild      Int?
+  frendlyPlus   AppPopupTriState       @default(any)
+  verified      AppPopupTriState       @default(any)
+  cityNames     Json                   @default("[]")
+  targetUsers   AppPopupTargetUser[]
+  stats         AppPopupCampaignStats?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([status, priority, createdAt])
+  @@index([platform, status])
+}
+
+model AppPopupTargetUser {
+  id         String           @id @default(cuid())
+  campaignId String
+  userId     String
+  campaign   AppPopupCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+
+  @@unique([campaignId, userId])
+  @@index([userId, campaignId])
+}
+
+model AppPopupCampaignStats {
+  campaignId      String           @id
+  campaign        AppPopupCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  impressionCount Int              @default(0)
+  ctaClickCount   Int              @default(0)
+  dismissCount    Int              @default(0)
+  updatedAt       DateTime         @updatedAt
 }
 
 model OutboxEvent {

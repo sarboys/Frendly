@@ -186,6 +186,119 @@ describe('SubscriptionService unit', () => {
     );
   });
 
+  it('returns active catalog plans and editable benefits from database', async () => {
+    const prismaClient: any = {
+      subscriptionCatalogPlan: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'half-year',
+            label: '6 месяцев',
+            priceRub: 2994,
+            priceMonthlyRub: 499,
+            tokenCost: 2994,
+            tokenMonthlyCost: 499,
+            trialDays: 0,
+            durationDays: 180,
+            badge: '-38%',
+            benefits: ['Приоритет в радаре'],
+          },
+        ]),
+      },
+      subscriptionCatalogSettings: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'frendly_plus',
+          benefits: ['Больше встреч', 'Больше лайков'],
+        }),
+      },
+    };
+    const service = new SubscriptionService(
+      { client: prismaClient } as any,
+      tokensService as any,
+    );
+
+    await expect(service.getPlans()).resolves.toEqual({
+      plans: [
+        expect.objectContaining({
+          id: 'half-year',
+          label: '6 месяцев',
+          tokenCost: 2994,
+          tokenMonthlyCost: 499,
+          durationDays: 180,
+          benefits: ['Приоритет в радаре'],
+        }),
+      ],
+      plusBenefits: ['Больше встреч', 'Больше лайков'],
+    });
+    expect(prismaClient.subscriptionCatalogPlan.findMany).toHaveBeenCalledWith({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+  });
+
+  it('spends tokens using custom admin catalog plan price', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-13T10:00:00.000Z').getTime());
+    const prismaClient: any = {
+      subscriptionCatalogPlan: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'half-year',
+            label: '6 месяцев',
+            priceRub: 2994,
+            priceMonthlyRub: 499,
+            tokenCost: 2994,
+            tokenMonthlyCost: 499,
+            trialDays: 0,
+            durationDays: 180,
+            badge: '-38%',
+            benefits: [],
+            active: true,
+            sortOrder: 1,
+          },
+        ]),
+      },
+      userSubscription: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          plan: 'half-year',
+          status: 'active',
+          startedAt: new Date('2026-05-13T10:00:00.000Z'),
+          renewsAt: new Date('2026-11-09T10:00:00.000Z'),
+          trialEndsAt: null,
+        }),
+      },
+      $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
+    };
+    tokensService.spendTokens.mockResolvedValue({ id: 'ledger-1' });
+    const service = new SubscriptionService(
+      { client: prismaClient } as any,
+      tokensService as any,
+      dropsRewardService as any,
+    );
+
+    await service.subscribeWithTokens('user-1', { plan: 'half-year' });
+
+    expect(tokensService.spendTokens).toHaveBeenCalledWith(
+      'user-1',
+      {
+        amount: 2994,
+        reason: 'subscription_spend',
+      },
+      prismaClient,
+    );
+    expect(prismaClient.userSubscription.create).toHaveBeenCalledWith({
+      data: {
+        userId: 'user-1',
+        plan: 'half-year',
+        status: 'active',
+        startedAt: new Date('2026-05-13T10:00:00.000Z'),
+        renewsAt: new Date('2026-11-09T10:00:00.000Z'),
+        trialEndsAt: null,
+      },
+    });
+  });
+
   it('spends tokens and extends an active Frendly+ subscription', async () => {
     jest
       .spyOn(Date, 'now')

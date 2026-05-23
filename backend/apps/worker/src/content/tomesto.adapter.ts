@@ -441,7 +441,8 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     if (
       url.pathname.includes('/reservations/') ||
       url.pathname.includes('/favorite') ||
-      url.pathname.includes('/occurrences/')
+      url.pathname.includes('/occurrences/') ||
+      url.pathname.split('/').filter(Boolean).at(-1) === 'book'
     ) {
       return null;
     }

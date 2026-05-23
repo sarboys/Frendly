@@ -4,7 +4,7 @@ export type PaymentProductKindValue = 'subscription' | 'tokens';
 
 export type SubscriptionProduct = {
   kind: 'subscription';
-  id: 'month' | 'year';
+  id: string;
   label: string;
   description: string;
   amountKopecks: number;
@@ -15,6 +15,7 @@ export type SubscriptionProduct = {
   trialDays: number;
   durationDays: number;
   badge: string | null;
+  benefits: string[];
 };
 
 export type TokenPackProduct = {
@@ -53,6 +54,7 @@ export const subscriptionProducts: readonly SubscriptionProduct[] = [
     trialDays: 0,
     durationDays: 30,
     badge: null,
+    benefits: [],
   },
   {
     kind: 'subscription',
@@ -67,7 +69,14 @@ export const subscriptionProducts: readonly SubscriptionProduct[] = [
     trialDays: 0,
     durationDays: 365,
     badge: '-50%',
+    benefits: [],
   },
+];
+
+export const defaultPlusBenefits = [
+  'Больше встреч',
+  'Больше лайков',
+  'Приоритет в радаре',
 ];
 
 export const tokenPackProducts: readonly TokenPackProduct[] = [

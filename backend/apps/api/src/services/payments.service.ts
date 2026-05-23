@@ -15,7 +15,6 @@ import {
   type PaymentProduct,
   type PaymentProductKindValue,
   findPaymentProduct,
-  subscriptionProducts,
   tokenPackProducts,
   tokenPromotionOptions,
 } from './payment-catalog';
@@ -37,20 +36,27 @@ export class PaymentsService {
     private readonly tokensService: TokensService,
   ) {}
 
-  getCatalog() {
+  async getCatalog() {
     const tbankEnabled = this.tbank.isEnabled();
+    const subscriptionCatalog = await this.subscriptionService.getCatalog();
     return {
       tbankEnabled,
       provider: tbankEnabled ? 'tbank' : null,
-      subscriptions: subscriptionProducts.map((product) => ({
+      subscriptions: subscriptionCatalog.plans.map((product) => ({
         id: product.id,
-        productKind: product.kind,
+        productKind: 'subscription',
         label: product.label,
+        description: product.description,
         priceRub: product.priceRub,
         priceMonthlyRub: product.priceMonthlyRub,
+        tokenCost: product.tokenCost,
+        tokenMonthlyCost: product.tokenMonthlyCost,
         trialDays: product.trialDays,
+        durationDays: product.durationDays,
         badge: product.badge,
+        benefits: product.benefits,
       })),
+      plusBenefits: subscriptionCatalog.plusBenefits,
       tokenPacks: tokenPackProducts.map((product) => ({
         id: product.id,
         productKind: product.kind,
