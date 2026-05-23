@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
 
@@ -43,6 +43,8 @@ type DashboardActivity = {
 export class AdminDashboardService {
   constructor(
     private readonly prismaService: PrismaService,
+    @Optional()
+    @Inject('ADMIN_DASHBOARD_CLOCK')
     private readonly clock: Clock = () => new Date(),
   ) {}
 

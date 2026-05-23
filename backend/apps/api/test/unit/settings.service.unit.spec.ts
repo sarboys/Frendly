@@ -86,6 +86,30 @@ describe('SettingsService unit', () => {
     );
   });
 
+  it('keeps new users discoverable by default when settings are created', async () => {
+    const upsert = jest.fn().mockResolvedValue(settingsRow);
+    const service = new SettingsService({
+      client: {
+        userSettings: {
+          upsert,
+        },
+      },
+    } as any);
+
+    await service.updateSettings('user-me', {
+      allowPush: true,
+    });
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          userId: 'user-me',
+          discoverable: true,
+        }),
+      }),
+    );
+  });
+
   it('rejects testing access without an explicit env flag', async () => {
     delete process.env.ENABLE_TESTING_ACCESS;
     const service = new SettingsService({ client: {} } as any);

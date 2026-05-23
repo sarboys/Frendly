@@ -222,6 +222,24 @@ describe('dating api flows', () => {
     );
   });
 
+  it('does not list hidden profiles in dating discover', async () => {
+    await prisma.userSettings.update({
+      where: { userId: 'user-sonya' },
+      data: { discoverable: false },
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/dating/discover')
+      .set('authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(
+      response.body.items.some(
+        (item: { userId: string }) => item.userId === 'user-sonya',
+      ),
+    ).toBe(false);
+  });
+
   it('filters discover profiles on the backend', async () => {
     const response = await request(app.getHttpServer())
       .get('/dating/discover')
