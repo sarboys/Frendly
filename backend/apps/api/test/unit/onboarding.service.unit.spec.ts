@@ -46,6 +46,58 @@ describe('OnboardingService unit', () => {
     });
   });
 
+  it('returns uploaded profile photos with onboarding state', async () => {
+    const onboardingUpsert = jest.fn().mockResolvedValue({
+      intent: 'dating',
+      gender: 'female',
+      birthDate: null,
+      city: 'Москва',
+      area: 'Покровка',
+      interests: ['Кофе'],
+      vibe: 'calm',
+      user: {
+        email: null,
+        phoneNumber: '+79990000000',
+        profile: {
+          photos: [
+            {
+              id: 'photo-1',
+              sortOrder: 0,
+              mediaAsset: {
+                id: 'asset-1',
+                kind: 'avatar',
+                mimeType: 'image/jpeg',
+                byteSize: 1200,
+                durationMs: null,
+                publicUrl: 'https://cdn.test/photo-1.jpg',
+                variants: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+    const client = {
+      session: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      onboardingPreferences: {
+        upsert: onboardingUpsert,
+      },
+    };
+    const service = new OnboardingService({ client } as any);
+
+    await expect(service.getOnboarding('user-me')).resolves.toMatchObject({
+      photos: [
+        {
+          id: 'photo-1',
+          url: 'https://cdn.test/photo-1.jpg',
+          order: 0,
+        },
+      ],
+    });
+  });
+
   it('stores birth date and updates profile age from onboarding', async () => {
     const birthDate = new Date('2000-04-24T00:00:00.000Z');
     const onboardingUpsert = jest.fn().mockResolvedValue({

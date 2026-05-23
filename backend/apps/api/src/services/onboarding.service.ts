@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { ApiError } from '../common/api-error';
+import { mapProfilePhoto } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 
 type SessionProvider =
@@ -25,6 +26,28 @@ const onboardingResponseSelect = {
       displayName: true,
       email: true,
       phoneNumber: true,
+      profile: {
+        select: {
+          photos: {
+            select: {
+              id: true,
+              sortOrder: true,
+              mediaAsset: {
+                select: {
+                  id: true,
+                  kind: true,
+                  mimeType: true,
+                  byteSize: true,
+                  durationMs: true,
+                  publicUrl: true,
+                  variants: true,
+                },
+              },
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.OnboardingPreferencesSelect;
@@ -42,6 +65,9 @@ function mapOnboarding(onboarding: {
     displayName: string | null;
     email: string | null;
     phoneNumber: string | null;
+    profile?: {
+      photos?: Array<Parameters<typeof mapProfilePhoto>[0]>;
+    } | null;
   };
   requiredContact?: 'email' | 'phone' | null;
 }) {
@@ -60,6 +86,9 @@ function mapOnboarding(onboarding: {
     email: onboarding.user?.email ?? null,
     phoneNumber: onboarding.user?.phoneNumber ?? null,
     requiredContact: onboarding.requiredContact ?? null,
+    photos: (onboarding.user?.profile?.photos ?? []).map((photo) =>
+      mapProfilePhoto(photo),
+    ),
   };
 }
 
