@@ -22,6 +22,7 @@ const onboardingResponseSelect = {
   completedAt: true,
   user: {
     select: {
+      displayName: true,
       email: true,
       phoneNumber: true,
     },
@@ -38,12 +39,15 @@ function mapOnboarding(onboarding: {
   vibe: string | null;
   completedAt?: Date | string | null;
   user?: {
+    displayName: string | null;
     email: string | null;
     phoneNumber: string | null;
   };
   requiredContact?: 'email' | 'phone' | null;
 }) {
   return {
+    displayName: onboarding.user?.displayName ?? null,
+    name: onboarding.user?.displayName ?? null,
     intent: onboarding.intent,
     gender: onboarding.gender,
     birthDate: formatDateOnly(onboarding.birthDate),
@@ -159,6 +163,22 @@ function normalizePhoneNumber(value: unknown) {
   }
 
   throw new ApiError(400, 'invalid_phone_number', 'phoneNumber is invalid');
+}
+
+function normalizeDisplayName(value: unknown) {
+  if (value == null) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new ApiError(400, 'invalid_display_name', 'displayName must be a string');
+  }
+
+  const displayName = value.trim();
+  if (!displayName) {
+    throw new ApiError(400, 'invalid_display_name', 'displayName is required');
+  }
+  return displayName;
 }
 
 function requiredContactFor(provider: SessionProvider, user: {
@@ -307,6 +327,7 @@ export class OnboardingService {
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: {
+            displayName: true,
             email: true,
             phoneNumber: true,
           },
@@ -334,7 +355,16 @@ export class OnboardingService {
           await this.assertPhoneAvailable(userId, phoneNumber, tx);
         }
 
+        const hasDisplayName =
+          Object.prototype.hasOwnProperty.call(body, 'displayName') ||
+          Object.prototype.hasOwnProperty.call(body, 'name');
+        const displayName = hasDisplayName
+          ? normalizeDisplayName(body.displayName ?? body.name)
+          : undefined;
         const userUpdate: Prisma.UserUpdateInput = {};
+        if (displayName !== undefined) {
+          userUpdate.displayName = displayName;
+        }
         if (email !== undefined) {
           userUpdate.email = email;
         }
