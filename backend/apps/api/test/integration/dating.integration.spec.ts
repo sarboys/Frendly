@@ -23,6 +23,10 @@ describe('dating api flows', () => {
     date.setUTCHours(hourUtc, minute, 0, 0);
     return date.toISOString();
   };
+  const manualEventLocation = {
+    latitude: 55.756,
+    longitude: 37.64,
+  };
 
   const grantPlus = (userId: string, id: string) =>
     prisma.userSubscription.create({
@@ -526,6 +530,7 @@ describe('dating api flows', () => {
         emoji: '💘',
         vibe: 'Свидание',
         place: 'Покровка 7',
+        ...manualEventLocation,
         startsAt: futureIso(1, 18, 30),
         capacity: 8,
         priceMode: 'host_pays',
@@ -558,6 +563,7 @@ describe('dating api flows', () => {
         emoji: '💘',
         vibe: 'Свидание',
         place: 'Покровка 7',
+        ...manualEventLocation,
         startsAt: futureIso(1, 18, 30),
         capacity: 2,
         priceMode: 'host_pays',
@@ -584,6 +590,7 @@ describe('dating api flows', () => {
         emoji: '💘',
         vibe: 'Шумно',
         place: 'Покровка 7',
+        ...manualEventLocation,
         startsAt: futureIso(1, 18, 30),
         capacity: 8,
         visibilityMode: 'public',
@@ -624,6 +631,7 @@ describe('dating api flows', () => {
         emoji: '💘',
         vibe: 'Свидание',
         place: 'Покровка 7',
+        ...manualEventLocation,
         startsAt: futureIso(1, 18, 30),
         capacity: 2,
         priceMode: 'host_pays',
@@ -680,6 +688,7 @@ describe('dating api flows', () => {
         emoji: '💘',
         vibe: 'Свидание',
         place: 'Покровка 7',
+        ...manualEventLocation,
         startsAt: futureIso(1, 18, 30),
         capacity: 2,
         priceMode: 'host_pays',
@@ -770,6 +779,7 @@ describe('dating api flows', () => {
         emoji: '🖤',
         vibe: 'Шумно',
         place: 'Секретный адрес',
+        ...manualEventLocation,
         startsAt: futureIso(1, 21, 30),
         capacity: 8,
         afterDarkCategory: 'dating',
@@ -812,6 +822,7 @@ describe('dating api flows', () => {
         emoji: '🖤',
         vibe: 'Шумно',
         place: 'Секретный адрес',
+        ...manualEventLocation,
         startsAt: futureIso(1, 21, 30),
         capacity: 10,
         afterDarkCategory: 'dating',
