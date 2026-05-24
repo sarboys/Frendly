@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-24T03:21:38.879Z",
-    "gitCommitHash": "bdb102090bd66c2994dec1dfbe66c4e6583e1c19"
+    "analyzedAt": "2026-05-24T06:10:01.108Z",
+    "gitCommitHash": "583814b7929aecb5c23a347d5b7583a0497a912f"
   },
   "nodes": [
     {
@@ -21462,6 +21462,53 @@
         149
       ],
       "summary": "main in create-hot-path-indexes.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/packages/database/prisma/delete-app-users.ts",
+      "type": "file",
+      "name": "delete-app-users.ts",
+      "filePath": "backend/packages/database/prisma/delete-app-users.ts",
+      "summary": "delete-app-users.ts contains 2 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/prisma/delete-app-users.ts:deleteAppUsers",
+      "type": "function",
+      "name": "deleteAppUsers",
+      "filePath": "backend/packages/database/prisma/delete-app-users.ts",
+      "lineRange": [
+        77,
+        202
+      ],
+      "summary": "deleteAppUsers in delete-app-users.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/packages/database/prisma/delete-app-users.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/packages/database/prisma/delete-app-users.ts",
+      "lineRange": [
+        204,
+        220
+      ],
+      "summary": "main in delete-app-users.ts.",
       "tags": [
         "backend",
         "function",
@@ -43807,6 +43854,20 @@
       "weight": 1
     },
     {
+      "source": "file:backend/packages/database/prisma/delete-app-users.ts",
+      "target": "function:backend/packages/database/prisma/delete-app-users.ts:deleteAppUsers",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/prisma/delete-app-users.ts",
+      "target": "function:backend/packages/database/prisma/delete-app-users.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/enable-postgis-event-geo.ts",
       "target": "function:backend/packages/database/prisma/enable-postgis-event-geo.ts:main",
       "type": "contains",
@@ -54233,6 +54294,7 @@
         "file:backend/packages/database/prisma/backfill-private-media-public-urls.ts",
         "file:backend/packages/database/prisma/cleanup-retention.ts",
         "file:backend/packages/database/prisma/create-hot-path-indexes.ts",
+        "file:backend/packages/database/prisma/delete-app-users.ts",
         "file:backend/packages/database/prisma/enable-postgis-event-geo.ts",
         "file:backend/packages/database/prisma/explain-hot-queries.ts",
         "table:backend/packages/database/prisma/migrations/20260418120000_init/migration.sql",

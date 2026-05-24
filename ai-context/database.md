@@ -166,6 +166,7 @@ cd backend && pnpm --filter @big-break/database db:cleanup:retention
 cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 cd backend && pnpm --filter @big-break/database db:seed:test-accounts
 cd backend && pnpm --filter @big-break/database db:delete:test-accounts
+cd backend && pnpm --filter @big-break/database db:delete:app-users
 ```
 
 ## Seed
@@ -175,6 +176,8 @@ Seed file: `backend/packages/database/prisma/seed.ts`.
 Seed no longer inserts demo data. It only cleans legacy deterministic demo rows from the old seed by known IDs, including demo users, events, communities, chats, Evening routes, test partner, venues and offer. Running `db:seed` must not create mock users, mock events or mock routes.
 
 Test account data is separate from `db:seed`: `backend/packages/database/prisma/seed-test-accounts.ts` creates or deletes the 10 repeated-digit phone accounts, their profiles, photos, Frendly Plus subscriptions, hosted Moscow meetups and test clubs.
+
+Release cleanup for a tester launch is separate from test account cleanup: `backend/packages/database/prisma/delete-app-users.ts` deletes all app `User` rows and related user data, including profiles, chats, messages, likes, follows, meetups, communities, media, auth sessions, verification, push tokens, token/payment/subscription rows, Drops user rows and user Evening session rows. It intentionally leaves admin users/sessions, partner accounts, venues, partner offers, subscription catalog, imported external content, app version policies and popup campaigns.
 
 ## When changing schema
 

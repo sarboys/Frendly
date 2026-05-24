@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "bdb102090bd66c2994dec1dfbe66c4e6583e1c19",
-  "generatedAt": "2026-05-24T03:21:39.468Z",
+  "gitCommitHash": "583814b7929aecb5c23a347d5b7583a0497a912f",
+  "generatedAt": "2026-05-24T06:10:01.701Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -24947,6 +24947,42 @@
       ],
       "exports": [],
       "totalLines": 159,
+      "hasStructuralAnalysis": true
+    },
+    "backend/packages/database/prisma/delete-app-users.ts": {
+      "filePath": "backend/packages/database/prisma/delete-app-users.ts",
+      "contentHash": "c3968e6acd2172d82a2d918a07bff688ee877208bf8d4a0049588c95a48d1e8e",
+      "functions": [
+        {
+          "name": "deleteAppUsers",
+          "params": [
+            "prisma"
+          ],
+          "returnType": "Promise<AppUserCleanupResult>",
+          "exported": true,
+          "lineCount": 126
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "PrismaClient"
+          ]
+        }
+      ],
+      "exports": [
+        "APP_USER_CLEANUP_DATASETS",
+        "deleteAppUsers"
+      ],
+      "totalLines": 228,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/enable-postgis-event-geo.ts": {
