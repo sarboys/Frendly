@@ -246,6 +246,76 @@ describe('OnboardingService unit', () => {
     });
   });
 
+  it('stores onboarding bio on the profile', async () => {
+    const onboardingUpsert = jest.fn().mockResolvedValue({
+      intent: 'dating',
+      gender: 'female',
+      birthDate: null,
+      city: 'Москва',
+      area: 'Покровка',
+      interests: ['Кофе'],
+      vibe: 'calm',
+      user: {
+        email: null,
+        phoneNumber: null,
+        displayName: 'Нина',
+      },
+    });
+    const profileUpsert = jest.fn().mockResolvedValue({
+      bio: 'Люблю камерные встречи и прогулки.',
+    });
+    const userFindUnique = jest.fn().mockResolvedValue({
+      email: null,
+      phoneNumber: null,
+    });
+    const userUpdate = jest.fn().mockResolvedValue({});
+    const client = {
+      session: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      $transaction: jest.fn((callback: any) =>
+        callback({
+          user: {
+            findUnique: userFindUnique,
+            update: userUpdate,
+          },
+          onboardingPreferences: {
+            upsert: onboardingUpsert,
+          },
+          profile: {
+            upsert: profileUpsert,
+          },
+        }),
+      ),
+    };
+    const service = new OnboardingService({ client } as any);
+
+    const result = await service.updateOnboarding('user-me', undefined, {
+      displayName: 'Нина',
+      intent: 'dating',
+      gender: 'female',
+      city: 'Москва',
+      area: 'Покровка',
+      interests: ['Кофе'],
+      vibe: 'calm',
+      bio: 'Люблю камерные встречи и прогулки.',
+    });
+
+    expect(profileUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          bio: 'Люблю камерные встречи и прогулки.',
+        }),
+        create: expect.objectContaining({
+          bio: 'Люблю камерные встречи и прогулки.',
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      bio: 'Люблю камерные встречи и прогулки.',
+    });
+  });
+
   it('rejects duplicate required email before onboarding save', async () => {
     const userFindFirst = jest.fn().mockResolvedValue({ id: 'other-user' });
     const client = {

@@ -82,6 +82,10 @@ const chatMessageSelect = {
   senderId: true,
   text: true,
   clientMessageId: true,
+  locationLatitude: true,
+  locationLongitude: true,
+  locationLabel: true,
+  locationExpiresAt: true,
   createdAt: true,
   sender: {
     select: {
@@ -424,15 +428,16 @@ export class ChatServerService implements OnModuleDestroy {
     const attachmentIds = Array.isArray(payload?.attachmentIds)
       ? payload.attachmentIds.filter((item: unknown): item is string => typeof item === 'string')
       : [];
+    const location = this.parseLocationPayload(payload?.location);
 
     if (!chatId || !clientMessageId) {
       throw new Error('chatId and clientMessageId are required');
     }
 
-    if (text.length === 0 && attachmentIds.length === 0) {
+    if (text.length === 0 && attachmentIds.length === 0 && location == null) {
       throw new ChatServerError(
         'message_payload_empty',
-        'text or attachmentIds are required',
+        'text, attachmentIds or location are required',
       );
     }
 
@@ -528,6 +533,10 @@ export class ChatServerService implements OnModuleDestroy {
             text,
             clientMessageId,
             replyToMessageId,
+            locationLatitude: location?.latitude,
+            locationLongitude: location?.longitude,
+            locationLabel: location?.label,
+            locationExpiresAt: location?.expiresAt,
             attachments: {
               createMany: {
                 data: readyAssets.map((asset) => ({
@@ -595,6 +604,40 @@ export class ChatServerService implements OnModuleDestroy {
         ),
       });
     }
+  }
+
+  private parseLocationPayload(value: unknown) {
+    if (value == null || typeof value !== 'object') {
+      return null;
+    }
+    const raw = value as Record<string, unknown>;
+    const latitude =
+      typeof raw.latitude === 'number' ? raw.latitude : Number(raw.latitude);
+    const longitude =
+      typeof raw.longitude === 'number' ? raw.longitude : Number(raw.longitude);
+    if (
+      !Number.isFinite(latitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      !Number.isFinite(longitude) ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      throw new ChatServerError(
+        'message_location_invalid',
+        'Location coordinates are invalid',
+      );
+    }
+    const label =
+      typeof raw.label === 'string' && raw.label.trim().length > 0
+        ? raw.label.trim().slice(0, 120)
+        : null;
+    return {
+      latitude,
+      longitude,
+      label,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    };
   }
 
   private isUniqueConstraintError(error: unknown) {
@@ -1694,6 +1737,10 @@ export class ChatServerService implements OnModuleDestroy {
     senderId: string;
     text: string;
     clientMessageId: string;
+    locationLatitude?: number | null;
+    locationLongitude?: number | null;
+    locationLabel?: string | null;
+    locationExpiresAt?: Date | null;
     createdAt: Date;
     sender: {
       displayName: string;
@@ -1733,6 +1780,17 @@ export class ChatServerService implements OnModuleDestroy {
       clientMessageId: message.clientMessageId,
       createdAt: message.createdAt.toISOString(),
       ...(eventId != null ? { eventId } : {}),
+      location:
+        message.locationLatitude == null ||
+        message.locationLongitude == null ||
+        message.locationExpiresAt == null
+          ? null
+          : {
+              latitude: message.locationLatitude,
+              longitude: message.locationLongitude,
+              label: message.locationLabel ?? null,
+              expiresAt: message.locationExpiresAt.toISOString(),
+            },
       replyTo: message.replyTo
           ? {
               id: message.replyTo.id,

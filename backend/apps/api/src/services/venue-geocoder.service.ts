@@ -8,7 +8,7 @@ import {
 export type { VenueGeocodeInput, VenueGeocodeResult };
 
 @Injectable()
-export class ContentVenueGeocoderService {
+export class VenueGeocoderService {
   private readonly client = new VenueGeocoderClient();
 
   geocode(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {

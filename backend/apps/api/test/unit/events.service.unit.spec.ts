@@ -81,6 +81,14 @@ describe('EventsService unit', () => {
           eveningRoute: { findUnique: jest.fn() },
           userBlock: { findMany: jest.fn().mockResolvedValue([]) },
           user: { findUnique: userFindUnique },
+          mediaAsset: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'asset-cover-1',
+              ownerId: 'host-1',
+              kind: 'event_cover',
+              status: 'ready',
+            }),
+          },
           community: { findFirst: jest.fn() },
           chat: { findFirst: jest.fn() },
           $transaction: jest.fn(async (handler) => handler(tx)),
@@ -103,6 +111,8 @@ describe('EventsService unit', () => {
     place: 'Brix',
     startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     capacity: 8,
+    latitude: 55.756,
+    longitude: 37.64,
   });
 
   it('caps event search query before building contains filters', async () => {
@@ -1116,6 +1126,27 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('saves request join mode and cover asset on create', async () => {
+    const { service, eventCreate } = makeCreateEventService();
+
+    await service.createEvent('host-1', {
+      ...createEventPayload(),
+      accessMode: 'request',
+      joinMode: 'request',
+      coverAssetId: 'asset-cover-1',
+    });
+
+    expect(eventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          accessMode: 'request',
+          joinMode: 'request',
+          coverAssetId: 'asset-cover-1',
+        }),
+      }),
+    );
+  });
+
   it('rejects verified-only event creation for an unverified host', async () => {
     const { service } = makeCreateEventService({
       hostVerified: false,
@@ -1389,7 +1420,7 @@ describe('EventsService unit', () => {
     });
   });
 
-  it('hides gender-specific events from users with the opposite gender', async () => {
+  it('keeps gender-specific events visible in feed for restricted users', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(
       {
@@ -1412,14 +1443,79 @@ describe('EventsService unit', () => {
     await service.listEvents('user-female', { filter: 'nearby' });
 
     const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
-    expect(where.AND).toEqual(
+    expect(where.AND).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          OR: expect.arrayContaining([
-            { genderMode: 'all' },
-            { genderMode: 'female' },
-          ]),
+          OR: expect.arrayContaining([{ genderMode: 'female' }]),
         }),
+      ]),
+    );
+  });
+
+  it('filters event feed by verification and Frendly+ requirements', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+      requiresVerification: 'true',
+      requiresFrendlyPlus: 'true',
+    } as any);
+
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
+    expect(where.AND).toEqual(
+      expect.arrayContaining([
+        { requiresVerification: true },
+        { requiresFrendlyPlus: true },
+      ]),
+    );
+  });
+
+  it('filters event feed by selected city', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+      city: 'Санкт-Петербург',
+    } as any);
+
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
+    expect(where.AND).toEqual(
+      expect.arrayContaining([
+        { city: 'Санкт-Петербург' },
       ]),
     );
   });
@@ -1478,6 +1574,7 @@ describe('EventsService unit', () => {
       price: 'cheap',
       gender: 'male',
       access: 'request',
+      city: 'Санкт-Петербург',
       date: '2026-05-03',
       latitude: 55.75,
       longitude: 37.61,
@@ -1625,6 +1722,7 @@ describe('EventsService unit', () => {
       price: 'cheap',
       gender: 'male',
       access: 'request',
+      city: 'Санкт-Петербург',
       date: '2026-05-03',
       latitude: 55.75,
       longitude: 37.61,
@@ -1661,6 +1759,7 @@ describe('EventsService unit', () => {
     expect(postgisSql).toContain('e."lifestyle"::text =');
     expect(postgisSql).toContain('e."genderMode"::text =');
     expect(postgisSql).toContain('e."accessMode"::text =');
+    expect(postgisSql).toContain('e."city" =');
     expect(postgisSql).toContain('e."priceAmountTo" BETWEEN');
     expect(postgisSql).toContain('e."hostId" NOT IN');
     expect(eventFindMany).toHaveBeenCalledWith(
@@ -2483,6 +2582,8 @@ describe('EventsService unit', () => {
           startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           capacity: 4,
           distanceKm: 1,
+          latitude: 55.756,
+          longitude: 37.64,
         },
         'create-event-key',
       ),
@@ -2556,6 +2657,8 @@ describe('EventsService unit', () => {
       startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       capacity: 8,
       distanceKm: 1,
+      latitude: 55.756,
+      longitude: 37.64,
       communityId: 'community-1',
     });
 
@@ -2646,6 +2749,108 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('geocodes manual event address when explicit coordinates are missing', async () => {
+    const eventCreate = jest.fn().mockResolvedValue({ id: 'event-created' });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const geocode = jest.fn().mockResolvedValue({
+      lat: 55.7558,
+      lng: 37.6173,
+      address: 'Москва, Тверская улица, 1',
+      provider: 'yandex',
+      query: 'Москва, Тверская улица, 1',
+      precision: 'exact',
+      kind: 'house',
+    });
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+      { geocode } as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+      title: 'Кофе на Тверской',
+    } as any);
+
+    await service.createEvent('user-me', {
+      title: 'Кофе на Тверской',
+      description: 'Короткая встреча после работы',
+      place: 'Кофемания',
+      address: 'Тверская улица, 1',
+      city: 'Москва',
+      vibe: 'Спокойно',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      capacity: 6,
+      distanceKm: 1.7,
+    });
+
+    expect(geocode).toHaveBeenCalledWith({
+      city: 'Москва',
+      venueName: 'Кофемания',
+      address: 'Тверская улица, 1',
+    });
+    expect(eventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          city: 'Москва',
+          latitude: 55.7558,
+          longitude: 37.6173,
+        }),
+      }),
+    );
+  });
+
+  it('rejects manual event creation when geocoder cannot resolve coordinates', async () => {
+    const geocode = jest.fn().mockResolvedValue(null);
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          externalContentItem: { findFirst: jest.fn() },
+          eveningRoute: { findUnique: jest.fn() },
+        },
+      } as any,
+      {} as any,
+      { geocode } as any,
+    );
+
+    await expect(
+      service.createEvent('user-me', {
+        title: 'Кофе на Тверской',
+        description: 'Короткая встреча после работы',
+        place: 'Кофемания',
+        address: 'Непонятное место',
+        city: 'Москва',
+        startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        capacity: 6,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'event_coordinates_required',
+    });
+  });
+
   it('creates an event from a published affiche item', async () => {
     const futureAfficheStartsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const eventCreate = jest.fn().mockResolvedValue({
@@ -2730,109 +2935,95 @@ describe('EventsService unit', () => {
     }));
   });
 
-  it('creates a private evening route when event is created from custom route steps', async () => {
-    const eventCreate = jest.fn().mockResolvedValue({
-      id: 'event-created',
-      title: 'Маршрут на вечер',
-      emoji: '🗺️',
-      startsAt: new Date(Date.now() + 60 * 60 * 1000),
-      place: 'Маршрут: Футбол и хинкали',
+  it('rejects source event without valid coordinates', async () => {
+    const futureAfficheStartsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const externalContentFindFirst = jest.fn().mockResolvedValue({
+      id: 'affiche-1',
+      title: 'Большой стендап',
+      shortSummary: 'Комики на сцене',
+      category: 'comedy',
+      venueName: 'Клуб',
+      address: 'Тверская 1',
+      city: 'Москва',
+      startsAt: futureAfficheStartsAt,
+      lat: null,
+      lng: null,
     });
-    const eveningRouteCreate = jest.fn().mockResolvedValue({
-      id: 'route-event-created',
-      title: 'Футбол и хинкали',
-    });
-    const tx = {
-      eveningRoute: { create: eveningRouteCreate },
-      event: { create: eventCreate },
-      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
-      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
-      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
-      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
-      chatMember: { create: jest.fn().mockResolvedValue({}) },
-    };
     const service = new EventsService(
       {
         client: {
           event: {
             findFirst: jest.fn().mockResolvedValue(null),
           },
-          user: {
-            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          externalContentItem: {
+            findFirst: externalContentFindFirst,
           },
-          userBlock: {
-            findMany: jest.fn().mockResolvedValue([]),
-          },
-          $transaction: jest.fn((callback) => callback(tx)),
         },
       } as any,
       {} as any,
     );
-    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
-      id: 'event-created',
-      title: 'Маршрут на вечер',
-    } as any);
 
-    await service.createEvent('user-me', {
-      title: 'Маршрут на вечер',
-      description: 'Сначала играем, потом ужинаем',
-      emoji: '🗺️',
-      vibe: 'Активно',
-      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      capacity: 6,
-      distanceKm: 0,
-      route: {
-        type: 'custom',
-        title: 'Футбол и хинкали',
-        durationLabel: '2 шага',
-        steps: [
-          {
-            time: '15:00',
-            emoji: '⚽',
-            title: 'Поиграть в футбол',
-            place: 'Парк Горького',
-          },
-          {
-            time: '18:00',
-            emoji: '🥟',
-            title: 'Пойти есть хинкали',
-            place: 'Хинкальная',
-          },
-        ],
-      },
+    await expect(
+      service.createEvent('user-me', {
+        afficheEventId: 'affiche-1',
+        title: '',
+        description: '',
+        place: '',
+        vibe: 'Спокойно',
+        capacity: 6,
+        distanceKm: 1,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'event_source_coordinates_missing',
     });
+  });
 
-    expect(eveningRouteCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          templateId: null,
-          source: 'meetup_create',
-          status: 'private',
-          isCurated: false,
+  it('rejects custom route event without a valid first route point', async () => {
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await expect(
+      service.createEvent('user-me', {
+        title: 'Маршрут на вечер',
+        description: 'Сначала играем, потом ужинаем',
+        emoji: '🗺️',
+        vibe: 'Активно',
+        startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        capacity: 6,
+        distanceKm: 0,
+        route: {
+          type: 'custom',
           title: 'Футбол и хинкали',
-          steps: expect.objectContaining({
-            create: expect.arrayContaining([
-              expect.objectContaining({
-                sortOrder: 0,
-                timeLabel: '15:00',
-                emoji: '⚽',
-                title: 'Поиграть в футбол',
-                venue: 'Парк Горького',
-              }),
-            ]),
-          }),
-        }),
+          durationLabel: '2 шага',
+          steps: [
+            {
+              time: '15:00',
+              emoji: '⚽',
+              title: 'Поиграть в футбол',
+              place: 'Парк Горького',
+            },
+            {
+              time: '18:00',
+              emoji: '🥟',
+              title: 'Пойти есть хинкали',
+              place: 'Хинкальная',
+            },
+          ],
+        },
       }),
-    );
-    expect(eventCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          place: 'Маршрут: Футбол и хинкали',
-          distanceKm: 0,
-          eveningRouteId: 'route-event-created',
-        }),
-      }),
-    );
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'event_source_coordinates_missing',
+    });
   });
 
   it('paginates geo feed with the computed distance used for sorting', async () => {

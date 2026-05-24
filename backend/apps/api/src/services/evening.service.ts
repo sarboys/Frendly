@@ -127,6 +127,10 @@ const eveningMessageSelect = {
   senderId: true,
   text: true,
   clientMessageId: true,
+  locationLatitude: true,
+  locationLongitude: true,
+  locationLabel: true,
+  locationExpiresAt: true,
   createdAt: true,
   sender: {
     select: {

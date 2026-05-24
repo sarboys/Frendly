@@ -42,17 +42,25 @@ const ALLOWED_VERIFICATION_IMAGE_MIME_TYPES = new Set([
 ]);
 const ALLOWED_VERIFICATION_DOCUMENT_MIME_TYPES = new Set([
   ...ALLOWED_VERIFICATION_IMAGE_MIME_TYPES,
-  'application/pdf',
 ]);
+
+function isPrismaKnownError(error: unknown, code: string): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === code
+  );
+}
 
 type ChatUploadKind = 'chat_attachment' | 'chat_voice';
 type VerificationUploadScope = 'verification_selfie' | 'verification_document';
 type CommunityImageUploadScope = 'community_image';
+type EventCoverUploadScope = 'event_cover';
 type MediaUploadScope =
   | 'chat'
   | 'profile_photo'
   | 'story_media'
   | CommunityImageUploadScope
+  | EventCoverUploadScope
   | VerificationUploadScope;
 
 interface ChatUploadMeta {
@@ -106,6 +114,15 @@ export class UploadsService {
         completeUrl: '/uploads/media/complete',
       };
     }
+    if (scope === 'event_cover') {
+      const upload = await this.createEventCoverUpload(userId, body);
+      return {
+        ...upload,
+        scope,
+        uploadStrategy: 'direct',
+        completeUrl: '/uploads/media/complete',
+      };
+    }
     if (this.isVerificationScope(scope)) {
       const upload = await this.createVerificationMediaUpload(
         userId,
@@ -140,6 +157,9 @@ export class UploadsService {
     if (scope === 'community_image') {
       return this.completeCommunityImageUpload(userId, body);
     }
+    if (scope === 'event_cover') {
+      return this.completeEventCoverUpload(userId, body);
+    }
     if (this.isVerificationScope(scope)) {
       return this.completeVerificationMediaUpload(userId, scope, body);
     }
@@ -160,6 +180,9 @@ export class UploadsService {
     }
     if (scope === 'community_image') {
       return this.uploadCommunityImageFile(userId, file);
+    }
+    if (scope === 'event_cover') {
+      return this.uploadEventCoverFile(userId, file);
     }
     if (this.isVerificationScope(scope)) {
       return this.uploadVerificationMediaFile(userId, scope, file);
@@ -683,6 +706,121 @@ export class UploadsService {
     };
   }
 
+  async createEventCoverUpload(
+    userId: string,
+    body: Record<string, unknown>,
+  ) {
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName : 'event-cover.jpg';
+    const contentType =
+      typeof body.contentType === 'string' ? body.contentType : 'image/jpeg';
+    this.assertCommunityImageMime(contentType);
+
+    const objectKey = `event-covers/${userId}/${randomUUID()}-${fileName}`;
+    return createPresignedUpload({
+      objectKey,
+      contentType,
+      cacheControl: 'public, max-age=31536000, immutable',
+    });
+  }
+
+  async completeEventCoverUpload(
+    userId: string,
+    body: Record<string, unknown>,
+  ) {
+    const objectKey =
+      typeof body.objectKey === 'string' ? body.objectKey : undefined;
+    const mimeType =
+      typeof body.mimeType === 'string' ? body.mimeType : 'image/jpeg';
+    const byteSize = typeof body.byteSize === 'number' ? body.byteSize : 0;
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName : 'event-cover.jpg';
+
+    if (!objectKey) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is required');
+    }
+
+    this.assertEventCoverObjectKey(userId, objectKey);
+    const existing = await this.prismaService.client.mediaAsset.findUnique({
+      where: { objectKey },
+      select: {
+        id: true,
+        ownerId: true,
+        kind: true,
+        status: true,
+        publicUrl: true,
+      },
+    });
+    if (existing) {
+      this.assertExistingEventCoverAsset(existing, userId);
+      return {
+        assetId: existing.id,
+        status: existing.status,
+        url: existing.publicUrl ?? buildMediaProxyPath(existing.id),
+      };
+    }
+
+    const verified = await this.resolveVerifiedCommunityImageMetadata(
+      objectKey,
+      mimeType,
+      byteSize,
+    );
+    this.assertCommunityImageMime(verified.mimeType);
+    this.assertCommunityImageSize(verified.byteSize);
+
+    const asset = await this.createEventCoverAsset({
+      userId,
+      objectKey,
+      mimeType: verified.mimeType,
+      byteSize: verified.byteSize,
+      fileName,
+    });
+
+    return {
+      assetId: asset.id,
+      status: asset.status,
+      url: asset.publicUrl ?? buildMediaProxyPath(asset.id),
+    };
+  }
+
+  async uploadEventCoverFile(
+    userId: string,
+    file?: Express.Multer.File,
+  ) {
+    const uploadFile = this.requireMediaFile(file);
+    this.assertCommunityImageMime(uploadFile.mimetype);
+    this.assertCommunityImageSize(uploadFile.size);
+
+    const objectKey =
+      `event-covers/${userId}/${randomUUID()}-${uploadFile.originalname}`;
+    if (!BYPASS_S3_UPLOAD) {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: objectKey,
+          ContentType: uploadFile.mimetype,
+          CacheControl: 'public, max-age=31536000, immutable',
+          Body: uploadFile.buffer,
+        }),
+        createS3RequestOptions(),
+      );
+    }
+
+    const asset = await this.createEventCoverAsset({
+      userId,
+      objectKey,
+      mimeType: uploadFile.mimetype,
+      byteSize: uploadFile.size,
+      fileName: uploadFile.originalname,
+    });
+
+    return {
+      assetId: asset.id,
+      status: asset.status,
+      url: asset.publicUrl ?? buildMediaProxyPath(asset.id),
+    };
+  }
+
   private resolveScope(body: Record<string, unknown>): MediaUploadScope {
     const scope =
       typeof body.scope === 'string' ? body.scope : 'chat';
@@ -692,6 +830,7 @@ export class UploadsService {
       scope !== 'profile_photo' &&
       scope !== 'story_media' &&
       scope !== 'community_image' &&
+      scope !== 'event_cover' &&
       scope !== 'verification_selfie' &&
       scope !== 'verification_document'
     ) {
@@ -1280,6 +1419,56 @@ export class UploadsService {
     }
   }
 
+  private async createEventCoverAsset(input: {
+    userId: string;
+    objectKey: string;
+    mimeType: string;
+    byteSize: number;
+    fileName: string;
+  }) {
+    try {
+      return await this.prismaService.client.mediaAsset.create({
+        data: {
+          ownerId: input.userId,
+          kind: 'event_cover',
+          status: 'ready',
+          bucket: this.s3Bucket,
+          objectKey: input.objectKey,
+          mimeType: input.mimeType,
+          byteSize: input.byteSize,
+          originalFileName: input.fileName,
+          publicUrl: buildPublicAssetUrl(input.objectKey),
+        },
+        select: {
+          id: true,
+          ownerId: true,
+          kind: true,
+          status: true,
+          publicUrl: true,
+        },
+      });
+    } catch (error) {
+      if (!isPrismaKnownError(error, 'P2002')) {
+        throw error;
+      }
+      const existing = await this.prismaService.client.mediaAsset.findUnique({
+        where: { objectKey: input.objectKey },
+        select: {
+          id: true,
+          ownerId: true,
+          kind: true,
+          status: true,
+          publicUrl: true,
+        },
+      });
+      if (!existing) {
+        throw error;
+      }
+      this.assertExistingEventCoverAsset(existing, input.userId);
+      return existing;
+    }
+  }
+
   private assertExistingCommunityImageAsset(
     asset: {
       ownerId: string;
@@ -1291,6 +1480,27 @@ export class UploadsService {
     if (
       asset.ownerId !== userId ||
       asset.kind !== 'avatar' ||
+      asset.status !== 'ready'
+    ) {
+      throw new ApiError(
+        409,
+        'upload_object_conflict',
+        'Upload object was completed for another target',
+      );
+    }
+  }
+
+  private assertExistingEventCoverAsset(
+    asset: {
+      ownerId: string;
+      kind: string;
+      status: string;
+    },
+    userId: string,
+  ) {
+    if (
+      asset.ownerId !== userId ||
+      asset.kind !== 'event_cover' ||
       asset.status !== 'ready'
     ) {
       throw new ApiError(
@@ -1386,6 +1596,13 @@ export class UploadsService {
 
   private assertCommunityImageObjectKey(userId: string, objectKey: string) {
     const prefix = `community-images/${userId}/`;
+    if (!objectKey.startsWith(prefix)) {
+      throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
+    }
+  }
+
+  private assertEventCoverObjectKey(userId: string, objectKey: string) {
+    const prefix = `event-covers/${userId}/`;
     if (!objectKey.startsWith(prefix)) {
       throw new ApiError(400, 'invalid_upload_payload', 'objectKey is invalid');
     }

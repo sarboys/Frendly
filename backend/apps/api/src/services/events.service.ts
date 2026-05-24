@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   EventAccessFilter,
   EventFilter,
@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { createHmac, randomUUID } from 'node:crypto';
 import {
   OUTBOX_EVENT_TYPES,
+  buildMediaProxyPath,
   buildDirectChatKey,
   decodeCursor,
   encodeCursor,
@@ -28,6 +29,7 @@ import { normalizeSearchQuery } from '../common/search-query';
 import { assertEventCapacityAvailable } from './event-capacity';
 import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
+import { VenueGeocoderService } from './venue-geocoder.service';
 
 type EventGeoPoint = {
   latitude: number;
@@ -51,7 +53,7 @@ type EventViewerState = {
   hasAttendance?: boolean;
 };
 
-type EventEntryRequirement = 'verification' | 'frendly_plus';
+type EventEntryRequirement = 'verification' | 'frendly_plus' | 'gender';
 
 type EventEntryRequirementsInput = {
   requiresVerification?: boolean | null;
@@ -105,6 +107,7 @@ const eventListSummarySelect = {
   emoji: true,
   startsAt: true,
   place: true,
+  city: true,
   distanceKm: true,
   latitude: true,
   longitude: true,
@@ -148,6 +151,12 @@ const eventListSummarySelect = {
   },
   canceledAt: true,
   hostId: true,
+  coverAsset: {
+    select: {
+      id: true,
+      publicUrl: true,
+    },
+  },
   sourceExternalContentItem: {
     select: {
       id: true,
@@ -190,6 +199,10 @@ const eventSystemMessageSelect = {
   senderId: true,
   text: true,
   clientMessageId: true,
+  locationLatitude: true,
+  locationLongitude: true,
+  locationLabel: true,
+  locationExpiresAt: true,
   createdAt: true,
   sender: {
     select: {
@@ -215,6 +228,7 @@ export class EventsService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly subscriptionService: SubscriptionService,
+    @Optional() private readonly venueGeocoder?: VenueGeocoderService,
   ) {}
 
   async listEvents(
@@ -226,6 +240,9 @@ export class EventsService {
       price?: string;
       gender?: string;
       access?: string;
+      city?: string;
+      requiresVerification?: string;
+      requiresFrendlyPlus?: string;
       date?: string;
       cursor?: string;
       limit?: number;
@@ -256,6 +273,9 @@ export class EventsService {
         price: params.price as EventPriceFilter | undefined,
         gender: params.gender as EventGenderFilter | undefined,
         access: params.access as EventAccessFilter | undefined,
+        city: params.city,
+        requiresVerification: params.requiresVerification,
+        requiresFrendlyPlus: params.requiresFrendlyPlus,
         date: params.date,
       },
       geoQuery?.bounds,
@@ -275,6 +295,9 @@ export class EventsService {
       price: params.price as EventPriceFilter | undefined,
       gender: params.gender as EventGenderFilter | undefined,
       access: params.access as EventAccessFilter | undefined,
+      city: params.city,
+      requiresVerification: params.requiresVerification,
+      requiresFrendlyPlus: params.requiresFrendlyPlus,
       date: params.date,
     });
     if (postgisCandidates != null && postgisCandidates.length === 0) {
@@ -462,6 +485,12 @@ export class EventsService {
             imageUrl: true,
           },
         },
+        coverAsset: {
+          select: {
+            id: true,
+            publicUrl: true,
+          },
+        },
       },
       orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       take,
@@ -500,7 +529,11 @@ export class EventsService {
         priceMode: event.priceMode,
         priceAmountFrom: event.priceAmountFrom,
         priceAmountTo: event.priceAmountTo,
-        imageUrl: event.sourceExternalContentItem?.imageUrl ?? null,
+        imageUrl:
+          event.coverAsset?.publicUrl ??
+          (event.coverAsset?.id ? buildMediaProxyPath(event.coverAsset.id) : null) ??
+          event.sourceExternalContentItem?.imageUrl ??
+          null,
         routePointCount: event.eveningRoute?._count.steps ?? null,
         isDate: event.isDate,
       })),
@@ -664,7 +697,7 @@ export class EventsService {
     const entryRequirements =
       event.hostId === userId || viewerState.isParticipant
         ? { canJoin: true, missing: [] as EventEntryRequirement[] }
-        : await this.resolveEventEntryRequirements(userId, event);
+        : await this.resolveEventDetailEntryRequirements(userId, userGender, event);
     const communityMeetup =
       (await this.prismaService.client.communityMeetupItem?.findUnique?.({
         where: { id: event.id },
@@ -754,7 +787,7 @@ export class EventsService {
     }
 
     if (!this.canAccessGenderRestrictedEvent(userId, userGender, event)) {
-      throw new ApiError(404, 'event_not_found', 'Event not found');
+      throw new ApiError(403, 'event_gender_restricted', 'Event is restricted by gender');
     }
 
     if (event.joinMode === 'request') {
@@ -916,7 +949,7 @@ export class EventsService {
     }
 
     if (!this.canAccessGenderRestrictedEvent(userId, userGender, event)) {
-      throw new ApiError(404, 'event_not_found', 'Event not found');
+      throw new ApiError(403, 'event_gender_restricted', 'Event is restricted by gender');
     }
 
     if (event.joinMode !== 'request') {
@@ -1371,17 +1404,20 @@ export class EventsService {
         : routeSelection != null
           ? 0
           : 1.0;
-    const routeStartPoint = this.firstRouteStepPoint(existingRoute?.steps ?? []);
-    const latitude =
-      routeStartPoint?.latitude ??
-      (typeof body.latitude === 'number'
-        ? body.latitude
-        : afficheEvent?.lat ?? externalPlace?.lat ?? null);
-    const longitude =
-      routeStartPoint?.longitude ??
-      (typeof body.longitude === 'number'
-        ? body.longitude
-        : afficheEvent?.lng ?? externalPlace?.lng ?? null);
+    const eventLocation = await this.resolveCreateEventLocation({
+      body,
+      place,
+      routeSelection,
+      existingRoute,
+      afficheEvent,
+      externalPlace,
+    });
+    const latitude = eventLocation.latitude;
+    const longitude = eventLocation.longitude;
+    const city =
+      cleanEventText(body.city) ??
+      cleanEventText(afficheEvent?.city) ??
+      cleanEventText(externalPlace?.city);
     const capacity =
       typeof body.capacity === 'number' ? Math.trunc(body.capacity) : 8;
     const startsAtRaw =
@@ -1509,25 +1545,11 @@ export class EventsService {
       throw new ApiError(400, 'invalid_event_payload', 'distanceKm is invalid');
     }
 
-    if ((latitude == null) !== (longitude == null)) {
-      throw new ApiError(
-        400,
-        'invalid_event_payload',
-        'latitude and longitude must be provided together',
-      );
-    }
-
-    if (
-      latitude != null &&
-      (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)
-    ) {
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
       throw new ApiError(400, 'invalid_event_payload', 'latitude is invalid');
     }
 
-    if (
-      longitude != null &&
-      (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)
-    ) {
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
       throw new ApiError(400, 'invalid_event_payload', 'longitude is invalid');
     }
 
@@ -1561,6 +1583,10 @@ export class EventsService {
       throw new ApiError(404, 'user_not_found', 'User not found');
     }
     await this.assertHostCanUseEntryRequirements(userId, entryRequirements);
+    const coverAssetId = await this.resolveEventCoverAssetId(
+      userId,
+      body.coverAssetId,
+    );
 
     if (inviteeUserId != null && !inviteeUser) {
       throw new ApiError(404, 'user_not_found', 'Invitee user not found');
@@ -1635,6 +1661,7 @@ export class EventsService {
             emoji,
             startsAt,
             place,
+            city,
             distanceKm,
             latitude,
             longitude,
@@ -1658,6 +1685,7 @@ export class EventsService {
             description,
             idempotencyKey,
             sourceExternalContentItemId: afficheEvent?.id ?? externalPlace?.id,
+            coverAssetId,
             capacity: normalizedCapacity,
             hostId: userId,
             isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
@@ -2758,6 +2786,9 @@ export class EventsService {
       price?: EventPriceFilter;
       gender?: EventGenderFilter;
       access?: EventAccessFilter;
+      city?: string;
+      requiresVerification?: string;
+      requiresFrendlyPlus?: string;
       date?: string;
     },
     geoBounds?: EventGeoBounds,
@@ -2790,27 +2821,6 @@ export class EventsService {
         ],
       },
     ];
-    conditions.push({
-      OR: [
-        { genderMode: 'all' },
-        ...(userGender == null ? [] : [{ genderMode: userGender }]),
-        { hostId: userId },
-        {
-          participants: {
-            some: {
-              userId,
-            },
-          },
-        },
-        {
-          attendances: {
-            some: {
-              userId,
-            },
-          },
-        },
-      ],
-    });
     const where: Prisma.EventWhereInput = {
       hostId: {
         notIn: [...blockedUserIds],
@@ -2870,6 +2880,19 @@ export class EventsService {
 
     if (params.access && params.access !== 'any') {
       conditions.push({ accessMode: params.access });
+    }
+
+    const city = cleanEventText(params.city);
+    if (city != null) {
+      conditions.push({ city });
+    }
+
+    if (params.requiresVerification === 'true') {
+      conditions.push({ requiresVerification: true });
+    }
+
+    if (params.requiresFrendlyPlus === 'true') {
+      conditions.push({ requiresFrendlyPlus: true });
     }
 
     const priceWhere = this.buildPriceWhere(params.price);
@@ -3287,6 +3310,9 @@ export class EventsService {
     price?: EventPriceFilter;
     gender?: EventGenderFilter;
     access?: EventAccessFilter;
+    city?: string;
+    requiresVerification?: string;
+    requiresFrendlyPlus?: string;
     date?: string;
   }): Promise<PostgisEventCandidate[] | null> {
     const center = params.geoQuery?.center;
@@ -3325,23 +3351,6 @@ export class EventsService {
         OR ${participantOrAttendanceVisibility}
       )
     `;
-    const genderVisibilityFilter =
-      params.userGender == null
-        ? Prisma.sql`
-          AND (
-            e."genderMode"::text = 'all'
-            OR e."hostId" = ${params.userId}
-            OR ${participantOrAttendanceVisibility}
-          )
-        `
-        : Prisma.sql`
-          AND (
-            e."genderMode"::text = 'all'
-            OR e."genderMode"::text = ${params.userGender}
-            OR e."hostId" = ${params.userId}
-            OR ${participantOrAttendanceVisibility}
-          )
-        `;
     const startsAtFilter = this.postgisStartsAtFilter(params.filter, params.date, now);
     const routeFilter = this.postgisRouteFilter(params.filter);
     const searchFilter = this.postgisSearchFilter(params.q);
@@ -3356,6 +3365,17 @@ export class EventsService {
     const accessFilter =
       params.access && params.access !== 'any'
         ? Prisma.sql`AND e."accessMode"::text = ${params.access}`
+        : Prisma.empty;
+    const city = cleanEventText(params.city);
+    const cityFilter =
+      city == null ? Prisma.empty : Prisma.sql`AND e."city" = ${city}`;
+    const requiresVerificationFilter =
+      params.requiresVerification === 'true'
+        ? Prisma.sql`AND e."requiresVerification" = true`
+        : Prisma.empty;
+    const requiresFrendlyPlusFilter =
+      params.requiresFrendlyPlus === 'true'
+        ? Prisma.sql`AND e."requiresFrendlyPlus" = true`
         : Prisma.empty;
     const priceFilter = this.postgisPriceFilter(params.price);
     const blockedHostFilter =
@@ -3414,13 +3434,15 @@ export class EventsService {
         WHERE e."canceledAt" IS NULL
           AND e."isAfterDark" = false
           ${visibilityFilter}
-          ${genderVisibilityFilter}
           ${startsAtFilter}
           ${routeFilter}
           ${searchFilter}
           ${lifestyleFilter}
           ${genderFilter}
           ${accessFilter}
+          ${cityFilter}
+          ${requiresVerificationFilter}
+          ${requiresFrendlyPlusFilter}
           ${priceFilter}
           ${blockedHostFilter}
           AND (
@@ -4243,25 +4265,139 @@ export class EventsService {
   }
 
   private firstRouteStepPoint(
-    steps: Array<{ lat: number; lng: number }>,
+    steps: Array<{ lat: number | null; lng: number | null }>,
   ): { latitude: number; longitude: number } | null {
     const step = steps.find(
       (item) =>
-        Number.isFinite(item.lat) &&
-        Number.isFinite(item.lng) &&
-        item.lat >= -90 &&
-        item.lat <= 90 &&
-        item.lng >= -180 &&
-        item.lng <= 180 &&
-        !(item.lat === 0 && item.lng === 0),
+        this.isValidEventCoordinatePoint(item.lat, item.lng),
     );
     if (!step) {
       return null;
     }
     return {
-      latitude: step.lat,
-      longitude: step.lng,
+      latitude: step.lat as number,
+      longitude: step.lng as number,
     };
+  }
+
+  private async resolveCreateEventLocation(params: {
+    body: Record<string, unknown>;
+    place: string;
+    routeSelection: NormalizedEventRouteSelection | null;
+    existingRoute: { steps: Array<{ lat: number | null; lng: number | null }> } | null;
+    afficheEvent: { lat?: number | null; lng?: number | null } | null;
+    externalPlace: { lat?: number | null; lng?: number | null } | null;
+  }): Promise<EventGeoPoint> {
+    const explicitPoint = this.parseExplicitEventCoordinates(params.body);
+
+    if (params.routeSelection != null) {
+      const routePoint = params.routeSelection.kind === 'existing'
+        ? this.firstRouteStepPoint(params.existingRoute?.steps ?? [])
+        : null;
+      if (routePoint != null) {
+        return routePoint;
+      }
+      throw new ApiError(
+        409,
+        'event_source_coordinates_missing',
+        'Selected route has no coordinates',
+      );
+    }
+
+    if (params.afficheEvent != null) {
+      return this.requireSourceCoordinates(params.afficheEvent);
+    }
+
+    if (params.externalPlace != null) {
+      return this.requireSourceCoordinates(params.externalPlace);
+    }
+
+    if (explicitPoint != null) {
+      return explicitPoint;
+    }
+
+    const city = cleanEventText(params.body.city) ?? 'Москва';
+    const address = cleanEventText(params.body.address)
+      ?? cleanEventText(params.body.place)
+      ?? cleanEventText(params.place);
+    const venueName = cleanEventText(params.body.place)
+      ?? cleanEventText(params.place);
+
+    const geocoded = await this.venueGeocoder?.geocode({
+      city,
+      venueName,
+      address,
+    });
+    if (geocoded != null && this.isValidEventCoordinatePoint(geocoded.lat, geocoded.lng)) {
+      return {
+        latitude: geocoded.lat,
+        longitude: geocoded.lng,
+      };
+    }
+
+    throw new ApiError(
+      400,
+      'event_coordinates_required',
+      'Event coordinates are required',
+    );
+  }
+
+  private parseExplicitEventCoordinates(body: Record<string, unknown>): EventGeoPoint | null {
+    const hasLatitude = body.latitude != null;
+    const hasLongitude = body.longitude != null;
+    if (hasLatitude !== hasLongitude) {
+      throw new ApiError(
+        400,
+        'invalid_event_payload',
+        'latitude and longitude must be provided together',
+      );
+    }
+    if (!hasLatitude || !hasLongitude) {
+      return null;
+    }
+    if (typeof body.latitude !== 'number') {
+      throw new ApiError(400, 'invalid_event_payload', 'latitude is invalid');
+    }
+    if (typeof body.longitude !== 'number') {
+      throw new ApiError(400, 'invalid_event_payload', 'longitude is invalid');
+    }
+    if (!this.isValidEventCoordinatePoint(body.latitude, body.longitude)) {
+      throw new ApiError(
+        400,
+        'invalid_event_payload',
+        'latitude and longitude are invalid',
+      );
+    }
+    return {
+      latitude: body.latitude,
+      longitude: body.longitude,
+    };
+  }
+
+  private requireSourceCoordinates(source: { lat?: number | null; lng?: number | null }) {
+    if (this.isValidEventCoordinatePoint(source.lat, source.lng)) {
+      return {
+        latitude: source.lat as number,
+        longitude: source.lng as number,
+      };
+    }
+    throw new ApiError(
+      409,
+      'event_source_coordinates_missing',
+      'Selected source has no coordinates',
+    );
+  }
+
+  private isValidEventCoordinatePoint(lat: unknown, lng: unknown): lat is number {
+    return typeof lat === 'number' &&
+      typeof lng === 'number' &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180 &&
+      !(lat === 0 && lng === 0);
   }
 
   private parseEventRules(raw: unknown) {
@@ -4322,10 +4458,6 @@ export class EventsService {
     },
     viewerState?: EventViewerState,
   ) {
-    if (!this.canAccessGenderRestrictedEvent(userId, userGender, event, viewerState)) {
-      return false;
-    }
-
     if (event.visibilityMode !== 'friends') {
       return true;
     }
@@ -4449,6 +4581,27 @@ export class EventsService {
     };
   }
 
+  private async resolveEventDetailEntryRequirements(
+    userId: string,
+    userGender: 'male' | 'female' | null,
+    event: EventEntryRequirementsInput & {
+      hostId: string;
+      genderMode: string;
+      participants?: Array<{ userId: string }>;
+      attendances?: Array<{ userId: string }>;
+    },
+  ) {
+    const state = await this.resolveEventEntryRequirements(userId, event);
+    const missing = [...state.missing];
+    if (!this.canAccessGenderRestrictedEvent(userId, userGender, event)) {
+      missing.push('gender');
+    }
+    return {
+      canJoin: missing.length === 0,
+      missing,
+    };
+  }
+
   private async assertHostCanUseEntryRequirements(
     userId: string,
     requirements: EventEntryRequirementsInput,
@@ -4468,6 +4621,29 @@ export class EventsService {
         'Host must have Frendly Plus to require Frendly Plus',
       );
     }
+  }
+
+  private async resolveEventCoverAssetId(userId: string, value: unknown) {
+    if (value == null || value === '') {
+      return null;
+    }
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new ApiError(400, 'invalid_event_cover', 'Event cover is invalid');
+    }
+    const coverAssetId = value.trim();
+    const asset = await this.prismaService.client.mediaAsset.findFirst({
+      where: {
+        id: coverAssetId,
+        ownerId: userId,
+        kind: 'event_cover',
+        status: 'ready',
+      },
+      select: { id: true },
+    });
+    if (!asset) {
+      throw new ApiError(404, 'event_cover_not_found', 'Event cover not found');
+    }
+    return asset.id;
   }
 
   private async assertUserMeetsEntryRequirements(
@@ -4554,6 +4730,14 @@ function jsonRecord(value: unknown): Record<string, unknown> {
 
 function normalizeText(value: unknown) {
   return typeof value === 'string' ? value.trim().toLowerCase().replace(/\s+/g, ' ') : '';
+}
+
+function cleanEventText(value: unknown) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.replace(/\s+/g, ' ').trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function text(value: unknown, fallback: string) {

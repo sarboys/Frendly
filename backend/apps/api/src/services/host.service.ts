@@ -32,6 +32,7 @@ const hostEventSummarySelect = {
   emoji: true,
   startsAt: true,
   place: true,
+  city: true,
   distanceKm: true,
   latitude: true,
   longitude: true,
@@ -52,6 +53,12 @@ const hostEventSummarySelect = {
   isDate: true,
   eveningRouteId: true,
   hostId: true,
+  coverAsset: {
+    select: {
+      id: true,
+      publicUrl: true,
+    },
+  },
 } satisfies Prisma.EventSelect;
 
 interface HostEventCursor {
@@ -462,8 +469,15 @@ export class HostService {
       throw new ApiError(404, 'host_event_not_found', 'Hosted event not found');
     }
 
-    const data = this.parseHostedEventUpdate(body);
-    await this.assertHostCanUseEntryRequirements(userId, data);
+    const parsedData = this.parseHostedEventUpdate(body);
+    await this.assertHostCanUseEntryRequirements(userId, parsedData);
+    const data: Prisma.EventUncheckedUpdateInput = { ...parsedData };
+    if (Object.prototype.hasOwnProperty.call(body, 'coverAssetId')) {
+      data.coverAssetId = await this.resolveEventCoverAssetId(
+        userId,
+        body.coverAssetId,
+      );
+    }
     if (
       data.capacity != null &&
       typeof data.capacity === 'number' &&
@@ -1127,6 +1141,29 @@ export class HostService {
     }
   }
 
+  private async resolveEventCoverAssetId(userId: string, value: unknown) {
+    if (value == null || value === '') {
+      return null;
+    }
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new ApiError(400, 'invalid_event_cover', 'Event cover is invalid');
+    }
+    const coverAssetId = value.trim();
+    const asset = await this.prismaService.client.mediaAsset.findFirst({
+      where: {
+        id: coverAssetId,
+        ownerId: userId,
+        kind: 'event_cover',
+        status: 'ready',
+      },
+      select: { id: true },
+    });
+    if (!asset) {
+      throw new ApiError(404, 'event_cover_not_found', 'Event cover not found');
+    }
+    return asset.id;
+  }
+
   private async assertUserMeetsEntryRequirements(
     userId: string,
     requirements: EventEntryRequirementsInput,
@@ -1245,6 +1282,7 @@ export class HostService {
       emoji,
       vibe,
       place,
+      city: this.optionalText(body.city),
       startsAt,
       capacity,
       lifestyle: this.parseLifestyle(body.lifestyle),
@@ -1268,7 +1306,7 @@ export class HostService {
             : 'warm',
       isCalm: vibe === 'Спокойно' || vibe === 'Уютно',
       isDate: vibe === 'Свидание',
-    } satisfies Prisma.EventUpdateInput;
+    } satisfies Prisma.EventUncheckedUpdateInput;
   }
 
   private requiredText(value: unknown, code: string) {
@@ -1276,6 +1314,17 @@ export class HostService {
       throw new ApiError(400, code, 'Text is required');
     }
     return value.trim();
+  }
+
+  private optionalText(value: unknown) {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+    if (typeof value !== 'string') {
+      throw new ApiError(400, 'host_event_text_invalid', 'Text is invalid');
+    }
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
   }
 
   private requiredDate(value: unknown, code: string) {

@@ -1005,8 +1005,16 @@ export interface ChatMessageDto {
   kind?: 'user' | 'system';
   systemKind?: 'launch' | 'checkin' | 'step' | 'finish';
   eventId?: string;
+  location?: ChatLocationDto | null;
   replyTo?: ReplyPreviewDto | null;
   attachments: MediaAssetDto[];
+}
+
+export interface ChatLocationDto {
+  latitude: number;
+  longitude: number;
+  label?: string | null;
+  expiresAt: string;
 }
 
 export interface ReplyPreviewDto {
@@ -1020,6 +1028,7 @@ export type MediaKind =
   | 'avatar'
   | 'chat_attachment'
   | 'chat_voice'
+  | 'event_cover'
   | 'story_media';
 export type MediaVisibility = 'public' | 'private';
 
@@ -1066,6 +1075,11 @@ export interface WsClientEventMap {
     clientMessageId: string;
     attachmentIds?: string[];
     replyToMessageId?: string;
+    location?: {
+      latitude: number;
+      longitude: number;
+      label?: string;
+    };
   };
   'message.edit': {
     chatId: string;

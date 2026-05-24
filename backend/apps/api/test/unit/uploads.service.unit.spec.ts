@@ -82,7 +82,7 @@ describe('UploadsService', () => {
     });
   });
 
-  it('creates verification direct upload urls with private cache headers', async () => {
+  it('creates verification document image upload urls with private cache headers', async () => {
     const service = new UploadsService(
       { client: {} } as any,
       {} as any,
@@ -93,17 +93,38 @@ describe('UploadsService', () => {
       'user-me',
       'verification_document',
       {
-        fileName: 'passport.pdf',
-        contentType: 'application/pdf',
+        fileName: 'passport.jpg',
+        contentType: 'image/jpeg',
       },
     );
 
     expect(result).toMatchObject({
       objectKey: expect.stringContaining('verification/user-me/document/'),
       headers: {
-        'content-type': 'application/pdf',
+        'content-type': 'image/jpeg',
         'cache-control': 'private, max-age=300',
       },
+    });
+  });
+
+  it('rejects PDF verification document direct upload urls', async () => {
+    const service = new UploadsService(
+      { client: {} } as any,
+      {} as any,
+      {} as any,
+    );
+
+    await expect(
+      service.createVerificationMediaUpload(
+        'user-me',
+        'verification_document',
+        {
+          fileName: 'passport.pdf',
+          contentType: 'application/pdf',
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'invalid_verification_media_mime_type',
     });
   });
 
@@ -528,7 +549,7 @@ describe('UploadsService', () => {
     );
   });
 
-  it('creates verification document direct upload assets', async () => {
+  it('creates verification document image direct upload assets', async () => {
     const create = jest.fn().mockResolvedValue({
       id: 'verification-document-asset',
       status: 'ready',
@@ -548,10 +569,10 @@ describe('UploadsService', () => {
     await expect(
       service.completeMediaUpload('user-me', {
         scope: 'verification_document',
-        objectKey: 'verification/user-me/document/passport.pdf',
-        mimeType: 'application/pdf',
+        objectKey: 'verification/user-me/document/passport.jpg',
+        mimeType: 'image/jpeg',
         byteSize: 2048,
-        fileName: 'passport.pdf',
+        fileName: 'passport.jpg',
       }),
     ).resolves.toEqual({
       assetId: 'verification-document-asset',
@@ -562,8 +583,8 @@ describe('UploadsService', () => {
         data: expect.objectContaining({
           ownerId: 'user-me',
           kind: 'verification_document',
-          objectKey: 'verification/user-me/document/passport.pdf',
-          mimeType: 'application/pdf',
+          objectKey: 'verification/user-me/document/passport.jpg',
+          mimeType: 'image/jpeg',
         }),
         select: {
           id: true,
@@ -571,6 +592,33 @@ describe('UploadsService', () => {
         },
       }),
     );
+  });
+
+  it('rejects PDF verification document uploads', async () => {
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
+    };
+    const service = new UploadsService(
+      { client } as any,
+      {} as any,
+      {} as any,
+    );
+
+    await expect(
+      service.completeMediaUpload('user-me', {
+        scope: 'verification_document',
+        objectKey: 'verification/user-me/document/passport.pdf',
+        mimeType: 'application/pdf',
+        byteSize: 2048,
+        fileName: 'passport.pdf',
+      }),
+    ).rejects.toMatchObject({
+      code: 'invalid_verification_media_mime_type',
+    });
+    expect(client.mediaAsset.create).not.toHaveBeenCalled();
   });
 
   it('rejects PDF selfie uploads', async () => {

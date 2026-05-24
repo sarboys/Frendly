@@ -1081,4 +1081,35 @@ describe('ChatServerService unit', () => {
       downloadUrlPath: '/media/asset-1/download-url',
     });
   });
+
+  it('maps chat location with expiration', () => {
+    const service = createChatServiceForBroadcast();
+    const mapped = (service as any).mapMessage({
+      id: 'message-1',
+      chatId: 'chat-1',
+      senderId: 'user-1',
+      text: '',
+      clientMessageId: 'client-1',
+      createdAt: new Date('2026-04-24T00:00:00.000Z'),
+      locationLatitude: 55.751244,
+      locationLongitude: 37.618423,
+      locationLabel: 'Красная площадь',
+      locationExpiresAt: new Date('2026-04-24T00:15:00.000Z'),
+      sender: {
+        displayName: 'User',
+        profile: {
+          avatarUrl: null,
+        },
+      },
+      replyTo: null,
+      attachments: [],
+    });
+
+    expect(mapped.location).toEqual({
+      latitude: 55.751244,
+      longitude: 37.618423,
+      label: 'Красная площадь',
+      expiresAt: '2026-04-24T00:15:00.000Z',
+    });
+  });
 });

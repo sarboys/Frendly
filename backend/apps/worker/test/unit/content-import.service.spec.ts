@@ -303,8 +303,18 @@ describe('ContentImportService', () => {
       registryMock({
         code: 'kudago',
         fetchItems: jest.fn().mockResolvedValue([
-          rawEvent({ sourceItemId: 'free', priceFrom: 0 }),
-          rawEvent({ sourceItemId: 'paid', priceFrom: 500 }),
+          rawEvent({
+            sourceItemId: 'free',
+            priceFrom: 0,
+            lat: 55.75,
+            lng: 37.61,
+          }),
+          rawEvent({
+            sourceItemId: 'paid',
+            priceFrom: 500,
+            lat: 55.75,
+            lng: 37.61,
+          }),
           rawEvent({ sourceItemId: 'unknown', priceFrom: null }),
         ]),
       }),
@@ -319,6 +329,47 @@ describe('ContentImportService', () => {
 
     const publicStatuses = itemUpsert.mock.calls.map((call) => call[0].create.publicStatus);
     expect(publicStatuses).toEqual(['published', 'hidden', 'hidden']);
+  });
+
+  it('keeps missing coordinate counters but hides public attach candidates without coordinates', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const runUpdate = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-1', code: 'kudago' },
+        itemUpsert,
+        runUpdate,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'kudago',
+        fetchItems: jest.fn().mockResolvedValue([
+          rawEvent({ sourceItemId: 'free-missing-coords', priceFrom: 0 }),
+          rawEvent({
+            sourceItemId: 'free-with-coords',
+            priceFrom: 0,
+            lat: 55.75,
+            lng: 37.61,
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['kudago'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-05-11T00:00:00.000Z'),
+    });
+
+    const publicStatuses = itemUpsert.mock.calls.map((call) => call[0].create.publicStatus);
+    expect(publicStatuses).toEqual(['hidden', 'published']);
+    expect(runUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        publishedCount: 1,
+        missingCoordsCount: 1,
+      }),
+    }));
   });
 
   it('keeps AdvCake paid affiliate events public and masks secrets on failure', async () => {
@@ -368,6 +419,8 @@ describe('ContentImportService', () => {
             actionUrl: 'https://go.avred.online/click',
             actionKind: 'affiliate_ticket',
             isAffiliate: true,
+            lat: 55.75,
+            lng: 37.61,
           }),
         ]),
       }),
@@ -924,6 +977,8 @@ describe('ContentImportService', () => {
             sourceItemId: 'event:food:dinner',
             priceFrom: 1200,
             priceMode: 'paid',
+            lat: 55.75,
+            lng: 37.61,
           }),
           rawEvent({
             sourceCode: 'tomesto',

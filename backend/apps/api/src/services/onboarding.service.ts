@@ -28,6 +28,7 @@ const onboardingResponseSelect = {
       phoneNumber: true,
       profile: {
         select: {
+          bio: true,
           photos: {
             select: {
               id: true,
@@ -66,6 +67,7 @@ function mapOnboarding(onboarding: {
     email: string | null;
     phoneNumber: string | null;
     profile?: {
+      bio?: string | null;
       photos?: Array<Parameters<typeof mapProfilePhoto>[0]>;
     } | null;
   };
@@ -83,6 +85,7 @@ function mapOnboarding(onboarding: {
       ? onboarding.interests.filter((item): item is string => typeof item === 'string')
       : [],
     vibe: onboarding.vibe,
+    bio: onboarding.user?.profile?.bio ?? null,
     email: onboarding.user?.email ?? null,
     phoneNumber: onboarding.user?.phoneNumber ?? null,
     requiredContact: onboarding.requiredContact ?? null,
@@ -208,6 +211,19 @@ function normalizeDisplayName(value: unknown) {
     throw new ApiError(400, 'invalid_display_name', 'displayName is required');
   }
   return displayName;
+}
+
+function normalizeOptionalProfileText(value: unknown, fieldName: string) {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    throw new ApiError(400, 'invalid_onboarding_payload', `${fieldName} must be a string`);
+  }
+
+  const text = value.trim();
+  return text.length === 0 ? null : text;
 }
 
 function requiredContactFor(provider: SessionProvider, user: {
@@ -349,6 +365,8 @@ export class OnboardingService {
     const phoneNumber = hasPhoneNumber
       ? normalizePhoneNumber(body.phoneNumber)
       : undefined;
+    const hasBio = Object.prototype.hasOwnProperty.call(body, 'bio');
+    const bio = hasBio ? normalizeOptionalProfileText(body.bio, 'bio') : undefined;
     const completedAt = new Date();
 
     try {
@@ -433,13 +451,14 @@ export class OnboardingService {
           select: onboardingResponseSelect,
         });
 
-        await tx.profile.upsert({
+        const profile = await tx.profile.upsert({
           where: { userId },
           update: {
             gender,
             ...(hasBirthDate ? { birthDate, age } : {}),
             city,
             area,
+            ...(hasBio ? { bio } : {}),
           },
           create: {
             userId,
@@ -448,10 +467,23 @@ export class OnboardingService {
             age: age ?? null,
             city,
             area,
+            bio: bio ?? null,
           },
         });
 
-        return updated;
+        return {
+          ...updated,
+          user: updated.user
+            ? {
+                ...updated.user,
+                profile: {
+                  ...(updated.user.profile ?? {}),
+                  bio: profile.bio,
+                  photos: updated.user.profile?.photos ?? [],
+                },
+              }
+            : updated.user,
+        };
       });
 
       return mapOnboarding({

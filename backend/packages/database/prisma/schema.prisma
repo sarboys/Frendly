@@ -41,6 +41,7 @@ enum MediaAssetKind {
   avatar
   chat_attachment
   chat_voice
+  event_cover
   story_media
   verification_selfie
   verification_document
@@ -693,6 +694,7 @@ model Event {
   startsAt          DateTime
   durationMinutes   Int                 @default(120)
   place             String
+  city              String?
   distanceKm        Float
   latitude          Float?
   longitude         Float?
@@ -726,6 +728,7 @@ model Event {
   isNewcomers       Boolean             @default(false)
   isDate            Boolean             @default(false)
   sourceExternalContentItemId String?
+  coverAssetId      String?
   eveningRouteId    String?
   partnerId         String?
   canceledAt        DateTime?
@@ -733,6 +736,7 @@ model Event {
   hostId            String
   host              User                @relation("HostedEvents", fields: [hostId], references: [id])
   sourceExternalContentItem ExternalContentItem? @relation("EventSourceExternalContent", fields: [sourceExternalContentItemId], references: [id], onDelete: SetNull)
+  coverAsset        MediaAsset?         @relation("EventCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
   eveningRoute      EveningRoute?       @relation(fields: [eveningRouteId], references: [id], onDelete: SetNull)
   partner           Partner?            @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   participants      EventParticipant[]
@@ -753,6 +757,8 @@ model Event {
 
   @@unique([hostId, idempotencyKey])
   @@index([sourceExternalContentItemId])
+  @@index([coverAssetId])
+  @@index([city, startsAt, id])
   @@index([eveningRouteId, startsAt, id])
   @@index([partnerId, startsAt, id])
   @@index([canceledAt, startsAt, id])
@@ -2296,6 +2302,10 @@ model Message {
   text             String
   clientMessageId  String
   replyToMessageId String?
+  locationLatitude  Float?
+  locationLongitude Float?
+  locationLabel     String?
+  locationExpiresAt DateTime?
   createdAt        DateTime            @default(now())
   chat             Chat                @relation(fields: [chatId], references: [id], onDelete: Cascade)
   sender           User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -2344,6 +2354,7 @@ model MediaAsset {
   profilePhotos           ProfilePhoto[]
   communityImages         Community[]              @relation("CommunityImageAsset")
   storyAsset              EventStory?
+  eventCovers             Event[]                  @relation("EventCoverAsset")
   verificationSelfie      UserVerification?        @relation("VerificationSelfieAsset")
   verificationDocument    UserVerification?        @relation("VerificationDocumentAsset")
   messageLinks            MessageAttachment[]

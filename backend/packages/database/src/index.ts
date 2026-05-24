@@ -19,3 +19,4 @@ export * from './s3-cors-verifier';
 export * from './telegram-auth';
 export * from './test-accounts';
 export * from './user-blocks';
+export * from './venue-geocoder';

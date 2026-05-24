@@ -268,6 +268,43 @@ describe('presenters', () => {
     });
   });
 
+  it('maps event city to event summaries', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-city',
+        title: 'Кофе',
+        emoji: '☕',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Duo',
+        city: 'Санкт-Петербург',
+        distanceKm: 1.2,
+        latitude: 59.9343,
+        longitude: 30.3351,
+        capacity: 8,
+        vibe: 'Спокойно',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'free',
+        priceAmountFrom: null,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        eveningRouteId: null,
+        isDate: false,
+      } as any,
+      participants: [],
+      currentUserId: 'user-me',
+    });
+
+    expect(summary).toMatchObject({
+      city: 'Санкт-Петербург',
+    });
+  });
+
   it('maps route points to event summaries for radar pins', () => {
     const summary = mapEventSummary({
       event: {

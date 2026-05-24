@@ -77,6 +77,8 @@ export class PlacesService {
         contentKind: 'place',
         publicStatus: 'published',
         city,
+        lat: { not: null },
+        lng: { not: null },
         OR: [
           { title: { contains: q, mode: 'insensitive' } },
           { address: { contains: q, mode: 'insensitive' } },
@@ -179,6 +181,8 @@ export class PlacesService {
         contentKind: 'place',
         publicStatus: 'published',
         city,
+        lat: { not: null },
+        lng: { not: null },
       },
       select: {
         id: true,
@@ -205,8 +209,12 @@ export class PlacesService {
     const result = promos
       .map((promo: any) => {
         const place = places.find((candidate: any) => promoMatchesPlace(promo, candidate)) ?? null;
+        if (!hasValidCoordinates(place?.lat, place?.lng)) {
+          return null;
+        }
         return mapPlacePromoListItem(promo, place, input.latitude, input.longitude);
       })
+      .filter((promo): promo is PlacePromoListItemDto => promo != null)
       .filter((promo) => {
         if (!category) {
           return true;
@@ -481,6 +489,16 @@ function isString(value: unknown): value is string {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+function hasValidCoordinates(lat: unknown, lng: unknown) {
+  return isFiniteNumber(lat) &&
+    isFiniteNumber(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180 &&
+    !(lat === 0 && lng === 0);
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

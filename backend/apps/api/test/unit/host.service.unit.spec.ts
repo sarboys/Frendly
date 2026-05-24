@@ -363,6 +363,53 @@ describe('HostService unit', () => {
     expect(eventUpdate).not.toHaveBeenCalled();
   });
 
+  it('saves selected city when host updates event', async () => {
+    const eventUpdate = jest.fn().mockResolvedValue({ id: 'event-1' });
+    const service = new HostService({
+      client: {
+        event: {
+          findFirst: jest.fn().mockResolvedValue({
+            id: 'event-1',
+            _count: { participants: 1 },
+          }),
+          update: eventUpdate,
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'event-1',
+            hostId: 'host-user',
+            participants: [],
+          }),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({ verified: true }),
+        },
+        userSubscription: {
+          findFirst: jest.fn().mockResolvedValue({
+            status: 'active',
+            renewsAt: new Date(Date.now() + 60 * 60 * 1000),
+            trialEndsAt: null,
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+    jest.spyOn(service, 'getHostedEvent').mockResolvedValue({ id: 'event-1' } as any);
+
+    await service.updateHostedEvent('host-user', 'event-1', {
+      ...hostedEventUpdatePayload(),
+      city: 'Санкт-Петербург',
+    });
+
+    expect(eventUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          city: 'Санкт-Петербург',
+        }),
+      }),
+    );
+  });
+
   it('rejects approving a pending request when guest misses entry requirements', async () => {
     const transaction = jest.fn();
     const service = new HostService({

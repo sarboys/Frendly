@@ -1,0 +1,237 @@
+const DEFAULT_YANDEX_GEOCODER_URL = 'https://geocode-maps.yandex.ru/1.x/';
+const DEFAULT_TIMEOUT_MS = 2500;
+
+export type VenueGeocodeInput = {
+  city: string;
+  venueName: string | null;
+  address: string | null;
+};
+
+export type VenueGeocodeResult = {
+  address: string | null;
+  lat: number;
+  lng: number;
+  provider: 'yandex';
+  query: string;
+  precision: string | null;
+  kind: string | null;
+};
+
+type VenueGeocoderClientOptions = {
+  apiKey?: string | null;
+  baseUrl?: string | null;
+  timeoutMs?: number | null;
+};
+
+const CITY_BBOX: Record<string, string> = {
+  'Москва': '55.55,37.35,55.95,37.95',
+  'Санкт-Петербург': '59.75,30.05,60.10,30.65',
+  'Новосибирск': '54.80,82.70,55.15,83.20',
+  'Екатеринбург': '56.70,60.35,56.95,60.85',
+  'Казань': '55.65,48.85,55.95,49.35',
+  'Нижний Новгород': '56.15,43.75,56.40,44.20',
+  'Красноярск': '55.85,92.60,56.15,93.20',
+  'Челябинск': '55.05,61.15,55.35,61.65',
+  'Самара': '53.05,49.85,53.35,50.35',
+  'Уфа': '54.60,55.75,54.90,56.20',
+  'Ростов-на-Дону': '47.15,39.55,47.35,39.90',
+  'Краснодар': '44.95,38.85,45.15,39.20',
+  'Омск': '54.85,73.15,55.10,73.65',
+  'Воронеж': '51.55,39.05,51.80,39.35',
+  'Пермь': '57.85,55.80,58.10,56.45',
+  'Волгоград': '48.55,44.30,48.90,44.70',
+};
+
+export class VenueGeocoderClient {
+  private readonly apiKey: string | null;
+  private readonly baseUrl: string;
+  private readonly timeoutMs: number;
+
+  constructor(options: VenueGeocoderClientOptions = {}) {
+    this.apiKey = cleanText(
+      options.apiKey
+        ?? process.env.YANDEX_GEOCODER_API_KEY
+        ?? process.env.CONTENT_GEOCODER_API_KEY,
+    );
+    this.baseUrl = cleanText(options.baseUrl ?? process.env.YANDEX_GEOCODER_BASE_URL)
+      ?? DEFAULT_YANDEX_GEOCODER_URL;
+    this.timeoutMs = positiveInt(
+      options.timeoutMs ?? process.env.CONTENT_GEOCODER_TIMEOUT_MS,
+      DEFAULT_TIMEOUT_MS,
+    );
+  }
+
+  async geocode(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
+    if (!this.apiKey) {
+      return null;
+    }
+    const query = geocodeQuery(input);
+    if (!query) {
+      return null;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    timeout.unref?.();
+    try {
+      const url = new URL(this.baseUrl);
+      url.searchParams.set('apikey', this.apiKey);
+      url.searchParams.set('geocode', query);
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('lang', 'ru_RU');
+      url.searchParams.set('results', '1');
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        return null;
+      }
+      return highConfidenceResult(
+        await response.json(),
+        input.city,
+        query,
+        cleanText(input.address) != null,
+      );
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+function geocodeQuery(input: VenueGeocodeInput) {
+  const city = cleanText(input.city);
+  const address = cleanText(input.address);
+  const venueName = cleanText(input.venueName);
+  if (!city) {
+    return null;
+  }
+  if (address) {
+    return `${city}, ${address}`;
+  }
+  if (venueName) {
+    return `${city}, ${venueName}`;
+  }
+  return null;
+}
+
+function highConfidenceResult(
+  payload: unknown,
+  city: string,
+  query: string,
+  hasAddress: boolean,
+): VenueGeocodeResult | null {
+  const collection = object(object(object(payload)?.response)?.GeoObjectCollection);
+  const members = array(collection?.featureMember);
+  const geoObject = object(object(members[0])?.GeoObject);
+  const point = cleanText(object(geoObject?.Point)?.pos);
+  const [lng, lat] = parsePoint(point);
+  if (lat == null || lng == null || !withinCity(city, lat, lng)) {
+    return null;
+  }
+
+  const meta = object(object(geoObject?.metaDataProperty)?.GeocoderMetaData);
+  const precision = cleanText(meta?.precision);
+  const kind = cleanText(meta?.kind);
+  if (!isHighConfidence(precision, kind, hasAddress)) {
+    return null;
+  }
+
+  return {
+    address: cleanText(meta?.text),
+    lat,
+    lng,
+    provider: 'yandex',
+    query,
+    precision,
+    kind,
+  };
+}
+
+function isHighConfidence(precision: string | null, kind: string | null, hasAddress: boolean) {
+  const normalizedPrecision = precision?.toLowerCase() ?? '';
+  const normalizedKind = kind?.toLowerCase() ?? '';
+  if (['country', 'province', 'area', 'district', 'locality', 'other'].includes(normalizedKind)) {
+    return false;
+  }
+  if (!hasAddress) {
+    return ['exact', 'number', 'near'].includes(normalizedPrecision)
+      && ['house', 'metro'].includes(normalizedKind);
+  }
+  if (['exact', 'number', 'range', 'near'].includes(normalizedPrecision)) {
+    return true;
+  }
+  return ['house', 'street', 'metro'].includes(normalizedKind);
+}
+
+function withinCity(city: string, lat: number, lng: number) {
+  const bbox = CITY_BBOX[city];
+  if (!bbox) {
+    return true;
+  }
+  const values = bbox.split(',').map((value) => Number.parseFloat(value));
+  if (values.length !== 4) {
+    return false;
+  }
+  const [south, west, north, east] = values;
+  if (
+    south == null ||
+    west == null ||
+    north == null ||
+    east == null ||
+    !Number.isFinite(south) ||
+    !Number.isFinite(west) ||
+    !Number.isFinite(north) ||
+    !Number.isFinite(east)
+  ) {
+    return false;
+  }
+  return lat >= south
+    && lat <= north
+    && lng >= west
+    && lng <= east;
+}
+
+function parsePoint(value: string | null): [number | null, number | null] {
+  if (!value) {
+    return [null, null];
+  }
+  const [lngRaw, latRaw] = value.split(/\s+/);
+  if (!lngRaw || !latRaw) {
+    return [null, null];
+  }
+  const lng = Number.parseFloat(lngRaw);
+  const lat = Number.parseFloat(latRaw);
+  return [
+    Number.isFinite(lng) ? lng : null,
+    Number.isFinite(lat) ? lat : null,
+  ];
+}
+
+function object(value: unknown): Record<string, unknown> | null {
+  return value != null && typeof value === 'object' ? value as Record<string, unknown> : null;
+}
+
+function array(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+function cleanText(value: unknown) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.replace(/\s+/g, ' ').trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function positiveInt(value: unknown, fallback: number) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}

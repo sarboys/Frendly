@@ -1387,6 +1387,9 @@ function tomestoCatalogProgress(raw: unknown): TomestoCatalogProgress | null {
 }
 
 function publicStatusFor(item: NormalizedExternalContentItem) {
+  if (isAttachableSourceCandidate(item) && !hasValidContentCoordinates(item)) {
+    return PUBLIC_STATUS_HIDDEN;
+  }
   if (isTomestoClosedPlace(item)) {
     return PUBLIC_STATUS_HIDDEN;
   }
@@ -1419,6 +1422,22 @@ function publicStatusFor(item: NormalizedExternalContentItem) {
       : PUBLIC_STATUS_HIDDEN;
   }
   return PUBLIC_STATUS_HIDDEN;
+}
+
+function isAttachableSourceCandidate(item: NormalizedExternalContentItem) {
+  return item.contentKind === 'place' || item.contentKind === 'event';
+}
+
+function hasValidContentCoordinates(item: NormalizedExternalContentItem) {
+  return typeof item.lat === 'number' &&
+    typeof item.lng === 'number' &&
+    Number.isFinite(item.lat) &&
+    Number.isFinite(item.lng) &&
+    item.lat >= -90 &&
+    item.lat <= 90 &&
+    item.lng >= -180 &&
+    item.lng <= 180 &&
+    !(item.lat === 0 && item.lng === 0);
 }
 
 function contentImportFailure(caught: unknown) {

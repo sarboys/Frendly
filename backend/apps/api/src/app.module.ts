@@ -108,6 +108,7 @@ import { TbankAcquiringService } from './services/tbank-acquiring.service';
 import { TokensService } from './services/tokens.service';
 import { UploadsService } from './services/uploads.service';
 import { VerificationService } from './services/verification.service';
+import { VenueGeocoderService } from './services/venue-geocoder.service';
 
 @Module({
   controllers: [
@@ -218,6 +219,7 @@ import { VerificationService } from './services/verification.service';
     TokensService,
     UploadsService,
     VerificationService,
+    VenueGeocoderService,
     {
       provide: APP_FILTER,
       useClass: ApiExceptionFilter,

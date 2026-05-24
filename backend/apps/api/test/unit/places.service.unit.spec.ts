@@ -63,6 +63,8 @@ describe('PlacesService unit', () => {
       contentKind: 'place',
       publicStatus: 'published',
       city: 'Москва',
+      lat: { not: null },
+      lng: { not: null },
     });
     expect(result).toEqual([
       expect.objectContaining({
@@ -159,6 +161,8 @@ describe('PlacesService unit', () => {
       contentKind: 'place',
       publicStatus: 'published',
       city: 'Санкт-Петербург',
+      lat: { not: null },
+      lng: { not: null },
     });
     expect(result).toEqual([
       expect.objectContaining({
@@ -174,5 +178,60 @@ describe('PlacesService unit', () => {
         placeBookingUrl: 'https://tomesto.ru/spb/places/bar-spb',
       }),
     ]);
+  });
+
+  it('hides promos when no matched published place with coordinates exists', async () => {
+    const findMany = jest
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'promo-spb-1',
+          title: 'Скидка на сет',
+          shortSummary: 'Для компании от 3 человек',
+          city: 'Санкт-Петербург',
+          endsAt: new Date('2026-06-01T00:00:00.000Z'),
+          actionUrl: 'https://tomesto.ru/spb/promos/set?ref=frendly',
+          sourceUrl: 'https://tomesto.ru/spb/promos/set',
+          sourceProvider: 'ТоМесто',
+          raw: {
+            placeSlug: 'bar-spb',
+            venueName: 'Бар СПБ',
+          },
+          source: { name: 'ТоМесто' },
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'place-spb-1',
+          title: 'Бар СПБ',
+          address: 'Невский 1',
+          city: 'Санкт-Петербург',
+          category: 'bar',
+          placeKind: 'bar',
+          lat: null,
+          lng: null,
+          priceFrom: 1800,
+          currency: 'RUB',
+          actionUrl: 'https://tomesto.ru/spb/places/bar-spb',
+          sourceProvider: 'ТоМесто',
+          raw: {
+            slug: 'bar-spb',
+          },
+          source: { name: 'ТоМесто' },
+        },
+      ]);
+    const service = new PlacesService({
+      client: {
+        externalContentItem: { findMany },
+      },
+    } as any);
+
+    const result = await service.listPlacePromos({
+      city: 'Санкт-Петербург',
+      latitude: 59.94,
+      longitude: 30.32,
+    });
+
+    expect(result).toEqual([]);
   });
 });

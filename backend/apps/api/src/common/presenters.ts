@@ -72,7 +72,16 @@ type MessageMediaAsset = Pick<
 
 type MessagePresenterInput = Pick<
   Message,
-  'id' | 'chatId' | 'senderId' | 'text' | 'clientMessageId' | 'createdAt'
+  | 'id'
+  | 'chatId'
+  | 'senderId'
+  | 'text'
+  | 'clientMessageId'
+  | 'locationLatitude'
+  | 'locationLongitude'
+  | 'locationLabel'
+  | 'locationExpiresAt'
+  | 'createdAt'
 > & {
   sender: Pick<User, 'displayName'> & {
     profile?: (Pick<Profile, 'avatarUrl'> & {
@@ -114,6 +123,17 @@ export function mapMessage(
     createdAt: message.createdAt.toISOString(),
     kind: isSystem ? 'system' : 'user',
     ...(systemKind != null ? { systemKind } : {}),
+    location:
+      message.locationLatitude == null ||
+      message.locationLongitude == null ||
+      message.locationExpiresAt == null
+        ? null
+        : {
+            latitude: message.locationLatitude,
+            longitude: message.locationLongitude,
+            label: message.locationLabel ?? null,
+            expiresAt: message.locationExpiresAt.toISOString(),
+          },
     replyTo: message.replyTo ? mapReplyPreview(message.replyTo) : null,
     attachments: message.attachments.map((entry) => mapMediaAsset(entry.mediaAsset)),
   };
@@ -325,6 +345,7 @@ type EventSummaryInput = Pick<
   | 'emoji'
   | 'startsAt'
   | 'place'
+  | 'city'
   | 'distanceKm'
   | 'capacity'
   | 'vibe'
@@ -346,6 +367,7 @@ type EventSummaryInput = Pick<
 > & {
   latitude?: number | null;
   longitude?: number | null;
+  coverAsset?: Pick<MediaAsset, 'id' | 'publicUrl'> | null;
   sourceExternalContentItem?: {
     id?: string | null;
     contentKind?: string | null;
@@ -503,8 +525,9 @@ export function mapEventSummary(params: {
     time: formatEventTime(event.startsAt),
     startsAtIso: event.startsAt.toISOString(),
     place: event.place,
+    city: event.city ?? null,
     distance: `${event.distanceKm.toFixed(1)} км`,
-    imageUrl: mapExternalContentImageUrl(event.sourceExternalContentItem),
+    imageUrl: mapEventImageUrl(event),
     latitude: event.latitude ?? null,
     longitude: event.longitude ?? null,
     attendees: attendeePreview.slice(0, 5).map((participant) => participant.user.displayName),
@@ -616,6 +639,17 @@ function mapEventRoutePoints(event: EventSummaryInput) {
       latitude: step.lat,
       longitude: step.lng,
     }));
+}
+
+function mapEventImageUrl(event: EventSummaryInput) {
+  const cover = event.coverAsset;
+  if (cover?.publicUrl) {
+    return cover.publicUrl;
+  }
+  if (cover?.id) {
+    return buildMediaProxyPath(cover.id);
+  }
+  return mapExternalContentImageUrl(event.sourceExternalContentItem);
 }
 
 function mapExternalContentImageUrl(
