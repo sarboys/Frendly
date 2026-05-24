@@ -342,6 +342,7 @@ type EventSummaryInput = Pick<
   Event,
   | 'id'
   | 'title'
+  | 'description'
   | 'emoji'
   | 'startsAt'
   | 'place'
@@ -521,6 +522,7 @@ export function mapEventSummary(params: {
   return {
     id: event.id,
     title: event.title,
+    description: event.description,
     emoji: event.emoji,
     time: formatEventTime(event.startsAt),
     startsAtIso: event.startsAt.toISOString(),

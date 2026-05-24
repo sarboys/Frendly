@@ -888,6 +888,7 @@ describe('auth flows', () => {
 
     expect(duplicateResponse.status).toBe(409);
     expect(duplicateResponse.body.code).toBe('contact_already_used');
+    expect(duplicateResponse.body.details).toEqual({ field: 'email' });
 
     const freeResponse = await request(app.getHttpServer())
       .post('/onboarding/contact/check')
@@ -965,6 +966,7 @@ describe('auth flows', () => {
 
     expect(duplicateResponse.status).toBe(409);
     expect(duplicateResponse.body.code).toBe('contact_already_used');
+    expect(duplicateResponse.body.details).toEqual({ field: 'phoneNumber' });
 
     const freeResponse = await request(app.getHttpServer())
       .post('/onboarding/contact/check')

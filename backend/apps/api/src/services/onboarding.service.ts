@@ -492,7 +492,7 @@ export class OnboardingService {
       });
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw new ApiError(409, 'contact_already_used', 'Contact is already used');
+        throw contactAlreadyUsedError(contactFieldFromUniqueError(error));
       }
       throw error;
     }
@@ -525,11 +525,7 @@ export class OnboardingService {
       select: { id: true },
     });
     if (existing) {
-      throw new ApiError(
-        409,
-        'contact_already_used',
-        'Contact is already used',
-      );
+      throw contactAlreadyUsedError('email');
     }
   }
 
@@ -547,11 +543,7 @@ export class OnboardingService {
       select: { id: true },
     });
     if (existing) {
-      throw new ApiError(
-        409,
-        'contact_already_used',
-        'Contact is already used',
-      );
+      throw contactAlreadyUsedError('phoneNumber');
     }
   }
 
@@ -561,4 +553,31 @@ export class OnboardingService {
       error.code === 'P2002'
     );
   }
+}
+
+function contactAlreadyUsedError(field?: 'email' | 'phoneNumber') {
+  return new ApiError(
+    409,
+    'contact_already_used',
+    'Contact is already used',
+    field ? { field } : undefined,
+  );
+}
+
+function contactFieldFromUniqueError(error: unknown) {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== 'P2002'
+  ) {
+    return undefined;
+  }
+  const target = error.meta?.target;
+  const fields = Array.isArray(target) ? target : [target];
+  if (fields.includes('email')) {
+    return 'email';
+  }
+  if (fields.includes('phoneNumber')) {
+    return 'phoneNumber';
+  }
+  return undefined;
 }

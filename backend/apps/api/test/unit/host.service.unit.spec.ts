@@ -183,6 +183,7 @@ describe('HostService unit', () => {
       expect.objectContaining({
         take: 2,
         select: expect.objectContaining({
+          description: true,
           participants: expect.objectContaining({
             where: {
               userId: {
@@ -896,6 +897,7 @@ describe('HostService unit', () => {
       }),
     );
     expect(result.event.going).toBe(7);
+    expect(result.event.description).toBe('Описание');
   });
 
   it('finishes live meetup with only host-selected attendees checked in', async () => {

@@ -406,6 +406,8 @@ model User {
   messages                           Message[]
   mediaAssets                        MediaAsset[]
   telegramAccount                    TelegramAccount?
+  telegramSupportTokens              TelegramSupportToken[]
+  telegramSupportSessions            TelegramSupportSession[]
   externalAuthAccounts               ExternalAuthAccount[]
   authAuditEvents                    AuthAuditEvent[]
   datingActionsSent                  DatingAction[]              @relation("DatingActionActor")
@@ -605,6 +607,36 @@ model TelegramLoginSession {
   @@index([status, expiresAt])
   @@index([telegramUserId, status])
   @@index([codeLookup, status, expiresAt])
+}
+
+model TelegramSupportToken {
+  tokenHash  String    @id
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model TelegramSupportSession {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  telegramUserId String
+  chatId         String
+  username       String?
+  firstName      String?
+  lastName       String?
+  status         String    @default("active")
+  lastMessageAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([telegramUserId, chatId, status])
+  @@index([status, lastMessageAt])
 }
 
 model AuthAuditEvent {

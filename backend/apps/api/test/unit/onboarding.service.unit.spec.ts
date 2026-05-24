@@ -339,6 +339,7 @@ describe('OnboardingService unit', () => {
     ).rejects.toMatchObject({
       statusCode: 409,
       code: 'contact_already_used',
+      details: { field: 'email' },
     });
 
     expect(userFindFirst).toHaveBeenCalledWith({
@@ -373,6 +374,41 @@ describe('OnboardingService unit', () => {
     ).resolves.toEqual({
       available: true,
       requiredContact: 'phone',
+    });
+
+    expect(userFindFirst).toHaveBeenCalledWith({
+      where: {
+        phoneNumber: '+79990000000',
+        id: { not: 'user-me' },
+      },
+      select: { id: true },
+    });
+  });
+
+  it('rejects duplicate required phone before onboarding save with field details', async () => {
+    const userFindFirst = jest.fn().mockResolvedValue({ id: 'other-user' });
+    const client = {
+      session: {
+        findUnique: jest.fn().mockResolvedValue({ provider: 'google' }),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          email: 'social@example.com',
+          phoneNumber: null,
+        }),
+        findFirst: userFindFirst,
+      },
+    };
+    const service = new OnboardingService({ client } as any);
+
+    await expect(
+      service.checkContactAvailability('user-me', 'session-1', {
+        phoneNumber: '8 999 000 00 00',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'contact_already_used',
+      details: { field: 'phoneNumber' },
     });
 
     expect(userFindFirst).toHaveBeenCalledWith({

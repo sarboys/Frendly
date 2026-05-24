@@ -43,6 +43,7 @@ import { SettingsController } from './controllers/settings.controller';
 import { SharesController } from './controllers/shares.controller';
 import { StoriesController } from './controllers/stories.controller';
 import { SubscriptionController } from './controllers/subscription.controller';
+import { SupportController } from './controllers/support.controller';
 import { TokensController } from './controllers/tokens.controller';
 import { UploadsController } from './controllers/uploads.controller';
 import { VerificationController } from './controllers/verification.controller';
@@ -101,6 +102,7 @@ import { SharesService } from './services/shares.service';
 import { SocialAuthService } from './services/social-auth.service';
 import { SocialIdentityVerifier } from './services/social-identity-verifier.service';
 import { StoriesService } from './services/stories.service';
+import { SupportService } from './services/support.service';
 import { TelegramAuthService } from './services/telegram-auth.service';
 import { PhoneOtpService } from './services/phone-otp.service';
 import { SubscriptionService } from './services/subscription.service';
@@ -155,6 +157,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     SharesController,
     StoriesController,
     SubscriptionController,
+    SupportController,
     TokensController,
     UploadsController,
     VerificationController,
@@ -213,6 +216,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     SocialAuthService,
     SocialIdentityVerifier,
     StoriesService,
+    SupportService,
     TelegramAuthService,
     SubscriptionService,
     TbankAcquiringService,

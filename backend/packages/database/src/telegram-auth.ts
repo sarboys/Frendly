@@ -4,6 +4,7 @@ export const TELEGRAM_AUTH_CODE_LENGTH = 4;
 export const TELEGRAM_AUTH_TTL_MS = 10 * 60 * 1000;
 export const TELEGRAM_AUTH_CONTACT_COOLDOWN_MS = 60 * 1000;
 export const TELEGRAM_AUTH_MAX_ATTEMPTS = 5;
+export const TELEGRAM_SUPPORT_TOKEN_TTL_MS = 10 * 60 * 1000;
 export const TELEGRAM_BOT_STATE_ID = 'default';
 
 export interface TelegramAuthConfig {
@@ -46,6 +47,14 @@ export function buildTelegramBotStartPayload(startToken: string) {
 
 export function buildTelegramBotUrl(botUsername: string, startToken: string) {
   return `https://t.me/${botUsername}?start=${buildTelegramBotStartPayload(startToken)}`;
+}
+
+export function buildTelegramSupportBotStartPayload(startToken: string) {
+  return `support_${startToken}`;
+}
+
+export function buildTelegramSupportBotUrl(botUsername: string, startToken: string) {
+  return `https://t.me/${botUsername}?start=${buildTelegramSupportBotStartPayload(startToken)}`;
 }
 
 export function generateTelegramCode() {

@@ -29,6 +29,7 @@ const HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT = 6;
 const hostEventSummarySelect = {
   id: true,
   title: true,
+  description: true,
   emoji: true,
   startsAt: true,
   place: true,

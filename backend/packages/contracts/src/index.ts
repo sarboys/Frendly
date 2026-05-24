@@ -26,7 +26,12 @@ export interface TokenPair {
   refreshToken: string;
 }
 
-export type TelegramDispatchKind = 'start' | 'contact';
+export type TelegramDispatchKind =
+  | 'start'
+  | 'contact'
+  | 'support_start'
+  | 'support_message'
+  | 'support_reply';
 
 export interface TelegramDispatchRequest {
   kind: TelegramDispatchKind;
@@ -38,11 +43,17 @@ export interface TelegramDispatchRequest {
   phoneNumber?: string;
   startToken?: string;
   startPayload?: string;
+  text?: string;
+  messageId?: string;
+  replyToMessageId?: string;
+  replyToText?: string;
 }
 
 export interface TelegramDispatchAction {
   type: 'send_message';
+  chatId?: string;
   text: string;
+  replyToMessageId?: string;
   replyMarkup?: Record<string, unknown>;
 }
 

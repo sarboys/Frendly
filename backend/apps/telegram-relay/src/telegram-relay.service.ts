@@ -10,6 +10,7 @@ import {
 type FetchLike = typeof fetch;
 
 type TelegramMessage = {
+  message_id?: number;
   text?: string;
   chat?: {
     id: number;
@@ -25,6 +26,10 @@ type TelegramMessage = {
   contact?: {
     user_id?: number;
     phone_number?: string;
+  };
+  reply_to_message?: {
+    message_id?: number;
+    text?: string;
   };
 };
 
@@ -136,12 +141,37 @@ export class TelegramRelayService implements OnModuleDestroy {
 
   private async handleUpdate(update: TelegramUpdate) {
     const message = update.message;
-    if (!message?.chat || message.chat.type !== 'private' || !message.from || message.from.is_bot) {
+    if (!message?.chat || !message.from || message.from.is_bot) {
+      return;
+    }
+
+    if (message.chat.type === 'group' || message.chat.type === 'supergroup') {
+      await this.handleGroupMessage(message);
+      return;
+    }
+
+    if (message.chat.type !== 'private') {
       return;
     }
 
     if (typeof message.text === 'string' && message.text.startsWith('/start')) {
       const rawPayload = message.text.trim().split(/\s+/)[1] ?? '';
+      if (rawPayload.startsWith('support_')) {
+        const request: TelegramDispatchRequest = {
+          kind: 'support_start',
+          telegramUserId: `${message.from.id}`,
+          chatId: `${message.chat.id}`,
+          username: message.from.username,
+          firstName: message.from.first_name,
+          lastName: message.from.last_name,
+          startPayload: rawPayload,
+          ...(message.message_id == null ? {} : { messageId: `${message.message_id}` }),
+        };
+        const response = await this.dispatchToBackend(request);
+        await this.executeActions(message.chat.id, response.actions);
+        return;
+      }
+
       const request: TelegramDispatchRequest = {
         kind: 'start',
         telegramUserId: `${message.from.id}`,
@@ -171,7 +201,49 @@ export class TelegramRelayService implements OnModuleDestroy {
       };
       const response = await this.dispatchToBackend(request);
       await this.executeActions(message.chat.id, response.actions);
+      return;
     }
+
+    if (typeof message.text === 'string' && message.text.trim().length > 0) {
+      const request: TelegramDispatchRequest = {
+        kind: 'support_message',
+        telegramUserId: `${message.from.id}`,
+        chatId: `${message.chat.id}`,
+        username: message.from.username,
+        firstName: message.from.first_name,
+        lastName: message.from.last_name,
+        text: message.text,
+        ...(message.message_id == null ? {} : { messageId: `${message.message_id}` }),
+      };
+      const response = await this.dispatchToBackend(request);
+      await this.executeActions(message.chat.id, response.actions);
+    }
+  }
+
+  private async handleGroupMessage(message: TelegramMessage) {
+    if (typeof message.text !== 'string' || message.text.trim().length === 0) {
+      return;
+    }
+    if (!message.reply_to_message?.text || !message.from || !message.chat) {
+      return;
+    }
+
+    const request: TelegramDispatchRequest = {
+      kind: 'support_reply',
+      telegramUserId: `${message.from.id}`,
+      chatId: `${message.chat.id}`,
+      username: message.from.username,
+      firstName: message.from.first_name,
+      lastName: message.from.last_name,
+      text: message.text,
+      replyToText: message.reply_to_message.text,
+      ...(message.message_id == null ? {} : { messageId: `${message.message_id}` }),
+      ...(message.reply_to_message.message_id == null
+        ? {}
+        : { replyToMessageId: `${message.reply_to_message.message_id}` }),
+    };
+    const response = await this.dispatchToBackend(request);
+    await this.executeActions(message.chat.id, response.actions);
   }
 
   private async dispatchToBackend(
@@ -200,8 +272,11 @@ export class TelegramRelayService implements OnModuleDestroy {
     for (const action of actions) {
       if (action.type === 'send_message') {
         await this.callTelegram('sendMessage', {
-          chat_id: chatId,
+          chat_id: action.chatId ?? chatId,
           text: action.text,
+          ...(action.replyToMessageId == null
+            ? {}
+            : { reply_to_message_id: action.replyToMessageId }),
           ...(action.replyMarkup == null ? {} : { reply_markup: action.replyMarkup }),
         });
       }
@@ -288,6 +363,9 @@ export class TelegramRelayService implements OnModuleDestroy {
   }
 
   private isEnabled() {
-    return process.env.TELEGRAM_AUTH_ENABLED === 'true';
+    return (
+      process.env.TELEGRAM_AUTH_ENABLED === 'true' ||
+      process.env.TELEGRAM_SUPPORT_ENABLED === 'true'
+    );
   }
 }

@@ -4,12 +4,13 @@ import { IsIn, IsOptional, IsString } from 'class-validator';
 import { Public } from '../common/public.decorator';
 import { RequestWithContext } from '../common/request-context';
 import { ApiError } from '../common/api-error';
+import { SupportService } from '../services/support.service';
 import { TelegramAuthService } from '../services/telegram-auth.service';
 
 class InternalTelegramDispatchRequest implements TelegramDispatchRequest {
   @IsString()
-  @IsIn(['start', 'contact'])
-  kind!: 'start' | 'contact';
+  @IsIn(['start', 'contact', 'support_start', 'support_message', 'support_reply'])
+  kind!: TelegramDispatchRequest['kind'];
 
   @IsString()
   telegramUserId!: string;
@@ -40,13 +41,32 @@ class InternalTelegramDispatchRequest implements TelegramDispatchRequest {
   @IsOptional()
   @IsString()
   startPayload?: string;
+
+  @IsOptional()
+  @IsString()
+  text?: string;
+
+  @IsOptional()
+  @IsString()
+  messageId?: string;
+
+  @IsOptional()
+  @IsString()
+  replyToMessageId?: string;
+
+  @IsOptional()
+  @IsString()
+  replyToText?: string;
 }
 
 @Controller('internal/telegram')
 export class InternalTelegramController {
   private readonly logger = new Logger(InternalTelegramController.name);
 
-  constructor(private readonly telegramAuthService: TelegramAuthService) {}
+  constructor(
+    private readonly telegramAuthService: TelegramAuthService,
+    private readonly supportService: SupportService,
+  ) {}
 
   @Public()
   @Post('dispatch')
@@ -62,11 +82,21 @@ export class InternalTelegramController {
       throw new ApiError(401, 'invalid_internal_secret', 'Internal secret is invalid');
     }
 
-    return this.telegramAuthService.dispatch(body, {
+    const meta = {
       requestId: request.context.requestId,
       ip: request.ip,
       userAgent: request.get('user-agent') ?? undefined,
-    });
+    };
+
+    if (
+      body.kind === 'support_start' ||
+      body.kind === 'support_message' ||
+      body.kind === 'support_reply'
+    ) {
+      return this.supportService.handleTelegramDispatch(body);
+    }
+
+    return this.telegramAuthService.dispatch(body, meta);
   }
 
   private isValidSecret(secret: string | undefined) {
