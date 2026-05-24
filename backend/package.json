@@ -14,6 +14,8 @@
     "db:reset:test-users": "pnpm --filter @big-break/database db:reset:test-users",
     "db:seed:test-accounts": "pnpm --filter @big-break/database db:seed:test-accounts",
     "db:delete:test-accounts": "pnpm --filter @big-break/database db:delete:test-accounts",
+    "db:delete:app-users": "pnpm --filter @big-break/database db:delete:app-users",
+    "db:delete:external-imports": "pnpm --filter @big-break/database db:delete:external-imports",
     "db:seed": "pnpm --filter @big-break/database db:seed"
   },
   "devDependencies": {

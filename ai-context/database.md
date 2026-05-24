@@ -167,6 +167,7 @@ cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 cd backend && pnpm --filter @big-break/database db:seed:test-accounts
 cd backend && pnpm --filter @big-break/database db:delete:test-accounts
 cd backend && pnpm --filter @big-break/database db:delete:app-users
+cd backend && pnpm --filter @big-break/database db:delete:external-imports
 ```
 
 ## Seed
@@ -178,6 +179,8 @@ Seed no longer inserts demo data. It only cleans legacy deterministic demo rows 
 Test account data is separate from `db:seed`: `backend/packages/database/prisma/seed-test-accounts.ts` creates or deletes the 10 repeated-digit phone accounts, their profiles, photos, Frendly Plus subscriptions, hosted Moscow meetups and test clubs.
 
 Release cleanup for a tester launch is separate from test account cleanup: `backend/packages/database/prisma/delete-app-users.ts` deletes all app `User` rows and related user data, including profiles, chats, messages, likes, follows, meetups, communities, media, auth sessions, verification, push tokens, token/payment/subscription rows, Drops user rows and user Evening session rows. It intentionally leaves admin users/sessions, partner accounts, venues, partner offers, subscription catalog, imported external content, app version policies and popup campaigns.
+
+External import cleanup is separate from user cleanup: `backend/packages/database/prisma/delete-external-imports.ts` deletes imported affiche/place rows, import runs, source definitions and generated route review drafts. It first clears `Event.sourceExternalContentItemId` links, so user or partner meetups are preserved. It does not delete S3 objects mirrored under `external-content/...`.
 
 ## When changing schema
 
