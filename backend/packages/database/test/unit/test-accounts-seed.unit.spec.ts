@@ -1,5 +1,8 @@
 import { TEST_ACCOUNT_PHONE_NUMBERS } from '../../src/test-accounts';
-import { buildTestAccountsSeedPlan } from '../../prisma/seed-test-accounts';
+import {
+  TEST_ACCOUNT_CLEANUP_DATASETS,
+  buildTestAccountsSeedPlan,
+} from '../../prisma/seed-test-accounts';
 
 describe('test accounts seed plan', () => {
   const plan = buildTestAccountsSeedPlan(new Date('2026-05-09T09:00:00.000Z'));
@@ -49,5 +52,65 @@ describe('test accounts seed plan', () => {
       'test-user-3333333333',
       'test-user-6666666666',
     ]);
+  });
+
+  it('covers tester release data in cleanup', () => {
+    expect(TEST_ACCOUNT_CLEANUP_DATASETS).toEqual(
+      expect.arrayContaining([
+        'users',
+        'profiles',
+        'settings',
+        'onboarding',
+        'verifications',
+        'sessions',
+        'telegramAccounts',
+        'externalAuthAccounts',
+        'phoneOtpChallenges',
+        'authAuditEvents',
+        'pushTokens',
+        'subscriptions',
+        'paymentOrders',
+        'tokenWallets',
+        'tokenLedgerEntries',
+        'tokenPromotions',
+        'datingActions',
+        'datingUsageEvents',
+        'profileReactions',
+        'follows',
+        'eventFavorites',
+        'trustedContacts',
+        'safetySosAlerts',
+        'userReports',
+        'userBlocks',
+        'communities',
+        'communityJoinRequests',
+        'chats',
+        'messages',
+        'messageAttachments',
+        'events',
+        'eventJoinRequests',
+        'eventParticipants',
+        'eventAttendances',
+        'eventLiveStates',
+        'eventFeedbacks',
+        'eventStories',
+        'mediaAssets',
+        'profilePhotos',
+        'notifications',
+        'dropTickets',
+        'dropRewardEvents',
+        'dropWinners',
+        'dropReferrals',
+        'dropRestrictions',
+        'seasonRewardClaims',
+        'eveningAiRouteDrafts',
+        'userEveningStepActions',
+        'eveningSessionParticipants',
+        'eveningSessionJoinRequests',
+        'eveningAfterPartyFeedbacks',
+        'eveningAfterPartyPhotos',
+        'partnerOfferCodes',
+      ]),
+    );
   });
 });

@@ -96,6 +96,66 @@ const SEEDED_EVENT_CHAT_PREFIX = 'test-event-chat-';
 const SEEDED_COMMUNITY_PREFIX = 'test-community-';
 const SEEDED_COMMUNITY_CHAT_PREFIX = 'test-community-chat-';
 
+export const TEST_ACCOUNT_CLEANUP_DATASETS = [
+  'users',
+  'profiles',
+  'settings',
+  'onboarding',
+  'verifications',
+  'sessions',
+  'telegramAccounts',
+  'externalAuthAccounts',
+  'telegramLoginSessions',
+  'phoneOtpChallenges',
+  'authAuditEvents',
+  'pushTokens',
+  'subscriptions',
+  'paymentOrders',
+  'tokenWallets',
+  'tokenLedgerEntries',
+  'tokenPromotions',
+  'datingActions',
+  'datingUsageEvents',
+  'profileReactions',
+  'follows',
+  'eventFavorites',
+  'trustedContacts',
+  'safetySosAlerts',
+  'userReports',
+  'userBlocks',
+  'communities',
+  'communityJoinRequests',
+  'chats',
+  'messages',
+  'messageAttachments',
+  'events',
+  'eventJoinRequests',
+  'eventParticipants',
+  'eventAttendances',
+  'eventLiveStates',
+  'eventFeedbacks',
+  'eventStories',
+  'mediaAssets',
+  'profilePhotos',
+  'notifications',
+  'dropTickets',
+  'dropRewardEvents',
+  'dropWinners',
+  'dropReferrals',
+  'dropRestrictions',
+  'seasonRewardClaims',
+  'eveningAiRouteDrafts',
+  'eveningAnalyticsEvents',
+  'publicShares',
+  'userEveningStepActions',
+  'eveningSessionParticipants',
+  'eveningSessionJoinRequests',
+  'eveningAfterPartyFeedbacks',
+  'eveningAfterPartyPhotos',
+  'partnerOfferCodes',
+  'appPopupTargets',
+] as const;
+
 const AREAS = [
   { name: 'Арбат', place: 'Никитский бульвар', lat: 55.7521, lng: 37.599 },
   { name: 'Патриаршие', place: 'Патриаршие пруды', lat: 55.7638, lng: 37.5929 },
@@ -472,6 +532,22 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
   });
   const userIds = users.map((user) => user.id);
 
+  const communities = await prisma.community.findMany({
+    where: {
+      OR: [
+        { id: { startsWith: SEEDED_COMMUNITY_PREFIX } },
+        ...whenNonEmpty(userIds, (ids) => [
+          { createdById: { in: ids } },
+          { members: { some: { userId: { in: ids } } } },
+          { joinRequests: { some: { userId: { in: ids } } } },
+        ]),
+      ],
+    },
+    select: { id: true, chatId: true },
+  });
+  const communityIds = communities.map((community) => community.id);
+  const communityChatIds = communities.map((community) => community.chatId);
+
   const events = await prisma.event.findMany({
     where: {
       OR: [
@@ -483,11 +559,25 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
   });
   const eventIds = events.map((event) => event.id);
 
+  const hostedEveningSessions = await prisma.eveningSession.findMany({
+    where:
+      userIds.length > 0 ? { hostUserId: { in: userIds } } : { id: '__none__' },
+    select: { id: true, chatId: true },
+  });
+  const hostedEveningSessionIds = hostedEveningSessions.map((session) => session.id);
+  const hostedEveningSessionChatIds = hostedEveningSessions.map(
+    (session) => session.chatId,
+  );
+
   const chats = await prisma.chat.findMany({
     where: {
       OR: [
         { id: { startsWith: SEEDED_EVENT_CHAT_PREFIX } },
         { id: { startsWith: SEEDED_COMMUNITY_CHAT_PREFIX } },
+        ...whenNonEmpty(communityChatIds, (ids) => [{ id: { in: ids } }]),
+        ...whenNonEmpty(hostedEveningSessionChatIds, (ids) => [
+          { id: { in: ids } },
+        ]),
         ...whenNonEmpty(eventIds, (ids) => [
           { eventId: { in: ids } },
           { sourceEventId: { in: ids } },
@@ -507,6 +597,55 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
   });
   const chatIds = chats.map((chat) => chat.id);
 
+  const messageFilters: Prisma.MessageWhereInput[] = [
+    ...whenNonEmpty(chatIds, (ids) => [{ chatId: { in: ids } }]),
+    ...whenNonEmpty(userIds, (ids) => [{ senderId: { in: ids } }]),
+  ];
+  const messages = await prisma.message.findMany({
+    where:
+      messageFilters.length > 0 ? { OR: messageFilters } : { id: '__none__' },
+    select: { id: true },
+  });
+  const messageIds = messages.map((message) => message.id);
+
+  const paymentOrders = await prisma.paymentOrder.findMany({
+    where: userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    select: { id: true },
+  });
+  const paymentOrderIds = paymentOrders.map((order) => order.id);
+
+  const tokenWallets = await prisma.tokenWallet.findMany({
+    where: userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    select: { id: true },
+  });
+  const tokenWalletIds = tokenWallets.map((wallet) => wallet.id);
+
+  const tokenLedgerFilters: Prisma.TokenLedgerEntryWhereInput[] = [
+    ...whenNonEmpty(tokenWalletIds, (ids) => [{ walletId: { in: ids } }]),
+    ...whenNonEmpty(paymentOrderIds, (ids) => [{ paymentOrderId: { in: ids } }]),
+  ];
+  const tokenLedgerEntries = await prisma.tokenLedgerEntry.findMany({
+    where:
+      tokenLedgerFilters.length > 0
+        ? { OR: tokenLedgerFilters }
+        : { id: '__none__' },
+    select: { id: true },
+  });
+  const tokenLedgerEntryIds = tokenLedgerEntries.map((entry) => entry.id);
+
+  const dropRewardFilters: Prisma.DropRewardEventWhereInput[] = [
+    ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+    ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+  ];
+  const dropRewardEvents = await prisma.dropRewardEvent.findMany({
+    where:
+      dropRewardFilters.length > 0
+        ? { OR: dropRewardFilters }
+        : { id: '__none__' },
+    select: { id: true },
+  });
+  const dropRewardEventIds = dropRewardEvents.map((event) => event.id);
+
   const result: Record<string, number> = {};
   const collect = async (key: string, action: Promise<{ count: number }>) => {
     result[key] = (await action).count;
@@ -520,6 +659,377 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
     ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
   ];
 
+  await collect(
+    'dropWinners',
+    prisma.dropWinner.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'dropTickets',
+    prisma.dropTicket.deleteMany({
+      where:
+        userIds.length > 0 || dropRewardEventIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+                ...whenNonEmpty(dropRewardEventIds, (ids) => [
+                  { rewardEventId: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'dropRewardEvents',
+    prisma.dropRewardEvent.deleteMany({
+      where:
+        dropRewardEventIds.length > 0
+          ? { id: { in: dropRewardEventIds } }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'dropReferrals',
+    prisma.dropReferral.deleteMany({
+      where:
+        userIds.length > 0 ? { inviterUserId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'dropReferralInvites',
+    prisma.dropReferral.updateMany({
+      where:
+        userIds.length > 0 ? { invitedUserId: { in: userIds } } : { id: '__none__' },
+      data: { invitedUserId: null },
+    }),
+  );
+  await collect(
+    'dropRestrictions',
+    prisma.dropUserRestriction.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'seasonRewardClaims',
+    prisma.userSeasonRewardClaim.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'appPopupTargets',
+    prisma.appPopupTargetUser.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'partnerOfferCodes',
+    prisma.partnerOfferCode.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eveningAfterPartyPhotos',
+    prisma.eveningAfterPartyPhoto.deleteMany({
+      where:
+        userIds.length > 0 || hostedEveningSessionIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+                ...whenNonEmpty(hostedEveningSessionIds, (ids) => [
+                  { sessionId: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eveningAfterPartyFeedbacks',
+    prisma.eveningAfterPartyFeedback.deleteMany({
+      where:
+        userIds.length > 0 || hostedEveningSessionIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+                ...whenNonEmpty(hostedEveningSessionIds, (ids) => [
+                  { sessionId: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eveningSessionJoinRequests',
+    prisma.eveningSessionJoinRequest.deleteMany({
+      where:
+        userIds.length > 0 || hostedEveningSessionIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [
+                  { userId: { in: ids } },
+                  { reviewedById: { in: ids } },
+                ]),
+                ...whenNonEmpty(hostedEveningSessionIds, (ids) => [
+                  { sessionId: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eveningSessionParticipants',
+    prisma.eveningSessionParticipant.deleteMany({
+      where:
+        userIds.length > 0 || hostedEveningSessionIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+                ...whenNonEmpty(hostedEveningSessionIds, (ids) => [
+                  { sessionId: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'userEveningStepActions',
+    prisma.userEveningStepAction.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eveningAiRouteDrafts',
+    prisma.eveningAiRouteDraft.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eveningAnalyticsEvents',
+    prisma.eveningAnalyticsEvent.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'publicShares',
+    prisma.publicShare.deleteMany({
+      where:
+        userIds.length > 0 ||
+        eventIds.length > 0 ||
+        hostedEveningSessionIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [{ createdById: { in: ids } }]),
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+                ...whenNonEmpty(hostedEveningSessionIds, (ids) => [
+                  { eveningSessionId: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'tokenPromotions',
+    prisma.tokenPromotion.deleteMany({
+      where:
+        userIds.length > 0 ||
+        eventIds.length > 0 ||
+        chatIds.length > 0 ||
+        tokenLedgerEntryIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+                ...whenNonEmpty(chatIds, (ids) => [{ chatId: { in: ids } }]),
+                ...whenNonEmpty(tokenLedgerEntryIds, (ids) => [
+                  { ledgerEntryId: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'tokenLedgerEntries',
+    prisma.tokenLedgerEntry.deleteMany({
+      where:
+        tokenLedgerFilters.length > 0
+          ? { OR: tokenLedgerFilters }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'paymentOrders',
+    prisma.paymentOrder.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'tokenWallets',
+    prisma.tokenWallet.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'datingActions',
+    prisma.datingAction.deleteMany({
+      where:
+        userIds.length > 0
+          ? {
+              OR: [
+                { actorUserId: { in: userIds } },
+                { targetUserId: { in: userIds } },
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'datingUsageEvents',
+    prisma.datingUsageEvent.deleteMany({
+      where:
+        userIds.length > 0
+          ? {
+              OR: [
+                { userId: { in: userIds } },
+                { targetUserId: { in: userIds } },
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'profileReactions',
+    prisma.profileReaction.deleteMany({
+      where:
+        userIds.length > 0
+          ? {
+              OR: [
+                { actorUserId: { in: userIds } },
+                { targetUserId: { in: userIds } },
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'follows',
+    prisma.userFollow.deleteMany({
+      where:
+        userIds.length > 0
+          ? {
+              OR: [
+                { followerUserId: { in: userIds } },
+                { targetUserId: { in: userIds } },
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eventFavorites',
+    prisma.eventFavorite.deleteMany({
+      where:
+        userIds.length > 0 || eventIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [
+                  { sourceUserId: { in: ids } },
+                  { targetUserId: { in: ids } },
+                ]),
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'trustedContacts',
+    prisma.trustedContact.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'safetySosAlerts',
+    prisma.safetySosAlert.deleteMany({
+      where:
+        userIds.length > 0 || eventIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'userReports',
+    prisma.userReport.deleteMany({
+      where:
+        userIds.length > 0
+          ? {
+              OR: [
+                { reporterId: { in: userIds } },
+                { targetUserId: { in: userIds } },
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'userBlocks',
+    prisma.userBlock.deleteMany({
+      where:
+        userIds.length > 0
+          ? {
+              OR: [
+                { userId: { in: userIds } },
+                { blockedUserId: { in: userIds } },
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'pushTokens',
+    prisma.pushToken.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'messageAttachments',
+    prisma.messageAttachment.deleteMany({
+      where:
+        messageIds.length > 0
+          ? { messageId: { in: messageIds } }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'messages',
+    prisma.message.deleteMany({
+      where:
+        messageIds.length > 0 ? { id: { in: messageIds } } : { id: '__none__' },
+    }),
+  );
   await collect(
     'realtimeEvents',
     prisma.realtimeEvent.deleteMany({
@@ -539,11 +1049,31 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
     }),
   );
   await collect(
+    'communityJoinRequests',
+    prisma.communityJoinRequest.deleteMany({
+      where:
+        communityIds.length > 0 || userIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(communityIds, (ids) => [
+                  { communityId: { in: ids } },
+                ]),
+                ...whenNonEmpty(userIds, (ids) => [
+                  { userId: { in: ids } },
+                  { reviewedById: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
     'communities',
     prisma.community.deleteMany({
       where: {
         OR: [
           { id: { startsWith: SEEDED_COMMUNITY_PREFIX } },
+          ...whenNonEmpty(communityIds, (ids) => [{ id: { in: ids } }]),
           ...whenNonEmpty(userIds, (ids) => [{ createdById: { in: ids } }]),
         ],
       },
@@ -553,6 +1083,89 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
     'chats',
     prisma.chat.deleteMany({
       where: chatIds.length > 0 ? { id: { in: chatIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eventStories',
+    prisma.eventStory.deleteMany({
+      where:
+        eventIds.length > 0 || userIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+                ...whenNonEmpty(userIds, (ids) => [{ authorId: { in: ids } }]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eventFeedbacks',
+    prisma.eventFeedback.deleteMany({
+      where:
+        eventIds.length > 0 || userIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eventLiveStates',
+    prisma.eventLiveState.deleteMany({
+      where:
+        eventIds.length > 0 ? { eventId: { in: eventIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eventAttendances',
+    prisma.eventAttendance.deleteMany({
+      where:
+        eventIds.length > 0 || userIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+                ...whenNonEmpty(userIds, (ids) => [
+                  { userId: { in: ids } },
+                  { checkedInById: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eventJoinRequests',
+    prisma.eventJoinRequest.deleteMany({
+      where:
+        eventIds.length > 0 || userIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+                ...whenNonEmpty(userIds, (ids) => [
+                  { userId: { in: ids } },
+                  { reviewedById: { in: ids } },
+                ]),
+              ],
+            }
+          : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'eventParticipants',
+    prisma.eventParticipant.deleteMany({
+      where:
+        eventIds.length > 0 || userIds.length > 0
+          ? {
+              OR: [
+                ...whenNonEmpty(eventIds, (ids) => [{ eventId: { in: ids } }]),
+                ...whenNonEmpty(userIds, (ids) => [{ userId: { in: ids } }]),
+              ],
+            }
+          : { id: '__none__' },
     }),
   );
   await collect(
@@ -587,6 +1200,20 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
     }),
   );
   await collect(
+    'verifications',
+    prisma.userVerification.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { userId: '__none__' },
+    }),
+  );
+  await collect(
+    'profiles',
+    prisma.profile.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { userId: '__none__' },
+    }),
+  );
+  await collect(
     'mediaAssets',
     prisma.mediaAsset.deleteMany({
       where: {
@@ -595,6 +1222,20 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
           ...whenNonEmpty(userIds, (ids) => [{ ownerId: { in: ids } }]),
         ],
       },
+    }),
+  );
+  await collect(
+    'settings',
+    prisma.userSettings.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { userId: '__none__' },
+    }),
+  );
+  await collect(
+    'onboarding',
+    prisma.onboardingPreferences.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { userId: '__none__' },
     }),
   );
   await collect(
@@ -618,6 +1259,20 @@ export async function deleteTestAccounts(prisma: PrismaClient) {
     'authAuditEvents',
     prisma.authAuditEvent.deleteMany({
       where: userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
+    }),
+  );
+  await collect(
+    'telegramAccounts',
+    prisma.telegramAccount.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { userId: '__none__' },
+    }),
+  );
+  await collect(
+    'externalAuthAccounts',
+    prisma.externalAuthAccount.deleteMany({
+      where:
+        userIds.length > 0 ? { userId: { in: userIds } } : { id: '__none__' },
     }),
   );
   await collect(

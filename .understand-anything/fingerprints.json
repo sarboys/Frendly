@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "16e8d9d31cf9bf328aba7997d3788f84c4b9da23",
-  "generatedAt": "2026-05-20T11:22:21.113Z",
+  "gitCommitHash": "bdb102090bd66c2994dec1dfbe66c4e6583e1c19",
+  "generatedAt": "2026-05-24T03:21:39.468Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -154,6 +154,127 @@
       "totalLines": 95,
       "hasStructuralAnalysis": true
     },
+    "admin/src/admin/app-overlays/api.ts": {
+      "filePath": "admin/src/admin/app-overlays/api.ts",
+      "contentHash": "d19e530cef7b8c5ac37ac1e8ac5d31100143fd16efaf515ceb2505461beb3339",
+      "functions": [
+        {
+          "name": "listAppPopupCampaigns",
+          "params": [
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "createAppPopupCampaign",
+          "params": [
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "updateAppPopupCampaign",
+          "params": [
+            "campaignId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "activateAppPopupCampaign",
+          "params": [
+            "campaignId"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "pauseAppPopupCampaign",
+          "params": [
+            "campaignId"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "archiveAppPopupCampaign",
+          "params": [
+            "campaignId"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "listAppVersionPolicies",
+          "params": [],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "updateAppVersionPolicy",
+          "params": [
+            "platform",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "json",
+          "params": [
+            "method",
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../api/client",
+          "specifiers": [
+            "adminApiRequest"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "AppPlatform",
+            "AppPopupCampaignDto",
+            "AppPopupCampaignInput",
+            "AppPopupCampaignStatus",
+            "AppVersionPolicyDto",
+            "AppVersionPolicyInput"
+          ]
+        }
+      ],
+      "exports": [
+        "listAppPopupCampaigns",
+        "createAppPopupCampaign",
+        "updateAppPopupCampaign",
+        "activateAppPopupCampaign",
+        "pauseAppPopupCampaign",
+        "archiveAppPopupCampaign",
+        "listAppVersionPolicies",
+        "updateAppVersionPolicy"
+      ],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "admin/src/admin/app-overlays/types.ts": {
+      "filePath": "admin/src/admin/app-overlays/types.ts",
+      "contentHash": "0636d0f1ee4cea2e435163e015ad70e1b48ce352e6731c02aa96385744799312",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 88,
+      "hasStructuralAnalysis": true
+    },
     "admin/src/admin/components/DataToolbar.tsx": {
       "filePath": "admin/src/admin/components/DataToolbar.tsx",
       "contentHash": "8d26aef44a92f4216263ab1de56b3a175a27fc36709cbe70bdd35bc09f9af72a",
@@ -205,7 +326,7 @@
     },
     "admin/src/admin/components/Sidebar.tsx": {
       "filePath": "admin/src/admin/components/Sidebar.tsx",
-      "contentHash": "b3ef063453d3f3abaecdafeae1b5715645f77d33ef14720630126bda07421045",
+      "contentHash": "60a28bc30077bdbccef45628aae5afb9c21f2e5eaaa77dca0a571c56985b3e37",
       "functions": [
         {
           "name": "AdminSidebar",
@@ -245,7 +366,8 @@
             "MapPinned",
             "ClipboardCheck",
             "RouteIcon",
-            "Ticket"
+            "Ticket",
+            "MessageSquareWarning"
           ]
         },
         {
@@ -266,7 +388,7 @@
       "exports": [
         "AdminSidebar"
       ],
-      "totalLines": 109,
+      "totalLines": 111,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/components/StatCard.tsx": {
@@ -306,7 +428,7 @@
     },
     "admin/src/admin/components/StatusBadge.tsx": {
       "filePath": "admin/src/admin/components/StatusBadge.tsx",
-      "contentHash": "d715002bacf6246d95c46b1fecf65f482390b0ac4368a69b51dcc5790a07f34f",
+      "contentHash": "e81777e17e42e8b2a2bd3bb21c4c28a47e7eabfcffbc71aa42b711ed78fcf6e6",
       "functions": [
         {
           "name": "StatusBadge",
@@ -1954,8 +2076,14 @@
     },
     "admin/src/admin/management/api.ts": {
       "filePath": "admin/src/admin/management/api.ts",
-      "contentHash": "6c553a45932f71b155ae665a83e0ad1d67040b2d7ed391e54d8d137a634877e2",
+      "contentHash": "3166a928bdfa506448ac00deef837caf4da0a8295d03de92bf877539065f361c",
       "functions": [
+        {
+          "name": "getAdminDashboard",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
         {
           "name": "listAdminUsers",
           "params": [
@@ -2023,6 +2151,23 @@
           "lineCount": 6
         },
         {
+          "name": "grantAdminUserFrendlyPlus",
+          "params": [
+            "userId",
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "revokeAdminUserFrendlyPlus",
+          "params": [
+            "userId"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
           "name": "listAdminVerifications",
           "params": [
             "params"
@@ -2075,6 +2220,15 @@
         },
         {
           "name": "listAdminUserAudit",
+          "params": [
+            "userId",
+            "params"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "listAdminUserActivity",
           "params": [
             "userId",
             "params"
@@ -2396,8 +2550,10 @@
             "AdminAfficheContentItemDto",
             "AdminCommunityDetailDto",
             "AdminCommunityListItemDto",
+            "AdminDashboardDto",
             "AdminMeetupDetailDto",
             "AdminMeetupListItemDto",
+            "AdminUserActivityDto",
             "AdminVerificationDetailDto",
             "AdminVerificationListItemDto",
             "AdminVerificationStateDto",
@@ -2409,6 +2565,7 @@
         }
       ],
       "exports": [
+        "getAdminDashboard",
         "listAdminUsers",
         "getAdminUser",
         "updateAdminUserProfile",
@@ -2417,6 +2574,8 @@
         "suspendAdminUser",
         "unsuspendAdminUser",
         "revokeAdminUserSessions",
+        "grantAdminUserFrendlyPlus",
+        "revokeAdminUserFrendlyPlus",
         "listAdminVerifications",
         "getAdminVerification",
         "approveAdminVerification",
@@ -2424,6 +2583,7 @@
         "listAdminUserMeetups",
         "listAdminUserReports",
         "listAdminUserAudit",
+        "listAdminUserActivity",
         "listAdminMeetups",
         "createAdminMeetup",
         "getAdminMeetup",
@@ -2458,7 +2618,7 @@
         "moderateAdminAfficheContentItem",
         "withQuery"
       ],
-      "totalLines": 324,
+      "totalLines": 350,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/management/format.ts": {
@@ -2530,12 +2690,12 @@
     },
     "admin/src/admin/management/types.ts": {
       "filePath": "admin/src/admin/management/types.ts",
-      "contentHash": "1477ae1559d3aeac53dd4eabe8bd01847c70ee830999d46d7722fab72a6dfc9e",
+      "contentHash": "7c119336a1b4977e5e29d31c3531996d4e4e1fd10103ba176d8efaeb7012a628",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 178,
+      "totalLines": 230,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/AdminLogin.tsx": {
@@ -2655,6 +2815,222 @@
         "AdminAnalytics"
       ],
       "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "admin/src/admin/pages/AppOverlays.tsx": {
+      "filePath": "admin/src/admin/pages/AppOverlays.tsx",
+      "contentHash": "26076f706968e65757104fa39df76ab501debc40155c5fc6a5201bd08dd96a69",
+      "functions": [
+        {
+          "name": "AdminAppOverlays",
+          "params": [],
+          "exported": true,
+          "lineCount": 236
+        },
+        {
+          "name": "VersionPolicyCard",
+          "params": [
+            "{\n  policy,\n  onSaved,\n}"
+          ],
+          "exported": false,
+          "lineCount": 85
+        },
+        {
+          "name": "CampaignFormModal",
+          "params": [
+            "{\n  title,\n  submitLabel,\n  campaign,\n  onClose,\n  onSubmit,\n}"
+          ],
+          "exported": false,
+          "lineCount": 179
+        },
+        {
+          "name": "FieldHelp",
+          "params": [],
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "TextField",
+          "params": [
+            "{\n  label,\n  value,\n  hint,\n  onChange,\n}"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "TextareaField",
+          "params": [
+            "{\n  label,\n  value,\n  hint,\n  onChange,\n}"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "NumberField",
+          "params": [
+            "{\n  id,\n  label,\n  value,\n  hint,\n  onChange,\n}"
+          ],
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "SelectField",
+          "params": [
+            "{\n  label,\n  value,\n  hint,\n  options,\n  onChange,\n}"
+          ],
+          "exported": false,
+          "lineCount": 35
+        },
+        {
+          "name": "ToggleField",
+          "params": [
+            "{\n  label,\n  value,\n  hint,\n  onChange,\n}"
+          ],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "Metric",
+          "params": [
+            "{ label, value }"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "StateRow",
+          "params": [
+            "{ text }"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "Badge",
+          "params": [
+            "{ children }"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "splitLines",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "campaignStats",
+          "params": [
+            "campaigns"
+          ],
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useMutation",
+            "useQuery",
+            "useQueryClient"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Archive",
+            "Pause",
+            "Play",
+            "Plus",
+            "Save"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "useMemo",
+            "useState",
+            "ReactNode"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/switch",
+          "specifiers": [
+            "Switch"
+          ]
+        },
+        {
+          "source": "@/components/ui/table",
+          "specifiers": [
+            "Table",
+            "TableBody",
+            "TableCell",
+            "TableHead",
+            "TableHeader",
+            "TableRow"
+          ]
+        },
+        {
+          "source": "@/components/ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "../components/Topbar",
+          "specifiers": [
+            "AdminTopbar"
+          ]
+        },
+        {
+          "source": "../app-overlays/api",
+          "specifiers": [
+            "activateAppPopupCampaign",
+            "archiveAppPopupCampaign",
+            "createAppPopupCampaign",
+            "listAppPopupCampaigns",
+            "listAppVersionPolicies",
+            "pauseAppPopupCampaign",
+            "updateAppPopupCampaign",
+            "updateAppVersionPolicy"
+          ]
+        },
+        {
+          "source": "../app-overlays/types",
+          "specifiers": [
+            "AppPlatform",
+            "AppPopupAudienceKind",
+            "AppPopupButtonAction",
+            "AppPopupCampaignDto",
+            "AppPopupCampaignInput",
+            "AppPopupCampaignStatus",
+            "AppPopupTriState",
+            "AppVersionPolicyDto",
+            "AppVersionPolicyInput"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminAppOverlays"
+      ],
+      "totalLines": 781,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Communities.tsx": {
@@ -3151,17 +3527,29 @@
     },
     "admin/src/admin/pages/Dashboard.tsx": {
       "filePath": "admin/src/admin/pages/Dashboard.tsx",
-      "contentHash": "8c2e7d7d673c4b56375b2a1283b515fd061ea901bf688c6c0dbafd0934352684",
+      "contentHash": "a16a7eea4b2f0b78807f23a67f2d912adfea8435f5f861b65752492c55eba57f",
       "functions": [
         {
           "name": "AdminDashboard",
           "params": [],
           "exported": true,
-          "lineCount": 114
+          "lineCount": 134
         }
       ],
       "classes": [],
       "imports": [
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useQuery"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
         {
           "source": "../components/Topbar",
           "specifiers": [
@@ -3172,15 +3560,6 @@
           "source": "../components/StatCard",
           "specifiers": [
             "StatCard"
-          ]
-        },
-        {
-          "source": "../data",
-          "specifiers": [
-            "kpis",
-            "recentActivity",
-            "meetups",
-            "users"
           ]
         },
         {
@@ -3205,12 +3584,25 @@
           "specifiers": [
             "LucideIcon"
           ]
+        },
+        {
+          "source": "../management/api",
+          "specifiers": [
+            "getAdminDashboard"
+          ]
+        },
+        {
+          "source": "../management/format",
+          "specifiers": [
+            "adminPageText",
+            "formatDateTime"
+          ]
         }
       ],
       "exports": [
         "AdminDashboard"
       ],
-      "totalLines": 138,
+      "totalLines": 170,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/DropDetail.tsx": {
@@ -5608,17 +6000,66 @@
     },
     "admin/src/admin/pages/SubscriptionSettings.tsx": {
       "filePath": "admin/src/admin/pages/SubscriptionSettings.tsx",
-      "contentHash": "55d5ce7b872c043445610d3f6849b3a9b12303e4a604840201c908790cbaab36",
+      "contentHash": "d2a27aa6acb26b15c90c38942275021cb43f341d937e1c370dadae006de2a7ec",
       "functions": [
         {
           "name": "AdminSubscriptionSettings",
           "params": [],
           "exported": true,
-          "lineCount": 265
+          "lineCount": 169
+        },
+        {
+          "name": "PlanEditor",
+          "params": [
+            "{ plan, onChange, onRemove }"
+          ],
+          "exported": false,
+          "lineCount": 61
+        },
+        {
+          "name": "Field",
+          "params": [
+            "{ label, children }"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "NumberInput",
+          "params": [
+            "{ value, onChange }"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "linesFromText",
+          "params": [
+            "text"
+          ],
+          "exported": false,
+          "lineCount": 6
         }
       ],
       "classes": [],
       "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useMemo",
+            "useState",
+            "ReactNode"
+          ]
+        },
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useMutation",
+            "useQuery",
+            "useQueryClient"
+          ]
+        },
         {
           "source": "react-router-dom",
           "specifiers": [
@@ -5626,21 +6067,19 @@
           ]
         },
         {
-          "source": "react",
+          "source": "lucide-react",
           "specifiers": [
-            "useState"
+            "ArrowLeft",
+            "Crown",
+            "Plus",
+            "Save",
+            "Trash2"
           ]
         },
         {
-          "source": "../components/Topbar",
+          "source": "@/hooks/use-toast",
           "specifiers": [
-            "AdminTopbar"
-          ]
-        },
-        {
-          "source": "../components/StatCard",
-          "specifiers": [
-            "StatCard"
+            "toast"
           ]
         },
         {
@@ -5662,76 +6101,48 @@
           ]
         },
         {
-          "source": "@/components/ui/textarea",
-          "specifiers": [
-            "Textarea"
-          ]
-        },
-        {
           "source": "@/components/ui/switch",
           "specifiers": [
             "Switch"
           ]
         },
         {
-          "source": "@/components/ui/tabs",
+          "source": "@/components/ui/textarea",
           "specifiers": [
-            "Tabs",
-            "TabsContent",
-            "TabsList",
-            "TabsTrigger"
+            "Textarea"
           ]
         },
         {
-          "source": "@/components/ui/table",
+          "source": "../components/Topbar",
           "specifiers": [
-            "Table",
-            "TableBody",
-            "TableCell",
-            "TableHead",
-            "TableHeader",
-            "TableRow"
+            "AdminTopbar"
           ]
         },
         {
-          "source": "../components/StatusBadge",
+          "source": "../subscriptions/api",
           "specifiers": [
-            "StatusBadge"
-          ]
-        },
-        {
-          "source": "lucide-react",
-          "specifiers": [
-            "ArrowLeft",
-            "Crown",
-            "Gift",
-            "Plus",
-            "Sparkles",
-            "Trash2"
-          ]
-        },
-        {
-          "source": "@/hooks/use-toast",
-          "specifiers": [
-            "toast"
+            "getAdminSubscriptionSettings",
+            "updateAdminSubscriptionSettings",
+            "AdminSubscriptionPlan",
+            "AdminSubscriptionSettingsDto"
           ]
         }
       ],
       "exports": [
         "AdminSubscriptionSettings"
       ],
-      "totalLines": 287,
+      "totalLines": 284,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/UserDetail.tsx": {
       "filePath": "admin/src/admin/pages/UserDetail.tsx",
-      "contentHash": "882b953582e25d4f4045a789d22dcaa21f875d4834063bafc10f03ad44b9e282",
+      "contentHash": "50cf900057794c5d5d141f098563d021651335c9c17628ba58274c74b9919c93",
       "functions": [
         {
           "name": "AdminUserDetail",
           "params": [],
           "exported": true,
-          "lineCount": 243
+          "lineCount": 343
         },
         {
           "name": "Field",
@@ -5929,9 +6340,12 @@
           "source": "../management/api",
           "specifiers": [
             "getAdminUser",
+            "grantAdminUserFrendlyPlus",
+            "listAdminUserActivity",
             "listAdminUserAudit",
             "listAdminUserMeetups",
             "listAdminUserReports",
+            "revokeAdminUserFrendlyPlus",
             "revokeAdminUserSessions",
             "suspendAdminUser",
             "unsuspendAdminUser",
@@ -5952,18 +6366,18 @@
       "exports": [
         "AdminUserDetail"
       ],
-      "totalLines": 369,
+      "totalLines": 472,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Users.tsx": {
       "filePath": "admin/src/admin/pages/Users.tsx",
-      "contentHash": "4ec9a8a8d028f8f02f8630626846f406a83fbbb062ee0ce13691a2a1855d7dc8",
+      "contentHash": "97ec4d20c2e48e6489762cfc239ca2434d68455bcf7ae569983c40e6240376bc",
       "functions": [
         {
           "name": "AdminUsers",
           "params": [],
           "exported": true,
-          "lineCount": 110
+          "lineCount": 119
         },
         {
           "name": "FilterInput",
@@ -6073,7 +6487,7 @@
       "exports": [
         "AdminUsers"
       ],
-      "totalLines": 172,
+      "totalLines": 181,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/pages/Venues.tsx": {
@@ -6172,7 +6586,7 @@
     },
     "admin/src/admin/pages/Verification.tsx": {
       "filePath": "admin/src/admin/pages/Verification.tsx",
-      "contentHash": "9a0c2ef7abb41ff7d6d2724f69e4adc31b2306cf2bd056cb0dc8c11d6bf66324",
+      "contentHash": "467f58fb71619027e2b32a94495728b09fa43aacd06d3afe185ba8dfc74c9b6b",
       "functions": [
         {
           "name": "AdminVerification",
@@ -6197,12 +6611,12 @@
           "lineCount": 55
         },
         {
-          "name": "AssetLink",
+          "name": "AssetPreview",
           "params": [
-            "{ label, url }"
+            "{\n  label,\n  asset,\n}"
           ],
           "exported": false,
-          "lineCount": 19
+          "lineCount": 38
         },
         {
           "name": "StateText",
@@ -6312,6 +6726,7 @@
         {
           "source": "../management/types",
           "specifiers": [
+            "AdminVerificationAssetDto",
             "AdminVerificationListItemDto"
           ]
         }
@@ -6319,7 +6734,7 @@
       "exports": [
         "AdminVerification"
       ],
-      "totalLines": 308,
+      "totalLines": 330,
       "hasStructuralAnalysis": true
     },
     "admin/src/admin/partner/admin-accounts-api.ts": {
@@ -6711,7 +7126,7 @@
     },
     "admin/src/admin/portal.ts": {
       "filePath": "admin/src/admin/portal.ts",
-      "contentHash": "6c9a3a58188e2d2f741800bb9b6c974d5daa6045115331f5063f3a0d614f14be",
+      "contentHash": "3120ddcbf5bbe99dfd7160fe2e3e92db954008b91702fbea7db128c888c59cad",
       "functions": [
         {
           "name": "resolveAdminPortal",
@@ -6758,12 +7173,47 @@
         "isAdminRouteEnabled",
         "getPortalChrome"
       ],
-      "totalLines": 120,
+      "totalLines": 122,
+      "hasStructuralAnalysis": true
+    },
+    "admin/src/admin/subscriptions/api.ts": {
+      "filePath": "admin/src/admin/subscriptions/api.ts",
+      "contentHash": "abaf4301c20db7419e9127bd9da5759278107b06ec91f61403c32111bcfb6764",
+      "functions": [
+        {
+          "name": "getAdminSubscriptionSettings",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "updateAdminSubscriptionSettings",
+          "params": [
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../api/client",
+          "specifiers": [
+            "adminApiRequest"
+          ]
+        }
+      ],
+      "exports": [
+        "getAdminSubscriptionSettings",
+        "updateAdminSubscriptionSettings"
+      ],
+      "totalLines": 34,
       "hasStructuralAnalysis": true
     },
     "admin/src/App.tsx": {
       "filePath": "admin/src/App.tsx",
-      "contentHash": "5a1e3d54aaa5cf69ada1ebb568394e62e3b60405a0f8f8c2a9e4ea91c6904b0f",
+      "contentHash": "07f88213a44a0a7c0c9b110ffa1eb40822e61f5ce11b789f8c73102cd3c1d930",
       "functions": [
         {
           "name": "App",
@@ -6854,6 +7304,12 @@
           "source": "./admin/pages/Drops",
           "specifiers": [
             "AdminDrops"
+          ]
+        },
+        {
+          "source": "./admin/pages/AppOverlays",
+          "specifiers": [
+            "AdminAppOverlays"
           ]
         },
         {
@@ -7022,7 +7478,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 120,
+      "totalLines": 122,
       "hasStructuralAnalysis": true
     },
     "admin/src/components/ui/accordion.tsx": {
@@ -9460,7 +9916,7 @@
     },
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "59ad84089d7b37e9530c30b4c8cbfa5e49681c08fd15f3d4ab31534bdc935c66",
+      "contentHash": "be23f9f341206caa93c7227a3194e08dc018d200f68651d311816341893143c9",
       "functions": [],
       "classes": [
         {
@@ -9502,9 +9958,21 @@
           ]
         },
         {
+          "source": "./controllers/admin-app-overlays.controller",
+          "specifiers": [
+            "AdminAppOverlaysController"
+          ]
+        },
+        {
           "source": "./controllers/admin-communities.controller",
           "specifiers": [
             "AdminCommunitiesController"
+          ]
+        },
+        {
+          "source": "./controllers/admin-dashboard.controller",
+          "specifiers": [
+            "AdminDashboardController"
           ]
         },
         {
@@ -9538,6 +10006,12 @@
           ]
         },
         {
+          "source": "./controllers/admin-subscription-settings.controller",
+          "specifiers": [
+            "AdminSubscriptionSettingsController"
+          ]
+        },
+        {
           "source": "./controllers/admin-users.controller",
           "specifiers": [
             "AdminUsersController"
@@ -9559,6 +10033,12 @@
           "source": "./controllers/after-dark.controller",
           "specifiers": [
             "AfterDarkController"
+          ]
+        },
+        {
+          "source": "./controllers/app-overlay.controller",
+          "specifiers": [
+            "AppOverlayController"
           ]
         },
         {
@@ -9796,6 +10276,12 @@
           ]
         },
         {
+          "source": "./services/admin-dashboard.service",
+          "specifiers": [
+            "AdminDashboardService"
+          ]
+        },
+        {
           "source": "./services/admin-auth.service",
           "specifiers": [
             "AdminAuthService"
@@ -9853,6 +10339,12 @@
           "source": "./services/after-dark.service",
           "specifiers": [
             "AfterDarkService"
+          ]
+        },
+        {
+          "source": "./services/app-overlay.service",
+          "specifiers": [
+            "AppOverlayService"
           ]
         },
         {
@@ -10105,7 +10597,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 224,
+      "totalLines": 236,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -10588,7 +11080,7 @@
     },
     "backend/apps/api/src/common/media-presenters.ts": {
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
-      "contentHash": "74ddea8dcfaa60c7f276bb818dc021f0cec6cd2065b434c4f05f44dd76cec922",
+      "contentHash": "f92301258fafe27e741fcb2c3c0c0805696748c16ca0dc413a91e97c2b39f0fd",
       "functions": [
         {
           "name": "resolveMediaVisibility",
@@ -10648,10 +11140,18 @@
             "raw"
           ],
           "exported": false,
-          "lineCount": 23
+          "lineCount": 26
         },
         {
           "name": "stringOrNull",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "positiveIntegerOrNull",
           "params": [
             "value"
           ],
@@ -10682,7 +11182,7 @@
         "mapProfilePhoto",
         "mapMediaVariants"
       ],
-      "totalLines": 167,
+      "totalLines": 179,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/normalize-request-url.ts": {
@@ -10704,38 +11204,6 @@
         "normalizeDuplicateSlashesInPath"
       ],
       "totalLines": 13,
-      "hasStructuralAnalysis": true
-    },
-    "backend/apps/api/src/common/pagination.ts": {
-      "filePath": "backend/apps/api/src/common/pagination.ts",
-      "contentHash": "469cab7029860338f037849da3d9ea2a5fc68f691b7c46e55aa5297310bb05c6",
-      "functions": [
-        {
-          "name": "paginateArray",
-          "params": [
-            "items",
-            "limit",
-            "getValue",
-            "cursor"
-          ],
-          "exported": true,
-          "lineCount": 22
-        }
-      ],
-      "classes": [],
-      "imports": [
-        {
-          "source": "@big-break/database",
-          "specifiers": [
-            "decodeCursor",
-            "encodeCursor"
-          ]
-        }
-      ],
-      "exports": [
-        "paginateArray"
-      ],
-      "totalLines": 25,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/partner-auth.guard.ts": {
@@ -10799,7 +11267,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "af55976c38841fc855275684a3a07470a34124b1fce31ebffa850c442f200e5b",
+      "contentHash": "bf29273dd3c7a74ab3b9a35424255c421c6db2ee2ee7a6fd1cf2c46e8333076a",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -10849,7 +11317,7 @@
             "user"
           ],
           "exported": true,
-          "lineCount": 37
+          "lineCount": 38
         },
         {
           "name": "hasActiveFrendlyPlus",
@@ -10924,7 +11392,23 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 69
+          "lineCount": 70
+        },
+        {
+          "name": "mapEventBoostSummary",
+          "params": [
+            "event"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "boostTierForOption",
+          "params": [
+            "optionId"
+          ],
+          "exported": false,
+          "lineCount": 29
         },
         {
           "name": "mapEventRoutePoints",
@@ -10990,7 +11474,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 580,
+      "totalLines": 642,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -11214,6 +11698,61 @@
       "totalLines": 36,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/controllers/admin-app-overlays.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/admin-app-overlays.controller.ts",
+      "contentHash": "214004ed28786a560b36188f0cd492b79e46383f74b5821c94f5f6b5688bb3cb",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AdminAppOverlaysController",
+          "methods": [
+            "constructor",
+            "listCampaigns",
+            "createCampaign",
+            "updateCampaign",
+            "activateCampaign",
+            "pauseCampaign",
+            "archiveCampaign",
+            "listVersionPolicies",
+            "updateVersionPolicy"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 49
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "Param",
+            "Patch",
+            "Post",
+            "Query"
+          ]
+        },
+        {
+          "source": "../common/admin.decorator",
+          "specifiers": [
+            "Admin"
+          ]
+        },
+        {
+          "source": "../services/app-overlay.service",
+          "specifiers": [
+            "AppOverlayService"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminAppOverlaysController"
+      ],
+      "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/controllers/admin-auth.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/admin-auth.controller.ts",
       "contentHash": "633f1ef50b2d7d651b570fc5f556de0980970839009744dd671540cdd0ed083a",
@@ -11381,6 +11920,49 @@
         "AdminCommunitiesController"
       ],
       "totalLines": 134,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/controllers/admin-dashboard.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/admin-dashboard.controller.ts",
+      "contentHash": "b49125f345bda2caf7b231c132d30020520236af4ddfd317a184dddd8bf89465",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AdminDashboardController",
+          "methods": [
+            "constructor",
+            "getDashboard"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get"
+          ]
+        },
+        {
+          "source": "../common/admin.decorator",
+          "specifiers": [
+            "Admin"
+          ]
+        },
+        {
+          "source": "../services/admin-dashboard.service",
+          "specifiers": [
+            "AdminDashboardService"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminDashboardController"
+      ],
+      "totalLines": 15,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-drops.controller.ts": {
@@ -11671,9 +12253,55 @@
       "totalLines": 39,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/controllers/admin-subscription-settings.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/admin-subscription-settings.controller.ts",
+      "contentHash": "cc2a80b00fc26bbddf9ac35eec91cdf632b1d7d78fec3f43c7ecb03d6af55886",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AdminSubscriptionSettingsController",
+          "methods": [
+            "constructor",
+            "getSettings",
+            "updateSettings"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "Put"
+          ]
+        },
+        {
+          "source": "../common/admin.decorator",
+          "specifiers": [
+            "Admin"
+          ]
+        },
+        {
+          "source": "../services/subscription.service",
+          "specifiers": [
+            "SubscriptionService"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminSubscriptionSettingsController"
+      ],
+      "totalLines": 20,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/controllers/admin-users.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/admin-users.controller.ts",
-      "contentHash": "fccdfaffe1b98ff02fce95f4b2e6c802cb1dc42272b222fc7239b4277b3ad590",
+      "contentHash": "0fddf927d3db0160a2954029e29d6ab858d4550f43fadb0041b3028e8a60a326",
       "functions": [],
       "classes": [
         {
@@ -11686,15 +12314,18 @@
             "verifyUser",
             "unverifyUser",
             "suspendUser",
+            "grantFrendlyPlus",
+            "revokeFrendlyPlus",
             "unsuspendUser",
             "revokeSessions",
             "listUserMeetups",
             "listUserReports",
-            "listUserAudit"
+            "listUserAudit",
+            "listUserActivity"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 73
+          "lineCount": 94
         }
       ],
       "imports": [
@@ -11726,7 +12357,7 @@
       "exports": [
         "AdminUsersController"
       ],
-      "totalLines": 80,
+      "totalLines": 101,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/admin-verification.controller.ts": {
@@ -11838,7 +12469,7 @@
     },
     "backend/apps/api/src/controllers/after-dark.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/after-dark.controller.ts",
-      "contentHash": "2eab120070ee05c63e10d94aee8a643970875d3b17a409b17784e70a61480568",
+      "contentHash": "43d56a59fffffe1a23eaa0aedadc0dd8c21f23668e080cd422810d5d4979f3d7",
       "functions": [],
       "classes": [
         {
@@ -11846,14 +12477,13 @@
           "methods": [
             "constructor",
             "getAccess",
-            "unlock",
             "listEvents",
             "getEvent",
             "joinEvent"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 49
+          "lineCount": 41
         }
       ],
       "imports": [
@@ -11884,7 +12514,54 @@
       "exports": [
         "AfterDarkController"
       ],
-      "totalLines": 55,
+      "totalLines": 47,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/controllers/app-overlay.controller.ts": {
+      "filePath": "backend/apps/api/src/controllers/app-overlay.controller.ts",
+      "contentHash": "b8577ac0a219e54b3917fb96f157b006d42e67c28ad163f3c9d676d9b07ad244",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AppOverlayController",
+          "methods": [
+            "constructor",
+            "getOverlay",
+            "recordOverlayEvent"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 23
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Body",
+            "Controller",
+            "Get",
+            "Post",
+            "Query"
+          ]
+        },
+        {
+          "source": "../common/current-user.decorator",
+          "specifiers": [
+            "CurrentUser"
+          ]
+        },
+        {
+          "source": "../services/app-overlay.service",
+          "specifiers": [
+            "AppOverlayService"
+          ]
+        }
+      ],
+      "exports": [
+        "AppOverlayController"
+      ],
+      "totalLines": 29,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/auth.controller.ts": {
@@ -12059,7 +12736,7 @@
     },
     "backend/apps/api/src/controllers/chats.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/chats.controller.ts",
-      "contentHash": "6155526a9e0ebc4f01a9261c983a4cc34c6aa8ddc16f24fd7298ad7717728024",
+      "contentHash": "1936fea28c5d82f59b5f3bc689c22e39f027d9541f78dfa635af5aee6b409ecb",
       "functions": [],
       "classes": [
         {
@@ -12068,6 +12745,7 @@
             "constructor",
             "listMeetupChats",
             "listPersonalChats",
+            "listCommunityChats",
             "getMessages",
             "markRead",
             "setPinned",
@@ -12076,7 +12754,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 109
+          "lineCount": 131
         }
       ],
       "imports": [
@@ -12116,12 +12794,12 @@
       "exports": [
         "ChatsController"
       ],
-      "totalLines": 126,
+      "totalLines": 148,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/communities.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/communities.controller.ts",
-      "contentHash": "9bd57285ad70959e017602a28e609c560d6fb98bc8ecd88004759cf85e566230",
+      "contentHash": "d9f1c7288d89a4da428f7659e76a80abd33528a58deeb3826751d0f0a4ce24ba",
       "functions": [],
       "classes": [
         {
@@ -12132,13 +12810,31 @@
             "listCommunityMedia",
             "getCommunity",
             "joinCommunity",
+            "createJoinRequest",
+            "cancelJoinRequest",
+            "adminOverview",
+            "adminMembers",
+            "adminMemberRole",
+            "adminRemoveMember",
+            "adminJoinRequests",
+            "adminApproveJoinRequest",
+            "adminRejectJoinRequest",
+            "adminNews",
+            "adminCreateNews",
+            "adminUpdateNews",
+            "adminDeleteNews",
+            "adminMeetups",
+            "adminCancelMeetup",
+            "adminSettings",
+            "adminArchive",
+            "adminTransferOwner",
             "leaveCommunity",
             "createCommunityNews",
             "createCommunity"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 88
+          "lineCount": 322
         }
       ],
       "imports": [
@@ -12151,6 +12847,7 @@
             "Get",
             "Headers",
             "Param",
+            "Patch",
             "Post",
             "Query"
           ]
@@ -12171,7 +12868,7 @@
       "exports": [
         "CommunitiesController"
       ],
-      "totalLines": 94,
+      "totalLines": 328,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/dating.controller.ts": {
@@ -12410,7 +13107,7 @@
     },
     "backend/apps/api/src/controllers/events.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/events.controller.ts",
-      "contentHash": "a23088513d1a9bd7e65d5c6527e05737f00c8ab02c3e9a239bc8c885c19f60ce",
+      "contentHash": "a1fecffff523a5b9962f519d6e830d897d24a55cbb8240953384314d21bda539",
       "functions": [],
       "classes": [
         {
@@ -12418,6 +13115,7 @@
           "methods": [
             "constructor",
             "listEvents",
+            "listPublicActiveMeetups",
             "getEvent",
             "joinEvent",
             "createJoinRequest",
@@ -12435,7 +13133,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 157
+          "lineCount": 169
         }
       ],
       "imports": [
@@ -12459,6 +13157,12 @@
           ]
         },
         {
+          "source": "../common/public.decorator",
+          "specifiers": [
+            "Public"
+          ]
+        },
+        {
           "source": "../services/events.service",
           "specifiers": [
             "EventsService"
@@ -12468,7 +13172,7 @@
       "exports": [
         "EventsController"
       ],
-      "totalLines": 163,
+      "totalLines": 176,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/health.controller.ts": {
@@ -12701,19 +13405,21 @@
     },
     "backend/apps/api/src/controllers/media.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/media.controller.ts",
-      "contentHash": "eeddb4be50b10a253bc275d4010edd36b8f8775999437679e5347b0742218c59",
+      "contentHash": "61dbc96ac9eb10ee32e00d0825592ab47202ea900771a57f49055486c86cffa5",
       "functions": [],
       "classes": [
         {
           "name": "MediaController",
           "methods": [
             "constructor",
+            "getVariantDownloadUrl",
             "getDownloadUrl",
+            "getVariant",
             "getMedia"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 55
+          "lineCount": 107
         }
       ],
       "imports": [
@@ -12756,7 +13462,7 @@
       "exports": [
         "MediaController"
       ],
-      "totalLines": 63,
+      "totalLines": 115,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/metrics.controller.ts": {
@@ -14126,6 +14832,60 @@
       "totalLines": 880,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/services/admin-dashboard.service.ts": {
+      "filePath": "backend/apps/api/src/services/admin-dashboard.service.ts",
+      "contentHash": "6b146964b77e551f1aa0ddec828866cc1c164fc1101db9cc1288004851ed9bff",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AdminDashboardService",
+          "methods": [
+            "constructor",
+            "getDashboard",
+            "getSnapshot",
+            "buildSnapshotPayload",
+            "listUpcomingMeetups",
+            "listNewUsers",
+            "listRecentActivity",
+            "activeSubscriptionWhere",
+            "hasActiveSubscription",
+            "metric",
+            "activity",
+            "mapMeetupStatus"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 401
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Inject",
+            "Injectable",
+            "Optional"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "Prisma"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "AdminDashboardService"
+      ],
+      "totalLines": 444,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/services/admin-evening-ai.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-evening-ai.service.ts",
       "contentHash": "6f1a96ffb250b016c28ca6e19bcd961048ad49202df32f2c127b19ddab2cae92",
@@ -14447,7 +15207,7 @@
     },
     "backend/apps/api/src/services/admin-meetups.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-meetups.service.ts",
-      "contentHash": "b04bb8a248702723c6f7d3dde1d048a1cf68a15ba77062f650a56c3f221468a8",
+      "contentHash": "fcf6d22cb22ec6b0cc39bd73babc28c5e46876c82488da6e5e55bb3f143e5297",
       "functions": [],
       "classes": [
         {
@@ -14469,7 +15229,6 @@
             "optionalText",
             "requiredText",
             "parseDate",
-            "parseBoolean",
             "page",
             "encodeCursor",
             "buildMeetupWhere",
@@ -14506,7 +15265,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1065
+          "lineCount": 1046
         }
       ],
       "imports": [
@@ -14544,7 +15303,7 @@
       "exports": [
         "AdminMeetupsService"
       ],
-      "totalLines": 1083,
+      "totalLines": 1064,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-route-review.service.ts": {
@@ -14688,7 +15447,7 @@
     },
     "backend/apps/api/src/services/admin-users.service.ts": {
       "filePath": "backend/apps/api/src/services/admin-users.service.ts",
-      "contentHash": "301cef1bc2a778353c707297ec31b514e1740a89416b90a9298e61953afbacc8",
+      "contentHash": "4017e4c10c83670c1d6d8a7b614e2d804a7dad4b6597c08c930f52a97ad96eb6",
       "functions": [],
       "classes": [
         {
@@ -14702,17 +15461,21 @@
             "handleDropsVerifiedUser",
             "unverifyUser",
             "suspendUser",
+            "grantFrendlyPlus",
+            "revokeFrendlyPlus",
             "unsuspendUser",
             "revokeSessions",
             "listUserMeetups",
             "listUserReports",
             "listUserAudit",
+            "listUserActivity",
             "parseLimit",
             "parseCursor",
             "optionalText",
             "requiredText",
             "parseDate",
             "parseBoolean",
+            "parseGrantDays",
             "page",
             "encodeCursor",
             "buildUserWhere",
@@ -14740,11 +15503,12 @@
             "nullableText",
             "setNullableText",
             "objectValue",
-            "hasOwn"
+            "hasOwn",
+            "userActivity"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 918
+          "lineCount": 1245
         }
       ],
       "imports": [
@@ -14789,7 +15553,7 @@
       "exports": [
         "AdminUsersService"
       ],
-      "totalLines": 990,
+      "totalLines": 1319,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/admin-venue.service.ts": {
@@ -14877,7 +15641,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "d8b4de6aab3a9e6bf27434050e745fc83adc3f9275585d2ce6b127dec6747370",
+      "contentHash": "668c477d6d6329b64fed079483473c3297baa430c8a2ad256a9b121d660aac9e",
       "functions": [
         {
           "name": "oneDayRange",
@@ -14934,7 +15698,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 672
+          "lineCount": 684
         }
       ],
       "imports": [
@@ -15001,12 +15765,12 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 770,
+      "totalLines": 782,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
       "filePath": "backend/apps/api/src/services/after-dark.service.ts",
-      "contentHash": "d7741aa66cd42c7a6ceb63d9f2065d091e91e165c7e6f750f3117551f9ebbe1f",
+      "contentHash": "cff1c8eddb06e7594e5f7eae84159ef77587a168a7bf186a50cb0a27bdaff1d7",
       "functions": [],
       "classes": [
         {
@@ -15014,7 +15778,6 @@
           "methods": [
             "constructor",
             "getAccess",
-            "unlock",
             "listEvents",
             "getEventDetail",
             "joinEvent",
@@ -15034,7 +15797,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 561
+          "lineCount": 525
         }
       ],
       "imports": [
@@ -15098,7 +15861,90 @@
       "exports": [
         "AfterDarkService"
       ],
-      "totalLines": 582,
+      "totalLines": 546,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/app-overlay.service.ts": {
+      "filePath": "backend/apps/api/src/services/app-overlay.service.ts",
+      "contentHash": "301a69d24f4488393930ec078de037440dc7976ce547a8128c64ee2f68006631",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AppOverlayService",
+          "methods": [
+            "constructor",
+            "resolveOverlay",
+            "recordEvent",
+            "listCampaigns",
+            "createCampaign",
+            "updateCampaign",
+            "setCampaignStatus",
+            "listVersionPolicies",
+            "upsertVersionPolicy",
+            "loadUserContext",
+            "matchesCampaign",
+            "compareCampaignPriority",
+            "hasFrendlyPlus",
+            "matchesTriState",
+            "mapVersionPolicyOverlay",
+            "mapCampaignOverlay",
+            "mapAdminCampaign",
+            "mapAdminVersionPolicy",
+            "parseCampaignInput",
+            "parseVersionPolicyInput",
+            "ensureCampaignExists",
+            "parsePlatform",
+            "optionalPlatform",
+            "parseBuildNumber",
+            "parseOverlaySource",
+            "parseOverlayEvent",
+            "parseCampaignStatus",
+            "optionalCampaignStatus",
+            "parseAudienceKind",
+            "parseTriState",
+            "optionalButtonAction",
+            "requiredText",
+            "optionalText",
+            "optionalBoolean",
+            "optionalInteger",
+            "optionalIntegerOrNull",
+            "normalizeStringArray",
+            "parseLimit",
+            "defaultPolicy",
+            "campaignStatusLabel",
+            "buttonActionLabel",
+            "platformLabel",
+            "triStateLabel"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 663
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "AppOverlayService"
+      ],
+      "totalLines": 731,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/auth.service.ts": {
@@ -15205,7 +16051,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "ae3e11632d73b8c8b8e82eb76f87ba10675ca0a5a8c9b1a8d72bd6ba5f67eed4",
+      "contentHash": "7f3031dfd36fe653fc8ca88ae8ac72f61954e4a4e07ee7b976d59786b22a0a92",
       "functions": [],
       "classes": [
         {
@@ -15216,6 +16062,8 @@
             "listChats",
             "buildChatListEtag",
             "matchesEntityTag",
+            "chatKindForList",
+            "resolveChatListAvatarUrl",
             "setPinned",
             "deleteChat",
             "scheduleChatPayloadCleanup",
@@ -15240,8 +16088,9 @@
             "resolveMessageCursor",
             "encodeMessageCursor",
             "parseCursorDate",
-            "getUnreadCountsByChat",
             "assertMembership",
+            "restoreMeetupChatMembership",
+            "restoreCommunityChatMembership",
             "resolveAfterDarkGlow",
             "getBlockedUserIds"
           ],
@@ -15249,7 +16098,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 1238
+          "lineCount": 1385
         }
       ],
       "imports": [
@@ -15294,7 +16143,14 @@
           "specifiers": [
             "formatEventTime",
             "formatRelativeTime",
-            "mapMessage"
+            "mapMessage",
+            "mapProfilePhoto"
+          ]
+        },
+        {
+          "source": "../common/media-presenters",
+          "specifiers": [
+            "mapMediaVariants"
           ]
         },
         {
@@ -15314,12 +16170,12 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1374,
+      "totalLines": 1533,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
       "filePath": "backend/apps/api/src/services/communities.service.ts",
-      "contentHash": "a648226da58c25fe2ff76effdfd40fc5e5917e3397a1705b36f7aadf35f870c4",
+      "contentHash": "2a35bed76fc6ad4bdafff30d61c9c5bc2f95fedf3e6bff06a9fac6c2b6ae0df1",
       "functions": [],
       "classes": [
         {
@@ -15330,10 +16186,30 @@
             "getCommunity",
             "listCommunityMedia",
             "joinCommunity",
+            "createJoinRequest",
+            "cancelJoinRequest",
+            "listAdminOverview",
+            "listAdminMembers",
+            "updateAdminMemberRole",
+            "removeAdminMember",
+            "listJoinRequests",
+            "reviewJoinRequest",
+            "listAdminNews",
+            "createAdminNews",
+            "updateAdminNews",
+            "deleteAdminNews",
+            "listAdminMeetups",
+            "cancelAdminMeetup",
+            "updateAdminSettings",
+            "archiveAdminCommunity",
+            "transferAdminOwnership",
             "leaveCommunity",
             "createCommunityNews",
             "createCommunity",
             "communitySelect",
+            "buildCommunityListWhere",
+            "communityListOrderBy",
+            "normalizeTopicFilters",
             "upcomingCommunityMeetupWhere",
             "loadCounters",
             "loadUnreadCounters",
@@ -15352,6 +16228,13 @@
             "normalizeMediaLimit",
             "visibleCommunityWhere",
             "communityContentWhere",
+            "assertCommunityImageAsset",
+            "requiredCommunityImageAssetId",
+            "communityImageUrl",
+            "getAdminCommunity",
+            "communityJoinRequestSelect",
+            "mapJoinRequest",
+            "mapNews",
             "mapMediaItem",
             "resolveCursor",
             "encodeCommunityCursor",
@@ -15368,13 +16251,14 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1084
+          "lineCount": 1765
         }
       ],
       "imports": [
         {
           "source": "@big-break/database",
           "specifiers": [
+            "buildMediaProxyPath",
             "decodeCursor",
             "encodeCursor",
             "loadBlockedUserIds"
@@ -15385,6 +16269,7 @@
           "specifiers": [
             "ChatKind",
             "ChatOrigin",
+            "CommunityMemberRole",
             "CommunityPrivacy",
             "Prisma"
           ]
@@ -15399,6 +16284,12 @@
           "source": "../common/api-error",
           "specifiers": [
             "ApiError"
+          ]
+        },
+        {
+          "source": "../common/media-presenters",
+          "specifiers": [
+            "mapMediaVariants"
           ]
         },
         {
@@ -15423,12 +16314,12 @@
       "exports": [
         "CommunitiesService"
       ],
-      "totalLines": 1122,
+      "totalLines": 1805,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "eccbdcbe49b499bfa0641408b39d0dd50462e0b93317fbdad0052dbebd3b4422",
+      "contentHash": "3dcc29d248a7b1d5d488e201825210d791ea7dbc0cd46c9a742fe02d0e53f82b",
       "functions": [],
       "classes": [
         {
@@ -15450,7 +16341,6 @@
             "recordAction",
             "rewindLastPass",
             "getLimits",
-            "requireFrendlyPlus",
             "ensureSwipeAllowed",
             "consumeSuperLikeQuota",
             "consumeRewindQuota",
@@ -15468,6 +16358,8 @@
             "normalizeDiscoverFilters",
             "normalizeAgeFilter",
             "extractInterests",
+            "commonInterestsForUser",
+            "calculateDatingMatchPercent",
             "matchesInterestFilter",
             "matchesRadiusFilter",
             "resolveUserDatingLocation",
@@ -15486,7 +16378,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1439
+          "lineCount": 1502
         }
       ],
       "imports": [
@@ -15552,7 +16444,7 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 1672,
+      "totalLines": 1736,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/drops-draw.service.ts": {
@@ -15618,7 +16510,7 @@
     },
     "backend/apps/api/src/services/drops-reward.service.ts": {
       "filePath": "backend/apps/api/src/services/drops-reward.service.ts",
-      "contentHash": "9849de865b21eff4195c1bbea679457695013c46b6dc80d55878ea5fa031fc6b",
+      "contentHash": "2459900c2796aac5dd0eab9d1908de4643227a4d0df5136a50de44f44e19243c",
       "functions": [],
       "classes": [
         {
@@ -15690,12 +16582,12 @@
         "DROPS_TASK_TICKET_COUNTS",
         "DROPS_TASK_MONTHLY_LIMITS"
       ],
-      "totalLines": 689,
+      "totalLines": 702,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/drops.service.ts": {
       "filePath": "backend/apps/api/src/services/drops.service.ts",
-      "contentHash": "541ddd54114bd6352dd26a960841933ea5f2d553c3929b651bbf34564e3e4639",
+      "contentHash": "09c0c9fa1b665a2752e3fee47ccf0ca7f8c29b6c6584451c299eb258d7a45909",
       "functions": [],
       "classes": [
         {
@@ -15773,7 +16665,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1787
+          "lineCount": 1795
         }
       ],
       "imports": [
@@ -15818,6 +16710,12 @@
           ]
         },
         {
+          "source": "../common/media-presenters",
+          "specifiers": [
+            "mapMediaVariants"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -15844,7 +16742,7 @@
         "MAX_DROP_IMAGE_UPLOAD_BYTES",
         "DropsService"
       ],
-      "totalLines": 1898,
+      "totalLines": 1908,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
@@ -16652,7 +17550,7 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "267c98bfe6d004196b70031a94da29831a03586c7910a1c8654235b436f3c3a5",
+      "contentHash": "582015943ee739cb61f28327665f5898c1308fbebef6e2faebcd320e9eec0763",
       "functions": [],
       "classes": [
         {
@@ -16695,7 +17593,6 @@
             "moveToNextStep",
             "mapAfterParty",
             "dateToIso",
-            "createId",
             "sessionPhaseToChatPhase",
             "normalizeSessionCurrentStep",
             "parsePrivacy",
@@ -16720,7 +17617,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 2420
+          "lineCount": 2416
         }
       ],
       "imports": [
@@ -16776,7 +17673,7 @@
       "exports": [
         "EveningService"
       ],
-      "totalLines": 2572,
+      "totalLines": 2568,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/event-capacity.ts": {
@@ -16816,7 +17713,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "02395be71d7cfc6542529fcd5890a028af46e9525de097be35e8c48fa30d0448",
+      "contentHash": "a29aa7f82be18a21a8521fac176a5c45e653b02d7e2a9f793a844f8cda9f1e00",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -16868,6 +17765,7 @@
           "methods": [
             "constructor",
             "listEvents",
+            "listPublicActiveMeetups",
             "getEventDetail",
             "joinEvent",
             "loadActivePromosForPlace",
@@ -16884,12 +17782,20 @@
             "getAfterParty",
             "saveFeedback",
             "buildListWhere",
+            "normalizePublicMeetupLimit",
+            "normalizePublicMeetupCity",
+            "buildPublicMeetupCityWhere",
             "buildPriceWhere",
             "loadEventListDetailsForCandidates",
             "eventListSelect",
             "parseIsoDateRange",
             "listOrderBy",
             "listTake",
+            "loadPromotedEventListPage",
+            "loadPromotedGeoEventCandidates",
+            "activePromotionWhere",
+            "inactivePromotionWhere",
+            "combineEventWhere",
             "loadPostgisEventCandidates",
             "postgisStartsAtFilter",
             "recentEventStartBoundary",
@@ -16911,6 +17817,7 @@
             "encodeListCursor",
             "parseCursorNumber",
             "parseCursorDate",
+            "parseCursorBoolean",
             "buildListCursorWhere",
             "assertParticipant",
             "calculateCompatibilityScore",
@@ -16919,6 +17826,7 @@
             "parseEventRouteSelection",
             "parseEventRouteStep",
             "createPrivateEventRoute",
+            "isEventPromoted",
             "firstRouteStepPoint",
             "parseEventRules",
             "getBlockedUserIds",
@@ -16935,7 +17843,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 3954
+          "lineCount": 4302
         }
       ],
       "imports": [
@@ -17023,7 +17931,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4220,
+      "totalLines": 4583,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -17206,7 +18114,7 @@
     },
     "backend/apps/api/src/services/media.service.ts": {
       "filePath": "backend/apps/api/src/services/media.service.ts",
-      "contentHash": "cd08bda2f4cf3505b0c829ee93f565454200116461506579f731c40a0001c069",
+      "contentHash": "3dac35d43e41c3a6b0574aee05fb5013e82c67db196b80f45b89059b319805ac",
       "functions": [],
       "classes": [
         {
@@ -17215,10 +18123,20 @@
             "constructor",
             "getAsset",
             "getDownloadUrl",
+            "getVariant",
+            "getVariantDownloadUrl",
             "resolveCachePolicy",
             "isPublicKind",
             "resolvePublicRedirectUrl",
             "buildCacheMetadata",
+            "buildVariantCacheMetadata",
+            "loadAssetVariant",
+            "mapVariant",
+            "resolveVariantPublicRedirectUrl",
+            "requireVariantObjectKey",
+            "presentVariant",
+            "stringOrNull",
+            "positiveIntegerOrNull",
             "isFreshRequest",
             "resolveAssetAccess",
             "assertChatMediaBlockAccess",
@@ -17231,7 +18149,7 @@
             "s3"
           ],
           "exported": true,
-          "lineCount": 478
+          "lineCount": 679
         }
       ],
       "imports": [
@@ -17285,7 +18203,7 @@
       "exports": [
         "MediaService"
       ],
-      "totalLines": 518,
+      "totalLines": 732,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/notifications.service.ts": {
@@ -17364,7 +18282,7 @@
     },
     "backend/apps/api/src/services/onboarding.service.ts": {
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
-      "contentHash": "592475326962cc1602eb8a839a29f5284e8652f68bb976a3ab4382897cf20a52",
+      "contentHash": "1ad9b79286a57c6cbe8fee88e924f4a4acbd9447ed3a1bab25bc452567dbb651",
       "functions": [
         {
           "name": "mapOnboarding",
@@ -17372,7 +18290,7 @@
             "onboarding"
           ],
           "exported": false,
-          "lineCount": 30
+          "lineCount": 39
         },
         {
           "name": "formatDateOnly",
@@ -17415,6 +18333,14 @@
           "lineCount": 25
         },
         {
+          "name": "normalizeDisplayName",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
           "name": "requiredContactFor",
           "params": [
             "provider",
@@ -17439,7 +18365,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 296
+          "lineCount": 306
         }
       ],
       "imports": [
@@ -17463,6 +18389,12 @@
           ]
         },
         {
+          "source": "../common/media-presenters",
+          "specifiers": [
+            "mapProfilePhoto"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -17472,7 +18404,7 @@
       "exports": [
         "OnboardingService"
       ],
-      "totalLines": 474,
+      "totalLines": 533,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/openrouter.service.ts": {
@@ -17898,7 +18830,7 @@
     },
     "backend/apps/api/src/services/payment-catalog.ts": {
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
-      "contentHash": "454e3f8dbe408a636c09bd11be40c53df445dcedd9ae9fedecf26f4860eafb55",
+      "contentHash": "1e556562c2e3a1b74c2910a4b2f8cd7a250111ec021e6f4992cebad8e7ab7191",
       "functions": [
         {
           "name": "findPaymentProduct",
@@ -17949,6 +18881,7 @@
       ],
       "exports": [
         "subscriptionProducts",
+        "defaultPlusBenefits",
         "tokenPackProducts",
         "tokenPromotionOptions",
         "findPaymentProduct",
@@ -17956,12 +18889,12 @@
         "findTokenPackProduct",
         "findTokenPromotionOption"
       ],
-      "totalLines": 185,
+      "totalLines": 194,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/payments.service.ts": {
       "filePath": "backend/apps/api/src/services/payments.service.ts",
-      "contentHash": "c36cef00890fd0cb915f59eceb79de84b608fad6a13577f1dd5d42f141b315d3",
+      "contentHash": "ffe1a621aa946f2715b7b8b3e4d7764419bd911d1a0d2cd3855529aacf2b00dc",
       "functions": [],
       "classes": [
         {
@@ -17985,7 +18918,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 373
+          "lineCount": 380
         }
       ],
       "imports": [
@@ -18046,7 +18979,6 @@
             "PaymentProduct",
             "PaymentProductKindValue",
             "findPaymentProduct",
-            "subscriptionProducts",
             "tokenPackProducts",
             "tokenPromotionOptions"
           ]
@@ -18055,12 +18987,12 @@
       "exports": [
         "PaymentsService"
       ],
-      "totalLines": 405,
+      "totalLines": 411,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "79c17569fdab66d6cfd2c52893f4b043903181d03071e5df0aca811b828b7802",
+      "contentHash": "55a4731ed0350891da28e593173a41163eab5a16cceeef7d1d254b8f5dd05e1a",
       "functions": [],
       "classes": [
         {
@@ -18075,7 +19007,9 @@
             "setFollow",
             "setFollowNotifications",
             "setProfileReaction",
+            "createProfileReactionNotification",
             "normalizeProfileReactionKind",
+            "isDedupeKeyUniqueError",
             "getBlockedUserIds",
             "assertSocialTargetVisible",
             "getProfileSocialSnapshot",
@@ -18090,7 +19024,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 909
+          "lineCount": 1004
         }
       ],
       "imports": [
@@ -18103,6 +19037,7 @@
         {
           "source": "@big-break/database",
           "specifiers": [
+            "OUTBOX_EVENT_TYPES",
             "buildDirectChatKey",
             "decodeCursor",
             "encodeCursor",
@@ -18151,7 +19086,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 954,
+      "totalLines": 1050,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -18474,7 +19409,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "7cfd49594964e2e3d04701fc35725bfb43491cde0f5e69a1002c5461fe51130a",
+      "contentHash": "fd4c674b444cbfe3e31318aab3e365f3fa6ba70109fe3de59c42aa96ff1b82b2",
       "functions": [],
       "classes": [
         {
@@ -18607,7 +19542,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 1644,
+      "totalLines": 1646,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -18859,7 +19794,7 @@
     },
     "backend/apps/api/src/services/social-auth.service.ts": {
       "filePath": "backend/apps/api/src/services/social-auth.service.ts",
-      "contentHash": "905a719cc6386165d256122e00fd8ef656d8c0ea0f31c8c43df4ca3b06a81421",
+      "contentHash": "632c5d296994f3579d11cedcfccad18077a546cf90ac90fcc6076d6e1243d18f",
       "functions": [],
       "classes": [
         {
@@ -19072,7 +20007,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "1485d38c3aedd95b7910cd3d4e47e30e0a91f852679c29f2c48c6d05544daddf",
+      "contentHash": "20e4a14f1e536a6026b142936b8cc236475a73767a42e0228426d1c26936397a",
       "functions": [],
       "classes": [
         {
@@ -19080,6 +20015,9 @@
           "methods": [
             "constructor",
             "getPlans",
+            "getCatalog",
+            "getAdminCatalog",
+            "updateAdminCatalog",
             "getCurrent",
             "mapCurrent",
             "subscribe",
@@ -19087,13 +20025,24 @@
             "activatePaidSubscription",
             "grantDropsSubscriptionReward",
             "restore",
+            "findCatalogProduct",
+            "loadCatalogProducts",
+            "loadCatalogSettings",
+            "defaultCatalogProducts",
+            "parseCatalogPlans",
+            "parseTextList",
+            "cleanTextList",
+            "requiredText",
+            "optionalText",
+            "positiveInt",
+            "nonNegativeInt",
             "hasPremiumAccess",
             "isPremiumStatus",
             "resolveStatus"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 240
+          "lineCount": 464
         }
       ],
       "imports": [
@@ -19124,8 +20073,9 @@
         {
           "source": "./payment-catalog",
           "specifiers": [
-            "findSubscriptionProduct",
-            "subscriptionProducts"
+            "defaultPlusBenefits",
+            "subscriptionProducts",
+            "SubscriptionProduct"
           ]
         },
         {
@@ -19144,7 +20094,7 @@
       "exports": [
         "SubscriptionService"
       ],
-      "totalLines": 259,
+      "totalLines": 506,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/tbank-acquiring.service.ts": {
@@ -19381,7 +20331,7 @@
     },
     "backend/apps/api/src/services/uploads.service.ts": {
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
-      "contentHash": "93e01966c31beb16122534ef17bc1d068d174f26f9c6cb469e659cc3f4783c8e",
+      "contentHash": "ab1f60ce8f12b768bed331fab40f44b89b3d7cfeabcdbe0173208093f8d41459",
       "functions": [],
       "classes": [
         {
@@ -19400,6 +20350,9 @@
             "createVerificationMediaUpload",
             "completeVerificationMediaUpload",
             "uploadVerificationMediaFile",
+            "createCommunityImageUpload",
+            "completeCommunityImageUpload",
+            "uploadCommunityImageFile",
             "resolveScope",
             "isVerificationScope",
             "requireMediaFile",
@@ -19414,6 +20367,7 @@
             "resolveVerifiedChatUploadMetadata",
             "parseChatIdForAttachment",
             "assertChatAttachmentMember",
+            "restoreMeetupChatAttachmentMember",
             "requireStoryEventId",
             "parseStoryEventId",
             "assertStoryMediaMime",
@@ -19421,10 +20375,18 @@
             "assertStoryMediaObjectKey",
             "createStoryUploadAsset",
             "createVerificationUploadAsset",
+            "createCommunityImageAsset",
+            "assertExistingCommunityImageAsset",
+            "queueMediaFinalizeForImage",
+            "shouldCreateImageVariants",
             "assertExistingVerificationUploadAsset",
             "assertVerificationMime",
             "assertVerificationSize",
             "assertVerificationObjectKey",
+            "assertCommunityImageObjectKey",
+            "resolveVerifiedCommunityImageMetadata",
+            "assertCommunityImageMime",
+            "assertCommunityImageSize",
             "verificationObjectSegment",
             "resolveVerifiedVerificationUploadMetadata",
             "assertExistingStoryUploadAsset",
@@ -19436,7 +20398,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1145
+          "lineCount": 1470
         }
       ],
       "imports": [
@@ -19457,10 +20419,12 @@
           "source": "@big-break/database",
           "specifiers": [
             "buildMediaProxyPath",
+            "buildPublicAssetUrl",
             "createPresignedUpload",
             "createS3Client",
             "createS3RequestOptions",
-            "getS3Config"
+            "getS3Config",
+            "OUTBOX_EVENT_TYPES"
           ]
         },
         {
@@ -19506,7 +20470,7 @@
         "MAX_STORY_MEDIA_UPLOAD_BYTES",
         "UploadsService"
       ],
-      "totalLines": 1207,
+      "totalLines": 1536,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/verification.service.ts": {
@@ -19716,7 +20680,7 @@
     },
     "backend/apps/chat/src/chat-server.service.ts": {
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
-      "contentHash": "1c1ff410ebfa6dee4d96e2e9881794d7e1f3b5489f988edfa9f25bac107106bc",
+      "contentHash": "ed43fac8f9c2c31e2aff5232a78d8612d2333d0f19d178bbb7a92180162581d1",
       "functions": [],
       "classes": [
         {
@@ -19770,6 +20734,7 @@
             "addIndexedSocket",
             "removeIndexedSocket",
             "assertMembership",
+            "restoreMeetupChatMembership",
             "isTypingThrottled",
             "buildMembershipCacheKey",
             "setMembershipCache",
@@ -19807,7 +20772,7 @@
             "heartbeatTimer"
           ],
           "exported": true,
-          "lineCount": 1595
+          "lineCount": 1650
         }
       ],
       "imports": [
@@ -19869,7 +20834,7 @@
       "exports": [
         "ChatServerService"
       ],
-      "totalLines": 1712,
+      "totalLines": 1767,
       "hasStructuralAnalysis": true
     },
     "backend/apps/chat/src/health.controller.ts": {
@@ -20680,7 +21645,7 @@
     },
     "backend/apps/worker/src/content/content-image-mirror.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
-      "contentHash": "6290b60a7904fd6b90b1beef4dee672d24d8065e663143ab8af02661f257cd63",
+      "contentHash": "57e69f4d96f1d50098f920971fd7cd680c5fd470ed1e458fe5ece58e6148a1d8",
       "functions": [
         {
           "name": "isHttpsUrl",
@@ -20830,7 +21795,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "62ddbecded37b1c773032499d30c746694287cb23365c7e4f8e98e0c2064f04e",
+      "contentHash": "530cbb65b732088211b2d1f2590fd821adef75b615ea4f397c04f755715ebeaf",
       "functions": [
         {
           "name": "safeJson",
@@ -21116,7 +22081,7 @@
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 1002
+          "lineCount": 1011
         }
       ],
       "imports": [
@@ -21198,7 +22163,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 1480,
+      "totalLines": 1489,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
@@ -22677,7 +23642,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "e9debd34838d766205b21706a602739112fc2d43be72cb551c064e66f9b5acf0",
+      "contentHash": "2d2c472dfc210a9ec4eb0b4903a94d762247b5f1e13754eb2e96dd2f9cf53057",
       "functions": [
         {
           "name": "isDetailPath",
@@ -23214,7 +24179,7 @@
             "catalogFallbackMaxPages"
           ],
           "exported": true,
-          "lineCount": 640
+          "lineCount": 641
         }
       ],
       "imports": [
@@ -23237,7 +24202,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1429,
+      "totalLines": 1430,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {
@@ -23312,7 +24277,7 @@
     },
     "backend/apps/worker/src/media/image-variants.ts": {
       "filePath": "backend/apps/worker/src/media/image-variants.ts",
-      "contentHash": "cc8d38128e1ae68955a9d3967230dbdb414e5677a1309e1d64b5a161cfb8b22d",
+      "contentHash": "6097b0bbf22936431359e430cc2fb4f0835ded07106ffab15444c78ebec25149",
       "functions": [
         {
           "name": "createImageVariants",
@@ -23321,6 +24286,14 @@
           ],
           "exported": true,
           "lineCount": 42
+        },
+        {
+          "name": "resizeOptions",
+          "params": [
+            "spec"
+          ],
+          "exported": false,
+          "lineCount": 17
         },
         {
           "name": "variantObjectKey",
@@ -23362,7 +24335,7 @@
         "createImageVariants",
         "variantObjectKey"
       ],
-      "totalLines": 86,
+      "totalLines": 111,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/metrics.controller.ts": {
@@ -23542,7 +24515,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "62296dfdcd4ebc2c8e751c37339f42ac522d538accbce2b522c2722e3ad52dbe",
+      "contentHash": "3ab8ea6eb5f9366a20c724e0c413888e4de1ee98bead3a7362a7c029a98d6de9",
       "functions": [
         {
           "name": "csv",
@@ -23588,7 +24561,15 @@
             "claimNextEvent",
             "handleFailure",
             "handleMediaFinalize",
+            "runMediaVariantBackfillScan",
+            "runDropImageVariantBackfillScan",
             "tryCreateMediaVariants",
+            "createPublicImageVariantsForObjectKey",
+            "shouldCreateMediaVariants",
+            "isPublicMediaAsset",
+            "hasAllProfileImageVariants",
+            "hasAllPublicCardImageVariants",
+            "toPrivateMediaVariants",
             "handlePushDispatch",
             "isUserHidden",
             "handleNotificationCreate",
@@ -23632,6 +24613,7 @@
             "contentManualImportTimer",
             "contentManualGenerationTimer",
             "contentRouteGenerationTimer",
+            "mediaVariantBackfillTimer",
             "running",
             "systemNotificationRunning",
             "retentionCleanupRunning",
@@ -23640,6 +24622,7 @@
             "contentManualImportRunning",
             "contentManualGenerationRunning",
             "contentRouteGenerationRunning",
+            "mediaVariantBackfillRunning",
             "shuttingDown",
             "maxEventsPerRun",
             "outboxProcessingConcurrency",
@@ -23661,6 +24644,9 @@
             "contentImportEnabled",
             "contentImageBackfillEnabled",
             "contentImageBackfillBatchSize",
+            "mediaVariantBackfillEnabled",
+            "mediaVariantBackfillIntervalMs",
+            "mediaVariantBackfillBatchSize",
             "contentImportIntervalMs",
             "contentImportDailyAt",
             "contentImportTimeZone",
@@ -23676,7 +24662,7 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 1851
+          "lineCount": 2062
         }
       ],
       "imports": [
@@ -23699,10 +24685,13 @@
           "specifiers": [
             "OUTBOX_EVENT_TYPES",
             "appMetrics",
+            "buildMediaProxyPath",
             "buildPublicAssetUrl",
             "createRedisPublisher",
             "createS3Client",
             "createS3RequestOptions",
+            "getS3Config",
+            "objectKeyFromPublicAssetUrl",
             "publishBusEvent",
             "runRetentionCleanup"
           ]
@@ -23775,7 +24764,7 @@
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 1932,
+      "totalLines": 2148,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {
@@ -23810,12 +24799,12 @@
     },
     "backend/packages/contracts/src/index.ts": {
       "filePath": "backend/packages/contracts/src/index.ts",
-      "contentHash": "dcd3d6a210e0047707216d2183c6364bbdf59c814085086d90d3d0f797ed7c68",
+      "contentHash": "aa1be32321e9eb762f00b7200e76bff64d26d958cf5b77e68c2e01b3f50a6995",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1123,
+      "totalLines": 1126,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/backfill-chat-unread-counts.ts": {
@@ -24108,7 +25097,7 @@
     },
     "backend/packages/database/prisma/seed-test-accounts.ts": {
       "filePath": "backend/packages/database/prisma/seed-test-accounts.ts",
-      "contentHash": "3f0c2a1e715690587518f829636b0488e009159977457abc97fcfd90bd9a0abb",
+      "contentHash": "fd5023b4c0cca45688ed44484b5dd602075a659dde0ba55454b89860b3c280d4",
       "functions": [
         {
           "name": "buildTestAccountsSeedPlan",
@@ -24117,7 +25106,7 @@
           ],
           "returnType": "TestAccountsSeedPlan",
           "exported": true,
-          "lineCount": 76
+          "lineCount": 78
         },
         {
           "name": "seedTestAccounts",
@@ -24126,7 +25115,7 @@
             "now"
           ],
           "exported": true,
-          "lineCount": 252
+          "lineCount": 253
         },
         {
           "name": "deleteTestAccounts",
@@ -24134,7 +25123,7 @@
             "prisma"
           ],
           "exported": true,
-          "lineCount": 196
+          "lineCount": 791
         },
         {
           "name": "buildInterests",
@@ -24200,6 +25189,15 @@
           "lineCount": 13
         },
         {
+          "name": "calculateAge",
+          "params": [
+            "birthDate",
+            "now"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
           "name": "escapeSvg",
           "params": [
             "value"
@@ -24243,11 +25241,12 @@
         }
       ],
       "exports": [
+        "TEST_ACCOUNT_CLEANUP_DATASETS",
         "buildTestAccountsSeedPlan",
         "seedTestAccounts",
         "deleteTestAccounts"
       ],
-      "totalLines": 838,
+      "totalLines": 1509,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/seed.ts": {

@@ -26,8 +26,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-20T11:22:20.790Z",
-    "gitCommitHash": "16e8d9d31cf9bf328aba7997d3788f84c4b9da23"
+    "analyzedAt": "2026-05-24T03:21:38.879Z",
+    "gitCommitHash": "bdb102090bd66c2994dec1dfbe66c4e6583e1c19"
   },
   "nodes": [
     {
@@ -560,7 +560,7 @@
         "user"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
       "lineRange": [
         197,
         300
@@ -650,7 +650,7 @@
         "host"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
       "lineRange": [
         358,
         409
@@ -848,7 +848,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
+      "filePath": "mobile2/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
       "lineRange": [
         1,
         200
@@ -938,7 +938,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
+      "filePath": "mobile2/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
       "lineRange": [
         1,
         200
@@ -992,7 +992,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         90,
         321
@@ -1010,7 +1010,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         509,
         581
@@ -1154,7 +1154,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
+      "filePath": "mobile2/lib/features/onboarding/presentation/onboarding_screen.dart",
       "lineRange": [
         153,
         222
@@ -1226,7 +1226,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/dating/presentation/dating_screen.dart",
+      "filePath": "mobile2/lib/features/dating/presentation/dating_screen.dart",
       "lineRange": [
         460,
         520
@@ -1352,7 +1352,7 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/features/safety/presentation/safety_hub_screen.dart",
+      "filePath": "mobile2/lib/features/safety/presentation/safety_hub_screen.dart",
       "lineRange": [
         138,
         293
@@ -1442,7 +1442,7 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile/lib/app/core/device/app_push_token_service.dart",
+      "filePath": "mobile2/lib/app/core/device/app_push_token_service.dart",
       "lineRange": [
         1,
         160
