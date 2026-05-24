@@ -1,3 +1,5 @@
+import { bboxForContentCity } from './content-city-catalog';
+
 const DEFAULT_YANDEX_GEOCODER_URL = 'https://geocode-maps.yandex.ru/1.x/';
 const DEFAULT_TIMEOUT_MS = 2500;
 
@@ -21,25 +23,6 @@ type VenueGeocoderClientOptions = {
   apiKey?: string | null;
   baseUrl?: string | null;
   timeoutMs?: number | null;
-};
-
-const CITY_BBOX: Record<string, string> = {
-  'Москва': '55.55,37.35,55.95,37.95',
-  'Санкт-Петербург': '59.75,30.05,60.10,30.65',
-  'Новосибирск': '54.80,82.70,55.15,83.20',
-  'Екатеринбург': '56.70,60.35,56.95,60.85',
-  'Казань': '55.65,48.85,55.95,49.35',
-  'Нижний Новгород': '56.15,43.75,56.40,44.20',
-  'Красноярск': '55.85,92.60,56.15,93.20',
-  'Челябинск': '55.05,61.15,55.35,61.65',
-  'Самара': '53.05,49.85,53.35,50.35',
-  'Уфа': '54.60,55.75,54.90,56.20',
-  'Ростов-на-Дону': '47.15,39.55,47.35,39.90',
-  'Краснодар': '44.95,38.85,45.15,39.20',
-  'Омск': '54.85,73.15,55.10,73.65',
-  'Воронеж': '51.55,39.05,51.80,39.35',
-  'Пермь': '57.85,55.80,58.10,56.45',
-  'Волгоград': '48.55,44.30,48.90,44.70',
 };
 
 export class VenueGeocoderClient {
@@ -168,7 +151,7 @@ function isHighConfidence(precision: string | null, kind: string | null, hasAddr
 }
 
 function withinCity(city: string, lat: number, lng: number) {
-  const bbox = CITY_BBOX[city];
+  const bbox = bboxForContentCity(city);
   if (!bbox) {
     return true;
   }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OpenRouterClient, OpenRouterClientError } from '@big-break/database';
+import { CONTENT_IMPORT_CITY_NAMES, OpenRouterClient, OpenRouterClientError } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import {
@@ -7,7 +7,6 @@ import {
   validateRouteDraft,
   type RoutePlannerCandidate,
 } from './route-planner';
-import { SUPPORTED_RUSSIA_MILLION_CITY_NAMES } from './supported-cities';
 
 type GeneratedRoute = {
   title?: unknown;
@@ -287,7 +286,7 @@ export class RouteDraftGenerationService {
   }
 
   async runScheduledGeneration() {
-    const cities = csv(process.env.CONTENT_IMPORT_CITIES) ?? SUPPORTED_RUSSIA_MILLION_CITY_NAMES;
+    const cities = csv(process.env.CONTENT_IMPORT_CITIES) ?? CONTENT_IMPORT_CITY_NAMES;
     const maxDrafts = positiveInt(process.env.CONTENT_ROUTE_GENERATION_MAX_DRAFTS_PER_CITY, 12);
     for (const city of cities) {
       for (const mood of ['calm', 'social', 'date', 'culture', 'active', 'outdoor']) {

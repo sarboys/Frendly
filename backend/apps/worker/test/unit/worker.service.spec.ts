@@ -5,6 +5,38 @@ const mockWorkerJobRetriesInc = jest.fn();
 const mockWorkerPermanentFailuresInc = jest.fn();
 
 jest.mock('@big-break/database', () => ({
+  CONTENT_IMPORT_CITY_NAMES: [
+    'Москва',
+    'Санкт-Петербург',
+    'Барнаул',
+    'Волгоград',
+    'Воронеж',
+    'Екатеринбург',
+    'Ижевск',
+    'Казань',
+    'Калининград',
+    'Кемерово',
+    'Краснодар',
+    'Красноярск',
+    'Махачкала',
+    'Набережные Челны',
+    'Нижний Новгород',
+    'Новосибирск',
+    'Омск',
+    'Пермь',
+    'Ростов-на-Дону',
+    'Самара',
+    'Саратов',
+    'Сочи',
+    'Ставрополь',
+    'Тольятти',
+    'Томск',
+    'Тюмень',
+    'Ульяновск',
+    'Уфа',
+    'Челябинск',
+    'Ярославль',
+  ],
 	  OUTBOX_EVENT_TYPES: {
 	    mediaFinalize: 'media.finalize',
 	    pushDispatch: 'push.dispatch',
@@ -566,7 +598,49 @@ describe('worker outbox recovery', () => {
     });
   });
 
-  it('does not include Tomesto in default scheduled content sources', async () => {
+  it('uses all 30 requested cities for default scheduled content import', async () => {
+    const service = new WorkerService({
+      client: {},
+    } as any);
+
+    expect((service as any).resolveContentCities()).toEqual([
+      'Москва',
+      'Санкт-Петербург',
+      'Барнаул',
+      'Волгоград',
+      'Воронеж',
+      'Екатеринбург',
+      'Ижевск',
+      'Казань',
+      'Калининград',
+      'Кемерово',
+      'Краснодар',
+      'Красноярск',
+      'Махачкала',
+      'Набережные Челны',
+      'Нижний Новгород',
+      'Новосибирск',
+      'Омск',
+      'Пермь',
+      'Ростов-на-Дону',
+      'Самара',
+      'Саратов',
+      'Сочи',
+      'Ставрополь',
+      'Тольятти',
+      'Томск',
+      'Тюмень',
+      'Ульяновск',
+      'Уфа',
+      'Челябинск',
+      'Ярославль',
+    ]);
+    expect((service as any).resolveContentCities()).toHaveLength(30);
+
+    await service.onModuleDestroy();
+  });
+
+  it('includes Tomesto in default scheduled content sources', async () => {
     const consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => undefined);
     const service = new WorkerService({
       client: {},
@@ -574,8 +648,7 @@ describe('worker outbox recovery', () => {
 
     const sources = (service as any).resolveContentSources();
 
-    expect(sources).toEqual(['kudago', 'timepad', 'advcake_ticketland']);
-    expect(sources).not.toContain('tomesto');
+    expect(sources).toEqual(['kudago', 'timepad', 'advcake_ticketland', 'tomesto']);
     consoleDebug.mockRestore();
     await service.onModuleDestroy();
   });

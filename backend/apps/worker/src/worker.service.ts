@@ -2,6 +2,7 @@ import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   OUTBOX_EVENT_TYPES,
+  CONTENT_IMPORT_CITY_NAMES,
   appMetrics,
   buildMediaProxyPath,
   buildPublicAssetUrl,
@@ -16,7 +17,6 @@ import {
 import { Prisma } from '@prisma/client';
 import Redis from 'ioredis';
 import type { ExternalSourceCode } from './content/content-source.types';
-import { SUPPORTED_RUSSIA_MILLION_CITY_NAMES } from './content/supported-cities';
 import { ContentImportService } from './content/content-import.service';
 import { RouteDraftGenerationService } from './content/route-draft-generation.service';
 import {
@@ -1896,11 +1896,11 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   private resolveContentCities() {
-    return csv(process.env.CONTENT_IMPORT_CITIES) ?? SUPPORTED_RUSSIA_MILLION_CITY_NAMES;
+    return csv(process.env.CONTENT_IMPORT_CITIES) ?? CONTENT_IMPORT_CITY_NAMES;
   }
 
   private resolveContentSources(): ExternalSourceCode[] {
-    const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'timepad', 'advcake_ticketland'];
+    const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'timepad', 'advcake_ticketland', 'tomesto'];
     const resolved = requested.filter((source): source is ExternalSourceCode =>
       source === 'kudago' ||
       source === 'timepad' ||

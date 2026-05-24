@@ -88,12 +88,16 @@ describe('ContentImportService', () => {
       where: { code: 'kudago' },
       create: expect.objectContaining({
         cityCodes: expect.objectContaining({
+          'Москва': 'msk',
+          'Санкт-Петербург': 'spb',
+          'Екатеринбург': 'ekb',
           'Казань': 'kzn',
-          'Новосибирск': 'nsk',
-          'Краснодар': 'krd',
+          'Нижний Новгород': 'nnv',
         }),
       }),
     }));
+    expect(sourceCreate.mock.calls[0]?.[0]?.create.cityCodes).not.toHaveProperty('Новосибирск');
+    expect(sourceCreate.mock.calls[0]?.[0]?.create.cityCodes).not.toHaveProperty('Краснодар');
     expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
       where: { sourceId_sourceItemId: { sourceId: 'source-1', sourceItemId: 'place-1' } },
       create: expect.objectContaining({

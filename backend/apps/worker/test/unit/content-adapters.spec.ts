@@ -10,6 +10,8 @@ const originalTomestoRefQuery = process.env.TOMESTO_REF_QUERY;
 const originalTomestoRequestDelayMs = process.env.TOMESTO_REQUEST_DELAY_MS;
 const originalTomestoImportImages = process.env.TOMESTO_IMPORT_IMAGES;
 const originalTomestoCatalogBatchSize = process.env.TOMESTO_CATALOG_BATCH_SIZE;
+const originalTomestoCatalogRequestDelayMs = process.env.TOMESTO_CATALOG_REQUEST_DELAY_MS;
+const originalTomestoCatalogConcurrency = process.env.TOMESTO_CATALOG_CONCURRENCY;
 
 describe('content source adapters', () => {
   afterEach(() => {
@@ -43,6 +45,16 @@ describe('content source adapters', () => {
       delete process.env.TOMESTO_CATALOG_BATCH_SIZE;
     } else {
       process.env.TOMESTO_CATALOG_BATCH_SIZE = originalTomestoCatalogBatchSize;
+    }
+    if (originalTomestoCatalogRequestDelayMs == null) {
+      delete process.env.TOMESTO_CATALOG_REQUEST_DELAY_MS;
+    } else {
+      process.env.TOMESTO_CATALOG_REQUEST_DELAY_MS = originalTomestoCatalogRequestDelayMs;
+    }
+    if (originalTomestoCatalogConcurrency == null) {
+      delete process.env.TOMESTO_CATALOG_CONCURRENCY;
+    } else {
+      process.env.TOMESTO_CATALOG_CONCURRENCY = originalTomestoCatalogConcurrency;
     }
   });
 
@@ -153,6 +165,16 @@ describe('content source adapters', () => {
 
     const urls = fetchMock.mock.calls.map((call) => new URL(String(call[0])));
     expect(urls.every((url) => url.searchParams.get('location') === 'kzn')).toBe(true);
+  });
+
+  it('skips KudaGo HTTP calls for cities unsupported by the KudaGo locations API', async () => {
+    const adapter = new KudaGoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ results: [] }) as any);
+
+    const items = await adapter.fetchItems(fetchInput({ city: 'Барнаул', cityCode: 'Барнаул' }));
+
+    expect(items).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('maps expanded KudaGo event place coordinates and venue name', async () => {
@@ -266,22 +288,22 @@ describe('content source adapters', () => {
     expect(items[0]?.category).toBe('sport');
   });
 
-  it('keeps Ticketland offers for supported million-plus city regions', async () => {
+  it('keeps Ticketland offers for supported import city regions', async () => {
     process.env.ADVCAKE_API_PASS = 'fake-pass';
     const adapter = new AdvCakeTicketlandAdapter();
     jest.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(jsonResponse({ feeds: [{ format: 'yml', url: 'https://feeds.advcake.ru/yml-feed' }] }) as any)
       .mockResolvedValueOnce(textResponse(ticketlandYml({
-        region: 'Казань',
-        title: 'Казанский концерт',
+        region: 'Барнаул',
+        title: 'Барнаульский концерт',
       })) as any);
 
-    const items = await adapter.fetchItems(fetchInput({ city: 'Казань', cityCode: 'kzn' }));
+    const items = await adapter.fetchItems(fetchInput({ city: 'Барнаул', cityCode: 'Барнаул' }));
 
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({
-      city: 'Казань',
-      title: 'Казанский концерт',
+      city: 'Барнаул',
+      title: 'Барнаульский концерт',
     });
   });
 
@@ -562,23 +584,135 @@ describe('content source adapters', () => {
     );
   });
 
-  it('returns no Tomesto items outside Moscow and logs a warning', async () => {
+  it('loads Tomesto items for non-Moscow cities with source city slugs', async () => {
     process.env.TOMESTO_REQUEST_DELAY_MS = '0';
     const adapter = new TomestoAdapter();
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(textResponse('') as any);
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/spb/places') {
+        return textResponse('<a href="/spb/places/cafe-one">Кафе</a>');
+      }
+      if (url.pathname === '/spb/places/cafe-one') {
+        return textResponse(tomestoPlaceHtml({
+          citySlug: 'spb',
+          canonicalPath: '/spb/places/cafe-one',
+          address: 'Санкт-Петербург, Невский, 1',
+        }));
+      }
+      if (
+        url.pathname === '/spb/places/page/2' ||
+        url.pathname === '/spb/events' ||
+        url.pathname === '/spb/promos'
+      ) {
+        return textResponse('');
+      }
+      throw new Error(`unexpected_url_${url.pathname}`);
+    });
 
-    const items = await adapter.fetchItems(fetchInput({ city: 'Санкт-Петербург', cityCode: 'spb' }));
-
-    expect(items).toEqual([]);
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith('[tomesto] skipped unsupported city', expect.objectContaining({
+    const items = await adapter.fetchItems(fetchInput({
       city: 'Санкт-Петербург',
+      cityCode: 'spb',
+      timezone: 'Europe/Moscow',
     }));
+
+    expect(items).toEqual([
+      expect.objectContaining({
+        sourceItemId: 'place:spb:cafe-one',
+        city: 'Санкт-Петербург',
+        timezone: 'Europe/Moscow',
+        sourceUrl: 'https://tomesto.ru/spb/places/cafe-one',
+      }),
+    ]);
+    expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).toEqual([
+      '/spb/places',
+      '/spb/places/page/2',
+      '/spb/places/cafe-one',
+      '/spb/events',
+      '/spb/promos',
+    ]);
+  });
+
+  it('loads Tomesto items for cities with non-obvious source slugs', async () => {
+    process.env.TOMESTO_REQUEST_DELAY_MS = '0';
+    const adapter = new TomestoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/nnovgorod/places') {
+        return textResponse('<a href="/nnovgorod/places/place-one">Место</a>');
+      }
+      if (url.pathname === '/nnovgorod/places/place-one') {
+        return textResponse(tomestoPlaceHtml({
+          citySlug: 'nnovgorod',
+          canonicalPath: '/nnovgorod/places/place-one',
+          address: 'Нижний Новгород, Большая Покровская, 1',
+        }));
+      }
+      if (
+        url.pathname === '/nnovgorod/places/page/2' ||
+        url.pathname === '/nnovgorod/events' ||
+        url.pathname === '/nnovgorod/promos'
+      ) {
+        return textResponse('');
+      }
+      throw new Error(`unexpected_url_${url.pathname}`);
+    });
+
+    const items = await adapter.fetchItems(fetchInput({
+      city: 'Нижний Новгород',
+      cityCode: 'nnovgorod',
+      timezone: 'Europe/Moscow',
+    }));
+
+    expect(items[0]).toMatchObject({
+      sourceItemId: 'place:nnovgorod:place-one',
+      city: 'Нижний Новгород',
+      sourceUrl: 'https://tomesto.ru/nnovgorod/places/place-one',
+    });
+    expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).toContain('/nnovgorod/places');
+  });
+
+  it('loads Tomesto catalog sitemap from the selected city slug', async () => {
+    process.env.TOMESTO_REQUEST_DELAY_MS = '0';
+    process.env.TOMESTO_CATALOG_REQUEST_DELAY_MS = '0';
+    process.env.TOMESTO_CATALOG_CONCURRENCY = '1';
+    const adapter = new TomestoAdapter();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/nabchelny/sitemap.xml') {
+        return textResponse('<urlset><url><loc>https://tomesto.ru/nabchelny/places/place-one</loc></url></urlset>');
+      }
+      if (url.pathname === '/nabchelny/places/place-one') {
+        return textResponse(tomestoPlaceHtml({
+          citySlug: 'nabchelny',
+          canonicalPath: '/nabchelny/places/place-one',
+          address: 'Набережные Челны, Центральная, 1',
+        }));
+      }
+      throw new Error(`unexpected_url_${url.pathname}`);
+    });
+
+    const items = await adapter.fetchItems(fetchInput({
+      city: 'Набережные Челны',
+      cityCode: 'nabchelny',
+      timezone: 'Europe/Moscow',
+      importMode: 'tomesto_places_catalog',
+      catalogOffset: 0,
+      catalogLimit: 1,
+    }));
+
+    expect(items[0]).toMatchObject({
+      sourceItemId: 'place:nabchelny:place-one',
+      city: 'Набережные Челны',
+      sourceUrl: 'https://tomesto.ru/nabchelny/places/place-one',
+    });
+    expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).toEqual([
+      '/nabchelny/sitemap.xml',
+      '/nabchelny/places/place-one',
+    ]);
   });
 });
 
-function fetchInput(overrides: Partial<ReturnType<typeof fetchInputBase>> = {}) {
+function fetchInput(overrides: Partial<ReturnType<typeof fetchInputBase>> & Record<string, unknown> = {}) {
   return {
     ...fetchInputBase(),
     ...overrides,
@@ -647,18 +781,24 @@ function timepadEvent(id: number, startsAt: string) {
   };
 }
 
-function tomestoPlaceHtml() {
+function tomestoPlaceHtml(options: {
+  citySlug?: string;
+  canonicalPath?: string;
+  address?: string;
+} = {}) {
+  const citySlug = options.citySlug ?? 'moskva';
+  const canonicalPath = options.canonicalPath ?? `/${citySlug}/places/cafe-one?existing=1`;
   return `
     <html>
       <head>
-        <link rel="canonical" href="https://tomesto.ru/moskva/places/cafe-one?existing=1">
+        <link rel="canonical" href="https://tomesto.ru${canonicalPath}">
         <meta name="description" content="Короткое описание места">
       </head>
       <body>
         <h1>Кафе Центр</h1>
-        <a class="place-category" href="/moskva/places/restorany">Ресторан</a>
-        <a href="/moskva/places/nedorogie-restorany-v-tsentre">Подборка</a>
-        <div itemprop="address">Москва, Тверская, 1</div>
+        <a class="place-category" href="/${citySlug}/places/restorany">Ресторан</a>
+        <a href="/${citySlug}/places/nedorogie-restorany-v-tsentre">Подборка</a>
+        <div itemprop="address">${options.address ?? 'Москва, Тверская, 1'}</div>
         <div class="average-check">Средний чек 900 руб</div>
         <span data-metro="Театральная"></span>
         <ul class="features">

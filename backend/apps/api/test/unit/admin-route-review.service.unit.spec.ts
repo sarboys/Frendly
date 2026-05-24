@@ -286,7 +286,7 @@ describe('AdminRouteReviewService', () => {
       id: 'run-tomesto',
       sourceId: 'source-tomesto',
       source: { code: 'tomesto' },
-      city: 'Москва',
+      city: 'Барнаул',
       status: 'pending_manual',
       startedAt: new Date('2026-05-04T10:00:00.000Z'),
       finishedAt: null,
@@ -308,7 +308,7 @@ describe('AdminRouteReviewService', () => {
     );
 
     const result = await service.createImportRuns({
-      city: 'Москва',
+      city: 'Барнаул',
       from: '2026-05-04T00:00:00.000Z',
       to: '2026-06-03T00:00:00.000Z',
       sources: ['tomesto'],
@@ -322,12 +322,16 @@ describe('AdminRouteReviewService', () => {
         kind: 'affiliate_places_events_promos',
         baseUrl: 'https://tomesto.ru',
         status: 'active',
+        config: expect.not.objectContaining({ moscowOnly: true }),
+      }),
+      update: expect.objectContaining({
+        config: expect.not.objectContaining({ moscowOnly: true }),
       }),
     }));
     expect(runCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         sourceId: 'source-tomesto',
-        city: 'Москва',
+        city: 'Барнаул',
         status: 'pending_manual',
       }),
     }));

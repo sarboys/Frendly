@@ -40,16 +40,14 @@ const SOURCE_INFO: Record<ExternalSourceCode, ExternalSourceInfo> = {
       feedFormat: process.env.ADVCAKE_FEED_FORMAT ?? 'yml',
     },
   },
-  // Tomesto stays opt-in because the catalog import needs a legal or partner rollout.
-  // It is Moscow-only and is intentionally absent from default CONTENT_IMPORT_SOURCES.
+  // Tomesto is part of scheduled import. Events and promos stay hidden unless enabled.
   tomesto: {
     code: 'tomesto',
     name: 'ТоМесто',
     kind: 'affiliate_places_events_promos',
     baseUrl: process.env.TOMESTO_BASE_URL ?? 'https://tomesto.ru',
     config: {
-      moscowOnly: true,
-      defaultEnabled: false,
+      defaultEnabled: true,
       importImages: process.env.TOMESTO_IMPORT_IMAGES === 'true',
       publicEventsEnabled: process.env.TOMESTO_PUBLIC_EVENTS_ENABLED === 'true',
       requestDelayMs: process.env.TOMESTO_REQUEST_DELAY_MS ?? '1000',

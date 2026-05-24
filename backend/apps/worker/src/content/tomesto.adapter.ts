@@ -16,8 +16,7 @@ const DEFAULT_CATALOG_CONCURRENCY = 5;
 const DEFAULT_CATALOG_REQUEST_DELAY_MS = 150;
 const MAX_CATALOG_CONCURRENCY = 10;
 const TOMESTO_PROVIDER = 'ТоМесто';
-const MOSCOW = 'Москва';
-const MOSCOW_TIMEZONE = 'Europe/Moscow';
+const MOSCOW_TOMESTO_CODE = 'moskva';
 const TOMESTO_PLACES_CATALOG_MODE = 'tomesto_places_catalog';
 const PLACE_BATCH_SIZE = 50;
 const EVENT_BATCH_SIZE = 50;
@@ -72,16 +71,16 @@ export class TomestoAdapter implements ExternalSourceAdapter {
   }
 
   async *fetchBatches(input: ExternalSourceFetchInput): AsyncIterable<ExternalRawItem[]> {
-    if (input.city !== MOSCOW) {
-      console.warn('[tomesto] skipped unsupported city', {
+    if (!text(input.cityCode)) {
+      console.warn('[tomesto] skipped city without source code', {
         city: input.city,
-        supportedCity: MOSCOW,
       });
       return;
     }
 
     console.info('[tomesto] import started', {
       city: input.city,
+      cityCode: input.cityCode,
       from: input.from.toISOString(),
       to: input.to.toISOString(),
       maxPages: this.maxPages,
@@ -134,7 +133,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
   private async discoverDetailUrls(kind: TomestoListKind, input: ExternalSourceFetchInput, maxPages = this.maxPages) {
     const urls = new Set<string>();
     for (let page = 1; page <= maxPages; page += 1) {
-      const url = this.listUrl(kind, page, input.from, input.to);
+      const url = this.listUrl(kind, page, input.from, input.to, input.cityCode);
       let html: string;
       try {
         html = await this.fetchHtml(url, input.signal);
@@ -150,7 +149,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
         throw caught;
       }
       const $ = cheerio.load(html);
-      const discovered = this.extractDetailUrls($, kind);
+      const discovered = this.extractDetailUrls($, kind, input.cityCode);
       let newCount = 0;
       for (const detailUrl of discovered) {
         if (!urls.has(detailUrl)) {
@@ -205,9 +204,9 @@ export class TomestoAdapter implements ExternalSourceAdapter {
 
   private async discoverCatalogPlaceUrls(input: ExternalSourceFetchInput) {
     try {
-      const sitemapUrl = new URL('/moskva/sitemap.xml', ensureTrailingSlash(this.baseUrl));
+      const sitemapUrl = new URL(`/${input.cityCode}/sitemap.xml`, ensureTrailingSlash(this.baseUrl));
       const xml = await this.fetchHtml(sitemapUrl, input.signal, 'application/xml,text/xml');
-      const urls = this.extractSitemapPlaceUrls(xml);
+      const urls = this.extractSitemapPlaceUrls(xml, input.cityCode);
       if (urls.length > 0) {
         console.info('[tomesto] sitemap place urls discovered', { count: urls.length });
         return urls;
@@ -221,12 +220,12 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     return this.discoverDetailUrls('places', input, this.catalogFallbackMaxPages);
   }
 
-  private extractSitemapPlaceUrls(xml: string) {
+  private extractSitemapPlaceUrls(xml: string, cityCode: string) {
     const $ = cheerio.load(xml, { xmlMode: true });
     const urls = new Set<string>();
     $('loc').each((_, element) => {
       const url = this.safeTomestoUrl($(element).text());
-      if (!url || !isSitemapPlacePath(url)) {
+      if (!url || !isSitemapPlacePath(url, cityCode)) {
         return;
       }
       urls.add(stripHash(url).toString());
@@ -284,7 +283,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       }
       throw caught;
     }
-    const item = this.parsePlace(html, url, input.city);
+    const item = this.parsePlace(html, url, input);
     if (!item) {
       return null;
     }
@@ -309,7 +308,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     let batch: ExternalRawItem[] = [];
     for (const url of urls) {
       const html = await this.fetchHtml(new URL(url), input.signal);
-      const item = this.parsePlace(html, url, input.city);
+      const item = this.parsePlace(html, url, input);
       if (item) {
         if (catalog) {
           item.raw = mergeRaw(item.raw, {
@@ -373,8 +372,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     }
   }
 
-  private listUrl(kind: TomestoListKind, page: number, from: Date, to: Date) {
-    const cityCode = 'moskva';
+  private listUrl(kind: TomestoListKind, page: number, from: Date, to: Date, cityCode: string) {
     const path = page === 1
       ? `/${cityCode}/${kind}`
       : `/${cityCode}/${kind}/page/${page}`;
@@ -408,12 +406,12 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     return response.text();
   }
 
-  private extractDetailUrls($: CheerioRoot, kind: TomestoListKind) {
+  private extractDetailUrls($: CheerioRoot, kind: TomestoListKind, cityCode: string) {
     const urls = new Set<string>();
     $('a[href]').each((_, element) => {
       const href = $(element).attr('href');
       const url = this.safeTomestoUrl(href);
-      if (!url || !isDetailPath(url, kind)) {
+      if (!url || !isDetailPath(url, kind, cityCode)) {
         return;
       }
       urls.add(stripHash(url).toString());
@@ -449,7 +447,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     return url;
   }
 
-  private parsePlace(html: string, detailUrl: string, city: string): ExternalRawItem | null {
+  private parsePlace(html: string, detailUrl: string, input: ExternalSourceFetchInput): ExternalRawItem | null {
     const $ = cheerio.load(html);
     const sourceUrl = canonicalUrl($, detailUrl);
     const slug = slugFromUrl(sourceUrl);
@@ -516,11 +514,11 @@ export class TomestoAdapter implements ExternalSourceAdapter {
 
     return {
       sourceCode: this.code,
-      sourceItemId: `place:${slug}`,
+      sourceItemId: tomestoSourceItemId('place', input.cityCode, slug),
       sourceUrl,
       contentKind: 'place',
-      city,
-      timezone: MOSCOW_TIMEZONE,
+      city: input.city,
+      timezone: input.timezone,
       title,
       description: meta($, 'description'),
       category,
@@ -616,9 +614,11 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     if (!dateWindow.startsAt) {
       console.warn('[tomesto] timed item date unknown', { kind, slug, title });
     }
-    const sourceItemId = kind === 'promos'
-      ? `promo:${categorySlug}:${slug}`
-      : `event:${categorySlug}:${slug}`;
+    const sourceItemId = tomestoSourceItemId(
+      kind === 'promos' ? 'promo' : 'event',
+      input.cityCode,
+      `${categorySlug}:${slug}`,
+    );
     const tags = kind === 'promos'
       ? dedupe(['promo', originalCategory ? normalizeToken(originalCategory) : null].filter(isString))
       : dedupe([normalizedCategory, originalCategory ? normalizeToken(originalCategory) : null].filter(isString));
@@ -635,8 +635,8 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       sourceItemId,
       sourceUrl,
       contentKind: 'event',
-      city: MOSCOW,
-      timezone: MOSCOW_TIMEZONE,
+      city: input.city,
+      timezone: input.timezone,
       title,
       description,
       category: normalizedCategory,
@@ -682,9 +682,9 @@ export class TomestoAdapter implements ExternalSourceAdapter {
   }
 }
 
-function isDetailPath(url: URL, kind: TomestoListKind) {
+function isDetailPath(url: URL, kind: TomestoListKind, cityCode: string) {
   const path = url.pathname.replace(/\/+$/, '');
-  if (!path.startsWith('/moskva/')) {
+  if (!path.startsWith(`/${cityCode}/`)) {
     return false;
   }
   if (path.includes('/page/')) {
@@ -695,6 +695,10 @@ function isDetailPath(url: URL, kind: TomestoListKind) {
     return false;
   }
   return parts[1] === kind;
+}
+
+function tomestoSourceItemId(kind: 'place' | 'event' | 'promo', cityCode: string, slug: string) {
+  return cityCode === MOSCOW_TOMESTO_CODE ? `${kind}:${slug}` : `${kind}:${cityCode}:${slug}`;
 }
 
 function stripHash(url: URL) {
@@ -1408,10 +1412,10 @@ function countTaxonomyTags(tags: string[], counts: ReturnType<typeof emptyTaxono
   }
 }
 
-function isSitemapPlacePath(url: URL) {
+function isSitemapPlacePath(url: URL, cityCode: string) {
   const path = url.pathname.replace(/\/+$/, '');
   const parts = path.split('/').filter(Boolean);
-  if (parts.length !== 3 || parts[0] !== 'moskva' || parts[1] !== 'places') {
+  if (parts.length !== 3 || parts[0] !== cityCode || parts[1] !== 'places') {
     return false;
   }
   const slug = parts[2];

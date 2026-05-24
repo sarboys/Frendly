@@ -93,7 +93,9 @@ export class InternalTelegramController {
       body.kind === 'support_message' ||
       body.kind === 'support_reply'
     ) {
-      return this.supportService.handleTelegramDispatch(body);
+      return this.supportService.handleTelegramDispatch(body).then((actions) => ({
+        actions,
+      }));
     }
 
     return this.telegramAuthService.dispatch(body, meta);

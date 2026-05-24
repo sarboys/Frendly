@@ -13,6 +13,7 @@ import type {
   AdminRouteReviewSourceDto,
   AdminRouteReviewSourceListDto,
 } from '@big-break/contracts';
+import { timezoneForContentCity } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { AdminEveningRouteService } from './admin-evening-route.service';
 import { PrismaService } from './prisma.service';
@@ -24,25 +25,6 @@ const DEFAULT_TOMESTO_CATALOG_BATCH_SIZE = 250;
 const PROMPT_VERSION = 'aggregation-route-review-v1';
 const DEFAULT_AUDIENCE = 'friends';
 const DEFAULT_FORMAT = 'evening_route';
-const CITY_TIMEZONES: Record<string, string> = {
-  'Москва': 'Europe/Moscow',
-  'Санкт-Петербург': 'Europe/Moscow',
-  'Новосибирск': 'Asia/Novosibirsk',
-  'Екатеринбург': 'Asia/Yekaterinburg',
-  'Казань': 'Europe/Moscow',
-  'Нижний Новгород': 'Europe/Moscow',
-  'Красноярск': 'Asia/Krasnoyarsk',
-  'Челябинск': 'Asia/Yekaterinburg',
-  'Самара': 'Europe/Samara',
-  'Уфа': 'Asia/Yekaterinburg',
-  'Ростов-на-Дону': 'Europe/Moscow',
-  'Краснодар': 'Europe/Moscow',
-  'Омск': 'Asia/Omsk',
-  'Воронеж': 'Europe/Moscow',
-  'Пермь': 'Asia/Yekaterinburg',
-  'Волгоград': 'Europe/Volgograd',
-};
-
 const SOURCE_INFO: Record<SourceCode, { name: string; kind: string; baseUrl: string }> = {
   kudago: {
     name: 'KudaGo',
@@ -745,7 +727,7 @@ export class AdminRouteReviewService {
 }
 
 function timezoneForCity(city: string) {
-  return CITY_TIMEZONES[city] ?? 'Europe/Moscow';
+  return timezoneForContentCity(city);
 }
 
 function sourceConfig(code: SourceCode) {
@@ -758,8 +740,7 @@ function sourceConfig(code: SourceCode) {
   }
   if (code === 'tomesto') {
     return {
-      moscowOnly: true,
-      defaultEnabled: false,
+      defaultEnabled: true,
       importImages: process.env.TOMESTO_IMPORT_IMAGES === 'true',
       publicEventsEnabled: process.env.TOMESTO_PUBLIC_EVENTS_ENABLED === 'true',
       requestDelayMs: process.env.TOMESTO_REQUEST_DELAY_MS ?? '1000',

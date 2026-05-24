@@ -3,6 +3,7 @@ export * from './chat-unread-backfill';
 export * from './chat-utils';
 export * from './chat-unread-verifier';
 export * from './concurrent-indexes';
+export * from './content-city-catalog';
 export * from './client';
 export * from './config';
 export * from './cursor';

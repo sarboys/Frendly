@@ -51,16 +51,18 @@ Import duplicate lookup is preloaded per city, day, content kind and source. The
 Scheduled import default sources:
 
 ```text
-kudago,timepad,advcake_ticketland
+kudago,timepad,advcake_ticketland,tomesto
 ```
 
 Overpass code remains available for explicit manual import, but it is not part of default scheduled import.
+Default scheduled cities are the 30-city product list in `@big-break/database` `content-city-catalog`. KudaGo runs only for the five cities supported by its locations API: Москва, Санкт-Петербург, Екатеринбург, Казань, Нижний Новгород.
 
 Source roles:
 
 - `advcake_ticketland`: paid affiliate ticket events from Ticketland and MTS Live.
 - `kudago`: free events and places.
 - `timepad`: free events.
+- `tomesto`: affiliate places, events and promos. Places can feed route candidates. Events and promos stay hidden unless `TOMESTO_PUBLIC_EVENTS_ENABLED=true`.
 - `overpass`: explicit places import only when requested.
 
 ## AdvCake Ticketland and MTS Live
@@ -463,8 +465,8 @@ Production rollout order:
 1. Deploy migrations and code.
 2. Add production secret `ADVCAKE_API_PASS` outside git.
 3. Check `ADVCAKE_TICKETLAND_OFFER_ID=663`.
-4. Keep default sources `kudago,timepad,advcake_ticketland`.
-5. Run manual import for Moscow and Saint Petersburg.
+4. Keep default sources `kudago,timepad,advcake_ticketland,tomesto`.
+5. Run manual import smoke for Moscow, Saint Petersburg and one non-obvious Tomesto slug city such as Нижний Новгород.
 6. Check admin import runs and content table.
 7. Check public `/affiche/events`.
 8. Check mobile paid detail and external buy button.
@@ -504,8 +506,8 @@ Admin:
 
 Mobile:
 
-- `mobile/lib/shared/models/affiche_event.dart`
-- `mobile/lib/shared/data/backend_repository.dart`
-- `mobile/lib/shared/data/app_providers.dart`
-- `mobile/lib/features/affiche/`
-- `mobile/lib/features/tonight/presentation/tonight_screen.dart`
+- `mobile2/lib/shared/models/affiche_event.dart`
+- `mobile2/lib/shared/data/backend_repository.dart`
+- `mobile2/lib/shared/data/app_providers.dart`
+- `mobile2/lib/features/affiche/`
+- `mobile2/lib/features/tonight/presentation/tonight_screen.dart`
