@@ -342,6 +342,61 @@ describe('AdminRouteReviewService', () => {
     }));
   });
 
+  it('creates pending manual import runs for multiple cities', async () => {
+    const sourceUpsert = jest.fn((input) => Promise.resolve({ id: `source-${input.where.code}` }));
+    const runCreate = jest.fn((input) => Promise.resolve({
+      id: `run-${input.data.city}-${input.data.sourceId}`,
+      sourceId: input.data.sourceId,
+      source: { code: input.data.sourceId.replace('source-', '') },
+      city: input.data.city,
+      status: 'pending_manual',
+      startedAt: new Date('2026-05-04T10:00:00.000Z'),
+      finishedAt: null,
+      fetchedCount: 0,
+      normalizedCount: 0,
+      skippedCount: 0,
+      publishedCount: 0,
+      paidCount: 0,
+      freeCount: 0,
+      unknownPriceCount: 0,
+      missingCoordsCount: 0,
+      errorCode: null,
+      errorMessage: null,
+    }));
+    jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          externalContentSource: { upsert: sourceUpsert },
+          externalImportRun: { create: runCreate },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.createImportRuns({
+      cities: ['Москва', 'Санкт-Петербург'],
+      from: '2026-05-04T00:00:00.000Z',
+      to: '2026-06-03T00:00:00.000Z',
+      sources: ['kudago', 'tomesto'],
+    } as any);
+
+    expect(runCreate).toHaveBeenCalledTimes(4);
+    expect(runCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceId: 'source-kudago',
+        city: 'Москва',
+      }),
+    }));
+    expect(runCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceId: 'source-tomesto',
+        city: 'Санкт-Петербург',
+      }),
+    }));
+    expect(result.items).toHaveLength(4);
+  });
+
   it('creates a Tomesto catalog import run with catalog metadata', async () => {
     const sourceUpsert = jest.fn().mockResolvedValue({ id: 'source-tomesto' });
     const runCreate = jest.fn().mockResolvedValue({

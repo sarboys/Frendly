@@ -609,7 +609,8 @@ export interface AdminExternalImportRunListDto {
 }
 
 export interface AdminRouteReviewImportRunInput {
-  city: string;
+  city?: string;
+  cities?: string[];
   sources: string[];
   from: string;
   to: string;

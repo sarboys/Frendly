@@ -73,6 +73,10 @@ Search:
 - Query params include `q`, `date`, `city`, `lifestyle`, `price`, `priceMode`, `gender`, `access`, plus per-block limits: `meetupsLimit`, `eveningsLimit`, `routesLimit`, `afficheLimit`.
 - `date` is `yyyy-mm-dd` or `any`. Events, after-dark events and affiche apply it as a one-day UTC range.
 
+Admin route review:
+
+- `POST /admin/evening/route-review/import-runs` creates pending manual content imports for the worker. Body accepts one `city` or `cities: string[]`, `sources`, `from`, `to` and optional `importMode`. When `cities` is sent, backend creates one `ExternalImportRun` per city and source. The worker picks them up through the pending manual import scan.
+
 Affiche:
 
 - `GET /affiche/events`

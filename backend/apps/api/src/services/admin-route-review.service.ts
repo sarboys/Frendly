@@ -242,7 +242,7 @@ export class AdminRouteReviewService {
   }
 
   async createImportRuns(input: AdminRouteReviewImportRunInput): Promise<AdminExternalImportRunListDto> {
-    const city = this.requiredText(input.city, 'content_import_city_required');
+    const cities = this.parseImportCities(input);
     const from = this.requiredDate(input.from, 'content_import_from_invalid');
     const to = this.requiredDate(input.to, 'content_import_to_invalid');
     if (to <= from) {
@@ -251,32 +251,34 @@ export class AdminRouteReviewService {
     const sourceCodes = this.parseSources(input.sources);
     const importMode = this.parseImportMode((input as any).importMode, sourceCodes);
     const items = [];
-    for (const code of sourceCodes) {
-      const source = await this.upsertSource(code);
-      const run = await this.prismaService.client.externalImportRun.create({
-        data: {
-          sourceId: source.id,
-          city,
-          status: 'pending_manual',
-          metadata: {
-            from: from.toISOString(),
-            to: to.toISOString(),
-            requestedBy: 'admin',
-            ...(importMode ? {
-              importMode,
-              catalogOffset: 0,
-              catalogLimit: DEFAULT_TOMESTO_CATALOG_BATCH_SIZE,
-            } : {}),
+    for (const city of cities) {
+      for (const code of sourceCodes) {
+        const source = await this.upsertSource(code);
+        const run = await this.prismaService.client.externalImportRun.create({
+          data: {
+            sourceId: source.id,
+            city,
+            status: 'pending_manual',
+            metadata: {
+              from: from.toISOString(),
+              to: to.toISOString(),
+              requestedBy: 'admin',
+              ...(importMode ? {
+                importMode,
+                catalogOffset: 0,
+                catalogLimit: DEFAULT_TOMESTO_CATALOG_BATCH_SIZE,
+              } : {}),
+            },
           },
-        },
-        include: { source: { select: { code: true } } },
-      });
-      console.info('[admin-route-review] import run created', {
-        runId: run.id,
-        sourceCode: code,
-        city,
-      });
-      items.push(this.mapImportRun(run));
+          include: { source: { select: { code: true } } },
+        });
+        console.info('[admin-route-review] import run created', {
+          runId: run.id,
+          sourceCode: code,
+          city,
+        });
+        items.push(this.mapImportRun(run));
+      }
     }
     return { items };
   }
@@ -709,7 +711,31 @@ export class AdminRouteReviewService {
     return text;
   }
 
-  private optionalText(value: unknown) {
+  private parseImportCities(input: AdminRouteReviewImportRunInput): string[] {
+    const rawCities: unknown[] | null = Array.isArray((input as any).cities)
+      ? (input as any).cities as unknown[]
+      : null;
+    const cities = rawCities
+      ?.map((item) => this.optionalText(item))
+      .filter((item): item is string => item != null);
+
+    if (cities && cities.length > 0) {
+      return Array.from(new Set(cities));
+    }
+
+    const city = this.optionalText(input.city);
+    if (city) {
+      return [city];
+    }
+
+    throw new ApiError(
+      400,
+      'content_import_city_required',
+      'Import city is required',
+    );
+  }
+
+  private optionalText(value: unknown): string | null {
     if (typeof value !== 'string') {
       return null;
     }
