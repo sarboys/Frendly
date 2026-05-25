@@ -292,6 +292,124 @@ describe('DropsService unit', () => {
     });
   });
 
+  it('marks the subscription task completed after an active subscription reward', async () => {
+    const { service, prismaClient, rewardService } = makeService();
+    prismaClient.user.findUnique.mockResolvedValue({
+      verified: true,
+      status: 'active',
+    });
+    rewardService.getProgress.mockResolvedValue({
+      monthKey: '2026-06',
+      earned: 5,
+      reserved: 5,
+      availableTickets: 5,
+      max: 30,
+      nextResetAt: '2026-07-01T00:00:00.000Z',
+    });
+    prismaClient.dropRewardEvent.findMany.mockResolvedValue([
+      {
+        source: 'subscription',
+        status: 'active',
+        ticketCount: 5,
+        idempotencyKey: 'subscription:user-1:ledger-1',
+      },
+    ]);
+
+    const result = await service.getTasks('user-1');
+    const bySource = new Map(result.tasks.map((task) => [task.source, task]));
+
+    expect(bySource.get('subscription')).toMatchObject({
+      status: 'completed',
+      progress: 5,
+    });
+  });
+
+  it('keeps the subscription task pending while the reward waits for confirmation', async () => {
+    const { service, prismaClient, rewardService } = makeService();
+    prismaClient.user.findUnique.mockResolvedValue({
+      verified: true,
+      status: 'active',
+    });
+    rewardService.getProgress.mockResolvedValue({
+      monthKey: '2026-06',
+      earned: 0,
+      reserved: 5,
+      availableTickets: 0,
+      max: 30,
+      nextResetAt: '2026-07-01T00:00:00.000Z',
+    });
+    prismaClient.dropRewardEvent.findMany.mockResolvedValue([
+      {
+        source: 'subscription',
+        status: 'pending',
+        ticketCount: 5,
+        idempotencyKey: 'subscription:user-1:payment-order-1',
+      },
+    ]);
+
+    const result = await service.getTasks('user-1');
+    const bySource = new Map(result.tasks.map((task) => [task.source, task]));
+
+    expect(bySource.get('subscription')).toMatchObject({
+      status: 'pending',
+      progress: 5,
+    });
+  });
+
+  it('completes the daily login task only for the current Moscow date', async () => {
+    const { service, prismaClient, rewardService } = makeService();
+    prismaClient.user.findUnique.mockResolvedValue({
+      verified: true,
+      status: 'active',
+    });
+    rewardService.localDateKey.mockReturnValue('2026-06-09');
+    rewardService.getProgress.mockResolvedValue({
+      monthKey: '2026-06',
+      earned: 1,
+      reserved: 1,
+      availableTickets: 1,
+      max: 30,
+      nextResetAt: '2026-07-01T00:00:00.000Z',
+    });
+    prismaClient.dropRewardEvent.findMany.mockResolvedValueOnce([
+      {
+        source: 'daily_login',
+        status: 'active',
+        ticketCount: 1,
+        idempotencyKey: 'daily_login:user-1:2026-06-08',
+      },
+    ]);
+
+    const previousDayResult = await service.getTasks('user-1');
+    const previousDayBySource = new Map(
+      previousDayResult.tasks.map((task) => [task.source, task]),
+    );
+
+    expect(previousDayBySource.get('daily_login')).toMatchObject({
+      status: 'available',
+      progress: 1,
+    });
+
+    prismaClient.dropRewardEvent.findMany.mockResolvedValueOnce([
+      {
+        source: 'daily_login',
+        status: 'active',
+        ticketCount: 1,
+        idempotencyKey: 'daily_login:user-1:2026-06-09',
+      },
+    ]);
+
+    const todayResult = await service.getTasks('user-1');
+    const todayBySource = new Map(
+      todayResult.tasks.map((task) => [task.source, task]),
+    );
+
+    expect(todayBySource.get('daily_login')).toMatchObject({
+      status: 'completed',
+      progress: 1,
+    });
+  });
+
   it('returns finished drop winners in detail response', async () => {
     const { service, prismaClient } = makeService();
     prismaClient.drop.findUnique.mockResolvedValue({

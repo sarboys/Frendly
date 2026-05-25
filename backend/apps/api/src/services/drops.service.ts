@@ -245,6 +245,9 @@ export class DropsService {
     const hasDailyReward = rewards.some(
       (reward) => reward.idempotencyKey === `daily_login:${userId}:${todayKey}`,
     );
+    const hasSubscriptionReward = rewards.some(
+      (reward) => reward.source === 'subscription' && reward.status === 'active',
+    );
 
       return {
         monthKey: month.monthKey,
@@ -269,6 +272,8 @@ export class DropsService {
         } else if (source === 'verification' && hasVerificationReward) {
           status = 'completed';
         } else if (source === 'daily_login' && hasDailyReward) {
+          status = 'completed';
+        } else if (source === 'subscription' && hasSubscriptionReward) {
           status = 'completed';
         } else if (limited) {
           status = 'limited';

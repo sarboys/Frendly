@@ -397,6 +397,41 @@ describe('AdminRouteReviewService', () => {
     expect(result.items).toHaveLength(4);
   });
 
+  it('lists import runs with cursor pagination', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      importRun('run-new', 'Москва', '2026-05-04T10:00:00.000Z'),
+      importRun('run-old', 'Москва', '2026-05-04T09:00:00.000Z'),
+    ]);
+    const service = new AdminRouteReviewService(
+      {
+        client: {
+          externalImportRun: { findMany },
+        },
+      } as any,
+      {} as any,
+    );
+
+    const result = await service.listImportRuns({
+      city: 'Москва',
+      cursor: '2026-05-04T11:00:00.000Z|run-cursor',
+      limit: 1,
+    });
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        city: 'Москва',
+        OR: [
+          { startedAt: { lt: new Date('2026-05-04T11:00:00.000Z') } },
+          { startedAt: new Date('2026-05-04T11:00:00.000Z'), id: { gt: 'run-cursor' } },
+        ],
+      }),
+      orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
+      take: 2,
+    }));
+    expect(result.items).toEqual([expect.objectContaining({ id: 'run-new' })]);
+    expect(result.nextCursor).toBe('2026-05-04T09:00:00.000Z|run-old');
+  });
+
   it('creates a Tomesto catalog import run with catalog metadata', async () => {
     const sourceUpsert = jest.fn().mockResolvedValue({ id: 'source-tomesto' });
     const runCreate = jest.fn().mockResolvedValue({
@@ -530,5 +565,27 @@ function reviewDraft(overrides: Record<string, unknown> = {}) {
       },
     ],
     ...overrides,
+  };
+}
+
+function importRun(id: string, city: string, startedAt: string) {
+  return {
+    id,
+    sourceId: 'source-kudago',
+    source: { code: 'kudago' },
+    city,
+    status: 'completed',
+    startedAt: new Date(startedAt),
+    finishedAt: null,
+    fetchedCount: 0,
+    normalizedCount: 0,
+    skippedCount: 0,
+    publishedCount: 0,
+    paidCount: 0,
+    freeCount: 0,
+    unknownPriceCount: 0,
+    missingCoordsCount: 0,
+    errorCode: null,
+    errorMessage: null,
   };
 }

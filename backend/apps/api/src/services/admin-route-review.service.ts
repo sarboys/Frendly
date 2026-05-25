@@ -229,16 +229,31 @@ export class AdminRouteReviewService {
   }
 
   async listImportRuns(query: Record<string, unknown> = {}): Promise<AdminExternalImportRunListDto> {
+    const limit = this.parseLimit(query.limit);
+    const cursor = this.parseCursor(this.optionalText(query.cursor));
     const runs = await this.prismaService.client.externalImportRun.findMany({
       where: {
         ...(this.optionalText(query.city) ? { city: this.optionalText(query.city)! } : {}),
         ...(this.optionalText(query.status) ? { status: this.optionalText(query.status)! } : {}),
+        ...(cursor
+          ? {
+              OR: [
+                { startedAt: { lt: cursor.createdAt } },
+                { startedAt: cursor.createdAt, id: { gt: cursor.id } },
+              ],
+            }
+          : {}),
       },
       include: { source: { select: { code: true } } },
       orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
-      take: this.parseLimit(query.limit),
+      take: limit + 1,
     });
-    return { items: runs.map((run: any) => this.mapImportRun(run)) };
+    const items = runs.slice(0, limit);
+    const next = runs.length > limit ? runs[limit] : null;
+    return {
+      items: items.map((run: any) => this.mapImportRun(run)),
+      nextCursor: next ? `${next.startedAt.toISOString()}|${next.id}` : null,
+    };
   }
 
   async createImportRuns(input: AdminRouteReviewImportRunInput): Promise<AdminExternalImportRunListDto> {
@@ -280,7 +295,7 @@ export class AdminRouteReviewService {
         items.push(this.mapImportRun(run));
       }
     }
-    return { items };
+    return { items, nextCursor: null };
   }
 
   async listContentItems(query: Record<string, unknown> = {}): Promise<AdminExternalContentItemListDto> {

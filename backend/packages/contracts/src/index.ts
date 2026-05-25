@@ -606,6 +606,7 @@ export interface AdminExternalImportRunDto {
 
 export interface AdminExternalImportRunListDto {
   items: AdminExternalImportRunDto[];
+  nextCursor: string | null;
 }
 
 export interface AdminRouteReviewImportRunInput {

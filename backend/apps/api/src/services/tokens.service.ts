@@ -80,11 +80,16 @@ export class TokensService {
 
   async creditPurchasedTokens(
     userId: string,
-    packId: string,
+    packInput: string | { packId: string; tokens: number; bonus?: number },
     paymentOrderId: string,
     client: PrismaLike = this.prismaService.client,
   ) {
-    const pack = findTokenPackProduct(packId);
+    const pack = typeof packInput === 'string'
+      ? findTokenPackProduct(packInput)
+      : {
+          id: packInput.packId,
+          tokens: packInput.tokens + (packInput.bonus ?? 0),
+        };
     const wallet = await this.ensureWallet(userId, client);
     await client.tokenLedgerEntry.create({
       data: {

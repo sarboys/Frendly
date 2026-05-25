@@ -20,7 +20,7 @@ export type SubscriptionProduct = {
 
 export type TokenPackProduct = {
   kind: 'tokens';
-  id: 'p1' | 'p2' | 'p3' | 'p4';
+  id: string;
   label: string;
   description: string;
   amountKopecks: number;

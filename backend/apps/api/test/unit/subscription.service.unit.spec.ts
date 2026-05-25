@@ -204,6 +204,21 @@ describe('SubscriptionService unit', () => {
           },
         ]),
       },
+      tokenCatalogPack: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'p-custom',
+            label: 'Свой',
+            description: 'Frendly Tokens: 500',
+            priceRub: 599,
+            tokens: 500,
+            bonus: 25,
+            best: true,
+            active: true,
+            sortOrder: 10,
+          },
+        ]),
+      },
       subscriptionCatalogSettings: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'frendly_plus',
@@ -240,8 +255,22 @@ describe('SubscriptionService unit', () => {
         communityCreationRequiresPlus: true,
         incomingLikesRequiresPlus: true,
       }),
+      tokenPacks: [
+        expect.objectContaining({
+          id: 'p-custom',
+          label: 'Свой',
+          priceRub: 599,
+          tokens: 500,
+          bonus: 25,
+          best: true,
+        }),
+      ],
     });
     expect(prismaClient.subscriptionCatalogPlan.findMany).toHaveBeenCalledWith({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    expect(prismaClient.tokenCatalogPack.findMany).toHaveBeenCalledWith({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
@@ -251,6 +280,14 @@ describe('SubscriptionService unit', () => {
     const prismaClient: any = {
       subscriptionCatalogPlan: {
         findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      tokenCatalogPack: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'p-custom' },
+          { id: 'p-old' },
+        ]),
         upsert: jest.fn(),
         updateMany: jest.fn(),
       },
@@ -308,6 +345,19 @@ describe('SubscriptionService unit', () => {
         communityCreationRequiresPlus: false,
         incomingLikesRequiresPlus: true,
       },
+      tokenPacks: [
+        {
+          id: 'p-custom',
+          label: 'Свой',
+          description: 'Frendly Tokens: 500',
+          priceRub: 599,
+          tokens: 500,
+          bonus: 25,
+          best: true,
+          active: true,
+          sortOrder: 10,
+        },
+      ],
     });
 
     expect(prismaClient.subscriptionCatalogSettings.upsert).toHaveBeenCalledWith({
@@ -323,6 +373,26 @@ describe('SubscriptionService unit', () => {
         freeSwipeHourlyLimit: 120,
         tokenPurchaseDiscountPercent: 20,
       }),
+    });
+    expect(prismaClient.tokenCatalogPack.upsert).toHaveBeenCalledWith({
+      where: { id: 'p-custom' },
+      update: expect.objectContaining({
+        label: 'Свой',
+        priceRub: 599,
+        tokens: 500,
+        bonus: 25,
+        best: true,
+      }),
+      create: expect.objectContaining({
+        id: 'p-custom',
+        label: 'Свой',
+        priceRub: 599,
+        tokens: 500,
+      }),
+    });
+    expect(prismaClient.tokenCatalogPack.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['p-old'] } },
+      data: { active: false },
     });
   });
 

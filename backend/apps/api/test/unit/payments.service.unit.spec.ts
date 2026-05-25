@@ -59,6 +59,30 @@ describe('PaymentsService unit', () => {
           },
         ],
         plusBenefits: [],
+        tokenPacks: [
+          {
+            id: 'p1',
+            label: 'Базовый',
+            description: 'Frendly Tokens: 100',
+            priceRub: 199,
+            tokens: 100,
+            bonus: 0,
+            best: false,
+            active: true,
+            sortOrder: 10,
+          },
+          {
+            id: 'p2',
+            label: 'Популярный',
+            description: 'Frendly Tokens: 350',
+            priceRub: 499,
+            tokens: 350,
+            bonus: 0,
+            best: true,
+            active: true,
+            sortOrder: 20,
+          },
+        ],
       }),
       activatePaidSubscription: jest.fn(),
       ...overrides.subscription,
@@ -138,6 +162,14 @@ describe('PaymentsService unit', () => {
           productKind: 'tokens',
           productId: 'p2',
           amountKopecks: 49900,
+          productSnapshot: expect.objectContaining({
+            id: 'p2',
+            label: 'Популярный',
+            priceRub: 499,
+            amountKopecks: 49900,
+            tokens: 350,
+            bonus: 0,
+          }),
           provider: 'tbank',
           status: 'pending',
         }),
@@ -151,6 +183,43 @@ describe('PaymentsService unit', () => {
         SuccessURL: expect.stringContaining('frendly://payment/success'),
       }),
     );
+  });
+
+  it('uses active database token packs in payment catalog', async () => {
+    const { service } = makeService({
+      subscription: {
+        getCatalog: jest.fn().mockResolvedValue({
+          plans: [],
+          plusBenefits: [],
+          tokenPacks: [
+            {
+              id: 'p-custom',
+              label: 'Свой',
+              description: 'Frendly Tokens: 500',
+              priceRub: 599,
+              tokens: 500,
+              bonus: 25,
+              best: true,
+              active: true,
+              sortOrder: 10,
+            },
+          ],
+        }),
+      },
+    });
+
+    await expect(service.getCatalog('user-free')).resolves.toMatchObject({
+      tokenPacks: [
+        expect.objectContaining({
+          id: 'p-custom',
+          label: 'Свой',
+          priceRub: 599,
+          tokens: 500,
+          bonus: 25,
+          best: true,
+        }),
+      ],
+    });
   });
 
   it('returns editable subscription catalog in payments catalog', async () => {
@@ -270,6 +339,13 @@ describe('PaymentsService unit', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           amountKopecks: 16900,
+          productSnapshot: expect.objectContaining({
+            id: 'p1',
+            originalPriceRub: 199,
+            discountPercent: 15,
+            amountKopecks: 16900,
+            tokens: 100,
+          }),
         }),
       }),
     );
@@ -321,6 +397,7 @@ describe('PaymentsService unit', () => {
       productId: 'year',
       amountKopecks: 478800,
       status: 'pending',
+      productSnapshot: null,
     });
     prismaClient.paymentOrder.update.mockResolvedValue({
       id: 'order-db-1',
@@ -366,5 +443,58 @@ describe('PaymentsService unit', () => {
       rawNotification: { Status: 'CONFIRMED' },
     });
     expect(subscription.activatePaidSubscription).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirms token payment using the stored product snapshot', async () => {
+    const { service, prismaClient, subscription, tokens } = makeService();
+    const snapshot = {
+      id: 'p-custom',
+      label: 'Свой',
+      priceRub: 599,
+      amountKopecks: 59900,
+      tokens: 500,
+      bonus: 25,
+    };
+    prismaClient.paymentOrder.findUnique.mockResolvedValue({
+      id: 'order-db-1',
+      orderId: 'fr_123',
+      userId: 'user-1',
+      productKind: 'tokens',
+      productId: 'p-custom',
+      amountKopecks: 59900,
+      status: 'pending',
+      productSnapshot: snapshot,
+    });
+    prismaClient.paymentOrder.update.mockResolvedValue({
+      id: 'order-db-1',
+      orderId: 'fr_123',
+      userId: 'user-1',
+      productKind: 'tokens',
+      productId: 'p-custom',
+      status: 'confirmed',
+      providerPaymentId: 'payment-1',
+      paymentUrl: 'https://pay.test/form',
+      productSnapshot: snapshot,
+    });
+
+    await service.confirmPaymentOrder({
+      orderId: 'fr_123',
+      paymentId: 'payment-1',
+      amountKopecks: 59900,
+      rawStatus: 'CONFIRMED',
+      rawNotification: { Status: 'CONFIRMED' },
+    });
+
+    expect(tokens.creditPurchasedTokens).toHaveBeenCalledWith(
+      'user-1',
+      {
+        packId: 'p-custom',
+        tokens: 500,
+        bonus: 25,
+      },
+      'order-db-1',
+      prismaClient,
+    );
+    expect(subscription.activatePaidSubscription).not.toHaveBeenCalled();
   });
 });

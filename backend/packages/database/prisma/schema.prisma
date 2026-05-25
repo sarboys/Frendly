@@ -1873,6 +1873,22 @@ model SubscriptionCatalogSettings {
   updatedAt                    DateTime @updatedAt
 }
 
+model TokenCatalogPack {
+  id          String   @id
+  label       String
+  description String   @default("")
+  priceRub    Int
+  tokens      Int
+  bonus       Int      @default(0)
+  best        Boolean  @default(false)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 model PaymentOrder {
   id                String              @id @default(cuid())
   userId            String
@@ -1891,6 +1907,7 @@ model PaymentOrder {
   expiresAt         DateTime?
   rawStatus         String?
   rawNotification   Json?
+  productSnapshot   Json?
   tokenLedgerEntry  TokenLedgerEntry?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt

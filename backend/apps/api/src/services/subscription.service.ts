@@ -5,7 +5,9 @@ import { DropsRewardService } from './drops-reward.service';
 import {
   defaultPlusBenefits,
   subscriptionProducts,
+  tokenPackProducts,
   type SubscriptionProduct,
+  type TokenPackProduct,
 } from './payment-catalog';
 import { PrismaService } from './prisma.service';
 import { TokensService } from './tokens.service';
@@ -34,6 +36,18 @@ type SubscriptionCatalogPlanInput = {
   durationDays: number;
   badge?: string | null;
   benefits: string[];
+  active: boolean;
+  sortOrder: number;
+};
+
+type TokenCatalogPackInput = {
+  id: string;
+  label: string;
+  description: string;
+  priceRub: number;
+  tokens: number;
+  bonus: number;
+  best: boolean;
   active: boolean;
   sortOrder: number;
 };
@@ -81,6 +95,7 @@ export class SubscriptionService {
       this.loadCatalogProducts(client, false),
       this.loadCatalogSettings(client),
     ]);
+    const tokenPacks = await this.loadTokenPacks(client, false);
 
     return {
       plans: plans.map((product) => ({
@@ -98,6 +113,7 @@ export class SubscriptionService {
       })),
       plusBenefits: settings.benefits,
       plusRules: settings.rules,
+      tokenPacks: tokenPacks.map((pack) => this.mapTokenPack(pack)),
     };
   }
 
@@ -106,6 +122,7 @@ export class SubscriptionService {
       this.loadCatalogProducts(client, true),
       this.loadCatalogSettings(client),
     ]);
+    const tokenPacks = await this.loadTokenPacks(client, true);
 
     return {
       plans: plans.map((product, index) => ({
@@ -125,19 +142,31 @@ export class SubscriptionService {
       })),
       plusBenefits: settings.benefits,
       plusRules: settings.rules,
+      tokenPacks: tokenPacks.map((pack, index) => ({
+        ...this.mapTokenPack(pack),
+        active: pack.active ?? true,
+        sortOrder: pack.sortOrder ?? (index + 1) * 10,
+      })),
     };
   }
 
   async updateAdminCatalog(body: Record<string, unknown>) {
     const plans = this.parseCatalogPlans(body.plans);
+    const tokenPacks = this.parseTokenPacks(body.tokenPacks);
     const plusBenefits = this.parseTextList(body.plusBenefits);
     const plusRules = this.parsePlusRules(body.plusRules);
 
     return this.prismaService.client.$transaction(async (client) => {
-      const existing = await client.subscriptionCatalogPlan.findMany({
-        select: { id: true },
-      });
+      const [existing, existingTokenPacks] = await Promise.all([
+        client.subscriptionCatalogPlan.findMany({
+          select: { id: true },
+        }),
+        (client as any).tokenCatalogPack.findMany({
+          select: { id: true },
+        }),
+      ]);
       const nextIds = new Set(plans.map((plan) => plan.id));
+      const nextTokenPackIds = new Set(tokenPacks.map((pack) => pack.id));
 
       for (const plan of plans) {
         await client.subscriptionCatalogPlan.upsert({
@@ -153,6 +182,24 @@ export class SubscriptionService {
       if (removedIds.length > 0) {
         await client.subscriptionCatalogPlan.updateMany({
           where: { id: { in: removedIds } },
+          data: { active: false },
+        });
+      }
+
+      for (const pack of tokenPacks) {
+        await (client as any).tokenCatalogPack.upsert({
+          where: { id: pack.id },
+          update: pack,
+          create: pack,
+        });
+      }
+
+      const removedTokenPackIds = existingTokenPacks
+        .map((pack: { id: string }) => pack.id)
+        .filter((id: string) => !nextTokenPackIds.has(id));
+      if (removedTokenPackIds.length > 0) {
+        await (client as any).tokenCatalogPack.updateMany({
+          where: { id: { in: removedTokenPackIds } },
           data: { active: false },
         });
       }
@@ -413,6 +460,58 @@ export class SubscriptionService {
     }));
   }
 
+  private async loadTokenPacks(
+    client: Prisma.TransactionClient,
+    includeInactive: boolean,
+  ): Promise<Array<TokenPackProduct & { active?: boolean; sortOrder?: number }>> {
+    const delegate = (client as any).tokenCatalogPack;
+    if (!delegate?.findMany) {
+      return this.defaultTokenPacks();
+    }
+
+    const rows = await delegate.findMany({
+      where: includeInactive ? undefined : { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    if (rows.length === 0) {
+      return this.defaultTokenPacks();
+    }
+
+    return rows.map((row: any) => ({
+      kind: 'tokens' as const,
+      id: row.id,
+      label: row.label,
+      description: row.description ?? '',
+      amountKopecks: Number(row.priceRub ?? 0) * 100,
+      priceRub: Number(row.priceRub ?? 0),
+      tokens: Number(row.tokens ?? 0),
+      bonus: Number(row.bonus ?? 0),
+      best: row.best === true,
+      active: row.active !== false,
+      sortOrder: Number(row.sortOrder ?? 0),
+    }));
+  }
+
+  private defaultTokenPacks() {
+    return tokenPackProducts.map((pack, index) => ({
+      ...pack,
+      active: true,
+      sortOrder: (index + 1) * 10,
+    }));
+  }
+
+  private mapTokenPack(pack: TokenPackProduct) {
+    return {
+      id: pack.id,
+      label: pack.label,
+      description: pack.description,
+      priceRub: pack.priceRub,
+      tokens: pack.tokens,
+      bonus: pack.bonus,
+      best: pack.best,
+    };
+  }
+
   private parseCatalogPlans(value: unknown): SubscriptionCatalogPlanInput[] {
     if (!Array.isArray(value)) {
       throw new ApiError(400, 'invalid_subscription_catalog', 'Subscription plans are invalid');
@@ -452,6 +551,43 @@ export class SubscriptionService {
     }
 
     return plans;
+  }
+
+  private parseTokenPacks(value: unknown): TokenCatalogPackInput[] {
+    if (!Array.isArray(value)) {
+      throw new ApiError(400, 'invalid_token_pack_catalog', 'Token packs are invalid');
+    }
+
+    const ids = new Set<string>();
+    const packs = value.map((item, index) => {
+      const raw = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+      const id = this.requiredText(raw.id, 'invalid_token_pack_id');
+      if (!/^[a-z0-9][a-z0-9_-]{1,40}$/.test(id)) {
+        throw new ApiError(400, 'invalid_token_pack_id', 'Token pack id is invalid');
+      }
+      if (ids.has(id)) {
+        throw new ApiError(400, 'duplicate_token_pack_id', 'Token pack id is duplicated');
+      }
+      ids.add(id);
+
+      return {
+        id,
+        label: this.requiredText(raw.label, 'invalid_token_pack_label'),
+        description: this.optionalText(raw.description),
+        priceRub: this.positiveInt(raw.priceRub, 'invalid_token_pack_price'),
+        tokens: this.positiveInt(raw.tokens, 'invalid_token_pack_tokens'),
+        bonus: this.nonNegativeInt(raw.bonus ?? 0, 'invalid_token_pack_bonus'),
+        best: raw.best === true,
+        active: raw.active !== false,
+        sortOrder: this.nonNegativeInt(raw.sortOrder ?? index * 10, 'invalid_token_pack_sort_order'),
+      };
+    });
+
+    if (!packs.some((pack) => pack.active)) {
+      throw new ApiError(400, 'token_pack_catalog_empty', 'At least one token pack must be active');
+    }
+
+    return packs;
   }
 
   private parseTextList(value: unknown) {

@@ -150,6 +150,48 @@ describe('TokensService unit', () => {
     });
   });
 
+  it('credits purchased tokens from a stored token pack snapshot', async () => {
+    const { service, prismaClient } = makeService();
+    prismaClient.tokenWallet.upsert.mockResolvedValue({
+      id: 'wallet-1',
+      userId: 'user-1',
+      balance: 0,
+    });
+    prismaClient.tokenWallet.update.mockResolvedValue({
+      id: 'wallet-1',
+      userId: 'user-1',
+      balance: 525,
+    });
+
+    await service.creditPurchasedTokens(
+      'user-1',
+      {
+        packId: 'p-custom',
+        tokens: 500,
+        bonus: 25,
+      } as any,
+      'payment-order-1',
+      prismaClient as any,
+    );
+
+    expect(prismaClient.tokenLedgerEntry.create).toHaveBeenCalledWith({
+      data: {
+        walletId: 'wallet-1',
+        paymentOrderId: 'payment-order-1',
+        amount: 525,
+        reason: 'purchase',
+      },
+    });
+    expect(prismaClient.tokenWallet.update).toHaveBeenCalledWith({
+      where: { id: 'wallet-1' },
+      data: {
+        balance: {
+          increment: 525,
+        },
+      },
+    });
+  });
+
   it('rejects promotion spend when wallet balance is not enough', async () => {
     const { service, prismaClient } = makeService();
     prismaClient.tokenWallet.upsert.mockResolvedValue({

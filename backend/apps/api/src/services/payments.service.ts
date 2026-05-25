@@ -16,6 +16,7 @@ import {
   type PaymentProductKindValue,
   findPaymentProduct,
   tokenPackProducts,
+  type TokenPackProduct,
   tokenPromotionOptions,
 } from './payment-catalog';
 
@@ -60,7 +61,7 @@ export class PaymentsService {
         benefits: product.benefits,
       })),
       plusBenefits: subscriptionCatalog.plusBenefits,
-      tokenPacks: tokenPackProducts.map((product) =>
+      tokenPacks: this.catalogTokenPacks(subscriptionCatalog).map((product) =>
         this.mapTokenPack(product, tokenDiscountPercent),
       ),
       promoOptions: tokenPromotionOptions,
@@ -85,10 +86,13 @@ export class PaymentsService {
         'Frendly+ is paid with tokens',
       );
     }
-    const product = await this.resolvePaymentProductForUser(
-      userId,
-      findPaymentProduct(productKind, productId),
-    );
+    const product =
+      productKind === 'tokens'
+        ? await this.resolveTokenPaymentProductForUser(userId, productId)
+        : await this.resolvePaymentProductForUser(
+            userId,
+            findPaymentProduct(productKind, productId),
+          );
     const buyer = await this.prismaService.client.user.findUnique({
       where: { id: userId },
       select: {
@@ -113,6 +117,9 @@ export class PaymentsService {
         orderId: this.createOrderId(),
         status: PaymentOrderStatus.pending,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        ...(product.kind === 'tokens'
+          ? { productSnapshot: this.tokenPackSnapshot(product) }
+          : {}),
       },
     });
 
@@ -269,9 +276,10 @@ export class PaymentsService {
           client,
         );
       } else if (order.productKind === PaymentProductKind.tokens) {
+        const snapshot = this.parseTokenPackSnapshot(order.productSnapshot);
         await this.tokensService.creditPurchasedTokens(
           order.userId,
-          order.productId,
+          snapshot ?? order.productId,
           order.id,
           client,
         );
@@ -366,6 +374,44 @@ export class PaymentsService {
     };
   }
 
+  private async resolveTokenPaymentProductForUser(
+    userId: string,
+    productId: string,
+  ): Promise<TokenPackProduct & {
+    originalPriceRub?: number | null;
+    discountPercent?: number;
+  }> {
+    const product = await this.findCatalogTokenPack(productId);
+    const discountPercent = await this.resolveTokenDiscountPercent(userId);
+    if (discountPercent <= 0) {
+      return {
+        ...product,
+        originalPriceRub: null,
+        discountPercent: 0,
+      };
+    }
+    const amountKopecks = this.discountAmountToWholeRubles(
+      product.amountKopecks,
+      discountPercent,
+    );
+    return {
+      ...product,
+      amountKopecks,
+      priceRub: Math.floor(amountKopecks / 100),
+      originalPriceRub: product.priceRub,
+      discountPercent,
+    };
+  }
+
+  private async findCatalogTokenPack(productId: string): Promise<TokenPackProduct> {
+    const catalog = await this.subscriptionService.getCatalog();
+    const product = this.catalogTokenPacks(catalog).find((item) => item.id === productId);
+    if (!product) {
+      throw new ApiError(400, 'invalid_token_pack', 'Token pack is invalid');
+    }
+    return product;
+  }
+
   private async resolveTokenDiscountPercent(userId?: string) {
     if (!userId) {
       return 0;
@@ -377,8 +423,30 @@ export class PaymentsService {
     return premium ? rules.tokenPurchaseDiscountPercent : 0;
   }
 
+  private catalogTokenPacks(catalog: { tokenPacks?: unknown }): TokenPackProduct[] {
+    const packs = Array.isArray(catalog.tokenPacks) ? catalog.tokenPacks : null;
+    if (!packs) {
+      return [...tokenPackProducts];
+    }
+    return packs.map((item) => {
+      const raw = item as Record<string, unknown>;
+      const priceRub = Number(raw.priceRub ?? 0);
+      return {
+        kind: 'tokens' as const,
+        id: String(raw.id ?? ''),
+        label: String(raw.label ?? ''),
+        description: String(raw.description ?? ''),
+        priceRub,
+        amountKopecks: priceRub * 100,
+        tokens: Number(raw.tokens ?? 0),
+        bonus: Number(raw.bonus ?? 0),
+        best: raw.best === true,
+      };
+    }).filter((item) => item.id && item.priceRub > 0 && item.tokens > 0);
+  }
+
   private mapTokenPack(
-    product: (typeof tokenPackProducts)[number],
+    product: TokenPackProduct,
     discountPercent: number,
   ) {
     const discountedAmount =
@@ -397,6 +465,39 @@ export class PaymentsService {
       discountPercent,
       best: product.best,
     };
+  }
+
+  private tokenPackSnapshot(
+    product: TokenPackProduct & {
+      originalPriceRub?: number | null;
+      discountPercent?: number;
+    },
+  ) {
+    return {
+      id: product.id,
+      label: product.label,
+      description: product.description,
+      priceRub: product.priceRub,
+      originalPriceRub: product.originalPriceRub ?? null,
+      discountPercent: product.discountPercent ?? 0,
+      amountKopecks: product.amountKopecks,
+      tokens: product.tokens,
+      bonus: product.bonus,
+    };
+  }
+
+  private parseTokenPackSnapshot(value: unknown) {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    const raw = value as Record<string, unknown>;
+    const packId = typeof raw.id === 'string' ? raw.id : '';
+    const tokens = Number(raw.tokens);
+    const bonus = Number(raw.bonus ?? 0);
+    if (!packId || !Number.isInteger(tokens) || tokens <= 0 || !Number.isInteger(bonus) || bonus < 0) {
+      return null;
+    }
+    return { packId, tokens, bonus };
   }
 
   private discountAmountToWholeRubles(amountKopecks: number, discountPercent: number) {
