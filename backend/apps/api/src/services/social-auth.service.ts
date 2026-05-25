@@ -63,6 +63,7 @@ export class SocialAuthService {
     try {
       return await this.prismaService.client.$transaction(async (tx) => {
         const normalizedEmail = this.normalizedTrustedEmail(identity);
+        const normalizedPhone = this.normalizedTrustedPhone(identity);
         const existingAccount = await tx.externalAuthAccount.findUnique({
           where: {
             provider_providerUserId: {
@@ -80,10 +81,16 @@ export class SocialAuthService {
                 existingAccount.userId,
                 identity,
                 normalizedEmail,
+                normalizedPhone,
               ),
               isNewUser: false,
             }
-          : await this.createOrLinkUser(tx, identity, normalizedEmail);
+          : await this.createOrLinkUser(
+              tx,
+              identity,
+              normalizedEmail,
+              normalizedPhone,
+            );
 
         const session = await this.authService.createSessionRecord(
           userResult.user.id,
@@ -130,6 +137,7 @@ export class SocialAuthService {
     userId: string,
     identity: VerifiedSocialIdentity,
     normalizedEmail?: string,
+    normalizedPhone?: string,
   ) {
     await tx.externalAuthAccount.update({
       where: {
@@ -148,6 +156,9 @@ export class SocialAuthService {
     if (normalizedEmail) {
       await this.attachEmailIfEmpty(tx, userId, normalizedEmail);
     }
+    if (normalizedPhone) {
+      await this.attachPhoneIfEmpty(tx, userId, normalizedPhone);
+    }
 
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -160,6 +171,7 @@ export class SocialAuthService {
     tx: Prisma.TransactionClient,
     identity: VerifiedSocialIdentity,
     normalizedEmail?: string,
+    normalizedPhone?: string,
   ) {
     const canLinkByEmail =
       normalizedEmail != null &&
@@ -168,18 +180,49 @@ export class SocialAuthService {
     const existingUser = canLinkByEmail
       ? await tx.user.findUnique({ where: { email: normalizedEmail } })
       : null;
+    const existingPhoneUser = normalizedPhone
+      ? await tx.user.findUnique({ where: { phoneNumber: normalizedPhone } })
+      : null;
 
-    if (existingUser) {
+    if (
+      existingUser &&
+      existingPhoneUser &&
+      existingUser.id !== existingPhoneUser.id
+    ) {
+      throw new ApiError(
+        409,
+        'external_auth_contact_conflict',
+        'External auth email and phone resolve to different users',
+      );
+    }
+
+    const linkedUser = existingUser ?? existingPhoneUser;
+    if (linkedUser) {
       await this.createExternalAuthAccount(
         tx,
-        existingUser.id,
+        linkedUser.id,
         identity,
         normalizedEmail,
       );
-      return { user: existingUser, isNewUser: false };
+      if (normalizedEmail) {
+        await this.attachEmailIfEmpty(tx, linkedUser.id, normalizedEmail);
+      }
+      if (normalizedPhone) {
+        await this.attachPhoneIfEmpty(tx, linkedUser.id, normalizedPhone);
+      }
+      const user = await tx.user.findUnique({ where: { id: linkedUser.id } });
+      if (!user) {
+        throw new ApiError(500, 'auth_user_not_found', 'User not found');
+      }
+      return { user, isNewUser: false };
     }
 
-    const user = await this.createUser(tx, identity, normalizedEmail);
+    const user = await this.createUser(
+      tx,
+      identity,
+      normalizedEmail,
+      normalizedPhone,
+    );
     await this.createExternalAuthAccount(tx, user.id, identity, normalizedEmail);
     return { user, isNewUser: true };
   }
@@ -188,6 +231,7 @@ export class SocialAuthService {
     tx: Prisma.TransactionClient,
     identity: VerifiedSocialIdentity,
     normalizedEmail?: string,
+    normalizedPhone?: string,
   ) {
     try {
       return await tx.user.create({
@@ -195,6 +239,7 @@ export class SocialAuthService {
           id: `user-${randomUUID()}`,
           displayName: this.displayName(identity),
           email: normalizedEmail,
+          phoneNumber: normalizedPhone,
           profile: {
             create: {
               avatarUrl: this.clean(identity.avatarUrl),
@@ -225,8 +270,8 @@ export class SocialAuthService {
       if (this.isUniqueConstraintError(error)) {
         throw new ApiError(
           409,
-          'external_auth_email_conflict',
-          'External auth email is already used',
+          'external_auth_contact_conflict',
+          'External auth contact is already used',
         );
       }
       throw error;
@@ -296,6 +341,33 @@ export class SocialAuthService {
     }
   }
 
+  private async attachPhoneIfEmpty(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    normalizedPhone: string,
+  ) {
+    const phoneOwner = await tx.user.findUnique({
+      where: { phoneNumber: normalizedPhone },
+      select: { id: true },
+    });
+    if (phoneOwner && phoneOwner.id !== userId) {
+      throw new ApiError(
+        409,
+        'external_auth_contact_conflict',
+        'External auth phone is already used',
+      );
+    }
+    await tx.user.updateMany({
+      where: {
+        id: userId,
+        phoneNumber: null,
+      },
+      data: {
+        phoneNumber: normalizedPhone,
+      },
+    });
+  }
+
   private normalizedTrustedEmail(identity: VerifiedSocialIdentity) {
     const email = this.clean(identity.email)?.toLowerCase();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -305,6 +377,16 @@ export class SocialAuthService {
       return undefined;
     }
     return email;
+  }
+
+  private normalizedTrustedPhone(identity: VerifiedSocialIdentity) {
+    if (identity.provider !== 'yandex') {
+      return undefined;
+    }
+    const normalized = this.authService.normalizePhoneNumber(
+      identity.phoneNumber ?? '',
+    );
+    return normalized || undefined;
   }
 
   private displayName(identity: VerifiedSocialIdentity) {

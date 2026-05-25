@@ -221,6 +221,46 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('excludes manually finished meetups from event feed', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+    } as any);
+
+    const where = baseEventWhere(eventFindMany.mock.calls[0][0].where);
+    expect(where.AND).toEqual(
+      expect.arrayContaining([
+        {
+          NOT: {
+            liveState: {
+              is: {
+                status: 'finished',
+              },
+            },
+          },
+        },
+      ]),
+    );
+  });
+
   it('keeps viewer-owned events without coordinates eligible in geo feed', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(
@@ -1750,6 +1790,9 @@ describe('EventsService unit', () => {
     expect(postgisSql).toContain('e."distanceKm"');
     expect(postgisSql).toContain('e."canceledAt" IS NULL');
     expect(postgisSql).toContain('e."isAfterDark" = false');
+    expect(postgisSql).toContain('NOT EXISTS');
+    expect(postgisSql).toContain('"EventLiveState" els');
+    expect(postgisSql).toContain('els."status"::text =');
     expect(postgisSql).toContain('e."startsAt" >=');
     expect(postgisSql).toContain('e."startsAt" <');
     expect(postgisSql).toContain('e."visibilityMode"::text =');

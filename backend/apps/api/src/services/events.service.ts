@@ -2801,6 +2801,15 @@ export class EventsService {
         isAfterDark: false,
       },
       {
+        NOT: {
+          liveState: {
+            is: {
+              status: 'finished',
+            },
+          },
+        },
+      },
+      {
         OR: [
           { visibilityMode: 'public' },
           { hostId: userId },
@@ -3352,6 +3361,7 @@ export class EventsService {
       )
     `;
     const startsAtFilter = this.postgisStartsAtFilter(params.filter, params.date, now);
+    const liveStateFilter = this.postgisUnfinishedLiveStateFilter();
     const routeFilter = this.postgisRouteFilter(params.filter);
     const searchFilter = this.postgisSearchFilter(params.q);
     const lifestyleFilter =
@@ -3431,9 +3441,10 @@ export class EventsService {
               AND tp."expiresAt" > ${now}
           ) AS promoted
         FROM "Event" e
-        WHERE e."canceledAt" IS NULL
+          WHERE e."canceledAt" IS NULL
           AND e."isAfterDark" = false
           ${visibilityFilter}
+          ${liveStateFilter}
           ${startsAtFilter}
           ${routeFilter}
           ${searchFilter}
@@ -3500,6 +3511,17 @@ export class EventsService {
 
   private recentEventStartBoundary(now: Date) {
     return new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  }
+
+  private postgisUnfinishedLiveStateFilter() {
+    return Prisma.sql`
+      AND NOT EXISTS (
+        SELECT 1
+        FROM "EventLiveState" els
+        WHERE els."eventId" = e."id"
+          AND els."status"::text = 'finished'
+      )
+    `;
   }
 
   private postgisRouteFilter(filter?: EventFilter) {

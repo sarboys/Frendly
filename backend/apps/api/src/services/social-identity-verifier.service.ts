@@ -9,6 +9,7 @@ export interface VerifiedSocialIdentity {
   providerUserId: string;
   email?: string;
   emailVerified?: boolean;
+  phoneNumber?: string;
   displayName?: string;
   avatarUrl?: string;
 }
@@ -19,6 +20,10 @@ interface YandexUserInfoResponse {
   login?: string;
   default_email?: string;
   emails?: string[];
+  default_phone?: {
+    id?: number;
+    number?: string;
+  };
   real_name?: string;
   display_name?: string;
   first_name?: string;
@@ -105,6 +110,7 @@ export class SocialIdentityVerifier {
       provider: 'yandex',
       providerUserId: info.id,
       email: this.pickYandexEmail(info),
+      phoneNumber: info.default_phone?.number,
       displayName: this.pickYandexDisplayName(info),
       avatarUrl: this.yandexAvatarUrl(info.default_avatar_id),
     };

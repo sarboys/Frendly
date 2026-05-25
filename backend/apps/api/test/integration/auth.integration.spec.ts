@@ -332,6 +332,92 @@ describe('auth flows', () => {
     expect(account.email).toBe(email);
   });
 
+  it('stores yandex phone number on a new user', async () => {
+    const providerUserId = `yandex-${randomUUID()}`;
+    const phoneNumber = nextPhoneNumber();
+    socialIdentityVerifier.verifyYandexOAuthToken.mockResolvedValue({
+      provider: 'yandex',
+      providerUserId,
+      email: `phone.yandex-${randomUUID()}@example.com`,
+      phoneNumber,
+      displayName: 'Yandex Phone User',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/yandex/verify')
+      .send({
+        oauthToken: 'yandex-oauth-token',
+      })
+      .expect(201);
+
+    expect(response.body.isNewUser).toBe(true);
+
+    const user = await prisma.user.findUnique({
+      where: { id: response.body.userId },
+    });
+
+    expect(user?.phoneNumber).toBe(phoneNumber);
+  });
+
+  it('logs into the yandex user by telegram phone after yandex stored phone', async () => {
+    const providerUserId = `yandex-${randomUUID()}`;
+    const phoneNumber = nextPhoneNumber();
+    socialIdentityVerifier.verifyYandexOAuthToken.mockResolvedValue({
+      provider: 'yandex',
+      providerUserId,
+      email: `telegram.link-${randomUUID()}@example.com`,
+      phoneNumber,
+      displayName: 'Yandex Telegram User',
+    });
+
+    const yandexResponse = await request(app.getHttpServer())
+      .post('/auth/yandex/verify')
+      .send({
+        oauthToken: 'yandex-oauth-token',
+      })
+      .expect(201);
+
+    const telegramSession = await createTelegramLoginSession({
+      telegramUserId: nextTelegramUserId(),
+      phoneNumber,
+    });
+
+    const telegramResponse = await request(app.getHttpServer())
+      .post('/auth/telegram/verify')
+      .send({
+        loginSessionId: telegramSession.loginSessionId,
+        code: telegramSession.code,
+      })
+      .expect(201);
+
+    expect(telegramResponse.body.userId).toBe(yandexResponse.body.userId);
+    expect(telegramResponse.body.isNewUser).toBe(false);
+  });
+
+  it('rejects yandex auth when trusted email and phone resolve different users', async () => {
+    const email = `conflict.yandex-${randomUUID()}@example.com`;
+    await createSocialAccessToken('google', email);
+    const phoneNumber = nextPhoneNumber();
+    await loginWithPhone(phoneNumber);
+
+    socialIdentityVerifier.verifyYandexOAuthToken.mockResolvedValue({
+      provider: 'yandex',
+      providerUserId: `yandex-${randomUUID()}`,
+      email,
+      phoneNumber,
+      displayName: 'Yandex Conflict User',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/yandex/verify')
+      .send({
+        oauthToken: 'yandex-oauth-token',
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe('external_auth_contact_conflict');
+  });
+
   it('returns access and refresh token for dev login when dev auth is enabled', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/dev/login')
