@@ -217,13 +217,19 @@ describe('ContentImportService', () => {
     const update = jest.fn().mockResolvedValue({});
     const geocodeOrThrow = jest.fn()
       .mockResolvedValueOnce({
-        address: 'Россия, Москва, Таганская площадь, 1',
+        address: 'Театр на Таганке, Москва, Россия',
         lat: 55.742,
         lng: 37.653,
-        provider: 'yandex',
-        query: 'Москва, Таганская площадь, 1',
-        precision: 'exact',
-        kind: 'house',
+        provider: 'nominatim',
+        query: 'Москва, Театр на Таганке',
+        precision: null,
+        kind: 'theatre',
+        osmType: 'way',
+        osmId: 5150,
+        category: 'amenity',
+        type: 'theatre',
+        importance: 0.51,
+        displayName: 'Театр на Таганке, Москва, Россия',
       })
       .mockResolvedValueOnce({
         address: 'Россия, Санкт-Петербург, проспект Медиков',
@@ -277,6 +283,14 @@ describe('ContentImportService', () => {
         raw: expect.objectContaining({
           enrichment: expect.objectContaining({
             role: 'ticketland_geocoder_backfill',
+            provider: 'nominatim',
+            query: 'Москва, Театр на Таганке',
+            osmType: 'way',
+            osmId: 5150,
+            category: 'amenity',
+            type: 'theatre',
+            importance: 0.51,
+            displayName: 'Театр на Таганке, Москва, Россия',
           }),
         }),
       }),
