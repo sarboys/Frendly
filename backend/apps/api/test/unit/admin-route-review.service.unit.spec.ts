@@ -493,6 +493,28 @@ describe('AdminRouteReviewService', () => {
     });
   });
 
+  it('rejects disabled Timepad and Overpass manual import sources', async () => {
+    const service = new AdminRouteReviewService({ client: {} } as any, {} as any);
+
+    await expect(service.createImportRuns({
+      city: 'Москва',
+      from: '2026-05-04T00:00:00.000Z',
+      to: '2026-06-03T00:00:00.000Z',
+      sources: ['timepad'],
+    })).rejects.toMatchObject({
+      code: 'content_import_source_invalid',
+    });
+
+    await expect(service.createImportRuns({
+      city: 'Москва',
+      from: '2026-05-04T00:00:00.000Z',
+      to: '2026-06-03T00:00:00.000Z',
+      sources: ['overpass'],
+    })).rejects.toMatchObject({
+      code: 'content_import_source_invalid',
+    });
+  });
+
   it('rejects Tomesto catalog mode mixed with other sources', async () => {
     const service = new AdminRouteReviewService({ client: {} } as any, {} as any);
 

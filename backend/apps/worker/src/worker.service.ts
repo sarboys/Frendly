@@ -42,13 +42,13 @@ const DEFAULT_EVENING_AUTO_ADVANCE_BATCH_SIZE = 25;
 const DEFAULT_PUSH_TOKEN_BATCH_SIZE = 20;
 const DEFAULT_CONTENT_IMPORT_INTERVAL_MS = 4 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_IMPORT_TIME_ZONE = 'Europe/Moscow';
+const DEFAULT_CONTENT_GEOCODER_DAILY_LIMIT = 1000;
 const DEFAULT_CONTENT_MANUAL_IMPORT_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_MANUAL_GENERATION_INTERVAL_MS = 30_000;
 const DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_IMAGE_BACKFILL_BATCH_SIZE = 50;
 const DEFAULT_MEDIA_VARIANT_BACKFILL_INTERVAL_MS = 10 * 60 * 1000;
 const DEFAULT_MEDIA_VARIANT_BACKFILL_BATCH_SIZE = 50;
-const DEFAULT_TOMESTO_WINDOW_DAYS = 30;
 const EVENT_STARTING_WINDOW_MS = 30 * 60 * 1000;
 const SUBSCRIPTION_EXPIRING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 const METRICS_SERVICE = 'worker';
@@ -76,6 +76,7 @@ export class WorkerService implements OnModuleDestroy {
   private contentManualImportTimer?: NodeJS.Timeout;
   private contentManualGenerationTimer?: NodeJS.Timeout;
   private contentRouteGenerationTimer?: NodeJS.Timeout;
+  private ticketlandGeocoderBackfillTimer?: NodeJS.Timeout;
   private mediaVariantBackfillTimer?: NodeJS.Timeout;
   private running = false;
   private systemNotificationRunning = false;
@@ -85,6 +86,7 @@ export class WorkerService implements OnModuleDestroy {
   private contentManualImportRunning = false;
   private contentManualGenerationRunning = false;
   private contentRouteGenerationRunning = false;
+  private ticketlandGeocoderBackfillRunning = false;
   private mediaVariantBackfillRunning = false;
   private shuttingDown = false;
   private readonly maxEventsPerRun = this.resolvePositiveInteger(
@@ -168,9 +170,27 @@ export class WorkerService implements OnModuleDestroy {
   );
   private readonly contentImportDailyAt = this.parseDailyImportTime(
     process.env.CONTENT_IMPORT_DAILY_AT,
+    'CONTENT_IMPORT_DAILY_AT',
+  );
+  private readonly contentImportWeeklyDay = this.parseWeeklyImportDay(
+    process.env.CONTENT_IMPORT_WEEKLY_DAY,
+  );
+  private readonly contentImportWeeklyAt = this.parseDailyImportTime(
+    process.env.CONTENT_IMPORT_WEEKLY_AT,
+    'CONTENT_IMPORT_WEEKLY_AT',
   );
   private readonly contentImportTimeZone = this.resolveContentImportTimeZone(
     process.env.CONTENT_IMPORT_TIME_ZONE,
+  );
+  private readonly contentGeocoderBackfillEnabled =
+    process.env.CONTENT_GEOCODER_BACKFILL_ENABLED === 'true';
+  private readonly contentGeocoderBackfillDailyAt = this.parseDailyImportTime(
+    process.env.CONTENT_GEOCODER_BACKFILL_DAILY_AT,
+    'CONTENT_GEOCODER_BACKFILL_DAILY_AT',
+  ) ?? { hour: 22, minute: 0 };
+  private readonly contentGeocoderDailyLimit = this.resolvePositiveInteger(
+    process.env.CONTENT_GEOCODER_DAILY_LIMIT,
+    DEFAULT_CONTENT_GEOCODER_DAILY_LIMIT,
   );
   private readonly contentManualImportIntervalMs = this.resolvePositiveInteger(
     process.env.CONTENT_MANUAL_IMPORT_INTERVAL_MS,
@@ -185,10 +205,6 @@ export class WorkerService implements OnModuleDestroy {
   private readonly contentRouteGenerationIntervalMs = this.resolvePositiveInteger(
     process.env.CONTENT_ROUTE_GENERATION_INTERVAL_MS,
     DEFAULT_CONTENT_ROUTE_GENERATION_INTERVAL_MS,
-  );
-  private readonly tomestoWindowDays = this.resolvePositiveInteger(
-    process.env.TOMESTO_WINDOW_DAYS,
-    DEFAULT_TOMESTO_WINDOW_DAYS,
   );
   private readonly redis: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly s3 = createS3Client();
@@ -251,6 +267,9 @@ export class WorkerService implements OnModuleDestroy {
     if (this.contentRoleEnabled && this.contentImportEnabled) {
       this.startContentImportSchedule();
     }
+    if (this.contentRoleEnabled && this.contentGeocoderBackfillEnabled) {
+      this.startTicketlandGeocoderBackfillSchedule();
+    }
     if (this.contentRoleEnabled && this.contentRouteGenerationEnabled) {
       this.contentRouteGenerationTimer = setInterval(() => {
         void this.runScheduledTask(
@@ -301,7 +320,8 @@ export class WorkerService implements OnModuleDestroy {
     if (
       this.contentRoleEnabled &&
       this.contentImportEnabled &&
-      !this.contentImportDailyAt
+      !this.contentImportDailyAt &&
+      !this.hasWeeklyContentImportSchedule()
     ) {
       void this.runScheduledTask(
         'content-import',
@@ -359,6 +379,7 @@ export class WorkerService implements OnModuleDestroy {
     this.contentManualImportTimer = undefined;
     this.contentManualGenerationTimer = undefined;
     this.contentRouteGenerationTimer = undefined;
+    this.ticketlandGeocoderBackfillTimer = undefined;
     this.mediaVariantBackfillTimer = undefined;
   }
 
@@ -372,11 +393,17 @@ export class WorkerService implements OnModuleDestroy {
       this.contentManualImportTimer,
       this.contentManualGenerationTimer,
       this.contentRouteGenerationTimer,
+      this.ticketlandGeocoderBackfillTimer,
       this.mediaVariantBackfillTimer,
     ];
   }
 
   private startContentImportSchedule() {
+    if (this.hasWeeklyContentImportSchedule()) {
+      this.scheduleNextWeeklyContentImport();
+      return;
+    }
+
     if (this.contentImportDailyAt) {
       this.scheduleNextDailyContentImport();
       return;
@@ -388,6 +415,33 @@ export class WorkerService implements OnModuleDestroy {
         () => this.runContentImportScan(),
       );
     }, this.contentImportIntervalMs);
+  }
+
+  private hasWeeklyContentImportSchedule() {
+    return this.contentImportWeeklyDay != null && this.contentImportWeeklyAt != null;
+  }
+
+  private scheduleNextWeeklyContentImport() {
+    if (
+      this.contentImportWeeklyDay == null ||
+      !this.contentImportWeeklyAt ||
+      this.shuttingDown
+    ) {
+      return;
+    }
+
+    this.contentImportTimer = setTimeout(() => {
+      void this.runWeeklyContentImportAndReschedule();
+    }, this.msUntilWeeklyImport(this.contentImportWeeklyDay, this.contentImportWeeklyAt));
+    this.contentImportTimer.unref?.();
+  }
+
+  private async runWeeklyContentImportAndReschedule() {
+    await this.runScheduledTask(
+      'content-import',
+      () => this.runContentImportScan(),
+    );
+    this.scheduleNextWeeklyContentImport();
   }
 
   private scheduleNextDailyContentImport() {
@@ -409,7 +463,30 @@ export class WorkerService implements OnModuleDestroy {
     this.scheduleNextDailyContentImport();
   }
 
-  private parseDailyImportTime(value?: string): DailyImportTime | null {
+  private startTicketlandGeocoderBackfillSchedule() {
+    this.scheduleNextTicketlandGeocoderBackfill();
+  }
+
+  private scheduleNextTicketlandGeocoderBackfill() {
+    if (this.shuttingDown) {
+      return;
+    }
+
+    this.ticketlandGeocoderBackfillTimer = setTimeout(() => {
+      void this.runTicketlandGeocoderBackfillAndReschedule();
+    }, this.msUntilDailyImport(this.contentGeocoderBackfillDailyAt));
+    this.ticketlandGeocoderBackfillTimer.unref?.();
+  }
+
+  private async runTicketlandGeocoderBackfillAndReschedule() {
+    await this.runScheduledTask(
+      'ticketland-geocoder-backfill',
+      () => this.runTicketlandGeocoderBackfillScan(),
+    );
+    this.scheduleNextTicketlandGeocoderBackfill();
+  }
+
+  private parseDailyImportTime(value?: string, envName = 'CONTENT_IMPORT_DAILY_AT'): DailyImportTime | null {
     const raw = value?.trim();
     if (!raw) {
       return null;
@@ -417,7 +494,7 @@ export class WorkerService implements OnModuleDestroy {
 
     const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(raw);
     if (!match) {
-      console.warn('[worker] CONTENT_IMPORT_DAILY_AT ignored, expected HH:mm');
+      console.warn(`[worker] ${envName} ignored, expected HH:mm`);
       return null;
     }
 
@@ -425,6 +502,19 @@ export class WorkerService implements OnModuleDestroy {
       hour: Number.parseInt(match[1]!, 10),
       minute: Number.parseInt(match[2]!, 10),
     };
+  }
+
+  private parseWeeklyImportDay(value?: string) {
+    const raw = value?.trim();
+    if (!raw) {
+      return null;
+    }
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 6) {
+      console.warn('[worker] CONTENT_IMPORT_WEEKLY_DAY ignored, expected 0-6');
+      return null;
+    }
+    return parsed;
   }
 
   private resolveContentImportTimeZone(value?: string) {
@@ -452,9 +542,23 @@ export class WorkerService implements OnModuleDestroy {
     return delay > 0 ? delay : delay + dayMs;
   }
 
+  private msUntilWeeklyImport(targetWeekday: number, target: DailyImportTime, now = new Date()) {
+    const local = this.localTimeParts(now);
+    const currentMs =
+      ((local.hour * 60 + local.minute) * 60 + local.second) * 1000 +
+      now.getMilliseconds();
+    const targetMs = ((target.hour * 60 + target.minute) * 60) * 1000;
+    let daysUntil = (targetWeekday - local.weekday + 7) % 7;
+    if (daysUntil === 0 && currentMs >= targetMs) {
+      daysUntil = 7;
+    }
+    return daysUntil * 24 * 60 * 60 * 1000 + targetMs - currentMs;
+  }
+
   private localTimeParts(date: Date) {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: this.contentImportTimeZone,
+      weekday: 'short',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -467,6 +571,26 @@ export class WorkerService implements OnModuleDestroy {
       hour: value('hour'),
       minute: value('minute'),
       second: value('second'),
+      weekday: weekdayNumber(parts.find((part) => part.type === 'weekday')?.value),
+    };
+  }
+
+  private localDateParts(date: Date) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: this.contentImportTimeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      weekday: 'short',
+    }).formatToParts(date);
+    const value = (type: string) =>
+      Number.parseInt(parts.find((part) => part.type === type)?.value ?? '0', 10);
+
+    return {
+      year: value('year'),
+      month: value('month'),
+      day: value('day'),
+      weekday: weekdayNumber(parts.find((part) => part.type === 'weekday')?.value),
     };
   }
 
@@ -1833,26 +1957,15 @@ export class WorkerService implements OnModuleDestroy {
     this.contentImportRunning = true;
 
     try {
-      const from = new Date();
-      const to = new Date(from.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const { from, to } = this.nextContentImportWeekRange();
       const sources = this.resolveContentSources();
-      const tomestoSources = sources.filter((source) => source === 'tomesto');
-      const defaultWindowSources = sources.filter((source) => source !== 'tomesto');
       for (const city of this.resolveContentCities()) {
-        if (defaultWindowSources.length > 0) {
+        if (sources.length > 0) {
           await this.contentImportService.runImport({
             city,
-            sources: defaultWindowSources,
+            sources,
             from,
             to,
-          });
-        }
-        if (tomestoSources.length > 0) {
-          await this.contentImportService.runImport({
-            city,
-            sources: tomestoSources,
-            from,
-            to: new Date(from.getTime() + this.tomestoWindowDays * 24 * 60 * 60 * 1000),
           });
         }
         if (this.contentImageBackfillEnabled) {
@@ -1865,6 +1978,51 @@ export class WorkerService implements OnModuleDestroy {
     } finally {
       this.contentImportRunning = false;
     }
+  }
+
+  private async runTicketlandGeocoderBackfillScan() {
+    if (
+      this.ticketlandGeocoderBackfillRunning ||
+      this.contentImportRunning ||
+      !this.contentImportService
+    ) {
+      return;
+    }
+
+    this.ticketlandGeocoderBackfillRunning = true;
+
+    try {
+      await this.contentImportService.backfillTicketlandCoordinates({
+        limit: this.contentGeocoderDailyLimit,
+      });
+    } finally {
+      this.ticketlandGeocoderBackfillRunning = false;
+    }
+  }
+
+  private nextContentImportWeekRange(now = new Date()) {
+    const local = this.localDateParts(now);
+    const daysUntilNextMonday = ((8 - local.weekday) % 7) || 7;
+    const startLocal = addCalendarDays(local, daysUntilNextMonday);
+    const endLocal = addCalendarDays(startLocal, 7);
+    return {
+      from: zonedDateTimeToUtc(
+        this.contentImportTimeZone,
+        startLocal.year,
+        startLocal.month,
+        startLocal.day,
+        0,
+        0,
+      ),
+      to: zonedDateTimeToUtc(
+        this.contentImportTimeZone,
+        endLocal.year,
+        endLocal.month,
+        endLocal.day,
+        0,
+        0,
+      ),
+    };
   }
 
   private async runPendingManualGenerationScan() {
@@ -1900,13 +2058,10 @@ export class WorkerService implements OnModuleDestroy {
   }
 
   private resolveContentSources(): ExternalSourceCode[] {
-    const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'timepad', 'advcake_ticketland', 'tomesto'];
+    const requested = csv(process.env.CONTENT_IMPORT_SOURCES) ?? ['kudago', 'advcake_ticketland'];
     const resolved = requested.filter((source): source is ExternalSourceCode =>
       source === 'kudago' ||
-      source === 'timepad' ||
-      source === 'overpass' ||
-      source === 'advcake_ticketland' ||
-      source === 'tomesto',
+      source === 'advcake_ticketland',
     );
     console.debug('[content-import] resolved source list', { requested, resolved });
     return resolved;
@@ -2136,6 +2291,79 @@ function csv(raw: string | undefined) {
   }
   const values = raw.split(',').map((item) => item.trim()).filter(Boolean);
   return values.length > 0 ? values : null;
+}
+
+function weekdayNumber(value: string | undefined) {
+  switch (value) {
+    case 'Sun':
+      return 0;
+    case 'Mon':
+      return 1;
+    case 'Tue':
+      return 2;
+    case 'Wed':
+      return 3;
+    case 'Thu':
+      return 4;
+    case 'Fri':
+      return 5;
+    case 'Sat':
+      return 6;
+    default:
+      return 0;
+  }
+}
+
+function addCalendarDays(
+  date: { year: number; month: number; day: number },
+  days: number,
+) {
+  const utc = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
+  return {
+    year: utc.getUTCFullYear(),
+    month: utc.getUTCMonth() + 1,
+    day: utc.getUTCDate(),
+    weekday: utc.getUTCDay(),
+  };
+}
+
+function zonedDateTimeToUtc(
+  timeZone: string,
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+) {
+  const guess = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const offset = timeZoneOffsetMs(guess, timeZone);
+  const first = new Date(guess.getTime() - offset);
+  const correctedOffset = timeZoneOffsetMs(first, timeZone);
+  return new Date(guess.getTime() - correctedOffset);
+}
+
+function timeZoneOffsetMs(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const value = (type: string) =>
+    Number.parseInt(parts.find((part) => part.type === type)?.value ?? '0', 10);
+  const localAsUtc = Date.UTC(
+    value('year'),
+    value('month') - 1,
+    value('day'),
+    value('hour'),
+    value('minute'),
+    value('second'),
+  );
+  return localAsUtc - date.getTime();
 }
 
 async function streamToBuffer(stream: Readable) {

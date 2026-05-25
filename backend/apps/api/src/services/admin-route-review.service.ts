@@ -18,7 +18,7 @@ import { ApiError } from '../common/api-error';
 import { AdminEveningRouteService } from './admin-evening-route.service';
 import { PrismaService } from './prisma.service';
 
-const VALID_SOURCES = ['kudago', 'timepad', 'overpass', 'advcake_ticketland', 'tomesto'] as const;
+const VALID_SOURCES = ['kudago', 'advcake_ticketland', 'tomesto'] as const;
 type SourceCode = (typeof VALID_SOURCES)[number];
 const TOMESTO_PLACES_CATALOG_MODE = 'tomesto_places_catalog';
 const DEFAULT_TOMESTO_CATALOG_BATCH_SIZE = 250;
@@ -30,16 +30,6 @@ const SOURCE_INFO: Record<SourceCode, { name: string; kind: string; baseUrl: str
     name: 'KudaGo',
     kind: 'events_places',
     baseUrl: process.env.KUDAGO_BASE_URL ?? 'https://kudago.com/public-api/v1.4',
-  },
-  timepad: {
-    name: 'Timepad',
-    kind: 'events',
-    baseUrl: process.env.TIMEPAD_BASE_URL ?? 'https://api.timepad.ru/v1',
-  },
-  overpass: {
-    name: 'OSM Overpass',
-    kind: 'places',
-    baseUrl: process.env.OVERPASS_BASE_URL ?? 'https://overpass-api.de/api/interpreter',
   },
   advcake_ticketland: {
     name: 'AdvCake Ticketland',
@@ -390,6 +380,7 @@ export class AdminRouteReviewService {
 
   async listSources(): Promise<AdminRouteReviewSourceListDto> {
     const sources = await this.prismaService.client.externalContentSource.findMany({
+      where: { code: { in: [...VALID_SOURCES] } },
       include: {
         importRuns: {
           orderBy: [{ startedAt: 'desc' as const }, { id: 'asc' as const }],

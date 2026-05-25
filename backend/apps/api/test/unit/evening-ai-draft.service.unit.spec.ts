@@ -487,6 +487,65 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('carries candidate images into AI draft route steps', async () => {
+    const imageVariants = {
+      card: {
+        url: 'https://cdn.test/brix__card.webp',
+        width: 720,
+        height: 540,
+      },
+    };
+    const { service, draftCreate } = createService({
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-bar',
+            title: 'Brix',
+            venueName: 'Brix',
+            imageUrl: 'https://cdn.test/brix.jpg',
+            imageVariants,
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-show',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            title: 'Стендап',
+            category: 'standup',
+            contentKind: 'event',
+            startsAt: new Date('2099-06-01T17:30:00.000Z'),
+            priceFrom: 1200,
+            lat: 55.765,
+            lng: 37.615,
+            imageUrl: 'https://cdn.test/show.jpg',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'Винный бар и стендап',
+      city: 'Москва',
+      stepCount: 2,
+    });
+
+    expect(result.route.steps[0]).toMatchObject({
+      title: 'Brix',
+      imageUrl: 'https://cdn.test/brix.jpg',
+      imageVariants,
+    });
+    expect(result.route.steps[1]).toMatchObject({
+      title: 'Стендап',
+      imageUrl: 'https://cdn.test/show.jpg',
+    });
+    const createPayload = draftCreate.mock.calls[0]?.[0];
+    expect(createPayload?.data.routeSnapshotJson.steps[0]).toMatchObject({
+      imageUrl: 'https://cdn.test/brix.jpg',
+      imageVariants,
+    });
+  });
+
   it('keeps Ticketland show candidates without coordinates in the AI draft pack', async () => {
     const { service, externalFindMany, draftCreate, openRouter } = createService({
       ticketlandWithoutCoords: true,

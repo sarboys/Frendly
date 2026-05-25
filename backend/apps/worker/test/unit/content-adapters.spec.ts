@@ -93,6 +93,12 @@ describe('content source adapters', () => {
     const eventExpand = urls
       .find((url) => url.pathname.endsWith('/events/'))
       ?.searchParams.get('expand');
+    const eventFields = urls
+      .find((url) => url.pathname.endsWith('/events/'))
+      ?.searchParams.get('fields');
+    const placeFields = urls
+      .find((url) => url.pathname.endsWith('/places/'))
+      ?.searchParams.get('fields');
 
     expect(eventCategories).toBe([
       'cinema',
@@ -114,6 +120,7 @@ describe('content source adapters', () => {
     expect(eventCategories).not.toContain('kids');
     expect(eventCategories).not.toContain('stock');
     expect(eventExpand).toBe('place');
+    expect(eventFields).toContain('images');
 
     expect(placeCategories).toBe([
       'amusement',
@@ -155,6 +162,7 @@ describe('content source adapters', () => {
     expect(placeCategories).not.toContain('car-washes');
     expect(placeCategories).not.toContain('metro');
     expect(placeCategories).not.toContain('animal-shelters');
+    expect(placeFields).toContain('images');
   });
 
   it('uses KudaGo location codes for supported million-plus cities', async () => {
@@ -203,6 +211,48 @@ describe('content source adapters', () => {
       lat: 55.6894,
       lng: 37.5629,
     });
+  });
+
+  it('maps KudaGo event and place images', async () => {
+    const adapter = new KudaGoAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({
+        results: [kudagoEvent(100, {
+          images: [
+            {
+              image: 'https://media.kudago.com/images/event/event.jpg',
+            },
+          ],
+        })],
+      }) as any)
+      .mockResolvedValueOnce(jsonResponse({
+        results: [{
+          id: 200,
+          title: 'Парк',
+          site_url: 'https://kudago.com/msk/place/park/',
+          address: 'ул. Парковая',
+          coords: { lat: 55.7, lon: 37.6 },
+          categories: ['park'],
+          images: [
+            {
+              image: 'https://media.kudago.com/images/place/place.jpg',
+            },
+          ],
+        }],
+      }) as any);
+
+    const items = await adapter.fetchItems(fetchInput());
+
+    expect(items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceItemId: 'event-100',
+        imageUrl: 'https://media.kudago.com/images/event/event.jpg',
+      }),
+      expect.objectContaining({
+        sourceItemId: 'place-200',
+        imageUrl: 'https://media.kudago.com/images/place/place.jpg',
+      }),
+    ]));
   });
 
   it('loads all Timepad pages until the selected period ends', async () => {

@@ -113,8 +113,12 @@ describe('worker outbox recovery', () => {
     delete process.env.WORKER_SCHEDULES_ENABLED;
     delete process.env.CONTENT_IMPORT_ENABLED;
     delete process.env.CONTENT_IMPORT_DAILY_AT;
+    delete process.env.CONTENT_IMPORT_WEEKLY_DAY;
+    delete process.env.CONTENT_IMPORT_WEEKLY_AT;
     delete process.env.CONTENT_IMPORT_TIME_ZONE;
     delete process.env.CONTENT_IMPORT_IMAGE_BACKFILL_ENABLED;
+    delete process.env.CONTENT_GEOCODER_BACKFILL_ENABLED;
+    delete process.env.CONTENT_GEOCODER_BACKFILL_DAILY_AT;
     delete process.env.CONTENT_ROUTE_GENERATION_ENABLED;
     delete process.env.CONTENT_IMPORT_CITIES;
     delete process.env.CONTENT_IMPORT_SOURCES;
@@ -640,7 +644,7 @@ describe('worker outbox recovery', () => {
     await service.onModuleDestroy();
   });
 
-  it('includes Tomesto in default scheduled content sources', async () => {
+  it('uses only KudaGo and Ticketland as default scheduled content sources', async () => {
     const consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => undefined);
     const service = new WorkerService({
       client: {},
@@ -648,15 +652,29 @@ describe('worker outbox recovery', () => {
 
     const sources = (service as any).resolveContentSources();
 
-    expect(sources).toEqual(['kudago', 'timepad', 'advcake_ticketland', 'tomesto']);
+    expect(sources).toEqual(['kudago', 'advcake_ticketland']);
     consoleDebug.mockRestore();
     await service.onModuleDestroy();
   });
 
-  it('runs scheduled Tomesto import with its own 30 day window', async () => {
+  it('filters Timepad, Overpass and Tomesto out of scheduled content sources', async () => {
+    process.env.CONTENT_IMPORT_SOURCES = 'kudago,timepad,overpass,advcake_ticketland,tomesto';
+    const consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => undefined);
+    const service = new WorkerService({
+      client: {},
+    } as any);
+
+    const sources = (service as any).resolveContentSources();
+
+    expect(sources).toEqual(['kudago', 'advcake_ticketland']);
+    consoleDebug.mockRestore();
+    await service.onModuleDestroy();
+  });
+
+  it('runs scheduled affiche import for the next Moscow calendar week', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-20T10:00:00.000Z'));
     process.env.CONTENT_IMPORT_CITIES = 'Москва';
-    process.env.CONTENT_IMPORT_SOURCES = 'kudago,tomesto';
-    process.env.TOMESTO_WINDOW_DAYS = '30';
     const consoleDebug = jest.spyOn(console, 'debug').mockImplementation(() => undefined);
     const contentImportService = {
       runImport: jest.fn().mockResolvedValue([]),
@@ -669,20 +687,96 @@ describe('worker outbox recovery', () => {
 
     await (service as any).runContentImportScan();
 
-    expect(contentImportService.runImport).toHaveBeenCalledTimes(2);
-    expect(contentImportService.runImport).toHaveBeenNthCalledWith(1, expect.objectContaining({
+    expect(contentImportService.runImport).toHaveBeenCalledTimes(1);
+    expect(contentImportService.runImport).toHaveBeenCalledWith(expect.objectContaining({
       city: 'Москва',
-      sources: ['kudago'],
-    }));
-    expect(contentImportService.runImport).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      city: 'Москва',
-      sources: ['tomesto'],
+      sources: ['kudago', 'advcake_ticketland'],
+      from: new Date('2026-05-24T21:00:00.000Z'),
+      to: new Date('2026-05-31T21:00:00.000Z'),
     }));
     const defaultCall = contentImportService.runImport.mock.calls[0]?.[0];
-    const tomestoCall = contentImportService.runImport.mock.calls[1]?.[0];
-    expect(daysBetween(defaultCall.from, defaultCall.to)).toBe(14);
-    expect(daysBetween(tomestoCall.from, tomestoCall.to)).toBe(30);
+    expect(daysBetween(defaultCall.from, defaultCall.to)).toBe(7);
     consoleDebug.mockRestore();
+    await service.onModuleDestroy();
+  });
+
+  it('schedules weekly content import at the configured Moscow wall-clock time', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-24T16:59:00.000Z'));
+    process.env.WORKER_OUTBOX_ENABLED = 'false';
+    process.env.WORKER_SCHEDULES_ENABLED = 'false';
+    process.env.CONTENT_IMPORT_ENABLED = 'true';
+    process.env.CONTENT_IMPORT_WEEKLY_DAY = '0';
+    process.env.CONTENT_IMPORT_WEEKLY_AT = '20:00';
+    process.env.CONTENT_IMPORT_TIME_ZONE = 'Europe/Moscow';
+    const contentImportService = {
+      runImport: jest.fn().mockResolvedValue([]),
+      backfillMirroredImages: jest.fn().mockResolvedValue({ scanned: 0, mirrored: 0 }),
+      backfillTicketlandCoordinates: jest.fn().mockResolvedValue({ scanned: 0, geocoded: 0 }),
+    };
+    const service = new WorkerService(
+      { client: {} } as any,
+      contentImportService as any,
+    );
+    const runContentImportScan = jest.fn().mockResolvedValue(undefined);
+    const runScheduledTask = jest.fn((_label: string, task: () => Promise<void>) => {
+      void task();
+    });
+    (service as any).runContentImportScan = runContentImportScan;
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runPendingManualImportScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runPendingManualGenerationScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    expect(runScheduledTask).not.toHaveBeenCalledWith('content-import', expect.any(Function));
+
+    await jest.advanceTimersByTimeAsync(59 * 1000);
+    expect(runContentImportScan).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(runScheduledTask).toHaveBeenCalledWith('content-import', expect.any(Function));
+    expect(runContentImportScan).toHaveBeenCalledTimes(1);
+
+    await service.onModuleDestroy();
+  });
+
+  it('runs daily Ticketland coordinate backfill at 22:00 Moscow', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-24T18:59:00.000Z'));
+    process.env.WORKER_OUTBOX_ENABLED = 'false';
+    process.env.WORKER_SCHEDULES_ENABLED = 'false';
+    process.env.CONTENT_IMPORT_ENABLED = 'false';
+    process.env.CONTENT_GEOCODER_BACKFILL_ENABLED = 'true';
+    process.env.CONTENT_GEOCODER_BACKFILL_DAILY_AT = '22:00';
+    process.env.CONTENT_IMPORT_TIME_ZONE = 'Europe/Moscow';
+    const contentImportService = {
+      runImport: jest.fn().mockResolvedValue([]),
+      backfillMirroredImages: jest.fn().mockResolvedValue({ scanned: 0, mirrored: 0 }),
+      backfillTicketlandCoordinates: jest.fn().mockResolvedValue({ scanned: 0, geocoded: 0 }),
+    };
+    const service = new WorkerService(
+      { client: {} } as any,
+      contentImportService as any,
+    );
+    const runScheduledTask = jest.fn((_label: string, task: () => Promise<void>) => {
+      void task();
+    });
+    (service as any).runScheduledTask = runScheduledTask;
+    (service as any).runPendingManualImportScan = jest.fn().mockResolvedValue(undefined);
+    (service as any).runPendingManualGenerationScan = jest.fn().mockResolvedValue(undefined);
+
+    service.start();
+
+    await jest.advanceTimersByTimeAsync(59 * 1000);
+    expect(contentImportService.backfillTicketlandCoordinates).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(runScheduledTask).toHaveBeenCalledWith('ticketland-geocoder-backfill', expect.any(Function));
+    expect(contentImportService.backfillTicketlandCoordinates).toHaveBeenCalledWith({
+      limit: 1000,
+    });
+
     await service.onModuleDestroy();
   });
 

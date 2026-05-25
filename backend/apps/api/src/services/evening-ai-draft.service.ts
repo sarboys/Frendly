@@ -102,6 +102,8 @@ type CandidateCard = {
   sourceUrl: string | null;
   sourceProvider: string | null;
   shortSummary: string | null;
+  imageUrl: string | null;
+  imageVariants: unknown;
 };
 
 type GeneratedDraftJson = {
@@ -742,6 +744,8 @@ export class EveningAiDraftService {
         ticketUrl,
         ticketSourceCode: candidate.source,
         ticketProvider: candidate.sourceProvider ?? candidate.source,
+        imageUrl: candidate.imageUrl,
+        imageVariants: candidate.imageVariants,
         sponsored: false,
         premium: false,
         partnerId: null,
@@ -958,6 +962,8 @@ export class EveningAiDraftService {
           sourceProvider: true,
           placeKind: true,
           area: true,
+          imageUrl: true,
+          imageVariants: true,
           source: {
             select: { code: true, name: true },
           },
@@ -1015,6 +1021,8 @@ export class EveningAiDraftService {
           sourceUrl: item.sourceUrl ?? null,
           sourceProvider: item.sourceProvider ?? item.source?.name ?? null,
           shortSummary: item.shortSummary ?? null,
+          imageUrl: item.imageUrl ?? null,
+          imageVariants: item.imageVariants ?? null,
         };
       });
     return mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));

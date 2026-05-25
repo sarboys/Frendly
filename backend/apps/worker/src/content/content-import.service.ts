@@ -1,4 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
+import { isVenueGeocoderLimitError } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { maskAdvCakeSecrets } from './advcake-ticketland.adapter';
@@ -35,10 +36,16 @@ const PUBLIC_STATUS_STALE = 'stale';
 const STALE_GRACE_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DUPLICATE_PRELOAD_LIMIT = 1000;
 const DEFAULT_IMAGE_BACKFILL_LIMIT = 50;
+const DEFAULT_TICKETLAND_GEOCODER_BACKFILL_LIMIT = 1000;
 
 type DuplicateCandidateCache = Map<string, Promise<EventDuplicateCandidate[]>>;
 type PlaceCandidateCache = Map<string, Promise<PlaceCandidate | null>>;
 type GeocodeCache = Map<string, Promise<VenueGeocodeResult | null>>;
+type GeocodeBudget = {
+  attempted: number;
+  limit: number;
+  stopped: boolean;
+};
 
 type EventDuplicateCandidate = {
   id: string;
@@ -69,6 +76,20 @@ type PlaceCandidate = {
   lng: number | null;
   raw: unknown;
   source: { code: ExternalSourceCode; name: string } | null;
+};
+
+type TicketlandBackfillCandidate = {
+  id: string;
+  city: string;
+  title: string;
+  address: string | null;
+  venueName: string | null;
+  startsAt: Date | null;
+  priceMode: string;
+  actionUrl: string | null;
+  publicStatus: string;
+  moderationStatus: string;
+  raw: unknown;
 };
 
 type ImportCounters = {
@@ -320,6 +341,139 @@ export class ContentImportService {
     return { scanned: rows.length, mirrored };
   }
 
+  async backfillTicketlandCoordinates(
+    input: { limit?: number } = {},
+  ) {
+    if (!this.venueGeocoder) {
+      return {
+        scanned: 0,
+        attempted: 0,
+        geocoded: 0,
+        stoppedReason: 'geocoder_unavailable',
+      };
+    }
+
+    const limit = boundedPositiveInt(
+      input.limit,
+      DEFAULT_TICKETLAND_GEOCODER_BACKFILL_LIMIT,
+      DEFAULT_TICKETLAND_GEOCODER_BACKFILL_LIMIT,
+    );
+    let scanned = 0;
+    let attempted = 0;
+    let geocoded = 0;
+    let stoppedReason: string | null = null;
+
+    for (const cityWhere of ticketlandBackfillCityPriority()) {
+      if (attempted >= limit || stoppedReason) {
+        break;
+      }
+
+      const rows = await this.prismaService.client.externalContentItem.findMany({
+        where: {
+          source: { code: 'advcake_ticketland' },
+          contentKind: 'event',
+          priceMode: 'paid',
+          actionUrl: { not: null },
+          moderationStatus: { not: 'rejected' },
+          startsAt: { gte: new Date() },
+          OR: [{ lat: null }, { lng: null }],
+          city: cityWhere,
+        },
+        select: {
+          id: true,
+          city: true,
+          title: true,
+          address: true,
+          venueName: true,
+          startsAt: true,
+          priceMode: true,
+          actionUrl: true,
+          publicStatus: true,
+          moderationStatus: true,
+          raw: true,
+        },
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        take: Math.max(1, limit - attempted),
+      }) as TicketlandBackfillCandidate[];
+
+      for (const row of rows) {
+        scanned += 1;
+        const queries = ticketlandGeocoderQueries(row);
+        for (const query of queries) {
+          if (attempted >= limit) {
+            stoppedReason = 'daily_limit';
+            break;
+          }
+
+          let geocodedResult: VenueGeocodeResult | null;
+          try {
+            attempted += 1;
+            geocodedResult = await this.venueGeocoder.geocodeOrThrow({
+              city: row.city,
+              address: query.address,
+              venueName: query.venueName,
+            });
+          } catch (caught) {
+            if (isVenueGeocoderLimitError(caught) || isHttpLimitError(caught)) {
+              stoppedReason = 'geocoder_limited';
+              break;
+            }
+            geocodedResult = null;
+          }
+
+          if (!geocodedResult) {
+            continue;
+          }
+
+          await this.prismaService.client.externalContentItem.update({
+            where: { id: row.id },
+            data: {
+              address: row.address ?? geocodedResult.address,
+              lat: geocodedResult.lat,
+              lng: geocodedResult.lng,
+              publicStatus: shouldPublishBackfilledTicketland(row)
+                ? PUBLIC_STATUS_PUBLISHED
+                : row.publicStatus,
+              raw: safeJson(mergeRaw(row.raw, {
+                role: 'ticketland_geocoder_backfill',
+                method: 'geocoder_high_confidence',
+                geoConfidence: 'high',
+                provider: geocodedResult.provider,
+                precision: geocodedResult.precision,
+                kind: geocodedResult.kind,
+                query: geocodedResult.query,
+                querySource: query.source,
+                fields: ['address', 'lat', 'lng'],
+              })),
+            },
+          });
+          geocoded += 1;
+          break;
+        }
+
+        if (stoppedReason) {
+          break;
+        }
+      }
+    }
+
+    if (scanned > 0 || attempted > 0 || stoppedReason) {
+      console.info('[content-import] ticketland geocoder backfill completed', {
+        scanned,
+        attempted,
+        geocoded,
+        stoppedReason,
+      });
+    }
+
+    return {
+      scanned,
+      attempted,
+      geocoded,
+      stoppedReason,
+    };
+  }
+
   private async failStaleRunningRuns() {
     const staleAfterMs = Math.max(
       this.timeoutMs + 60_000,
@@ -404,6 +558,14 @@ export class ContentImportService {
     const sourcePlaceCache: PlaceCandidateCache = new Map();
     const venuePlaceCache: PlaceCandidateCache = new Map();
     const geocodeCache: GeocodeCache = new Map();
+    const geocodeBudget: GeocodeBudget = {
+      attempted: 0,
+      limit: positiveInt(
+        process.env.CONTENT_GEOCODER_DAILY_LIMIT,
+        DEFAULT_TICKETLAND_GEOCODER_BACKFILL_LIMIT,
+      ),
+      stopped: false,
+    };
     try {
       console.info('[content-import] source started', {
         runId: input.runId,
@@ -435,6 +597,7 @@ export class ContentImportService {
               sourcePlaceCache,
               venuePlaceCache,
               geocodeCache,
+              geocodeBudget,
             );
             const item = this.imageMirror
               ? await this.imageMirror.mirrorExternalImage(normalized.item)
@@ -697,6 +860,7 @@ export class ContentImportService {
     sourcePlaceCache: PlaceCandidateCache,
     venuePlaceCache: PlaceCandidateCache,
     geocodeCache: GeocodeCache,
+    geocodeBudget: GeocodeBudget,
   ): Promise<{
     item: NormalizedExternalContentItem;
     publicStatusOverride?: string;
@@ -708,6 +872,7 @@ export class ContentImportService {
         sourcePlaceCache,
         venuePlaceCache,
         geocodeCache,
+        geocodeBudget,
       );
     }
 
@@ -764,12 +929,18 @@ export class ContentImportService {
     sourcePlaceCache: PlaceCandidateCache,
     venuePlaceCache: PlaceCandidateCache,
     geocodeCache: GeocodeCache,
+    geocodeBudget: GeocodeBudget,
   ) {
     if (item.sourceCode === 'kudago') {
       return this.enrichKudaGoEventFromPlace(item, sourcePlaceCache);
     }
     if (item.sourceCode === 'advcake_ticketland') {
-      return this.enrichAffiliateEventFromVenue(item, venuePlaceCache, geocodeCache);
+      return this.enrichAffiliateEventFromVenue(
+        item,
+        venuePlaceCache,
+        geocodeCache,
+        geocodeBudget,
+      );
     }
     return item;
   }
@@ -800,6 +971,7 @@ export class ContentImportService {
     item: NormalizedExternalContentItem,
     venuePlaceCache: PlaceCandidateCache,
     geocodeCache: GeocodeCache,
+    geocodeBudget: GeocodeBudget,
   ) {
     if (item.lat != null && item.lng != null) {
       return item;
@@ -814,7 +986,7 @@ export class ContentImportService {
       });
     }
 
-    const geocoded = await this.geocodeAffiliateVenue(item, geocodeCache);
+    const geocoded = await this.geocodeAffiliateVenue(item, geocodeCache, geocodeBudget);
     if (!geocoded) {
       return item;
     }
@@ -886,8 +1058,15 @@ export class ContentImportService {
   private geocodeAffiliateVenue(
     item: NormalizedExternalContentItem,
     geocodeCache: GeocodeCache,
+    geocodeBudget: GeocodeBudget,
   ) {
-    if (!this.venueGeocoder) {
+    if (
+      !this.venueGeocoder ||
+      item.priceMode !== 'paid' ||
+      !item.actionUrl ||
+      geocodeBudget.stopped ||
+      geocodeBudget.attempted >= geocodeBudget.limit
+    ) {
       return Promise.resolve(null);
     }
     const address = optionalString(item.address);
@@ -900,13 +1079,48 @@ export class ContentImportService {
     if (cached) {
       return cached;
     }
-    const load = this.venueGeocoder.geocode({
+    const load = this.geocodeAffiliateVenueWithBudget(item, geocodeBudget, {
       city: item.city,
       venueName: isReliableAffiliateVenueName(venueName) ? venueName : null,
       address,
     });
     geocodeCache.set(key, load);
     return load;
+  }
+
+  private async geocodeAffiliateVenueWithBudget(
+    item: NormalizedExternalContentItem,
+    geocodeBudget: GeocodeBudget,
+    input: {
+      city: string;
+      venueName: string | null;
+      address: string | null;
+    },
+  ) {
+    if (geocodeBudget.stopped || geocodeBudget.attempted >= geocodeBudget.limit) {
+      geocodeBudget.stopped = true;
+      return null;
+    }
+    geocodeBudget.attempted += 1;
+    try {
+      const geocoder = this.venueGeocoder as ContentVenueGeocoderService & {
+        geocodeOrThrow?: (value: typeof input) => Promise<VenueGeocodeResult | null>;
+      };
+      if (typeof geocoder.geocodeOrThrow === 'function') {
+        return await geocoder.geocodeOrThrow(input) ?? null;
+      }
+      return await geocoder.geocode(input) ?? null;
+    } catch (caught) {
+      if (isVenueGeocoderLimitError(caught) || isHttpLimitError(caught)) {
+        geocodeBudget.stopped = true;
+        console.warn('[content-import] ticketland geocoder stopped for today', {
+          sourceItemId: item.sourceItemId,
+          city: item.city,
+          attempted: geocodeBudget.attempted,
+        });
+      }
+      return null;
+    }
   }
 
   private async findEventDuplicate(
@@ -1311,6 +1525,52 @@ function isReliableAffiliateVenueName(value: string | null) {
     return false;
   }
   return /[a-zа-яё]/i.test(normalized);
+}
+
+function ticketlandBackfillCityPriority() {
+  return [
+    'Москва',
+    'Санкт-Петербург',
+    { notIn: ['Москва', 'Санкт-Петербург'] },
+  ];
+}
+
+function ticketlandGeocoderQueries(row: TicketlandBackfillCandidate) {
+  const address = optionalString(row.address);
+  const venueName = optionalString(row.venueName);
+  const title = optionalString(row.title);
+  const queries: Array<{
+    source: 'address' | 'venueName' | 'title';
+    address: string | null;
+    venueName: string | null;
+  }> = [];
+
+  if (address) {
+    queries.push({ source: 'address', address, venueName: null });
+  }
+  if (isReliableAffiliateVenueName(venueName)) {
+    queries.push({ source: 'venueName', address: null, venueName });
+  }
+  if (isReliableAffiliateVenueName(title)) {
+    queries.push({ source: 'title', address: null, venueName: title });
+  }
+
+  return queries;
+}
+
+function shouldPublishBackfilledTicketland(row: TicketlandBackfillCandidate) {
+  return row.priceMode === 'paid'
+    && row.actionUrl != null
+    && row.moderationStatus !== 'rejected';
+}
+
+function isHttpLimitError(value: unknown) {
+  const error = value as { statusCode?: unknown; status?: unknown } | null;
+  return error != null
+    && (error.statusCode === 403 ||
+      error.statusCode === 429 ||
+      error.status === 403 ||
+      error.status === 429);
 }
 
 function normalizeVenueText(value: string | null) {

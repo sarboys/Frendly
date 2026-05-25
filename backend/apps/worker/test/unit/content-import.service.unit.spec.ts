@@ -184,6 +184,146 @@ describe('ContentImportService', () => {
       }),
     );
   });
+
+  it('backfills paid Ticketland coordinates in city priority order and publishes geocoded rows', async () => {
+    const moscowRow = ticketlandRow({
+      id: 'ticket-moscow',
+      city: 'Москва',
+      address: 'Таганская площадь, 1',
+      venueName: 'Театр на Таганке',
+      title: 'Спектакль',
+      raw: {},
+    });
+    const spbRow = ticketlandRow({
+      id: 'ticket-spb',
+      city: 'Санкт-Петербург',
+      address: null,
+      venueName: 'А2 Green Concert',
+      title: 'Концерт',
+      raw: {},
+    });
+    const otherRow = ticketlandRow({
+      id: 'ticket-kazan',
+      city: 'Казань',
+      address: null,
+      venueName: null,
+      title: 'Казанский концерт',
+      raw: {},
+    });
+    const findMany = jest.fn()
+      .mockResolvedValueOnce([moscowRow])
+      .mockResolvedValueOnce([spbRow])
+      .mockResolvedValueOnce([otherRow]);
+    const update = jest.fn().mockResolvedValue({});
+    const geocodeOrThrow = jest.fn()
+      .mockResolvedValueOnce({
+        address: 'Россия, Москва, Таганская площадь, 1',
+        lat: 55.742,
+        lng: 37.653,
+        provider: 'yandex',
+        query: 'Москва, Таганская площадь, 1',
+        precision: 'exact',
+        kind: 'house',
+      })
+      .mockResolvedValueOnce({
+        address: 'Россия, Санкт-Петербург, проспект Медиков',
+        lat: 59.973,
+        lng: 30.321,
+        provider: 'yandex',
+        query: 'Санкт-Петербург, А2 Green Concert',
+        precision: 'exact',
+        kind: 'house',
+      })
+      .mockResolvedValueOnce({
+        address: 'Россия, Республика Татарстан, Казань',
+        lat: 55.79,
+        lng: 49.12,
+        provider: 'yandex',
+        query: 'Казань, Казанский концерт',
+        precision: 'exact',
+        kind: 'house',
+      });
+    const service = new ContentImportService(
+      prismaMock({
+        externalContentItem: {
+          findMany,
+          update,
+        },
+      }) as any,
+      {} as any,
+      {} as any,
+      undefined,
+      { geocodeOrThrow } as any,
+    );
+
+    const result = await service.backfillTicketlandCoordinates({ limit: 1000 });
+
+    expect(findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: expect.objectContaining({ city: 'Москва' }),
+    }));
+    expect(findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      where: expect.objectContaining({ city: 'Санкт-Петербург' }),
+    }));
+    expect(findMany).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      where: expect.objectContaining({ city: { notIn: ['Москва', 'Санкт-Петербург'] } }),
+    }));
+    expect(geocodeOrThrow).toHaveBeenCalledTimes(3);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'ticket-moscow' },
+      data: expect.objectContaining({
+        lat: 55.742,
+        lng: 37.653,
+        publicStatus: 'published',
+        raw: expect.objectContaining({
+          enrichment: expect.objectContaining({
+            role: 'ticketland_geocoder_backfill',
+          }),
+        }),
+      }),
+    }));
+    expect(result).toEqual(expect.objectContaining({
+      scanned: 3,
+      attempted: 3,
+      geocoded: 3,
+      stoppedReason: null,
+    }));
+  });
+
+  it('stops Ticketland coordinate backfill when the geocoder limit is reached', async () => {
+    const findMany = jest.fn().mockResolvedValueOnce([
+      ticketlandRow({ id: 'ticket-1', city: 'Москва', address: 'Адрес 1', venueName: null, title: 'A' }),
+      ticketlandRow({ id: 'ticket-2', city: 'Москва', address: 'Адрес 2', venueName: null, title: 'B' }),
+    ]);
+    const update = jest.fn().mockResolvedValue({});
+    const error = new Error('rate limited') as Error & { statusCode: number };
+    error.statusCode = 429;
+    const geocodeOrThrow = jest.fn()
+      .mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(error);
+    const service = new ContentImportService(
+      prismaMock({
+        externalContentItem: {
+          findMany,
+          update,
+        },
+      }) as any,
+      {} as any,
+      {} as any,
+      undefined,
+      { geocodeOrThrow } as any,
+    );
+
+    const result = await service.backfillTicketlandCoordinates({ limit: 1000 });
+
+    expect(geocodeOrThrow).toHaveBeenCalledTimes(2);
+    expect(update).not.toHaveBeenCalled();
+    expect(result).toEqual(expect.objectContaining({
+      scanned: 2,
+      attempted: 2,
+      geocoded: 0,
+      stoppedReason: 'geocoder_limited',
+    }));
+  });
 });
 
 function prismaMock(client: Record<string, unknown>) {
@@ -228,6 +368,25 @@ function normalizedItem(
     raw: {},
     normalizedHash: sourceItemId,
     expiresAt: null,
+    ...overrides,
+  };
+}
+
+function ticketlandRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'ticket-1',
+    city: 'Москва',
+    title: 'Ticketland event',
+    address: null,
+    venueName: 'Ticketland venue',
+    lat: null,
+    lng: null,
+    startsAt: new Date('2026-05-25T16:00:00.000Z'),
+    priceMode: 'paid',
+    actionUrl: 'https://go.avred.online/click',
+    publicStatus: 'hidden',
+    moderationStatus: 'pending',
+    raw: {},
     ...overrides,
   };
 }

@@ -14,4 +14,8 @@ export class ContentVenueGeocoderService {
   geocode(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
     return this.client.geocode(input);
   }
+
+  geocodeOrThrow(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
+    return this.client.geocodeOrThrow(input);
+  }
 }

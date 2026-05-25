@@ -777,6 +777,8 @@ export interface EveningRouteStepDto {
   ticketUrl: string | null;
   ticketSourceCode: string | null;
   ticketProvider: string | null;
+  imageUrl?: string | null;
+  imageVariants?: unknown;
   sponsored: boolean;
   premium: boolean;
   partnerId: string | null;

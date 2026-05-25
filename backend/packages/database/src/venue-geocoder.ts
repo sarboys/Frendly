@@ -25,6 +25,18 @@ type VenueGeocoderClientOptions = {
   timeoutMs?: number | null;
 };
 
+export class VenueGeocoderHttpError extends Error {
+  constructor(readonly statusCode: number) {
+    super(`Venue geocoder request failed with status ${statusCode}`);
+    this.name = 'VenueGeocoderHttpError';
+  }
+}
+
+export function isVenueGeocoderLimitError(value: unknown) {
+  return value instanceof VenueGeocoderHttpError
+    && (value.statusCode === 403 || value.statusCode === 429);
+}
+
 export class VenueGeocoderClient {
   private readonly apiKey: string | null;
   private readonly baseUrl: string;
@@ -45,6 +57,14 @@ export class VenueGeocoderClient {
   }
 
   async geocode(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
+    try {
+      return await this.geocodeOrThrow(input);
+    } catch {
+      return null;
+    }
+  }
+
+  async geocodeOrThrow(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
     if (!this.apiKey) {
       return null;
     }
@@ -69,6 +89,9 @@ export class VenueGeocoderClient {
         headers: { Accept: 'application/json' },
       });
       if (!response.ok) {
+        if (response.status === 403 || response.status === 429) {
+          throw new VenueGeocoderHttpError(response.status);
+        }
         return null;
       }
       return highConfidenceResult(
@@ -77,8 +100,6 @@ export class VenueGeocoderClient {
         query,
         cleanText(input.address) != null,
       );
-    } catch {
-      return null;
     } finally {
       clearTimeout(timeout);
     }
