@@ -22,10 +22,10 @@ ALTER TABLE "PaymentOrder" ADD COLUMN "productSnapshot" JSONB;
 CREATE INDEX "TokenCatalogPack_active_sortOrder_idx" ON "TokenCatalogPack"("active", "sortOrder");
 
 -- Seed current hardcoded token packs into the editable catalog.
-INSERT INTO "TokenCatalogPack" ("id", "label", "description", "priceRub", "tokens", "bonus", "best", "active", "sortOrder")
+INSERT INTO "TokenCatalogPack" ("id", "label", "description", "priceRub", "tokens", "bonus", "best", "active", "sortOrder", "updatedAt")
 VALUES
-  ('p1', 'Базовый', 'Frendly Tokens: 100', 199, 100, 0, false, true, 10),
-  ('p2', 'Популярный', 'Frendly Tokens: 350', 499, 350, 0, true, true, 20),
-  ('p3', 'Хост', 'Frendly Tokens: 900', 999, 900, 0, false, true, 30),
-  ('p4', 'Pro', 'Frendly Tokens: 2700', 2499, 2700, 0, false, true, 40)
+  ('p1', 'Базовый', 'Frendly Tokens: 100', 199, 100, 0, false, true, 10, CURRENT_TIMESTAMP),
+  ('p2', 'Популярный', 'Frendly Tokens: 350', 499, 350, 0, true, true, 20, CURRENT_TIMESTAMP),
+  ('p3', 'Хост', 'Frendly Tokens: 900', 999, 900, 0, false, true, 30, CURRENT_TIMESTAMP),
+  ('p4', 'Pro', 'Frendly Tokens: 2700', 2499, 2700, 0, false, true, 40, CURRENT_TIMESTAMP)
 ON CONFLICT ("id") DO NOTHING;
