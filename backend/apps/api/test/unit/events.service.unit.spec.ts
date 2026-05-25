@@ -2219,6 +2219,130 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('reopens an approved join request after the participant left', async () => {
+    const notificationCreate = jest.fn().mockResolvedValue({ id: 'notif-reapply' });
+    const notificationFindUnique = jest
+      .fn()
+      .mockResolvedValue({ id: 'notif-old-request' });
+    const outboxCreateMany = jest.fn().mockResolvedValue({});
+    const requestUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const requestFindUnique = jest.fn().mockResolvedValue({
+      id: 'req-1',
+      eventId: 'event-1',
+      userId: 'guest-1',
+      status: 'pending',
+      note: 'Хочу вернуться',
+      compatibilityScore: 52,
+      createdAt: new Date('2026-04-24T12:00:00.000Z'),
+    });
+    const tx = {
+      eventJoinRequest: {
+        updateMany: requestUpdateMany,
+        findUnique: requestFindUnique,
+      },
+      notification: {
+        create: notificationCreate,
+        findUnique: notificationFindUnique,
+      },
+      outboxEvent: {
+        createMany: outboxCreateMany,
+      },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'event-1',
+              title: 'Закрытый ужин',
+              hostId: 'host-1',
+              genderMode: 'all',
+              joinMode: 'request',
+              participants: [],
+            }),
+          },
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'req-1',
+              eventId: 'event-1',
+              userId: 'guest-1',
+              status: 'approved',
+            }),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'guest-1',
+              onboarding: {
+                interests: [],
+              },
+            }),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback: any) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    } as any);
+
+    const result = await service.createJoinRequest('guest-1', 'event-1', {
+      note: 'Хочу вернуться',
+    });
+
+    expect(result).toMatchObject({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    });
+    expect(requestUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'req-1',
+        status: 'approved',
+      },
+      data: {
+        status: 'pending',
+        note: 'Хочу вернуться',
+        compatibilityScore: 52,
+        reviewedById: null,
+        reviewedAt: null,
+      },
+    });
+    expect(notificationFindUnique).toHaveBeenCalledWith({
+      where: { dedupeKey: 'event_join_request:event-1:guest-1' },
+      select: { id: true },
+    });
+    expect(notificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'host-1',
+          actorUserId: 'guest-1',
+          requestId: 'req-1',
+          dedupeKey: null,
+        }),
+      }),
+    );
+    expect(outboxCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            payload: {
+              userId: 'host-1',
+              notificationId: 'notif-reapply',
+            },
+          }),
+        ]),
+      }),
+    );
+  });
+
   it('does not reopen a join request that was reviewed during request refresh', async () => {
     const requestUpsert = jest.fn().mockResolvedValue({
       id: 'req-1',

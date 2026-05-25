@@ -980,14 +980,6 @@ export class EventsService {
       },
     });
 
-    if (existingRequest?.status === 'approved') {
-      throw new ApiError(
-        409,
-        'join_request_already_reviewed',
-        'Join request is already reviewed',
-      );
-    }
-
     const note = typeof body.note === 'string' ? body.note.trim() : '';
     if (note.length > 200) {
       throw new ApiError(
@@ -999,9 +991,19 @@ export class EventsService {
     const compatibilityScore = await this.calculateCompatibilityScore(userId, event);
     const reopenableRequest =
       existingRequest != null &&
-      (existingRequest.status === 'rejected' || existingRequest.status === 'canceled')
+      (existingRequest.status === 'rejected' ||
+        existingRequest.status === 'canceled' ||
+        (existingRequest.status === 'approved' && !alreadyParticipant))
         ? existingRequest
         : null;
+
+    if (existingRequest?.status === 'approved' && reopenableRequest == null) {
+      throw new ApiError(
+        409,
+        'join_request_already_reviewed',
+        'Join request is already reviewed',
+      );
+    }
 
     const request = await this.prismaService.client.$transaction(async (tx) => {
       let next: {
