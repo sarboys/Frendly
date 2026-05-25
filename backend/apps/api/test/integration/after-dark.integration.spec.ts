@@ -277,8 +277,8 @@ describe('after dark api flows', () => {
       .send({ acceptedRules: true, note: 'Спокойный формат мне подходит' })
       .expect(201);
 
-    expect(firstRequest.body.status).toBe('pending');
-    expect(firstRequest.body.eventId).toBe('ad3');
+    expect(firstRequest.body.joinRequestStatus).toBe('pending');
+    expect(firstRequest.body.id).toBe('ad3');
 
     const secondRequest = await request(app.getHttpServer())
       .post('/after-dark/events/ad3/join')
@@ -287,7 +287,16 @@ describe('after dark api flows', () => {
       .expect(201);
 
     expect(secondRequest.body.id).toBe(firstRequest.body.id);
-    expect(secondRequest.body.status).toBe('pending');
+    expect(secondRequest.body.joinRequestStatus).toBe('pending');
+
+    const requestCount = await prisma.eventJoinRequest.count({
+      where: {
+        eventId: 'ad3',
+        userId: 'user-sonya',
+        status: 'pending',
+      },
+    });
+    expect(requestCount).toBe(1);
   });
 
   it('blocks kink join for unlocked users without verification', async () => {

@@ -2075,7 +2075,7 @@ describe('core api flows', () => {
       .send({ note: 'Хочу познакомиться с компанией' })
       .expect(201);
 
-    expect(requestResponse.body.status).toBe('pending');
+    expect(requestResponse.body.joinRequestStatus).toBe('pending');
 
     let hostDashboardResponse = await request(app.getHttpServer())
       .get('/host/dashboard')
@@ -2528,8 +2528,18 @@ describe('core api flows', () => {
       .send({ note: 'И еще раз' })
       .expect(201);
 
-    expect(secondCreate.body.status).toBe('pending');
-    expect(secondCreate.body.note).toBe('И еще раз');
+    expect(secondCreate.body.joinRequestStatus).toBe('pending');
+
+    const reopenedRequest = await prisma.eventJoinRequest.findUnique({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId: 'user-sonya',
+        },
+      },
+    });
+    expect(reopenedRequest?.status).toBe('pending');
+    expect(reopenedRequest?.note).toBe('И еще раз');
   });
 
   it('rejects too long join request note on server', async () => {

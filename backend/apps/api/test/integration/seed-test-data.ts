@@ -189,6 +189,18 @@ export async function seedIntegrationTestData(prisma: PrismaClient) {
   await prisma.mediaAsset.deleteMany();
   await prisma.user.deleteMany();
 
+  await prisma.subscriptionCatalogSettings.upsert({
+    where: { id: 'frendly_plus' },
+    update: {
+      freeMeetupMonthlyLimit: 100,
+    },
+    create: {
+      id: 'frendly_plus',
+      benefits: ['Больше встреч', 'Больше лайков', 'Приоритет в радаре'],
+      freeMeetupMonthlyLimit: 100,
+    },
+  });
+
   for (const user of seededUsers) {
     await prisma.user.create({
       data: {

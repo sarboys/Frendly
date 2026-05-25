@@ -276,11 +276,13 @@ describe('dating api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(lockedResponse.body.items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ userId: 'user-sonya' }),
-      ]),
-    );
+    expect(lockedResponse.body.items).toEqual([
+      expect.objectContaining({
+        locked: true,
+        premiumRequired: true,
+        userId: 'locked-like-1',
+      }),
+    ]);
 
     await grantPlus('user-me', 'dating-plus-user-me-likes');
 
@@ -399,8 +401,8 @@ describe('dating api flows', () => {
       premium: false,
       hourlySwipes: {
         unlimited: false,
-        limit: 50,
-        remaining: 50,
+        limit: 100,
+        remaining: 100,
       },
       superLikes: {
         freeLimit: 1,
@@ -422,7 +424,7 @@ describe('dating api flows', () => {
 
     expect(updatedLimits.body).toMatchObject({
       hourlySwipes: {
-        remaining: 49,
+        remaining: 99,
       },
       superLikes: {
         freeRemaining: 0,
