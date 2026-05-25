@@ -43,12 +43,15 @@ describe('EventsService unit', () => {
     hostVerified = true,
     hostPremium = true,
     hostVerificationStatus = null,
+    hostedMeetupsThisMonth = 0,
   }: {
     hostVerified?: boolean;
     hostPremium?: boolean;
     hostVerificationStatus?: string | null;
+    hostedMeetupsThisMonth?: number;
   } = {}) => {
     const eventCreate = jest.fn().mockResolvedValue({ id: 'event-1' });
+    const eventCount = jest.fn().mockResolvedValue(hostedMeetupsThisMonth);
     const userFindUnique = jest.fn().mockResolvedValue({
       id: 'host-1',
       displayName: 'Host',
@@ -72,6 +75,7 @@ describe('EventsService unit', () => {
       {
         client: {
           event: {
+            count: eventCount,
             create: eventCreate,
             findFirst: jest.fn().mockResolvedValue(null),
             findUnique: jest.fn(),
@@ -96,6 +100,10 @@ describe('EventsService unit', () => {
       } as any,
       {
         hasPremiumAccess: jest.fn().mockResolvedValue(hostPremium),
+        getPlusBenefitRules: jest.fn().mockResolvedValue({
+          freeMeetupMonthlyLimit: 10,
+          plusMeetupMonthlyLimit: null,
+        }),
       } as any,
     );
     jest.spyOn(service, 'getEventDetail').mockResolvedValue({ id: 'event-1' } as any);
@@ -1492,6 +1500,32 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('rejects the 11th monthly meetup for a free host', async () => {
+    const { service, eventCreate } = makeCreateEventService({
+      hostPremium: false,
+      hostedMeetupsThisMonth: 10,
+    });
+
+    await expect(
+      service.createEvent('host-1', createEventPayload()),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'event_monthly_limit_reached',
+    });
+    expect(eventCreate).not.toHaveBeenCalled();
+  });
+
+  it('does not limit monthly meetup creation for Frendly Plus hosts', async () => {
+    const { service, eventCreate } = makeCreateEventService({
+      hostPremium: true,
+      hostedMeetupsThisMonth: 10,
+    });
+
+    await service.createEvent('host-1', createEventPayload());
+
+    expect(eventCreate).toHaveBeenCalled();
+  });
+
   it('filters event feed by verification and Frendly+ requirements', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(
@@ -1923,11 +1957,19 @@ describe('EventsService unit', () => {
       } as any,
       {} as any,
     );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    } as any);
 
-    await service.createJoinRequest('guest-1', 'event-1', {
+    const result = await service.createJoinRequest('guest-1', 'event-1', {
       note: 'Хочу прийти',
     });
 
+    expect(result).toMatchObject({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    });
     expect(notificationCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -2023,12 +2065,19 @@ describe('EventsService unit', () => {
       } as any,
       {} as any,
     );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    } as any);
 
     const result = await service.createJoinRequest('guest-1', 'event-1', {
       note: 'Обновил сообщение',
     });
 
-    expect(result.status).toBe('pending');
+    expect(result).toMatchObject({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    });
     expect(requestUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: expect.objectContaining({
@@ -2116,12 +2165,19 @@ describe('EventsService unit', () => {
       } as any,
       {} as any,
     );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    } as any);
 
     const result = await service.createJoinRequest('guest-1', 'event-1', {
       note: 'Пробую еще раз',
     });
 
-    expect(result.status).toBe('pending');
+    expect(result).toMatchObject({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    });
     expect(requestUpdateMany).toHaveBeenCalledWith({
       where: {
         id: 'req-1',
@@ -2241,6 +2297,39 @@ describe('EventsService unit', () => {
         }),
       }),
     );
+  });
+
+  it('returns event detail after canceling a pending join request', async () => {
+    const service = new EventsService(
+      {
+        client: {
+          eventJoinRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'req-1',
+              eventId: 'event-1',
+              status: 'pending',
+            }),
+            update: jest.fn().mockResolvedValue({
+              id: 'req-1',
+              eventId: 'event-1',
+              status: 'canceled',
+            }),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-1',
+      joinRequestStatus: null,
+    } as any);
+
+    const result = await service.cancelJoinRequest('guest-1', 'event-1');
+
+    expect(result).toMatchObject({
+      id: 'event-1',
+      joinRequestStatus: null,
+    });
   });
 
   it('lets an existing event participant reopen a full event', async () => {

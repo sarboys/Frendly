@@ -38,6 +38,32 @@ type SubscriptionCatalogPlanInput = {
   sortOrder: number;
 };
 
+export type PlusBenefitRules = {
+  freeSwipeHourlyLimit: number;
+  plusSwipeHourlyLimit: number | null;
+  freeSuperLikeDailyLimit: number;
+  plusSuperLikeDailyLimit: number;
+  paidSuperLikeTokenCost: number;
+  freeMeetupMonthlyLimit: number;
+  plusMeetupMonthlyLimit: number | null;
+  tokenPurchaseDiscountPercent: number;
+  communityCreationRequiresPlus: boolean;
+  incomingLikesRequiresPlus: boolean;
+};
+
+const defaultPlusRules: PlusBenefitRules = {
+  freeSwipeHourlyLimit: 100,
+  plusSwipeHourlyLimit: null,
+  freeSuperLikeDailyLimit: 1,
+  plusSuperLikeDailyLimit: 10,
+  paidSuperLikeTokenCost: 50,
+  freeMeetupMonthlyLimit: 10,
+  plusMeetupMonthlyLimit: null,
+  tokenPurchaseDiscountPercent: 15,
+  communityCreationRequiresPlus: true,
+  incomingLikesRequiresPlus: true,
+};
+
 @Injectable()
 export class SubscriptionService {
   constructor(
@@ -71,6 +97,7 @@ export class SubscriptionService {
         benefits: product.benefits,
       })),
       plusBenefits: settings.benefits,
+      plusRules: settings.rules,
     };
   }
 
@@ -97,12 +124,14 @@ export class SubscriptionService {
         sortOrder: product.sortOrder ?? (index + 1) * 10,
       })),
       plusBenefits: settings.benefits,
+      plusRules: settings.rules,
     };
   }
 
   async updateAdminCatalog(body: Record<string, unknown>) {
     const plans = this.parseCatalogPlans(body.plans);
     const plusBenefits = this.parseTextList(body.plusBenefits);
+    const plusRules = this.parsePlusRules(body.plusRules);
 
     return this.prismaService.client.$transaction(async (client) => {
       const existing = await client.subscriptionCatalogPlan.findMany({
@@ -130,12 +159,19 @@ export class SubscriptionService {
 
       await client.subscriptionCatalogSettings.upsert({
         where: { id: SETTINGS_ID },
-        update: { benefits: plusBenefits },
-        create: { id: SETTINGS_ID, benefits: plusBenefits },
+        update: { benefits: plusBenefits, ...plusRules },
+        create: { id: SETTINGS_ID, benefits: plusBenefits, ...plusRules },
       });
 
       return this.getAdminCatalog(client);
     });
+  }
+
+  async getPlusBenefitRules(
+    client: Prisma.TransactionClient = this.prismaService.client,
+  ): Promise<PlusBenefitRules> {
+    const settings = await this.loadCatalogSettings(client);
+    return settings.rules;
   }
 
   async getCurrent(userId: string) {
@@ -357,7 +393,7 @@ export class SubscriptionService {
   private async loadCatalogSettings(client: Prisma.TransactionClient) {
     const delegate = (client as any).subscriptionCatalogSettings;
     if (!delegate?.findUnique) {
-      return { benefits: defaultPlusBenefits };
+      return { benefits: defaultPlusBenefits, rules: defaultPlusRules };
     }
 
     const settings = await delegate.findUnique({
@@ -365,6 +401,7 @@ export class SubscriptionService {
     });
     return {
       benefits: this.cleanTextList(settings?.benefits ?? defaultPlusBenefits),
+      rules: this.normalizePlusRules(settings),
     };
   }
 
@@ -427,6 +464,81 @@ export class SubscriptionService {
     return [];
   }
 
+  private parsePlusRules(value: unknown): PlusBenefitRules {
+    const raw = value && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+    return {
+      freeSwipeHourlyLimit: this.positiveInt(
+        raw.freeSwipeHourlyLimit ?? defaultPlusRules.freeSwipeHourlyLimit,
+        'invalid_plus_free_swipe_hourly_limit',
+      ),
+      plusSwipeHourlyLimit: this.optionalPositiveInt(
+        raw.plusSwipeHourlyLimit,
+        'invalid_plus_swipe_hourly_limit',
+      ),
+      freeSuperLikeDailyLimit: this.positiveInt(
+        raw.freeSuperLikeDailyLimit ?? defaultPlusRules.freeSuperLikeDailyLimit,
+        'invalid_plus_free_super_like_daily_limit',
+      ),
+      plusSuperLikeDailyLimit: this.positiveInt(
+        raw.plusSuperLikeDailyLimit ?? defaultPlusRules.plusSuperLikeDailyLimit,
+        'invalid_plus_super_like_daily_limit',
+      ),
+      paidSuperLikeTokenCost: this.positiveInt(
+        raw.paidSuperLikeTokenCost ?? defaultPlusRules.paidSuperLikeTokenCost,
+        'invalid_plus_paid_super_like_token_cost',
+      ),
+      freeMeetupMonthlyLimit: this.positiveInt(
+        raw.freeMeetupMonthlyLimit ?? defaultPlusRules.freeMeetupMonthlyLimit,
+        'invalid_plus_free_meetup_monthly_limit',
+      ),
+      plusMeetupMonthlyLimit: this.optionalPositiveInt(
+        raw.plusMeetupMonthlyLimit,
+        'invalid_plus_meetup_monthly_limit',
+      ),
+      tokenPurchaseDiscountPercent: this.percentInt(
+        raw.tokenPurchaseDiscountPercent ??
+          defaultPlusRules.tokenPurchaseDiscountPercent,
+        'invalid_plus_token_purchase_discount_percent',
+      ),
+      communityCreationRequiresPlus:
+        raw.communityCreationRequiresPlus !== false,
+      incomingLikesRequiresPlus: raw.incomingLikesRequiresPlus !== false,
+    };
+  }
+
+  private normalizePlusRules(settings: any): PlusBenefitRules {
+    if (settings == null) {
+      return defaultPlusRules;
+    }
+    return {
+      freeSwipeHourlyLimit:
+        this.safePositiveInt(settings.freeSwipeHourlyLimit) ??
+        defaultPlusRules.freeSwipeHourlyLimit,
+      plusSwipeHourlyLimit: this.safeOptionalPositiveInt(settings.plusSwipeHourlyLimit),
+      freeSuperLikeDailyLimit:
+        this.safePositiveInt(settings.freeSuperLikeDailyLimit) ??
+        defaultPlusRules.freeSuperLikeDailyLimit,
+      plusSuperLikeDailyLimit:
+        this.safePositiveInt(settings.plusSuperLikeDailyLimit) ??
+        defaultPlusRules.plusSuperLikeDailyLimit,
+      paidSuperLikeTokenCost:
+        this.safePositiveInt(settings.paidSuperLikeTokenCost) ??
+        defaultPlusRules.paidSuperLikeTokenCost,
+      freeMeetupMonthlyLimit:
+        this.safePositiveInt(settings.freeMeetupMonthlyLimit) ??
+        defaultPlusRules.freeMeetupMonthlyLimit,
+      plusMeetupMonthlyLimit: this.safeOptionalPositiveInt(settings.plusMeetupMonthlyLimit),
+      tokenPurchaseDiscountPercent:
+        this.safePercentInt(settings.tokenPurchaseDiscountPercent) ??
+        defaultPlusRules.tokenPurchaseDiscountPercent,
+      communityCreationRequiresPlus:
+        settings.communityCreationRequiresPlus !== false,
+      incomingLikesRequiresPlus: settings.incomingLikesRequiresPlus !== false,
+    };
+  }
+
   private cleanTextList(value: unknown[]) {
     return value
       .map((item) => (typeof item === 'string' ? item.trim() : ''))
@@ -452,6 +564,37 @@ export class SubscriptionService {
       throw new ApiError(400, code, 'Subscription catalog number is invalid');
     }
     return number;
+  }
+
+  private optionalPositiveInt(value: unknown, code: string) {
+    if (value == null || value === '') {
+      return null;
+    }
+    return this.positiveInt(value, code);
+  }
+
+  private percentInt(value: unknown, code: string) {
+    const number = Number(value);
+    if (!Number.isInteger(number) || number < 0 || number > 100) {
+      throw new ApiError(400, code, 'Subscription catalog number is invalid');
+    }
+    return number;
+  }
+
+  private safePositiveInt(value: unknown) {
+    const number = Number(value);
+    return Number.isInteger(number) && number > 0 ? number : null;
+  }
+
+  private safeOptionalPositiveInt(value: unknown) {
+    return value == null ? null : this.safePositiveInt(value);
+  }
+
+  private safePercentInt(value: unknown) {
+    const number = Number(value);
+    return Number.isInteger(number) && number >= 0 && number <= 100
+      ? number
+      : null;
   }
 
   private nonNegativeInt(value: unknown, code: string) {

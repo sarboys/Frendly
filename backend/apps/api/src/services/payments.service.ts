@@ -36,9 +36,12 @@ export class PaymentsService {
     private readonly tokensService: TokensService,
   ) {}
 
-  async getCatalog() {
+  async getCatalog(userId?: string) {
     const tbankEnabled = this.tbank.isEnabled();
-    const subscriptionCatalog = await this.subscriptionService.getCatalog();
+    const [subscriptionCatalog, tokenDiscountPercent] = await Promise.all([
+      this.subscriptionService.getCatalog(),
+      this.resolveTokenDiscountPercent(userId),
+    ]);
     return {
       tbankEnabled,
       provider: tbankEnabled ? 'tbank' : null,
@@ -57,15 +60,9 @@ export class PaymentsService {
         benefits: product.benefits,
       })),
       plusBenefits: subscriptionCatalog.plusBenefits,
-      tokenPacks: tokenPackProducts.map((product) => ({
-        id: product.id,
-        productKind: product.kind,
-        label: product.label,
-        tokens: product.tokens,
-        bonus: product.bonus,
-        priceRub: product.priceRub,
-        best: product.best,
-      })),
+      tokenPacks: tokenPackProducts.map((product) =>
+        this.mapTokenPack(product, tokenDiscountPercent),
+      ),
       promoOptions: tokenPromotionOptions,
     };
   }
@@ -88,7 +85,10 @@ export class PaymentsService {
         'Frendly+ is paid with tokens',
       );
     }
-    const product = findPaymentProduct(productKind, productId);
+    const product = await this.resolvePaymentProductForUser(
+      userId,
+      findPaymentProduct(productKind, productId),
+    );
     const buyer = await this.prismaService.client.user.findUnique({
       where: { id: userId },
       select: {
@@ -342,6 +342,72 @@ export class PaymentsService {
       productKind: order.productKind,
       productId: order.productId,
     };
+  }
+
+  private async resolvePaymentProductForUser(
+    userId: string,
+    product: PaymentProduct,
+  ): Promise<PaymentProduct> {
+    if (product.kind !== 'tokens') {
+      return product;
+    }
+    const discountPercent = await this.resolveTokenDiscountPercent(userId);
+    if (discountPercent <= 0) {
+      return product;
+    }
+    const amountKopecks = this.discountAmountToWholeRubles(
+      product.amountKopecks,
+      discountPercent,
+    );
+    return {
+      ...product,
+      amountKopecks,
+      priceRub: Math.floor(amountKopecks / 100),
+    };
+  }
+
+  private async resolveTokenDiscountPercent(userId?: string) {
+    if (!userId) {
+      return 0;
+    }
+    const [premium, rules] = await Promise.all([
+      this.subscriptionService.hasPremiumAccess(userId),
+      this.subscriptionService.getPlusBenefitRules(),
+    ]);
+    return premium ? rules.tokenPurchaseDiscountPercent : 0;
+  }
+
+  private mapTokenPack(
+    product: (typeof tokenPackProducts)[number],
+    discountPercent: number,
+  ) {
+    const discountedAmount =
+      discountPercent > 0
+        ? this.discountAmountToWholeRubles(product.amountKopecks, discountPercent)
+        : product.amountKopecks;
+    const priceRub = Math.floor(discountedAmount / 100);
+    return {
+      id: product.id,
+      productKind: product.kind,
+      label: product.label,
+      tokens: product.tokens,
+      bonus: product.bonus,
+      priceRub,
+      originalPriceRub: discountPercent > 0 ? product.priceRub : null,
+      discountPercent,
+      best: product.best,
+    };
+  }
+
+  private discountAmountToWholeRubles(amountKopecks: number, discountPercent: number) {
+    const amountRub = amountKopecks / 100;
+    const discountedRub = Math.round(
+      amountRub * ((100 - discountPercent) / 100),
+    );
+    return Math.max(
+      100,
+      discountedRub * 100,
+    );
   }
 
   private createOrderId() {

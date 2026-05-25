@@ -1857,10 +1857,20 @@ model SubscriptionCatalogPlan {
 }
 
 model SubscriptionCatalogSettings {
-  id        String   @id
-  benefits  String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                           String   @id
+  benefits                     String[] @default([])
+  freeSwipeHourlyLimit         Int      @default(100)
+  plusSwipeHourlyLimit         Int?
+  freeSuperLikeDailyLimit      Int      @default(1)
+  plusSuperLikeDailyLimit      Int      @default(10)
+  paidSuperLikeTokenCost       Int      @default(50)
+  freeMeetupMonthlyLimit       Int      @default(10)
+  plusMeetupMonthlyLimit       Int?
+  tokenPurchaseDiscountPercent Int      @default(15)
+  communityCreationRequiresPlus Boolean @default(true)
+  incomingLikesRequiresPlus    Boolean  @default(true)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
 }
 
 model PaymentOrder {

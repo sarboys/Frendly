@@ -228,10 +228,101 @@ describe('SubscriptionService unit', () => {
         }),
       ],
       plusBenefits: ['Больше встреч', 'Больше лайков'],
+      plusRules: expect.objectContaining({
+        freeSwipeHourlyLimit: 100,
+        plusSwipeHourlyLimit: null,
+        freeSuperLikeDailyLimit: 1,
+        plusSuperLikeDailyLimit: 10,
+        paidSuperLikeTokenCost: 50,
+        freeMeetupMonthlyLimit: 10,
+        plusMeetupMonthlyLimit: null,
+        tokenPurchaseDiscountPercent: 15,
+        communityCreationRequiresPlus: true,
+        incomingLikesRequiresPlus: true,
+      }),
     });
     expect(prismaClient.subscriptionCatalogPlan.findMany).toHaveBeenCalledWith({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+  });
+
+  it('saves editable Frendly Plus benefit rules', async () => {
+    const prismaClient: any = {
+      subscriptionCatalogPlan: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      subscriptionCatalogSettings: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'frendly_plus',
+          benefits: ['Безлимитные свайпы'],
+          freeSwipeHourlyLimit: 120,
+          plusSwipeHourlyLimit: null,
+          freeSuperLikeDailyLimit: 2,
+          plusSuperLikeDailyLimit: 12,
+          paidSuperLikeTokenCost: 40,
+          freeMeetupMonthlyLimit: 8,
+          plusMeetupMonthlyLimit: null,
+          tokenPurchaseDiscountPercent: 20,
+          communityCreationRequiresPlus: false,
+          incomingLikesRequiresPlus: true,
+        }),
+        upsert: jest.fn(),
+      },
+      $transaction: jest.fn(async (callback: any) => callback(prismaClient)),
+    };
+    const service = new SubscriptionService(
+      { client: prismaClient } as any,
+      tokensService as any,
+    );
+
+    await service.updateAdminCatalog({
+      plans: [
+        {
+          id: 'month',
+          label: 'Месяц',
+          description: 'Frendly+',
+          priceRub: 799,
+          priceMonthlyRub: 799,
+          tokenCost: 799,
+          tokenMonthlyCost: 799,
+          trialDays: 0,
+          durationDays: 30,
+          benefits: [],
+          active: true,
+          sortOrder: 0,
+        },
+      ],
+      plusBenefits: ['Безлимитные свайпы'],
+      plusRules: {
+        freeSwipeHourlyLimit: 120,
+        plusSwipeHourlyLimit: null,
+        freeSuperLikeDailyLimit: 2,
+        plusSuperLikeDailyLimit: 12,
+        paidSuperLikeTokenCost: 40,
+        freeMeetupMonthlyLimit: 8,
+        plusMeetupMonthlyLimit: null,
+        tokenPurchaseDiscountPercent: 20,
+        communityCreationRequiresPlus: false,
+        incomingLikesRequiresPlus: true,
+      },
+    });
+
+    expect(prismaClient.subscriptionCatalogSettings.upsert).toHaveBeenCalledWith({
+      where: { id: 'frendly_plus' },
+      update: expect.objectContaining({
+        benefits: ['Безлимитные свайпы'],
+        freeSwipeHourlyLimit: 120,
+        tokenPurchaseDiscountPercent: 20,
+        communityCreationRequiresPlus: false,
+      }),
+      create: expect.objectContaining({
+        id: 'frendly_plus',
+        freeSwipeHourlyLimit: 120,
+        tokenPurchaseDiscountPercent: 20,
+      }),
     });
   });
 

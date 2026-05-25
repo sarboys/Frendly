@@ -8,8 +8,8 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Get('catalog')
-  getCatalog() {
-    return this.paymentsService.getCatalog();
+  getCatalog(@CurrentUser() currentUser: { userId: string }) {
+    return this.paymentsService.getCatalog(currentUser.userId);
   }
 
   @Post('init')

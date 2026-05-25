@@ -1148,14 +1148,7 @@ export class EventsService {
       return next;
     });
 
-    return {
-      id: request.id,
-      eventId: request.eventId,
-      status: request.status,
-      note: request.note,
-      compatibilityScore: request.compatibilityScore,
-      createdAt: request.createdAt.toISOString(),
-    };
+    return this.getEventDetail(userId, eventId);
   }
 
   async cancelJoinRequest(userId: string, eventId: string) {
@@ -1194,11 +1187,7 @@ export class EventsService {
       },
     });
 
-    return {
-      id: canceled.id,
-      eventId: canceled.eventId,
-      status: canceled.status,
-    };
+    return this.getEventDetail(userId, eventId);
   }
 
   async leaveEvent(userId: string, eventId: string) {
@@ -1582,6 +1571,7 @@ export class EventsService {
     if (!hostUser) {
       throw new ApiError(404, 'user_not_found', 'User not found');
     }
+    await this.assertHostCanCreateMonthlyMeetup(userId);
     await this.assertHostCanUseEntryRequirements(userId, entryRequirements);
     const coverAssetId = await this.resolveEventCoverAssetId(
       userId,
@@ -4104,6 +4094,65 @@ export class EventsService {
     if (!unlocked) {
       throw new ApiError(403, 'after_dark_locked', 'After Dark is locked');
     }
+  }
+
+  private async assertHostCanCreateMonthlyMeetup(userId: string) {
+    if (typeof (this.prismaService.client.event as any).count !== 'function') {
+      return;
+    }
+    const [premium, rules] = await Promise.all([
+      typeof (this.subscriptionService as any).hasPremiumAccess === 'function'
+        ? this.subscriptionService.hasPremiumAccess(userId)
+        : Promise.resolve(false),
+      typeof (this.subscriptionService as any).getPlusBenefitRules === 'function'
+        ? (this.subscriptionService as any).getPlusBenefitRules()
+        : Promise.resolve({
+            freeMeetupMonthlyLimit: 10,
+            plusMeetupMonthlyLimit: null,
+          }),
+    ]);
+    const limit = premium
+      ? rules.plusMeetupMonthlyLimit
+      : rules.freeMeetupMonthlyLimit;
+    if (limit == null) {
+      return;
+    }
+    const window = this.currentMoscowMonthWindow();
+    const createdThisMonth = await this.prismaService.client.event.count({
+      where: {
+        hostId: userId,
+        createdAt: {
+          gte: window.start,
+          lt: window.end,
+        },
+      },
+    });
+    if (createdThisMonth >= limit) {
+      throw new ApiError(
+        429,
+        'event_monthly_limit_reached',
+        'Monthly meetup creation limit reached',
+        {
+          limit,
+          remaining: 0,
+          resetAt: window.end.toISOString(),
+        },
+      );
+    }
+  }
+
+  private currentMoscowMonthWindow() {
+    const moscowOffsetMs = 3 * 60 * 60 * 1000;
+    const shifted = new Date(Date.now() + moscowOffsetMs);
+    const start = new Date(
+      Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1) -
+        moscowOffsetMs,
+    );
+    const end = new Date(
+      Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 1) -
+        moscowOffsetMs,
+    );
+    return { start, end };
   }
 
   private parseEventRouteSelection(

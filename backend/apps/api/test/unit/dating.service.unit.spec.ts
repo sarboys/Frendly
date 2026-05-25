@@ -209,8 +209,9 @@ describe('DatingService unit', () => {
     );
   });
 
-  it('allows incoming likes without Frendly+ so mobile can show a locked real count', async () => {
-    const datingActionFindMany = jest.fn().mockResolvedValue([]);
+  it('returns locked incoming likes without Frendly+ when settings require Plus', async () => {
+    const datingActionFindMany = jest.fn();
+    const datingActionCount = jest.fn().mockResolvedValue(3);
     const service = new DatingService(
       {
         client: {
@@ -230,6 +231,7 @@ describe('DatingService unit', () => {
             findMany: jest.fn().mockResolvedValue([]),
           },
           datingAction: {
+            count: datingActionCount,
             findMany: datingActionFindMany,
           },
         },
@@ -237,14 +239,22 @@ describe('DatingService unit', () => {
       {} as any,
       {
         hasPremiumAccess: jest.fn().mockResolvedValue(false),
+        getPlusBenefitRules: jest.fn().mockResolvedValue({
+          incomingLikesRequiresPlus: true,
+        }),
       } as any,
     );
 
-    await expect(service.listLikes('user-me')).resolves.toMatchObject({
-      items: [],
+    await expect(service.listLikes('user-me')).resolves.toEqual({
+      items: [
+        expect.objectContaining({ locked: true }),
+        expect.objectContaining({ locked: true }),
+        expect.objectContaining({ locked: true }),
+      ],
       nextCursor: null,
     });
-    expect(datingActionFindMany).toHaveBeenCalledTimes(1);
+    expect(datingActionCount).toHaveBeenCalledTimes(1);
+    expect(datingActionFindMany).not.toHaveBeenCalled();
   });
 
   it('does not match stale onboarding gender when profile gender conflicts', async () => {
@@ -1387,7 +1397,7 @@ describe('DatingService unit', () => {
     expect(outboxCreateMany).not.toHaveBeenCalled();
   });
 
-  it('rejects the 51st free swipe in one hour', async () => {
+  it('rejects the 101st free swipe in one hour', async () => {
     const upsert = jest.fn();
     const service = new DatingService(
       {
@@ -1395,7 +1405,7 @@ describe('DatingService unit', () => {
           $transaction: jest.fn((callback) =>
             callback({
               datingUsageEvent: {
-                count: jest.fn().mockResolvedValue(50),
+                count: jest.fn().mockResolvedValue(100),
                 create: jest.fn(),
               },
               datingAction: {
@@ -1419,6 +1429,13 @@ describe('DatingService unit', () => {
       {} as any,
       {
         hasPremiumAccess: jest.fn().mockResolvedValue(false),
+        getPlusBenefitRules: jest.fn().mockResolvedValue({
+          freeSwipeHourlyLimit: 100,
+          plusSwipeHourlyLimit: null,
+          freeSuperLikeDailyLimit: 1,
+          plusSuperLikeDailyLimit: 10,
+          paidSuperLikeTokenCost: 50,
+        }),
       } as any,
       {
         spendTokens: jest.fn(),
@@ -1435,6 +1452,46 @@ describe('DatingService unit', () => {
       code: 'dating_swipe_rate_limited',
     });
     expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('returns dating limits from subscription benefit rules', async () => {
+    const service = new DatingService(
+      {
+        client: {
+          datingUsageEvent: {
+            count: jest
+              .fn()
+              .mockResolvedValueOnce(12)
+              .mockResolvedValueOnce(1)
+              .mockResolvedValueOnce(0),
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn().mockResolvedValue(false),
+        getPlusBenefitRules: jest.fn().mockResolvedValue({
+          freeSwipeHourlyLimit: 100,
+          plusSwipeHourlyLimit: null,
+          freeSuperLikeDailyLimit: 2,
+          plusSuperLikeDailyLimit: 12,
+          paidSuperLikeTokenCost: 40,
+        }),
+      } as any,
+    );
+
+    await expect(service.getLimits('user-me')).resolves.toMatchObject({
+      hourlySwipes: {
+        unlimited: false,
+        limit: 100,
+        remaining: 88,
+      },
+      superLikes: {
+        freeLimit: 2,
+        freeRemaining: 1,
+        paidCost: 40,
+      },
+    });
   });
 
   it('does not rate limit Frendly Plus swipes', async () => {
@@ -1610,8 +1667,8 @@ describe('DatingService unit', () => {
       premium: false,
       hourlySwipes: {
         unlimited: false,
-        limit: 50,
-        remaining: 38,
+        limit: 100,
+        remaining: 88,
       },
       superLikes: {
         freeLimit: 1,

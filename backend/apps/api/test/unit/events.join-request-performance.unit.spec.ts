@@ -59,6 +59,10 @@ describe('EventsService join request performance', () => {
       } as any,
       {} as any,
     );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-1',
+      joinRequestStatus: 'pending',
+    } as any);
 
     await service.createJoinRequest('guest-1', 'event-1', {});
 

@@ -228,6 +228,70 @@ describe('DropsService unit', () => {
     });
   });
 
+  it('returns detailed user-facing conditions for every monthly task', async () => {
+    const { service, prismaClient, rewardService } = makeService();
+    prismaClient.user.findUnique.mockResolvedValue({
+      verified: true,
+      status: 'active',
+    });
+    rewardService.getProgress.mockResolvedValue({
+      monthKey: '2026-06',
+      earned: 0,
+      reserved: 0,
+      availableTickets: 0,
+      max: 30,
+      nextResetAt: '2026-07-01T00:00:00.000Z',
+    });
+
+    const result = await service.getTasks('user-1');
+    const bySource = new Map(result.tasks.map((task) => [task.source, task]));
+
+    expect([...bySource.keys()]).toEqual([
+      'verification',
+      'daily_login',
+      'host_meeting',
+      'visit_meeting',
+      'referral',
+      'subscription',
+      'boost',
+    ]);
+    for (const task of result.tasks) {
+      expect(task.conditionDetails).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(`+${task.rewardTickets}`),
+        ]),
+      );
+    }
+    expect(bySource.get('daily_login')).toMatchObject({
+      monthlyLimit: 7,
+      conditionDetails: expect.arrayContaining([
+        expect.stringContaining('по Москве'),
+        expect.stringContaining('7'),
+      ]),
+    });
+    expect(bySource.get('host_meeting')).toMatchObject({
+      monthlyLimit: 5,
+      conditionDetails: expect.arrayContaining([
+        expect.stringContaining('6 часов'),
+        expect.stringContaining('3 гостя'),
+        expect.stringContaining('2 гостя'),
+      ]),
+    });
+    expect(bySource.get('visit_meeting')).toMatchObject({
+      monthlyLimit: 10,
+      conditionDetails: expect.arrayContaining([
+        expect.stringContaining('до старта'),
+        expect.stringContaining('присутствие'),
+      ]),
+    });
+    expect(bySource.get('boost')).toMatchObject({
+      monthlyLimit: 5,
+      conditionDetails: expect.arrayContaining([
+        expect.stringContaining('активации продвижения'),
+      ]),
+    });
+  });
+
   it('returns finished drop winners in detail response', async () => {
     const { service, prismaClient } = makeService();
     prismaClient.drop.findUnique.mockResolvedValue({

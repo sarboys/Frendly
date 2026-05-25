@@ -25,6 +25,10 @@ describe('PaymentsService unit', () => {
       ...overrides.tbank,
     };
     const subscription: any = {
+      hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      getPlusBenefitRules: jest.fn().mockResolvedValue({
+        tokenPurchaseDiscountPercent: 15,
+      }),
       getCatalog: jest.fn().mockResolvedValue({
         plans: [
           {
@@ -175,7 +179,7 @@ describe('PaymentsService unit', () => {
       },
     });
 
-    await expect(service.getCatalog()).resolves.toMatchObject({
+    await expect(service.getCatalog('user-free')).resolves.toMatchObject({
       tbankEnabled: false,
       provider: null,
       subscriptions: [
@@ -192,6 +196,88 @@ describe('PaymentsService unit', () => {
     });
     expect(tbank.isEnabled).toHaveBeenCalled();
     expect(subscription.getCatalog).toHaveBeenCalled();
+  });
+
+  it('returns discounted token packs for Frendly Plus users', async () => {
+    const { service } = makeService({
+      subscription: {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+        getPlusBenefitRules: jest.fn().mockResolvedValue({
+          tokenPurchaseDiscountPercent: 15,
+        }),
+      },
+    });
+
+    await expect(service.getCatalog('user-plus')).resolves.toMatchObject({
+      tokenPacks: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'p1',
+          priceRub: 169,
+          originalPriceRub: 199,
+          discountPercent: 15,
+        }),
+      ]),
+    });
+  });
+
+  it('uses discounted T-Bank amount for Frendly Plus token payment', async () => {
+    process.env.PAYMENTS_TBANK_ENABLED = 'true';
+    process.env.PUBLIC_API_URL = 'https://api.test';
+    process.env.APP_DEEP_LINK_SCHEME = 'frendly';
+
+    const { service, prismaClient, tbank } = makeService({
+      subscription: {
+        hasPremiumAccess: jest.fn().mockResolvedValue(true),
+        getPlusBenefitRules: jest.fn().mockResolvedValue({
+          tokenPurchaseDiscountPercent: 15,
+        }),
+      },
+    });
+    prismaClient.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      email: null,
+      phoneNumber: '+79990000000',
+    });
+    prismaClient.paymentOrder.create.mockResolvedValue({
+      id: 'order-db-1',
+      orderId: 'fr_123',
+      amountKopecks: 16900,
+      productKind: 'tokens',
+      productId: 'p1',
+      status: 'pending',
+    });
+    prismaClient.paymentOrder.update.mockResolvedValue({
+      orderId: 'fr_123',
+      providerPaymentId: 'payment-1',
+      paymentUrl: 'https://pay.test/form',
+      status: 'pending',
+      productKind: 'tokens',
+      productId: 'p1',
+    });
+    tbank.initPayment.mockResolvedValue({
+      Success: true,
+      PaymentId: 'payment-1',
+      PaymentURL: 'https://pay.test/form',
+      Status: 'NEW',
+    });
+
+    await service.initPayment('user-1', {
+      productKind: 'tokens',
+      productId: 'p1',
+    });
+
+    expect(prismaClient.paymentOrder.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          amountKopecks: 16900,
+        }),
+      }),
+    );
+    expect(tbank.initPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        Amount: 16900,
+      }),
+    );
   });
 
   it('rejects direct T-Bank subscription payment init', async () => {

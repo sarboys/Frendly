@@ -789,8 +789,13 @@ export class CommunitiesService {
     body: Record<string, unknown>,
     rawIdempotencyKey?: string,
   ) {
-    const hasPremium = await this.subscriptionService.hasPremiumAccess(userId);
-    if (!hasPremium) {
+    const [hasPremium, rules] = await Promise.all([
+      this.subscriptionService.hasPremiumAccess(userId),
+      typeof (this.subscriptionService as any).getPlusBenefitRules === 'function'
+        ? (this.subscriptionService as any).getPlusBenefitRules()
+        : Promise.resolve({ communityCreationRequiresPlus: true }),
+    ]);
+    if (rules.communityCreationRequiresPlus && !hasPremium) {
       throw new ApiError(
         403,
         'community_plus_required',

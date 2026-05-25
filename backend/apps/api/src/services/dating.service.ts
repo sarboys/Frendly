@@ -24,7 +24,7 @@ const FREE_REWIND_DAILY_LIMIT = 0;
 const PLUS_REWIND_DAILY_LIMIT = 5;
 const PAID_SUPER_LIKE_COST = 50;
 const PAID_REWIND_COST = 25;
-const FREE_SWIPE_HOURLY_LIMIT = 50;
+const FREE_SWIPE_HOURLY_LIMIT = 100;
 const MOSCOW_UTC_OFFSET_MS = 3 * 60 * 60 * 1000;
 const DATING_PROFILE_PHOTO_LIMIT = 6;
 const DATING_PROFILE_PHOTO_MEDIA_SELECT = {
@@ -687,12 +687,14 @@ export class DatingService {
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
-    const [self, blockedUserIds] = await Promise.all([
+    const [self, blockedUserIds, premium, rules] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
         select: DATING_SELF_SELECT,
       }),
       this.getBlockedUserIds(userId),
+      this.subscriptionService.hasPremiumAccess(userId),
+      this.loadPlusRules(),
     ]);
 
     const take = this.normalizeListLimit(params.limit);
@@ -700,26 +702,48 @@ export class DatingService {
     const selfInterests = this.extractInterests(self?.onboarding?.interests);
     const targetGender = this.oppositeGenderForSelf(self);
     const selfLocation = this.resolveUserDatingLocation(self);
-
-    const likes = await this.prismaService.client.datingAction.findMany({
-      where: {
-        targetUserId: userId,
-        action: {
-          in: ['like', 'super_like'],
-        },
-        actorUserId: {
-          notIn: [...blockedUserIds],
-          ...(cursorId == null ? {} : { gt: cursorId }),
-        },
-        actorUser: {
-          ...this.oppositeGenderWhere(targetGender),
-          settings: {
-            is: {
-              discoverable: true,
-            },
+    const where: Prisma.DatingActionWhereInput = {
+      targetUserId: userId,
+      action: {
+        in: ['like', 'super_like'],
+      },
+      actorUserId: {
+        notIn: [...blockedUserIds],
+        ...(cursorId == null ? {} : { gt: cursorId }),
+      },
+      actorUser: {
+        ...this.oppositeGenderWhere(targetGender),
+        settings: {
+          is: {
+            discoverable: true,
           },
         },
       },
+    };
+
+    if (!premium && rules.incomingLikesRequiresPlus) {
+      const total = await this.prismaService.client.datingAction.count({
+        where,
+      });
+      return {
+        items: Array.from({ length: Math.min(total, take) }, (_, index) => ({
+          id: `locked-like-${index + 1}`,
+          userId: `locked-like-${index + 1}`,
+          name: 'Кто-то из Frendly',
+          title: 'Кто-то из Frendly',
+          locked: true,
+          likedYou: true,
+          premiumRequired: true,
+          avatarUrl: null,
+          imageUrl: null,
+          photos: [],
+        })),
+        nextCursor: null,
+      };
+    }
+
+    const likes: any[] = await this.prismaService.client.datingAction.findMany({
+      where,
       select: {
         actorUserId: true,
         actorUser: {
@@ -799,10 +823,11 @@ export class DatingService {
     }
 
     const premium = await this.subscriptionService.hasPremiumAccess(userId);
+    const rules = await this.loadPlusRules();
     const actionChanged = previousAction?.action !== action;
     const writeResult = await this.withDatingTransaction(async (client) => {
       if (actionChanged) {
-        await this.ensureSwipeAllowed(userId, premium, client);
+        await this.ensureSwipeAllowed(userId, premium, rules, client);
       }
       const superLikeQuota =
         action === 'super_like'
@@ -810,6 +835,7 @@ export class DatingService {
               userId,
               targetUserId,
               premium,
+              rules,
               previousAction: previousAction?.action,
               client,
             })
@@ -985,19 +1011,23 @@ export class DatingService {
 
   async getLimits(userId: string) {
     const premium = await this.subscriptionService.hasPremiumAccess(userId);
+    const rules = await this.loadPlusRules();
     const hourWindow = this.currentRollingHourWindow();
     const dayWindow = this.currentMoscowDayWindow();
     const [hourlySwipesUsed, freeSuperLikesUsed, freeRewindsUsed] =
       await Promise.all([
-        premium
+        premium && rules.plusSwipeHourlyLimit == null
           ? Promise.resolve(0)
           : this.countUsage(userId, 'swipe', hourWindow),
         this.countUsage(userId, 'super_like_free', dayWindow),
         this.countUsage(userId, 'rewind_free', dayWindow),
       ]);
     const superLikeLimit = premium
-      ? PLUS_SUPER_LIKE_DAILY_LIMIT
-      : FREE_SUPER_LIKE_DAILY_LIMIT;
+      ? rules.plusSuperLikeDailyLimit
+      : rules.freeSuperLikeDailyLimit;
+    const swipeLimit = premium
+      ? rules.plusSwipeHourlyLimit
+      : rules.freeSwipeHourlyLimit;
     const rewindLimit = premium
       ? PLUS_REWIND_DAILY_LIMIT
       : FREE_REWIND_DAILY_LIMIT;
@@ -1005,17 +1035,17 @@ export class DatingService {
     return {
       premium,
       hourlySwipes: {
-        unlimited: premium,
-        limit: premium ? null : FREE_SWIPE_HOURLY_LIMIT,
-        remaining: premium
+        unlimited: swipeLimit == null,
+        limit: swipeLimit,
+        remaining: swipeLimit == null
           ? null
-          : Math.max(0, FREE_SWIPE_HOURLY_LIMIT - hourlySwipesUsed),
-        resetAt: premium ? null : hourWindow.end.toISOString(),
+          : Math.max(0, swipeLimit - hourlySwipesUsed),
+        resetAt: swipeLimit == null ? null : hourWindow.end.toISOString(),
       },
       superLikes: {
         freeLimit: superLikeLimit,
         freeRemaining: Math.max(0, superLikeLimit - freeSuperLikesUsed),
-        paidCost: PAID_SUPER_LIKE_COST,
+        paidCost: rules.paidSuperLikeTokenCost,
         resetAt: dayWindow.end.toISOString(),
       },
       rewinds: {
@@ -1030,20 +1060,24 @@ export class DatingService {
   private async ensureSwipeAllowed(
     userId: string,
     premium: boolean,
+    rules: Awaited<ReturnType<DatingService['loadPlusRules']>>,
     client: DatingUsageClient,
   ) {
-    if (premium) {
+    const limit = premium
+      ? rules.plusSwipeHourlyLimit
+      : rules.freeSwipeHourlyLimit;
+    if (limit == null) {
       return;
     }
     const window = this.currentRollingHourWindow();
     const used = await this.countUsage(userId, 'swipe', window, client);
-    if (used >= FREE_SWIPE_HOURLY_LIMIT) {
+    if (used >= limit) {
       throw new ApiError(
         429,
         'dating_swipe_rate_limited',
         'Dating swipe limit reached',
         {
-          limit: FREE_SWIPE_HOURLY_LIMIT,
+          limit,
           remaining: 0,
           resetAt: window.end.toISOString(),
         },
@@ -1055,13 +1089,14 @@ export class DatingService {
     userId: string;
     targetUserId: string;
     premium: boolean;
+    rules: Awaited<ReturnType<DatingService['loadPlusRules']>>;
     previousAction?: DatingActionKind;
     client: DatingUsageClient;
   }) {
     const window = this.currentMoscowDayWindow();
     const limit = params.premium
-      ? PLUS_SUPER_LIKE_DAILY_LIMIT
-      : FREE_SUPER_LIKE_DAILY_LIMIT;
+      ? params.rules.plusSuperLikeDailyLimit
+      : params.rules.freeSuperLikeDailyLimit;
     const used = await this.countUsage(
       params.userId,
       'super_like_free',
@@ -1083,16 +1118,16 @@ export class DatingService {
       } else {
         await this.spendDatingTokens(
           params.userId,
-          PAID_SUPER_LIKE_COST,
+          params.rules.paidSuperLikeTokenCost,
           params.client,
         );
         await this.createUsageEvent(params.client, {
           userId: params.userId,
           targetUserId: params.targetUserId,
           kind: 'super_like_paid',
-          chargedTokens: PAID_SUPER_LIKE_COST,
+          chargedTokens: params.rules.paidSuperLikeTokenCost,
         });
-        chargedTokens = PAID_SUPER_LIKE_COST;
+        chargedTokens = params.rules.paidSuperLikeTokenCost;
       }
     }
 
@@ -1102,7 +1137,7 @@ export class DatingService {
       remaining: freeRemaining,
       freeLimit: limit,
       freeRemaining,
-      paidCost: PAID_SUPER_LIKE_COST,
+      paidCost: params.rules.paidSuperLikeTokenCost,
       chargedTokens,
       premium: params.premium,
       resetAt: window.end.toISOString(),
@@ -1233,6 +1268,22 @@ export class DatingService {
       return client.$transaction(callback);
     }
     return callback(client);
+  }
+
+  private async loadPlusRules() {
+    return {
+      freeSwipeHourlyLimit: FREE_SWIPE_HOURLY_LIMIT,
+      plusSwipeHourlyLimit: null as number | null,
+      freeSuperLikeDailyLimit: FREE_SUPER_LIKE_DAILY_LIMIT,
+      plusSuperLikeDailyLimit: PLUS_SUPER_LIKE_DAILY_LIMIT,
+      paidSuperLikeTokenCost: PAID_SUPER_LIKE_COST,
+      incomingLikesRequiresPlus: true,
+      ...(
+        typeof (this.subscriptionService as any).getPlusBenefitRules === 'function'
+          ? await (this.subscriptionService as any).getPlusBenefitRules()
+          : {}
+      ),
+    };
   }
 
   private currentRollingHourWindow() {
