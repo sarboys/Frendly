@@ -456,6 +456,37 @@ describe('AfficheService', () => {
     });
   });
 
+  it('does not trust submitted venueName when MapKit displayName mismatches event venue', async () => {
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst: jest.fn().mockResolvedValue(
+            afficheItem({
+              id: 'affiche-1',
+              venueName: 'Клуб 16 тонн',
+              startsAt: new Date('2030-05-05T16:00:00.000Z'),
+            }),
+          ),
+          update: jest.fn(),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+        lat: 55.763,
+        lng: 37.564,
+        provider: 'yandex_mapkit_client',
+        query: 'Москва, Клуб 16 тонн',
+        displayName: 'Парк Горького',
+        venueName: 'Клуб 16 тонн',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'client_geo_venue_mismatch',
+    });
+  });
+
   it('rate limits client geo saves per user session', async () => {
     const service = new AfficheService({
       client: {

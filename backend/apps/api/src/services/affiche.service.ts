@@ -801,17 +801,13 @@ export class AfficheService {
     if (eventTokens.size === 0) {
       throw new ApiError(400, 'client_geo_venue_missing', 'Event venue name is missing');
     }
-    const candidateText = [
-      params.submittedVenueName,
-      params.displayName,
-      params.query,
-    ].filter((value): value is string => typeof value === 'string').join(' ');
+    const candidateText = this.cleanClientGeoText(params.displayName) ?? '';
     const candidateTokens = this.significantVenueTokens(candidateText);
     const hasMatch = [...eventTokens].some((token) => candidateTokens.has(token));
     if (!hasMatch) {
       throw new ApiError(400, 'client_geo_venue_mismatch', 'Client geo venue does not match event venue');
     }
-    if (this.looksLikeNonVenuePlace(params.displayName ?? params.query) && candidateTokens.size <= 1) {
+    if (this.looksLikeNonVenuePlace(candidateText) && candidateTokens.size <= 1) {
       throw new ApiError(400, 'client_geo_venue_mismatch', 'Client geo result is not a venue');
     }
   }
