@@ -664,6 +664,7 @@ export interface AdminExternalContentItemListDto {
 
 export interface AfficheEventDto {
   id: string;
+  sourceItemId: string | null;
   title: string;
   description: string | null;
   city: string;
@@ -687,6 +688,7 @@ export interface AfficheEventDto {
   actionKind: string | null;
   isAffiliate: boolean;
   tags: string[];
+  geoUpdatedAt: string | null;
 }
 
 export interface AfficheEventListDto {

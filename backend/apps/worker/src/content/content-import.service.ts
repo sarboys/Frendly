@@ -438,7 +438,10 @@ export class ContentImportService {
                 role: 'ticketland_geocoder_backfill',
                 method: 'geocoder_high_confidence',
                 geoConfidence: 'high',
-                ...geocoderEnrichmentFields(geocodedResult),
+                provider: geocodedResult.provider,
+                precision: geocodedResult.precision,
+                kind: geocodedResult.kind,
+                query: geocodedResult.query,
                 querySource: query.source,
                 fields: ['address', 'lat', 'lng'],
               })),
@@ -1465,28 +1468,11 @@ function enrichItemFromGeocoder(
       role: 'affiliate_venue_enriched',
       method: 'geocoder_high_confidence',
       geoConfidence: 'high',
-      ...geocoderEnrichmentFields(geocoded),
+      provider: geocoded.provider,
+      precision: geocoded.precision,
+      kind: geocoded.kind,
       fields: ['address', 'lat', 'lng'],
     }),
-  };
-}
-
-function geocoderEnrichmentFields(geocoded: VenueGeocodeResult) {
-  return {
-    provider: geocoded.provider,
-    precision: geocoded.precision,
-    kind: geocoded.kind,
-    query: geocoded.query,
-    ...(geocoded.provider === 'nominatim'
-      ? {
-        osmType: geocoded.osmType,
-        osmId: geocoded.osmId,
-        category: geocoded.category,
-        type: geocoded.type,
-        importance: geocoded.importance,
-        displayName: geocoded.displayName,
-      }
-      : {}),
   };
 }
 

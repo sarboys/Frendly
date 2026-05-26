@@ -3191,8 +3191,17 @@ describe('EventsService unit', () => {
     }));
   });
 
-  it('rejects source event without valid coordinates', async () => {
+  it('creates an affiche-backed event without coordinates when source has no point yet', async () => {
     const futureAfficheStartsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const eventCreate = jest.fn().mockResolvedValue({ id: 'event-created' });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+    };
     const externalContentFindFirst = jest.fn().mockResolvedValue({
       id: 'affiche-1',
       title: 'Большой стендап',
@@ -3214,25 +3223,105 @@ describe('EventsService unit', () => {
           externalContentItem: {
             findFirst: externalContentFindFirst,
           },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
         },
       } as any,
       {} as any,
     );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+    } as any);
 
-    await expect(
-      service.createEvent('user-me', {
-        afficheEventId: 'affiche-1',
-        title: '',
-        description: '',
-        place: '',
-        vibe: 'Спокойно',
-        capacity: 6,
-        distanceKm: 1,
-      }),
-    ).rejects.toMatchObject({
-      statusCode: 409,
-      code: 'event_source_coordinates_missing',
+    await service.createEvent('user-me', {
+      afficheEventId: 'affiche-1',
+      title: '',
+      description: '',
+      place: '',
+      vibe: 'Спокойно',
+      capacity: 6,
+      distanceKm: 1,
     });
+
+    expect(eventCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        latitude: null,
+        longitude: null,
+        sourceExternalContentItemId: 'affiche-1',
+      }),
+    }));
+  });
+
+  it('uses explicit client coordinates for affiche event creation when source has no point yet', async () => {
+    const futureAfficheStartsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const eventCreate = jest.fn().mockResolvedValue({ id: 'event-created' });
+    const tx = {
+      event: { create: eventCreate },
+      chat: { create: jest.fn().mockResolvedValue({ id: 'event-created-chat' }) },
+      eventParticipant: { create: jest.fn().mockResolvedValue({}) },
+      eventAttendance: { create: jest.fn().mockResolvedValue({}) },
+      eventLiveState: { create: jest.fn().mockResolvedValue({}) },
+      chatMember: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          externalContentItem: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'affiche-1',
+              title: 'Большой стендап',
+              shortSummary: 'Комики на сцене',
+              category: 'comedy',
+              venueName: 'Клуб',
+              address: 'Тверская 1',
+              city: 'Москва',
+              startsAt: futureAfficheStartsAt,
+              lat: null,
+              lng: null,
+            }),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ displayName: 'Никита' }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          $transaction: jest.fn((callback) => callback(tx)),
+        },
+      } as any,
+      {} as any,
+    );
+    jest.spyOn(service, 'getEventDetail').mockResolvedValue({
+      id: 'event-created',
+    } as any);
+
+    await service.createEvent('user-me', {
+      afficheEventId: 'affiche-1',
+      title: '',
+      description: '',
+      place: '',
+      vibe: 'Спокойно',
+      capacity: 6,
+      distanceKm: 1,
+      latitude: 55.763,
+      longitude: 37.564,
+    });
+
+    expect(eventCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        latitude: 55.763,
+        longitude: 37.564,
+        sourceExternalContentItemId: 'affiche-1',
+      }),
+    }));
   });
 
   it('rejects custom route event without a valid first route point', async () => {

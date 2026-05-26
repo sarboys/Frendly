@@ -5,6 +5,7 @@ import type {
   MediaVariantDto,
 } from '@big-break/contracts';
 import {
+  bboxForContentCity,
   createPresignedDownload,
   decodeCursor,
   encodeCursor,
@@ -35,6 +36,7 @@ const afficheEventSelect = {
   shortSummary: true,
   city: true,
   timezone: true,
+  sourceItemId: true,
   venueName: true,
   address: true,
   lat: true,
@@ -53,6 +55,7 @@ const afficheEventSelect = {
   actionKind: true,
   isAffiliate: true,
   tags: true,
+  updatedAt: true,
   source: {
     select: { code: true, name: true },
   },
@@ -76,13 +79,67 @@ type AfficheImageStream = {
   etag: string;
 };
 
+type AfficheClientGeoInput = {
+  lat?: unknown;
+  lng?: unknown;
+  provider?: unknown;
+  query?: unknown;
+  displayName?: unknown;
+  venueName?: unknown;
+};
+
+type AfficheClientGeoResult = {
+  id: string;
+  lat: number | null;
+  lng: number | null;
+  address: string | null;
+  saved: boolean;
+  code: 'saved' | 'already_has_coords' | 'same_coords';
+};
+
+type ClientGeoRateLimitEntry = {
+  resetAt: number;
+  count: number;
+};
+
 const AFFICHE_IMAGE_PROXY_CACHE_SECONDS = 86_400;
 const AFFICHE_IMAGE_PROXY_STALE_SECONDS = 604_800;
 const AFFICHE_MIRRORED_IMAGE_CACHE_CONTROL =
   'public, max-age=31536000, immutable';
+const CLIENT_GEO_PROVIDER = 'yandex_mapkit_client';
+const CLIENT_GEO_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const CLIENT_GEO_RATE_LIMIT_COUNT = 10;
+const CLIENT_GEO_COORD_EPSILON = 0.00001;
+const CLIENT_GEO_STOP_WORDS = new Set([
+  'театр',
+  'клуб',
+  'кафе',
+  'ресторан',
+  'дом',
+  'сцена',
+  'зал',
+  'центр',
+  'московский',
+]);
+const CLIENT_GEO_PLACE_KIND_WORDS = new Set([
+  'улица',
+  'ул',
+  'проспект',
+  'пр',
+  'переулок',
+  'район',
+  'микрорайон',
+  'жк',
+  'locality',
+  'метро',
+  'площадь',
+  'набережная',
+]);
 
 @Injectable()
 export class AfficheService {
+  private readonly clientGeoRateLimits = new Map<string, ClientGeoRateLimitEntry>();
+
   constructor(private readonly prismaService: PrismaService) {}
 
   async listEvents(query: Record<string, unknown> = {}): Promise<AfficheEventListDto> {
@@ -125,6 +182,119 @@ export class AfficheService {
       throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
     }
     return this.mapEvent(item);
+  }
+
+  async saveClientGeo(
+    eventId: string,
+    userId: string,
+    sessionId: string | undefined,
+    input: AfficheClientGeoInput,
+  ): Promise<AfficheClientGeoResult> {
+    this.assertClientGeoRateLimit(userId, sessionId);
+    const lat = this.parseClientCoordinate(input.lat, 'lat');
+    const lng = this.parseClientCoordinate(input.lng, 'lng');
+    if (input.provider !== CLIENT_GEO_PROVIDER) {
+      throw new ApiError(400, 'client_geo_provider_invalid', 'Client geo provider is invalid');
+    }
+    const query = this.cleanClientGeoText(typeof input.query === 'string' ? input.query : null);
+    if (!query) {
+      throw new ApiError(400, 'client_geo_query_required', 'Client geo query is required');
+    }
+
+    const item = await this.prismaService.client.externalContentItem.findFirst({
+      where: { id: eventId, contentKind: 'event' },
+      select: {
+        id: true,
+        city: true,
+        venueName: true,
+        address: true,
+        lat: true,
+        lng: true,
+        startsAt: true,
+        endsAt: true,
+        expiresAt: true,
+        priceMode: true,
+        actionUrl: true,
+        publicStatus: true,
+        moderationStatus: true,
+        raw: true,
+        source: { select: { code: true } },
+      },
+    });
+    if (!item) {
+      throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
+    }
+    if (item.source?.code !== 'advcake_ticketland') {
+      throw new ApiError(409, 'client_geo_source_not_supported', 'Client geo source is not supported');
+    }
+    if (item.moderationStatus === 'rejected') {
+      throw new ApiError(409, 'client_geo_event_rejected', 'Rejected affiche event cannot be enriched');
+    }
+    this.assertClientGeoEventFresh(item);
+
+    if (this.hasValidCoordinatePair(item.lat, item.lng)) {
+      return {
+        id: item.id,
+        lat: item.lat,
+        lng: item.lng,
+        address: item.address ?? null,
+        saved: false,
+        code: this.sameClientGeoPoint(item.lat, item.lng, lat, lng)
+          ? 'same_coords'
+          : 'already_has_coords',
+      };
+    }
+
+    this.assertPointInCityBbox(item.city, lat, lng);
+    this.assertVenueSimilar({
+      eventVenueName: item.venueName,
+      submittedVenueName: typeof input.venueName === 'string' ? input.venueName : null,
+      displayName: typeof input.displayName === 'string' ? input.displayName : null,
+      query,
+    });
+
+    const safeDisplayName = this.safeClientGeoDisplayName(
+      typeof input.displayName === 'string' ? input.displayName : null,
+    );
+    const address = item.address?.trim() || safeDisplayName || null;
+    const fields = ['lat', 'lng'];
+    if (!item.address && safeDisplayName) {
+      fields.push('address');
+    }
+    const raw = this.mergeClientGeoRaw(item.raw, {
+      provider: CLIENT_GEO_PROVIDER,
+      role: 'client_affiche_geo_enriched',
+      query,
+      displayName: safeDisplayName,
+      geoConfidence: 'client_place_search',
+      updatedByUserId: userId,
+      fields,
+    });
+    const shouldPublish =
+      item.priceMode === 'paid' &&
+      typeof item.actionUrl === 'string' &&
+      item.actionUrl.trim().length > 0 &&
+      item.moderationStatus !== 'rejected';
+
+    const updated = await this.prismaService.client.externalContentItem.update({
+      where: { id: item.id },
+      data: {
+        lat,
+        lng,
+        ...(address != null && !item.address ? { address } : {}),
+        raw: raw as Prisma.InputJsonValue,
+        ...(shouldPublish ? { publicStatus: 'published' } : {}),
+      },
+    });
+
+    return {
+      id: updated.id,
+      lat: updated.lat ?? lat,
+      lng: updated.lng ?? lng,
+      address: updated.address ?? address,
+      saved: true,
+      code: 'saved',
+    };
   }
 
   async getImage(
@@ -523,6 +693,7 @@ export class AfficheService {
   private mapEvent(item: AfficheEventRecord): AfficheEventDto {
     return {
       id: item.id,
+      sourceItemId: item.sourceItemId ?? null,
       title: item.title,
       description: item.shortSummary ?? null,
       city: item.city,
@@ -546,7 +717,177 @@ export class AfficheService {
       actionKind: item.actionKind ?? null,
       isAffiliate: item.isAffiliate === true,
       tags: Array.isArray(item.tags) ? item.tags.filter((tag: unknown): tag is string => typeof tag === 'string') : [],
+      geoUpdatedAt:
+        this.hasValidCoordinatePair(item.lat, item.lng) && item.updatedAt
+          ? item.updatedAt.toISOString()
+          : null,
     };
+  }
+
+  private assertClientGeoRateLimit(userId: string, sessionId?: string) {
+    const now = Date.now();
+    const key = `${userId}:${sessionId?.trim() || 'unknown'}`;
+    const current = this.clientGeoRateLimits.get(key);
+    if (!current || current.resetAt <= now) {
+      this.clientGeoRateLimits.set(key, {
+        count: 1,
+        resetAt: now + CLIENT_GEO_RATE_LIMIT_WINDOW_MS,
+      });
+      return;
+    }
+    if (current.count >= CLIENT_GEO_RATE_LIMIT_COUNT) {
+      throw new ApiError(429, 'client_geo_rate_limited', 'Client geo rate limit exceeded');
+    }
+    current.count += 1;
+  }
+
+  private parseClientCoordinate(value: unknown, field: 'lat' | 'lng') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new ApiError(400, `client_geo_${field}_invalid`, `${field} is invalid`);
+    }
+    if (
+      field === 'lat'
+        ? value < -90 || value > 90
+        : value < -180 || value > 180
+    ) {
+      throw new ApiError(400, `client_geo_${field}_invalid`, `${field} is invalid`);
+    }
+    if (value === 0) {
+      throw new ApiError(400, `client_geo_${field}_invalid`, `${field} is invalid`);
+    }
+    return value;
+  }
+
+  private assertClientGeoEventFresh(item: {
+    startsAt: Date | null;
+    endsAt: Date | null;
+    expiresAt: Date | null;
+  }) {
+    const now = Date.now();
+    const expiry = item.expiresAt ?? item.endsAt;
+    if (expiry && expiry.getTime() < now) {
+      throw new ApiError(409, 'client_geo_event_expired', 'Affiche event is expired');
+    }
+    if (!expiry && item.startsAt && item.startsAt.getTime() < now - 24 * 60 * 60 * 1000) {
+      throw new ApiError(409, 'client_geo_event_expired', 'Affiche event is expired');
+    }
+  }
+
+  private assertPointInCityBbox(city: string, lat: number, lng: number) {
+    const bbox = bboxForContentCity(city);
+    if (!bbox) {
+      throw new ApiError(400, 'client_geo_city_bbox_missing', 'City bbox is missing');
+    }
+    const values = bbox.split(',').map((value) => Number.parseFloat(value));
+    if (values.length !== 4 || values.some((value) => !Number.isFinite(value))) {
+      throw new ApiError(400, 'client_geo_city_bbox_missing', 'City bbox is missing');
+    }
+    const south = values[0]!;
+    const west = values[1]!;
+    const north = values[2]!;
+    const east = values[3]!;
+    if (lat < south || lat > north || lng < west || lng > east) {
+      throw new ApiError(400, 'client_geo_out_of_city_bbox', 'Client geo point is outside city bbox');
+    }
+  }
+
+  private assertVenueSimilar(params: {
+    eventVenueName: string | null;
+    submittedVenueName?: string | null;
+    displayName?: string | null;
+    query: string;
+  }) {
+    const eventTokens = this.significantVenueTokens(params.eventVenueName);
+    if (eventTokens.size === 0) {
+      throw new ApiError(400, 'client_geo_venue_missing', 'Event venue name is missing');
+    }
+    const candidateText = [
+      params.submittedVenueName,
+      params.displayName,
+      params.query,
+    ].filter((value): value is string => typeof value === 'string').join(' ');
+    const candidateTokens = this.significantVenueTokens(candidateText);
+    const hasMatch = [...eventTokens].some((token) => candidateTokens.has(token));
+    if (!hasMatch) {
+      throw new ApiError(400, 'client_geo_venue_mismatch', 'Client geo venue does not match event venue');
+    }
+    if (this.looksLikeNonVenuePlace(params.displayName ?? params.query) && candidateTokens.size <= 1) {
+      throw new ApiError(400, 'client_geo_venue_mismatch', 'Client geo result is not a venue');
+    }
+  }
+
+  private significantVenueTokens(value?: string | null) {
+    const normalized = this.normalizeVenueText(value);
+    const tokens = normalized
+      .split(' ')
+      .map((token) => token.trim())
+      .filter((token) => token.length > 1 && !CLIENT_GEO_STOP_WORDS.has(token));
+    return new Set(tokens);
+  }
+
+  private normalizeVenueText(value?: string | null) {
+    return (value ?? '')
+      .toLowerCase()
+      .replaceAll('ё', 'е')
+      .replace(/["'«»“”„`]/g, ' ')
+      .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private looksLikeNonVenuePlace(value: string) {
+    const tokens = new Set(this.normalizeVenueText(value).split(' ').filter(Boolean));
+    return [...CLIENT_GEO_PLACE_KIND_WORDS].some((token) => tokens.has(token));
+  }
+
+  private safeClientGeoDisplayName(value?: string | null) {
+    const cleaned = this.cleanClientGeoText(value);
+    if (!cleaned || cleaned.length > 160 || /^https?:\/\//i.test(cleaned)) {
+      return null;
+    }
+    return cleaned;
+  }
+
+  private cleanClientGeoText(value?: string | null) {
+    const cleaned = value?.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+    return cleaned && cleaned.length > 0 ? cleaned : null;
+  }
+
+  private mergeClientGeoRaw(raw: unknown, enrichment: Prisma.InputJsonObject) {
+    const base =
+      raw != null && typeof raw === 'object' && !Array.isArray(raw)
+        ? { ...(raw as Prisma.InputJsonObject) }
+        : {};
+    return {
+      ...base,
+      enrichment,
+    };
+  }
+
+  private sameClientGeoPoint(
+    currentLat: number | null,
+    currentLng: number | null,
+    nextLat: number,
+    nextLng: number,
+  ) {
+    return (
+      typeof currentLat === 'number' &&
+      typeof currentLng === 'number' &&
+      Math.abs(currentLat - nextLat) <= CLIENT_GEO_COORD_EPSILON &&
+      Math.abs(currentLng - nextLng) <= CLIENT_GEO_COORD_EPSILON
+    );
+  }
+
+  private hasValidCoordinatePair(lat: unknown, lng: unknown): lat is number {
+    return typeof lat === 'number' &&
+      typeof lng === 'number' &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180 &&
+      !(lat === 0 && lng === 0);
   }
 
   private mapImageUrl(imageUrl: string | null) {

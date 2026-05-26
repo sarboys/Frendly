@@ -183,6 +183,321 @@ describe('AfficheService', () => {
     expect(findFirstArgs.select).not.toHaveProperty('raw');
   });
 
+  it('saves valid Ticketland client coordinates and enrichment metadata', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'affiche-1',
+        sourceItemId: 'ticketland-1',
+        city: 'Москва',
+        venueName: 'Клуб 16 тонн',
+        address: null,
+        lat: null,
+        lng: null,
+        startsAt: new Date('2030-05-05T16:00:00.000Z'),
+        moderationStatus: 'pending',
+        raw: { ticketland: { id: 'ticketland-1' } },
+      }),
+    );
+    const update = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'affiche-1',
+        address: 'Клуб 16 тонн',
+        lat: 55.763,
+        lng: 37.564,
+      }),
+    );
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst,
+          update,
+        },
+      },
+    } as any);
+
+    const result = await service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+      lat: 55.763,
+      lng: 37.564,
+      provider: 'yandex_mapkit_client',
+      query: 'Москва, Клуб 16 тонн',
+      displayName: 'Клуб 16 тонн',
+      venueName: 'Клуб 16 тонн',
+    });
+
+    expect(result).toMatchObject({
+      id: 'affiche-1',
+      lat: 55.763,
+      lng: 37.564,
+      address: 'Клуб 16 тонн',
+      saved: true,
+      code: 'saved',
+    });
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'affiche-1' },
+      data: expect.objectContaining({
+        lat: 55.763,
+        lng: 37.564,
+        address: 'Клуб 16 тонн',
+        publicStatus: 'published',
+        raw: expect.objectContaining({
+          ticketland: { id: 'ticketland-1' },
+          enrichment: expect.objectContaining({
+            provider: 'yandex_mapkit_client',
+            role: 'client_affiche_geo_enriched',
+            query: 'Москва, Клуб 16 тонн',
+            displayName: 'Клуб 16 тонн',
+            geoConfidence: 'client_place_search',
+            updatedByUserId: 'user-1',
+            fields: ['lat', 'lng', 'address'],
+          }),
+        }),
+      }),
+    });
+  });
+
+  it('publishes paid Ticketland event with actionUrl after client geo save', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'affiche-1',
+        venueName: 'Клуб 16 тонн',
+        lat: null,
+        lng: null,
+        startsAt: new Date('2030-05-05T16:00:00.000Z'),
+        priceMode: 'paid',
+        actionUrl: 'https://go.avred.online/click',
+        publicStatus: 'pending',
+        moderationStatus: 'pending',
+      }),
+    );
+    const update = jest.fn().mockResolvedValue(afficheItem({ id: 'affiche-1' }));
+    const service = new AfficheService({
+      client: {
+        externalContentItem: { findFirst, update },
+      },
+    } as any);
+
+    await service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+      lat: 55.763,
+      lng: 37.564,
+      provider: 'yandex_mapkit_client',
+      query: 'Москва, Клуб 16 тонн',
+      displayName: 'Клуб 16 тонн',
+      venueName: 'Клуб 16 тонн',
+    });
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ publicStatus: 'published' }),
+    }));
+  });
+
+  it('is idempotent for existing backend coordinates and does not overwrite them', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'affiche-1',
+        venueName: 'Клуб 16 тонн',
+        address: 'Старая точка',
+        lat: 55.7,
+        lng: 37.5,
+        startsAt: new Date('2030-05-05T16:00:00.000Z'),
+        moderationStatus: 'pending',
+      }),
+    );
+    const update = jest.fn();
+    const service = new AfficheService({
+      client: {
+        externalContentItem: { findFirst, update },
+      },
+    } as any);
+
+    const result = await service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+      lat: 55.763,
+      lng: 37.564,
+      provider: 'yandex_mapkit_client',
+      query: 'Москва, Клуб 16 тонн',
+      displayName: 'Клуб 16 тонн',
+      venueName: 'Клуб 16 тонн',
+    });
+
+    expect(result).toMatchObject({
+      lat: 55.7,
+      lng: 37.5,
+      address: 'Старая точка',
+      saved: false,
+      code: 'already_has_coords',
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('returns same_coords when the same client point is submitted twice', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'affiche-1',
+        venueName: 'Клуб 16 тонн',
+        lat: 55.7630001,
+        lng: 37.5640001,
+        startsAt: new Date('2030-05-05T16:00:00.000Z'),
+        raw: {
+          enrichment: {
+            provider: 'yandex_mapkit_client',
+          },
+        },
+      }),
+    );
+    const service = new AfficheService({
+      client: {
+        externalContentItem: { findFirst, update: jest.fn() },
+      },
+    } as any);
+
+    const result = await service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+      lat: 55.763,
+      lng: 37.564,
+      provider: 'yandex_mapkit_client',
+      query: 'Москва, Клуб 16 тонн',
+      displayName: 'Клуб 16 тонн',
+      venueName: 'Клуб 16 тонн',
+    });
+
+    expect(result.code).toBe('same_coords');
+    expect(result.saved).toBe(false);
+  });
+
+  it('rejects client coordinates outside the event city bbox', async () => {
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst: jest.fn().mockResolvedValue(
+            afficheItem({
+              id: 'affiche-1',
+              city: 'Москва',
+              venueName: 'Клуб 16 тонн',
+              startsAt: new Date('2030-05-05T16:00:00.000Z'),
+            }),
+          ),
+          update: jest.fn(),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+        lat: 59.93,
+        lng: 30.33,
+        provider: 'yandex_mapkit_client',
+        query: 'Москва, Клуб 16 тонн',
+        displayName: 'Клуб 16 тонн',
+        venueName: 'Клуб 16 тонн',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'client_geo_out_of_city_bbox',
+    });
+  });
+
+  it('rejects mismatched venue names and rejected moderation', async () => {
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst: jest.fn().mockResolvedValue(
+            afficheItem({
+              id: 'affiche-1',
+              venueName: 'Клуб 16 тонн',
+              startsAt: new Date('2030-05-05T16:00:00.000Z'),
+              moderationStatus: 'pending',
+            }),
+          ),
+          update: jest.fn(),
+        },
+      },
+    } as any);
+
+    await expect(
+      service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+        lat: 55.763,
+        lng: 37.564,
+        provider: 'yandex_mapkit_client',
+        query: 'Москва, Парк Горького',
+        displayName: 'Парк Горького',
+        venueName: 'Парк Горького',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'client_geo_venue_mismatch',
+    });
+
+    const rejectedService = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst: jest.fn().mockResolvedValue(
+            afficheItem({
+              id: 'affiche-2',
+              venueName: 'Клуб 16 тонн',
+              startsAt: new Date('2030-05-05T16:00:00.000Z'),
+              moderationStatus: 'rejected',
+            }),
+          ),
+          update: jest.fn(),
+        },
+      },
+    } as any);
+
+    await expect(
+      rejectedService.saveClientGeo('affiche-2', 'user-1', 'session-1', {
+        lat: 55.763,
+        lng: 37.564,
+        provider: 'yandex_mapkit_client',
+        query: 'Москва, Клуб 16 тонн',
+        displayName: 'Клуб 16 тонн',
+        venueName: 'Клуб 16 тонн',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'client_geo_event_rejected',
+    });
+  });
+
+  it('rate limits client geo saves per user session', async () => {
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst: jest.fn().mockResolvedValue(
+            afficheItem({
+              id: 'affiche-1',
+              venueName: 'Клуб 16 тонн',
+              startsAt: new Date('2030-05-05T16:00:00.000Z'),
+            }),
+          ),
+          update: jest.fn().mockResolvedValue(afficheItem({ id: 'affiche-1' })),
+        },
+      },
+    } as any);
+
+    for (let index = 0; index < 10; index += 1) {
+      await service.saveClientGeo(`affiche-${index}`, 'user-1', 'session-1', {
+        lat: 55.763,
+        lng: 37.564,
+        provider: 'yandex_mapkit_client',
+        query: 'Москва, Клуб 16 тонн',
+        displayName: 'Клуб 16 тонн',
+        venueName: 'Клуб 16 тонн',
+      });
+    }
+
+    await expect(
+      service.saveClientGeo('affiche-11', 'user-1', 'session-1', {
+        lat: 55.763,
+        lng: 37.564,
+        provider: 'yandex_mapkit_client',
+        query: 'Москва, Клуб 16 тонн',
+        displayName: 'Клуб 16 тонн',
+        venueName: 'Клуб 16 тонн',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'client_geo_rate_limited',
+    });
+  });
+
   it('keeps mirrored S3 event images on CDN URLs', async () => {
     process.env.S3_ACCESS_KEY = 'tenant-id:key-id';
     process.env.S3_SECRET_KEY = 'secret';

@@ -13,6 +13,7 @@ import { AdminPartnerAccountsController } from './controllers/admin-partner-acco
 import { AdminSubscriptionSettingsController } from './controllers/admin-subscription-settings.controller';
 import { AdminUsersController } from './controllers/admin-users.controller';
 import { AdminVerificationController } from './controllers/admin-verification.controller';
+import { AfficheClientGeoController } from './controllers/affiche-client-geo.controller';
 import { AfficheController } from './controllers/affiche.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { AppOverlayController } from './controllers/app-overlay.controller';
@@ -126,6 +127,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     AdminSubscriptionSettingsController,
     AdminUsersController,
     AdminVerificationController,
+    AfficheClientGeoController,
     AfficheController,
     AfterDarkController,
     AppOverlayController,

@@ -36,6 +36,11 @@ type EventGeoPoint = {
   longitude: number;
 };
 
+type EventCreateGeoPoint = {
+  latitude: number | null;
+  longitude: number | null;
+};
+
 type EventGeoBounds = {
   south: number;
   west: number;
@@ -1536,11 +1541,11 @@ export class EventsService {
       throw new ApiError(400, 'invalid_event_payload', 'distanceKm is invalid');
     }
 
-    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+    if (latitude != null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
       throw new ApiError(400, 'invalid_event_payload', 'latitude is invalid');
     }
 
-    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    if (longitude != null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
       throw new ApiError(400, 'invalid_event_payload', 'longitude is invalid');
     }
 
@@ -4360,7 +4365,7 @@ export class EventsService {
     existingRoute: { steps: Array<{ lat: number | null; lng: number | null }> } | null;
     afficheEvent: { lat?: number | null; lng?: number | null } | null;
     externalPlace: { lat?: number | null; lng?: number | null } | null;
-  }): Promise<EventGeoPoint> {
+  }): Promise<EventCreateGeoPoint> {
     const explicitPoint = this.parseExplicitEventCoordinates(params.body);
 
     if (params.routeSelection != null) {
@@ -4378,7 +4383,14 @@ export class EventsService {
     }
 
     if (params.afficheEvent != null) {
-      return this.requireSourceCoordinates(params.afficheEvent);
+      const sourcePoint = this.sourceCoordinates(params.afficheEvent);
+      if (sourcePoint != null) {
+        return sourcePoint;
+      }
+      if (explicitPoint != null) {
+        return explicitPoint;
+      }
+      return { latitude: null, longitude: null };
     }
 
     if (params.externalPlace != null) {
@@ -4448,17 +4460,25 @@ export class EventsService {
   }
 
   private requireSourceCoordinates(source: { lat?: number | null; lng?: number | null }) {
-    if (this.isValidEventCoordinatePoint(source.lat, source.lng)) {
-      return {
-        latitude: source.lat as number,
-        longitude: source.lng as number,
-      };
+    const point = this.sourceCoordinates(source);
+    if (point != null) {
+      return point;
     }
     throw new ApiError(
       409,
       'event_source_coordinates_missing',
       'Selected source has no coordinates',
     );
+  }
+
+  private sourceCoordinates(source: { lat?: number | null; lng?: number | null }) {
+    if (!this.isValidEventCoordinatePoint(source.lat, source.lng)) {
+      return null;
+    }
+    return {
+      latitude: source.lat as number,
+      longitude: source.lng as number,
+    };
   }
 
   private isValidEventCoordinatePoint(lat: unknown, lng: unknown): lat is number {
