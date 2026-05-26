@@ -2,8 +2,8 @@ import { bboxForContentCity } from './content-city-catalog';
 
 const DEFAULT_YANDEX_GEOCODER_URL = 'https://geocode-maps.yandex.ru/1.x/';
 const DEFAULT_NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
-const DEFAULT_NOMINATIM_RATE_LIMIT_MS = 1200;
 const DEFAULT_TIMEOUT_MS = 2500;
+const DEFAULT_NOMINATIM_RATE_LIMIT_MS = 1200;
 
 export type VenueGeocodeInput = {
   city: string;
@@ -20,7 +20,7 @@ export type VenueGeocodeResult = {
   precision: string | null;
   kind: string | null;
   osmType?: string | null;
-  osmId?: number | string | null;
+  osmId?: number | null;
   category?: string | null;
   type?: string | null;
   importance?: number | null;
@@ -31,10 +31,6 @@ type VenueGeocoderClientOptions = {
   apiKey?: string | null;
   baseUrl?: string | null;
   timeoutMs?: number | null;
-  nominatimEnabled?: boolean | string | null;
-  nominatimBaseUrl?: string | null;
-  nominatimUserAgent?: string | null;
-  nominatimRateLimitMs?: number | string | null;
 };
 
 export class VenueGeocoderHttpError extends Error {
@@ -50,8 +46,9 @@ export function isVenueGeocoderLimitError(value: unknown) {
 }
 
 export class VenueGeocoderClient {
-  private static readonly nominatimCache = new Map<string, Promise<VenueGeocodeResult | null>>();
-  private static nominatimNextRequestAt = 0;
+  private static readonly nominatimCache = new Map<string, VenueGeocodeResult | null>();
+  private static lastNominatimRequestAt = 0;
+  private static nominatimStoppedForRun = false;
 
   private readonly apiKey: string | null;
   private readonly baseUrl: string;
@@ -73,24 +70,19 @@ export class VenueGeocoderClient {
       options.timeoutMs ?? process.env.CONTENT_GEOCODER_TIMEOUT_MS,
       DEFAULT_TIMEOUT_MS,
     );
-    this.nominatimEnabled = booleanFlag(
-      options.nominatimEnabled ?? process.env.NOMINATIM_GEOCODER_ENABLED,
-      false,
-    );
-    this.nominatimBaseUrl = cleanText(options.nominatimBaseUrl ?? process.env.NOMINATIM_BASE_URL)
-      ?? DEFAULT_NOMINATIM_URL;
-    this.nominatimUserAgent = cleanText(
-      options.nominatimUserAgent ?? process.env.NOMINATIM_USER_AGENT,
-    );
-    this.nominatimRateLimitMs = positiveInt(
-      options.nominatimRateLimitMs ?? process.env.NOMINATIM_RATE_LIMIT_MS,
+    this.nominatimEnabled = process.env.NOMINATIM_GEOCODER_ENABLED === 'true';
+    this.nominatimBaseUrl = cleanText(process.env.NOMINATIM_BASE_URL) ?? DEFAULT_NOMINATIM_URL;
+    this.nominatimUserAgent = cleanText(process.env.NOMINATIM_USER_AGENT);
+    this.nominatimRateLimitMs = nonNegativeInt(
+      process.env.NOMINATIM_RATE_LIMIT_MS,
       DEFAULT_NOMINATIM_RATE_LIMIT_MS,
     );
   }
 
   static resetNominatimStateForTests() {
     VenueGeocoderClient.nominatimCache.clear();
-    VenueGeocoderClient.nominatimNextRequestAt = 0;
+    VenueGeocoderClient.lastNominatimRequestAt = 0;
+    VenueGeocoderClient.nominatimStoppedForRun = false;
   }
 
   async geocode(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
@@ -102,19 +94,15 @@ export class VenueGeocoderClient {
   }
 
   async geocodeOrThrow(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
-    const nominatim = await this.geocodeWithNominatim(input);
-    if (nominatim) {
-      return nominatim;
-    }
-    return this.geocodeWithYandex(input);
-  }
-
-  private async geocodeWithYandex(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
-    if (!this.apiKey) {
-      return null;
+    const nominatimResult = await this.geocodeWithNominatim(input);
+    if (nominatimResult) {
+      return nominatimResult;
     }
     const query = geocodeQuery(input);
     if (!query) {
+      return null;
+    }
+    if (!this.apiKey) {
       return null;
     }
 
@@ -150,32 +138,23 @@ export class VenueGeocoderClient {
     }
   }
 
-  private geocodeWithNominatim(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
-    const query = nominatimQuery(input);
-    if (!this.nominatimEnabled || !this.nominatimUserAgent || !query) {
-      return Promise.resolve(null);
+  private async geocodeWithNominatim(input: VenueGeocodeInput): Promise<VenueGeocodeResult | null> {
+    if (!this.nominatimEnabled || VenueGeocoderClient.nominatimStoppedForRun) {
+      return null;
+    }
+    const city = cleanText(input.city);
+    const venueName = cleanText(input.venueName);
+    const address = cleanText(input.address);
+    if (!city || !venueName || address || !this.nominatimUserAgent) {
+      return null;
     }
 
-    const key = nominatimCacheKey(input.city, input.venueName);
-    const cached = VenueGeocoderClient.nominatimCache.get(key);
-    if (cached) {
-      return cached;
+    const query = `${city}, ${venueName}`;
+    const cacheKey = normalizedCacheKey(query);
+    if (VenueGeocoderClient.nominatimCache.has(cacheKey)) {
+      return VenueGeocoderClient.nominatimCache.get(cacheKey) ?? null;
     }
 
-    const load = this.fetchNominatim(query, input.city, input.venueName)
-      .catch((caught) => {
-        VenueGeocoderClient.nominatimCache.delete(key);
-        throw caught;
-      });
-    VenueGeocoderClient.nominatimCache.set(key, load);
-    return load;
-  }
-
-  private async fetchNominatim(
-    query: string,
-    city: string,
-    venueName: string | null,
-  ): Promise<VenueGeocodeResult | null> {
     await this.waitForNominatimSlot();
 
     const controller = new AbortController();
@@ -187,39 +166,45 @@ export class VenueGeocoderClient {
       url.searchParams.set('format', 'jsonv2');
       url.searchParams.set('limit', '5');
       url.searchParams.set('countrycodes', 'ru');
-      url.searchParams.set('addressdetails', '1');
-      url.searchParams.set('accept-language', 'ru');
+      const viewbox = nominatimViewbox(city);
+      if (viewbox) {
+        url.searchParams.set('viewbox', viewbox);
+        url.searchParams.set('bounded', '1');
+      }
 
+      VenueGeocoderClient.lastNominatimRequestAt = Date.now();
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
           Accept: 'application/json',
-          'User-Agent': this.nominatimUserAgent ?? '',
+          'User-Agent': this.nominatimUserAgent,
         },
       });
       if (!response.ok) {
         if (response.status === 403 || response.status === 429) {
+          VenueGeocoderClient.nominatimStoppedForRun = true;
           throw new VenueGeocoderHttpError(response.status);
         }
+        VenueGeocoderClient.nominatimCache.set(cacheKey, null);
         return null;
       }
-      return highConfidenceNominatimResult(
-        await response.json(),
-        city,
-        query,
-        venueName,
-      );
+
+      const result = nominatimResult(await response.json(), city, venueName, query);
+      VenueGeocoderClient.nominatimCache.set(cacheKey, result);
+      return result;
     } finally {
       clearTimeout(timeout);
     }
   }
 
   private async waitForNominatimSlot() {
-    const now = Date.now();
-    const waitMs = Math.max(0, VenueGeocoderClient.nominatimNextRequestAt - now);
-    VenueGeocoderClient.nominatimNextRequestAt = now + waitMs + this.nominatimRateLimitMs;
+    if (this.nominatimRateLimitMs <= 0 || VenueGeocoderClient.lastNominatimRequestAt <= 0) {
+      return;
+    }
+    const elapsed = Date.now() - VenueGeocoderClient.lastNominatimRequestAt;
+    const waitMs = this.nominatimRateLimitMs - elapsed;
     if (waitMs > 0) {
-      await sleep(waitMs);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
   }
 }
@@ -236,64 +221,6 @@ function geocodeQuery(input: VenueGeocodeInput) {
   }
   if (venueName) {
     return `${city}, ${venueName}`;
-  }
-  return null;
-}
-
-function nominatimQuery(input: VenueGeocodeInput) {
-  const city = cleanText(input.city);
-  const venueName = cleanText(input.venueName);
-  if (!city || !venueName) {
-    return null;
-  }
-  return `${city}, ${venueName}`;
-}
-
-function highConfidenceNominatimResult(
-  payload: unknown,
-  city: string,
-  query: string,
-  venueName: string | null,
-): VenueGeocodeResult | null {
-  const rows = array(payload);
-  for (const rowRaw of rows) {
-    const row = object(rowRaw);
-    if (!row) {
-      continue;
-    }
-    const lat = optionalFloat(row.lat);
-    const lng = optionalFloat(row.lon);
-    if (lat == null || lng == null || !withinCity(city, lat, lng)) {
-      continue;
-    }
-
-    const category = cleanText(row.category);
-    const type = cleanText(row.type);
-    const addresstype = cleanText(row.addresstype);
-    const displayName = cleanText(row.display_name);
-    const name = cleanText(row.name) ?? firstDisplayNamePart(displayName);
-    if (!isNominatimPlaceLike(category, type, addresstype)) {
-      continue;
-    }
-    if (!isVenueNameMatch(venueName, name, displayName)) {
-      continue;
-    }
-
-    return {
-      address: displayName,
-      lat,
-      lng,
-      provider: 'nominatim',
-      query,
-      precision: null,
-      kind: type,
-      osmType: cleanText(row.osm_type),
-      osmId: optionalNumberOrString(row.osm_id),
-      category,
-      type,
-      importance: optionalFloat(row.importance),
-      displayName,
-    };
   }
   return null;
 }
@@ -331,6 +258,51 @@ function highConfidenceResult(
   };
 }
 
+function nominatimResult(
+  payload: unknown,
+  city: string,
+  venueName: string,
+  query: string,
+): VenueGeocodeResult | null {
+  for (const item of array(payload)) {
+    const value = object(item);
+    if (!value) {
+      continue;
+    }
+    const lat = numberFromString(value.lat);
+    const lng = numberFromString(value.lon);
+    if (lat == null || lng == null || !withinCity(city, lat, lng)) {
+      continue;
+    }
+
+    const category = cleanText(value.category);
+    const type = cleanText(value.type);
+    const addresstype = cleanText(value.addresstype);
+    const displayName = cleanText(value.display_name);
+    const name = cleanText(value.name) ?? displayName;
+    if (!isNominatimPlaceLike(category, type, addresstype) || !nameLooksSimilar(venueName, name)) {
+      continue;
+    }
+
+    return {
+      address: displayName,
+      lat,
+      lng,
+      provider: 'nominatim',
+      query,
+      precision: null,
+      kind: type,
+      osmType: cleanText(value.osm_type),
+      osmId: numberFromUnknown(value.osm_id),
+      category,
+      type,
+      importance: numberFromUnknown(value.importance),
+      displayName,
+    };
+  }
+  return null;
+}
+
 function isNominatimPlaceLike(
   category: string | null,
   type: string | null,
@@ -339,30 +311,67 @@ function isNominatimPlaceLike(
   const normalizedCategory = category?.toLowerCase() ?? '';
   const normalizedType = type?.toLowerCase() ?? '';
   const normalizedAddressType = addresstype?.toLowerCase() ?? '';
-  if (!['amenity', 'tourism', 'leisure', 'building'].includes(normalizedCategory)) {
-    return false;
-  }
-  const blockedTypes = new Set([
-    'administrative',
-    'apartments',
-    'borough',
+  if ([
     'city',
-    'county',
     'district',
     'locality',
     'municipality',
     'neighbourhood',
     'quarter',
     'region',
-    'residential',
     'road',
     'state',
     'street',
     'suburb',
     'town',
     'village',
-  ]);
-  return !blockedTypes.has(normalizedType) && !blockedTypes.has(normalizedAddressType);
+  ].includes(normalizedType) || [
+    'city',
+    'district',
+    'locality',
+    'road',
+    'street',
+    'suburb',
+  ].includes(normalizedAddressType)) {
+    return false;
+  }
+  return ['amenity', 'tourism', 'leisure', 'building'].includes(normalizedCategory);
+}
+
+function nameLooksSimilar(venueName: string, resultName: string | null) {
+  const venueTokens = normalizedTokens(venueName);
+  const resultTokens = normalizedTokens(resultName);
+  if (venueTokens.length === 0 || resultTokens.length === 0) {
+    return false;
+  }
+  const resultSet = new Set(resultTokens);
+  const matched = venueTokens.filter((token) => resultSet.has(token)).length;
+  return matched >= Math.min(2, venueTokens.length) || matched / venueTokens.length >= 0.5;
+}
+
+function normalizedTokens(value: string | null) {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^a-zа-я0-9]+/gi, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length >= 2);
+}
+
+function normalizedCacheKey(value: string) {
+  return normalizedTokens(value).join(' ');
+}
+
+function nominatimViewbox(city: string) {
+  const bbox = bboxForContentCity(city);
+  if (!bbox) {
+    return null;
+  }
+  const [south, west, north, east] = bbox.split(',').map((value) => Number.parseFloat(value));
+  if (![south, west, north, east].every((value) => Number.isFinite(value))) {
+    return null;
+  }
+  return `${west},${north},${east},${south}`;
 }
 
 function isHighConfidence(precision: string | null, kind: string | null, hasAddress: boolean) {
@@ -379,87 +388,6 @@ function isHighConfidence(precision: string | null, kind: string | null, hasAddr
     return true;
   }
   return ['house', 'street', 'metro'].includes(normalizedKind);
-}
-
-function isVenueNameMatch(
-  venueName: string | null,
-  resultName: string | null,
-  displayName: string | null,
-) {
-  const venue = cleanText(venueName);
-  const result = cleanText([resultName, firstDisplayNamePart(displayName)].filter(Boolean).join(' '));
-  if (!venue || !result) {
-    return false;
-  }
-  if (isResidentialComplexText(result)) {
-    return false;
-  }
-  const normalizedVenue = normalizeNameText(venue);
-  const normalizedResult = normalizeNameText(result);
-  if (normalizedResult.includes(normalizedVenue) || normalizedVenue.includes(normalizedResult)) {
-    return true;
-  }
-
-  const venueTokens = distinctiveTokens(venue);
-  const resultTokens = distinctiveTokens(result);
-  if (venueTokens.length === 0 || resultTokens.length === 0) {
-    return false;
-  }
-  const matches = venueTokens.filter((token) => resultTokens.some((candidate) => sameToken(token, candidate)));
-  return matches.length >= Math.min(2, venueTokens.length);
-}
-
-function distinctiveTokens(value: string) {
-  const stopWords = new Set([
-    'cafe',
-    'club',
-    'concert',
-    'nightclub',
-    'restaurant',
-    'theatre',
-    'бар',
-    'дом',
-    'дворец',
-    'кафе',
-    'клуб',
-    'концерт',
-    'концертный',
-    'московский',
-    'музыки',
-    'на',
-    'ресторан',
-    'театр',
-    'центр',
-  ]);
-  return normalizeNameText(value)
-    .split(' ')
-    .filter((token) => token.length >= 2 && !stopWords.has(token));
-}
-
-function sameToken(left: string, right: string) {
-  if (left === right) {
-    return true;
-  }
-  const minLength = Math.min(left.length, right.length);
-  return minLength >= 5 && left.slice(0, minLength - 1) === right.slice(0, minLength - 1);
-}
-
-function normalizeNameText(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/ё/g, 'е')
-    .replace(/[^0-9a-zа-я]+/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isResidentialComplexText(value: string) {
-  const normalized = normalizeNameText(value);
-  return normalized.includes('жилой комплекс') || normalized.split(' ').includes('жк');
-}
-
-function firstDisplayNamePart(value: string | null) {
-  return cleanText(value?.split(',')[0]);
 }
 
 function withinCity(city: string, lat: number, lng: number) {
@@ -506,15 +434,15 @@ function parsePoint(value: string | null): [number | null, number | null] {
   ];
 }
 
-function object(value: unknown): Record<string, unknown> | null {
-  return value != null && typeof value === 'object' ? value as Record<string, unknown> : null;
+function numberFromString(value: unknown) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function array(value: unknown) {
-  return Array.isArray(value) ? value : [];
-}
-
-function optionalFloat(value: unknown) {
+function numberFromUnknown(value: unknown) {
   const parsed = typeof value === 'number'
     ? value
     : typeof value === 'string'
@@ -523,14 +451,12 @@ function optionalFloat(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function optionalNumberOrString(value: unknown) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === 'string') {
-    return cleanText(value);
-  }
-  return null;
+function object(value: unknown): Record<string, unknown> | null {
+  return value != null && typeof value === 'object' ? value as Record<string, unknown> : null;
+}
+
+function array(value: unknown) {
+  return Array.isArray(value) ? value : [];
 }
 
 function cleanText(value: unknown) {
@@ -550,23 +476,11 @@ function positiveInt(value: unknown, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function booleanFlag(value: unknown, fallback: boolean) {
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value !== 'string') {
-    return fallback;
-  }
-  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
-}
-
-function nominatimCacheKey(city: string, venueName: string | null) {
-  return [
-    normalizeNameText(city),
-    normalizeNameText(venueName ?? ''),
-  ].join('|');
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function nonNegativeInt(value: unknown, fallback: number) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseInt(value, 10)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }

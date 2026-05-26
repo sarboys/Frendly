@@ -28,6 +28,20 @@ describe('ContentNormalizerService', () => {
     });
   });
 
+  it('cleans html tags and entities from imported text', () => {
+    const service = new ContentNormalizerService();
+
+    const item = service.normalize(baseEvent({
+      title: '&laquo;Лолита 2.0&raquo;',
+      description: '<p>&laquo;Лолита 2.0&raquo; &mdash; смелый спектакль&nbsp;для взрослых.</p>',
+      venueName: 'Театр&nbsp;&laquo;Циники&raquo;',
+    }));
+
+    expect(item.title).toBe('«Лолита 2.0»');
+    expect(item.shortSummary).toBe('«Лолита 2.0» \u2014 смелый спектакль для взрослых.');
+    expect(item.venueName).toBe('Театр «Циники»');
+  });
+
   it('keeps route planning categories specific for bars and quests', () => {
     const service = new ContentNormalizerService();
 

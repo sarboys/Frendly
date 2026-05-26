@@ -229,10 +229,16 @@ describe('ContentImportService', () => {
         address: 'Россия, Санкт-Петербург, проспект Медиков',
         lat: 59.973,
         lng: 30.321,
-        provider: 'yandex',
+        provider: 'nominatim',
         query: 'Санкт-Петербург, А2 Green Concert',
-        precision: 'exact',
-        kind: 'house',
+        precision: null,
+        kind: 'concert_hall',
+        osmType: 'node',
+        osmId: 12345,
+        category: 'amenity',
+        type: 'concert_hall',
+        importance: 0.42,
+        displayName: 'А2 Green Concert, Санкт-Петербург, Россия',
       })
       .mockResolvedValueOnce({
         address: 'Россия, Республика Татарстан, Казань',
@@ -277,6 +283,22 @@ describe('ContentImportService', () => {
         raw: expect.objectContaining({
           enrichment: expect.objectContaining({
             role: 'ticketland_geocoder_backfill',
+          }),
+        }),
+      }),
+    }));
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'ticket-spb' },
+      data: expect.objectContaining({
+        raw: expect.objectContaining({
+          enrichment: expect.objectContaining({
+            provider: 'nominatim',
+            osmType: 'node',
+            osmId: 12345,
+            category: 'amenity',
+            type: 'concert_hall',
+            importance: 0.42,
+            displayName: 'А2 Green Concert, Санкт-Петербург, Россия',
           }),
         }),
       }),

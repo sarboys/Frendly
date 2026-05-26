@@ -58,6 +58,7 @@ const hostEventSummarySelect = {
     select: {
       id: true,
       publicUrl: true,
+      variants: true,
     },
   },
 } satisfies Prisma.EventSelect;

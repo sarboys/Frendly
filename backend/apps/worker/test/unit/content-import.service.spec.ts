@@ -405,12 +405,14 @@ describe('ContentImportService', () => {
     expect(failedUpdate.data.errorMessage).not.toContain('fake-unit-pass');
   });
 
-  it('publishes paid AdvCake event when affiliate action is present', async () => {
+  it('publishes paid AdvCake event with affiliate action even without coordinates', async () => {
     const itemUpsert = jest.fn().mockResolvedValue({});
+    const runUpdate = jest.fn().mockResolvedValue({});
     const service = new ContentImportService(
       prismaMock({
         source: { id: 'source-1', code: 'advcake_ticketland' },
         itemUpsert,
+        runUpdate,
       }) as any,
       new ContentNormalizerService(),
       registryMock({
@@ -423,8 +425,6 @@ describe('ContentImportService', () => {
             actionUrl: 'https://go.avred.online/click',
             actionKind: 'affiliate_ticket',
             isAffiliate: true,
-            lat: 55.75,
-            lng: 37.61,
           }),
         ]),
       }),
@@ -441,8 +441,16 @@ describe('ContentImportService', () => {
       create: expect.objectContaining({
         priceMode: 'paid',
         publicStatus: 'published',
+        lat: null,
+        lng: null,
         actionKind: 'affiliate_ticket',
         isAffiliate: true,
+      }),
+    }));
+    expect(runUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        publishedCount: 1,
+        missingCoordsCount: 1,
       }),
     }));
   });
@@ -661,8 +669,14 @@ describe('ContentImportService', () => {
         address: 'Большая Лубянка, 5',
         lat: 55.7625,
         lng: 37.6264,
-        provider: 'yandex',
+        provider: 'nominatim',
         query: 'Москва, Клуб Алексея Козлова',
+        osmType: 'way',
+        osmId: 98765,
+        category: 'amenity',
+        type: 'nightclub',
+        importance: 0.5,
+        displayName: 'Клуб Алексея Козлова, Москва, Россия',
       }),
     };
     const service = new ContentImportService(
@@ -714,7 +728,13 @@ describe('ContentImportService', () => {
             role: 'affiliate_venue_enriched',
             method: 'geocoder_high_confidence',
             geoConfidence: 'high',
-            provider: 'yandex',
+            provider: 'nominatim',
+            osmType: 'way',
+            osmId: 98765,
+            category: 'amenity',
+            type: 'nightclub',
+            importance: 0.5,
+            displayName: 'Клуб Алексея Козлова, Москва, Россия',
           }),
         }),
       }),

@@ -1,8 +1,19 @@
 import { EveningAiDraftService } from '../../src/services/evening-ai-draft.service';
 
 describe('EveningAiDraftService unit', () => {
+  const originalEveningAiModel = process.env.EVENING_AI_MODEL;
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2099-06-01T12:00:00.000Z'));
+  });
+
   afterEach(() => {
     jest.useRealTimers();
+    if (originalEveningAiModel == null) {
+      delete process.env.EVENING_AI_MODEL;
+    } else {
+      process.env.EVENING_AI_MODEL = originalEveningAiModel;
+    }
   });
 
   const externalItemFixture = (overrides: Record<string, unknown> = {}) => ({
@@ -338,7 +349,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 123,
       };
     const openRouter = {
@@ -363,7 +374,7 @@ describe('EveningAiDraftService unit', () => {
             })),
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: input.model,
           latencyMs: 30,
         });
       }
@@ -413,7 +424,7 @@ describe('EveningAiDraftService unit', () => {
     });
   }
 
-  it('creates a draft from source-specific candidates and Qwen JSON schema output', async () => {
+  it('creates a draft from source-specific candidates and OpenRouter JSON schema output', async () => {
     const { service, externalFindMany, draftCreate, openRouter } = createService();
 
     const result = await service.createDraft('user-1', {
@@ -462,7 +473,7 @@ describe('EveningAiDraftService unit', () => {
     );
     expect(openRouter.generateJson).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         timeoutMs: 4500,
         responseFormat: expect.objectContaining({
           type: 'json_schema',
@@ -473,7 +484,7 @@ describe('EveningAiDraftService unit', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           userId: 'user-1',
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 123,
           candidatePackJson: expect.arrayContaining([
             expect.objectContaining({
@@ -485,6 +496,85 @@ describe('EveningAiDraftService unit', () => {
         }),
       }),
     );
+  });
+
+  it('uses EVENING_AI_MODEL when it is configured', async () => {
+    process.env.EVENING_AI_MODEL = 'openrouter/custom-test-model';
+    const { service, openRouter } = createService();
+
+    await service.createDraft('user-1', {
+      prompt: 'Винный бар и стендап',
+      city: 'Москва',
+      stepCount: 2,
+    });
+
+    expect(openRouter.generateJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'openrouter/custom-test-model',
+        responseFormat: expect.objectContaining({
+          json_schema: expect.objectContaining({ name: 'evening_ai_route_intent' }),
+        }),
+      }),
+    );
+    expect(openRouter.generateJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'openrouter/custom-test-model',
+        responseFormat: expect.objectContaining({
+          json_schema: expect.objectContaining({ name: 'evening_ai_route' }),
+        }),
+      }),
+    );
+  });
+
+  it('loads Tomesto candidates by city without text filters or take limit', async () => {
+    const { service, externalFindMany } = createService({
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Любой ресторан',
+            category: 'restaurant',
+            tags: ['occasion:food'],
+            priceFrom: 1800,
+            placeKind: 'restaurant',
+            venueName: 'Любой ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-show',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2099-06-01T17:30:00.000Z'),
+            priceFrom: 1200,
+            actionUrl: 'https://ticket.example.test/show',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'ужин и стендап',
+      city: 'Москва',
+    });
+
+    const tomestoQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'tomesto');
+    expect(tomestoQueries).toHaveLength(1);
+    expect(tomestoQueries[0]).toEqual(
+      expect.objectContaining({
+        where: expect.not.objectContaining({ OR: expect.any(Array) }),
+      }),
+    );
+    expect(tomestoQueries[0]?.take).toBeUndefined();
   });
 
   it('carries candidate images into AI draft route steps', async () => {
@@ -690,7 +780,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 100,
         },
         {
@@ -720,7 +810,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 120,
         },
       ],
@@ -800,7 +890,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 25,
       },
       externalItems: {
@@ -871,7 +961,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 90,
         },
       ],
@@ -921,7 +1011,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 40,
       },
       externalItems: {
@@ -987,7 +1077,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 90,
         },
       ],
@@ -1068,7 +1158,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 40,
       },
       externalItems: {
@@ -1140,7 +1230,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -1178,6 +1268,326 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('defaults timed event candidates to today when intent has no date', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-16T12:00:00.000Z'));
+
+    const { service, openRouter } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 2,
+          stepCountReason: 'Пользователь просит ужин и стендап.',
+          participantsCount: 0,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: 'Дата не указана.',
+          steps: [
+            { role: 'place_food', preferredTerms: ['ужин'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['стендап'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан для ужина',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан для ужина',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-standup-today',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап сегодня',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-16T17:30:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/standup-today',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+          {
+            id: 'ticketland-standup-tomorrow',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап завтра',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-17T17:30:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/standup-tomorrow',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ужин и стендап сегодня',
+            vibe: 'Без указанной даты',
+            blurb: 'Берем ближайший день.',
+            steps: [
+              { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-standup-today', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'ужин и стендап',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.eventDateWindow).toEqual({
+      label: 'today',
+      from: '2026-05-16T12:00:00.000Z',
+      to: '2026-05-16T20:59:59.999Z',
+    });
+    expect(
+      routePrompt.candidates
+        .filter((candidate: any) => candidate.role === 'show')
+        .map((candidate: any) => candidate.id),
+    ).toEqual(['ticketland-standup-today']);
+  });
+
+  it('defaults timed event candidates to today in the selected city timezone', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-16T19:30:00.000Z'));
+
+    const { service, openRouter } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 2,
+          stepCountReason: 'Пользователь просит ужин и стендап.',
+          participantsCount: 0,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: 'Дата не указана.',
+          steps: [
+            { role: 'place_food', preferredTerms: ['ужин'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['стендап'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан для ужина',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан для ужина',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-moscow-today',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап по московскому дню',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-16T20:00:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/moscow-today',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+          {
+            id: 'ticketland-city-today',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап по дню города',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-17T16:00:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/city-today',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ужин и стендап сегодня',
+            vibe: 'Городская дата',
+            blurb: 'Берем сегодняшний день выбранного города.',
+            steps: [
+              { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-city-today', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'ужин и стендап',
+      city: 'Екатеринбург',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.eventDateWindow).toEqual({
+      label: 'today',
+      from: '2026-05-16T19:30:00.000Z',
+      to: '2026-05-17T18:59:59.999Z',
+    });
+    expect(
+      routePrompt.candidates
+        .filter((candidate: any) => candidate.role === 'show')
+        .map((candidate: any) => candidate.id),
+    ).toEqual(expect.arrayContaining(['ticketland-city-today']));
+  });
+
+  it('uses intent local date for timed event candidates', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-16T12:00:00.000Z'));
+
+    const { service, externalFindMany, openRouter } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 2,
+          stepCountReason: 'Пользователь просит ужин и стендап.',
+          participantsCount: 0,
+          dateMode: 'date',
+          localDate: '2026-05-17',
+          dateReason: 'ИИ понял дату из текста.',
+          steps: [
+            { role: 'place_food', preferredTerms: ['ужин'], avoidTerms: [], instruction: '' },
+            { role: 'show', preferredTerms: ['стендап'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан для ужина',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан для ужина',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-standup-target',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап завтра',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-17T17:30:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/standup-target',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+          {
+            id: 'ticketland-standup-other',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап в другой день',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2026-05-18T17:30:00.000Z'),
+            priceFrom: 1800,
+            actionUrl: 'https://ticket.example.test/standup-other',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ужин и стендап завтра',
+            vibe: 'Дата от ИИ',
+            blurb: 'Маршрут на выбранную дату.',
+            steps: [
+              { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-standup-target', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'ужин и стендап',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(
+      routePrompt.candidates
+        .filter((candidate: any) => candidate.role === 'show')
+        .map((candidate: any) => candidate.id),
+    ).toEqual(['ticketland-standup-target']);
+
+    const ticketlandQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'advcake_ticketland');
+    expect(ticketlandQueries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          where: expect.objectContaining({
+            startsAt: expect.objectContaining({
+              gte: new Date('2026-05-16T21:00:00.000Z'),
+              lte: new Date('2026-05-17T20:59:59.999Z'),
+            }),
+          }),
+        }),
+      ]),
+    );
+  });
+
   it('filters timed event candidates to today when prompt asks for today', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-05-16T12:00:00.000Z'));
 
@@ -1195,7 +1605,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -1266,7 +1676,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -1325,7 +1735,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -1428,7 +1838,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -1485,7 +1895,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -1522,10 +1932,12 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
-  it('treats step count written in prompt as exact even when intent returns extra roles', async () => {
+  it('lets intent choose step count even when prompt mentions a count', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
+          routeStepCount: 5,
+          stepCountReason: 'ИИ решил оставить пять явных активностей.',
           steps: [
             { role: 'walk', preferredTerms: ['парк'], avoidTerms: [], instruction: '' },
             { role: 'place_food', preferredTerms: ['итальян'], avoidTerms: [], instruction: '' },
@@ -1535,7 +1947,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -1624,7 +2036,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -1639,8 +2051,9 @@ describe('EveningAiDraftService unit', () => {
     const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
     expect(intentPrompt.config).toEqual(
       expect.objectContaining({
-        stepCountMode: 'exact',
-        maxStepCount: 3,
+        stepCountMode: 'infer',
+        promptStepCountHint: 3,
+        maxStepCount: 5,
         budget: 'mid',
       }),
     );
@@ -1648,18 +2061,20 @@ describe('EveningAiDraftService unit', () => {
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.config.stepCount).toBe(3);
+    expect(routePrompt.config.stepCount).toBe(5);
     expect(routePrompt.config.budget).toBe('mid');
     expect(result.route.steps.map((step: any) => step.title)).toEqual([
       'Красивый парк',
       'Итальянский ресторан',
       'Спектакль',
+      'Тихий бар',
+      'Бесплатная выставка',
     ]);
     expect(draftCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           budget: 'mid',
-          stepCount: 3,
+          stepCount: 5,
         }),
       }),
     );
@@ -1677,7 +2092,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -1740,7 +2155,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -1759,7 +2174,7 @@ describe('EveningAiDraftService unit', () => {
     ]);
   });
 
-  it('finds expanded bar, cuisine, atmosphere and diet terms through taxonomy tags', async () => {
+  it('scores expanded bar, cuisine, atmosphere and diet terms after loading all Tomesto candidates', async () => {
     const { service, externalFindMany } = createService({
       filterExternalItemsByQuery: true,
       intentResponse: {
@@ -1773,7 +2188,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -1865,7 +2280,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -1884,20 +2299,11 @@ describe('EveningAiDraftService unit', () => {
       'Taco House',
       'Green Cafe',
     ]);
-    const queriedTags = externalFindMany.mock.calls.flatMap(([query]: [any]) =>
-      (query?.where?.OR ?? [])
-        .map((term: any) => term?.tags?.array_contains?.[0])
-        .filter((tag: unknown): tag is string => typeof tag === 'string'),
-    );
-    expect(queriedTags).toEqual(
-      expect.arrayContaining([
-        'feature:craft_beer',
-        'set:nastoyki',
-        'cuisine:panaziatskaya',
-        'cuisine:meksikanskaya',
-        'feature:vegan',
-      ]),
-    );
+    const tomestoQuery = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .find((query: any) => query?.where?.source?.code === 'tomesto');
+    expect(tomestoQuery?.where?.OR).toBeUndefined();
+    expect(tomestoQuery?.take).toBeUndefined();
   });
 
   it('does not treat barbecue food wording as a bar tag', async () => {
@@ -1911,7 +2317,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -1958,7 +2364,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -1969,13 +2375,11 @@ describe('EveningAiDraftService unit', () => {
       city: 'Москва',
     });
 
-    const queriedTags = externalFindMany.mock.calls.flatMap(([query]: [any]) =>
-      (query?.where?.OR ?? [])
-        .map((term: any) => term?.tags?.array_contains?.[0])
-        .filter((tag: unknown): tag is string => typeof tag === 'string'),
-    );
-    expect(queriedTags).toContain('place:steakhouse');
-    expect(queriedTags).not.toContain('place:bar');
+    const tomestoQuery = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .find((query: any) => query?.where?.source?.code === 'tomesto');
+    expect(tomestoQuery?.where?.OR).toBeUndefined();
+    expect(tomestoQuery?.take).toBeUndefined();
   });
 
   it('rejects exact prompt step count when a requested role has no candidates', async () => {
@@ -1990,7 +2394,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -2049,7 +2453,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -2096,7 +2500,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -2129,7 +2533,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -2192,7 +2596,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -2236,7 +2640,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -2286,7 +2690,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -2318,7 +2722,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 35,
       },
       externalItems: {
@@ -2377,7 +2781,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 95,
         },
       ],
@@ -2467,7 +2871,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 100,
         },
       ],
@@ -2580,7 +2984,7 @@ describe('EveningAiDraftService unit', () => {
             ],
           },
           rawResponse: {},
-          model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+          model: 'openrouter/owl-alpha',
           latencyMs: 130,
         },
       ],
@@ -2638,7 +3042,7 @@ describe('EveningAiDraftService unit', () => {
           ],
         },
         rawResponse: {},
-        model: 'qwen/qwen3-next-80b-a3b-instruct:free',
+        model: 'openrouter/owl-alpha',
         latencyMs: 200,
         },
       ],

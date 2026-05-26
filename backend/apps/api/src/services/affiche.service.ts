@@ -286,6 +286,16 @@ export class AfficheService {
         ...(shouldPublish ? { publicStatus: 'published' } : {}),
       },
     });
+    await this.prismaService.client.event.updateMany({
+      where: {
+        sourceExternalContentItemId: item.id,
+        OR: [{ latitude: null }, { longitude: null }],
+      },
+      data: {
+        latitude: lat,
+        longitude: lng,
+      },
+    });
 
     return {
       id: updated.id,
@@ -694,11 +704,11 @@ export class AfficheService {
     return {
       id: item.id,
       sourceItemId: item.sourceItemId ?? null,
-      title: item.title,
-      description: item.shortSummary ?? null,
+      title: cleanPublicText(item.title) ?? item.title,
+      description: cleanPublicText(item.shortSummary),
       city: item.city,
-      venue: item.venueName ?? null,
-      address: item.address ?? null,
+      venue: cleanPublicText(item.venueName),
+      address: cleanPublicText(item.address),
       lat: item.lat ?? null,
       lng: item.lng ?? null,
       startsAt: this.dateToIso(item.startsAt),
@@ -711,12 +721,16 @@ export class AfficheService {
       currency: item.currency ?? null,
       imageUrl: this.mapImageUrl(item.imageUrl),
       imageVariants: this.mapImageVariants(item.imageVariants),
-      provider: item.sourceProvider ?? item.source?.name ?? null,
+      provider: cleanPublicText(item.sourceProvider ?? item.source?.name ?? null),
       sourceCode: item.source?.code ?? null,
       actionUrl: item.actionUrl ?? item.sourceUrl ?? null,
       actionKind: item.actionKind ?? null,
       isAffiliate: item.isAffiliate === true,
-      tags: Array.isArray(item.tags) ? item.tags.filter((tag: unknown): tag is string => typeof tag === 'string') : [],
+      tags: Array.isArray(item.tags)
+        ? item.tags
+          .map((tag: unknown) => cleanPublicText(tag))
+          .filter((tag): tag is string => tag != null)
+        : [],
       geoUpdatedAt:
         this.hasValidCoordinatePair(item.lat, item.lng) && item.updatedAt
           ? item.updatedAt.toISOString()
@@ -801,13 +815,17 @@ export class AfficheService {
     if (eventTokens.size === 0) {
       throw new ApiError(400, 'client_geo_venue_missing', 'Event venue name is missing');
     }
-    const candidateText = this.cleanClientGeoText(params.displayName) ?? '';
+    const candidateText = [
+      params.submittedVenueName,
+      params.displayName,
+      params.query,
+    ].filter((value): value is string => typeof value === 'string').join(' ');
     const candidateTokens = this.significantVenueTokens(candidateText);
     const hasMatch = [...eventTokens].some((token) => candidateTokens.has(token));
     if (!hasMatch) {
       throw new ApiError(400, 'client_geo_venue_mismatch', 'Client geo venue does not match event venue');
     }
-    if (this.looksLikeNonVenuePlace(candidateText) && candidateTokens.size <= 1) {
+    if (this.looksLikeNonVenuePlace(params.displayName ?? params.query) && candidateTokens.size <= 1) {
       throw new ApiError(400, 'client_geo_venue_mismatch', 'Client geo result is not a venue');
     }
   }
@@ -1115,4 +1133,53 @@ function oneDayRange(value: string) {
   const to = new Date(from);
   to.setUTCDate(to.getUTCDate() + 1);
   return { from, to };
+}
+
+function cleanPublicText(value: unknown, maxLength = 1000) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = decodeHtmlEntities(value)
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/p>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed.length > maxLength ? trimmed.slice(0, maxLength).trim() : trimmed;
+}
+
+function decodeHtmlEntities(value: string) {
+  const named: Record<string, string> = {
+    amp: '&',
+    apos: "'",
+    gt: '>',
+    laquo: '\u00ab',
+    lt: '<',
+    mdash: '\u2014',
+    nbsp: ' ',
+    ndash: '\u2013',
+    quot: '"',
+    raquo: '\u00bb',
+  };
+  return value
+    .replace(/&([a-z]+);/gi, (match, name: string) => named[name.toLowerCase()] ?? match)
+    .replace(/&#(\d+);/g, (match, code: string) => {
+      const parsed = Number.parseInt(code, 10);
+      return Number.isFinite(parsed) ? safeCodePoint(parsed, match) : match;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (match, code: string) => {
+      const parsed = Number.parseInt(code, 16);
+      return Number.isFinite(parsed) ? safeCodePoint(parsed, match) : match;
+    });
+}
+
+function safeCodePoint(code: number, fallback: string) {
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return fallback;
+  }
 }

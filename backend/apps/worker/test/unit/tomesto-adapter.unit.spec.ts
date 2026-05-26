@@ -55,7 +55,10 @@ describe('TomestoAdapter', () => {
 
     expect(items).toHaveLength(4);
     expect(maxActiveDetailRequests).toBe(2);
-    expect(fetchSpy).toHaveBeenCalledTimes(5);
+    const placeDetailCalls = fetchSpy.mock.calls.filter(([url]) =>
+      String(url).includes('/moskva/places/place-'),
+    );
+    expect(placeDetailCalls).toHaveLength(4);
   });
 
   it('marks permanently closed catalog places in raw status', async () => {

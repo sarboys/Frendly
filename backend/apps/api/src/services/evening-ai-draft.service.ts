@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { timezoneForContentCity } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import { OpenRouterService } from './openrouter.service';
 import { PrismaService } from './prisma.service';
 
-const QWEN_FREE_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
+const DEFAULT_EVENING_AI_MODEL = 'openrouter/owl-alpha';
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CITY = 'Москва';
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
@@ -122,6 +123,9 @@ type GeneratedIntentJson = {
   routeStepCount?: unknown;
   stepCountReason?: unknown;
   participantsCount?: unknown;
+  dateMode?: unknown;
+  localDate?: unknown;
+  dateReason?: unknown;
   steps?: Array<{
     role?: unknown;
     preferredTerms?: unknown;
@@ -147,6 +151,7 @@ type RoleIntentHint = {
 type DraftIntent = {
   roles: RouteRole[];
   roleHints: RoleIntentHint[];
+  eventDateWindow: EventDateWindow;
   source: 'llm' | 'rules';
 };
 
@@ -202,9 +207,13 @@ export class EveningAiDraftService {
   async createDraft(userId: string, body: Record<string, unknown>) {
     const parsedInput = this.parseInput(body);
     const intent = await this.resolveDraftIntent(parsedInput);
-    const input = { ...parsedInput, stepCount: intent.roles.length };
+    const input = {
+      ...parsedInput,
+      stepCount: intent.roles.length,
+      eventDateWindow: intent.eventDateWindow,
+    };
     const candidates = await this.loadCandidatePack(input, intent.roles, intent.roleHints);
-    const requiredRoles = this.requiredCandidateRoles(input, intent.roles);
+    const requiredRoles = this.requiredCandidateRoles(input, intent);
     if (
       candidates.length < MIN_STEP_COUNT ||
       (requiredRoles.length > 0 && !this.hasEnoughCandidatesForRoles(candidates, requiredRoles))
@@ -226,7 +235,7 @@ export class EveningAiDraftService {
         userId,
         status: 'reviewing',
         city: input.city,
-        timezone: DEFAULT_TIMEZONE,
+        timezone: input.timezone,
         prompt: input.prompt,
         goal: input.goal,
         mood: input.mood,
@@ -290,8 +299,13 @@ export class EveningAiDraftService {
       .sort((left, right) => left - right);
     const input = this.inputFromDraft(draft);
     const intent = this.intentFromRoute(route, input) ?? await this.resolveDraftIntent(input);
+    const intentInput = {
+      ...input,
+      stepCount: intent.roles.length,
+      eventDateWindow: intent.eventDateWindow,
+    };
     const generated = await this.generateRouteWithFallback({
-      input,
+      input: intentInput,
       roles: intent.roles,
       roleHints: intent.roleHints,
       candidates: candidates.filter((candidate) => !rejected.has(candidate.id)),
@@ -335,6 +349,11 @@ export class EveningAiDraftService {
 
     const input = this.inputFromDraft(draft);
     const intent = this.intentFromRoute(route, input) ?? await this.resolveDraftIntent(input);
+    const intentInput = {
+      ...input,
+      stepCount: intent.roles.length,
+      eventDateWindow: intent.eventDateWindow,
+    };
     const availableCandidates = candidates.filter((candidate) => !rejected.has(candidate.id));
     if (
       availableCandidates.length < MIN_STEP_COUNT ||
@@ -348,7 +367,7 @@ export class EveningAiDraftService {
     }
 
     const generated = await this.generateRouteWithFallback({
-      input,
+      input: intentInput,
       roles: intent.roles,
       roleHints: intent.roleHints,
       candidates: availableCandidates,
@@ -384,6 +403,10 @@ export class EveningAiDraftService {
       }
     }
     return true;
+  }
+
+  private eveningAiModel() {
+    return stringOrNull(process.env.EVENING_AI_MODEL) ?? DEFAULT_EVENING_AI_MODEL;
   }
 
   async confirmDraft(userId: string, draftId: string) {
@@ -481,7 +504,7 @@ export class EveningAiDraftService {
     let latestValidationIssues: DraftValidationIssue[] = [];
     try {
       const firstResponse = await this.openRouterService.generateJson<GeneratedDraftJson>({
-        model: QWEN_FREE_MODEL,
+        model: this.eveningAiModel(),
         timeoutMs: input.timeoutMs,
         systemPrompt: this.systemPrompt(),
         userPrompt: this.userPrompt(input),
@@ -513,7 +536,7 @@ export class EveningAiDraftService {
 
       latestValidationIssues = firstIssues;
       const retryResponse = await this.openRouterService.generateJson<GeneratedDraftJson>({
-        model: QWEN_FREE_MODEL,
+        model: this.eveningAiModel(),
         timeoutMs: input.timeoutMs,
         systemPrompt: this.systemPrompt(),
         userPrompt: this.userPrompt({
@@ -569,7 +592,7 @@ export class EveningAiDraftService {
         ];
         try {
           const retryResponse = await this.openRouterService.generateJson<GeneratedDraftJson>({
-            model: QWEN_FREE_MODEL,
+            model: this.eveningAiModel(),
             timeoutMs: input.timeoutMs,
             systemPrompt: this.systemPrompt(),
             userPrompt: this.userPrompt({
@@ -619,7 +642,7 @@ export class EveningAiDraftService {
           const route = this.deterministicRoute(input);
           return {
             route,
-            model: QWEN_FREE_MODEL,
+            model: this.eveningAiModel(),
             latencyMs: null,
             warnings: [
               {
@@ -634,7 +657,7 @@ export class EveningAiDraftService {
       const route = this.deterministicRoute(input);
       return {
         route,
-        model: QWEN_FREE_MODEL,
+        model: this.eveningAiModel(),
         latencyMs: null,
         warnings: [
           {
@@ -922,6 +945,38 @@ export class EveningAiDraftService {
         : {}),
     };
 
+    const select = {
+      id: true,
+      contentKind: true,
+      title: true,
+      shortSummary: true,
+      category: true,
+      tags: true,
+      address: true,
+      lat: true,
+      lng: true,
+      startsAt: true,
+      endsAt: true,
+      priceFrom: true,
+      currency: true,
+      venueName: true,
+      actionUrl: true,
+      sourceUrl: true,
+      priceMode: true,
+      sourceProvider: true,
+      placeKind: true,
+      area: true,
+      imageUrl: true,
+      imageVariants: true,
+      source: {
+        select: { code: true, name: true },
+      },
+    };
+    const orderBy =
+      source === 'tomesto'
+        ? [{ title: 'asc' as const }, { id: 'asc' as const }]
+        : [{ startsAt: 'asc' as const }, { title: 'asc' as const }, { id: 'asc' as const }];
+
     const findManyByTerms = (terms: string[], take: number) => {
       const tagTerms = taxonomyTagQueriesForTerms(terms);
       const where: Prisma.ExternalContentItemWhereInput = {
@@ -941,52 +996,31 @@ export class EveningAiDraftService {
 
       return (this.prismaService.client as any).externalContentItem.findMany({
         where,
-        select: {
-          id: true,
-          contentKind: true,
-          title: true,
-          shortSummary: true,
-          category: true,
-          tags: true,
-          address: true,
-          lat: true,
-          lng: true,
-          startsAt: true,
-          endsAt: true,
-          priceFrom: true,
-          currency: true,
-          venueName: true,
-          actionUrl: true,
-          sourceUrl: true,
-          priceMode: true,
-          sourceProvider: true,
-          placeKind: true,
-          area: true,
-          imageUrl: true,
-          imageVariants: true,
-          source: {
-            select: { code: true, name: true },
-          },
-        },
-        orderBy:
-          source === 'tomesto'
-            ? [{ title: 'asc' }, { id: 'asc' }]
-            : [{ startsAt: 'asc' }, { title: 'asc' }, { id: 'asc' }],
+        select,
+        orderBy,
         take,
       });
     };
 
-    const areaTerms = areaTermsFor(input.area).slice(0, 16);
-    const [preferredItems, areaItems, genericItems] = await Promise.all([
-      intent.preferredTerms.length > 0
-        ? findManyByTerms(intent.preferredTerms, 80)
-        : Promise.resolve([]),
-      areaTerms.length > 0 ? findManyByTerms(areaTerms, 80) : Promise.resolve([]),
-      findManyByTerms(this.searchTermsForRole(role), 120),
-    ]);
-    const items = uniqueById([...preferredItems, ...areaItems, ...genericItems]);
+    const items = source === 'tomesto' || source === 'advcake_ticketland'
+      ? await (this.prismaService.client as any).externalContentItem.findMany({
+          where: baseWhere,
+          select,
+          orderBy,
+        })
+      : await (async () => {
+          const areaTerms = areaTermsFor(input.area).slice(0, 16);
+          const [preferredItems, areaItems, genericItems] = await Promise.all([
+            intent.preferredTerms.length > 0
+              ? findManyByTerms(intent.preferredTerms, 80)
+              : Promise.resolve([]),
+            areaTerms.length > 0 ? findManyByTerms(areaTerms, 80) : Promise.resolve([]),
+            findManyByTerms(this.searchTermsForRole(role), 120),
+          ]);
+          return uniqueById([...preferredItems, ...areaItems, ...genericItems]);
+        })();
 
-    const mapped = items
+    const mapped: CandidateCard[] = items
       .filter(
         (item: any) =>
           source === 'advcake_ticketland' ||
@@ -1025,7 +1059,9 @@ export class EveningAiDraftService {
           imageVariants: item.imageVariants ?? null,
         };
       });
-    return mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));
+    return source === 'kudago'
+      ? mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent))
+      : mapped;
   }
 
   private mapDraftResponse(draft: AiDraftRecord) {
@@ -1065,6 +1101,11 @@ export class EveningAiDraftService {
       _aiIntent: {
         roles: intent.roles,
         roleHints: intent.roleHints,
+        eventDateWindow: {
+          label: intent.eventDateWindow.label,
+          from: intent.eventDateWindow.from.toISOString(),
+          to: intent.eventDateWindow.to.toISOString(),
+        },
         source: intent.source,
       },
     };
@@ -1093,6 +1134,7 @@ export class EveningAiDraftService {
           instruction: rawHints[index]?.instruction,
         }),
       ),
+      eventDateWindow: eventDateWindowFromStored(stored.eventDateWindow) ?? input.eventDateWindow,
       source: stored.source === 'llm' ? 'llm' : 'rules',
     };
   }
@@ -1111,8 +1153,10 @@ export class EveningAiDraftService {
   }
 
   private inputFromDraft(draft: AiDraftRecord): ParsedDraftInput {
+    const promptStepCountHint = stepCountFromPrompt(draft.prompt);
     return {
       city: draft.city,
+      timezone: draft.timezone,
       prompt: draft.prompt,
       goal: draft.goal,
       mood: draft.mood,
@@ -1121,8 +1165,9 @@ export class EveningAiDraftService {
       area: draft.area,
       stepCount: draft.stepCount,
       stepCountExplicit: true,
+      promptStepCountHint,
       participantsCount: participantsCountFromPrompt(draft.prompt),
-      eventDateWindow: eventDateWindowFromPrompt(draft.prompt),
+      eventDateWindow: fallbackEventDateWindowFromPrompt(draft.prompt, draft.timezone),
       latitude: null,
       longitude: null,
     };
@@ -1131,20 +1176,23 @@ export class EveningAiDraftService {
   private parseInput(body: Record<string, unknown>): ParsedDraftInput {
     const prompt = stringOrNull(body.prompt);
     const bodyStepCountExplicit = body.stepCount != null && body.stepCount !== '';
-    const promptStepCount = bodyStepCountExplicit ? null : stepCountFromPrompt(prompt);
-    const stepCountExplicit = bodyStepCountExplicit || promptStepCount != null;
+    const promptStepCountHint = stepCountFromPrompt(prompt);
+    const city = stringOrNull(body.city) ?? DEFAULT_CITY;
+    const timezone = timezoneForCity(city);
     return {
-      city: stringOrNull(body.city) ?? DEFAULT_CITY,
+      city,
+      timezone,
       prompt,
       goal: stringOrNull(body.goal),
       mood: stringOrNull(body.mood),
       budget: stringOrNull(body.budget) ?? budgetFromPrompt(prompt),
       format: this.parseFormat(body.format),
       area: stringOrNull(body.area) ?? areaFromPrompt(prompt),
-      stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : promptStepCount),
-      stepCountExplicit,
+      stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : null),
+      stepCountExplicit: bodyStepCountExplicit,
+      promptStepCountHint,
       participantsCount: participantsCountFromPrompt(prompt),
-      eventDateWindow: eventDateWindowFromPrompt(prompt),
+      eventDateWindow: fallbackEventDateWindowFromPrompt(prompt, timezone),
       latitude: null,
       longitude: null,
     };
@@ -1183,6 +1231,7 @@ export class EveningAiDraftService {
     const fallbackIntent: DraftIntent = {
       roles: fallbackRoles,
       roleHints: fallbackRoles.map((role) => this.roleIntentHint(input, role)),
+      eventDateWindow: input.eventDateWindow,
       source: 'rules',
     };
     if (!input.prompt) {
@@ -1191,7 +1240,7 @@ export class EveningAiDraftService {
 
     try {
       const response = await this.openRouterService.generateJson<GeneratedIntentJson>({
-        model: QWEN_FREE_MODEL,
+        model: this.eveningAiModel(),
         timeoutMs: 1800,
         systemPrompt: this.intentSystemPrompt(),
         userPrompt: this.intentUserPrompt(input, fallbackRoles),
@@ -1203,6 +1252,7 @@ export class EveningAiDraftService {
       if (parsedIntent.roles.length >= MIN_STEP_COUNT && parsedIntent.roles.length <= input.stepCount) {
         return {
           ...parsedIntent,
+          eventDateWindow: this.intentEventDateWindow(input, response.parsedJson),
           source: 'llm',
         };
       }
@@ -1217,7 +1267,7 @@ export class EveningAiDraftService {
     input: ParsedDraftInput,
     generated: GeneratedIntentJson,
     fallbackRoles: RouteRole[],
-  ): Omit<DraftIntent, 'source'> {
+  ): Omit<DraftIntent, 'source' | 'eventDateWindow'> {
     const targetStepCount = this.intentTargetStepCount(input, generated);
     const roles: RouteRole[] = [];
     const roleHints: RoleIntentHint[] = [];
@@ -1252,11 +1302,26 @@ export class EveningAiDraftService {
     };
   }
 
+  private intentEventDateWindow(input: ParsedDraftInput, generated: GeneratedIntentJson) {
+    const mode = stringOrNull(generated?.dateMode);
+    const localDate = stringOrNull(generated?.localDate);
+    if (mode === 'date' && localDate) {
+      const parts = localDateFromIsoDate(localDate);
+      if (parts) {
+        return eventDateWindowForLocalDate('date', parts, new Date(), input.timezone);
+      }
+    }
+    if (mode === 'none') {
+      return todayEventDateWindow(input.timezone);
+    }
+    return input.eventDateWindow;
+  }
+
   private intentFallbackStepCount(input: ParsedDraftInput) {
     if (input.stepCountExplicit) {
       return input.stepCount;
     }
-    return this.mentionedStepCount(input) ?? input.stepCount;
+    return input.promptStepCountHint ?? this.mentionedStepCount(input) ?? input.stepCount;
   }
 
   private intentTargetStepCount(input: ParsedDraftInput, generated: GeneratedIntentJson) {
@@ -1286,9 +1351,9 @@ export class EveningAiDraftService {
     return roles.length >= MIN_STEP_COUNT ? Math.min(roles.length, input.stepCount) : null;
   }
 
-  private requiredCandidateRoles(input: ParsedDraftInput, intentRoles: RouteRole[]) {
-    if (input.stepCountExplicit) {
-      return intentRoles;
+  private requiredCandidateRoles(input: ParsedDraftInput, intent: DraftIntent) {
+    if (input.stepCountExplicit || intent.source === 'llm') {
+      return intent.roles;
     }
     return this.mentionedRoles(input.prompt, input.format);
   }
@@ -1737,6 +1802,7 @@ export class EveningAiDraftService {
       'Keep the same step order as the user asked.',
       'Separate route step count from participant count.',
       'Infer step count from the user text unless config.stepCountMode is exact.',
+      'Extract a local route date. Return dateMode none when the user did not ask for a date.',
       'Use only allowed roles.',
       'Write short Russian search terms in preferredTerms and avoidTerms.',
       'Do not choose real places here.',
@@ -1754,6 +1820,7 @@ export class EveningAiDraftService {
         mood: input.mood,
         format: input.format,
         stepCountMode: input.stepCountExplicit ? 'exact' : 'infer',
+        promptStepCountHint: input.promptStepCountHint,
         defaultStepCount: DEFAULT_STEP_COUNT,
         maxStepCount: input.stepCount,
         participantsCount: input.participantsCount,
@@ -1796,7 +1863,11 @@ export class EveningAiDraftService {
         'If stepCountMode is exact, return exactly maxStepCount steps.',
         'If stepCountMode is infer, return the number of steps requested by the user, from 2 to maxStepCount.',
         'If stepCountMode is infer and the user does not imply a count, return defaultStepCount steps.',
+        'Use promptStepCountHint as a hint, not as a hard limit, when stepCountMode is infer.',
         'Numbers near человек, людей, персон, на двоих, на троих, вчетвером describe participantsCount, not routeStepCount.',
+        'For dates, return dateMode=date and localDate as YYYY-MM-DD when the user asks for a specific date.',
+        'For words like today, tomorrow, weekdays and exact dates, resolve localDate in the route city timezone.',
+        'If the user did not ask for a date, return dateMode=none and empty localDate.',
         'If the user lists activities with words like сначала, потом, затем, routeStepCount is the number of listed activities.',
         'routeStepCount must describe places or activities, not people.',
         'If the user asks the same kind of step twice, keep it twice.',
@@ -1829,6 +1900,12 @@ export class EveningAiDraftService {
               minimum: 0,
               maximum: 20,
             },
+            dateMode: {
+              type: 'string',
+              enum: ['none', 'date'],
+            },
+            localDate: { type: 'string' },
+            dateReason: { type: 'string' },
             steps: {
               type: 'array',
               items: {
@@ -1850,7 +1927,7 @@ export class EveningAiDraftService {
               },
             },
           },
-          required: ['routeStepCount', 'stepCountReason', 'participantsCount', 'steps'],
+          required: ['routeStepCount', 'stepCountReason', 'participantsCount', 'dateMode', 'localDate', 'dateReason', 'steps'],
         },
       },
     };
@@ -1879,6 +1956,7 @@ export class EveningAiDraftService {
       prompt: input.input.prompt,
       config: {
         city: input.input.city,
+        timezone: input.input.timezone,
         area: input.input.area,
         budget: input.input.budget,
         goal: input.input.goal,
@@ -2186,6 +2264,7 @@ export class EveningAiDraftService {
 
 type ParsedDraftInput = {
   city: string;
+  timezone: string;
   prompt: string | null;
   goal: string | null;
   mood: string | null;
@@ -2194,8 +2273,9 @@ type ParsedDraftInput = {
   area: string | null;
   stepCount: number;
   stepCountExplicit: boolean;
+  promptStepCountHint: number | null;
   participantsCount: number | null;
-  eventDateWindow: EventDateWindow | null;
+  eventDateWindow: EventDateWindow;
   latitude: number | null;
   longitude: number | null;
 };
@@ -2443,6 +2523,10 @@ function stringOrNull(value: unknown) {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function timezoneForCity(city: string) {
+  return timezoneForContentCity(city) || DEFAULT_TIMEZONE;
+}
+
 function stringArray(value: unknown, limit: number) {
   if (!Array.isArray(value)) {
     return [];
@@ -2623,13 +2707,13 @@ const MONTH_ALIASES: Array<{ aliases: string[]; month: number }> = [
   { aliases: ['декабря', 'декабрь'], month: 12 },
 ];
 
-function eventDateWindowFromPrompt(prompt: string | null, now = new Date()) {
+function eventDateWindowFromPrompt(prompt: string | null, timezone: string, now = new Date()) {
   const text = normalizeText(prompt ?? '');
   if (!text) {
     return null;
   }
-  const currentDate = zonedDateParts(now, DEFAULT_TIMEZONE);
-  const todayWindow = () => eventDateWindowForLocalDate('today', currentDate, now, true);
+  const currentDate = zonedDateParts(now, timezone);
+  const todayWindow = () => eventDateWindowForLocalDate('today', currentDate, now, timezone, true);
 
   if (/(?:^|\s)сегодня(?=$|\s|[,.!?;:])/.test(text)) {
     return todayWindow();
@@ -2639,16 +2723,17 @@ function eventDateWindowFromPrompt(prompt: string | null, now = new Date()) {
       'day_after_tomorrow',
       addLocalDays(currentDate, 2),
       now,
+      timezone,
     );
   }
   if (/(?:^|\s)завтра(?=$|\s|[,.!?;:])/.test(text)) {
-    return eventDateWindowForLocalDate('tomorrow', addLocalDays(currentDate, 1), now);
+    return eventDateWindowForLocalDate('tomorrow', addLocalDays(currentDate, 1), now, timezone);
   }
 
   const isoMatch = text.match(/(?:^|\s)(\d{4})-(\d{1,2})-(\d{1,2})(?=$|\s|[,.!?;:])/);
   if (isoMatch) {
     const parts = localDateFromValues(isoMatch[1], isoMatch[2], isoMatch[3]);
-    return parts ? eventDateWindowForLocalDate('date', parts, now, true) : null;
+    return parts ? eventDateWindowForLocalDate('date', parts, now, timezone, true) : null;
   }
 
   const numericDateMatch = text.match(/(?:^|\s)(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?(?=$|\s|[,.!?;:])/);
@@ -2659,7 +2744,7 @@ function eventDateWindowFromPrompt(prompt: string | null, now = new Date()) {
       numericDateMatch[1],
       numericDateMatch[3] == null ? currentDate : null,
     );
-    return parts ? eventDateWindowForLocalDate('date', parts, now, true) : null;
+    return parts ? eventDateWindowForLocalDate('date', parts, now, timezone, true) : null;
   }
 
   for (const month of MONTH_ALIASES) {
@@ -2674,7 +2759,7 @@ function eventDateWindowFromPrompt(prompt: string | null, now = new Date()) {
       match[1],
       match[2] == null ? currentDate : null,
     );
-    return parts ? eventDateWindowForLocalDate('date', parts, now, true) : null;
+    return parts ? eventDateWindowForLocalDate('date', parts, now, timezone, true) : null;
   }
 
   for (const weekday of WEEKDAY_ALIASES) {
@@ -2683,22 +2768,70 @@ function eventDateWindowFromPrompt(prompt: string | null, now = new Date()) {
     }
     const currentWeekday = weekdayForLocalDate(currentDate);
     const offset = (weekday.day - currentWeekday + 7) % 7;
-    return eventDateWindowForLocalDate('weekday', addLocalDays(currentDate, offset), now, offset === 0);
+    return eventDateWindowForLocalDate(
+      'weekday',
+      addLocalDays(currentDate, offset),
+      now,
+      timezone,
+      offset === 0,
+    );
   }
 
   return null;
+}
+
+function fallbackEventDateWindowFromPrompt(
+  prompt: string | null,
+  timezone: string,
+  now = new Date(),
+) {
+  return eventDateWindowFromPrompt(prompt, timezone, now) ?? todayEventDateWindow(timezone, now);
+}
+
+function todayEventDateWindow(timezone: string, now = new Date()) {
+  return eventDateWindowForLocalDate(
+    'today',
+    zonedDateParts(now, timezone),
+    now,
+    timezone,
+    true,
+  );
+}
+
+function localDateFromIsoDate(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? localDateFromValues(match[1], match[2], match[3]) : null;
+}
+
+function eventDateWindowFromStored(value: unknown): EventDateWindow | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const label = stringOrNull(record.label);
+  const fromRaw = stringOrNull(record.from);
+  const toRaw = stringOrNull(record.to);
+  if (!label || !fromRaw || !toRaw) {
+    return null;
+  }
+  const from = new Date(fromRaw);
+  const to = new Date(toRaw);
+  return Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())
+    ? null
+    : { label, from, to };
 }
 
 function eventDateWindowForLocalDate(
   label: string,
   date: LocalDateParts,
   now: Date,
+  timezone: string,
   fromNowIfToday = false,
 ): EventDateWindow {
-  const start = zonedTimeToUtc(date, 0, 0, 0, 0, DEFAULT_TIMEZONE);
-  const end = zonedTimeToUtc(date, 23, 59, 59, 999, DEFAULT_TIMEZONE);
+  const start = zonedTimeToUtc(date, 0, 0, 0, 0, timezone);
+  const end = zonedTimeToUtc(date, 23, 59, 59, 999, timezone);
   const from =
-    fromNowIfToday && sameLocalDate(date, zonedDateParts(now, DEFAULT_TIMEZONE)) && now.getTime() > start.getTime()
+    fromNowIfToday && sameLocalDate(date, zonedDateParts(now, timezone)) && now.getTime() > start.getTime()
       ? now
       : start;
   return { label, from, to: end };

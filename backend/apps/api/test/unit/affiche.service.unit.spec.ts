@@ -212,6 +212,7 @@ describe('AfficheService', () => {
           findFirst,
           update,
         },
+        event: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       },
     } as any);
 
@@ -273,6 +274,7 @@ describe('AfficheService', () => {
     const service = new AfficheService({
       client: {
         externalContentItem: { findFirst, update },
+        event: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       },
     } as any);
 
@@ -288,6 +290,57 @@ describe('AfficheService', () => {
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ publicStatus: 'published' }),
     }));
+  });
+
+  it('propagates saved client coordinates to linked meetings without coordinates', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'affiche-1',
+        venueName: 'Клуб 16 тонн',
+        lat: null,
+        lng: null,
+        startsAt: new Date('2030-05-05T16:00:00.000Z'),
+        priceMode: 'paid',
+        actionUrl: 'https://go.avred.online/click',
+        publicStatus: 'published',
+        moderationStatus: 'pending',
+      }),
+    );
+    const update = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'affiche-1',
+        address: 'Клуб 16 тонн',
+        lat: 55.763,
+        lng: 37.564,
+      }),
+    );
+    const eventUpdateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const service = new AfficheService({
+      client: {
+        externalContentItem: { findFirst, update },
+        event: { updateMany: eventUpdateMany },
+      },
+    } as any);
+
+    await service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
+      lat: 55.763,
+      lng: 37.564,
+      provider: 'yandex_mapkit_client',
+      query: 'Москва, Клуб 16 тонн',
+      displayName: 'Клуб 16 тонн',
+      venueName: 'Клуб 16 тонн',
+    });
+
+    expect(eventUpdateMany).toHaveBeenCalledWith({
+      where: {
+        sourceExternalContentItemId: 'affiche-1',
+        OR: [{ latitude: null }, { longitude: null }],
+      },
+      data: {
+        latitude: 55.763,
+        longitude: 37.564,
+      },
+    });
   });
 
   it('is idempotent for existing backend coordinates and does not overwrite them', async () => {
@@ -456,37 +509,6 @@ describe('AfficheService', () => {
     });
   });
 
-  it('does not trust submitted venueName when MapKit displayName mismatches event venue', async () => {
-    const service = new AfficheService({
-      client: {
-        externalContentItem: {
-          findFirst: jest.fn().mockResolvedValue(
-            afficheItem({
-              id: 'affiche-1',
-              venueName: 'Клуб 16 тонн',
-              startsAt: new Date('2030-05-05T16:00:00.000Z'),
-            }),
-          ),
-          update: jest.fn(),
-        },
-      },
-    } as any);
-
-    await expect(
-      service.saveClientGeo('affiche-1', 'user-1', 'session-1', {
-        lat: 55.763,
-        lng: 37.564,
-        provider: 'yandex_mapkit_client',
-        query: 'Москва, Клуб 16 тонн',
-        displayName: 'Парк Горького',
-        venueName: 'Клуб 16 тонн',
-      }),
-    ).rejects.toMatchObject({
-      statusCode: 400,
-      code: 'client_geo_venue_mismatch',
-    });
-  });
-
   it('rate limits client geo saves per user session', async () => {
     const service = new AfficheService({
       client: {
@@ -500,6 +522,7 @@ describe('AfficheService', () => {
           ),
           update: jest.fn().mockResolvedValue(afficheItem({ id: 'affiche-1' })),
         },
+        event: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       },
     } as any);
 
@@ -555,6 +578,33 @@ describe('AfficheService', () => {
     expect(result.items[0]?.imageUrl).toBe(
       'https://cdn.frendly.tech/external-content/advcake_ticketland/image.jpg',
     );
+  });
+
+  it('cleans html entities and tags in public affiche text', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      afficheItem({
+        title: '&laquo;Лолита 2.0&raquo;',
+        shortSummary: '<p>&laquo;Лолита 2.0&raquo; &mdash; смелый спектакль&nbsp;для взрослых.</p>',
+        venueName: 'Театр&nbsp;&laquo;Циники&raquo;',
+        address: 'Москва, <b>Курская</b>',
+      }),
+    ]);
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findMany,
+        },
+      },
+    } as any);
+
+    const result = await service.listEvents({ city: 'Москва', limit: '1' });
+
+    expect(result.items[0]).toEqual(expect.objectContaining({
+      title: '«Лолита 2.0»',
+      description: '«Лолита 2.0» \u2014 смелый спектакль для взрослых.',
+      venue: 'Театр «Циники»',
+      address: 'Москва, Курская',
+    }));
   });
 
   it('keeps mirrored S3 event image variants on CDN URLs', async () => {

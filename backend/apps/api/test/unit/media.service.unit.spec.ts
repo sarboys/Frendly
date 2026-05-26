@@ -184,6 +184,39 @@ describe('MediaService', () => {
     expect(s3Send).not.toHaveBeenCalled();
   });
 
+  it('redirects public event cover media to the stored CDN url', async () => {
+    const s3Send = jest.fn();
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'asset-cover-1',
+          status: 'ready',
+          ownerId: 'host-user',
+          kind: 'event_cover',
+          chatId: null,
+          bucket: 'media',
+          objectKey: 'event-covers/host-user/cover.jpg',
+          publicUrl: 'https://cdn.example.com/event-covers/host-user/cover.jpg',
+          mimeType: 'image/jpeg',
+          byteSize: 100,
+          updatedAt: mediaUpdatedAt,
+        }),
+      },
+    };
+    const service = new MediaService({ client } as any);
+    (service as any).s3 = { send: s3Send };
+
+    const media = await service.getAsset('asset-cover-1');
+
+    expect(media).toEqual(
+      expect.objectContaining({
+        redirectUrl: 'https://cdn.example.com/event-covers/host-user/cover.jpg',
+        cacheControl: 'public, max-age=31536000, immutable',
+      }),
+    );
+    expect(s3Send).not.toHaveBeenCalled();
+  });
+
   it('returns not modified for fresh public media cache validators', async () => {
     const client = {
       mediaAsset: {

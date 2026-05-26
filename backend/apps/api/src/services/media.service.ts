@@ -310,7 +310,7 @@ export class MediaService {
   }
 
   private isPublicKind(kind: string) {
-    return kind === 'avatar';
+    return kind === 'avatar' || kind === 'event_cover';
   }
 
   private resolvePublicRedirectUrl(asset: {

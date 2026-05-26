@@ -67,6 +67,125 @@ describe('presenters', () => {
     );
   });
 
+  it('maps event cover variants and attendee member profiles', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-cover',
+        title: 'Встреча с обложкой',
+        emoji: '☕',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Кафе',
+        distanceKm: 1.2,
+        latitude: null,
+        longitude: null,
+        capacity: 8,
+        vibe: 'Спокойно',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'free',
+        priceAmountFrom: null,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        coverAsset: {
+          id: 'cover-1',
+          publicUrl: 'https://cdn.example.com/events/cover.jpg',
+          variants: {
+            card: {
+              url: 'https://cdn.example.com/events/cover__card.webp',
+              width: 720,
+              height: 480,
+            },
+          },
+        },
+      } as any,
+      participants: [
+        {
+          userId: 'host-1',
+          user: {
+            displayName: 'Host',
+            profile: { avatarUrl: 'https://cdn.example.com/host.jpg' },
+          },
+        },
+        {
+          userId: 'user-peer',
+          user: {
+            displayName: 'Peer',
+            profile: { avatarUrl: 'https://cdn.example.com/peer.jpg' },
+          },
+        },
+      ] as any,
+      currentUserId: 'user-me',
+    });
+
+    expect(summary).toMatchObject({
+      imageUrl: 'https://cdn.example.com/events/cover.jpg',
+      imageVariants: {
+        card: {
+          url: 'https://cdn.example.com/events/cover__card.webp',
+          width: 720,
+          height: 480,
+        },
+      },
+      attendees: ['Peer'],
+      memberProfiles: [
+        {
+          userId: 'user-peer',
+          displayName: 'Peer',
+          avatarUrl: 'https://cdn.example.com/peer.jpg',
+        },
+      ],
+    });
+  });
+
+  it('falls back to source image variants when event cover has none', () => {
+    const summary = mapEventSummary({
+      event: {
+        id: 'event-source',
+        title: 'Афиша встреча',
+        emoji: '🎵',
+        startsAt: new Date('2026-05-07T18:00:00.000Z'),
+        place: 'Клуб',
+        distanceKm: 1.2,
+        latitude: null,
+        longitude: null,
+        capacity: 8,
+        vibe: 'Спокойно',
+        tone: 'warm',
+        hostNote: null,
+        lifestyle: 'neutral',
+        priceMode: 'fixed',
+        priceAmountFrom: 1100,
+        priceAmountTo: null,
+        accessMode: 'open',
+        genderMode: 'all',
+        visibilityMode: 'public',
+        joinMode: 'open',
+        hostId: 'host-1',
+        sourceExternalContentItem: {
+          imageUrl: 'https://cdn.example.com/source.jpg',
+          imageVariants: {
+            card: {
+              url: 'https://cdn.example.com/source__card.webp',
+            },
+          },
+        },
+      } as any,
+      participants: [],
+      currentUserId: 'user-me',
+    });
+
+    expect((summary as any).imageVariants).toMatchObject({
+      card: {
+        url: 'https://cdn.example.com/source__card.webp',
+      },
+    });
+  });
+
   it('maps paid affiche tickets to event summaries', () => {
     const summary = mapEventSummary({
       event: {

@@ -97,6 +97,17 @@ export class TomestoAdapter implements ExternalSourceAdapter {
 
     if (input.importMode === TOMESTO_PLACES_CATALOG_MODE) {
       yield* this.fetchCatalogPlaceBatches(input);
+      if (nonNegativeInteger(input.catalogOffset, 0) !== 0) {
+        return;
+      }
+      const promoUrls = await this.discoverDetailUrls('promos', input);
+      console.info('[tomesto] discovered detail urls', {
+        kind: 'promos',
+        count: promoUrls.length,
+      });
+      for await (const batch of this.fetchTimedBatches('promos', promoUrls, input)) {
+        yield batch;
+      }
       return;
     }
 

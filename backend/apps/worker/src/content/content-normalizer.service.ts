@@ -150,11 +150,49 @@ function cleanText(value: unknown, maxLength = 500) {
   if (typeof value !== 'string') {
     return null;
   }
-  const trimmed = value.replace(/\s+/g, ' ').trim();
+  const trimmed = decodeHtmlEntities(value)
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/p>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!trimmed) {
     return null;
   }
   return trimmed.length > maxLength ? trimmed.slice(0, maxLength).trim() : trimmed;
+}
+
+function decodeHtmlEntities(value: string) {
+  const named: Record<string, string> = {
+    amp: '&',
+    apos: "'",
+    gt: '>',
+    laquo: '\u00ab',
+    lt: '<',
+    mdash: '\u2014',
+    nbsp: ' ',
+    ndash: '\u2013',
+    quot: '"',
+    raquo: '\u00bb',
+  };
+  return value
+    .replace(/&([a-z]+);/gi, (match, name: string) => named[name.toLowerCase()] ?? match)
+    .replace(/&#(\d+);/g, (match, code: string) => {
+      const parsed = Number.parseInt(code, 10);
+      return Number.isFinite(parsed) ? safeCodePoint(parsed, match) : match;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (match, code: string) => {
+      const parsed = Number.parseInt(code, 16);
+      return Number.isFinite(parsed) ? safeCodePoint(parsed, match) : match;
+    });
+}
+
+function safeCodePoint(code: number, fallback: string) {
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return fallback;
+  }
 }
 
 function normalizeKey(value: string) {

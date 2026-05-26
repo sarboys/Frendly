@@ -21,6 +21,7 @@ const STORY_MEDIA_ASSET_SELECT = {
   byteSize: true,
   durationMs: true,
   publicUrl: true,
+  variants: true,
 } satisfies Prisma.MediaAssetSelect;
 const STORY_AUTHOR_SELECT = {
   displayName: true,

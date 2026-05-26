@@ -602,6 +602,50 @@ describe('worker outbox recovery', () => {
     });
   });
 
+  it('treats event cover images as public media with variants', () => {
+    const service = new WorkerService({
+      client: {},
+    } as any);
+
+    expect(
+      (service as any).shouldCreateMediaVariants({
+        kind: 'event_cover',
+        mimeType: 'image/jpeg',
+      }),
+    ).toBe(true);
+    expect(
+      (service as any).isPublicMediaAsset({
+        kind: 'event_cover',
+      }),
+    ).toBe(true);
+  });
+
+  it('includes event covers in media variant backfill scans', async () => {
+    const mediaAssetFindMany = jest.fn().mockResolvedValue([]);
+    const service = new WorkerService({
+      client: {
+        mediaAsset: {
+          findMany: mediaAssetFindMany,
+        },
+        drop: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    await (service as any).runMediaVariantBackfillScan();
+
+    expect(mediaAssetFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          kind: {
+            in: expect.arrayContaining(['event_cover']),
+          },
+        }),
+      }),
+    );
+  });
+
   it('uses all 30 requested cities for default scheduled content import', async () => {
     const service = new WorkerService({
       client: {},

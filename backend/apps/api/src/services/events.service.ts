@@ -106,7 +106,32 @@ const MOSCOW_BOUNDS = {
   east: 37.9674,
 };
 
-const eventListSummarySelect = {
+const eventRouteSummarySelect = {
+  _count: {
+    select: {
+      steps: true,
+    },
+  },
+} satisfies Prisma.EveningRouteSelect;
+
+const eventRouteWithPointsSelect = {
+  ...eventRouteSummarySelect,
+  steps: {
+    orderBy: { sortOrder: 'asc' },
+    select: {
+      id: true,
+      sortOrder: true,
+      title: true,
+      venue: true,
+      address: true,
+      emoji: true,
+      lat: true,
+      lng: true,
+    },
+  },
+} satisfies Prisma.EveningRouteSelect;
+
+const eventListSummaryBaseSelect = {
   id: true,
   title: true,
   emoji: true,
@@ -133,26 +158,7 @@ const eventListSummarySelect = {
   isDate: true,
   eveningRouteId: true,
   eveningRoute: {
-    select: {
-      _count: {
-        select: {
-          steps: true,
-        },
-      },
-      steps: {
-        orderBy: { sortOrder: 'asc' },
-        select: {
-          id: true,
-          sortOrder: true,
-          title: true,
-          venue: true,
-          address: true,
-          emoji: true,
-          lat: true,
-          lng: true,
-        },
-      },
-    },
+    select: eventRouteSummarySelect,
   },
   canceledAt: true,
   hostId: true,
@@ -160,6 +166,7 @@ const eventListSummarySelect = {
     select: {
       id: true,
       publicUrl: true,
+      variants: true,
     },
   },
   sourceExternalContentItem: {
@@ -168,6 +175,7 @@ const eventListSummarySelect = {
       contentKind: true,
       title: true,
       imageUrl: true,
+      imageVariants: true,
       priceFrom: true,
       priceMode: true,
       actionUrl: true,
@@ -186,6 +194,13 @@ const eventListSummarySelect = {
   },
 } satisfies Prisma.EventSelect;
 
+const eventListSummaryWithRoutePointsSelect = {
+  ...eventListSummaryBaseSelect,
+  eveningRoute: {
+    select: eventRouteWithPointsSelect,
+  },
+} satisfies Prisma.EventSelect;
+
 const eventMessageMediaAssetSelect = {
   id: true,
   kind: true,
@@ -196,6 +211,7 @@ const eventMessageMediaAssetSelect = {
   originalFileName: true,
   publicUrl: true,
   waveform: true,
+  variants: true,
 } satisfies Prisma.MediaAssetSelect;
 
 const eventSystemMessageSelect = {
@@ -354,7 +370,9 @@ export class EventsService {
     } else {
       const events = await this.prismaService.client.event.findMany({
         where,
-        select: this.eventListSelect(userId, blockedUserIds),
+        select: this.eventListSelect(userId, blockedUserIds, {
+          includeRoutePoints: geoQuery != null,
+        }),
         orderBy: this.listOrderBy(
           filter,
           postgisCandidates == null ? geoQuery : undefined,
@@ -555,7 +573,7 @@ export class EventsService {
       this.prismaService.client.event.findUnique({
         where: { id: eventId },
         select: {
-          ...eventListSummarySelect,
+          ...eventListSummaryWithRoutePointsSelect,
           sourceExternalContentItem: {
             select: {
               id: true,
@@ -565,6 +583,7 @@ export class EventsService {
               address: true,
               city: true,
               imageUrl: true,
+              imageVariants: true,
               priceFrom: true,
               priceMode: true,
               actionUrl: true,
@@ -1578,7 +1597,7 @@ export class EventsService {
     if (!hostUser) {
       throw new ApiError(404, 'user_not_found', 'User not found');
     }
-    await this.assertHostCanCreateMonthlyMeetup(userId);
+    await this.assertHostCanCreateWeeklyMeetup(userId);
     await this.assertHostCanUseEntryRequirements(userId, entryRequirements);
     const coverAssetId = await this.resolveEventCoverAssetId(
       userId,
@@ -3071,7 +3090,9 @@ export class EventsService {
           in: candidates.map((event) => event.id),
         },
       },
-      select: this.eventListSelect(userId, blockedUserIds),
+      select: this.eventListSelect(userId, blockedUserIds, {
+        includeRoutePoints: true,
+      }),
     });
     const eventById = new Map(events.map((event) => [event.id, event]));
 
@@ -3085,9 +3106,15 @@ export class EventsService {
     return page;
   }
 
-  private eventListSelect(userId: string, blockedUserIds: Set<string>) {
+  private eventListSelect(
+    userId: string,
+    blockedUserIds: Set<string>,
+    options: { includeRoutePoints?: boolean } = {},
+  ) {
     return {
-      ...eventListSummarySelect,
+      ...(options.includeRoutePoints
+        ? eventListSummaryWithRoutePointsSelect
+        : eventListSummaryBaseSelect),
       participants: {
         where: {
           userId: {
@@ -3099,6 +3126,11 @@ export class EventsService {
           user: {
             select: {
               displayName: true,
+              profile: {
+                select: {
+                  avatarUrl: true,
+                },
+              },
             },
           },
         },
@@ -4103,7 +4135,7 @@ export class EventsService {
     }
   }
 
-  private async assertHostCanCreateMonthlyMeetup(userId: string) {
+  private async assertHostCanCreateWeeklyMeetup(userId: string) {
     if (typeof (this.prismaService.client.event as any).count !== 'function') {
       return;
     }
@@ -4124,8 +4156,8 @@ export class EventsService {
     if (limit == null) {
       return;
     }
-    const window = this.currentMoscowMonthWindow();
-    const createdThisMonth = await this.prismaService.client.event.count({
+    const window = this.currentMoscowWeekWindow();
+    const createdThisWeek = await this.prismaService.client.event.count({
       where: {
         hostId: userId,
         createdAt: {
@@ -4134,11 +4166,11 @@ export class EventsService {
         },
       },
     });
-    if (createdThisMonth >= limit) {
+    if (createdThisWeek >= limit) {
       throw new ApiError(
         429,
-        'event_monthly_limit_reached',
-        'Monthly meetup creation limit reached',
+        'event_weekly_limit_reached',
+        'Weekly meetup creation limit reached',
         {
           limit,
           remaining: 0,
@@ -4148,16 +4180,24 @@ export class EventsService {
     }
   }
 
-  private currentMoscowMonthWindow() {
+  private currentMoscowWeekWindow() {
     const moscowOffsetMs = 3 * 60 * 60 * 1000;
     const shifted = new Date(Date.now() + moscowOffsetMs);
+    const dayOfWeek = shifted.getUTCDay();
+    const daysSinceMonday = (dayOfWeek + 6) % 7;
     const start = new Date(
-      Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1) -
-        moscowOffsetMs,
+      Date.UTC(
+        shifted.getUTCFullYear(),
+        shifted.getUTCMonth(),
+        shifted.getUTCDate() - daysSinceMonday,
+      ) - moscowOffsetMs,
     );
     const end = new Date(
-      Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 1) -
-        moscowOffsetMs,
+      Date.UTC(
+        shifted.getUTCFullYear(),
+        shifted.getUTCMonth(),
+        shifted.getUTCDate() - daysSinceMonday + 7,
+      ) - moscowOffsetMs,
     );
     return { start, end };
   }

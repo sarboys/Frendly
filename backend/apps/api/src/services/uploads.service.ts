@@ -1427,7 +1427,7 @@ export class UploadsService {
     fileName: string;
   }) {
     try {
-      return await this.prismaService.client.mediaAsset.create({
+      const asset = await this.prismaService.client.mediaAsset.create({
         data: {
           ownerId: input.userId,
           kind: 'event_cover',
@@ -1447,6 +1447,8 @@ export class UploadsService {
           publicUrl: true,
         },
       });
+      await this.queueMediaFinalizeForImage(asset.id, input.mimeType);
+      return asset;
     } catch (error) {
       if (!isPrismaKnownError(error, 'P2002')) {
         throw error;

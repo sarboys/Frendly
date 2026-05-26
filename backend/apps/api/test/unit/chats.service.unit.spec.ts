@@ -259,6 +259,49 @@ describe('ChatsService unit', () => {
       });
   });
 
+  it('selects attachment variants for chat message history', async () => {
+    const messageFindMany = jest.fn().mockResolvedValue([]);
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: ChatKind.meetup,
+              event: { hostId: 'host-user' },
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findMany: messageFindMany,
+        },
+        realtimeEvent: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+      },
+    } as any);
+
+    await service.getMessages('user-me', 'chat-1', { limit: 20 });
+
+    expect(messageFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          attachments: {
+            select: {
+              mediaAsset: {
+                select: expect.objectContaining({
+                  variants: true,
+                }),
+              },
+            },
+          },
+        }),
+      }),
+    );
+  });
+
   it('exposes pinned state and sorts pinned chats first', async () => {
     const newerChat = makeChatListItem(
       'chat-newer',

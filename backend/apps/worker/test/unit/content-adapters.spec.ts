@@ -544,7 +544,7 @@ describe('content source adapters', () => {
     expect(items.map((item) => item.sourceItemId)).not.toContain('promo:svadby:wedding-offer');
   });
 
-  it('loads Tomesto catalog places from sitemap slices without events or promos', async () => {
+  it('loads Tomesto catalog places from sitemap slices and includes promos', async () => {
     process.env.TOMESTO_REQUEST_DELAY_MS = '0';
     const adapter = new TomestoAdapter();
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -563,6 +563,15 @@ describe('content source adapters', () => {
       if (url.pathname === '/moskva/places/cafe-one') {
         return textResponse(tomestoPlaceHtml());
       }
+      if (url.pathname === '/moskva/promos') {
+        return textResponse('<a href="/moskva/promos/wine-set">regular promo</a>');
+      }
+      if (url.pathname === '/moskva/promos/page/2') {
+        return textResponse('');
+      }
+      if (url.pathname === '/moskva/promos/wine-set') {
+        return textResponse(tomestoPromoHtml());
+      }
       throw new Error(`unexpected_url_${url.pathname}`);
     });
 
@@ -576,8 +585,11 @@ describe('content source adapters', () => {
     expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).toEqual([
       '/moskva/sitemap.xml',
       '/moskva/places/cafe-one',
+      '/moskva/promos',
+      '/moskva/promos/page/2',
+      '/moskva/promos/wine-set',
     ]);
-    expect(items).toHaveLength(1);
+    expect(items).toHaveLength(2);
     expect(items[0]).toMatchObject({
       sourceItemId: 'place:cafe-one',
       contentKind: 'place',
@@ -589,6 +601,12 @@ describe('content source adapters', () => {
           total: 2,
         },
       }),
+    });
+    expect(items[1]).toMatchObject({
+      sourceItemId: 'promo:skidki:wine-set',
+      contentKind: 'event',
+      category: 'promo',
+      raw: expect.objectContaining({ kind: 'promo' }),
     });
   });
 
@@ -738,6 +756,9 @@ describe('content source adapters', () => {
           address: 'Набережные Челны, Центральная, 1',
         }));
       }
+      if (url.pathname === '/nabchelny/promos') {
+        return textResponse('');
+      }
       throw new Error(`unexpected_url_${url.pathname}`);
     });
 
@@ -758,6 +779,7 @@ describe('content source adapters', () => {
     expect(fetchMock.mock.calls.map((call) => new URL(String(call[0])).pathname)).toEqual([
       '/nabchelny/sitemap.xml',
       '/nabchelny/places/place-one',
+      '/nabchelny/promos',
     ]);
   });
 });

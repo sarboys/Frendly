@@ -5,6 +5,7 @@ import { EventsService } from '../../src/services/events.service';
 describe('EventsService unit', () => {
   afterEach(() => {
     delete process.env.ENABLE_POSTGIS_EVENT_FEED;
+    jest.useRealTimers();
   });
 
   const eventFixture = (overrides: Record<string, unknown> = {}) => ({
@@ -43,15 +44,15 @@ describe('EventsService unit', () => {
     hostVerified = true,
     hostPremium = true,
     hostVerificationStatus = null,
-    hostedMeetupsThisMonth = 0,
+    hostedMeetupsThisPeriod = 0,
   }: {
     hostVerified?: boolean;
     hostPremium?: boolean;
     hostVerificationStatus?: string | null;
-    hostedMeetupsThisMonth?: number;
+    hostedMeetupsThisPeriod?: number;
   } = {}) => {
     const eventCreate = jest.fn().mockResolvedValue({ id: 'event-1' });
-    const eventCount = jest.fn().mockResolvedValue(hostedMeetupsThisMonth);
+    const eventCount = jest.fn().mockResolvedValue(hostedMeetupsThisPeriod);
     const userFindUnique = jest.fn().mockResolvedValue({
       id: 'host-1',
       displayName: 'Host',
@@ -108,7 +109,7 @@ describe('EventsService unit', () => {
     );
     jest.spyOn(service, 'getEventDetail').mockResolvedValue({ id: 'event-1' } as any);
 
-    return { service, eventCreate };
+    return { service, eventCreate, eventCount };
   };
 
   const createEventPayload = () => ({
@@ -156,6 +157,35 @@ describe('EventsService unit', () => {
 
     expect(searchCondition.OR[0].title.contains).toHaveLength(64);
     expect(searchCondition.OR[0].title.contains).toBe('вечер'.repeat(20).slice(0, 64));
+  });
+
+  it('does not select route steps for ordinary event list pages', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findUnique: jest.fn(),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+    );
+
+    await service.listEvents('user-me', {
+      filter: 'nearby',
+    } as any);
+
+    expect(
+      eventFindMany.mock.calls[0][0].select.eveningRoute.select.steps,
+    ).toBeUndefined();
   });
 
   it('filters event feed by ISO date', async () => {
@@ -1500,25 +1530,39 @@ describe('EventsService unit', () => {
     );
   });
 
-  it('rejects the 11th monthly meetup for a free host', async () => {
-    const { service, eventCreate } = makeCreateEventService({
+  it('rejects the 11th weekly meetup for a free host', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-13T09:00:00.000Z'));
+    const { service, eventCreate, eventCount } = makeCreateEventService({
       hostPremium: false,
-      hostedMeetupsThisMonth: 10,
+      hostedMeetupsThisPeriod: 10,
     });
 
     await expect(
       service.createEvent('host-1', createEventPayload()),
     ).rejects.toMatchObject({
       statusCode: 429,
-      code: 'event_monthly_limit_reached',
+      code: 'event_weekly_limit_reached',
+      details: {
+        limit: 10,
+        resetAt: '2026-05-17T21:00:00.000Z',
+      },
+    });
+    expect(eventCount).toHaveBeenCalledWith({
+      where: {
+        hostId: 'host-1',
+        createdAt: {
+          gte: new Date('2026-05-10T21:00:00.000Z'),
+          lt: new Date('2026-05-17T21:00:00.000Z'),
+        },
+      },
     });
     expect(eventCreate).not.toHaveBeenCalled();
   });
 
-  it('does not limit monthly meetup creation for Frendly Plus hosts', async () => {
+  it('does not limit weekly meetup creation for Frendly Plus hosts', async () => {
     const { service, eventCreate } = makeCreateEventService({
       hostPremium: true,
-      hostedMeetupsThisMonth: 10,
+      hostedMeetupsThisPeriod: 10,
     });
 
     await service.createEvent('host-1', createEventPayload());

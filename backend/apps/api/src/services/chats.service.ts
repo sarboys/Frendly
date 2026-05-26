@@ -35,6 +35,7 @@ const chatMessageMediaAssetSelect = {
   originalFileName: true,
   publicUrl: true,
   waveform: true,
+  variants: true,
 } satisfies Prisma.MediaAssetSelect;
 
 const chatReplyAttachmentSelect = {

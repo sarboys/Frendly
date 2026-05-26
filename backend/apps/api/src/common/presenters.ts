@@ -14,7 +14,11 @@ import {
   buildMessagePreview,
   objectKeyFromPublicAssetUrl,
 } from '@big-break/database';
-import { mapMediaAsset, mapProfilePhoto } from './media-presenters';
+import {
+  mapMediaAsset,
+  mapMediaVariants,
+  mapProfilePhoto,
+} from './media-presenters';
 
 export { mapMediaAsset, mapProfilePhoto } from './media-presenters';
 
@@ -68,7 +72,7 @@ type MessageMediaAsset = Pick<
   | 'originalFileName'
   | 'publicUrl'
   | 'waveform'
->;
+> & { variants?: unknown };
 
 type MessagePresenterInput = Pick<
   Message,
@@ -368,12 +372,15 @@ type EventSummaryInput = Pick<
 > & {
   latitude?: number | null;
   longitude?: number | null;
-  coverAsset?: Pick<MediaAsset, 'id' | 'publicUrl'> | null;
+  coverAsset?: (Pick<MediaAsset, 'id' | 'publicUrl'> & {
+    variants?: unknown;
+  }) | null;
   sourceExternalContentItem?: {
     id?: string | null;
     contentKind?: string | null;
     title?: string | null;
     imageUrl: string | null;
+    imageVariants?: unknown;
     priceFrom?: number | null;
     priceMode?: string | null;
     actionUrl?: string | null;
@@ -495,7 +502,9 @@ export function mapEventSummary(params: {
   event: EventSummaryInput;
   participants: Array<{
     userId: string;
-    user: Pick<User, 'displayName'>;
+    user: Pick<User, 'displayName'> & {
+      profile?: Pick<Profile, 'avatarUrl'> | null;
+    };
   }>;
   currentUserId: string;
   participantCount?: number;
@@ -530,9 +539,15 @@ export function mapEventSummary(params: {
     city: event.city ?? null,
     distance: `${event.distanceKm.toFixed(1)} км`,
     imageUrl: mapEventImageUrl(event),
+    imageVariants: mapEventImageVariants(event),
     latitude: event.latitude ?? null,
     longitude: event.longitude ?? null,
     attendees: attendeePreview.slice(0, 5).map((participant) => participant.user.displayName),
+    memberProfiles: attendeePreview.slice(0, 5).map((participant) => ({
+      userId: participant.userId,
+      displayName: participant.user.displayName,
+      avatarUrl: participant.user.profile?.avatarUrl ?? null,
+    })),
     going: participantCount ?? participants.length,
     capacity: event.capacity,
     vibe: event.vibe,
@@ -652,6 +667,14 @@ function mapEventImageUrl(event: EventSummaryInput) {
     return buildMediaProxyPath(cover.id);
   }
   return mapExternalContentImageUrl(event.sourceExternalContentItem);
+}
+
+function mapEventImageVariants(event: EventSummaryInput) {
+  const coverVariants = mapMediaVariants(event.coverAsset?.variants);
+  if (Object.keys(coverVariants).length > 0) {
+    return coverVariants;
+  }
+  return mapMediaVariants(event.sourceExternalContentItem?.imageVariants);
 }
 
 function mapExternalContentImageUrl(

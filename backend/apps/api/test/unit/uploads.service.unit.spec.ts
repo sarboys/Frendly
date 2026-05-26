@@ -594,6 +594,60 @@ describe('UploadsService', () => {
     );
   });
 
+  it('queues media finalize when an event cover image upload completes', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: 'event-cover-asset',
+      ownerId: 'user-me',
+      kind: 'event_cover',
+      status: 'ready',
+      publicUrl: 'https://cdn.example.com/event-cover.jpg',
+    });
+    const client = {
+      mediaAsset: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create,
+      },
+    };
+    const service = new UploadsService(
+      { client } as any,
+      {} as any,
+      {} as any,
+    );
+    const queueMediaFinalizeForImage = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    (service as any).queueMediaFinalizeForImage = queueMediaFinalizeForImage;
+
+    await expect(
+      service.completeMediaUpload('user-me', {
+        scope: 'event_cover',
+        objectKey: 'event-covers/user-me/cover.jpg',
+        mimeType: 'image/jpeg',
+        byteSize: 2048,
+        fileName: 'cover.jpg',
+      }),
+    ).resolves.toEqual({
+      assetId: 'event-cover-asset',
+      status: 'ready',
+      url: 'https://cdn.example.com/event-cover.jpg',
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ownerId: 'user-me',
+          kind: 'event_cover',
+          objectKey: 'event-covers/user-me/cover.jpg',
+          mimeType: 'image/jpeg',
+        }),
+      }),
+    );
+    expect(queueMediaFinalizeForImage).toHaveBeenCalledWith(
+      'event-cover-asset',
+      'image/jpeg',
+    );
+  });
+
   it('rejects PDF verification document uploads', async () => {
     const client = {
       mediaAsset: {

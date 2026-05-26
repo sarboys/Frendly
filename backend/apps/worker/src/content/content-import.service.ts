@@ -438,7 +438,16 @@ export class ContentImportService {
                 role: 'ticketland_geocoder_backfill',
                 method: 'geocoder_high_confidence',
                 geoConfidence: 'high',
-                ...geocoderEnrichmentFields(geocodedResult),
+                provider: geocodedResult.provider,
+                precision: geocodedResult.precision,
+                kind: geocodedResult.kind,
+                osmType: geocodedResult.osmType,
+                osmId: geocodedResult.osmId,
+                category: geocodedResult.category,
+                type: geocodedResult.type,
+                importance: geocodedResult.importance,
+                displayName: geocodedResult.displayName,
+                query: geocodedResult.query,
                 querySource: query.source,
                 fields: ['address', 'lat', 'lng'],
               })),
@@ -1465,28 +1474,17 @@ function enrichItemFromGeocoder(
       role: 'affiliate_venue_enriched',
       method: 'geocoder_high_confidence',
       geoConfidence: 'high',
-      ...geocoderEnrichmentFields(geocoded),
+      provider: geocoded.provider,
+      precision: geocoded.precision,
+      kind: geocoded.kind,
+      osmType: geocoded.osmType,
+      osmId: geocoded.osmId,
+      category: geocoded.category,
+      type: geocoded.type,
+      importance: geocoded.importance,
+      displayName: geocoded.displayName,
       fields: ['address', 'lat', 'lng'],
     }),
-  };
-}
-
-function geocoderEnrichmentFields(geocoded: VenueGeocodeResult) {
-  return {
-    provider: geocoded.provider,
-    precision: geocoded.precision,
-    kind: geocoded.kind,
-    query: geocoded.query,
-    ...(geocoded.provider === 'nominatim'
-      ? {
-        osmType: geocoded.osmType,
-        osmId: geocoded.osmId,
-        category: geocoded.category,
-        type: geocoded.type,
-        importance: geocoded.importance,
-        displayName: geocoded.displayName,
-      }
-      : {}),
   };
 }
 
@@ -1661,6 +1659,11 @@ function tomestoCatalogProgress(raw: unknown): TomestoCatalogProgress | null {
 }
 
 function publicStatusFor(item: NormalizedExternalContentItem) {
+  if (item.sourceCode === 'advcake_ticketland') {
+    return item.contentKind === 'event' && item.priceMode === 'paid' && item.actionUrl
+      ? PUBLIC_STATUS_PUBLISHED
+      : PUBLIC_STATUS_HIDDEN;
+  }
   if (isAttachableSourceCandidate(item) && !hasValidContentCoordinates(item)) {
     return PUBLIC_STATUS_HIDDEN;
   }
@@ -1683,9 +1686,6 @@ function publicStatusFor(item: NormalizedExternalContentItem) {
   }
   if (item.priceMode === 'unknown') {
     return PUBLIC_STATUS_HIDDEN;
-  }
-  if (item.sourceCode === 'advcake_ticketland') {
-    return item.priceMode === 'paid' && item.actionUrl ? PUBLIC_STATUS_PUBLISHED : PUBLIC_STATUS_HIDDEN;
   }
   if (item.sourceCode === 'kudago' || item.sourceCode === 'timepad') {
     if (item.priceMode === 'free') {

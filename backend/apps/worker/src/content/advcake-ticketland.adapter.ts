@@ -397,15 +397,36 @@ function parseWebsites() {
 }
 
 function decodeEntities(value: string) {
+  const named: Record<string, string> = {
+    amp: '&',
+    apos: "'",
+    gt: '>',
+    laquo: '\u00ab',
+    lt: '<',
+    mdash: '\u2014',
+    nbsp: ' ',
+    ndash: '\u2013',
+    quot: '"',
+    raquo: '\u00bb',
+  };
   return value
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 10)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
+    .replace(/&([a-z]+);/gi, (match, name: string) => named[name.toLowerCase()] ?? match)
+    .replace(/&#(\d+);/g, (match, code: string) => {
+      const parsed = Number.parseInt(code, 10);
+      return Number.isFinite(parsed) ? safeCodePoint(parsed, match) : match;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (match, code: string) => {
+      const parsed = Number.parseInt(code, 16);
+      return Number.isFinite(parsed) ? safeCodePoint(parsed, match) : match;
+    });
+}
+
+function safeCodePoint(code: number, fallback: string) {
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return fallback;
+  }
 }
 
 function parseMoscowDate(value: string | null) {

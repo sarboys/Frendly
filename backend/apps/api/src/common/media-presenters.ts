@@ -29,7 +29,9 @@ type MediaVariantInput = {
 export function resolveMediaVisibility(
   asset: Pick<PresentableMediaAsset, 'kind'>,
 ): 'public' | 'private' {
-  return asset.kind === 'avatar' ? 'public' : 'private';
+  return asset.kind === 'avatar' || asset.kind === 'event_cover'
+    ? 'public'
+    : 'private';
 }
 
 export function buildMediaCacheKey(assetId: string): string {

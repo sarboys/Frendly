@@ -977,7 +977,9 @@ export class WorkerService implements OnModuleDestroy {
       const rows = await this.prismaService.client.mediaAsset.findMany({
         where: {
           status: 'ready',
-          kind: { in: ['avatar', 'chat_attachment', 'story_media'] },
+          kind: {
+            in: ['avatar', 'chat_attachment', 'story_media', 'event_cover'],
+          },
           mimeType: { startsWith: 'image/' },
           NOT: { mimeType: 'image/gif' },
         },
@@ -1126,12 +1128,13 @@ export class WorkerService implements OnModuleDestroy {
     return (
       asset.kind === 'avatar' ||
       asset.kind === 'chat_attachment' ||
-      asset.kind === 'story_media'
+      asset.kind === 'story_media' ||
+      asset.kind === 'event_cover'
     );
   }
 
   private isPublicMediaAsset(asset: { kind: string }) {
-    return asset.kind === 'avatar';
+    return asset.kind === 'avatar' || asset.kind === 'event_cover';
   }
 
   private hasAllProfileImageVariants(raw: unknown) {
