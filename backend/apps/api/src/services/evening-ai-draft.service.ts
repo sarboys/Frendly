@@ -10,10 +10,11 @@ const DEFAULT_EVENING_AI_MODEL = 'openrouter/owl-alpha';
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CITY = 'Москва';
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
-const DEFAULT_STEP_COUNT = 5;
 const MAX_STEP_COUNT = 5;
-const MIN_STEP_COUNT = 2;
-const MAX_CANDIDATES = 300;
+const MIN_STEP_COUNT = 1;
+const KUDAGO_CANDIDATE_LIMIT = 350;
+const DEFAULT_INTENT_MAX_TOKENS = 4096;
+const DEFAULT_ROUTE_MAX_TOKENS = 32768;
 const MAX_LEG_KM = 3.5;
 const CANDIDATE_CORE_RATIO = 0.7;
 const WALK_ALLOWED_CATEGORY_TERMS = ['walk', 'outdoor', 'park', 'route', 'маршрут', 'прогул', 'парк'];
@@ -126,6 +127,8 @@ type GeneratedIntentJson = {
   dateMode?: unknown;
   localDate?: unknown;
   dateReason?: unknown;
+  area?: unknown;
+  budget?: unknown;
   steps?: Array<{
     role?: unknown;
     preferredTerms?: unknown;
@@ -152,6 +155,8 @@ type DraftIntent = {
   roles: RouteRole[];
   roleHints: RoleIntentHint[];
   eventDateWindow: EventDateWindow;
+  area: string | null;
+  budget: string | null;
   source: 'llm' | 'rules';
 };
 
@@ -211,6 +216,8 @@ export class EveningAiDraftService {
       ...parsedInput,
       stepCount: intent.roles.length,
       eventDateWindow: intent.eventDateWindow,
+      area: intent.area,
+      budget: intent.budget,
     };
     const candidates = await this.loadCandidatePack(input, intent.roles, intent.roleHints);
     const requiredRoles = this.requiredCandidateRoles(input, intent);
@@ -303,6 +310,8 @@ export class EveningAiDraftService {
       ...input,
       stepCount: intent.roles.length,
       eventDateWindow: intent.eventDateWindow,
+      area: intent.area,
+      budget: intent.budget,
     };
     const generated = await this.generateRouteWithFallback({
       input: intentInput,
@@ -353,6 +362,8 @@ export class EveningAiDraftService {
       ...input,
       stepCount: intent.roles.length,
       eventDateWindow: intent.eventDateWindow,
+      area: intent.area,
+      budget: intent.budget,
     };
     const availableCandidates = candidates.filter((candidate) => !rejected.has(candidate.id));
     if (
@@ -407,6 +418,14 @@ export class EveningAiDraftService {
 
   private eveningAiModel() {
     return stringOrNull(process.env.EVENING_AI_MODEL) ?? DEFAULT_EVENING_AI_MODEL;
+  }
+
+  private intentMaxTokens() {
+    return integerFromEnv('EVENING_AI_INTENT_MAX_TOKENS', DEFAULT_INTENT_MAX_TOKENS, 512, 131072);
+  }
+
+  private routeMaxTokens() {
+    return integerFromEnv('EVENING_AI_ROUTE_MAX_TOKENS', DEFAULT_ROUTE_MAX_TOKENS, 1024, 131072);
   }
 
   async confirmDraft(userId: string, draftId: string) {
@@ -509,7 +528,7 @@ export class EveningAiDraftService {
         systemPrompt: this.systemPrompt(),
         userPrompt: this.userPrompt(input),
         temperature: 0.2,
-        maxTokens: 900,
+        maxTokens: this.routeMaxTokens(),
         responseFormat: this.responseFormat(),
       });
       const firstIssues = this.validateGeneratedRoute(
@@ -544,7 +563,7 @@ export class EveningAiDraftService {
           validationErrors: firstIssues,
         }),
         temperature: 0.2,
-        maxTokens: 900,
+        maxTokens: this.routeMaxTokens(),
         responseFormat: this.responseFormat(),
       });
       const retryIssues = this.validateGeneratedRoute(
@@ -600,7 +619,7 @@ export class EveningAiDraftService {
               validationErrors: latestValidationIssues,
             }),
             temperature: 0.2,
-            maxTokens: 900,
+            maxTokens: this.routeMaxTokens(),
             responseFormat: this.responseFormat(),
           });
           const retryIssues = this.validateGeneratedRoute(
@@ -803,7 +822,7 @@ export class EveningAiDraftService {
       totalPriceFrom,
       totalSavings: 0,
       durationLabel: `${steps[0]?.time ?? '19:00'} - ${steps[steps.length - 1]?.endTime ?? '22:00'}`,
-      area: input.area ?? input.city,
+      area: displayAreaForRoute(input.area) ?? input.city,
       goal: input.goal ?? 'newfriends',
       mood: input.mood ?? 'chill',
       budget: input.budget ?? (totalPriceFrom === 0 ? 'free' : 'low'),
@@ -834,29 +853,31 @@ export class EveningAiDraftService {
     const daySeed = new Date().toISOString().slice(0, 10);
     const serverSeed = process.env.EVENING_AI_CANDIDATE_SEED ?? daySeed;
     const seed = stableHash([serverSeed, input.prompt, input.city, input.area, roles.join('|')].join('|'));
-    const perRoleLimit = Math.max(MIN_STEP_COUNT, Math.ceil(MAX_CANDIDATES / uniqueRoles.length));
     const rankedGroups = groups.map((group, index) =>
       this.rankCandidateGroup(
         input,
         group,
         stableHash(`${seed}:${uniqueRoles[index]}`),
-        perRoleLimit,
         roleHints,
       ),
     );
     const candidates: CandidateCard[] = [];
-    for (let index = 0; candidates.length < MAX_CANDIDATES; index += 1) {
+    let kudagoCount = 0;
+    for (let index = 0; ; index += 1) {
       let added = false;
       for (const group of rankedGroups) {
         const candidate = group[index];
         if (!candidate) {
           continue;
         }
-        candidates.push(candidate);
-        added = true;
-        if (candidates.length >= MAX_CANDIDATES) {
-          break;
+        if (candidate.source === 'kudago' && kudagoCount >= KUDAGO_CANDIDATE_LIMIT) {
+          continue;
         }
+        candidates.push(candidate);
+        if (candidate.source === 'kudago') {
+          kudagoCount += 1;
+        }
+        added = true;
       }
       if (!added) {
         break;
@@ -869,7 +890,6 @@ export class EveningAiDraftService {
     input: ParsedDraftInput,
     candidates: CandidateCard[],
     seed: number,
-    limit: number,
     roleHints: RoleIntentHint[] = [],
   ) {
     const ranked = candidates
@@ -879,16 +899,14 @@ export class EveningAiDraftService {
           this.candidateScore(input, left, roleHints) -
           this.candidateScore(input, right, roleHints),
       );
-    const cappedLimit = Math.min(limit, ranked.length);
-    const coreSize = Math.min(cappedLimit, Math.floor(cappedLimit * CANDIDATE_CORE_RATIO));
+    const coreSize = Math.floor(ranked.length * CANDIDATE_CORE_RATIO);
     const core = ranked.slice(0, coreSize);
     const tail = ranked
       .slice(coreSize)
       .sort(
         (left, right) =>
           this.candidateTailScore(left, seed) - this.candidateTailScore(right, seed),
-      )
-      .slice(0, cappedLimit - core.length);
+      );
     return [...core, ...tail];
   }
 
@@ -1010,14 +1028,20 @@ export class EveningAiDraftService {
         })
       : await (async () => {
           const areaTerms = areaTermsFor(input.area).slice(0, 16);
-          const [preferredItems, areaItems, genericItems] = await Promise.all([
+          const [cityItems, preferredItems, areaItems, genericItems] = await Promise.all([
+            (this.prismaService.client as any).externalContentItem.findMany({
+              where: baseWhere,
+              select,
+              orderBy,
+              take: KUDAGO_CANDIDATE_LIMIT,
+            }),
             intent.preferredTerms.length > 0
-              ? findManyByTerms(intent.preferredTerms, 80)
+              ? findManyByTerms(intent.preferredTerms, KUDAGO_CANDIDATE_LIMIT)
               : Promise.resolve([]),
-            areaTerms.length > 0 ? findManyByTerms(areaTerms, 80) : Promise.resolve([]),
-            findManyByTerms(this.searchTermsForRole(role), 120),
+            areaTerms.length > 0 ? findManyByTerms(areaTerms, KUDAGO_CANDIDATE_LIMIT) : Promise.resolve([]),
+            findManyByTerms(this.searchTermsForRole(role), KUDAGO_CANDIDATE_LIMIT),
           ]);
-          return uniqueById([...preferredItems, ...areaItems, ...genericItems]);
+          return uniqueById([...cityItems, ...preferredItems, ...areaItems, ...genericItems]);
         })();
 
     const mapped: CandidateCard[] = items
@@ -1101,6 +1125,8 @@ export class EveningAiDraftService {
       _aiIntent: {
         roles: intent.roles,
         roleHints: intent.roleHints,
+        area: intent.area,
+        budget: intent.budget,
         eventDateWindow: {
           label: intent.eventDateWindow.label,
           from: intent.eventDateWindow.from.toISOString(),
@@ -1135,6 +1161,8 @@ export class EveningAiDraftService {
         }),
       ),
       eventDateWindow: eventDateWindowFromStored(stored.eventDateWindow) ?? input.eventDateWindow,
+      area: areaOrNull(stored.area) ?? input.area,
+      budget: budgetOrNull(stored.budget) ?? input.budget,
       source: stored.source === 'llm' ? 'llm' : 'rules',
     };
   }
@@ -1185,14 +1213,14 @@ export class EveningAiDraftService {
       prompt,
       goal: stringOrNull(body.goal),
       mood: stringOrNull(body.mood),
-      budget: stringOrNull(body.budget) ?? budgetFromPrompt(prompt),
+      budget: budgetOrNull(body.budget),
       format: this.parseFormat(body.format),
-      area: stringOrNull(body.area) ?? areaFromPrompt(prompt),
+      area: areaOrNull(body.area),
       stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : null),
       stepCountExplicit: bodyStepCountExplicit,
       promptStepCountHint,
       participantsCount: participantsCountFromPrompt(prompt),
-      eventDateWindow: fallbackEventDateWindowFromPrompt(prompt, timezone),
+      eventDateWindow: todayEventDateWindow(timezone),
       latitude: null,
       longitude: null,
     };
@@ -1204,9 +1232,9 @@ export class EveningAiDraftService {
         ? value
         : typeof value === 'string'
           ? Number.parseInt(value, 10)
-          : DEFAULT_STEP_COUNT;
+          : MAX_STEP_COUNT;
     if (!Number.isFinite(parsed)) {
-      return DEFAULT_STEP_COUNT;
+      return MAX_STEP_COUNT;
     }
     return Math.max(MIN_STEP_COUNT, Math.min(MAX_STEP_COUNT, Math.trunc(parsed)));
   }
@@ -1223,17 +1251,7 @@ export class EveningAiDraftService {
   }
 
   private async resolveDraftIntent(input: ParsedDraftInput): Promise<DraftIntent> {
-    const fallbackRoles = this.resolveRoles(
-      input.prompt,
-      input.format,
-      this.intentFallbackStepCount(input),
-    );
-    const fallbackIntent: DraftIntent = {
-      roles: fallbackRoles,
-      roleHints: fallbackRoles.map((role) => this.roleIntentHint(input, role)),
-      eventDateWindow: input.eventDateWindow,
-      source: 'rules',
-    };
+    const fallbackIntent = this.fallbackDraftIntent(input);
     if (!input.prompt) {
       return fallbackIntent;
     }
@@ -1243,16 +1261,20 @@ export class EveningAiDraftService {
         model: this.eveningAiModel(),
         timeoutMs: 1800,
         systemPrompt: this.intentSystemPrompt(),
-        userPrompt: this.intentUserPrompt(input, fallbackRoles),
+        userPrompt: this.intentUserPrompt(input),
         temperature: 0,
-        maxTokens: 600,
+        maxTokens: this.intentMaxTokens(),
         responseFormat: this.intentResponseFormat(),
       });
-      const parsedIntent = this.parseIntentResponse(input, response.parsedJson, fallbackRoles);
-      if (parsedIntent.roles.length >= MIN_STEP_COUNT && parsedIntent.roles.length <= input.stepCount) {
+      const eventDateWindow = this.intentEventDateWindow(input, response.parsedJson);
+      if (!eventDateWindow) {
+        return fallbackIntent;
+      }
+      const parsedIntent = this.parseIntentResponse(input, response.parsedJson);
+      if (parsedIntent) {
         return {
           ...parsedIntent,
-          eventDateWindow: this.intentEventDateWindow(input, response.parsedJson),
+          eventDateWindow,
           source: 'llm',
         };
       }
@@ -1263,20 +1285,54 @@ export class EveningAiDraftService {
     return fallbackIntent;
   }
 
+  private fallbackDraftIntent(input: ParsedDraftInput): DraftIntent {
+    const fallbackInput = this.inputWithFallbackRules(input);
+    const fallbackRoles = this.resolveRoles(
+      fallbackInput.prompt,
+      fallbackInput.format,
+      this.intentFallbackStepCount(fallbackInput),
+    );
+    return {
+      roles: fallbackRoles,
+      roleHints: fallbackRoles.map((role) => this.roleIntentHint(fallbackInput, role)),
+      eventDateWindow: fallbackInput.eventDateWindow,
+      area: fallbackInput.area,
+      budget: fallbackInput.budget,
+      source: 'rules',
+    };
+  }
+
+  private inputWithFallbackRules(input: ParsedDraftInput): ParsedDraftInput {
+    return {
+      ...input,
+      area: input.area ?? areaFromPrompt(input.prompt),
+      budget: input.budget ?? budgetFromPrompt(input.prompt),
+      eventDateWindow: fallbackEventDateWindowFromPrompt(input.prompt, input.timezone),
+    };
+  }
+
   private parseIntentResponse(
     input: ParsedDraftInput,
     generated: GeneratedIntentJson,
-    fallbackRoles: RouteRole[],
-  ): Omit<DraftIntent, 'source' | 'eventDateWindow'> {
+  ): Omit<DraftIntent, 'source' | 'eventDateWindow'> | null {
     const targetStepCount = this.intentTargetStepCount(input, generated);
+    if (targetStepCount == null) {
+      return null;
+    }
     const roles: RouteRole[] = [];
     const roleHints: RoleIntentHint[] = [];
-    const steps = Array.isArray(generated?.steps) ? generated.steps : [];
+    const steps = Array.isArray(generated?.steps) ? generated.steps : null;
+    if (!steps) {
+      return null;
+    }
 
     for (const step of steps) {
+      if (roles.length >= targetStepCount) {
+        break;
+      }
       const role = this.routeRoleOrNull(step?.role);
-      if (!role || roles.length >= targetStepCount) {
-        continue;
+      if (!role) {
+        return null;
       }
       roles.push(role);
       roleHints.push(
@@ -1288,17 +1344,15 @@ export class EveningAiDraftService {
       );
     }
 
-    for (const fallbackRole of fallbackRoles) {
-      if (roles.length >= targetStepCount) {
-        break;
-      }
-      roles.push(fallbackRole);
-      roleHints.push(this.roleIntentHint(input, fallbackRole));
+    if (roles.length !== targetStepCount) {
+      return null;
     }
 
     return {
-      roles: roles.slice(0, targetStepCount),
-      roleHints: roleHints.slice(0, targetStepCount),
+      roles,
+      roleHints,
+      area: areaOrNull(generated.area) ?? input.area,
+      budget: budgetOrNull(generated.budget) ?? input.budget,
     };
   }
 
@@ -1310,11 +1364,12 @@ export class EveningAiDraftService {
       if (parts) {
         return eventDateWindowForLocalDate('date', parts, new Date(), input.timezone);
       }
+      return null;
     }
     if (mode === 'none') {
       return todayEventDateWindow(input.timezone);
     }
-    return input.eventDateWindow;
+    return null;
   }
 
   private intentFallbackStepCount(input: ParsedDraftInput) {
@@ -1325,25 +1380,14 @@ export class EveningAiDraftService {
   }
 
   private intentTargetStepCount(input: ParsedDraftInput, generated: GeneratedIntentJson) {
+    const generatedStepCount = intentStepCountFromGenerated(generated, MAX_STEP_COUNT);
+    if (generatedStepCount == null) {
+      return null;
+    }
     if (input.stepCountExplicit) {
-      return input.stepCount;
+      return generatedStepCount === input.stepCount ? input.stepCount : null;
     }
-    const mentionedStepCount = this.mentionedStepCount(input);
-    const generatedStepCount = intentStepCountFromGenerated(generated, input.stepCount);
-    const participantsCount = intentParticipantsCountFromGenerated(generated) ?? input.participantsCount;
-
-    if (
-      mentionedStepCount != null &&
-      participantsCount != null &&
-      generatedStepCount === participantsCount &&
-      generatedStepCount !== mentionedStepCount
-    ) {
-      return mentionedStepCount;
-    }
-    if (generatedStepCount != null) {
-      return generatedStepCount;
-    }
-    return mentionedStepCount ?? input.stepCount;
+    return generatedStepCount;
   }
 
   private mentionedStepCount(input: ParsedDraftInput) {
@@ -1801,7 +1845,7 @@ export class EveningAiDraftService {
       'Extract the route intent configuration from the user text.',
       'Keep the same step order as the user asked.',
       'Separate route step count from participant count.',
-      'Infer step count from the user text unless config.stepCountMode is exact.',
+      'Infer step count, area, budget and date from the user text unless explicit config fields are present.',
       'Extract a local route date. Return dateMode none when the user did not ask for a date.',
       'Use only allowed roles.',
       'Write short Russian search terms in preferredTerms and avoidTerms.',
@@ -1809,23 +1853,24 @@ export class EveningAiDraftService {
     ].join('\n');
   }
 
-  private intentUserPrompt(input: ParsedDraftInput, fallbackRoles: RouteRole[]) {
+  private intentUserPrompt(input: ParsedDraftInput) {
     return JSON.stringify({
       prompt: input.prompt,
       config: {
         city: input.city,
+        timezone: input.timezone,
+        todayLocalDate: localDateIso(zonedDateParts(new Date(), input.timezone)),
         area: input.area,
         budget: input.budget,
         goal: input.goal,
         mood: input.mood,
         format: input.format,
         stepCountMode: input.stepCountExplicit ? 'exact' : 'infer',
+        requestedStepCount: input.stepCountExplicit ? input.stepCount : null,
         promptStepCountHint: input.promptStepCountHint,
-        defaultStepCount: DEFAULT_STEP_COUNT,
-        maxStepCount: input.stepCount,
+        minStepCount: MIN_STEP_COUNT,
+        maxStepCount: MAX_STEP_COUNT,
         participantsCount: input.participantsCount,
-        suggestedStepCount: fallbackRoles.length,
-        fallbackRoles,
       },
       allowedRoles: [
         {
@@ -1860,11 +1905,17 @@ export class EveningAiDraftService {
         },
       ],
       rules: [
-        'If stepCountMode is exact, return exactly maxStepCount steps.',
-        'If stepCountMode is infer, return the number of steps requested by the user, from 2 to maxStepCount.',
-        'If stepCountMode is infer and the user does not imply a count, return defaultStepCount steps.',
+        'If stepCountMode is exact, return exactly requestedStepCount steps.',
+        'If stepCountMode is infer, choose the smallest coherent routeStepCount from minStepCount to maxStepCount.',
+        'maxStepCount is only an upper limit, not a target.',
+        'If the user asks for one simple activity or venue type, do not add unrelated roles.',
+        'Do not pad a simple request with unrelated roles such as show, walk or free_activity.',
+        'If one place or activity satisfies the prompt, routeStepCount may be 1.',
+        'Only add roles that are directly implied by the prompt or by an explicit listed sequence.',
         'Use promptStepCountHint as a hint, not as a hard limit, when stepCountMode is infer.',
         'Numbers near человек, людей, персон, на двоих, на троих, вчетвером describe participantsCount, not routeStepCount.',
+        'Infer area from words like центр, район, метро, рядом с; return an internal code such as center when clear, otherwise empty string.',
+        'Infer budget from words like бесплатно, недорого, до 1500, средний, премиум; return one of free, low, mid, premium, or empty string.',
         'For dates, return dateMode=date and localDate as YYYY-MM-DD when the user asks for a specific date.',
         'For words like today, tomorrow, weekdays and exact dates, resolve localDate in the route city timezone.',
         'If the user did not ask for a date, return dateMode=none and empty localDate.',
@@ -1906,6 +1957,11 @@ export class EveningAiDraftService {
             },
             localDate: { type: 'string' },
             dateReason: { type: 'string' },
+            area: { type: 'string' },
+            budget: {
+              type: 'string',
+              enum: ['', 'free', 'low', 'mid', 'premium'],
+            },
             steps: {
               type: 'array',
               items: {
@@ -1927,7 +1983,7 @@ export class EveningAiDraftService {
               },
             },
           },
-          required: ['routeStepCount', 'stepCountReason', 'participantsCount', 'dateMode', 'localDate', 'dateReason', 'steps'],
+          required: ['routeStepCount', 'stepCountReason', 'participantsCount', 'dateMode', 'localDate', 'dateReason', 'area', 'budget', 'steps'],
         },
       },
     };
@@ -2483,6 +2539,24 @@ const AREA_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
   southeast: { lat: 55.69, lng: 37.76 },
 };
 
+function areaOrNull(value: unknown) {
+  const raw = stringOrNull(value);
+  if (!raw) {
+    return null;
+  }
+  const normalized = normalizeText(raw).replace(/\s+/g, ' ').trim();
+  const code = normalized.replace(/\s+/g, '_');
+  const directAlias = AREA_ALIASES.find((item) => item.code === code);
+  if (directAlias) {
+    return directAlias.code;
+  }
+  const detectedAlias = AREA_ALIASES.find((item) => hasAny(normalized, item.detectTerms));
+  if (detectedAlias) {
+    return detectedAlias.code;
+  }
+  return code.slice(0, 48);
+}
+
 const CITY_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
   Москва: { lat: 55.7558, lng: 37.6173 },
   'Санкт-Петербург': { lat: 59.9311, lng: 30.3609 },
@@ -2521,6 +2595,30 @@ function fallbackPointForInput(input: ParsedDraftInput): { lat: number; lng: num
 
 function stringOrNull(value: unknown) {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function integerFromEnv(name: string, fallback: number, min: number, max: number) {
+  const raw = stringOrNull(process.env[name]);
+  const parsed = raw ? Number.parseInt(raw, 10) : fallback;
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, Math.trunc(parsed)));
+}
+
+function budgetOrNull(value: unknown) {
+  const raw = stringOrNull(value);
+  if (!raw) {
+    return null;
+  }
+  const normalized = normalizeText(raw);
+  if (['free', 'low', 'mid', 'premium'].includes(normalized)) {
+    return normalized;
+  }
+  if (normalized === 'medium') {
+    return 'mid';
+  }
+  return budgetFromPrompt(normalized);
 }
 
 function timezoneForCity(city: string) {
@@ -2874,6 +2972,10 @@ function zonedDateParts(date: Date, timeZone: string): LocalDateParts {
   };
 }
 
+function localDateIso(date: LocalDateParts) {
+  return `${date.year}-${pad2(date.month)}-${pad2(date.day)}`;
+}
+
 function zonedTimeToUtc(
   date: LocalDateParts,
   hour: number,
@@ -2939,13 +3041,7 @@ function intentStepCountFromGenerated(generated: GeneratedIntentJson, maxStepCou
   if (routeStepCount != null && routeStepCount >= MIN_STEP_COUNT) {
     return routeStepCount;
   }
-  const generatedStepsCount = Array.isArray(generated?.steps) ? generated.steps.length : null;
-  return normalizedCount(generatedStepsCount, maxStepCount, MIN_STEP_COUNT);
-}
-
-function intentParticipantsCountFromGenerated(generated: GeneratedIntentJson) {
-  const count = normalizedCount(generated?.participantsCount, 20, 0);
-  return count && count > 0 ? count : null;
+  return null;
 }
 
 function normalizedCount(value: unknown, max: number, min = 1) {
@@ -3281,6 +3377,38 @@ function areaTermsFor(area: string | null) {
     return uniqueStrings([area, ...alias.detectTerms, ...alias.scoreTerms]);
   }
   return uniqueStrings([area, area.replace(/_/g, ' '), area.replace(/_/g, '-')]);
+}
+
+function displayAreaForRoute(area: string | null) {
+  if (!area) {
+    return null;
+  }
+  const labels: Record<string, string> = {
+    kitay_gorod: 'Китай-город',
+    patriki: 'Патрики',
+    arbat: 'Арбат',
+    tverskaya: 'Тверская',
+    chistye: 'Чистые пруды',
+    gorky: 'Парк Горького',
+    kursk: 'Курская',
+    hamovniki: 'Хамовники',
+    zamoskvorechye: 'Замоскворечье',
+    presnya: 'Пресня',
+    taganka: 'Таганка',
+    sokolniki: 'Сокольники',
+    maryina_roshcha: 'Марьина Роща',
+    danilovsky: 'Даниловский',
+    center: 'Центр',
+    northwest: 'Северо-запад',
+    northeast: 'Северо-восток',
+    southwest: 'Юго-запад',
+    southeast: 'Юго-восток',
+    north: 'Север',
+    south: 'Юг',
+    east: 'Восток',
+    west: 'Запад',
+  };
+  return labels[area] ?? area;
 }
 
 function roundCoord(value: number) {

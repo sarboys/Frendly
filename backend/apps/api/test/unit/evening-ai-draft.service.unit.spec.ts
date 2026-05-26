@@ -2,6 +2,8 @@ import { EveningAiDraftService } from '../../src/services/evening-ai-draft.servi
 
 describe('EveningAiDraftService unit', () => {
   const originalEveningAiModel = process.env.EVENING_AI_MODEL;
+  const originalIntentMaxTokens = process.env.EVENING_AI_INTENT_MAX_TOKENS;
+  const originalRouteMaxTokens = process.env.EVENING_AI_ROUTE_MAX_TOKENS;
 
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2099-06-01T12:00:00.000Z'));
@@ -13,6 +15,16 @@ describe('EveningAiDraftService unit', () => {
       delete process.env.EVENING_AI_MODEL;
     } else {
       process.env.EVENING_AI_MODEL = originalEveningAiModel;
+    }
+    if (originalIntentMaxTokens == null) {
+      delete process.env.EVENING_AI_INTENT_MAX_TOKENS;
+    } else {
+      process.env.EVENING_AI_INTENT_MAX_TOKENS = originalIntentMaxTokens;
+    }
+    if (originalRouteMaxTokens == null) {
+      delete process.env.EVENING_AI_ROUTE_MAX_TOKENS;
+    } else {
+      process.env.EVENING_AI_ROUTE_MAX_TOKENS = originalRouteMaxTokens;
     }
   });
 
@@ -143,7 +155,7 @@ describe('EveningAiDraftService unit', () => {
     externalItems?: Record<string, Array<Record<string, unknown>>>;
     filterExternalItemsByQuery?: boolean;
     openRouterResponses?: Array<Record<string, unknown> | Error>;
-    intentResponse?: Record<string, unknown>;
+    intentResponse?: Record<string, unknown> | Error;
   } = {}) {
     const externalFindMany = jest.fn((query: any) => {
       const code = query?.where?.source?.code;
@@ -329,29 +341,29 @@ describe('EveningAiDraftService unit', () => {
       },
     } as any;
     const defaultOpenRouterResponse = {
-        parsedJson: {
-          title: 'Бар и стендап',
-          vibe: 'Живой вечер',
-          blurb: 'Сначала бар, потом шоу.',
-          steps: [
-            {
-              externalContentItemId: 'tomesto-bar',
-              timeLabel: '19:00',
-              endTimeLabel: '20:00',
-              description: 'Бар для старта',
-            },
-            {
-              externalContentItemId: 'ticketland-show',
-              timeLabel: '20:30',
-              endTimeLabel: '22:00',
-              description: 'Шоу рядом',
-            },
-          ],
-        },
-        rawResponse: {},
-        model: 'openrouter/owl-alpha',
-        latencyMs: 123,
-      };
+      parsedJson: {
+        title: 'Бар и стендап',
+        vibe: 'Живой вечер',
+        blurb: 'Сначала бар, потом шоу.',
+        steps: [
+          {
+            externalContentItemId: 'tomesto-bar',
+            timeLabel: '19:00',
+            endTimeLabel: '20:00',
+            description: 'Бар для старта',
+          },
+          {
+            externalContentItemId: 'ticketland-show',
+            timeLabel: '20:30',
+            endTimeLabel: '22:00',
+            description: 'Шоу рядом',
+          },
+        ],
+      },
+      rawResponse: {},
+      model: 'openrouter/owl-alpha',
+      latencyMs: 123,
+    };
     const openRouter = {
       generateJson: jest.fn(),
     };
@@ -360,23 +372,32 @@ describe('EveningAiDraftService unit', () => {
       const schemaName = input?.responseFormat?.json_schema?.name;
       if (schemaName === 'evening_ai_route_intent') {
         if (options.intentResponse) {
-          return Promise.resolve(options.intentResponse);
+          if (options.intentResponse instanceof Error) {
+            return Promise.reject(options.intentResponse);
+          }
+          return Promise.resolve(completeIntentResponse(options.intentResponse, input.model));
         }
         const prompt = JSON.parse(input.userPrompt);
-        const fallbackRoles = prompt.config?.fallbackRoles ?? ['place_bar', 'show'];
-        return Promise.resolve({
-          parsedJson: {
-            steps: fallbackRoles.map((role: string) => ({
-              role,
-              preferredTerms: [],
-              avoidTerms: [],
-              instruction: '',
-            })),
-          },
-          rawResponse: {},
-          model: input.model,
-          latencyMs: 30,
-        });
+        const roles = testIntentRolesForPrompt(
+          prompt.prompt,
+          prompt.config?.requestedStepCount ?? prompt.config?.promptStepCountHint,
+        );
+        return Promise.resolve(
+          completeIntentResponse(
+            {
+              parsedJson: {
+                routeStepCount: roles.length,
+                steps: roles.map((role: string) => ({
+                  role,
+                  preferredTerms: [],
+                  avoidTerms: [],
+                  instruction: '',
+                })),
+              },
+            },
+            input.model,
+          ),
+        );
       }
       const nextResponse = routeResponses.shift();
       if (nextResponse instanceof Error) {
@@ -386,6 +407,56 @@ describe('EveningAiDraftService unit', () => {
     });
     const service = new EveningAiDraftService(prisma, openRouter as any);
     return { service, externalFindMany, draftCreate, draftUpdate, routeCreate, stepCreateMany, openRouter };
+  }
+
+  function completeIntentResponse(response: Record<string, unknown>, model: string) {
+    const parsed = (response.parsedJson ?? {}) as Record<string, unknown>;
+    const steps = Array.isArray(parsed.steps) ? parsed.steps : [];
+    return {
+      rawResponse: {},
+      model,
+      latencyMs: 30,
+      ...response,
+      parsedJson: {
+        routeStepCount: steps.length,
+        stepCountReason: 'Тестовый intent.',
+        participantsCount: 0,
+        dateMode: 'none',
+        localDate: '',
+        dateReason: 'Дата не указана.',
+        area: '',
+        budget: '',
+        ...parsed,
+      },
+    };
+  }
+
+  function testIntentRolesForPrompt(prompt: string | null, requestedStepCount?: number): string[] {
+    const text = (prompt ?? '').toLowerCase();
+    const mentions: Array<{ role: string; index: number }> = [
+      { role: 'walk', index: firstTestTermIndex(text, ['погуля', 'прогул', 'парк']) },
+      { role: 'place_food', index: firstTestTermIndex(text, ['ужин', 'поесть', 'покушать', 'кофе', 'ресторан']) },
+      { role: 'place_bar', index: firstTestTermIndex(text, ['бар', 'пив', 'крафт', 'вино']) },
+      { role: 'show', index: firstTestTermIndex(text, ['стендап', 'спектак', 'театр', 'шоу']) },
+    ]
+      .filter((item) => item.index >= 0)
+      .sort((left, right) => left.index - right.index);
+    const roles = mentions.map((item) => item.role);
+    const targetCount = requestedStepCount ?? roles.length;
+    while (roles.length > 0 && roles.length < Math.max(1, targetCount || 1)) {
+      roles.push(roles[roles.length - 1]!);
+    }
+    return roles.length > 0 ? roles.slice(0, Math.max(1, targetCount || 1)) : ['place_bar'];
+  }
+
+  function firstTestTermIndex(text: string, terms: string[]) {
+    return terms.reduce((best, term) => {
+      const index = text.indexOf(term);
+      if (index < 0) {
+        return best;
+      }
+      return best < 0 ? index : Math.min(best, index);
+    }, -1);
   }
 
   function externalItemMatchesQuery(item: any, query: any) {
@@ -524,6 +595,27 @@ describe('EveningAiDraftService unit', () => {
         }),
       }),
     );
+  });
+
+  it('uses configurable token budgets for intent and route calls', async () => {
+    process.env.EVENING_AI_INTENT_MAX_TOKENS = '4096';
+    process.env.EVENING_AI_ROUTE_MAX_TOKENS = '32768';
+    const { service, openRouter } = createService();
+
+    await service.createDraft('user-1', {
+      prompt: 'Винный бар и стендап',
+      city: 'Москва',
+      stepCount: 2,
+    });
+
+    const intentCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route_intent',
+    )?.[0];
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    expect(intentCall.maxTokens).toBe(4096);
+    expect(routeCall.maxTokens).toBe(32768);
   });
 
   it('loads Tomesto candidates by city without text filters or take limit', async () => {
@@ -868,6 +960,9 @@ describe('EveningAiDraftService unit', () => {
     const { service, openRouter } = createService({
       intentResponse: {
         parsedJson: {
+          routeStepCount: 3,
+          stepCountReason: 'Пользователь просит три релевантные роли.',
+          budget: 'low',
           steps: [
             {
               role: 'place_food',
@@ -991,10 +1086,391 @@ describe('EveningAiDraftService unit', () => {
     ]);
   });
 
+  it('uses intent as source for a simple craft beer place without unrelated roles', async () => {
+    const { service, externalFindMany, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          stepCountReason: 'Простой запрос про один тип места.',
+          participantsCount: 0,
+          dateMode: 'date',
+          localDate: '2099-06-01',
+          dateReason: 'Пользователь написал сегодня вечером.',
+          area: 'center',
+          budget: 'low',
+          steps: [
+            {
+              role: 'place_bar',
+              preferredTerms: ['крафтовое пиво', 'паб', 'тапрум', 'beer'],
+              avoidTerms: ['концерт', 'театр', 'выставка', 'детское', 'активность'],
+              instruction: 'Бар с крафтовым пивом.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-craft-1',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Craft Station',
+            category: 'bar',
+            tags: ['place:bar', 'feature:craft_beer', 'area:center', 'budget:cheap'],
+            area: 'Центр',
+            lat: 55.755,
+            lng: 37.61,
+            priceFrom: 900,
+            placeKind: 'bar',
+            venueName: 'Craft Station',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-craft-2',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Taproom Center',
+            category: 'bar',
+            tags: ['place:bar', 'set:craft_beer', 'metro:teatralnaya'],
+            area: 'Центр',
+            lat: 55.756,
+            lng: 37.611,
+            priceFrom: 1200,
+            placeKind: 'bar',
+            venueName: 'Taproom Center',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-show',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Лишний концерт',
+            category: 'concert',
+            tags: ['концерт'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceFrom: 1500,
+            actionUrl: 'https://ticket.example.test/show',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+        kudago: [
+          {
+            id: 'kudago-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Лишняя прогулка',
+            category: 'walk',
+            tags: ['прогулка'],
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Крафтовое пиво в центре',
+            vibe: 'Один бар без лишних активностей',
+            blurb: 'Место с крафтовым пивом.',
+            steps: [
+              { externalContentItemId: 'tomesto-craft-1', timeLabel: '19:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу попить крафтового пива сегодня вечером в центре',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config).toEqual(
+      expect.objectContaining({
+        city: 'Москва',
+        timezone: 'Europe/Moscow',
+        todayLocalDate: '2099-06-01',
+        minStepCount: 1,
+        maxStepCount: 5,
+        stepCountMode: 'infer',
+        area: null,
+        budget: null,
+      }),
+    );
+    expect(intentPrompt.config).not.toHaveProperty('defaultStepCount');
+    expect(intentPrompt.config).not.toHaveProperty('fallbackRoles');
+    expect(intentPrompt.config).not.toHaveProperty('suggestedStepCount');
+
+    const sourceCodes = externalFindMany.mock.calls.map(
+      ([query]: [any]) => query?.where?.source?.code,
+    );
+    expect(sourceCodes).toEqual(['tomesto']);
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['place_bar']);
+    expect(routePrompt.config.stepCount).toBe(1);
+    expect(routePrompt.config.area).toBe('center');
+    expect(routePrompt.config.budget).toBe('low');
+    expect(routePrompt.candidates.every((candidate: any) => candidate.role === 'place_bar')).toBe(true);
+
+    expect(result.route.area).toBe('Центр');
+    expect(result.route.steps.map((step: any) => step.ticketSourceCode)).toEqual(['tomesto']);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual(['Craft Station']);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          area: 'center',
+          budget: 'low',
+          stepCount: 1,
+        }),
+      }),
+    );
+  });
+
+  it('passes all Tomesto and Ticketland candidates, with only KudaGo capped', async () => {
+    const cityBars = Array.from({ length: 800 }, (_item, index) => ({
+      id: `tomesto-large-${index}`,
+      source: { code: 'tomesto', name: 'ТоМесто' },
+      contentKind: 'place',
+      title: `Craft Bar ${String(index).padStart(3, '0')}`,
+      category: 'bar',
+      tags: ['place:bar', index === 0 ? 'feature:craft_beer' : 'bar'],
+      area: index % 2 === 0 ? 'Центр' : 'Север',
+      lat: 55.7 + index / 10000,
+      lng: 37.5 + index / 10000,
+      priceFrom: 1000 + index,
+      placeKind: 'bar',
+      venueName: `Craft Bar ${index}`,
+      sourceProvider: 'ТоМесто',
+    }));
+    const cityShows = Array.from({ length: 40 }, (_item, index) => ({
+      id: `ticketland-large-${index}`,
+      source: { code: 'advcake_ticketland', name: 'Ticketland' },
+      contentKind: 'event',
+      title: `Стендап ${String(index).padStart(3, '0')}`,
+      category: 'standup',
+      tags: ['standup'],
+      area: 'Центр',
+      lat: 55.73 + index / 10000,
+      lng: 37.53 + index / 10000,
+      startsAt: new Date('2099-06-01T17:30:00.000Z'),
+      priceFrom: 1200 + index,
+      venueName: `Stage ${index}`,
+      sourceProvider: 'Ticketland / MTS Live',
+    }));
+    const cityWalks = Array.from({ length: 420 }, (_item, index) => ({
+      id: `kudago-large-${index}`,
+      source: { code: 'kudago', name: 'KudaGo' },
+      contentKind: 'place',
+      title: `Парк прогулка ${String(index).padStart(3, '0')}`,
+      category: 'park',
+      tags: ['walk', 'outdoor', 'park'],
+      area: 'Центр',
+      lat: 55.74 + index / 10000,
+      lng: 37.54 + index / 10000,
+      priceFrom: 0,
+      priceMode: 'free',
+      venueName: `Парк ${index}`,
+      sourceProvider: 'KudaGo',
+    }));
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 3,
+          stepCountReason: 'Пользователь попросил бар, шоу и прогулку.',
+          participantsCount: 0,
+          dateMode: 'date',
+          localDate: '2099-06-01',
+          dateReason: 'Пользователь указал сегодня.',
+          area: 'center',
+          budget: 'low',
+          steps: [
+            {
+              role: 'place_bar',
+              preferredTerms: ['крафт', 'пиво'],
+              avoidTerms: [],
+              instruction: 'Подобрать бар.',
+            },
+            {
+              role: 'show',
+              preferredTerms: ['стендап'],
+              avoidTerms: [],
+              instruction: 'Подобрать шоу.',
+            },
+            {
+              role: 'walk',
+              preferredTerms: ['прогулка', 'парк'],
+              avoidTerms: [],
+              instruction: 'Подобрать прогулку.',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: cityBars,
+        advcake_ticketland: cityShows,
+        kudago: cityWalks,
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Большой пул кандидатов',
+            vibe: 'Выбор из города',
+            blurb: 'Модель видит городские источники.',
+            steps: [
+              { externalContentItemId: 'tomesto-large-0', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-large-0', timeLabel: '20:00' },
+              { externalContentItemId: 'kudago-large-0', timeLabel: '22:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 80,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'крафтовое пиво, стендап и прогулка сегодня в центре',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'tomesto')).toHaveLength(800);
+    expect(
+      routePrompt.candidates.filter((candidate: any) => candidate.source === 'advcake_ticketland'),
+    ).toHaveLength(40);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(350);
+    expect(routePrompt.candidates).toHaveLength(1190);
+  });
+
+  it('lets intent turn an explicit three-place prompt into three steps', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 3,
+          stepCountReason: 'Пользователь явно попросил 3 места.',
+          participantsCount: 0,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: 'Дата не указана.',
+          area: '',
+          budget: '',
+          steps: [
+            { role: 'place_bar', preferredTerms: ['крафт'], avoidTerms: [], instruction: '' },
+            { role: 'place_bar', preferredTerms: ['паб'], avoidTerms: [], instruction: '' },
+            { role: 'place_bar', preferredTerms: ['beer'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-bar-1',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Craft One',
+            category: 'bar',
+            tags: ['place:bar', 'feature:craft_beer'],
+            lat: 55.75,
+            lng: 37.6,
+            priceFrom: 1200,
+            placeKind: 'bar',
+            venueName: 'Craft One',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-bar-2',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Craft Two',
+            category: 'bar',
+            tags: ['place:bar', 'pub'],
+            lat: 55.751,
+            lng: 37.601,
+            priceFrom: 1300,
+            placeKind: 'bar',
+            venueName: 'Craft Two',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-bar-3',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Craft Three',
+            category: 'bar',
+            tags: ['place:bar', 'beer'],
+            lat: 55.752,
+            lng: 37.602,
+            priceFrom: 1400,
+            placeKind: 'bar',
+            venueName: 'Craft Three',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Три бара',
+            vibe: 'По запросу',
+            blurb: 'Три места с пивом.',
+            steps: [
+              { externalContentItemId: 'tomesto-bar-1', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-bar-2', timeLabel: '20:00' },
+              { externalContentItemId: 'tomesto-bar-3', timeLabel: '21:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: '3 места с крафтовым пивом',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config.promptStepCountHint).toBe(3);
+    expect(intentPrompt.config.maxStepCount).toBe(5);
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.stepCount).toBe(3);
+    expect(routePrompt.config.roles).toEqual(['place_bar', 'place_bar', 'place_bar']);
+    expect(result.route.steps).toHaveLength(3);
+  });
+
   it('infers prompt step count and low budget without button filters', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
+          routeStepCount: 2,
+          stepCountReason: 'Пользователь просит прогулку и недорогую еду.',
+          budget: 'low',
           steps: [
             {
               role: 'walk',
@@ -1092,11 +1568,11 @@ describe('EveningAiDraftService unit', () => {
     expect(intentPrompt.config).toEqual(
       expect.objectContaining({
         stepCountMode: 'infer',
-        defaultStepCount: 5,
         maxStepCount: 5,
-        budget: 'low',
+        budget: null,
       }),
     );
+    expect(intentPrompt.config).not.toHaveProperty('defaultStepCount');
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
@@ -1127,8 +1603,8 @@ describe('EveningAiDraftService unit', () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
-          routeStepCount: 4,
-          stepCountReason: 'Модель ошибочно взяла число людей за шаги.',
+          routeStepCount: 2,
+          stepCountReason: '4 человека это размер компании, не число точек.',
           participantsCount: 4,
           steps: [
             {
@@ -1266,6 +1742,103 @@ describe('EveningAiDraftService unit', () => {
         }),
       }),
     );
+  });
+
+  it.each([
+    {
+      name: 'intent call fails',
+      intentResponse: new Error('intent down'),
+    },
+    {
+      name: 'intent response cannot become a valid route intent',
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 0,
+          stepCountReason: 'Invalid count below product minimum.',
+          participantsCount: 0,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: 'Дата не указана.',
+          area: '',
+          budget: '',
+          steps: [
+            { role: 'place_bar', preferredTerms: ['бар'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 20,
+      },
+    },
+  ])('uses regex fallback only when $name', async ({ intentResponse }) => {
+    const { service, openRouter } = createService({
+      intentResponse,
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан в центре',
+            category: 'restaurant',
+            tags: ['restaurant', 'area:center'],
+            area: 'Центр',
+            lat: 55.76,
+            lng: 37.61,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан в центре',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-theatre',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль в центре',
+            category: 'theatre',
+            tags: ['театр', 'спектакль'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 2200,
+            sourceProvider: 'Ticketland / MTS Live',
+            actionUrl: 'https://ticket.example.test/theatre',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ресторан и спектакль',
+            vibe: 'Fallback',
+            blurb: 'Fallback roles from prompt.',
+            steps: [
+              { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: '2 точки в центре: ресторан и спектакль',
+      city: 'Москва',
+    });
+
+    expect(openRouter.generateJson.mock.calls[0][0].responseFormat.json_schema.name).toBe(
+      'evening_ai_route_intent',
+    );
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['place_food', 'show']);
+    expect(routePrompt.config.area).toBe('center');
+    expect(routePrompt.config.stepCount).toBe(2);
   });
 
   it('defaults timed event candidates to today when intent has no date', async () => {
@@ -1797,6 +2370,7 @@ describe('EveningAiDraftService unit', () => {
   it.each([
     {
       prompt: 'ужин и стендап завтра',
+      localDate: '2026-05-17',
       expectedFrom: '2026-05-16T21:00:00.000Z',
       expectedTo: '2026-05-17T20:59:59.999Z',
       targetStartsAt: '2026-05-17T17:30:00.000Z',
@@ -1804,6 +2378,7 @@ describe('EveningAiDraftService unit', () => {
     },
     {
       prompt: 'ужин и стендап в четверг',
+      localDate: '2026-05-21',
       expectedFrom: '2026-05-20T21:00:00.000Z',
       expectedTo: '2026-05-21T20:59:59.999Z',
       targetStartsAt: '2026-05-21T17:30:00.000Z',
@@ -1811,6 +2386,7 @@ describe('EveningAiDraftService unit', () => {
     },
     {
       prompt: 'ужин и стендап 24.05',
+      localDate: '2026-05-24',
       expectedFrom: '2026-05-23T21:00:00.000Z',
       expectedTo: '2026-05-24T20:59:59.999Z',
       targetStartsAt: '2026-05-24T17:30:00.000Z',
@@ -1818,6 +2394,7 @@ describe('EveningAiDraftService unit', () => {
     },
   ])('applies prompt date window for "$prompt"', async ({
     prompt,
+    localDate,
     expectedFrom,
     expectedTo,
     targetStartsAt,
@@ -1832,6 +2409,9 @@ describe('EveningAiDraftService unit', () => {
           routeStepCount: 2,
           stepCountReason: 'Пользователь перечислил ужин и стендап.',
           participantsCount: 0,
+          dateMode: 'date',
+          localDate,
+          dateReason: 'Intent resolved prompt date.',
           steps: [
             { role: 'place_food', preferredTerms: ['ужин'], avoidTerms: [], instruction: '' },
             { role: 'show', preferredTerms: ['стендап'], avoidTerms: [], instruction: '' },
@@ -1938,6 +2518,7 @@ describe('EveningAiDraftService unit', () => {
         parsedJson: {
           routeStepCount: 5,
           stepCountReason: 'ИИ решил оставить пять явных активностей.',
+          budget: 'mid',
           steps: [
             { role: 'walk', preferredTerms: ['парк'], avoidTerms: [], instruction: '' },
             { role: 'place_food', preferredTerms: ['итальян'], avoidTerms: [], instruction: '' },
@@ -2054,7 +2635,7 @@ describe('EveningAiDraftService unit', () => {
         stepCountMode: 'infer',
         promptStepCountHint: 3,
         maxStepCount: 5,
-        budget: 'mid',
+        budget: null,
       }),
     );
     const routeCall = openRouter.generateJson.mock.calls.find(
@@ -2523,10 +3104,11 @@ describe('EveningAiDraftService unit', () => {
     expect(foodCandidateIds.slice(0, 2)).toEqual(['tomesto-far', 'tomesto-near']);
   });
 
-  it('infers prompt area before LLM and boosts matching area candidates', async () => {
+  it('uses intent area for scoring and keeps public route area readable', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
+          area: 'center',
           steps: [
             { role: 'place_food', preferredTerms: ['ресторан'], avoidTerms: [], instruction: '' },
             { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
@@ -2608,7 +3190,7 @@ describe('EveningAiDraftService unit', () => {
     });
 
     const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
-    expect(intentPrompt.config.area).toBe('center');
+    expect(intentPrompt.config.area).toBe(null);
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
@@ -2620,7 +3202,7 @@ describe('EveningAiDraftService unit', () => {
     expect(foodCandidateIds.indexOf('tomesto-center')).toBeLessThan(
       foodCandidateIds.indexOf('tomesto-outside'),
     );
-    expect(result.route.area).toBe('center');
+    expect(result.route.area).toBe('Центр');
     expect(draftCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -2634,6 +3216,7 @@ describe('EveningAiDraftService unit', () => {
     const { service } = createService({
       intentResponse: {
         parsedJson: {
+          area: 'patriki',
           steps: [
             { role: 'place_food', preferredTerms: ['ресторан'], avoidTerms: [], instruction: '' },
             { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
@@ -2701,7 +3284,7 @@ describe('EveningAiDraftService unit', () => {
       city: 'Москва',
     });
 
-    expect(result.route.area).toBe('patriki');
+    expect(result.route.area).toBe('Патрики');
     expect(result.route.steps[1]).toEqual(
       expect.objectContaining({
         title: 'Спектакль без координат',
@@ -2716,6 +3299,7 @@ describe('EveningAiDraftService unit', () => {
     const { service, openRouter } = createService({
       intentResponse: {
         parsedJson: {
+          area: 'north',
           steps: [
             { role: 'place_food', preferredTerms: ['ресторан'], avoidTerms: [], instruction: '' },
             { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
@@ -2793,7 +3377,7 @@ describe('EveningAiDraftService unit', () => {
     });
 
     const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
-    expect(intentPrompt.config.area).toBe('north');
+    expect(intentPrompt.config.area).toBe(null);
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
