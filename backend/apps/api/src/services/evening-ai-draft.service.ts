@@ -17,6 +17,34 @@ const DEFAULT_INTENT_MAX_TOKENS = 4096;
 const DEFAULT_ROUTE_MAX_TOKENS = 32768;
 const MAX_LEG_KM = 3.5;
 const CANDIDATE_CORE_RATIO = 0.7;
+const ACTIVE_ACTIVITY_TERMS = [
+  'активн',
+  'спорт',
+  'спортив',
+  'адреналин',
+  'экстрим',
+  'картинг',
+  'квест',
+  'vr',
+  'виртуаль',
+  'батут',
+  'аттракцион',
+  'боулинг',
+  'лазертаг',
+  'скалодром',
+];
+const CREATIVE_ACTIVITY_TERMS = [
+  'странн',
+  'креатив',
+  'выстав',
+  'перформанс',
+  'перфоманс',
+  'нестандарт',
+  'иммерсив',
+  'арт',
+  'галере',
+];
+const ROUTE_SEQUENCE_TERMS = ['сначала', 'потом', 'затем', 'после', 'далее', 'в конце'];
 const WALK_ALLOWED_CATEGORY_TERMS = ['walk', 'outdoor', 'park', 'route', 'маршрут', 'прогул', 'парк'];
 const WALK_STRONG_TERMS = [
   'прогул',
@@ -204,6 +232,9 @@ type AiDraftRecord = {
 
 @Injectable()
 export class EveningAiDraftService {
+  private readonly candidateSeedSalt = stableHash(randomUUID());
+  private candidateSeedCounter = 0;
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly openRouterService: OpenRouterService,
@@ -306,6 +337,18 @@ export class EveningAiDraftService {
       .sort((left, right) => left - right);
     const input = this.inputFromDraft(draft);
     const intent = this.intentFromRoute(route, input) ?? await this.resolveDraftIntent(input);
+    const roleToRegenerate = intent.roles[stepIndex];
+    const availableCandidates = candidates.filter((candidate) => !rejected.has(candidate.id));
+    if (
+      !roleToRegenerate ||
+      !this.hasEnoughCandidatesForRoles(availableCandidates, [roleToRegenerate])
+    ) {
+      throw new ApiError(
+        409,
+        'evening_ai_regenerate_candidates_exhausted',
+        'Not enough alternative candidates to regenerate route',
+      );
+    }
     const intentInput = {
       ...input,
       stepCount: intent.roles.length,
@@ -317,7 +360,7 @@ export class EveningAiDraftService {
       input: intentInput,
       roles: intent.roles,
       roleHints: intent.roleHints,
-      candidates: candidates.filter((candidate) => !rejected.has(candidate.id)),
+      candidates: availableCandidates,
       timeoutMs: 3500,
       previousRoute: route,
       regenerateStepIndex: stepIndex,
@@ -850,14 +893,12 @@ export class EveningAiDraftService {
     const groups = await Promise.all(
       uniqueRoles.map((role) => this.loadRoleCandidates(input, role, roleHints)),
     );
-    const daySeed = new Date().toISOString().slice(0, 10);
-    const serverSeed = process.env.EVENING_AI_CANDIDATE_SEED ?? daySeed;
-    const seed = stableHash([serverSeed, input.prompt, input.city, input.area, roles.join('|')].join('|'));
+    const seed = input.candidateSeed;
     const rankedGroups = groups.map((group, index) =>
       this.rankCandidateGroup(
         input,
         group,
-        stableHash(`${seed}:${uniqueRoles[index]}`),
+        seed + index,
         roleHints,
       ),
     );
@@ -892,13 +933,34 @@ export class EveningAiDraftService {
     seed: number,
     roleHints: RoleIntentHint[] = [],
   ) {
-    const ranked = candidates
-      .slice()
-      .sort(
-        (left, right) =>
-          this.candidateScore(input, left, roleHints) -
-          this.candidateScore(input, right, roleHints),
+    const scored = candidates
+      .map((candidate) => ({
+        candidate,
+        score: this.candidateScore(input, candidate, roleHints),
+      }))
+      .sort((left, right) => left.score - right.score);
+    const ranked: CandidateCard[] = [];
+    for (let index = 0; index < scored.length;) {
+      const score = scored[index]!.score;
+      let end = index + 1;
+      while (end < scored.length && scored[end]!.score === score) {
+        end += 1;
+      }
+      const bucket = scored.slice(index, end);
+      const sortedBucket = bucket
+        .slice()
+        .sort(
+          (left, right) =>
+            left.candidate.id.localeCompare(right.candidate.id),
+        );
+      const offset = sortedBucket.length > 1 ? Math.abs(seed) % sortedBucket.length : 0;
+      ranked.push(
+        ...[...sortedBucket.slice(offset), ...sortedBucket.slice(0, offset)].map(
+          (item) => item.candidate,
+        ),
       );
+      index = end;
+    }
     const coreSize = Math.floor(ranked.length * CANDIDATE_CORE_RATIO);
     const core = ranked.slice(0, coreSize);
     const tail = ranked
@@ -954,7 +1016,10 @@ export class EveningAiDraftService {
                     contentKind: 'event',
                     moderationStatus: { not: 'rejected' },
                     startsAt: eventStartsAtWhere,
-                    priceMode: 'free',
+                    priceMode:
+                      role === 'free_activity' && input.budget !== 'free'
+                        ? { in: ['free', 'paid'] }
+                        : 'free',
                   },
                 ],
               },
@@ -1196,6 +1261,7 @@ export class EveningAiDraftService {
       promptStepCountHint,
       participantsCount: participantsCountFromPrompt(draft.prompt),
       eventDateWindow: fallbackEventDateWindowFromPrompt(draft.prompt, draft.timezone),
+      candidateSeed: 0,
       latitude: null,
       longitude: null,
     };
@@ -1213,7 +1279,7 @@ export class EveningAiDraftService {
       prompt,
       goal: stringOrNull(body.goal),
       mood: stringOrNull(body.mood),
-      budget: budgetOrNull(body.budget),
+      budget: budgetOrNull(body.budget) ?? budgetFromPrompt(prompt),
       format: this.parseFormat(body.format),
       area: areaOrNull(body.area),
       stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : null),
@@ -1221,6 +1287,7 @@ export class EveningAiDraftService {
       promptStepCountHint,
       participantsCount: participantsCountFromPrompt(prompt),
       eventDateWindow: todayEventDateWindow(timezone),
+      candidateSeed: this.nextCandidateSeed(),
       latitude: null,
       longitude: null,
     };
@@ -1232,11 +1299,16 @@ export class EveningAiDraftService {
         ? value
         : typeof value === 'string'
           ? Number.parseInt(value, 10)
-          : MAX_STEP_COUNT;
+          : MIN_STEP_COUNT;
     if (!Number.isFinite(parsed)) {
-      return MAX_STEP_COUNT;
+      return MIN_STEP_COUNT;
     }
     return Math.max(MIN_STEP_COUNT, Math.min(MAX_STEP_COUNT, Math.trunc(parsed)));
+  }
+
+  private nextCandidateSeed() {
+    this.candidateSeedCounter += 1;
+    return stableHash(`${this.candidateSeedSalt}:${this.candidateSeedCounter}`);
   }
 
   private parseFormat(value: unknown) {
@@ -1272,11 +1344,11 @@ export class EveningAiDraftService {
       }
       const parsedIntent = this.parseIntentResponse(input, response.parsedJson);
       if (parsedIntent) {
-        return {
+        return this.constrainIntentByPrompt(input, {
           ...parsedIntent,
           eventDateWindow,
           source: 'llm',
-        };
+        });
       }
     } catch {
       return fallbackIntent;
@@ -1287,19 +1359,21 @@ export class EveningAiDraftService {
 
   private fallbackDraftIntent(input: ParsedDraftInput): DraftIntent {
     const fallbackInput = this.inputWithFallbackRules(input);
-    const fallbackRoles = this.resolveRoles(
-      fallbackInput.prompt,
-      fallbackInput.format,
-      this.intentFallbackStepCount(fallbackInput),
-    );
-    return {
+    const fallbackRoles =
+      this.promptRolesForInput(fallbackInput) ??
+      this.resolveRoles(
+        fallbackInput.prompt,
+        fallbackInput.format,
+        this.intentFallbackStepCount(fallbackInput),
+      );
+    return this.constrainIntentByPrompt(fallbackInput, {
       roles: fallbackRoles,
       roleHints: fallbackRoles.map((role) => this.roleIntentHint(fallbackInput, role)),
       eventDateWindow: fallbackInput.eventDateWindow,
       area: fallbackInput.area,
       budget: fallbackInput.budget,
       source: 'rules',
-    };
+    });
   }
 
   private inputWithFallbackRules(input: ParsedDraftInput): ParsedDraftInput {
@@ -1377,6 +1451,66 @@ export class EveningAiDraftService {
       return input.stepCount;
     }
     return input.promptStepCountHint ?? this.mentionedStepCount(input) ?? input.stepCount;
+  }
+
+  private constrainIntentByPrompt(input: ParsedDraftInput, intent: DraftIntent): DraftIntent {
+    if (input.stepCountExplicit) {
+      return intent;
+    }
+    const promptRoles = this.promptRolesForInput(input);
+    if (!promptRoles || promptRoles.length === 0) {
+      return intent;
+    }
+    const intentMatchesPromptOrder =
+      promptRoles.length === intent.roles.length &&
+      promptRoles.every((role, index) => role === intent.roles[index]);
+    const intentUsesOnlyPromptRoles = intent.roles.every((role) => promptRoles.includes(role));
+    const hasOrderedPrompt = input.prompt
+      ? hasAny(normalizeText(input.prompt), ROUTE_SEQUENCE_TERMS)
+      : false;
+    if (input.promptStepCountHint != null && intent.roles.length === input.promptStepCountHint) {
+      if (
+        (!hasOrderedPrompt || intentMatchesPromptOrder) &&
+        (promptRoles.length < input.promptStepCountHint || intentUsesOnlyPromptRoles)
+      ) {
+        return intent;
+      }
+    }
+    if (intentMatchesPromptOrder) {
+      return intent;
+    }
+    if (
+      !hasOrderedPrompt &&
+      input.promptStepCountHint == null &&
+      intent.roles.length <= promptRoles.length &&
+      intentUsesOnlyPromptRoles
+    ) {
+      return intent;
+    }
+    return {
+      ...intent,
+      roles: promptRoles,
+      roleHints: promptRoles.map((role) => this.roleIntentHint(input, role)),
+    };
+  }
+
+  private promptRolesForInput(input: ParsedDraftInput): RouteRole[] | null {
+    const mentioned = this.mentionedRoles(input.prompt, input.format);
+    if (mentioned.length === 0) {
+      return null;
+    }
+    if (input.promptStepCountHint != null) {
+      return this.expandRolesToStepCount(mentioned, input.promptStepCountHint);
+    }
+    return mentioned;
+  }
+
+  private expandRolesToStepCount(roles: RouteRole[], stepCount: number): RouteRole[] {
+    const expanded = roles.slice(0, stepCount);
+    while (expanded.length < stepCount) {
+      expanded.push(roles.length === 1 ? roles[0]! : roles[expanded.length % roles.length]!);
+    }
+    return expanded;
   }
 
   private intentTargetStepCount(input: ParsedDraftInput, generated: GeneratedIntentJson) {
@@ -1495,7 +1629,11 @@ export class EveningAiDraftService {
         role: 'place_food' as const,
         index: firstTermIndex(normalized, [
           'поесть',
+          'покуш',
           'еда',
+          'перекус',
+          'перекусить',
+          'закус',
           'ужин',
           'ресторан',
           'кафе',
@@ -1544,6 +1682,28 @@ export class EveningAiDraftService {
           'бесплат',
           'праздн',
           'активност',
+          'активн',
+          'спорт',
+          'спортив',
+          'адреналин',
+          'экстрим',
+          'картинг',
+          'квест',
+          'vr',
+          'виртуаль',
+          'батут',
+          'аттракцион',
+          'боулинг',
+          'лазертаг',
+          'скалодром',
+          'странн',
+          'креатив',
+          'выстав',
+          'перформанс',
+          'перфоманс',
+          'нестандарт',
+          'иммерсив',
+          'галере',
         ]),
       },
     ]
@@ -1590,10 +1750,38 @@ export class EveningAiDraftService {
       case 'walk':
         return ['прогулка', 'погулять', 'парк', 'маршрут', 'набережная', 'бульвар', 'экскурсия'];
       case 'free_activity':
-        return ['бесплатно', 'фестиваль', 'праздник', 'лекция', 'активность', 'выставка'];
+        return [
+          'бесплатно',
+          'фестиваль',
+          'праздник',
+          'лекция',
+          'активность',
+          'выставка',
+          'перформанс',
+          'спорт',
+          'адреналин',
+          'картинг',
+          'квест',
+          'vr',
+          'батут',
+          'аттракцион',
+        ];
       case 'place_food':
       default:
-        return ['ресторан', 'кафе', 'кофе', 'бранч', 'ужин', 'еда', 'coffee', 'десерт', 'паст', 'итальян'];
+        return [
+          'ресторан',
+          'кафе',
+          'кофе',
+          'бранч',
+          'ужин',
+          'еда',
+          'покуш',
+          'перекус',
+          'coffee',
+          'десерт',
+          'паст',
+          'итальян',
+        ];
     }
   }
 
@@ -1763,6 +1951,13 @@ export class EveningAiDraftService {
       if (hasAny(normalized, ['кофе', 'coffee'])) {
         return hint(['кофе', 'кофей', 'coffee', 'кафе'], [], 'Нужно место для кофе.');
       }
+      if (hasAny(normalized, ['перекус', 'перекусить', 'закус', 'снэк', 'snack'])) {
+        return hint(
+          ['перекус', 'закус', 'бургер', 'пицц', 'стритфуд', 'кафе', 'snack'],
+          [],
+          'Нужно место для быстрого перекуса после активности.',
+        );
+      }
     }
 
     if (role === 'show') {
@@ -1795,6 +1990,22 @@ export class EveningAiDraftService {
 
     if (role === 'place_bar' && hasAny(normalized, ['вино', 'винн'])) {
       return hint(['вино', 'винн', 'wine'], [], 'Нужен винный бар.');
+    }
+
+    if (role === 'free_activity' && hasAny(normalized, ACTIVE_ACTIVITY_TERMS)) {
+      return hint(
+        ACTIVE_ACTIVITY_TERMS,
+        ['музей', 'выстав', 'лекц', 'театр', 'концерт', 'стендап', 'прогул', 'парк'],
+        'Нужна спортивная или адреналиновая активность, например картинг, квест, VR, батуты или аттракцион.',
+      );
+    }
+
+    if (role === 'free_activity' && hasAny(normalized, CREATIVE_ACTIVITY_TERMS)) {
+      return hint(
+        CREATIVE_ACTIVITY_TERMS,
+        ['бар', 'ресторан', 'прогул', 'спорт', 'картинг'],
+        'Нужна одна странная или креативная активность: выставка, перформанс или нестандартное место.',
+      );
     }
 
     return {
@@ -1901,7 +2112,7 @@ export class EveningAiDraftService {
         {
           role: 'free_activity',
           source: 'kudago',
-          meaning: 'бесплатная активность, фестиваль, праздник, выставка, лекция',
+          meaning: 'активность, спорт, адреналин, картинг, квест, VR, батуты, аттракционы, выставка, перформанс',
         },
       ],
       rules: [
@@ -1922,6 +2133,8 @@ export class EveningAiDraftService {
         'If the user lists activities with words like сначала, потом, затем, routeStepCount is the number of listed activities.',
         'routeStepCount must describe places or activities, not people.',
         'If the user asks the same kind of step twice, keep it twice.',
+        'For sport or adrenaline requests prefer sport, karting, quests, VR, trampolines or attractions and do not add bars, shows or walks unless explicitly asked.',
+        'For a creative date with examples such as exhibition, performance or unusual place, treat the examples as one activity unless the user asks for a sequence or a specific step count.',
         'preferredTerms must describe what the candidate should match.',
         'avoidTerms must describe wrong candidates for this step.',
         'For theatre requests prefer театр, спектакль, опера, балет, мюзикл and avoid музей, выставка.',
@@ -2332,6 +2545,7 @@ type ParsedDraftInput = {
   promptStepCountHint: number | null;
   participantsCount: number | null;
   eventDateWindow: EventDateWindow;
+  candidateSeed: number;
   latitude: number | null;
   longitude: number | null;
 };
@@ -2718,7 +2932,7 @@ function stepCountFromPrompt(prompt: string | null) {
     return null;
   }
   const unit =
-    '(?:точк(?:а|и|у|ек)?|мест(?:о|а)?|локаци(?:я|и|й|ю)|шаг(?:а|ов)?|этап(?:а|ов)?|стоп(?:а|ов)?)';
+    '(?:точк(?:а|и|у)?|точек|мест(?:о|а)?|локаци(?:я|и|й|ю)|шаг(?:а|ов)?|этап(?:а|ов)?|стоп(?:а|ов)?)';
   const before = '(?:^|\\s)';
   const after = '(?=$|\\s|[,.!?;:])';
   const digitMatch =
@@ -2746,6 +2960,13 @@ function participantsCountFromPrompt(prompt: string | null) {
   const after = '(?=$|\\s|[,.!?;:])';
   const peopleUnit =
     '(?:человек|человека|чел|людей|персон(?:а|ы)?|гост(?:ь|я|ей)|участник(?:а|ов)?)';
+  const rangeMatch = text.match(
+    new RegExp(`${before}([1-9]\\d?)\\s*[-–]\\s*([1-9]\\d?)\\s+${peopleUnit}${after}`),
+  );
+  const rangeCount = normalizedCount(rangeMatch?.[1], 20);
+  if (rangeCount != null) {
+    return rangeCount;
+  }
   const digitPatterns = [
     new RegExp(
       `${before}(?:на|для|нас|компания|группа|будет|будем)\\s+([1-9]\\d?)\\s+${peopleUnit}${after}`,
@@ -3151,6 +3372,18 @@ const TAXONOMY_TERM_GROUPS: Array<{ aliases: string[]; tags: string[] }> = [
     tags: ['place:bar', 'set:cocktails'],
   },
   {
+    aliases: ['спорт', 'спортив', 'активн', 'адреналин', 'экстрим', 'active', 'sport'],
+    tags: ['active', 'sport', 'category:sport'],
+  },
+  {
+    aliases: ['картинг', 'квест', 'vr', 'виртуаль', 'батут', 'аттракцион', 'лазертаг'],
+    tags: ['active', 'sport', 'entertainment'],
+  },
+  {
+    aliases: ['выстав', 'перформанс', 'перфоманс', 'иммерсив', 'арт', 'галере', 'creative'],
+    tags: ['exhibition', 'art', 'creative'],
+  },
+  {
     aliases: ['сидр', 'cider'],
     tags: ['place:bar', 'set:cider'],
   },
@@ -3286,7 +3519,7 @@ function budgetFromPrompt(prompt: string | null) {
   if (/(?:бесплат|free|без\s+денег)/.test(text)) {
     return 'free';
   }
-  if (/(?:средн|1500\s*[-–]\s*3500|до\s*3\s*500|до\s*3500)/.test(text)) {
+  if (/(?:средн|1500\s*[-–]\s*3500|до\s*3\s*500|до\s*3500|до\s*3\s*к|до\s*3000)/.test(text)) {
     return 'mid';
   }
   if (

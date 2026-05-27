@@ -156,6 +156,7 @@ describe('EveningAiDraftService unit', () => {
     filterExternalItemsByQuery?: boolean;
     openRouterResponses?: Array<Record<string, unknown> | Error>;
     intentResponse?: Record<string, unknown> | Error;
+    draftOverrides?: Record<string, unknown>;
   } = {}) {
     const externalFindMany = jest.fn((query: any) => {
       const code = query?.where?.source?.code;
@@ -301,6 +302,7 @@ describe('EveningAiDraftService unit', () => {
       rejectedExternalItemIds: ['old-rejected'],
       expiresAt: new Date('2026-05-16T08:00:00.000Z'),
       routeId: null,
+      ...options.draftOverrides,
     };
     const draftCreate = jest.fn((input: any) => {
       currentDraft = {
@@ -1569,7 +1571,7 @@ describe('EveningAiDraftService unit', () => {
       expect.objectContaining({
         stepCountMode: 'infer',
         maxStepCount: 5,
-        budget: null,
+        budget: 'low',
       }),
     );
     expect(intentPrompt.config).not.toHaveProperty('defaultStepCount');
@@ -1739,6 +1741,270 @@ describe('EveningAiDraftService unit', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           stepCount: 2,
+        }),
+      }),
+    );
+  });
+
+  it('keeps active company prompt to an activity and a snack', async () => {
+    const { service, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 2,
+          stepCountReason: 'LLM chose unrelated roles with the right count.',
+          participantsCount: 4,
+          budget: 'mid',
+          steps: [
+            {
+              role: 'place_food',
+              preferredTerms: ['перекус', 'бургер'],
+              avoidTerms: [],
+              instruction: 'Перекус.',
+            },
+            {
+              role: 'show',
+              preferredTerms: ['шоу'],
+              avoidTerms: [],
+              instruction: 'Лишний шаг.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 40,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-karting',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Картинг на компанию',
+            category: 'sport',
+            tags: ['спорт', 'адреналин', 'картинг'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceMode: 'paid',
+            priceFrom: 1800,
+            sourceProvider: 'KudaGo',
+          },
+          {
+            id: 'kudago-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Набережная для прогулки',
+            category: 'walk',
+            tags: ['прогулка'],
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-snack',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Бургерная после картинга',
+            category: 'restaurant',
+            tags: ['перекус', 'бургер', 'budget:mid'],
+            priceFrom: 1200,
+            placeKind: 'restaurant',
+            venueName: 'Бургерная после картинга',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Лишний бар',
+            category: 'bar',
+            tags: ['bar'],
+            priceFrom: 1400,
+            placeKind: 'bar',
+            venueName: 'Лишний бар',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Активность и перекус',
+            vibe: 'Для компании',
+            blurb: 'Сначала адреналин, потом еда.',
+            steps: [
+              { externalContentItemId: 'kudago-karting', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-snack', timeLabel: '20:30' },
+              { externalContentItemId: 'kudago-walk', timeLabel: '21:30' },
+              { externalContentItemId: 'tomesto-bar', timeLabel: '22:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt:
+        'Собери активный вечер на 4-6 человек: что-то спортивное или адреналиновое, потом перекус. Бюджет до 3к на человека.',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    expect(intentPrompt.config.participantsCount).toBe(4);
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.stepCount).toBe(2);
+    expect(routePrompt.config.roles).toEqual(['free_activity', 'place_food']);
+    expect(routePrompt.config.budget).toBe('mid');
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Картинг на компанию',
+      'Бургерная после картинга',
+    ]);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stepCount: 2,
+          budget: 'mid',
+        }),
+      }),
+    );
+  });
+
+  it('keeps a creative date prompt to one unusual activity when no sequence is requested', async () => {
+    const { service, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 5,
+          stepCountReason: 'LLM treated examples as separate stops.',
+          participantsCount: 2,
+          budget: '',
+          steps: [
+            {
+              role: 'free_activity',
+              preferredTerms: ['выставка', 'перформанс'],
+              avoidTerms: [],
+              instruction: 'Странное креативное место.',
+            },
+            { role: 'place_food', preferredTerms: ['еда'], avoidTerms: [], instruction: 'Лишний шаг.' },
+            { role: 'walk', preferredTerms: ['прогулка'], avoidTerms: [], instruction: 'Лишний шаг.' },
+            { role: 'place_bar', preferredTerms: ['бар'], avoidTerms: [], instruction: 'Лишний шаг.' },
+            { role: 'show', preferredTerms: ['шоу'], avoidTerms: [], instruction: 'Лишний шаг.' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 40,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-performance',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Иммерсивный перформанс',
+            category: 'exhibition',
+            tags: ['выставка', 'перформанс', 'нестандартное'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceMode: 'free',
+            priceFrom: 0,
+            sourceProvider: 'KudaGo',
+          },
+          {
+            id: 'kudago-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Прогулка',
+            category: 'walk',
+            tags: ['прогулка'],
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Лишняя еда',
+            category: 'restaurant',
+            tags: ['еда'],
+            placeKind: 'restaurant',
+            venueName: 'Лишняя еда',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Лишний бар',
+            category: 'bar',
+            tags: ['bar'],
+            placeKind: 'bar',
+            venueName: 'Лишний бар',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-show',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Лишнее шоу',
+            category: 'show',
+            tags: ['шоу'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 1500,
+            actionUrl: 'https://ticket.example.test/show',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Креативное свидание',
+            vibe: 'Необычно',
+            blurb: 'Одна сильная точка.',
+            steps: [
+              { externalContentItemId: 'kudago-performance', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-food', timeLabel: '20:00' },
+              { externalContentItemId: 'kudago-walk', timeLabel: '21:00' },
+              { externalContentItemId: 'tomesto-bar', timeLabel: '22:00' },
+              { externalContentItemId: 'ticketland-show', timeLabel: '23:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt:
+        'Что-нибудь странное и креативное для первого свидания - выставка, перформанс, нестандартное место. Удивить.',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.stepCount).toBe(1);
+    expect(routePrompt.config.roles).toEqual(['free_activity']);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Иммерсивный перформанс',
+    ]);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stepCount: 1,
         }),
       }),
     );
@@ -2512,7 +2778,7 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
-  it('lets intent choose step count even when prompt mentions a count', async () => {
+  it('keeps prompt step count exact even when intent asks for more', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
@@ -2635,27 +2901,25 @@ describe('EveningAiDraftService unit', () => {
         stepCountMode: 'infer',
         promptStepCountHint: 3,
         maxStepCount: 5,
-        budget: null,
+        budget: 'mid',
       }),
     );
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.config.stepCount).toBe(5);
+    expect(routePrompt.config.stepCount).toBe(3);
     expect(routePrompt.config.budget).toBe('mid');
     expect(result.route.steps.map((step: any) => step.title)).toEqual([
       'Красивый парк',
       'Итальянский ресторан',
       'Спектакль',
-      'Тихий бар',
-      'Бесплатная выставка',
     ]);
     expect(draftCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           budget: 'mid',
-          stepCount: 5,
+          stepCount: 3,
         }),
       }),
     );
@@ -2873,13 +3137,16 @@ describe('EveningAiDraftService unit', () => {
       city: 'Москва',
     });
 
-    expect(result.route.steps.map((step: any) => step.title)).toEqual([
-      'Taproom',
-      'Cabinet',
-      'Asia Room',
-      'Taco House',
-      'Green Cafe',
-    ]);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual(
+      expect.arrayContaining([
+        'Taproom',
+        'Cabinet',
+        'Asia Room',
+        'Taco House',
+        'Green Cafe',
+      ]),
+    );
+    expect(result.route.steps).toHaveLength(5);
     const tomestoQuery = externalFindMany.mock.calls
       .map(([query]: [any]) => query)
       .find((query: any) => query?.where?.source?.code === 'tomesto');
@@ -3101,7 +3368,11 @@ describe('EveningAiDraftService unit', () => {
     const foodCandidateIds = routePrompt.candidates
       .filter((candidate: any) => candidate.role === 'place_food')
       .map((candidate: any) => candidate.id);
-    expect(foodCandidateIds.slice(0, 2)).toEqual(['tomesto-far', 'tomesto-near']);
+    expect(foodCandidateIds).toEqual(
+      expect.arrayContaining(['tomesto-far', 'tomesto-near']),
+    );
+    expect(routePrompt.config).not.toHaveProperty('latitude');
+    expect(routePrompt.config).not.toHaveProperty('longitude');
   });
 
   it('uses intent area for scoring and keeps public route area readable', async () => {
@@ -3599,6 +3870,165 @@ describe('EveningAiDraftService unit', () => {
         }),
       }),
     );
+  });
+
+  it('returns a clear error when a step has no regenerate alternatives', async () => {
+    const { service } = createService({
+      draftOverrides: {
+        candidatePackJson: [
+          {
+            id: 'tomesto-bar',
+            role: 'place_bar',
+            source: 'tomesto',
+            contentKind: 'place',
+            title: 'Brix',
+            area: 'Центр',
+            tags: ['bar'],
+            priceMode: 'paid',
+            priceFrom: 1200,
+            startsAt: null,
+            lat: 55.76,
+            lng: 37.61,
+            address: 'Покровка 12',
+            venueName: 'Brix',
+            actionUrl: null,
+            sourceUrl: null,
+            sourceProvider: 'ТоМесто',
+            shortSummary: 'Бар для старта',
+          },
+          {
+            id: 'ticketland-show',
+            role: 'show',
+            source: 'advcake_ticketland',
+            contentKind: 'event',
+            title: 'Стендап',
+            area: 'Центр',
+            tags: ['standup'],
+            priceMode: 'paid',
+            priceFrom: 1200,
+            startsAt: '2099-06-01T17:30:00.000Z',
+            lat: 55.765,
+            lng: 37.615,
+            address: 'Тверская 1',
+            venueName: 'Stage',
+            actionUrl: 'https://ticket.example.test',
+            sourceUrl: null,
+            sourceProvider: 'Ticketland / MTS Live',
+            shortSummary: 'Шоу рядом',
+          },
+        ],
+      },
+    });
+
+    await expect(service.regenerateStep('user-1', 'draft-1', 1)).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'evening_ai_regenerate_candidates_exhausted',
+    });
+  });
+
+  it('varies equal-score Tomesto candidates between new drafts', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          stepCountReason: 'Пользователь просит одно место для еды.',
+          participantsCount: 0,
+          budget: 'mid',
+          steps: [
+            {
+              role: 'place_food',
+              preferredTerms: ['ресторан'],
+              avoidTerms: [],
+              instruction: 'Одно место для еды.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-alpha',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Alpha',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 1800,
+            placeKind: 'restaurant',
+            venueName: 'Alpha',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-beta',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Beta',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 1800,
+            placeKind: 'restaurant',
+            venueName: 'Beta',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-gamma',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Gamma',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            priceFrom: 1800,
+            placeKind: 'restaurant',
+            venueName: 'Gamma',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ужин',
+            vibe: 'Еда',
+            blurb: 'Один ресторан.',
+            steps: [{ externalContentItemId: 'tomesto-alpha', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 70,
+        },
+        {
+          parsedJson: {
+            title: 'Ужин',
+            vibe: 'Еда',
+            blurb: 'Один ресторан.',
+            steps: [{ externalContentItemId: 'tomesto-alpha', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 70,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Найди ресторан на вечер',
+      city: 'Москва',
+    });
+    await service.createDraft('user-1', {
+      prompt: 'Найди ресторан на вечер',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls
+      .map(([call]) => call)
+      .filter((call) => call?.responseFormat?.json_schema?.name === 'evening_ai_route');
+    const candidateOrders = routeCalls.map((call) =>
+      JSON.parse(call.userPrompt).candidates.map((candidate: any) => candidate.id),
+    );
+    expect(new Set(candidateOrders.map((order) => JSON.stringify(order))).size).toBeGreaterThan(1);
   });
 
   it('retries bad LLM output once and falls back to deterministic draft', async () => {
