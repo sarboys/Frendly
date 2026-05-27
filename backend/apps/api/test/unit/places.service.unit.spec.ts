@@ -1,5 +1,5 @@
 import { ApiError } from '../../src/common/api-error';
-import { PlacesService } from '../../src/services/places.service';
+import { PlacesService, promoMatchesPlace } from '../../src/services/places.service';
 
 describe('PlacesService unit', () => {
   it('returns only published Tomesto place rows with booking fields and promos', async () => {
@@ -9,6 +9,7 @@ describe('PlacesService unit', () => {
         {
           id: 'place-1',
           sourceId: 'source-tomesto',
+          sourceItemId: 'place:brix',
           sourceUrl: 'https://tomesto.ru/moskva/places/brix',
           title: 'Brix',
           address: 'Покровка 12',
@@ -40,6 +41,7 @@ describe('PlacesService unit', () => {
           sourceUrl: 'https://tomesto.ru/moskva/promos/wine',
           raw: {
             kind: 'promo',
+            placeSourceItemId: 'place:brix',
             placeSlug: 'brix',
             venueName: 'Brix',
           },
@@ -233,5 +235,25 @@ describe('PlacesService unit', () => {
     });
 
     expect(result).toEqual([]);
+  });
+
+  it('matches Tomesto promos to places by source item id before title fallback', () => {
+    expect(
+      promoMatchesPlace(
+        {
+          raw: {
+            placeSourceItemId: 'place:listok',
+            placeSlug: 'old-slug',
+            venueName: 'Wrong title',
+          },
+        },
+        {
+          sourceItemId: 'place:listok',
+          title: 'Листок',
+          address: 'Петровка 1',
+          raw: { slug: 'listok' },
+        },
+      ),
+    ).toBe(true);
   });
 });

@@ -1271,7 +1271,7 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
-  it('passes all Tomesto and Ticketland candidates, with only KudaGo capped', async () => {
+  it('caps AI route candidates by source before sending them to OpenRouter', async () => {
     const cityBars = Array.from({ length: 800 }, (_item, index) => ({
       id: `tomesto-large-${index}`,
       source: { code: 'tomesto', name: 'ТоМесто' },
@@ -1287,7 +1287,7 @@ describe('EveningAiDraftService unit', () => {
       venueName: `Craft Bar ${index}`,
       sourceProvider: 'ТоМесто',
     }));
-    const cityShows = Array.from({ length: 40 }, (_item, index) => ({
+    const cityShows = Array.from({ length: 140 }, (_item, index) => ({
       id: `ticketland-large-${index}`,
       source: { code: 'advcake_ticketland', name: 'Ticketland' },
       contentKind: 'event',
@@ -1383,12 +1383,12 @@ describe('EveningAiDraftService unit', () => {
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'tomesto')).toHaveLength(800);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'tomesto')).toHaveLength(300);
     expect(
       routePrompt.candidates.filter((candidate: any) => candidate.source === 'advcake_ticketland'),
-    ).toHaveLength(40);
-    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(350);
-    expect(routePrompt.candidates).toHaveLength(1190);
+    ).toHaveLength(100);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(50);
+    expect(routePrompt.candidates).toHaveLength(450);
   });
 
   it('lets intent turn an explicit three-place prompt into three steps', async () => {
@@ -3388,6 +3388,251 @@ describe('EveningAiDraftService unit', () => {
       .find((query: any) => query?.where?.source?.code === 'tomesto');
     expect(tomestoQuery?.where?.OR).toBeUndefined();
     expect(tomestoQuery?.take).toBeUndefined();
+  });
+
+  it('matches arbitrary Tomesto cuisine tags from intent terms', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            { role: 'place_food', preferredTerms: ['турецкая кухня', 'ресторан'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-generic',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Generic Restaurant',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant'],
+            lat: 55.731,
+            lng: 37.601,
+            placeKind: 'food',
+            venueName: 'Generic Restaurant',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-turkish',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Istanbul',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant', 'cuisine:turetskaya'],
+            lat: 55.732,
+            lng: 37.602,
+            placeKind: 'food',
+            venueName: 'Istanbul',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Турецкий ужин',
+            vibe: 'По кухне',
+            blurb: 'Проверка кухни.',
+            steps: [{ externalContentItemId: 'tomesto-generic', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу турецкую кухню',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    expect(routeCalls[1][0].userPrompt).toContain('intent_mismatch');
+    expect(routeCalls[1][0].userPrompt).toContain('tomesto-generic');
+    expect(result.route.steps.map((step: any) => step.title)).toContain('Istanbul');
+  });
+
+  it('keeps per-step locations and inherits same-as-previous location', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 3,
+          stepCountReason: 'Пользователь перечислил три активности с разными локациями.',
+          steps: [
+            {
+              role: 'walk',
+              preferredTerms: ['прогулка'],
+              avoidTerms: [],
+              instruction: 'Погулять в центре',
+              locationMode: 'explicit',
+              locationKind: 'area',
+              locationQuery: 'центр',
+              locationCode: 'center',
+            },
+            {
+              role: 'place_food',
+              preferredTerms: ['паста', 'итальянская кухня'],
+              avoidTerms: [],
+              instruction: 'Паста на Братиславской',
+              locationMode: 'explicit',
+              locationKind: 'metro',
+              locationQuery: 'на Братиславской',
+              locationCode: '',
+            },
+            {
+              role: 'show',
+              preferredTerms: ['спектакль'],
+              avoidTerms: [],
+              instruction: 'Спектакль там же',
+              locationMode: 'same_as_previous',
+              locationKind: 'metro',
+              locationQuery: 'там же',
+              locationCode: '',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'walk-center',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Центральная прогулка',
+            category: 'walk',
+            tags: ['walk', 'area:center'],
+            lat: 55.755,
+            lng: 37.617,
+            priceFrom: 0,
+            priceMode: 'free',
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'pasta-center',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Паста в центре',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant', 'cuisine:italyanskaya', 'metro:tverskaya_300_m_4_min'],
+            lat: 55.765,
+            lng: 37.605,
+            placeKind: 'food',
+            venueName: 'Паста в центре',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'pasta-bratislavskaya',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Паста на Братиславской',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant', 'cuisine:italyanskaya', 'metro:bratislavskaya_420_m_6_min'],
+            lat: 55.66,
+            lng: 37.75,
+            placeKind: 'food',
+            venueName: 'Паста на Братиславской',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'show-center',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль в центре',
+            category: 'theatre',
+            tags: ['theatre'],
+            startsAt: new Date('2099-06-01T17:30:00.000Z'),
+            lat: 55.765,
+            lng: 37.605,
+            priceFrom: 1200,
+            actionUrl: 'https://ticket.example.test/center',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+          {
+            id: 'show-bratislavskaya',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Спектакль на Братиславской',
+            category: 'theatre',
+            tags: ['theatre'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            lat: 55.66,
+            lng: 37.75,
+            priceFrom: 1200,
+            actionUrl: 'https://ticket.example.test/bratislavskaya',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Центр и Братиславская',
+            vibe: 'По локациям',
+            blurb: 'Маршрут учитывает разные районы.',
+            steps: [
+              { externalContentItemId: 'walk-center', timeLabel: '18:00' },
+              { externalContentItemId: 'pasta-bratislavskaya', timeLabel: '19:00' },
+              { externalContentItemId: 'show-bratislavskaya', timeLabel: '20:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'хочу погулять в центре, поесть пасту на Братиславской и сходить на спектакль там же',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roleHints[0].location).toMatchObject({
+      mode: 'explicit',
+      kind: 'area',
+      code: 'center',
+    });
+    expect(routePrompt.config.roleHints[1].location).toMatchObject({
+      mode: 'explicit',
+      kind: 'metro',
+      code: 'metro:bratislavskaya',
+    });
+    expect(routePrompt.config.roleHints[2].location).toMatchObject({
+      mode: 'same_as_previous',
+      kind: 'metro',
+      code: 'metro:bratislavskaya',
+    });
+    const foodCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'place_food')
+      .map((candidate: any) => candidate.id);
+    const showCandidateIds = routePrompt.candidates
+      .filter((candidate: any) => candidate.role === 'show')
+      .map((candidate: any) => candidate.id);
+    expect(foodCandidateIds.indexOf('pasta-bratislavskaya')).toBeLessThan(
+      foodCandidateIds.indexOf('pasta-center'),
+    );
+    expect(showCandidateIds.indexOf('show-bratislavskaya')).toBeLessThan(
+      showCandidateIds.indexOf('show-center'),
+    );
   });
 
   it('does not treat barbecue food wording as a bar tag', async () => {

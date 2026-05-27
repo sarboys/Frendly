@@ -505,19 +505,27 @@ describe('content source adapters', () => {
       isAffiliate: true,
       sourceProvider: 'ТоМесто',
       raw: expect.objectContaining({
+        district: 'Северный административный округ',
+        music: 'Фоновая',
         taxonomy: expect.objectContaining({
-          metro: ['teatralnaya'],
-          features: expect.arrayContaining(['business_lunch', 'summer_terrace']),
+          area: expect.arrayContaining(['center', 'north']),
+          metro: expect.arrayContaining(['teatralnaya']),
+          cuisine: expect.arrayContaining(['evropeyskaya', 'italyanskaya']),
+          features: expect.arrayContaining(['business_lunch', 'summer_terrace', 'background_music']),
         }),
       }),
     });
     expect(items[0]?.tags).toEqual(expect.arrayContaining([
       'area:center',
+      'area:north',
       'occasion:food',
       'budget:cheap',
+      'cuisine:evropeyskaya',
+      'cuisine:italyanskaya',
       'metro:teatralnaya',
       'feature:business_lunch',
       'feature:summer_terrace',
+      'feature:background_music',
       'set:nedorogie-restorany-v-tsentre',
     ]));
     expect(items[0]?.actionUrl).toBe('https://tomesto.ru/moskva/places/cafe-one?existing=1&utm_source=frendly&ref=unit');
@@ -606,7 +614,11 @@ describe('content source adapters', () => {
       sourceItemId: 'promo:skidki:wine-set',
       contentKind: 'event',
       category: 'promo',
-      raw: expect.objectContaining({ kind: 'promo' }),
+      raw: expect.objectContaining({
+        kind: 'promo',
+        placeSlug: 'cafe-one',
+        placeSourceItemId: 'place:cafe-one',
+      }),
     });
   });
 
@@ -870,12 +882,27 @@ function tomestoPlaceHtml(options: {
         <h1>Кафе Центр</h1>
         <a class="place-category" href="/${citySlug}/places/restorany">Ресторан</a>
         <a href="/${citySlug}/places/nedorogie-restorany-v-tsentre">Подборка</a>
-        <div itemprop="address">${options.address ?? 'Москва, Тверская, 1'}</div>
+        <div itemprop="address">RU ${options.address ?? 'Москва, Тверская, 1'} м. Театральная (300 м, 4 мин)</div>
+        <ul>
+          <li class="place_info_element"><strong>Адрес:</strong> ${options.address ?? 'Москва, Тверская, 1'}</li>
+          <li class="place_info_element"><strong>Район:</strong> Северный административный округ</li>
+          <li class="place_info_element"><strong>Метро:</strong> <a href="/${citySlug}/metros/teatralnaya">Театральная</a> (300 м, 4 мин)</li>
+          <li class="place_info_element"><strong>Музыка:</strong> Фоновая</li>
+        </ul>
         <div class="average-check">Средний чек 900 руб</div>
         <span data-metro="Театральная"></span>
         <ul class="features">
           <li>Бизнес-ланч</li>
           <li>Летняя веранда</li>
+        </ul>
+        <ul>
+          <li class="place_info_element">
+            <strong>Кухня:</strong>
+            <a href="/${citySlug}/cuisines/evropeyskaya">европейская</a>,
+            <span class="hidden" itemprop="servesCuisine">европейская</span>
+            <a href="/${citySlug}/cuisines/italyanskaya">итальянская</a>
+            <span class="hidden" itemprop="servesCuisine">итальянская</span>
+          </li>
         </ul>
         <script type="application/ld+json">
           {"@type":"Restaurant","geo":{"latitude":55.7601,"longitude":37.6187},"aggregateRating":{"ratingValue":"4.7"}}
@@ -912,7 +939,7 @@ function tomestoBirthdayPromoHtml() {
       <body>
         <h1>Скидка на день рождения</h1>
         <a class="promo-category" href="/moskva/promos/birthday">birthday</a>
-        <div class="promo-place"><a>Кафе Центр</a></div>
+        <div class="promo-place"><a href="/moskva/places/cafe-one">Кафе Центр</a></div>
         <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
       </body>
     </html>
@@ -928,7 +955,7 @@ function tomestoBirthdayGiftPromoHtml() {
       <body>
         <h1>Подарок в день рождения</h1>
         <a class="promo-category" href="/moskva/promos/birthday">birthday</a>
-        <div class="promo-place"><a>Кафе Центр</a></div>
+        <div class="promo-place"><a href="/moskva/places/cafe-one">Кафе Центр</a></div>
         <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
       </body>
     </html>
@@ -992,7 +1019,7 @@ function tomestoPromoHtml() {
       <body>
         <h1>Винный сет в подарок</h1>
         <a class="promo-category" href="/moskva/promos/skidki">Скидки</a>
-        <div class="promo-place"><a>Кафе Центр</a></div>
+        <div class="promo-place"><a href="/moskva/places/cafe-one">Кафе Центр</a></div>
         <time datetime="2026-05-15T12:00:00+03:00">15 мая</time>
       </body>
     </html>

@@ -89,6 +89,7 @@ export class PlacesService {
       select: {
         id: true,
         sourceId: true,
+        sourceItemId: true,
         sourceUrl: true,
         title: true,
         address: true,
@@ -153,6 +154,7 @@ export class PlacesService {
       },
       select: {
         id: true,
+        sourceItemId: true,
         title: true,
         shortSummary: true,
         city: true,
@@ -407,6 +409,10 @@ function placeSearchScore(
 
 export function promoMatchesPlace(promo: any, place: any) {
   const promoRaw = asRecord(promo.raw);
+  const promoSourceItemId = text(promoRaw.placeSourceItemId);
+  if (promoSourceItemId && text(place.sourceItemId)) {
+    return normalizeText(promoSourceItemId) === normalizeText(place.sourceItemId);
+  }
   const promoSlug = text(promoRaw.placeSlug);
   const slug = placeSlug(place);
   if (promoSlug && slug) {

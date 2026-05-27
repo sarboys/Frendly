@@ -464,13 +464,15 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const slug = slugFromUrl(sourceUrl);
     const pageText = compactPageText($);
     const title = firstText($, ['h1', '[itemprop="name"]']) ?? meta($, 'og:title');
-    const address = firstText($, [
-      '[itemprop="address"]',
-      '[data-test="address"]',
-      '.place-address',
-      '.address',
-      'address',
-    ]);
+    const labeledInfo = placeInfoLabels($);
+    const address = labeledInfoValue(labeledInfo, ['adres']) ??
+      firstText($, [
+        '[data-test="address"]',
+        '.place-address',
+        '.address',
+        'address',
+        '[itemprop="address"]',
+      ]);
     const coords = coordinates($);
     if (!title) {
       console.warn('[tomesto] place skipped without title', { slug });
@@ -496,10 +498,12 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     ]);
     const category = placeCategory(categoryLabels);
     const priceFrom = averageCheck($);
-    const metro = metroLabels($);
-    const features = featureLabels($);
+    const metro = dedupe([...metroLabels($), ...labeledInfoValues(labeledInfo, ['metro'])]);
+    const district = labeledInfoValue(labeledInfo, ['rayon']);
+    const music = labeledInfoValue(labeledInfo, ['muzyka']);
+    const features = featureLabels($, labeledInfo);
     const sets = setLabels($, sourceUrl);
-    const cuisine = cuisineLabels($);
+    const cuisine = cuisineLabels($, sourceUrl);
     const taxonomy = buildPlaceTaxonomy({
       sourceUrl,
       text: pageText,
@@ -507,6 +511,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       category,
       categoryLabels,
       metro,
+      district,
       features,
       sets,
       cuisine,
@@ -554,6 +559,8 @@ export class TomestoAdapter implements ExternalSourceAdapter {
         slug,
         rating: rating($),
         metro,
+        district,
+        music,
         features,
         sourceUpdatedText: sourceUpdatedText($),
         ...(closedStatus ? { status: closedStatus } : {}),
@@ -619,6 +626,9 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       '.promo-place a',
     ], 'href');
     const placeSlug = kind === 'promos' ? placeSlugFromVenueUrl(venueUrl) : null;
+    const placeSourceItemId = kind === 'promos' && placeSlug
+      ? tomestoSourceItemId('place', input.cityCode, placeSlug)
+      : null;
     if (!venueName) {
       console.warn('[tomesto] timed item missing venue', { kind, slug, title });
     }
@@ -673,6 +683,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
         slug,
         category: originalCategory,
         placeSlug,
+        placeSourceItemId,
         venueName,
         address: firstText($, ['[itemprop="address"]', '.address', 'address']),
         sourceUrl,
@@ -764,18 +775,56 @@ function firstAttr($: CheerioRoot, selectors: string[], attrName: string) {
   return null;
 }
 
+function placeInfoLabels($: CheerioRoot) {
+  const values = new Map<string, string[]>();
+  $('.place_info_element, .place-info li, .place-info-item, .object_info li, .restaurant_info li').each((_, element) => {
+    const labelElement = $(element).find('strong, b').first();
+    const label = normalizeToken(labelElement.text().replace(/:$/, ''));
+    if (!label) {
+      return;
+    }
+    const clone = $(element).clone();
+    clone.find('strong, b').first().remove();
+    const textValue = cleanText(clone.text().replace(/^:\s*/, ''));
+    const linkValues = clone
+      .find('a')
+      .map((__, linkElement) => cleanText($(linkElement).text()))
+      .get()
+      .filter(isString);
+    const itemValues = dedupe([...linkValues, textValue].filter(isString));
+    if (itemValues.length === 0) {
+      return;
+    }
+    values.set(label, dedupe([...(values.get(label) ?? []), ...itemValues]));
+  });
+  return values;
+}
+
+function labeledInfoValue(values: Map<string, string[]>, labels: string[]) {
+  return labeledInfoValues(values, labels)[0] ?? null;
+}
+
+function labeledInfoValues(values: Map<string, string[]>, labels: string[]) {
+  const normalizedLabels = labels.map(normalizeToken);
+  return dedupe(
+    Array.from(values.entries())
+      .filter(([label]) => normalizedLabels.some((expected) => label.includes(expected)))
+      .flatMap(([, items]) => items),
+  );
+}
+
 function placeSlugFromVenueUrl(value: string | null) {
   if (!value) {
     return null;
   }
   try {
     const url = new URL(value, DEFAULT_BASE_URL);
-  const parts = url.pathname.split('/').filter(Boolean);
-  const placeIndex = parts.indexOf('places');
-  const slug = placeIndex >= 0 ? parts[placeIndex + 1] : undefined;
-  if (slug) {
-    return normalizeSlug(slug);
-  }
+    const parts = url.pathname.split('/').filter(Boolean);
+    const placeIndex = parts.indexOf('places');
+    const slug = placeIndex >= 0 ? parts[placeIndex + 1] : undefined;
+    if (slug) {
+      return normalizeSlug(slug);
+    }
   } catch {
     return null;
   }
@@ -980,13 +1029,27 @@ function metroLabels($: CheerioRoot) {
   return dedupe(values.map((value) => value.replace(/^м\.\s*/i, '')));
 }
 
-function featureLabels($: CheerioRoot) {
+function featureLabels($: CheerioRoot, labeledInfo: Map<string, string[]> = new Map()) {
   const values = collectTexts($, [
     '.features li',
     '.feature',
     '.place-features li',
     '[data-feature]',
   ]);
+  for (const label of [
+    'dlya_detey',
+    'letnyaya_terrasa',
+    'svoya_pivovarnya',
+    'translyatsii',
+    'parkovka',
+    'zavtrak',
+    'muzyka',
+    'garderob',
+  ]) {
+    for (const value of labeledInfoValues(labeledInfo, [label])) {
+      values.push(`${label}: ${value}`);
+    }
+  }
   $('[data-feature]').each((_, element) => {
     const value = cleanText($(element).attr('data-feature'));
     if (value) {
@@ -996,12 +1059,54 @@ function featureLabels($: CheerioRoot) {
   return dedupe(values);
 }
 
-function cuisineLabels($: CheerioRoot) {
-  return collectTexts($, [
+function cuisineLabels($: CheerioRoot, sourceUrl: string) {
+  const values = collectTexts($, [
     '.cuisine a',
     '.cuisines a',
-    '[data-cuisine]',
+    '[itemprop="servesCuisine"]',
   ]);
+  $('[data-cuisine]').each((_, element) => {
+    const value = cleanText($(element).attr('data-cuisine')) ?? cleanText($(element).text());
+    if (value) {
+      values.push(value);
+    }
+  });
+  $('a[href]').each((_, element) => {
+    const href = $(element).attr('href');
+    const cuisineSlug = cuisineSlugFromHref(href, sourceUrl);
+    if (!cuisineSlug) {
+      return;
+    }
+    values.push(cleanText($(element).text()) ?? cuisineSlug);
+  });
+  $('.place_info_element').each((_, element) => {
+    const label = normalizeToken($(element).find('strong').first().text());
+    if (!label.includes('kuhnya')) {
+      return;
+    }
+    $(element).find('a, [itemprop="servesCuisine"]').each((__, cuisineElement) => {
+      const value = cleanText($(cuisineElement).text());
+      if (value) {
+        values.push(value);
+      }
+    });
+  });
+  return dedupe(values);
+}
+
+function cuisineSlugFromHref(value: string | undefined, sourceUrl: string) {
+  if (!value) {
+    return null;
+  }
+  try {
+    const url = new URL(value, sourceUrl);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const cuisineIndex = parts.indexOf('cuisines');
+    const slug = cuisineIndex >= 0 ? parts[cuisineIndex + 1] : undefined;
+    return slug ? normalizeToken(slug) : null;
+  } catch {
+    return null;
+  }
 }
 
 function setLabels($: CheerioRoot, sourceUrl: string) {
@@ -1069,6 +1174,7 @@ function buildPlaceTaxonomy(input: {
   category: string;
   categoryLabels: string[];
   metro: string[];
+  district: string | null;
   features: string[];
   sets: string[];
   cuisine: string[];
@@ -1079,10 +1185,9 @@ function buildPlaceTaxonomy(input: {
     ...input.categoryLabels,
     ...input.sets,
     ...input.metro,
-  ].map((value) => normalizeToken(value)).join(' ');
-  const area = /tsentr|центр|sadovoe|tversk|arbat|lubyank|ohotny|teatral|kitay_gorod|kuzneck/i.test(sourceTokens)
-    ? ['center']
-    : [];
+    input.district,
+  ].filter(isString).map((value) => normalizeToken(value)).join(' ');
+  const area = tomestoAreaTokens(sourceTokens);
   const budget = input.priceFrom != null && input.priceFrom <= 1500 || /nedorog|недорог|дешев|cheap/i.test(sourceTokens)
     ? ['cheap']
     : [];
@@ -1096,6 +1201,26 @@ function buildPlaceTaxonomy(input: {
     features: input.features.map(normalizeFeature).filter(Boolean),
     sets: input.sets,
   };
+}
+
+function tomestoAreaTokens(sourceTokens: string) {
+  const values: string[] = [];
+  if (/tsentr|центр|tsao|sadovoe|tversk|arbat|lubyank|ohotny|teatral|kitay_gorod|kuzneck/i.test(sourceTokens)) {
+    values.push('center');
+  }
+  if (/severnyy_administrativnyy_okrug|sao|na_severe|sever_mosk/i.test(sourceTokens)) {
+    values.push('north');
+  }
+  if (/yuzhnyy_administrativnyy_okrug|yuao|na_yuge|yug_mosk/i.test(sourceTokens)) {
+    values.push('south');
+  }
+  if (/vostochnyy_administrativnyy_okrug|vao|na_vostoke|vostok_mosk/i.test(sourceTokens)) {
+    values.push('east');
+  }
+  if (/zapadnyy_administrativnyy_okrug|zao|na_zapade|zapad_mosk/i.test(sourceTokens)) {
+    values.push('west');
+  }
+  return dedupe(values);
 }
 
 function taxonomyTags(taxonomy: TomestoTaxonomy) {
@@ -1127,6 +1252,12 @@ function normalizeFeature(value: string) {
   }
   if (/zhivaya_muzyka|live_music|живая.*музык/.test(normalized)) {
     return 'live_music';
+  }
+  if (/fonovaya_muzyka|muzyka_fonovaya|background_music|фон.*музык|музык.*фон/.test(normalized)) {
+    return 'background_music';
+  }
+  if (/^muzyka_/.test(normalized)) {
+    return `music_${normalized.replace(/^muzyka_?/, '')}`;
   }
   if (/business_lunch|biznes_lanch|бизнес.*ланч/.test(normalized)) {
     return 'business_lunch';

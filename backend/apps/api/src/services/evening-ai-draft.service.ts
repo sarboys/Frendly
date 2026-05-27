@@ -12,7 +12,12 @@ const DEFAULT_CITY = 'Москва';
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
 const MAX_STEP_COUNT = 5;
 const MIN_STEP_COUNT = 1;
-const KUDAGO_CANDIDATE_LIMIT = 350;
+const AI_ROUTE_CANDIDATE_SOURCE_LIMITS: Record<CandidateCard['source'], number> = {
+  tomesto: 300,
+  kudago: 50,
+  advcake_ticketland: 100,
+};
+const KUDAGO_CANDIDATE_LIMIT = AI_ROUTE_CANDIDATE_SOURCE_LIMITS.kudago;
 const DEFAULT_INTENT_MAX_TOKENS = 4096;
 const DEFAULT_ROUTE_MAX_TOKENS = 32768;
 const MAX_LEG_KM = 3.5;
@@ -134,6 +139,10 @@ type GeneratedIntentJson = {
     preferredTerms?: unknown;
     avoidTerms?: unknown;
     instruction?: unknown;
+    locationMode?: unknown;
+    locationKind?: unknown;
+    locationQuery?: unknown;
+    locationCode?: unknown;
   }>;
 };
 
@@ -149,6 +158,18 @@ type RoleIntentHint = {
   preferredTerms: string[];
   avoidTerms: string[];
   instruction: string | null;
+  location: StepLocation;
+};
+
+type StepLocationMode = 'none' | 'explicit' | 'same_as_previous';
+type StepLocationKind = 'none' | 'area' | 'metro' | 'district' | 'near_place';
+
+type StepLocation = {
+  mode: StepLocationMode;
+  kind: StepLocationKind;
+  query: string | null;
+  code: string | null;
+  terms: string[];
 };
 
 type PromptFallbackIntent = {
@@ -869,39 +890,50 @@ export class EveningAiDraftService {
     roles: RouteRole[],
     roleHints: RoleIntentHint[] = [],
   ) {
-    const uniqueRoles = Array.from(new Set(roles));
     const groups = await Promise.all(
-      uniqueRoles.map((role) => this.loadRoleCandidates(input, role, roleHints)),
+      roles.map((role, index) => {
+        const hint =
+          roleHints[index]?.role === role
+            ? roleHints[index]
+            : this.roleIntentHint(input, role, roleHints);
+        return this.loadRoleCandidates(input, role, [hint]);
+      }),
     );
     const seed = input.candidateSeed;
-    const rankedGroups = groups.map((group, index) =>
-      this.rankCandidateGroup(
+    const rankedGroups = groups.map((group, index) => {
+      const role = roles[index] ?? group[0]?.role ?? 'place_food';
+      const hint =
+        roleHints[index]?.role === role
+          ? roleHints[index]
+          : this.roleIntentHint(input, role, roleHints);
+      return this.rankCandidateGroup(
         input,
         group,
         seed + index,
-        roleHints,
-      ),
-    );
+        hint ? [hint] : [],
+      );
+    });
     const candidates: CandidateCard[] = [];
-    let kudagoCount = 0;
-    for (let index = 0; ; index += 1) {
-      let added = false;
+    const sourceCounts = new Map<CandidateCard['source'], number>();
+    const seenIds = new Set<string>();
+    const maxGroupLength = Math.max(0, ...rankedGroups.map((group) => group.length));
+    for (let index = 0; index < maxGroupLength; index += 1) {
       for (const group of rankedGroups) {
         const candidate = group[index];
         if (!candidate) {
           continue;
         }
-        if (candidate.source === 'kudago' && kudagoCount >= KUDAGO_CANDIDATE_LIMIT) {
+        if (seenIds.has(candidate.id)) {
+          continue;
+        }
+        const sourceLimit = AI_ROUTE_CANDIDATE_SOURCE_LIMITS[candidate.source];
+        const sourceCount = sourceCounts.get(candidate.source) ?? 0;
+        if (sourceCount >= sourceLimit) {
           continue;
         }
         candidates.push(candidate);
-        if (candidate.source === 'kudago') {
-          kudagoCount += 1;
-        }
-        added = true;
-      }
-      if (!added) {
-        break;
+        seenIds.add(candidate.id);
+        sourceCounts.set(candidate.source, sourceCount + 1);
       }
     }
     return candidates;
@@ -1072,7 +1104,10 @@ export class EveningAiDraftService {
           orderBy,
         })
       : await (async () => {
-          const areaTerms = areaTermsFor(input.area).slice(0, 16);
+          const areaTerms = uniqueStrings([
+            ...areaTermsFor(input.area),
+            ...intent.location.terms,
+          ]).slice(0, 16);
           const [cityItems, preferredItems, areaItems, genericItems] = await Promise.all([
             (this.prismaService.client as any).externalContentItem.findMany({
               where: baseWhere,
@@ -1196,15 +1231,25 @@ export class EveningAiDraftService {
       return null;
     }
     const rawHints = Array.isArray(stored.roleHints) ? stored.roleHints : [];
+    let previousLocation = emptyStepLocation();
+    const normalizedHints = roles.map((role, index) => {
+      const rawLocation = rawHints[index]?.location;
+      const hint = this.normalizeLlmIntentHint(input, role, {
+        preferredTerms: rawHints[index]?.preferredTerms,
+        avoidTerms: rawHints[index]?.avoidTerms,
+        instruction: rawHints[index]?.instruction,
+        locationMode: rawLocation?.mode ?? rawHints[index]?.locationMode,
+        locationKind: rawLocation?.kind ?? rawHints[index]?.locationKind,
+        locationQuery: rawLocation?.query ?? rawHints[index]?.locationQuery,
+        locationCode: rawLocation?.code ?? rawHints[index]?.locationCode,
+        previousLocation,
+      });
+      previousLocation = hint.location;
+      return hint;
+    });
     return {
       roles,
-      roleHints: roles.map((role, index) =>
-        this.normalizeLlmIntentHint(input, role, {
-          preferredTerms: rawHints[index]?.preferredTerms,
-          avoidTerms: rawHints[index]?.avoidTerms,
-          instruction: rawHints[index]?.instruction,
-        }),
-      ),
+      roleHints: normalizedHints,
       eventDateWindow: eventDateWindowFromStored(stored.eventDateWindow) ?? input.eventDateWindow,
       area: areaOrNull(stored.area) ?? input.area,
       budget: budgetOrNull(stored.budget) ?? input.budget,
@@ -1374,6 +1419,7 @@ export class EveningAiDraftService {
         preferredTerms: match.preferredTerms,
         avoidTerms: [],
         instruction: null,
+        location: emptyStepLocation(),
       })),
       stepCount: this.promptFallbackStepCount(prompt, roles.length),
       area: areaOrNull(prompt),
@@ -1474,6 +1520,7 @@ export class EveningAiDraftService {
       return null;
     }
 
+    let previousLocation = emptyStepLocation();
     for (const step of steps) {
       if (roles.length >= targetStepCount) {
         break;
@@ -1488,8 +1535,14 @@ export class EveningAiDraftService {
           preferredTerms: step?.preferredTerms,
           avoidTerms: step?.avoidTerms,
           instruction: step?.instruction,
+          locationMode: step?.locationMode,
+          locationKind: step?.locationKind,
+          locationQuery: step?.locationQuery,
+          locationCode: step?.locationCode,
+          previousLocation,
         }),
       );
+      previousLocation = roleHints[roleHints.length - 1]?.location ?? previousLocation;
     }
 
     if (roles.length !== targetStepCount) {
@@ -1549,6 +1602,11 @@ export class EveningAiDraftService {
       preferredTerms?: unknown;
       avoidTerms?: unknown;
       instruction?: unknown;
+      locationMode?: unknown;
+      locationKind?: unknown;
+      locationQuery?: unknown;
+      locationCode?: unknown;
+      previousLocation?: StepLocation;
     },
   ): RoleIntentHint {
     return {
@@ -1556,6 +1614,7 @@ export class EveningAiDraftService {
       preferredTerms: uniqueStrings(stringArray(rawHint.preferredTerms, 10)),
       avoidTerms: uniqueStrings(stringArray(rawHint.avoidTerms, 10)),
       instruction: stringOrNull(rawHint.instruction),
+      location: normalizeStepLocation(rawHint),
     };
   }
 
@@ -1734,6 +1793,9 @@ export class EveningAiDraftService {
     if (candidateMatchesTerms(candidate, areaTermsFor(input.area))) {
       score -= 110;
     }
+    if (hasStepLocation(intent.location)) {
+      score += candidateMatchesLocation(candidate, intent.location) ? -130 : 35;
+    }
     if (input.budget === 'free' && candidate.priceMode !== 'free') {
       score += 100;
     }
@@ -1767,6 +1829,8 @@ export class EveningAiDraftService {
   ): RoleIntentHint {
     const explicitHints = roleHints.filter((hint) => hint.role === role);
     if (explicitHints.length > 0) {
+      const explicitLocation =
+        explicitHints.find((hint) => hasStepLocation(hint.location))?.location ?? emptyStepLocation();
       return {
         role,
         preferredTerms: uniqueStrings(explicitHints.flatMap((hint) => hint.preferredTerms)),
@@ -1776,6 +1840,7 @@ export class EveningAiDraftService {
             .map((hint) => hint.instruction)
             .filter((value): value is string => typeof value === 'string' && value.length > 0)
             .join(' ') || null,
+        location: explicitLocation,
       };
     }
 
@@ -1784,6 +1849,7 @@ export class EveningAiDraftService {
       preferredTerms: [],
       avoidTerms: [],
       instruction: null,
+      location: emptyStepLocation(),
     };
   }
 
@@ -1897,6 +1963,10 @@ export class EveningAiDraftService {
         'Infer prompt counts yourself from the user text.',
         'Numbers near человек, людей, персон, на двоих, на троих, вчетвером and ranges like 4-6 человек describe participantsCount, not routeStepCount.',
         'Infer area from words like центр, район, метро, рядом с; return an internal code such as center when clear, otherwise empty string.',
+        'Also return locationMode, locationKind, locationQuery and locationCode for each step.',
+        'Use locationMode=explicit when the step itself has a place constraint, same_as_previous for там же, рядом or в том же районе, none when no location is stated.',
+        'Use locationKind=metro for metro stations, district for named districts like Патрики or Арбат, area for broad zones like центр or север, near_place for landmarks.',
+        'For metro, put the station name in locationQuery. Use locationCode like metro:bratislavskaya only when you are sure, otherwise empty string.',
         'Infer budget from words like бесплатно, недорого, до 1500, до 3к, средний, премиум; return one of free, low, mid, premium, or empty string.',
         'For dates, return dateMode=date and localDate as YYYY-MM-DD when the user asks for a specific date.',
         'For words like сегодня, завтра, послезавтра, weekdays and exact dates, resolve localDate in the route city timezone.',
@@ -1962,8 +2032,27 @@ export class EveningAiDraftService {
                     items: { type: 'string' },
                   },
                   instruction: { type: 'string' },
+                  locationMode: {
+                    type: 'string',
+                    enum: ['none', 'explicit', 'same_as_previous'],
+                  },
+                  locationKind: {
+                    type: 'string',
+                    enum: ['none', 'area', 'metro', 'district', 'near_place'],
+                  },
+                  locationQuery: { type: 'string' },
+                  locationCode: { type: 'string' },
                 },
-                required: ['role', 'preferredTerms', 'avoidTerms', 'instruction'],
+                required: [
+                  'role',
+                  'preferredTerms',
+                  'avoidTerms',
+                  'instruction',
+                  'locationMode',
+                  'locationKind',
+                  'locationQuery',
+                  'locationCode',
+                ],
               },
             },
           },
@@ -2173,6 +2262,18 @@ export class EveningAiDraftService {
         issues.push({
           code: 'intent_mismatch',
           message: 'Step uses a candidate that conflicts with requested role details',
+          stepIndex: index,
+          externalContentItemId,
+        });
+      }
+      if (
+        hasStepLocation(intent.location) &&
+        roleCandidates.some((item) => candidateMatchesLocation(item, intent.location)) &&
+        !candidateMatchesLocation(candidate, intent.location)
+      ) {
+        issues.push({
+          code: 'location_mismatch',
+          message: 'Step does not match requested location',
           stepIndex: index,
           externalContentItemId,
         });
@@ -2408,7 +2509,7 @@ const AREA_ALIASES: AreaAlias[] = [
   },
   {
     code: 'taganka',
-    detectTerms: ['таганк'],
+    detectTerms: ['таганк', 'таганск'],
     scoreTerms: ['таганк', 'metro:taganskaya', 'metro:marksistskaya', 'area:center', 'центр'],
   },
   {
@@ -2522,6 +2623,23 @@ const AREA_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
   southeast: { lat: 55.69, lng: 37.76 },
 };
 
+const METRO_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
+  bratislavskaya: { lat: 55.6597, lng: 37.7505 },
+  taganskaya: { lat: 55.7424, lng: 37.6539 },
+  marksistskaya: { lat: 55.7411, lng: 37.6542 },
+  tulskaya: { lat: 55.7087, lng: 37.6229 },
+  barrikadnaya: { lat: 55.7608, lng: 37.5813 },
+  mayakovskaya: { lat: 55.769, lng: 37.5963 },
+  tverskaya: { lat: 55.7652, lng: 37.6048 },
+  pushkinskaya: { lat: 55.7658, lng: 37.6043 },
+  chekhovskaya: { lat: 55.765, lng: 37.6081 },
+  arbat: { lat: 55.7522, lng: 37.6039 },
+  smolenskaya: { lat: 55.7477, lng: 37.5826 },
+  kitay_gorod: { lat: 55.7568, lng: 37.6313 },
+  lubyanka: { lat: 55.7597, lng: 37.6272 },
+  okhotny_ryad: { lat: 55.7572, lng: 37.6154 },
+};
+
 function areaOrNull(value: unknown) {
   const raw = stringOrNull(value);
   if (!raw) {
@@ -2538,6 +2656,176 @@ function areaOrNull(value: unknown) {
     return detectedAlias.code;
   }
   return code.slice(0, 48);
+}
+
+function emptyStepLocation(): StepLocation {
+  return {
+    mode: 'none',
+    kind: 'none',
+    query: null,
+    code: null,
+    terms: [],
+  };
+}
+
+function normalizeStepLocation(raw: {
+  locationMode?: unknown;
+  locationKind?: unknown;
+  locationQuery?: unknown;
+  locationCode?: unknown;
+  previousLocation?: StepLocation;
+}): StepLocation {
+  const mode = normalizeStepLocationMode(raw.locationMode);
+  const previousLocation = raw.previousLocation ?? emptyStepLocation();
+  const query = stringOrNull(raw.locationQuery);
+
+  if (mode === 'same_as_previous') {
+    if (!hasStepLocation(previousLocation)) {
+      return emptyStepLocation();
+    }
+    return {
+      ...previousLocation,
+      mode: 'same_as_previous',
+      query: query ?? previousLocation.query,
+    };
+  }
+
+  if (mode !== 'explicit') {
+    return emptyStepLocation();
+  }
+
+  const kind = normalizeStepLocationKind(raw.locationKind);
+  const code = stepLocationCode(kind, query, raw.locationCode);
+  const terms = stepLocationTerms(kind, code, query);
+  if (!code && terms.length === 0) {
+    return emptyStepLocation();
+  }
+  return {
+    mode,
+    kind: code || terms.length > 0 ? kind : 'none',
+    query,
+    code,
+    terms,
+  };
+}
+
+function normalizeStepLocationMode(value: unknown): StepLocationMode {
+  const raw = normalizeText(stringOrNull(value) ?? '');
+  if (raw === 'explicit' || raw === 'same_as_previous') {
+    return raw;
+  }
+  return 'none';
+}
+
+function normalizeStepLocationKind(value: unknown): StepLocationKind {
+  const raw = normalizeText(stringOrNull(value) ?? '');
+  if (raw === 'area' || raw === 'metro' || raw === 'district' || raw === 'near_place') {
+    return raw;
+  }
+  return 'none';
+}
+
+function stepLocationCode(kind: StepLocationKind, query: string | null, rawCode: unknown) {
+  const code = stringOrNull(rawCode);
+  if (kind === 'metro') {
+    return metroLocationCode(code ?? query);
+  }
+  if (kind === 'area' || kind === 'district' || kind === 'near_place') {
+    return areaOrNull(code ?? query);
+  }
+  return null;
+}
+
+function metroLocationCode(value: unknown) {
+  const raw = stringOrNull(value);
+  if (!raw) {
+    return null;
+  }
+  const normalized = normalizeText(raw);
+  if (normalized.startsWith('metro:')) {
+    const slug = metroSlugFromToken(normalized.slice('metro:'.length));
+    return slug ? `metro:${slug}` : null;
+  }
+  let token = normalizeTaxonomyToken(normalized);
+  if (!token) {
+    return null;
+  }
+  token = token
+    .replace(/^(na|u|vozle|ryadom_s)_+/, '')
+    .replace(/^(stantsiya_metro|stantsiya|metro|m)_+/, '')
+    .replace(/_skoy$/, '_skaya')
+    .replace(/skoy$/, 'skaya');
+  const slug = metroSlugFromToken(token);
+  return slug ? `metro:${slug}` : null;
+}
+
+function metroSlugFromToken(value: string) {
+  const token = value.replace(/^_+|_+$/g, '');
+  if (!token) {
+    return null;
+  }
+  const known = Object.keys(METRO_FALLBACK_POINTS)
+    .sort((left, right) => right.length - left.length)
+    .find((slug) => token === slug || token.startsWith(`${slug}_`));
+  return known ?? token;
+}
+
+function stepLocationTerms(kind: StepLocationKind, code: string | null, query: string | null) {
+  if (!code) {
+    return query ? uniqueStrings([query]) : [];
+  }
+  if (kind === 'metro') {
+    return [code];
+  }
+  if (AREA_ALIASES.some((item) => item.code === code)) {
+    return areaTermsFor(code);
+  }
+  return uniqueStrings([
+    code,
+    code.replace(/_/g, ' '),
+    `area:${code}`,
+    `set:${code}`,
+    query ?? '',
+  ]);
+}
+
+function hasStepLocation(location: StepLocation | null | undefined) {
+  return Boolean(location && (location.terms.length > 0 || locationAnchor(location) != null));
+}
+
+function candidateMatchesLocation(candidate: CandidateCard, location: StepLocation) {
+  if (!hasStepLocation(location)) {
+    return false;
+  }
+  if (candidateMatchesTerms(candidate, location.terms)) {
+    return true;
+  }
+  const anchor = locationAnchor(location);
+  if (!anchor || !hasCandidateCoords(candidate)) {
+    return false;
+  }
+  return geoDistanceKm(candidate, anchor) <= locationRadiusKm(location);
+}
+
+function locationAnchor(location: StepLocation) {
+  const code = location.code;
+  if (!code) {
+    return null;
+  }
+  if (code.startsWith('metro:')) {
+    return METRO_FALLBACK_POINTS[code.slice('metro:'.length)] ?? null;
+  }
+  return AREA_FALLBACK_POINTS[code] ?? null;
+}
+
+function locationRadiusKm(location: StepLocation) {
+  if (location.kind === 'metro' || location.kind === 'near_place') {
+    return 3;
+  }
+  if (location.kind === 'district') {
+    return 4;
+  }
+  return 8;
 }
 
 const CITY_FALLBACK_POINTS: Record<string, { lat: number; lng: number }> = {
@@ -2898,7 +3186,7 @@ function normalizedCount(value: unknown, max: number, min = 1) {
 
 const TAXONOMY_TERM_GROUPS: Array<{ aliases: string[]; tags: string[] }> = [
   {
-    aliases: ['ресторан', 'рестик', 'ужин', 'поесть', 'еда', 'кухня', 'food', 'dinner', 'dining'],
+    aliases: ['ресторан', 'рестик', 'ужин', 'поесть', 'еда', 'food', 'dinner', 'dining'],
     tags: ['occasion:food', 'place:restaurant'],
   },
   {
@@ -3052,6 +3340,7 @@ function taxonomyTagQueriesForTerms(terms: string[]) {
     const token = normalizeTaxonomyToken(term);
     if (token) {
       add(token);
+      add(...taxonomyTagsForNormalizedToken(token));
     }
     for (const group of TAXONOMY_TERM_GROUPS) {
       if (taxonomyTermMatches(term, group.aliases)) {
@@ -3060,8 +3349,49 @@ function taxonomyTagQueriesForTerms(terms: string[]) {
     }
   }
 
-  return uniqueStrings(tags);
+  const unique = uniqueStrings(tags);
+  const hasSpecificTags = unique.some((tag) =>
+    (tag.startsWith('cuisine:') || tag.startsWith('feature:') || tag.startsWith('set:')) &&
+    !BROAD_TAXONOMY_TAGS.has(tag),
+  );
+  return hasSpecificTags
+    ? unique.filter((tag) => !BROAD_TAXONOMY_TAGS.has(tag))
+    : unique;
 }
+
+function taxonomyTagsForNormalizedToken(token: string) {
+  if (!token || token.includes(':')) {
+    return [];
+  }
+  const direct = token;
+  const compact = token
+    .split('_')
+    .filter((part) => !TAXONOMY_IGNORED_TOKEN_PARTS.has(part))
+    .join('_');
+  return uniqueStrings([
+    direct ? `cuisine:${direct}` : null,
+    compact && compact !== direct ? `cuisine:${compact}` : null,
+    direct ? `place:${direct}` : null,
+    compact && compact !== direct ? `place:${compact}` : null,
+  ].filter((value): value is string => typeof value === 'string'));
+}
+
+const TAXONOMY_IGNORED_TOKEN_PARTS = new Set([
+  'kuhnya',
+  'kuhni',
+  'kuhney',
+  'kitchen',
+  'cuisine',
+  'restoran',
+  'restaurant',
+]);
+
+const BROAD_TAXONOMY_TAGS = new Set([
+  'occasion:food',
+  'place:restaurant',
+  'place:cafe',
+  'place:bar',
+]);
 
 function taxonomyTermMatches(term: string, aliases: string[]) {
   return aliases.some((alias) => taxonomyAliasMatches(term, normalizeText(alias)));
