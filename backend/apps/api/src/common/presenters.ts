@@ -396,10 +396,16 @@ type EventSummaryInput = Pick<
     steps?: Array<{
       id: string;
       sortOrder: number;
+      timeLabel?: string | null;
+      kind?: string | null;
       title: string;
       venue?: string | null;
       address?: string | null;
       emoji: string;
+      ticketPrice?: number | null;
+      ticketUrl?: string | null;
+      ticketSourceCode?: string | null;
+      ticketProvider?: string | null;
       lat: number;
       lng: number;
     }> | null;
@@ -653,6 +659,14 @@ function mapEventRoutePoints(event: EventSummaryInput) {
       id: step.id,
       title: step.title,
       emoji: step.emoji,
+      time: step.timeLabel ?? null,
+      venue: step.venue ?? null,
+      address: step.address ?? null,
+      kind: step.kind ?? null,
+      ticketUrl: step.ticketUrl ?? null,
+      ticketSourceCode: step.ticketSourceCode ?? null,
+      ticketProvider: step.ticketProvider ?? null,
+      ticketPrice: step.ticketPrice ?? null,
       latitude: step.lat,
       longitude: step.lng,
     }));
