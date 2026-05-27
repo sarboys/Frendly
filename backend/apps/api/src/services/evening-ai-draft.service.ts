@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { timezoneForContentCity } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
+import { assertCanCreateWeeklyMeetup } from './meetup-creation-limit';
 import { OpenRouterService } from './openrouter.service';
 import { PrismaService } from './prisma.service';
+import { SubscriptionService } from './subscription.service';
 
 const DEFAULT_EVENING_AI_MODEL = 'openrouter/owl-alpha';
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -239,10 +241,18 @@ export class EveningAiDraftService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly openRouterService: OpenRouterService,
+    @Optional() private readonly subscriptionService?: SubscriptionService,
   ) {}
 
   async createDraft(userId: string, body: Record<string, unknown>) {
     const parsedInput = this.parseInput(body);
+    if (this.subscriptionService) {
+      await assertCanCreateWeeklyMeetup(
+        userId,
+        this.prismaService,
+        this.subscriptionService,
+      );
+    }
     const intent = await this.resolveDraftIntent(parsedInput);
     const input = {
       ...parsedInput,

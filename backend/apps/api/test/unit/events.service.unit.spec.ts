@@ -45,14 +45,19 @@ describe('EventsService unit', () => {
     hostPremium = true,
     hostVerificationStatus = null,
     hostedMeetupsThisPeriod = 0,
+    hostedAiDraftsThisPeriod = 0,
+    freeMeetupWeeklyLimit = 7,
   }: {
     hostVerified?: boolean;
     hostPremium?: boolean;
     hostVerificationStatus?: string | null;
     hostedMeetupsThisPeriod?: number;
+    hostedAiDraftsThisPeriod?: number;
+    freeMeetupWeeklyLimit?: number;
   } = {}) => {
     const eventCreate = jest.fn().mockResolvedValue({ id: 'event-1' });
     const eventCount = jest.fn().mockResolvedValue(hostedMeetupsThisPeriod);
+    const aiDraftCount = jest.fn().mockResolvedValue(hostedAiDraftsThisPeriod);
     const userFindUnique = jest.fn().mockResolvedValue({
       id: 'host-1',
       displayName: 'Host',
@@ -81,6 +86,7 @@ describe('EventsService unit', () => {
             findFirst: jest.fn().mockResolvedValue(null),
             findUnique: jest.fn(),
           },
+          eveningAiRouteDraft: { count: aiDraftCount },
           poster: { findUnique: jest.fn() },
           externalContentItem: { findFirst: jest.fn() },
           eveningRoute: { findUnique: jest.fn() },
@@ -102,14 +108,14 @@ describe('EventsService unit', () => {
       {
         hasPremiumAccess: jest.fn().mockResolvedValue(hostPremium),
         getPlusBenefitRules: jest.fn().mockResolvedValue({
-          freeMeetupMonthlyLimit: 10,
+          freeMeetupMonthlyLimit: freeMeetupWeeklyLimit,
           plusMeetupMonthlyLimit: null,
         }),
       } as any,
     );
     jest.spyOn(service, 'getEventDetail').mockResolvedValue({ id: 'event-1' } as any);
 
-    return { service, eventCreate, eventCount };
+    return { service, eventCreate, eventCount, aiDraftCount };
   };
 
   const createEventPayload = () => ({
@@ -1530,11 +1536,12 @@ describe('EventsService unit', () => {
     );
   });
 
-  it('rejects the 11th weekly meetup for a free host', async () => {
+  it('rejects the 8th weekly meetup for a free host across events and AI drafts', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-05-13T09:00:00.000Z'));
-    const { service, eventCreate, eventCount } = makeCreateEventService({
+    const { service, eventCreate, eventCount, aiDraftCount } = makeCreateEventService({
       hostPremium: false,
-      hostedMeetupsThisPeriod: 10,
+      hostedMeetupsThisPeriod: 6,
+      hostedAiDraftsThisPeriod: 1,
     });
 
     await expect(
@@ -1543,13 +1550,22 @@ describe('EventsService unit', () => {
       statusCode: 429,
       code: 'event_weekly_limit_reached',
       details: {
-        limit: 10,
+        limit: 7,
         resetAt: '2026-05-17T21:00:00.000Z',
       },
     });
     expect(eventCount).toHaveBeenCalledWith({
       where: {
         hostId: 'host-1',
+        createdAt: {
+          gte: new Date('2026-05-10T21:00:00.000Z'),
+          lt: new Date('2026-05-17T21:00:00.000Z'),
+        },
+      },
+    });
+    expect(aiDraftCount).toHaveBeenCalledWith({
+      where: {
+        userId: 'host-1',
         createdAt: {
           gte: new Date('2026-05-10T21:00:00.000Z'),
           lt: new Date('2026-05-17T21:00:00.000Z'),

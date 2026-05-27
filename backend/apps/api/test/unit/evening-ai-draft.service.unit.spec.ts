@@ -157,6 +157,7 @@ describe('EveningAiDraftService unit', () => {
     openRouterResponses?: Array<Record<string, unknown> | Error>;
     intentResponse?: Record<string, unknown> | Error;
     draftOverrides?: Record<string, unknown>;
+    weeklyLimitRejected?: boolean;
   } = {}) {
     const externalFindMany = jest.fn((query: any) => {
       const code = query?.where?.source?.code;
@@ -323,12 +324,20 @@ describe('EveningAiDraftService unit', () => {
       return Promise.resolve(currentDraft);
     });
     const draftFindFirst = jest.fn(() => Promise.resolve(currentDraft));
+    const eventCount = jest.fn().mockResolvedValue(
+      options.weeklyLimitRejected ? 6 : 0,
+    );
+    const aiDraftCount = jest.fn().mockResolvedValue(
+      options.weeklyLimitRejected ? 1 : 0,
+    );
     const routeCreate = jest.fn().mockResolvedValue({});
     const stepCreateMany = jest.fn().mockResolvedValue({ count: 2 });
     const prisma = {
       client: {
+        event: { count: eventCount },
         externalContentItem: { findMany: externalFindMany },
         eveningAiRouteDraft: {
+          count: aiDraftCount,
           create: draftCreate,
           findFirst: draftFindFirst,
           update: draftUpdate,
@@ -342,6 +351,13 @@ describe('EveningAiDraftService unit', () => {
         ),
       },
     } as any;
+    const subscriptionService = {
+      hasPremiumAccess: jest.fn().mockResolvedValue(false),
+      getPlusBenefitRules: jest.fn().mockResolvedValue({
+        freeMeetupMonthlyLimit: 7,
+        plusMeetupMonthlyLimit: null,
+      }),
+    };
     const defaultOpenRouterResponse = {
       parsedJson: {
         title: 'Бар и стендап',
@@ -407,8 +423,23 @@ describe('EveningAiDraftService unit', () => {
       }
       return Promise.resolve(nextResponse ?? defaultOpenRouterResponse);
     });
-    const service = new EveningAiDraftService(prisma, openRouter as any);
-    return { service, externalFindMany, draftCreate, draftUpdate, routeCreate, stepCreateMany, openRouter };
+    const service = new EveningAiDraftService(
+      prisma,
+      openRouter as any,
+      subscriptionService as any,
+    );
+    return {
+      service,
+      externalFindMany,
+      draftCreate,
+      draftUpdate,
+      routeCreate,
+      stepCreateMany,
+      openRouter,
+      subscriptionService,
+      eventCount,
+      aiDraftCount,
+    };
   }
 
   function completeIntentResponse(response: Record<string, unknown>, model: string) {
@@ -597,6 +628,39 @@ describe('EveningAiDraftService unit', () => {
         }),
       }),
     );
+  });
+
+  it('rejects AI draft creation before calling OpenRouter when weekly meetup limit is reached', async () => {
+    const {
+      service,
+      openRouter,
+      externalFindMany,
+      draftCreate,
+      subscriptionService,
+      eventCount,
+      aiDraftCount,
+    } = createService({ weeklyLimitRejected: true });
+
+    await expect(
+      service.createDraft('user-1', {
+        prompt: 'Винный бар и стендап',
+        city: 'Москва',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'event_weekly_limit_reached',
+      details: {
+        limit: 7,
+        remaining: 0,
+      },
+    });
+
+    expect(subscriptionService.hasPremiumAccess).toHaveBeenCalledWith('user-1');
+    expect(eventCount).toHaveBeenCalled();
+    expect(aiDraftCount).toHaveBeenCalled();
+    expect(openRouter.generateJson).not.toHaveBeenCalled();
+    expect(externalFindMany).not.toHaveBeenCalled();
+    expect(draftCreate).not.toHaveBeenCalled();
   });
 
   it('uses configurable token budgets for intent and route calls', async () => {

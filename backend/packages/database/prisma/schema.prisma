@@ -1864,7 +1864,7 @@ model SubscriptionCatalogSettings {
   freeSuperLikeDailyLimit      Int      @default(1)
   plusSuperLikeDailyLimit      Int      @default(10)
   paidSuperLikeTokenCost       Int      @default(50)
-  freeMeetupMonthlyLimit       Int      @default(10)
+  freeMeetupMonthlyLimit       Int      @default(7)
   plusMeetupMonthlyLimit       Int?
   tokenPurchaseDiscountPercent Int      @default(15)
   communityCreationRequiresPlus Boolean @default(true)

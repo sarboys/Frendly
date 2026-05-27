@@ -27,6 +27,7 @@ import {
 } from '../common/presenters';
 import { normalizeSearchQuery } from '../common/search-query';
 import { assertEventCapacityAvailable } from './event-capacity';
+import { assertCanCreateWeeklyMeetup } from './meetup-creation-limit';
 import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
 import { VenueGeocoderService } from './venue-geocoder.service';
@@ -4142,70 +4143,11 @@ export class EventsService {
   }
 
   private async assertHostCanCreateWeeklyMeetup(userId: string) {
-    if (typeof (this.prismaService.client.event as any).count !== 'function') {
-      return;
-    }
-    const [premium, rules] = await Promise.all([
-      typeof (this.subscriptionService as any).hasPremiumAccess === 'function'
-        ? this.subscriptionService.hasPremiumAccess(userId)
-        : Promise.resolve(false),
-      typeof (this.subscriptionService as any).getPlusBenefitRules === 'function'
-        ? (this.subscriptionService as any).getPlusBenefitRules()
-        : Promise.resolve({
-            freeMeetupMonthlyLimit: 10,
-            plusMeetupMonthlyLimit: null,
-          }),
-    ]);
-    const limit = premium
-      ? rules.plusMeetupMonthlyLimit
-      : rules.freeMeetupMonthlyLimit;
-    if (limit == null) {
-      return;
-    }
-    const window = this.currentMoscowWeekWindow();
-    const createdThisWeek = await this.prismaService.client.event.count({
-      where: {
-        hostId: userId,
-        createdAt: {
-          gte: window.start,
-          lt: window.end,
-        },
-      },
-    });
-    if (createdThisWeek >= limit) {
-      throw new ApiError(
-        429,
-        'event_weekly_limit_reached',
-        'Weekly meetup creation limit reached',
-        {
-          limit,
-          remaining: 0,
-          resetAt: window.end.toISOString(),
-        },
-      );
-    }
-  }
-
-  private currentMoscowWeekWindow() {
-    const moscowOffsetMs = 3 * 60 * 60 * 1000;
-    const shifted = new Date(Date.now() + moscowOffsetMs);
-    const dayOfWeek = shifted.getUTCDay();
-    const daysSinceMonday = (dayOfWeek + 6) % 7;
-    const start = new Date(
-      Date.UTC(
-        shifted.getUTCFullYear(),
-        shifted.getUTCMonth(),
-        shifted.getUTCDate() - daysSinceMonday,
-      ) - moscowOffsetMs,
+    await assertCanCreateWeeklyMeetup(
+      userId,
+      this.prismaService,
+      this.subscriptionService,
     );
-    const end = new Date(
-      Date.UTC(
-        shifted.getUTCFullYear(),
-        shifted.getUTCMonth(),
-        shifted.getUTCDate() - daysSinceMonday + 7,
-      ) - moscowOffsetMs,
-    );
-    return { start, end };
   }
 
   private parseEventRouteSelection(

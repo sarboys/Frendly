@@ -249,7 +249,7 @@ describe('SubscriptionService unit', () => {
         freeSuperLikeDailyLimit: 1,
         plusSuperLikeDailyLimit: 10,
         paidSuperLikeTokenCost: 50,
-        freeMeetupMonthlyLimit: 10,
+        freeMeetupMonthlyLimit: 7,
         plusMeetupMonthlyLimit: null,
         tokenPurchaseDiscountPercent: 15,
         communityCreationRequiresPlus: true,
