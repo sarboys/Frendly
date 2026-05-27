@@ -463,7 +463,13 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const sourceUrl = canonicalUrl($, detailUrl);
     const slug = slugFromUrl(sourceUrl);
     const pageText = compactPageText($);
-    const title = firstText($, ['h1', '[itemprop="name"]']) ?? meta($, 'og:title');
+    const title = firstText($, [
+      'h1 .break-words',
+      'h1 [class*="break-words"]',
+      'h1 [itemprop="name"]',
+      '[itemprop="name"]',
+      'h1',
+    ]) ?? meta($, 'og:title');
     const labeledInfo = placeInfoLabels($);
     const address = labeledInfoValue(labeledInfo, ['adres']) ??
       firstText($, [
@@ -578,7 +584,13 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const $ = cheerio.load(html);
     const sourceUrl = canonicalUrl($, detailUrl);
     const slug = slugFromUrl(sourceUrl);
-    const title = firstText($, ['h1', '[itemprop="name"]']) ?? meta($, 'og:title');
+    const title = firstText($, [
+      'h1 .break-words',
+      'h1 [class*="break-words"]',
+      'h1 [itemprop="name"]',
+      '[itemprop="name"]',
+      'h1',
+    ]) ?? meta($, 'og:title');
     if (!title) {
       console.warn('[tomesto] timed item skipped without title', { kind, slug });
       return null;
@@ -613,6 +625,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     const price = visiblePrice($);
     const venueName = firstText($, [
       '[itemprop="location"] [itemprop="name"]',
+      'h1 a[href*="/places/"]',
       '.venue a',
       '.place a',
       '.event-place a',
@@ -620,6 +633,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
     ]);
     const venueUrl = firstAttr($, [
       '[itemprop="location"] a',
+      'h1 a[href*="/places/"]',
       '.venue a',
       '.place a',
       '.event-place a',
@@ -1282,7 +1296,7 @@ function extractImageUrl($: CheerioRoot, sourceUrl: string) {
 }
 
 function firstDateWindow($: CheerioRoot, from: Date, to: Date): ParsedDateWindow {
-  const windows = dateWindows($);
+  const windows = dateWindows($, from.getUTCFullYear());
   const inWindow = windows.find((window) =>
     window.startsAt != null &&
     window.startsAt >= from &&
@@ -1291,11 +1305,11 @@ function firstDateWindow($: CheerioRoot, from: Date, to: Date): ParsedDateWindow
   return inWindow ?? windows[0] ?? { startsAt: null, endsAt: null };
 }
 
-function dateWindows($: CheerioRoot): ParsedDateWindow[] {
+function dateWindows($: CheerioRoot, defaultYear?: number): ParsedDateWindow[] {
   const windows: ParsedDateWindow[] = [];
   for (const item of jsonLdObjects($)) {
-    const startsAt = parseDate(item.startDate);
-    const endsAt = parseDate(item.endDate);
+    const startsAt = parseDate(item.startDate, defaultYear);
+    const endsAt = parseDate(item.endDate, defaultYear);
     if (startsAt) {
       windows.push({ startsAt, endsAt });
     }
@@ -1305,20 +1319,27 @@ function dateWindows($: CheerioRoot): ParsedDateWindow[] {
       $(element).attr('datetime') ??
       $(element).attr('data-start') ??
       $(element).attr('data-date'),
+      defaultYear,
     );
     if (startsAt) {
       windows.push({ startsAt, endsAt: null });
     }
   });
+  $('.occurrences .font-semibold, .occurrences [class*="font-semibold"], .date').each((_, element) => {
+    const startsAt = parseDate($(element).text(), defaultYear);
+    if (startsAt) {
+      windows.push({ startsAt, endsAt: null });
+    }
+  });
   const textValue = compactPageText($);
-  const textDate = parseDate(textValue);
+  const textDate = parseDate(textValue, defaultYear);
   if (textDate) {
     windows.push({ startsAt: textDate, endsAt: null });
   }
   return windows;
 }
 
-function parseDate(value: unknown) {
+function parseDate(value: unknown, defaultYear?: number) {
   const raw = cleanText(value, 120);
   if (!raw) {
     return null;
@@ -1328,15 +1349,49 @@ function parseDate(value: unknown) {
     return direct;
   }
   const match = raw.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})(?:[^\d]+(\d{1,2}):(\d{2}))?/);
-  if (!match) {
+  if (match) {
+    const day = Number.parseInt(match[1] ?? '', 10);
+    const month = Number.parseInt(match[2] ?? '', 10);
+    const year = Number.parseInt(match[3] ?? '', 10);
+    const hour = Number.parseInt(match[4] ?? '12', 10);
+    const minute = Number.parseInt(match[5] ?? '0', 10);
+    const timestamp = Date.UTC(year, month - 1, day, hour - 3, minute);
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const ruMonthMatch = raw.match(
+    /(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+(\d{4}))?(?:[^\d]+(\d{1,2}):(\d{2}))?/i,
+  );
+  if (!ruMonthMatch) {
     return null;
   }
-  const day = Number.parseInt(match[1] ?? '', 10);
-  const month = Number.parseInt(match[2] ?? '', 10);
-  const year = Number.parseInt(match[3] ?? '', 10);
-  const hour = Number.parseInt(match[4] ?? '12', 10);
-  const minute = Number.parseInt(match[5] ?? '0', 10);
-  const timestamp = Date.UTC(year, month - 1, day, hour - 3, minute);
+  const monthNames: Record<string, number> = {
+    января: 0,
+    февраля: 1,
+    марта: 2,
+    апреля: 3,
+    мая: 4,
+    июня: 5,
+    июля: 6,
+    августа: 7,
+    сентября: 8,
+    октября: 9,
+    ноября: 10,
+    декабря: 11,
+  };
+  const day = Number.parseInt(ruMonthMatch[1] ?? '', 10);
+  const month = monthNames[(ruMonthMatch[2] ?? '').toLowerCase()];
+  const year = Number.parseInt(
+    ruMonthMatch[3] ?? String(defaultYear ?? new Date().getUTCFullYear()),
+    10,
+  );
+  const hour = Number.parseInt(ruMonthMatch[4] ?? '12', 10);
+  const minute = Number.parseInt(ruMonthMatch[5] ?? '0', 10);
+  if (month == null) {
+    return null;
+  }
+  const timestamp = Date.UTC(year, month, day, hour - 3, minute);
   const date = new Date(timestamp);
   return Number.isNaN(date.getTime()) ? null : date;
 }
