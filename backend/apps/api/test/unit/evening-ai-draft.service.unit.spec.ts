@@ -1271,7 +1271,7 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
-  it('caps AI route candidates by source before sending them to OpenRouter', async () => {
+  it('sends only the top ranked candidates per route step to OpenRouter', async () => {
     const cityBars = Array.from({ length: 800 }, (_item, index) => ({
       id: `tomesto-large-${index}`,
       source: { code: 'tomesto', name: 'ТоМесто' },
@@ -1383,12 +1383,12 @@ describe('EveningAiDraftService unit', () => {
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'tomesto')).toHaveLength(300);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'tomesto')).toHaveLength(20);
     expect(
       routePrompt.candidates.filter((candidate: any) => candidate.source === 'advcake_ticketland'),
-    ).toHaveLength(100);
-    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(50);
-    expect(routePrompt.candidates).toHaveLength(450);
+    ).toHaveLength(10);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(10);
+    expect(routePrompt.candidates).toHaveLength(40);
   });
 
   it('lets intent turn an explicit three-place prompt into three steps', async () => {

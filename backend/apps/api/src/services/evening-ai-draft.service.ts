@@ -12,12 +12,12 @@ const DEFAULT_CITY = 'Москва';
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
 const MAX_STEP_COUNT = 5;
 const MIN_STEP_COUNT = 1;
-const AI_ROUTE_CANDIDATE_SOURCE_LIMITS: Record<CandidateCard['source'], number> = {
-  tomesto: 300,
-  kudago: 50,
-  advcake_ticketland: 100,
+const AI_ROUTE_CANDIDATE_STEP_LIMITS: Record<CandidateCard['source'], number> = {
+  tomesto: 20,
+  kudago: 10,
+  advcake_ticketland: 10,
 };
-const KUDAGO_CANDIDATE_LIMIT = AI_ROUTE_CANDIDATE_SOURCE_LIMITS.kudago;
+const KUDAGO_CANDIDATE_QUERY_LIMIT = 50;
 const DEFAULT_INTENT_MAX_TOKENS = 4096;
 const DEFAULT_ROUTE_MAX_TOKENS = 32768;
 const MAX_LEG_KM = 3.5;
@@ -906,15 +906,15 @@ export class EveningAiDraftService {
         roleHints[index]?.role === role
           ? roleHints[index]
           : this.roleIntentHint(input, role, roleHints);
+      const source = this.sourceForRole(role);
       return this.rankCandidateGroup(
         input,
         group,
         seed + index,
         hint ? [hint] : [],
-      );
+      ).slice(0, AI_ROUTE_CANDIDATE_STEP_LIMITS[source]);
     });
     const candidates: CandidateCard[] = [];
-    const sourceCounts = new Map<CandidateCard['source'], number>();
     const seenIds = new Set<string>();
     const maxGroupLength = Math.max(0, ...rankedGroups.map((group) => group.length));
     for (let index = 0; index < maxGroupLength; index += 1) {
@@ -926,14 +926,8 @@ export class EveningAiDraftService {
         if (seenIds.has(candidate.id)) {
           continue;
         }
-        const sourceLimit = AI_ROUTE_CANDIDATE_SOURCE_LIMITS[candidate.source];
-        const sourceCount = sourceCounts.get(candidate.source) ?? 0;
-        if (sourceCount >= sourceLimit) {
-          continue;
-        }
         candidates.push(candidate);
         seenIds.add(candidate.id);
-        sourceCounts.set(candidate.source, sourceCount + 1);
       }
     }
     return candidates;
@@ -1113,13 +1107,13 @@ export class EveningAiDraftService {
               where: baseWhere,
               select,
               orderBy,
-              take: KUDAGO_CANDIDATE_LIMIT,
+              take: KUDAGO_CANDIDATE_QUERY_LIMIT,
             }),
             intent.preferredTerms.length > 0
-              ? findManyByTerms(intent.preferredTerms, KUDAGO_CANDIDATE_LIMIT)
+              ? findManyByTerms(intent.preferredTerms, KUDAGO_CANDIDATE_QUERY_LIMIT)
               : Promise.resolve([]),
-            areaTerms.length > 0 ? findManyByTerms(areaTerms, KUDAGO_CANDIDATE_LIMIT) : Promise.resolve([]),
-            findManyByTerms(this.searchTermsForRole(role), KUDAGO_CANDIDATE_LIMIT),
+            areaTerms.length > 0 ? findManyByTerms(areaTerms, KUDAGO_CANDIDATE_QUERY_LIMIT) : Promise.resolve([]),
+            findManyByTerms(this.searchTermsForRole(role), KUDAGO_CANDIDATE_QUERY_LIMIT),
           ]);
           return uniqueById([...cityItems, ...preferredItems, ...areaItems, ...genericItems]);
         })();
