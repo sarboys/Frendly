@@ -17,34 +17,6 @@ const DEFAULT_INTENT_MAX_TOKENS = 4096;
 const DEFAULT_ROUTE_MAX_TOKENS = 32768;
 const MAX_LEG_KM = 3.5;
 const CANDIDATE_CORE_RATIO = 0.7;
-const ACTIVE_ACTIVITY_TERMS = [
-  'активн',
-  'спорт',
-  'спортив',
-  'адреналин',
-  'экстрим',
-  'картинг',
-  'квест',
-  'vr',
-  'виртуаль',
-  'батут',
-  'аттракцион',
-  'боулинг',
-  'лазертаг',
-  'скалодром',
-];
-const CREATIVE_ACTIVITY_TERMS = [
-  'странн',
-  'креатив',
-  'выстав',
-  'перформанс',
-  'перфоманс',
-  'нестандарт',
-  'иммерсив',
-  'арт',
-  'галере',
-];
-const ROUTE_SEQUENCE_TERMS = ['сначала', 'потом', 'затем', 'после', 'далее', 'в конце'];
 const WALK_ALLOWED_CATEGORY_TERMS = ['walk', 'outdoor', 'park', 'route', 'маршрут', 'прогул', 'парк'];
 const WALK_STRONG_TERMS = [
   'прогул',
@@ -1246,7 +1218,6 @@ export class EveningAiDraftService {
   }
 
   private inputFromDraft(draft: AiDraftRecord): ParsedDraftInput {
-    const promptStepCountHint = stepCountFromPrompt(draft.prompt);
     return {
       city: draft.city,
       timezone: draft.timezone,
@@ -1258,9 +1229,7 @@ export class EveningAiDraftService {
       area: draft.area,
       stepCount: draft.stepCount,
       stepCountExplicit: true,
-      promptStepCountHint,
-      participantsCount: participantsCountFromPrompt(draft.prompt),
-      eventDateWindow: fallbackEventDateWindowFromPrompt(draft.prompt, draft.timezone),
+      eventDateWindow: todayEventDateWindow(draft.timezone),
       candidateSeed: 0,
       latitude: null,
       longitude: null,
@@ -1270,7 +1239,6 @@ export class EveningAiDraftService {
   private parseInput(body: Record<string, unknown>): ParsedDraftInput {
     const prompt = stringOrNull(body.prompt);
     const bodyStepCountExplicit = body.stepCount != null && body.stepCount !== '';
-    const promptStepCountHint = stepCountFromPrompt(prompt);
     const city = stringOrNull(body.city) ?? DEFAULT_CITY;
     const timezone = timezoneForCity(city);
     return {
@@ -1279,13 +1247,11 @@ export class EveningAiDraftService {
       prompt,
       goal: stringOrNull(body.goal),
       mood: stringOrNull(body.mood),
-      budget: budgetOrNull(body.budget) ?? budgetFromPrompt(prompt),
+      budget: budgetOrNull(body.budget),
       format: this.parseFormat(body.format),
       area: areaOrNull(body.area),
       stepCount: this.parseStepCount(bodyStepCountExplicit ? body.stepCount : null),
       stepCountExplicit: bodyStepCountExplicit,
-      promptStepCountHint,
-      participantsCount: participantsCountFromPrompt(prompt),
       eventDateWindow: todayEventDateWindow(timezone),
       candidateSeed: this.nextCandidateSeed(),
       latitude: null,
@@ -1344,11 +1310,11 @@ export class EveningAiDraftService {
       }
       const parsedIntent = this.parseIntentResponse(input, response.parsedJson);
       if (parsedIntent) {
-        return this.constrainIntentByPrompt(input, {
+        return {
           ...parsedIntent,
           eventDateWindow,
           source: 'llm',
-        });
+        };
       }
     } catch {
       return fallbackIntent;
@@ -1358,30 +1324,17 @@ export class EveningAiDraftService {
   }
 
   private fallbackDraftIntent(input: ParsedDraftInput): DraftIntent {
-    const fallbackInput = this.inputWithFallbackRules(input);
-    const fallbackRoles =
-      this.promptRolesForInput(fallbackInput) ??
-      this.resolveRoles(
-        fallbackInput.prompt,
-        fallbackInput.format,
-        this.intentFallbackStepCount(fallbackInput),
-      );
-    return this.constrainIntentByPrompt(fallbackInput, {
-      roles: fallbackRoles,
-      roleHints: fallbackRoles.map((role) => this.roleIntentHint(fallbackInput, role)),
-      eventDateWindow: fallbackInput.eventDateWindow,
-      area: fallbackInput.area,
-      budget: fallbackInput.budget,
-      source: 'rules',
-    });
-  }
-
-  private inputWithFallbackRules(input: ParsedDraftInput): ParsedDraftInput {
+    const fallbackRoles = this.resolveRoles(
+      input.format,
+      this.intentFallbackStepCount(input),
+    );
     return {
-      ...input,
-      area: input.area ?? areaFromPrompt(input.prompt),
-      budget: input.budget ?? budgetFromPrompt(input.prompt),
-      eventDateWindow: fallbackEventDateWindowFromPrompt(input.prompt, input.timezone),
+      roles: fallbackRoles,
+      roleHints: fallbackRoles.map((role) => this.roleIntentHint(input, role)),
+      eventDateWindow: input.eventDateWindow,
+      area: input.area,
+      budget: input.budget,
+      source: 'rules',
     };
   }
 
@@ -1450,67 +1403,7 @@ export class EveningAiDraftService {
     if (input.stepCountExplicit) {
       return input.stepCount;
     }
-    return input.promptStepCountHint ?? this.mentionedStepCount(input) ?? input.stepCount;
-  }
-
-  private constrainIntentByPrompt(input: ParsedDraftInput, intent: DraftIntent): DraftIntent {
-    if (input.stepCountExplicit) {
-      return intent;
-    }
-    const promptRoles = this.promptRolesForInput(input);
-    if (!promptRoles || promptRoles.length === 0) {
-      return intent;
-    }
-    const intentMatchesPromptOrder =
-      promptRoles.length === intent.roles.length &&
-      promptRoles.every((role, index) => role === intent.roles[index]);
-    const intentUsesOnlyPromptRoles = intent.roles.every((role) => promptRoles.includes(role));
-    const hasOrderedPrompt = input.prompt
-      ? hasAny(normalizeText(input.prompt), ROUTE_SEQUENCE_TERMS)
-      : false;
-    if (input.promptStepCountHint != null && intent.roles.length === input.promptStepCountHint) {
-      if (
-        (!hasOrderedPrompt || intentMatchesPromptOrder) &&
-        (promptRoles.length < input.promptStepCountHint || intentUsesOnlyPromptRoles)
-      ) {
-        return intent;
-      }
-    }
-    if (intentMatchesPromptOrder) {
-      return intent;
-    }
-    if (
-      !hasOrderedPrompt &&
-      input.promptStepCountHint == null &&
-      intent.roles.length <= promptRoles.length &&
-      intentUsesOnlyPromptRoles
-    ) {
-      return intent;
-    }
-    return {
-      ...intent,
-      roles: promptRoles,
-      roleHints: promptRoles.map((role) => this.roleIntentHint(input, role)),
-    };
-  }
-
-  private promptRolesForInput(input: ParsedDraftInput): RouteRole[] | null {
-    const mentioned = this.mentionedRoles(input.prompt, input.format);
-    if (mentioned.length === 0) {
-      return null;
-    }
-    if (input.promptStepCountHint != null) {
-      return this.expandRolesToStepCount(mentioned, input.promptStepCountHint);
-    }
-    return mentioned;
-  }
-
-  private expandRolesToStepCount(roles: RouteRole[], stepCount: number): RouteRole[] {
-    const expanded = roles.slice(0, stepCount);
-    while (expanded.length < stepCount) {
-      expanded.push(roles.length === 1 ? roles[0]! : roles[expanded.length % roles.length]!);
-    }
-    return expanded;
+    return input.stepCount;
   }
 
   private intentTargetStepCount(input: ParsedDraftInput, generated: GeneratedIntentJson) {
@@ -1524,16 +1417,8 @@ export class EveningAiDraftService {
     return generatedStepCount;
   }
 
-  private mentionedStepCount(input: ParsedDraftInput) {
-    const roles = this.mentionedRoles(input.prompt, input.format);
-    return roles.length >= MIN_STEP_COUNT ? Math.min(roles.length, input.stepCount) : null;
-  }
-
   private requiredCandidateRoles(input: ParsedDraftInput, intent: DraftIntent) {
-    if (input.stepCountExplicit || intent.source === 'llm') {
-      return intent.roles;
-    }
-    return this.mentionedRoles(input.prompt, input.format);
+    return intent.roles;
   }
 
   private normalizeLlmIntentHint(
@@ -1545,15 +1430,11 @@ export class EveningAiDraftService {
       instruction?: unknown;
     },
   ): RoleIntentHint {
-    const fallback = this.roleIntentHint(input, role);
     return {
       role,
-      preferredTerms: uniqueStrings([
-        ...stringArray(rawHint.preferredTerms, 10),
-        ...fallback.preferredTerms,
-      ]),
-      avoidTerms: uniqueStrings([...stringArray(rawHint.avoidTerms, 10), ...fallback.avoidTerms]),
-      instruction: stringOrNull(rawHint.instruction) ?? fallback.instruction,
+      preferredTerms: uniqueStrings(stringArray(rawHint.preferredTerms, 10)),
+      avoidTerms: uniqueStrings(stringArray(rawHint.avoidTerms, 10)),
+      instruction: stringOrNull(rawHint.instruction),
     };
   }
 
@@ -1564,7 +1445,7 @@ export class EveningAiDraftService {
     return ROUTE_ROLE_SET.has(value) ? (value as RouteRole) : null;
   }
 
-  private resolveRoles(prompt: string | null, format: string | null, stepCount: number): RouteRole[] {
+  private resolveRoles(format: string | null, stepCount: number): RouteRole[] {
     const roles: RouteRole[] = [];
     const add = (role: RouteRole) => {
       if (roles.length < stepCount && !roles.includes(role)) {
@@ -1572,18 +1453,12 @@ export class EveningAiDraftService {
       }
     };
 
-    for (const role of this.mentionedRoles(prompt, format)) {
-      add(role);
-    }
-
-    if (roles.length === 0) {
-      if (format === 'bar') {
-        add('place_bar');
-      } else if (format === 'show') {
-        add('show');
-      } else if (format === 'active') {
-        add('free_activity');
-      }
+    if (format === 'bar') {
+      add('place_bar');
+    } else if (format === 'show') {
+      add('show');
+    } else if (format === 'active') {
+      add('free_activity');
     }
 
     const fallbackCycle: RouteRole[] = ['place_food', 'show', 'walk', 'place_bar', 'free_activity'];
@@ -1594,127 +1469,6 @@ export class EveningAiDraftService {
       fallbackIndex += 1;
     }
     return roles.slice(0, stepCount);
-  }
-
-  private mentionedRoles(prompt: string | null, format: string | null): RouteRole[] {
-    const normalized = normalizeText([prompt, format].filter(Boolean).join(' '));
-    const roles: RouteRole[] = [];
-    const add = (role: RouteRole) => {
-      if (!roles.includes(role)) {
-        roles.push(role);
-      }
-    };
-
-    const orderedMentions = [
-      {
-        role: 'place_club' as const,
-        index: firstTermIndex(normalized, ['клуб', 'танц', 'караоке']),
-      },
-      {
-        role: 'place_bar' as const,
-        index: firstTermIndex(normalized, [
-          'бар',
-          'пив',
-          'крафт',
-          'сидр',
-          'настойк',
-          'вино',
-          'коктейл',
-          'wine',
-          'beer',
-          'bar',
-        ]),
-      },
-      {
-        role: 'place_food' as const,
-        index: firstTermIndex(normalized, [
-          'поесть',
-          'покуш',
-          'еда',
-          'перекус',
-          'перекусить',
-          'закус',
-          'ужин',
-          'ресторан',
-          'кафе',
-          'кофе',
-          'бранч',
-          'завтрак',
-          'десерт',
-          'паст',
-          'суши',
-          'ролл',
-          'бургер',
-          'стейк',
-          'пицц',
-          'итальян',
-          'грузин',
-          'хинкали',
-          'азиат',
-          'рамен',
-        ]),
-      },
-      {
-        role: 'show' as const,
-        index: firstTermIndex(normalized, [
-          'театр',
-          'спектак',
-          'опера',
-          'балет',
-          'мюзикл',
-          'шоу',
-          'стендап',
-          'концерт',
-          'джаз',
-        ]),
-      },
-      {
-        role: hasAny(normalized, ['прогул', 'погуля', 'маршрут', 'парк', 'набереж', 'бульвар'])
-          ? 'walk' as const
-          : 'free_activity' as const,
-        index: firstTermIndex(normalized, [
-          'погуля',
-          'прогул',
-          'маршрут',
-          'парк',
-          'набереж',
-          'бульвар',
-          'бесплат',
-          'праздн',
-          'активност',
-          'активн',
-          'спорт',
-          'спортив',
-          'адреналин',
-          'экстрим',
-          'картинг',
-          'квест',
-          'vr',
-          'виртуаль',
-          'батут',
-          'аттракцион',
-          'боулинг',
-          'лазертаг',
-          'скалодром',
-          'странн',
-          'креатив',
-          'выстав',
-          'перформанс',
-          'перфоманс',
-          'нестандарт',
-          'иммерсив',
-          'галере',
-        ]),
-      },
-    ]
-      .filter((item) => item.index >= 0)
-      .sort((left, right) => left.index - right.index);
-
-    for (const mention of orderedMentions) {
-      add(mention.role);
-    }
-
-    return roles;
   }
 
   private sourceForRole(role: RouteRole) {
@@ -1904,110 +1658,6 @@ export class EveningAiDraftService {
       };
     }
 
-    const normalized = normalizeText([input.prompt, input.format].filter(Boolean).join(' '));
-    const hint = (preferredTerms: string[], avoidTerms: string[], instruction: string): RoleIntentHint => ({
-      role,
-      preferredTerms: uniqueStrings(preferredTerms),
-      avoidTerms: uniqueStrings(avoidTerms),
-      instruction,
-    });
-
-    if (role === 'walk' && hasAny(normalized, ['погуля', 'прогул', 'маршрут', 'парк', 'набереж', 'бульвар'])) {
-      return hint(
-        ['прогул', 'маршрут', 'парк', 'сквер', 'бульвар', 'набереж', 'пеш', 'экскурс'],
-        ['музей', 'выстав', 'экспозици', 'галере', 'театр', 'спектак', 'концерт', 'стендап'],
-        'Нужна именно прогулка, парк, набережная или пеший маршрут, не музей и не выставка.',
-      );
-    }
-
-    if (role === 'place_food') {
-      if (hasAny(normalized, ['паст', 'итальян', 'italian'])) {
-        return hint(
-          ['паста', 'итальян', 'italian', 'траттор', 'trattoria', 'остери', 'osteria', 'равиол', 'пицц'],
-          [],
-          'Нужен итальянский ресторан или место, где явно есть паста.',
-        );
-      }
-      if (hasAny(normalized, ['суши', 'ролл', 'рамен', 'япон'])) {
-        return hint(
-          ['суши', 'ролл', 'рамен', 'япон', 'izakaya', 'азиат'],
-          [],
-          'Нужно место под суши, роллы, рамен или японскую кухню.',
-        );
-      }
-      if (hasAny(normalized, ['бургер'])) {
-        return hint(['бургер', 'burger'], [], 'Нужно место с бургерами.');
-      }
-      if (hasAny(normalized, ['стейк', 'мясо', 'гриль', 'grill'])) {
-        return hint(['стейк', 'мясо', 'гриль', 'grill'], [], 'Нужно мясное место, стейк или гриль.');
-      }
-      if (hasAny(normalized, ['грузин', 'хинкали', 'хачапури'])) {
-        return hint(
-          ['грузин', 'хинкали', 'хачапури'],
-          [],
-          'Нужно место с грузинской кухней.',
-        );
-      }
-      if (hasAny(normalized, ['кофе', 'coffee'])) {
-        return hint(['кофе', 'кофей', 'coffee', 'кафе'], [], 'Нужно место для кофе.');
-      }
-      if (hasAny(normalized, ['перекус', 'перекусить', 'закус', 'снэк', 'snack'])) {
-        return hint(
-          ['перекус', 'закус', 'бургер', 'пицц', 'стритфуд', 'кафе', 'snack'],
-          [],
-          'Нужно место для быстрого перекуса после активности.',
-        );
-      }
-    }
-
-    if (role === 'show') {
-      if (hasAny(normalized, ['театр', 'спектак', 'опера', 'балет', 'мюзикл'])) {
-        return hint(
-          ['театр', 'театраль', 'спектак', 'опера', 'балет', 'мюзикл', 'постанов'],
-          ['музей', 'выстав', 'экспозици', 'галере'],
-          'Нужен театр, спектакль, опера, балет или мюзикл, не музей и не выставка.',
-        );
-      }
-      if (hasAny(normalized, ['стендап', 'standup', 'stand up', 'комед'])) {
-        return hint(['стендап', 'standup', 'stand up', 'комед'], [], 'Нужен стендап или комедийное шоу.');
-      }
-      if (hasAny(normalized, ['концерт', 'джаз', 'музык'])) {
-        return hint(['концерт', 'джаз', 'музык'], [], 'Нужен концерт, джаз или музыкальное событие.');
-      }
-    }
-
-    if (role === 'place_bar' && hasAny(normalized, ['пив', 'крафт', 'сидр', 'beer'])) {
-      return hint(
-        ['пиво', 'пивн', 'крафт', 'крафтов', 'сидр', 'beer', 'pub'],
-        [],
-        'Нужен пивной бар, паб или место с крафтовым пивом.',
-      );
-    }
-
-    if (role === 'place_bar' && hasAny(normalized, ['настойк', 'наливк'])) {
-      return hint(['настойк', 'наливк', 'бар'], [], 'Нужен бар с настойками или наливками.');
-    }
-
-    if (role === 'place_bar' && hasAny(normalized, ['вино', 'винн'])) {
-      return hint(['вино', 'винн', 'wine'], [], 'Нужен винный бар.');
-    }
-
-    if (role === 'free_activity' && hasAny(normalized, ACTIVE_ACTIVITY_TERMS)) {
-      return hint(
-        ACTIVE_ACTIVITY_TERMS,
-        ['музей', 'выстав', 'лекц', 'театр', 'концерт', 'стендап', 'прогул', 'парк'],
-        'Нужна спортивная или адреналиновая активность, например картинг, квест, VR, батуты или аттракцион.',
-      );
-    }
-
-    if (role === 'free_activity' && hasAny(normalized, CREATIVE_ACTIVITY_TERMS)) {
-      return hint(
-        CREATIVE_ACTIVITY_TERMS,
-        ['бар', 'ресторан', 'прогул', 'спорт', 'картинг'],
-        'Нужна одна странная или креативная активность: выставка, перформанс или нестандартное место.',
-      );
-    }
-
     return {
       role,
       preferredTerms: [],
@@ -2053,7 +1703,9 @@ export class EveningAiDraftService {
   private intentSystemPrompt() {
     return [
       'Return strict JSON only.',
-      'Extract the route intent configuration from the user text.',
+      'You are the only semantic interpreter of the user prompt.',
+      'Extract the route intent configuration from the user text by yourself.',
+      'The backend will not infer route roles, participant count, budget, area or prompt step count from keywords.',
       'Keep the same step order as the user asked.',
       'Separate route step count from participant count.',
       'Infer step count, area, budget and date from the user text unless explicit config fields are present.',
@@ -2078,10 +1730,8 @@ export class EveningAiDraftService {
         format: input.format,
         stepCountMode: input.stepCountExplicit ? 'exact' : 'infer',
         requestedStepCount: input.stepCountExplicit ? input.stepCount : null,
-        promptStepCountHint: input.promptStepCountHint,
         minStepCount: MIN_STEP_COUNT,
         maxStepCount: MAX_STEP_COUNT,
-        participantsCount: input.participantsCount,
       },
       allowedRoles: [
         {
@@ -2123,12 +1773,12 @@ export class EveningAiDraftService {
         'Do not pad a simple request with unrelated roles such as show, walk or free_activity.',
         'If one place or activity satisfies the prompt, routeStepCount may be 1.',
         'Only add roles that are directly implied by the prompt or by an explicit listed sequence.',
-        'Use promptStepCountHint as a hint, not as a hard limit, when stepCountMode is infer.',
-        'Numbers near человек, людей, персон, на двоих, на троих, вчетвером describe participantsCount, not routeStepCount.',
+        'Infer prompt counts yourself from the user text.',
+        'Numbers near человек, людей, персон, на двоих, на троих, вчетвером and ranges like 4-6 человек describe participantsCount, not routeStepCount.',
         'Infer area from words like центр, район, метро, рядом с; return an internal code such as center when clear, otherwise empty string.',
-        'Infer budget from words like бесплатно, недорого, до 1500, средний, премиум; return one of free, low, mid, premium, or empty string.',
+        'Infer budget from words like бесплатно, недорого, до 1500, до 3к, средний, премиум; return one of free, low, mid, premium, or empty string.',
         'For dates, return dateMode=date and localDate as YYYY-MM-DD when the user asks for a specific date.',
-        'For words like today, tomorrow, weekdays and exact dates, resolve localDate in the route city timezone.',
+        'For words like сегодня, завтра, послезавтра, weekdays and exact dates, resolve localDate in the route city timezone.',
         'If the user did not ask for a date, return dateMode=none and empty localDate.',
         'If the user lists activities with words like сначала, потом, затем, routeStepCount is the number of listed activities.',
         'routeStepCount must describe places or activities, not people.',
@@ -2542,8 +2192,6 @@ type ParsedDraftInput = {
   area: string | null;
   stepCount: number;
   stepCountExplicit: boolean;
-  promptStepCountHint: number | null;
-  participantsCount: number | null;
   eventDateWindow: EventDateWindow;
   candidateSeed: number;
   latitude: number | null;
@@ -2832,7 +2480,7 @@ function budgetOrNull(value: unknown) {
   if (normalized === 'medium') {
     return 'mid';
   }
-  return budgetFromPrompt(normalized);
+  return budgetFromText(normalized);
 }
 
 function timezoneForCity(city: string) {
@@ -2872,16 +2520,6 @@ function normalizeText(value: string) {
 
 function hasAny(value: string, terms: string[]) {
   return terms.some((term) => value.includes(normalizeText(term)));
-}
-
-function firstTermIndex(value: string, terms: string[]) {
-  return terms.reduce((best, term) => {
-    const index = value.indexOf(normalizeText(term));
-    if (index < 0) {
-      return best;
-    }
-    return best < 0 ? index : Math.min(best, index);
-  }, -1);
 }
 
 function uniqueStrings(values: string[]) {
@@ -2926,186 +2564,11 @@ function candidateMatchesTerms(candidate: CandidateCard, terms: string[]) {
   return candidate.tags.some((tag) => tagTerms.has(normalizeText(tag)));
 }
 
-function stepCountFromPrompt(prompt: string | null) {
-  const text = normalizeText(prompt ?? '');
-  if (!text) {
-    return null;
-  }
-  const unit =
-    '(?:точк(?:а|и|у)?|точек|мест(?:о|а)?|локаци(?:я|и|й|ю)|шаг(?:а|ов)?|этап(?:а|ов)?|стоп(?:а|ов)?)';
-  const before = '(?:^|\\s)';
-  const after = '(?=$|\\s|[,.!?;:])';
-  const digitMatch =
-    text.match(new RegExp(`${before}([2-5])\\s+${unit}${after}`)) ??
-    text.match(new RegExp(`${before}${unit}\\s*[:=\\-]?\\s*([2-5])${after}`));
-  if (digitMatch?.[1]) {
-    return Number.parseInt(digitMatch[1], 10);
-  }
-
-  const wordCounts: Array<[RegExp, number]> = [
-    [new RegExp(`${before}(?:два|две|пара|пару)\\s+${unit}${after}`), 2],
-    [new RegExp(`${before}(?:три)\\s+${unit}${after}`), 3],
-    [new RegExp(`${before}(?:четыре)\\s+${unit}${after}`), 4],
-    [new RegExp(`${before}(?:пять)\\s+${unit}${after}`), 5],
-  ];
-  return wordCounts.find(([pattern]) => pattern.test(text))?.[1] ?? null;
-}
-
-function participantsCountFromPrompt(prompt: string | null) {
-  const text = normalizeText(prompt ?? '');
-  if (!text) {
-    return null;
-  }
-  const before = '(?:^|\\s)';
-  const after = '(?=$|\\s|[,.!?;:])';
-  const peopleUnit =
-    '(?:человек|человека|чел|людей|персон(?:а|ы)?|гост(?:ь|я|ей)|участник(?:а|ов)?)';
-  const rangeMatch = text.match(
-    new RegExp(`${before}([1-9]\\d?)\\s*[-–]\\s*([1-9]\\d?)\\s+${peopleUnit}${after}`),
-  );
-  const rangeCount = normalizedCount(rangeMatch?.[1], 20);
-  if (rangeCount != null) {
-    return rangeCount;
-  }
-  const digitPatterns = [
-    new RegExp(
-      `${before}(?:на|для|нас|компания|группа|будет|будем)\\s+([1-9]\\d?)\\s+${peopleUnit}${after}`,
-    ),
-    new RegExp(`${before}([1-9]\\d?)\\s+${peopleUnit}${after}`),
-    new RegExp(`${before}${peopleUnit}\\s*[:=\\-]?\\s*([1-9]\\d?)${after}`),
-  ];
-  for (const pattern of digitPatterns) {
-    const match = text.match(pattern);
-    const count = normalizedCount(match?.[1], 20);
-    if (count != null) {
-      return count;
-    }
-  }
-
-  const wordCounts: Array<[RegExp, number]> = [
-    [new RegExp(`${before}(?:на|для)\\s+(?:двоих|двоих человек|пару|пары)${after}`), 2],
-    [new RegExp(`${before}(?:вдвоем|двоем|двоих)${after}`), 2],
-    [new RegExp(`${before}(?:на|для)\\s+(?:троих|троих человек)${after}`), 3],
-    [new RegExp(`${before}(?:втроем|троем|троих)${after}`), 3],
-    [new RegExp(`${before}(?:на|для)\\s+(?:четверых|четверых человек)${after}`), 4],
-    [new RegExp(`${before}(?:вчетвером|четвером|четверых)${after}`), 4],
-    [new RegExp(`${before}(?:на|для)\\s+(?:пятерых|пятерых человек)${after}`), 5],
-    [new RegExp(`${before}(?:впятером|пятером|пятерых)${after}`), 5],
-  ];
-  return wordCounts.find(([pattern]) => pattern.test(text))?.[1] ?? null;
-}
-
 type LocalDateParts = {
   year: number;
   month: number;
   day: number;
 };
-
-const WEEKDAY_ALIASES: Array<{ aliases: string[]; day: number }> = [
-  { aliases: ['воскресенье', 'воскресенья', 'вск'], day: 0 },
-  { aliases: ['понедельник', 'понедельника', 'пн'], day: 1 },
-  { aliases: ['вторник', 'вторника', 'вт'], day: 2 },
-  { aliases: ['среду', 'среда', 'среды', 'ср'], day: 3 },
-  { aliases: ['четверг', 'четверга', 'чт'], day: 4 },
-  { aliases: ['пятницу', 'пятница', 'пятницы', 'пт'], day: 5 },
-  { aliases: ['субботу', 'суббота', 'субботы', 'сб'], day: 6 },
-];
-
-const MONTH_ALIASES: Array<{ aliases: string[]; month: number }> = [
-  { aliases: ['января', 'январь'], month: 1 },
-  { aliases: ['февраля', 'февраль'], month: 2 },
-  { aliases: ['марта', 'март'], month: 3 },
-  { aliases: ['апреля', 'апрель'], month: 4 },
-  { aliases: ['мая', 'май'], month: 5 },
-  { aliases: ['июня', 'июнь'], month: 6 },
-  { aliases: ['июля', 'июль'], month: 7 },
-  { aliases: ['августа', 'август'], month: 8 },
-  { aliases: ['сентября', 'сентябрь'], month: 9 },
-  { aliases: ['октября', 'октябрь'], month: 10 },
-  { aliases: ['ноября', 'ноябрь'], month: 11 },
-  { aliases: ['декабря', 'декабрь'], month: 12 },
-];
-
-function eventDateWindowFromPrompt(prompt: string | null, timezone: string, now = new Date()) {
-  const text = normalizeText(prompt ?? '');
-  if (!text) {
-    return null;
-  }
-  const currentDate = zonedDateParts(now, timezone);
-  const todayWindow = () => eventDateWindowForLocalDate('today', currentDate, now, timezone, true);
-
-  if (/(?:^|\s)сегодня(?=$|\s|[,.!?;:])/.test(text)) {
-    return todayWindow();
-  }
-  if (/(?:^|\s)послезавтра(?=$|\s|[,.!?;:])/.test(text)) {
-    return eventDateWindowForLocalDate(
-      'day_after_tomorrow',
-      addLocalDays(currentDate, 2),
-      now,
-      timezone,
-    );
-  }
-  if (/(?:^|\s)завтра(?=$|\s|[,.!?;:])/.test(text)) {
-    return eventDateWindowForLocalDate('tomorrow', addLocalDays(currentDate, 1), now, timezone);
-  }
-
-  const isoMatch = text.match(/(?:^|\s)(\d{4})-(\d{1,2})-(\d{1,2})(?=$|\s|[,.!?;:])/);
-  if (isoMatch) {
-    const parts = localDateFromValues(isoMatch[1], isoMatch[2], isoMatch[3]);
-    return parts ? eventDateWindowForLocalDate('date', parts, now, timezone, true) : null;
-  }
-
-  const numericDateMatch = text.match(/(?:^|\s)(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?(?=$|\s|[,.!?;:])/);
-  if (numericDateMatch) {
-    const parts = localDateFromValues(
-      numericDateMatch[3] ?? currentDate.year,
-      numericDateMatch[2],
-      numericDateMatch[1],
-      numericDateMatch[3] == null ? currentDate : null,
-    );
-    return parts ? eventDateWindowForLocalDate('date', parts, now, timezone, true) : null;
-  }
-
-  for (const month of MONTH_ALIASES) {
-    const aliases = month.aliases.map(escapeRegExp).join('|');
-    const match = text.match(new RegExp(`(?:^|\\s)(\\d{1,2})\\s+(?:${aliases})(?:\\s+(\\d{4}))?(?=$|\\s|[,.!?;:])`));
-    if (!match) {
-      continue;
-    }
-    const parts = localDateFromValues(
-      match[2] ?? currentDate.year,
-      month.month,
-      match[1],
-      match[2] == null ? currentDate : null,
-    );
-    return parts ? eventDateWindowForLocalDate('date', parts, now, timezone, true) : null;
-  }
-
-  for (const weekday of WEEKDAY_ALIASES) {
-    if (!weekday.aliases.some((alias) => new RegExp(`(?:^|\\s)(?:в\\s+)?${escapeRegExp(alias)}(?=$|\\s|[,.!?;:])`).test(text))) {
-      continue;
-    }
-    const currentWeekday = weekdayForLocalDate(currentDate);
-    const offset = (weekday.day - currentWeekday + 7) % 7;
-    return eventDateWindowForLocalDate(
-      'weekday',
-      addLocalDays(currentDate, offset),
-      now,
-      timezone,
-      offset === 0,
-    );
-  }
-
-  return null;
-}
-
-function fallbackEventDateWindowFromPrompt(
-  prompt: string | null,
-  timezone: string,
-  now = new Date(),
-) {
-  return eventDateWindowFromPrompt(prompt, timezone, now) ?? todayEventDateWindow(timezone, now);
-}
 
 function todayEventDateWindow(timezone: string, now = new Date()) {
   return eventDateWindowForLocalDate(
@@ -3227,19 +2690,6 @@ function zonedTimeToUtc(
     millisecond,
   );
   return new Date(utcGuess - (actualAsUtc - utcGuess));
-}
-
-function addLocalDays(date: LocalDateParts, days: number): LocalDateParts {
-  const shifted = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
-  return {
-    year: shifted.getUTCFullYear(),
-    month: shifted.getUTCMonth() + 1,
-    day: shifted.getUTCDate(),
-  };
-}
-
-function weekdayForLocalDate(date: LocalDateParts) {
-  return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
 }
 
 function sameLocalDate(left: LocalDateParts, right: LocalDateParts) {
@@ -3511,8 +2961,8 @@ function transliterateRu(value: string) {
   return value.replace(/[а-я]/g, (char) => map[char] ?? char);
 }
 
-function budgetFromPrompt(prompt: string | null) {
-  const text = normalizeText(prompt ?? '');
+function budgetFromText(value: string | null) {
+  const text = normalizeText(value ?? '');
   if (!text) {
     return null;
   }
@@ -3531,74 +2981,6 @@ function budgetFromPrompt(prompt: string | null) {
     return 'premium';
   }
   return null;
-}
-
-function areaFromPrompt(prompt: string | null) {
-  const text = normalizeText(prompt ?? '');
-  if (!text) {
-    return null;
-  }
-  const alias = AREA_ALIASES.find((item) => hasAny(text, item.detectTerms));
-  if (alias) {
-    return alias.code;
-  }
-  return explicitAreaFromPrompt(text);
-}
-
-function explicitAreaFromPrompt(text: string) {
-  const patterns = [
-    {
-      pattern: /(?:метро|м\.)\s+([а-яa-z0-9ё .'-]{2,48})/,
-      allowPlaceWords: true,
-    },
-    {
-      pattern: /(?:в\s+районе|район|около|возле|рядом\s+с|рядом\s+со)\s+([а-яa-z0-9ё .'-]{2,48})/,
-      allowPlaceWords: false,
-    },
-  ];
-  for (const { pattern, allowPlaceWords } of patterns) {
-    const match = text.match(pattern);
-    const area = normalizeAreaPhrase(match?.[1] ?? null, allowPlaceWords);
-    if (area) {
-      return area;
-    }
-  }
-  return null;
-}
-
-function normalizeAreaPhrase(value: string | null, allowPlaceWords = false) {
-  const phrase = normalizeText(value ?? '')
-    .split(/[,.!?;:]|\s+(?:и|потом|затем|сначала|вечером|утром|днем|ночью)\s+/)[0]
-    ?? '';
-  const cleanedPhrase = phrase
-    .replace(/\b(?:москвы|москва)\b/g, '')
-    .trim();
-  if (!cleanedPhrase || cleanedPhrase.length < 2) {
-    return null;
-  }
-  if (
-    !allowPlaceWords &&
-    hasAny(cleanedPhrase, [
-      'театр',
-      'ресторан',
-      'кафе',
-      'бар',
-      'клуб',
-      'место',
-      'точк',
-      'человек',
-      'двоих',
-      'бюджет',
-      'свидан',
-    ])
-  ) {
-    return null;
-  }
-  const alias = AREA_ALIASES.find((item) => hasAny(cleanedPhrase, item.detectTerms));
-  if (alias) {
-    return alias.code;
-  }
-  return cleanedPhrase.replace(/\s+/g, '_').slice(0, 48);
 }
 
 function areaTermsFor(area: string | null) {

@@ -382,7 +382,7 @@ describe('EveningAiDraftService unit', () => {
         const prompt = JSON.parse(input.userPrompt);
         const roles = testIntentRolesForPrompt(
           prompt.prompt,
-          prompt.config?.requestedStepCount ?? prompt.config?.promptStepCountHint,
+          prompt.config?.requestedStepCount,
         );
         return Promise.resolve(
           completeIntentResponse(
@@ -779,6 +779,35 @@ describe('EveningAiDraftService unit', () => {
   it('honors ordered walk, pasta and theatre intent from prompt', async () => {
     const prompt = 'хочу погулять сначала, потом поесть пасту и пойти в театр';
     const { service, draftCreate, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 3,
+          stepCountReason: 'Пользователь просит три действия по порядку.',
+          steps: [
+            {
+              role: 'walk',
+              preferredTerms: ['прогул', 'маршрут'],
+              avoidTerms: ['музей', 'выставка'],
+              instruction: 'Сначала прогулка.',
+            },
+            {
+              role: 'place_food',
+              preferredTerms: ['паста', 'итальян'],
+              avoidTerms: [],
+              instruction: 'Потом место с пастой.',
+            },
+            {
+              role: 'show',
+              preferredTerms: ['театр', 'спектак'],
+              avoidTerms: ['музей', 'выставка'],
+              instruction: 'Затем театр.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 25,
+      },
       externalItems: {
         kudago: [
           {
@@ -1455,7 +1484,7 @@ describe('EveningAiDraftService unit', () => {
     });
 
     const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
-    expect(intentPrompt.config.promptStepCountHint).toBe(3);
+    expect(intentPrompt.config).not.toHaveProperty('promptStepCountHint');
     expect(intentPrompt.config.maxStepCount).toBe(5);
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
@@ -1466,7 +1495,7 @@ describe('EveningAiDraftService unit', () => {
     expect(result.route.steps).toHaveLength(3);
   });
 
-  it('infers prompt step count and low budget without button filters', async () => {
+  it('lets LLM intent infer step count and low budget without button filters', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
@@ -1571,9 +1600,10 @@ describe('EveningAiDraftService unit', () => {
       expect.objectContaining({
         stepCountMode: 'infer',
         maxStepCount: 5,
-        budget: 'low',
+        budget: null,
       }),
     );
+    expect(intentPrompt.config).not.toHaveProperty('promptStepCountHint');
     expect(intentPrompt.config).not.toHaveProperty('defaultStepCount');
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
@@ -1722,11 +1752,12 @@ describe('EveningAiDraftService unit', () => {
     const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
     expect(intentPrompt.config).toEqual(
       expect.objectContaining({
-        participantsCount: 4,
         stepCountMode: 'infer',
         maxStepCount: 5,
       }),
     );
+    expect(intentPrompt.config).not.toHaveProperty('participantsCount');
+    expect(intentPrompt.config).not.toHaveProperty('promptStepCountHint');
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
@@ -1746,7 +1777,7 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
-  it('keeps active company prompt to an activity and a snack', async () => {
+  it('does not rewrite LLM intent roles from prompt keywords', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
@@ -1825,18 +1856,30 @@ describe('EveningAiDraftService unit', () => {
             sourceProvider: 'ТоМесто',
           },
         ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-show',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Шоу по версии AI',
+            category: 'show',
+            tags: ['шоу'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 1500,
+            actionUrl: 'https://ticket.example.test/show',
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
       },
       openRouterResponses: [
         {
           parsedJson: {
-            title: 'Активность и перекус',
-            vibe: 'Для компании',
-            blurb: 'Сначала адреналин, потом еда.',
+            title: 'Intent решает роли',
+            vibe: 'Backend не переписывает',
+            blurb: 'Проверяем, что backend не заменяет роли по словам prompt.',
             steps: [
-              { externalContentItemId: 'kudago-karting', timeLabel: '19:00' },
-              { externalContentItemId: 'tomesto-snack', timeLabel: '20:30' },
-              { externalContentItemId: 'kudago-walk', timeLabel: '21:30' },
-              { externalContentItemId: 'tomesto-bar', timeLabel: '22:30' },
+              { externalContentItemId: 'tomesto-snack', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-show', timeLabel: '20:30' },
             ],
           },
           rawResponse: {},
@@ -1853,17 +1896,18 @@ describe('EveningAiDraftService unit', () => {
     });
 
     const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
-    expect(intentPrompt.config.participantsCount).toBe(4);
+    expect(intentPrompt.config).not.toHaveProperty('participantsCount');
+    expect(intentPrompt.config.budget).toBeNull();
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
     expect(routePrompt.config.stepCount).toBe(2);
-    expect(routePrompt.config.roles).toEqual(['free_activity', 'place_food']);
+    expect(routePrompt.config.roles).toEqual(['place_food', 'show']);
     expect(routePrompt.config.budget).toBe('mid');
     expect(result.route.steps.map((step: any) => step.title)).toEqual([
-      'Картинг на компанию',
       'Бургерная после картинга',
+      'Шоу по версии AI',
     ]);
     expect(draftCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1875,12 +1919,12 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
-  it('keeps a creative date prompt to one unusual activity when no sequence is requested', async () => {
+  it('uses LLM intent for a creative date as one unusual activity', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
-          routeStepCount: 5,
-          stepCountReason: 'LLM treated examples as separate stops.',
+          routeStepCount: 1,
+          stepCountReason: 'Примеры описывают один нестандартный формат.',
           participantsCount: 2,
           budget: '',
           steps: [
@@ -1890,10 +1934,6 @@ describe('EveningAiDraftService unit', () => {
               avoidTerms: [],
               instruction: 'Странное креативное место.',
             },
-            { role: 'place_food', preferredTerms: ['еда'], avoidTerms: [], instruction: 'Лишний шаг.' },
-            { role: 'walk', preferredTerms: ['прогулка'], avoidTerms: [], instruction: 'Лишний шаг.' },
-            { role: 'place_bar', preferredTerms: ['бар'], avoidTerms: [], instruction: 'Лишний шаг.' },
-            { role: 'show', preferredTerms: ['шоу'], avoidTerms: [], instruction: 'Лишний шаг.' },
           ],
         },
         rawResponse: {},
@@ -2036,7 +2076,7 @@ describe('EveningAiDraftService unit', () => {
         latencyMs: 20,
       },
     },
-  ])('uses regex fallback only when $name', async ({ intentResponse }) => {
+  ])('uses generic fallback only when $name', async ({ intentResponse }) => {
     const { service, openRouter } = createService({
       intentResponse,
       externalItems: {
@@ -2075,12 +2115,11 @@ describe('EveningAiDraftService unit', () => {
       openRouterResponses: [
         {
           parsedJson: {
-            title: 'Ресторан и спектакль',
+            title: 'Ресторан',
             vibe: 'Fallback',
-            blurb: 'Fallback roles from prompt.',
+            blurb: 'Generic fallback without prompt parsing.',
             steps: [
               { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
-              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:30' },
             ],
           },
           rawResponse: {},
@@ -2102,9 +2141,9 @@ describe('EveningAiDraftService unit', () => {
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.config.roles).toEqual(['place_food', 'show']);
-    expect(routePrompt.config.area).toBe('center');
-    expect(routePrompt.config.stepCount).toBe(2);
+    expect(routePrompt.config.roles).toEqual(['place_food']);
+    expect(routePrompt.config.area).toBeNull();
+    expect(routePrompt.config.stepCount).toBe(1);
   });
 
   it('defaults timed event candidates to today when intent has no date', async () => {
@@ -2778,19 +2817,17 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
-  it('keeps prompt step count exact even when intent asks for more', async () => {
+  it('lets LLM intent choose the prompt step count and budget', async () => {
     const { service, draftCreate, openRouter } = createService({
       intentResponse: {
         parsedJson: {
-          routeStepCount: 5,
-          stepCountReason: 'ИИ решил оставить пять явных активностей.',
+          routeStepCount: 3,
+          stepCountReason: 'ИИ понял, что пользователь просит три точки.',
           budget: 'mid',
           steps: [
             { role: 'walk', preferredTerms: ['парк'], avoidTerms: [], instruction: '' },
             { role: 'place_food', preferredTerms: ['итальян'], avoidTerms: [], instruction: '' },
             { role: 'show', preferredTerms: ['спектакль'], avoidTerms: [], instruction: '' },
-            { role: 'place_bar', preferredTerms: ['тихий'], avoidTerms: [], instruction: '' },
-            { role: 'free_activity', preferredTerms: ['выставка'], avoidTerms: [], instruction: '' },
           ],
         },
         rawResponse: {},
@@ -2899,11 +2936,11 @@ describe('EveningAiDraftService unit', () => {
     expect(intentPrompt.config).toEqual(
       expect.objectContaining({
         stepCountMode: 'infer',
-        promptStepCountHint: 3,
         maxStepCount: 5,
-        budget: 'mid',
+        budget: null,
       }),
     );
+    expect(intentPrompt.config).not.toHaveProperty('promptStepCountHint');
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
