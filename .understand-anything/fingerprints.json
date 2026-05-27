@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "1490808b139551de969f1891807b4ad7966edf3a",
-  "generatedAt": "2026-05-26T03:57:15.874Z",
+  "gitCommitHash": "065cfa6e26a2c2da1c26f8ef02733d83040c2291",
+  "generatedAt": "2026-05-27T08:19:36.632Z",
   "files": {
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
@@ -1193,7 +1193,7 @@
     },
     "backend/apps/api/src/common/media-presenters.ts": {
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
-      "contentHash": "f92301258fafe27e741fcb2c3c0c0805696748c16ca0dc413a91e97c2b39f0fd",
+      "contentHash": "e51b871bac6393809c739894941948124c88b4f7e52092de4443d45abd262fd2",
       "functions": [
         {
           "name": "resolveMediaVisibility",
@@ -1202,7 +1202,7 @@
           ],
           "returnType": "'public' | 'private'",
           "exported": true,
-          "lineCount": 5
+          "lineCount": 7
         },
         {
           "name": "buildMediaCacheKey",
@@ -1295,7 +1295,7 @@
         "mapProfilePhoto",
         "mapMediaVariants"
       ],
-      "totalLines": 179,
+      "totalLines": 181,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/normalize-request-url.ts": {
@@ -1380,7 +1380,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "e195cb4c3132515f854543467f7245bd5befd916c3ddc2a073881b7df3f38c63",
+      "contentHash": "563b4233a9e1fb0e56e18b762cb051daf660cd8de0f5db740b80e04b2bbd54be",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -1505,7 +1505,7 @@
             "params"
           ],
           "exported": true,
-          "lineCount": 72
+          "lineCount": 80
         },
         {
           "name": "mapEventBoostSummary",
@@ -1529,7 +1529,7 @@
             "event"
           ],
           "exported": false,
-          "lineCount": 22
+          "lineCount": 30
         },
         {
           "name": "mapEventImageUrl",
@@ -1538,6 +1538,14 @@
           ],
           "exported": false,
           "lineCount": 10
+        },
+        {
+          "name": "mapEventImageVariants",
+          "params": [
+            "event"
+          ],
+          "exported": false,
+          "lineCount": 7
         },
         {
           "name": "mapExternalContentImageUrl",
@@ -1576,6 +1584,7 @@
           "source": "./media-presenters",
           "specifiers": [
             "mapMediaAsset",
+            "mapMediaVariants",
             "mapProfilePhoto"
           ]
         }
@@ -1595,7 +1604,7 @@
         "mapEventBookingSummary",
         "mapEventSummary"
       ],
-      "totalLines": 678,
+      "totalLines": 715,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/profile-social-preview.ts": {
@@ -5867,7 +5876,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "de4fe7a4321b7a7e6662914e7aec820b429bf70ecb7d64baaf680095e9f2394a",
+      "contentHash": "b61fb8b4781dbe9abe7546bb807ae75a595c655f30bc5e71fa82ab2733fa1bfb",
       "functions": [
         {
           "name": "oneDayRange",
@@ -5876,6 +5885,32 @@
           ],
           "exported": false,
           "lineCount": 12
+        },
+        {
+          "name": "cleanPublicText",
+          "params": [
+            "value",
+            "maxLength"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "decodeHtmlEntities",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "safeCodePoint",
+          "params": [
+            "code",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 7
         }
       ],
       "classes": [
@@ -5940,7 +5975,7 @@
             "clientGeoRateLimits"
           ],
           "exported": true,
-          "lineCount": 966
+          "lineCount": 984
         }
       ],
       "imports": [
@@ -6008,7 +6043,7 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 1119,
+      "totalLines": 1186,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
@@ -6294,7 +6329,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "03f98f091b7dcd22be7cfdfab38ffd2c7e8447908b374a820aef9e0c9b696090",
+      "contentHash": "68a9152a0d59eebebf93eebcda4308ecbe90930ce6d72a89567e1dc10bd9f591",
       "functions": [],
       "classes": [
         {
@@ -6413,7 +6448,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1537,
+      "totalLines": 1538,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -6991,8 +7026,16 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "3e53fa8e2faec61dc9957d2670d576ec015d9a5575be254bfe5601bd49424d9f",
+      "contentHash": "1d1e87d5099e3604e407c7d640d4693ad5c44e4b7c677cb0d3a7836345aeccb0",
       "functions": [
+        {
+          "name": "areaOrNull",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 17
+        },
         {
           "name": "hasCandidateCoords",
           "params": [
@@ -7014,6 +7057,33 @@
           "name": "stringOrNull",
           "params": [
             "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "integerFromEnv",
+          "params": [
+            "name",
+            "fallback",
+            "min",
+            "max"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "budgetOrNull",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "timezoneForCity",
+          "params": [
+            "city"
           ],
           "exported": false,
           "lineCount": 3
@@ -7070,12 +7140,29 @@
           "lineCount": 9
         },
         {
+          "name": "promptTermIndex",
+          "params": [
+            "value",
+            "term"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
           "name": "uniqueStrings",
           "params": [
             "values"
           ],
           "exported": false,
           "lineCount": 3
+        },
+        {
+          "name": "promptExplicitStepCount",
+          "params": [
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 20
         },
         {
           "name": "uniqueById",
@@ -7103,29 +7190,30 @@
           "lineCount": 10
         },
         {
-          "name": "stepCountFromPrompt",
+          "name": "todayEventDateWindow",
           "params": [
-            "prompt"
-          ],
-          "exported": false,
-          "lineCount": 24
-        },
-        {
-          "name": "participantsCountFromPrompt",
-          "params": [
-            "prompt"
-          ],
-          "exported": false,
-          "lineCount": 36
-        },
-        {
-          "name": "eventDateWindowFromPrompt",
-          "params": [
-            "prompt",
+            "timezone",
             "now"
           ],
           "exported": false,
-          "lineCount": 65
+          "lineCount": 9
+        },
+        {
+          "name": "localDateFromIsoDate",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "eventDateWindowFromStored",
+          "params": [
+            "value"
+          ],
+          "returnType": "EventDateWindow | null",
+          "exported": false,
+          "lineCount": 17
         },
         {
           "name": "eventDateWindowForLocalDate",
@@ -7133,11 +7221,12 @@
             "label",
             "date",
             "now",
+            "timezone",
             "fromNowIfToday"
           ],
           "returnType": "EventDateWindow",
           "exported": false,
-          "lineCount": 14
+          "lineCount": 15
         },
         {
           "name": "localDateFromValues",
@@ -7162,6 +7251,14 @@
           "lineCount": 14
         },
         {
+          "name": "localDateIso",
+          "params": [
+            "date"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
           "name": "zonedTimeToUtc",
           "params": [
             "date",
@@ -7173,24 +7270,6 @@
           ],
           "exported": false,
           "lineCount": 31
-        },
-        {
-          "name": "addLocalDays",
-          "params": [
-            "date",
-            "days"
-          ],
-          "returnType": "LocalDateParts",
-          "exported": false,
-          "lineCount": 8
-        },
-        {
-          "name": "weekdayForLocalDate",
-          "params": [
-            "date"
-          ],
-          "exported": false,
-          "lineCount": 3
         },
         {
           "name": "sameLocalDate",
@@ -7225,15 +7304,7 @@
             "maxStepCount"
           ],
           "exported": false,
-          "lineCount": 8
-        },
-        {
-          "name": "intentParticipantsCountFromGenerated",
-          "params": [
-            "generated"
-          ],
-          "exported": false,
-          "lineCount": 4
+          "lineCount": 7
         },
         {
           "name": "normalizedCount",
@@ -7296,37 +7367,12 @@
           "lineCount": 37
         },
         {
-          "name": "budgetFromPrompt",
+          "name": "budgetFromText",
           "params": [
-            "prompt"
+            "value"
           ],
           "exported": false,
           "lineCount": 21
-        },
-        {
-          "name": "areaFromPrompt",
-          "params": [
-            "prompt"
-          ],
-          "exported": false,
-          "lineCount": 11
-        },
-        {
-          "name": "explicitAreaFromPrompt",
-          "params": [
-            "text"
-          ],
-          "exported": false,
-          "lineCount": 20
-        },
-        {
-          "name": "normalizeAreaPhrase",
-          "params": [
-            "value",
-            "allowPlaceWords"
-          ],
-          "exported": false,
-          "lineCount": 34
         },
         {
           "name": "areaTermsFor",
@@ -7335,6 +7381,14 @@
           ],
           "exported": false,
           "lineCount": 10
+        },
+        {
+          "name": "displayAreaForRoute",
+          "params": [
+            "area"
+          ],
+          "exported": false,
+          "lineCount": 31
         },
         {
           "name": "roundCoord",
@@ -7389,6 +7443,9 @@
             "regenerateStep",
             "regenerateDraft",
             "hasEnoughCandidatesForRoles",
+            "eveningAiModel",
+            "intentMaxTokens",
+            "routeMaxTokens",
             "confirmDraft",
             "loadDraft",
             "generateRouteWithFallback",
@@ -7406,17 +7463,22 @@
             "inputFromDraft",
             "parseInput",
             "parseStepCount",
+            "nextCandidateSeed",
             "parseFormat",
             "resolveDraftIntent",
+            "fallbackDraftIntent",
+            "promptFallbackIntent",
+            "promptRoleMatches",
+            "promptFallbackStepCount",
+            "fillFallbackRoles",
             "parseIntentResponse",
+            "intentEventDateWindow",
             "intentFallbackStepCount",
             "intentTargetStepCount",
-            "mentionedStepCount",
             "requiredCandidateRoles",
             "normalizeLlmIntentHint",
             "routeRoleOrNull",
             "resolveRoles",
-            "mentionedRoles",
             "sourceForRole",
             "searchTermsForRole",
             "kindForRole",
@@ -7442,9 +7504,12 @@
             "stringList",
             "createId"
           ],
-          "properties": [],
+          "properties": [
+            "candidateSeedSalt",
+            "candidateSeedCounter"
+          ],
           "exported": true,
-          "lineCount": 1990
+          "lineCount": 2090
         }
       ],
       "imports": [
@@ -7452,6 +7517,12 @@
           "source": "@nestjs/common",
           "specifiers": [
             "Injectable"
+          ]
+        },
+        {
+          "source": "@big-break/database",
+          "specifiers": [
+            "timezoneForContentCity"
           ]
         },
         {
@@ -7488,7 +7559,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 3187,
+      "totalLines": 3227,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -7957,7 +8028,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "17e7eb95759d6c9f6cb65414b8bc45319c4991185f3d0c4a2875e7035728b3d2",
+      "contentHash": "39a1839da6e28d1ac5f68e434f8486b43a9820a0f86287cab3feb6dd55e1174b",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -8076,8 +8147,8 @@
             "calculateCompatibilityScore",
             "markInviteNotificationsRead",
             "assertAfterDarkUnlocked",
-            "assertHostCanCreateMonthlyMeetup",
-            "currentMoscowMonthWindow",
+            "assertHostCanCreateWeeklyMeetup",
+            "currentMoscowWeekWindow",
             "parseEventRouteSelection",
             "parseEventRouteStep",
             "createPrivateEventRoute",
@@ -8105,7 +8176,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 4553
+          "lineCount": 4577
         }
       ],
       "imports": [
@@ -8201,12 +8272,12 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4860,
+      "totalLines": 4906,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
       "filePath": "backend/apps/api/src/services/host.service.ts",
-      "contentHash": "d7430a57237fe553d6e18d4932f92f92a67a2c7658686366e8d077bf341e7a8c",
+      "contentHash": "87ba092943dc6bdcf63f6426eb9328d90df87b6ad790ec54ada9a905d6f2308a",
       "functions": [],
       "classes": [
         {
@@ -8327,7 +8398,7 @@
       "exports": [
         "HostService"
       ],
-      "totalLines": 1597,
+      "totalLines": 1598,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/matches.service.ts": {
@@ -8386,7 +8457,7 @@
     },
     "backend/apps/api/src/services/media.service.ts": {
       "filePath": "backend/apps/api/src/services/media.service.ts",
-      "contentHash": "3dac35d43e41c3a6b0574aee05fb5013e82c67db196b80f45b89059b319805ac",
+      "contentHash": "e7f846428878e8dba20637ef4a4a5c44f509360cfc24593bf2cc2064caa337ad",
       "functions": [],
       "classes": [
         {
@@ -10251,7 +10322,7 @@
     },
     "backend/apps/api/src/services/stories.service.ts": {
       "filePath": "backend/apps/api/src/services/stories.service.ts",
-      "contentHash": "4674aa81b21b55c007a8aebe94eb307520eb5769a4563a49a5f5a549db5b61b6",
+      "contentHash": "2e608520f3302acaf88b891ce91dd5537ac3aa4be8a133beac63fb918a3d1fa5",
       "functions": [],
       "classes": [
         {
@@ -10320,7 +10391,7 @@
       "exports": [
         "StoriesService"
       ],
-      "totalLines": 442,
+      "totalLines": 443,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/subscription.service.ts": {
@@ -10738,7 +10809,7 @@
     },
     "backend/apps/api/src/services/uploads.service.ts": {
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
-      "contentHash": "ae80f570691a15d6504097c9fe98d9729b278000b9760ed106712ab9eee4a8af",
+      "contentHash": "f5561151d3c399427391f65b1ecd76f30d92e728d26d9b1e92d9c9536ea6b9ec",
       "functions": [
         {
           "name": "isPrismaKnownError",
@@ -10822,7 +10893,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1679
+          "lineCount": 1681
         }
       ],
       "imports": [
@@ -10894,7 +10965,7 @@
         "MAX_STORY_MEDIA_UPLOAD_BYTES",
         "UploadsService"
       ],
-      "totalLines": 1753,
+      "totalLines": 1755,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/venue-geocoder.service.ts": {
@@ -11756,7 +11827,7 @@
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
-      "contentHash": "28472c38deec80089927f92e0d34b8c8ae905f3023d5459c6a3e689850b6f956",
+      "contentHash": "b2f3be68a53d6e29e5063d0a3f609e0f3226a5ba1fb4689098b07e7e05b44eb8",
       "functions": [
         {
           "name": "maskAdvCakeSecrets",
@@ -11871,7 +11942,16 @@
             "value"
           ],
           "exported": false,
-          "lineCount": 11
+          "lineCount": 24
+        },
+        {
+          "name": "safeCodePoint",
+          "params": [
+            "code",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 7
         },
         {
           "name": "parseMoscowDate",
@@ -12007,7 +12087,7 @@
         "AdvCakeTicketlandAdapter",
         "maskAdvCakeSecrets"
       ],
-      "totalLines": 497,
+      "totalLines": 518,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-deduplication.service.ts": {
@@ -12262,7 +12342,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "6971d971295666270bc691b8b45da7ec3a0d6a5fbd6a5238636946c200005e43",
+      "contentHash": "0a0419264a1dca9e8f35165853cf4b9df9f75b7157311e28e7a1e2981a612d93",
       "functions": [
         {
           "name": "safeJson",
@@ -12328,15 +12408,7 @@
           ],
           "returnType": "NormalizedExternalContentItem",
           "exported": false,
-          "lineCount": 18
-        },
-        {
-          "name": "geocoderEnrichmentFields",
-          "params": [
-            "geocoded"
-          ],
-          "exported": false,
-          "lineCount": 18
+          "lineCount": 26
         },
         {
           "name": "mergeRaw",
@@ -12493,7 +12565,7 @@
             "item"
           ],
           "exported": false,
-          "lineCount": 37
+          "lineCount": 39
         },
         {
           "name": "isAttachableSourceCandidate",
@@ -12604,7 +12676,7 @@
             "timeoutMs"
           ],
           "exported": true,
-          "lineCount": 1201
+          "lineCount": 1210
         }
       ],
       "imports": [
@@ -12697,7 +12769,7 @@
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
-      "contentHash": "604c2fe798f04d72d86d4559535321fd108b7f3a93033afcc38c171cabc1b35c",
+      "contentHash": "050e73fa38eaf7e02a344905917508c0cd98580f5ac34a74934e253e240ffcec",
       "functions": [
         {
           "name": "normalizeTitle",
@@ -12714,7 +12786,24 @@
             "maxLength"
           ],
           "exported": false,
-          "lineCount": 10
+          "lineCount": 15
+        },
+        {
+          "name": "decodeHtmlEntities",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "safeCodePoint",
+          "params": [
+            "code",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 7
         },
         {
           "name": "normalizeKey",
@@ -12807,7 +12896,7 @@
         "ContentNormalizerService",
         "normalizeTitle"
       ],
-      "totalLines": 206,
+      "totalLines": 244,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-source.types.ts": {
@@ -14105,7 +14194,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "5f84748a70e6f3c4927741b4684332acad9211494f926b9195b1cd4242b533e2",
+      "contentHash": "aa355e6b15134a8f298b49126b9287b5607d99d049cee3be20654870acf16568",
       "functions": [
         {
           "name": "isDetailPath",
@@ -14654,7 +14743,7 @@
             "catalogFallbackMaxPages"
           ],
           "exported": true,
-          "lineCount": 642
+          "lineCount": 653
         }
       ],
       "imports": [
@@ -14677,7 +14766,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1434,
+      "totalLines": 1445,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {
@@ -14990,7 +15079,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "8e55fdfb2ae947a3f9b78c8cd290151535f7627a36f59d790f20e38b17281473",
+      "contentHash": "f8f5d9b432f352a881407c08f83a0b79a8c4138bb938266b91cc3ba8a1210379",
       "functions": [
         {
           "name": "csv",
@@ -15193,7 +15282,7 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 2217
+          "lineCount": 2220
         }
       ],
       "imports": [
@@ -15290,7 +15379,7 @@
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 2376,
+      "totalLines": 2379,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {
@@ -17540,7 +17629,7 @@
     },
     "backend/packages/database/src/venue-geocoder.ts": {
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "contentHash": "d7eaf44c17f3303682acec0f943a451fff836677a6202190fd8a0f5bf40b47ea",
+      "contentHash": "79269f8eff5d7b3a7e8a0381fa2f76b22c47b49b112695db3cb963e7dea0e983",
       "functions": [
         {
           "name": "isVenueGeocoderLimitError",
@@ -17559,26 +17648,6 @@
           "lineCount": 15
         },
         {
-          "name": "nominatimQuery",
-          "params": [
-            "input"
-          ],
-          "exported": false,
-          "lineCount": 8
-        },
-        {
-          "name": "highConfidenceNominatimResult",
-          "params": [
-            "payload",
-            "city",
-            "query",
-            "venueName"
-          ],
-          "returnType": "VenueGeocodeResult | null",
-          "exported": false,
-          "lineCount": 48
-        },
-        {
           "name": "highConfidenceResult",
           "params": [
             "payload",
@@ -17591,6 +17660,18 @@
           "lineCount": 32
         },
         {
+          "name": "nominatimResult",
+          "params": [
+            "payload",
+            "city",
+            "venueName",
+            "query"
+          ],
+          "returnType": "VenueGeocodeResult | null",
+          "exported": false,
+          "lineCount": 44
+        },
+        {
           "name": "isNominatimPlaceLike",
           "params": [
             "category",
@@ -17598,7 +17679,40 @@
             "addresstype"
           ],
           "exported": false,
-          "lineCount": 33
+          "lineCount": 34
+        },
+        {
+          "name": "nameLooksSimilar",
+          "params": [
+            "venueName",
+            "resultName"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "normalizedTokens",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "normalizedCacheKey",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "nominatimViewbox",
+          "params": [
+            "city"
+          ],
+          "exported": false,
+          "lineCount": 11
         },
         {
           "name": "isHighConfidence",
@@ -17609,57 +17723,6 @@
           ],
           "exported": false,
           "lineCount": 15
-        },
-        {
-          "name": "isVenueNameMatch",
-          "params": [
-            "venueName",
-            "resultName",
-            "displayName"
-          ],
-          "exported": false,
-          "lineCount": 27
-        },
-        {
-          "name": "distinctiveTokens",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 26
-        },
-        {
-          "name": "sameToken",
-          "params": [
-            "left",
-            "right"
-          ],
-          "exported": false,
-          "lineCount": 7
-        },
-        {
-          "name": "normalizeNameText",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 8
-        },
-        {
-          "name": "isResidentialComplexText",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 4
-        },
-        {
-          "name": "firstDisplayNamePart",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 3
         },
         {
           "name": "withinCity",
@@ -17681,6 +17744,22 @@
           "lineCount": 15
         },
         {
+          "name": "numberFromString",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "numberFromUnknown",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
           "name": "object",
           "params": [
             "value"
@@ -17696,22 +17775,6 @@
           ],
           "exported": false,
           "lineCount": 3
-        },
-        {
-          "name": "optionalFloat",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 8
-        },
-        {
-          "name": "optionalNumberOrString",
-          "params": [
-            "value"
-          ],
-          "exported": false,
-          "lineCount": 9
         },
         {
           "name": "cleanText",
@@ -17731,30 +17794,13 @@
           "lineCount": 8
         },
         {
-          "name": "booleanFlag",
+          "name": "nonNegativeInt",
           "params": [
             "value",
             "fallback"
           ],
           "exported": false,
-          "lineCount": 9
-        },
-        {
-          "name": "nominatimCacheKey",
-          "params": [
-            "city",
-            "venueName"
-          ],
-          "exported": false,
-          "lineCount": 6
-        },
-        {
-          "name": "sleep",
-          "params": [
-            "ms"
-          ],
-          "exported": false,
-          "lineCount": 3
+          "lineCount": 8
         }
       ],
       "classes": [
@@ -17774,14 +17820,13 @@
             "resetNominatimStateForTests",
             "geocode",
             "geocodeOrThrow",
-            "geocodeWithYandex",
             "geocodeWithNominatim",
-            "fetchNominatim",
             "waitForNominatimSlot"
           ],
           "properties": [
             "nominatimCache",
-            "nominatimNextRequestAt",
+            "lastNominatimRequestAt",
+            "nominatimStoppedForRun",
             "apiKey",
             "baseUrl",
             "timeoutMs",
@@ -17791,7 +17836,7 @@
             "nominatimRateLimitMs"
           ],
           "exported": true,
-          "lineCount": 174
+          "lineCount": 163
         }
       ],
       "imports": [
@@ -17807,7 +17852,7 @@
         "isVenueGeocoderLimitError",
         "VenueGeocoderClient"
       ],
-      "totalLines": 573,
+      "totalLines": 487,
       "hasStructuralAnalysis": true
     },
     "backend/scripts/perf-20k-smoke.mjs": {

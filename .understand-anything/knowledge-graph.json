@@ -21,8 +21,8 @@
       "NestJS",
       "Prisma"
     ],
-    "analyzedAt": "2026-05-26T03:57:15.624Z",
-    "gitCommitHash": "1490808b139551de969f1891807b4ad7966edf3a"
+    "analyzedAt": "2026-05-27T08:19:36.403Z",
+    "gitCommitHash": "065cfa6e26a2c2da1c26f8ef02733d83040c2291"
   },
   "nodes": [
     {
@@ -452,7 +452,7 @@
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
         29,
-        33
+        35
       ],
       "summary": "resolveMediaVisibility in media-presenters.ts.",
       "tags": [
@@ -468,8 +468,8 @@
       "name": "buildMediaCacheKey",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        35,
-        37
+        37,
+        39
       ],
       "summary": "buildMediaCacheKey in media-presenters.ts.",
       "tags": [
@@ -485,8 +485,8 @@
       "name": "mapMediaResource",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        39,
-        79
+        41,
+        81
       ],
       "summary": "mapMediaResource in media-presenters.ts.",
       "tags": [
@@ -502,8 +502,8 @@
       "name": "mapMediaAsset",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        81,
-        91
+        83,
+        93
       ],
       "summary": "mapMediaAsset in media-presenters.ts.",
       "tags": [
@@ -519,8 +519,8 @@
       "name": "mapProfilePhoto",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        93,
-        121
+        95,
+        123
       ],
       "summary": "mapProfilePhoto in media-presenters.ts.",
       "tags": [
@@ -536,8 +536,8 @@
       "name": "mapMediaVariants",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        123,
-        139
+        125,
+        141
       ],
       "summary": "mapMediaVariants in media-presenters.ts.",
       "tags": [
@@ -553,8 +553,8 @@
       "name": "mapMediaVariant",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        141,
-        166
+        143,
+        168
       ],
       "summary": "mapMediaVariant in media-presenters.ts.",
       "tags": [
@@ -570,8 +570,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        168,
-        172
+        170,
+        174
       ],
       "summary": "stringOrNull in media-presenters.ts.",
       "tags": [
@@ -587,8 +587,8 @@
       "name": "positiveIntegerOrNull",
       "filePath": "backend/apps/api/src/common/media-presenters.ts",
       "lineRange": [
-        174,
-        178
+        176,
+        180
       ],
       "summary": "positiveIntegerOrNull in media-presenters.ts.",
       "tags": [
@@ -663,7 +663,7 @@
       "type": "file",
       "name": "presenters.ts",
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "summary": "presenters.ts contains 20 functions.",
+      "summary": "presenters.ts contains 21 functions.",
       "tags": [
         "backend",
         "code",
@@ -677,8 +677,8 @@
       "name": "formatRelativeTime",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        21,
-        39
+        25,
+        43
       ],
       "summary": "formatRelativeTime in presenters.ts.",
       "tags": [
@@ -694,8 +694,8 @@
       "name": "formatEventTime",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        41,
-        58
+        45,
+        62
       ],
       "summary": "formatEventTime in presenters.ts.",
       "tags": [
@@ -711,8 +711,8 @@
       "name": "mapMessage",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        102,
-        140
+        106,
+        144
       ],
       "summary": "mapMessage in presenters.ts.",
       "tags": [
@@ -728,8 +728,8 @@
       "name": "resolveSystemMessageKind",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        142,
-        156
+        146,
+        160
       ],
       "summary": "resolveSystemMessageKind in presenters.ts.",
       "tags": [
@@ -745,8 +745,8 @@
       "name": "mapReplyPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        158,
-        183
+        162,
+        187
       ],
       "summary": "mapReplyPreview in presenters.ts.",
       "tags": [
@@ -762,8 +762,8 @@
       "name": "mapBasicProfile",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        229,
-        266
+        233,
+        270
       ],
       "summary": "mapBasicProfile in presenters.ts.",
       "tags": [
@@ -779,8 +779,8 @@
       "name": "hasActiveFrendlyPlus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        268,
-        285
+        272,
+        289
       ],
       "summary": "hasActiveFrendlyPlus in presenters.ts.",
       "tags": [
@@ -796,8 +796,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        287,
-        298
+        291,
+        302
       ],
       "summary": "calculateAge in presenters.ts.",
       "tags": [
@@ -813,8 +813,8 @@
       "name": "mapUserPreview",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        300,
-        312
+        304,
+        316
       ],
       "summary": "mapUserPreview in presenters.ts.",
       "tags": [
@@ -830,8 +830,8 @@
       "name": "mapAttendanceStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        314,
-        318
+        318,
+        322
       ],
       "summary": "mapAttendanceStatus in presenters.ts.",
       "tags": [
@@ -847,8 +847,8 @@
       "name": "mapJoinRequestStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        320,
-        324
+        324,
+        328
       ],
       "summary": "mapJoinRequestStatus in presenters.ts.",
       "tags": [
@@ -864,8 +864,8 @@
       "name": "mapLiveStatus",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        328,
-        339
+        332,
+        343
       ],
       "summary": "mapLiveStatus in presenters.ts.",
       "tags": [
@@ -881,8 +881,8 @@
       "name": "mapEventTicketSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        414,
-        454
+        427,
+        467
       ],
       "summary": "mapEventTicketSummary in presenters.ts.",
       "tags": [
@@ -898,8 +898,8 @@
       "name": "mapEventBookingSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        456,
-        492
+        469,
+        505
       ],
       "summary": "mapEventBookingSummary in presenters.ts.",
       "tags": [
@@ -915,8 +915,8 @@
       "name": "mapEventSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        494,
-        565
+        507,
+        586
       ],
       "summary": "mapEventSummary in presenters.ts.",
       "tags": [
@@ -932,8 +932,8 @@
       "name": "mapEventBoostSummary",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        567,
-        591
+        588,
+        612
       ],
       "summary": "mapEventBoostSummary in presenters.ts.",
       "tags": [
@@ -949,8 +949,8 @@
       "name": "boostTierForOption",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        593,
-        621
+        614,
+        642
       ],
       "summary": "boostTierForOption in presenters.ts.",
       "tags": [
@@ -966,8 +966,8 @@
       "name": "mapEventRoutePoints",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        623,
-        644
+        644,
+        673
       ],
       "summary": "mapEventRoutePoints in presenters.ts.",
       "tags": [
@@ -983,10 +983,27 @@
       "name": "mapEventImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        646,
-        655
+        675,
+        684
       ],
       "summary": "mapEventImageUrl in presenters.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/presenters.ts:mapEventImageVariants",
+      "type": "function",
+      "name": "mapEventImageVariants",
+      "filePath": "backend/apps/api/src/common/presenters.ts",
+      "lineRange": [
+        686,
+        692
+      ],
+      "summary": "mapEventImageVariants in presenters.ts.",
       "tags": [
         "backend",
         "function",
@@ -1000,8 +1017,8 @@
       "name": "mapExternalContentImageUrl",
       "filePath": "backend/apps/api/src/common/presenters.ts",
       "lineRange": [
-        657,
-        677
+        694,
+        714
       ],
       "summary": "mapExternalContentImageUrl in presenters.ts.",
       "tags": [
@@ -3527,7 +3544,7 @@
       "type": "file",
       "name": "affiche.service.ts",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "summary": "affiche.service.ts contains 1 classes, 1 functions.",
+      "summary": "affiche.service.ts contains 1 classes, 4 functions.",
       "tags": [
         "backend",
         "code",
@@ -3541,10 +3558,61 @@
       "name": "oneDayRange",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        1107,
-        1118
+        1125,
+        1136
       ],
       "summary": "oneDayRange in affiche.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/affiche.service.ts:cleanPublicText",
+      "type": "function",
+      "name": "cleanPublicText",
+      "filePath": "backend/apps/api/src/services/affiche.service.ts",
+      "lineRange": [
+        1138,
+        1152
+      ],
+      "summary": "cleanPublicText in affiche.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/affiche.service.ts:decodeHtmlEntities",
+      "type": "function",
+      "name": "decodeHtmlEntities",
+      "filePath": "backend/apps/api/src/services/affiche.service.ts",
+      "lineRange": [
+        1154,
+        1177
+      ],
+      "summary": "decodeHtmlEntities in affiche.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/affiche.service.ts:safeCodePoint",
+      "type": "function",
+      "name": "safeCodePoint",
+      "filePath": "backend/apps/api/src/services/affiche.service.ts",
+      "lineRange": [
+        1179,
+        1185
+      ],
+      "summary": "safeCodePoint in affiche.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -3559,7 +3627,7 @@
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
         140,
-        1105
+        1123
       ],
       "summary": "AfficheService in affiche.service.ts.",
       "tags": [
@@ -3678,8 +3746,8 @@
       "name": "ChatsService",
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
-        152,
-        1536
+        153,
+        1537
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [
@@ -3844,11 +3912,28 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 1 classes, 44 functions.",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 46 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:areaOrNull",
+      "type": "function",
+      "name": "areaOrNull",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2525,
+        2541
+      ],
+      "summary": "areaOrNull in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
       ],
       "complexity": "complex"
     },
@@ -3858,8 +3943,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2425,
-        2429
+        2562,
+        2566
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -3875,8 +3960,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2431,
-        2440
+        2568,
+        2577
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -3892,10 +3977,61 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2442,
-        2444
+        2579,
+        2581
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:integerFromEnv",
+      "type": "function",
+      "name": "integerFromEnv",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2583,
+        2590
+      ],
+      "summary": "integerFromEnv in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetOrNull",
+      "type": "function",
+      "name": "budgetOrNull",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2592,
+        2605
+      ],
+      "summary": "budgetOrNull in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:timezoneForCity",
+      "type": "function",
+      "name": "timezoneForCity",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2607,
+        2609
+      ],
+      "summary": "timezoneForCity in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -3909,8 +4045,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2446,
-        2454
+        2611,
+        2619
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -3926,8 +4062,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2456,
-        2461
+        2621,
+        2626
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -3943,8 +4079,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2463,
-        2471
+        2628,
+        2636
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -3960,8 +4096,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2473,
-        2475
+        2638,
+        2640
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -3977,8 +4113,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2477,
-        2479
+        2642,
+        2644
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -3994,10 +4130,27 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2481,
-        2489
+        2646,
+        2654
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:promptTermIndex",
+      "type": "function",
+      "name": "promptTermIndex",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2656,
+        2666
+      ],
+      "summary": "promptTermIndex in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4011,10 +4164,27 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2491,
-        2493
+        2668,
+        2670
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:promptExplicitStepCount",
+      "type": "function",
+      "name": "promptExplicitStepCount",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2672,
+        2691
+      ],
+      "summary": "promptExplicitStepCount in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4028,8 +4198,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2495,
-        2504
+        2693,
+        2702
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -4045,8 +4215,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2506,
-        2520
+        2704,
+        2718
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -4062,8 +4232,8 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2522,
-        2531
+        2720,
+        2729
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4074,15 +4244,15 @@
       "complexity": "complex"
     },
     {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stepCountFromPrompt",
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:todayEventDateWindow",
       "type": "function",
-      "name": "stepCountFromPrompt",
+      "name": "todayEventDateWindow",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2533,
-        2556
+        2737,
+        2745
       ],
-      "summary": "stepCountFromPrompt in evening-ai-draft.service.ts.",
+      "summary": "todayEventDateWindow in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4091,15 +4261,15 @@
       "complexity": "complex"
     },
     {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:participantsCountFromPrompt",
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:localDateFromIsoDate",
       "type": "function",
-      "name": "participantsCountFromPrompt",
+      "name": "localDateFromIsoDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2558,
-        2593
+        2747,
+        2750
       ],
-      "summary": "participantsCountFromPrompt in evening-ai-draft.service.ts.",
+      "summary": "localDateFromIsoDate in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4108,15 +4278,15 @@
       "complexity": "complex"
     },
     {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowFromPrompt",
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowFromStored",
       "type": "function",
-      "name": "eventDateWindowFromPrompt",
+      "name": "eventDateWindowFromStored",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2626,
-        2690
+        2752,
+        2768
       ],
-      "summary": "eventDateWindowFromPrompt in evening-ai-draft.service.ts.",
+      "summary": "eventDateWindowFromStored in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4130,8 +4300,8 @@
       "name": "eventDateWindowForLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2692,
-        2705
+        2770,
+        2784
       ],
       "summary": "eventDateWindowForLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4147,8 +4317,8 @@
       "name": "localDateFromValues",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2707,
-        2727
+        2786,
+        2806
       ],
       "summary": "localDateFromValues in evening-ai-draft.service.ts.",
       "tags": [
@@ -4164,10 +4334,27 @@
       "name": "zonedDateParts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2729,
-        2742
+        2808,
+        2821
       ],
       "summary": "zonedDateParts in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:localDateIso",
+      "type": "function",
+      "name": "localDateIso",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2823,
+        2825
+      ],
+      "summary": "localDateIso in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4181,44 +4368,10 @@
       "name": "zonedTimeToUtc",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2744,
-        2774
+        2827,
+        2857
       ],
       "summary": "zonedTimeToUtc in evening-ai-draft.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:addLocalDays",
-      "type": "function",
-      "name": "addLocalDays",
-      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "lineRange": [
-        2776,
-        2783
-      ],
-      "summary": "addLocalDays in evening-ai-draft.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:weekdayForLocalDate",
-      "type": "function",
-      "name": "weekdayForLocalDate",
-      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "lineRange": [
-        2785,
-        2787
-      ],
-      "summary": "weekdayForLocalDate in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4232,8 +4385,8 @@
       "name": "sameLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2789,
-        2791
+        2859,
+        2861
       ],
       "summary": "sameLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4249,8 +4402,8 @@
       "name": "compareLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2793,
-        2795
+        2863,
+        2865
       ],
       "summary": "compareLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4266,8 +4419,8 @@
       "name": "validLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2797,
-        2802
+        2867,
+        2872
       ],
       "summary": "validLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4283,27 +4436,10 @@
       "name": "intentStepCountFromGenerated",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2804,
-        2811
+        2874,
+        2880
       ],
       "summary": "intentStepCountFromGenerated in evening-ai-draft.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:intentParticipantsCountFromGenerated",
-      "type": "function",
-      "name": "intentParticipantsCountFromGenerated",
-      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "lineRange": [
-        2813,
-        2816
-      ],
-      "summary": "intentParticipantsCountFromGenerated in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4317,8 +4453,8 @@
       "name": "normalizedCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2818,
-        2833
+        2882,
+        2897
       ],
       "summary": "normalizedCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -4334,8 +4470,8 @@
       "name": "taxonomyTagQueriesForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2962,
-        2988
+        3038,
+        3064
       ],
       "summary": "taxonomyTagQueriesForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4351,8 +4487,8 @@
       "name": "taxonomyTermMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2990,
-        2992
+        3066,
+        3068
       ],
       "summary": "taxonomyTermMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -4368,8 +4504,8 @@
       "name": "taxonomyAliasMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2994,
-        2999
+        3070,
+        3075
       ],
       "summary": "taxonomyAliasMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -4385,8 +4521,8 @@
       "name": "escapeRegExp",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3001,
-        3003
+        3077,
+        3079
       ],
       "summary": "escapeRegExp in evening-ai-draft.service.ts.",
       "tags": [
@@ -4402,8 +4538,8 @@
       "name": "normalizeTaxonomyToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3005,
-        3012
+        3081,
+        3088
       ],
       "summary": "normalizeTaxonomyToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -4419,8 +4555,8 @@
       "name": "transliterateRu",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3014,
-        3050
+        3090,
+        3126
       ],
       "summary": "transliterateRu in evening-ai-draft.service.ts.",
       "tags": [
@@ -4431,66 +4567,15 @@
       "complexity": "complex"
     },
     {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetFromPrompt",
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetFromText",
       "type": "function",
-      "name": "budgetFromPrompt",
+      "name": "budgetFromText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3052,
-        3072
+        3128,
+        3148
       ],
-      "summary": "budgetFromPrompt in evening-ai-draft.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:areaFromPrompt",
-      "type": "function",
-      "name": "areaFromPrompt",
-      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "lineRange": [
-        3074,
-        3084
-      ],
-      "summary": "areaFromPrompt in evening-ai-draft.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:explicitAreaFromPrompt",
-      "type": "function",
-      "name": "explicitAreaFromPrompt",
-      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "lineRange": [
-        3086,
-        3105
-      ],
-      "summary": "explicitAreaFromPrompt in evening-ai-draft.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeAreaPhrase",
-      "type": "function",
-      "name": "normalizeAreaPhrase",
-      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "lineRange": [
-        3107,
-        3140
-      ],
-      "summary": "normalizeAreaPhrase in evening-ai-draft.service.ts.",
+      "summary": "budgetFromText in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4504,10 +4589,27 @@
       "name": "areaTermsFor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3142,
-        3151
+        3150,
+        3159
       ],
       "summary": "areaTermsFor in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:displayAreaForRoute",
+      "type": "function",
+      "name": "displayAreaForRoute",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3161,
+        3191
+      ],
+      "summary": "displayAreaForRoute in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4521,8 +4623,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3153,
-        3155
+        3193,
+        3195
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -4538,8 +4640,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3157,
-        3159
+        3197,
+        3199
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -4555,8 +4657,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3161,
-        3167
+        3201,
+        3207
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -4572,8 +4674,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3169,
-        3182
+        3209,
+        3222
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -4589,8 +4691,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3184,
-        3186
+        3224,
+        3226
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -4606,8 +4708,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        196,
-        2185
+        214,
+        2303
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -4969,8 +5071,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4786,
-        4816
+        4832,
+        4862
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -4986,8 +5088,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4818,
-        4822
+        4864,
+        4868
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -5003,8 +5105,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4824,
-        4826
+        4870,
+        4872
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -5020,8 +5122,8 @@
       "name": "cleanEventText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4828,
-        4834
+        4874,
+        4880
       ],
       "summary": "cleanEventText in events.service.ts.",
       "tags": [
@@ -5037,8 +5139,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4836,
-        4838
+        4882,
+        4884
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -5054,8 +5156,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4840,
-        4859
+        4886,
+        4905
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -5071,8 +5173,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        232,
-        4784
+        254,
+        4830
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -5101,8 +5203,8 @@
       "name": "HostService",
       "filePath": "backend/apps/api/src/services/host.service.ts",
       "lineRange": [
-        83,
-        1596
+        84,
+        1597
       ],
       "summary": "HostService in host.service.ts.",
       "tags": [
@@ -6458,8 +6560,8 @@
       "name": "StoriesService",
       "filePath": "backend/apps/api/src/services/stories.service.ts",
       "lineRange": [
-        49,
-        441
+        50,
+        442
       ],
       "summary": "StoriesService in stories.service.ts.",
       "tags": [
@@ -6673,7 +6775,7 @@
       "filePath": "backend/apps/api/src/services/uploads.service.ts",
       "lineRange": [
         74,
-        1752
+        1754
       ],
       "summary": "UploadsService in uploads.service.ts.",
       "tags": [
@@ -7307,7 +7409,7 @@
       "type": "file",
       "name": "advcake-ticketland.adapter.ts",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
-      "summary": "advcake-ticketland.adapter.ts contains 1 classes, 24 functions.",
+      "summary": "advcake-ticketland.adapter.ts contains 1 classes, 25 functions.",
       "tags": [
         "backend",
         "code",
@@ -7543,9 +7645,26 @@
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
         399,
-        409
+        422
       ],
       "summary": "decodeEntities in advcake-ticketland.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/advcake-ticketland.adapter.ts:safeCodePoint",
+      "type": "function",
+      "name": "safeCodePoint",
+      "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
+      "lineRange": [
+        424,
+        430
+      ],
+      "summary": "safeCodePoint in advcake-ticketland.adapter.ts.",
       "tags": [
         "backend",
         "function",
@@ -7559,8 +7678,8 @@
       "name": "parseMoscowDate",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        411,
-        421
+        432,
+        442
       ],
       "summary": "parseMoscowDate in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7576,8 +7695,8 @@
       "name": "normalizeCity",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        423,
-        441
+        444,
+        462
       ],
       "summary": "normalizeCity in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7593,8 +7712,8 @@
       "name": "ensureTrailingSlash",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        443,
-        445
+        464,
+        466
       ],
       "summary": "ensureTrailingSlash in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7610,8 +7729,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        447,
-        449
+        468,
+        470
       ],
       "summary": "object in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7627,8 +7746,8 @@
       "name": "array",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        451,
-        456
+        472,
+        477
       ],
       "summary": "array in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7644,8 +7763,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        458,
-        467
+        479,
+        488
       ],
       "summary": "text in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7661,8 +7780,8 @@
       "name": "numberFromString",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        469,
-        475
+        490,
+        496
       ],
       "summary": "numberFromString in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7678,8 +7797,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        477,
-        486
+        498,
+        507
       ],
       "summary": "number in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7695,8 +7814,8 @@
       "name": "integer",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        488,
-        491
+        509,
+        512
       ],
       "summary": "integer in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -7712,8 +7831,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        493,
-        496
+        514,
+        517
       ],
       "summary": "positiveInt in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -8060,7 +8179,7 @@
       "type": "file",
       "name": "content-import.service.ts",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "summary": "content-import.service.ts contains 1 classes, 36 functions.",
+      "summary": "content-import.service.ts contains 1 classes, 35 functions.",
       "tags": [
         "backend",
         "code",
@@ -8074,8 +8193,8 @@
       "name": "safeJson",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1373,
-        1378
+        1382,
+        1387
       ],
       "summary": "safeJson in content-import.service.ts.",
       "tags": [
@@ -8091,8 +8210,8 @@
       "name": "dayBounds",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1380,
-        1385
+        1389,
+        1394
       ],
       "summary": "dayBounds in content-import.service.ts.",
       "tags": [
@@ -8108,8 +8227,8 @@
       "name": "duplicateCacheKey",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1387,
-        1394
+        1396,
+        1403
       ],
       "summary": "duplicateCacheKey in content-import.service.ts.",
       "tags": [
@@ -8125,8 +8244,8 @@
       "name": "itemsPerSecond",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1396,
-        1401
+        1405,
+        1410
       ],
       "summary": "itemsPerSecond in content-import.service.ts.",
       "tags": [
@@ -8142,8 +8261,8 @@
       "name": "enrichItemFromDuplicate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1403,
-        1429
+        1412,
+        1438
       ],
       "summary": "enrichItemFromDuplicate in content-import.service.ts.",
       "tags": [
@@ -8159,8 +8278,8 @@
       "name": "enrichItemFromPlace",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1431,
-        1453
+        1440,
+        1462
       ],
       "summary": "enrichItemFromPlace in content-import.service.ts.",
       "tags": [
@@ -8176,27 +8295,10 @@
       "name": "enrichItemFromGeocoder",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1455,
-        1472
+        1464,
+        1489
       ],
       "summary": "enrichItemFromGeocoder in content-import.service.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/apps/worker/src/content/content-import.service.ts:geocoderEnrichmentFields",
-      "type": "function",
-      "name": "geocoderEnrichmentFields",
-      "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "lineRange": [
-        1474,
-        1491
-      ],
-      "summary": "geocoderEnrichmentFields in content-import.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -8210,8 +8312,8 @@
       "name": "mergeRaw",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1493,
-        1502
+        1491,
+        1500
       ],
       "summary": "mergeRaw in content-import.service.ts.",
       "tags": [
@@ -8227,8 +8329,8 @@
       "name": "kudagoPlaceId",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1504,
-        1514
+        1502,
+        1512
       ],
       "summary": "kudagoPlaceId in content-import.service.ts.",
       "tags": [
@@ -8244,8 +8346,8 @@
       "name": "selectExactVenuePlace",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1516,
-        1524
+        1514,
+        1522
       ],
       "summary": "selectExactVenuePlace in content-import.service.ts.",
       "tags": [
@@ -8261,8 +8363,8 @@
       "name": "placeSourcePriority",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1526,
-        1534
+        1524,
+        1532
       ],
       "summary": "placeSourcePriority in content-import.service.ts.",
       "tags": [
@@ -8278,8 +8380,8 @@
       "name": "isReliableAffiliateVenueName",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1536,
-        1542
+        1534,
+        1540
       ],
       "summary": "isReliableAffiliateVenueName in content-import.service.ts.",
       "tags": [
@@ -8295,8 +8397,8 @@
       "name": "ticketlandBackfillCityPriority",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1544,
-        1550
+        1542,
+        1548
       ],
       "summary": "ticketlandBackfillCityPriority in content-import.service.ts.",
       "tags": [
@@ -8312,8 +8414,8 @@
       "name": "ticketlandGeocoderQueries",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1552,
-        1573
+        1550,
+        1571
       ],
       "summary": "ticketlandGeocoderQueries in content-import.service.ts.",
       "tags": [
@@ -8329,8 +8431,8 @@
       "name": "shouldPublishBackfilledTicketland",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1575,
-        1579
+        1573,
+        1577
       ],
       "summary": "shouldPublishBackfilledTicketland in content-import.service.ts.",
       "tags": [
@@ -8346,8 +8448,8 @@
       "name": "isHttpLimitError",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1581,
-        1588
+        1579,
+        1586
       ],
       "summary": "isHttpLimitError in content-import.service.ts.",
       "tags": [
@@ -8363,8 +8465,8 @@
       "name": "normalizeVenueText",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1590,
-        1599
+        1588,
+        1597
       ],
       "summary": "normalizeVenueText in content-import.service.ts.",
       "tags": [
@@ -8380,8 +8482,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1601,
-        1604
+        1599,
+        1602
       ],
       "summary": "positiveInt in content-import.service.ts.",
       "tags": [
@@ -8397,8 +8499,8 @@
       "name": "boundedPositiveInt",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1606,
-        1613
+        1604,
+        1611
       ],
       "summary": "boundedPositiveInt in content-import.service.ts.",
       "tags": [
@@ -8414,8 +8516,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1615,
-        1617
+        1613,
+        1615
       ],
       "summary": "object in content-import.service.ts.",
       "tags": [
@@ -8431,8 +8533,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1619,
-        1625
+        1617,
+        1623
       ],
       "summary": "parseDate in content-import.service.ts.",
       "tags": [
@@ -8448,8 +8550,8 @@
       "name": "optionalString",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1627,
-        1629
+        1625,
+        1627
       ],
       "summary": "optionalString in content-import.service.ts.",
       "tags": [
@@ -8465,8 +8567,8 @@
       "name": "optionalPositiveInteger",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1631,
-        1638
+        1629,
+        1636
       ],
       "summary": "optionalPositiveInteger in content-import.service.ts.",
       "tags": [
@@ -8482,8 +8584,8 @@
       "name": "optionalNonNegativeInteger",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1640,
-        1647
+        1638,
+        1645
       ],
       "summary": "optionalNonNegativeInteger in content-import.service.ts.",
       "tags": [
@@ -8499,8 +8601,8 @@
       "name": "tomestoCatalogProgress",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1649,
-        1661
+        1647,
+        1659
       ],
       "summary": "tomestoCatalogProgress in content-import.service.ts.",
       "tags": [
@@ -8516,7 +8618,7 @@
       "name": "publicStatusFor",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1663,
+        1661,
         1699
       ],
       "summary": "publicStatusFor in content-import.service.ts.",
@@ -8687,7 +8789,7 @@
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
         165,
-        1365
+        1374
       ],
       "summary": "ContentImportService in content-import.service.ts.",
       "tags": [
@@ -8702,7 +8804,7 @@
       "type": "file",
       "name": "content-normalizer.service.ts",
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
-      "summary": "content-normalizer.service.ts contains 1 classes, 8 functions.",
+      "summary": "content-normalizer.service.ts contains 1 classes, 10 functions.",
       "tags": [
         "backend",
         "code",
@@ -8734,9 +8836,43 @@
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
       "lineRange": [
         149,
-        158
+        163
       ],
       "summary": "cleanText in content-normalizer.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-normalizer.service.ts:decodeHtmlEntities",
+      "type": "function",
+      "name": "decodeHtmlEntities",
+      "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
+      "lineRange": [
+        165,
+        188
+      ],
+      "summary": "decodeHtmlEntities in content-normalizer.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-normalizer.service.ts:safeCodePoint",
+      "type": "function",
+      "name": "safeCodePoint",
+      "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
+      "lineRange": [
+        190,
+        196
+      ],
+      "summary": "safeCodePoint in content-normalizer.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -8750,8 +8886,8 @@
       "name": "normalizeKey",
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
       "lineRange": [
-        160,
-        162
+        198,
+        200
       ],
       "summary": "normalizeKey in content-normalizer.service.ts.",
       "tags": [
@@ -8767,8 +8903,8 @@
       "name": "coordinate",
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
       "lineRange": [
-        164,
-        169
+        202,
+        207
       ],
       "summary": "coordinate in content-normalizer.service.ts.",
       "tags": [
@@ -8784,8 +8920,8 @@
       "name": "integer",
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
       "lineRange": [
-        171,
-        176
+        209,
+        214
       ],
       "summary": "integer in content-normalizer.service.ts.",
       "tags": [
@@ -8801,8 +8937,8 @@
       "name": "priceMode",
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
       "lineRange": [
-        178,
-        189
+        216,
+        227
       ],
       "summary": "priceMode in content-normalizer.service.ts.",
       "tags": [
@@ -8818,8 +8954,8 @@
       "name": "validDate",
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
       "lineRange": [
-        191,
-        193
+        229,
+        231
       ],
       "summary": "validDate in content-normalizer.service.ts.",
       "tags": [
@@ -8835,8 +8971,8 @@
       "name": "expiresAt",
       "filePath": "backend/apps/worker/src/content/content-normalizer.service.ts",
       "lineRange": [
-        195,
-        205
+        233,
+        243
       ],
       "summary": "expiresAt in content-normalizer.service.ts.",
       "tags": [
@@ -10886,8 +11022,8 @@
       "name": "isDetailPath",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        685,
-        698
+        696,
+        709
       ],
       "summary": "isDetailPath in tomesto.adapter.ts.",
       "tags": [
@@ -10903,8 +11039,8 @@
       "name": "tomestoSourceItemId",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        700,
-        702
+        711,
+        713
       ],
       "summary": "tomestoSourceItemId in tomesto.adapter.ts.",
       "tags": [
@@ -10920,8 +11056,8 @@
       "name": "stripHash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        704,
-        708
+        715,
+        719
       ],
       "summary": "stripHash in tomesto.adapter.ts.",
       "tags": [
@@ -10937,8 +11073,8 @@
       "name": "canonicalUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        710,
-        720
+        721,
+        731
       ],
       "summary": "canonicalUrl in tomesto.adapter.ts.",
       "tags": [
@@ -10954,8 +11090,8 @@
       "name": "slugFromUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        722,
-        730
+        733,
+        741
       ],
       "summary": "slugFromUrl in tomesto.adapter.ts.",
       "tags": [
@@ -10971,8 +11107,8 @@
       "name": "firstText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        732,
-        744
+        743,
+        755
       ],
       "summary": "firstText in tomesto.adapter.ts.",
       "tags": [
@@ -10988,8 +11124,8 @@
       "name": "firstAttr",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        746,
-        754
+        757,
+        765
       ],
       "summary": "firstAttr in tomesto.adapter.ts.",
       "tags": [
@@ -11005,8 +11141,8 @@
       "name": "placeSlugFromVenueUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        756,
-        772
+        767,
+        783
       ],
       "summary": "placeSlugFromVenueUrl in tomesto.adapter.ts.",
       "tags": [
@@ -11022,8 +11158,8 @@
       "name": "collectTexts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        774,
-        786
+        785,
+        797
       ],
       "summary": "collectTexts in tomesto.adapter.ts.",
       "tags": [
@@ -11039,8 +11175,8 @@
       "name": "meta",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        788,
-        794
+        799,
+        805
       ],
       "summary": "meta in tomesto.adapter.ts.",
       "tags": [
@@ -11056,8 +11192,8 @@
       "name": "shortDescription",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        796,
-        802
+        807,
+        813
       ],
       "summary": "shortDescription in tomesto.adapter.ts.",
       "tags": [
@@ -11073,8 +11209,8 @@
       "name": "blockedTomestoPromoReason",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        804,
-        828
+        815,
+        839
       ],
       "summary": "blockedTomestoPromoReason in tomesto.adapter.ts.",
       "tags": [
@@ -11090,8 +11226,8 @@
       "name": "cleanText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        830,
-        839
+        841,
+        850
       ],
       "summary": "cleanText in tomesto.adapter.ts.",
       "tags": [
@@ -11107,8 +11243,8 @@
       "name": "normalizeSearchText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        841,
-        843
+        852,
+        854
       ],
       "summary": "normalizeSearchText in tomesto.adapter.ts.",
       "tags": [
@@ -11124,8 +11260,8 @@
       "name": "coordinates",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        845,
-        867
+        856,
+        878
       ],
       "summary": "coordinates in tomesto.adapter.ts.",
       "tags": [
@@ -11141,8 +11277,8 @@
       "name": "jsonLdObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        869,
-        880
+        880,
+        891
       ],
       "summary": "jsonLdObjects in tomesto.adapter.ts.",
       "tags": [
@@ -11158,8 +11294,8 @@
       "name": "collectJsonObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        882,
-        893
+        893,
+        904
       ],
       "summary": "collectJsonObjects in tomesto.adapter.ts.",
       "tags": [
@@ -11175,8 +11311,8 @@
       "name": "placeCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        895,
-        921
+        906,
+        932
       ],
       "summary": "placeCategory in tomesto.adapter.ts.",
       "tags": [
@@ -11192,8 +11328,8 @@
       "name": "averageCheck",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        923,
-        930
+        934,
+        941
       ],
       "summary": "averageCheck in tomesto.adapter.ts.",
       "tags": [
@@ -11209,8 +11345,8 @@
       "name": "visiblePrice",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        932,
-        946
+        943,
+        957
       ],
       "summary": "visiblePrice in tomesto.adapter.ts.",
       "tags": [
@@ -11226,8 +11362,8 @@
       "name": "rating",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        948,
-        954
+        959,
+        965
       ],
       "summary": "rating in tomesto.adapter.ts.",
       "tags": [
@@ -11243,8 +11379,8 @@
       "name": "metroLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        956,
-        970
+        967,
+        981
       ],
       "summary": "metroLabels in tomesto.adapter.ts.",
       "tags": [
@@ -11260,8 +11396,8 @@
       "name": "featureLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        972,
-        986
+        983,
+        997
       ],
       "summary": "featureLabels in tomesto.adapter.ts.",
       "tags": [
@@ -11277,8 +11413,8 @@
       "name": "cuisineLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        988,
-        994
+        999,
+        1005
       ],
       "summary": "cuisineLabels in tomesto.adapter.ts.",
       "tags": [
@@ -11294,8 +11430,8 @@
       "name": "setLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        996,
-        1021
+        1007,
+        1032
       ],
       "summary": "setLabels in tomesto.adapter.ts.",
       "tags": [
@@ -11311,8 +11447,8 @@
       "name": "sourceUpdatedText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1023,
-        1030
+        1034,
+        1041
       ],
       "summary": "sourceUpdatedText in tomesto.adapter.ts.",
       "tags": [
@@ -11328,8 +11464,8 @@
       "name": "compactPageText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1032,
-        1036
+        1043,
+        1047
       ],
       "summary": "compactPageText in tomesto.adapter.ts.",
       "tags": [
@@ -11345,8 +11481,8 @@
       "name": "tomestoClosedPlaceStatus",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1038,
-        1052
+        1049,
+        1063
       ],
       "summary": "tomestoClosedPlaceStatus in tomesto.adapter.ts.",
       "tags": [
@@ -11362,8 +11498,8 @@
       "name": "buildPlaceTaxonomy",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1054,
-        1088
+        1065,
+        1099
       ],
       "summary": "buildPlaceTaxonomy in tomesto.adapter.ts.",
       "tags": [
@@ -11379,8 +11515,8 @@
       "name": "taxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1090,
-        1101
+        1101,
+        1112
       ],
       "summary": "taxonomyTags in tomesto.adapter.ts.",
       "tags": [
@@ -11396,8 +11532,8 @@
       "name": "normalizeFeature",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1103,
-        1127
+        1114,
+        1138
       ],
       "summary": "normalizeFeature in tomesto.adapter.ts.",
       "tags": [
@@ -11413,8 +11549,8 @@
       "name": "extractImageUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1129,
-        1140
+        1140,
+        1151
       ],
       "summary": "extractImageUrl in tomesto.adapter.ts.",
       "tags": [
@@ -11430,8 +11566,8 @@
       "name": "firstDateWindow",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1142,
-        1150
+        1153,
+        1161
       ],
       "summary": "firstDateWindow in tomesto.adapter.ts.",
       "tags": [
@@ -11447,8 +11583,8 @@
       "name": "dateWindows",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1152,
-        1177
+        1163,
+        1188
       ],
       "summary": "dateWindows in tomesto.adapter.ts.",
       "tags": [
@@ -11464,8 +11600,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1179,
-        1200
+        1190,
+        1211
       ],
       "summary": "parseDate in tomesto.adapter.ts.",
       "tags": [
@@ -11481,8 +11617,8 @@
       "name": "eventCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1202,
-        1223
+        1213,
+        1234
       ],
       "summary": "eventCategory in tomesto.adapter.ts.",
       "tags": [
@@ -11498,8 +11634,8 @@
       "name": "ensureTrailingSlash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1225,
-        1227
+        1236,
+        1238
       ],
       "summary": "ensureTrailingSlash in tomesto.adapter.ts.",
       "tags": [
@@ -11515,8 +11651,8 @@
       "name": "normalizeRefQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1229,
-        1235
+        1240,
+        1246
       ],
       "summary": "normalizeRefQuery in tomesto.adapter.ts.",
       "tags": [
@@ -11532,8 +11668,8 @@
       "name": "safeQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1237,
-        1243
+        1248,
+        1254
       ],
       "summary": "safeQuery in tomesto.adapter.ts.",
       "tags": [
@@ -11549,8 +11685,8 @@
       "name": "dateKey",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1245,
-        1247
+        1256,
+        1258
       ],
       "summary": "dateKey in tomesto.adapter.ts.",
       "tags": [
@@ -11566,8 +11702,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1249,
-        1255
+        1260,
+        1266
       ],
       "summary": "text in tomesto.adapter.ts.",
       "tags": [
@@ -11583,8 +11719,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1257,
-        1267
+        1268,
+        1278
       ],
       "summary": "number in tomesto.adapter.ts.",
       "tags": [
@@ -11600,8 +11736,8 @@
       "name": "positiveNumber",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1269,
-        1272
+        1280,
+        1283
       ],
       "summary": "positiveNumber in tomesto.adapter.ts.",
       "tags": [
@@ -11617,8 +11753,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1274,
-        1277
+        1285,
+        1288
       ],
       "summary": "positiveInt in tomesto.adapter.ts.",
       "tags": [
@@ -11634,8 +11770,8 @@
       "name": "nonNegativeInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1279,
-        1282
+        1290,
+        1293
       ],
       "summary": "nonNegativeInt in tomesto.adapter.ts.",
       "tags": [
@@ -11651,8 +11787,8 @@
       "name": "boundedPositiveInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1284,
-        1290
+        1295,
+        1301
       ],
       "summary": "boundedPositiveInt in tomesto.adapter.ts.",
       "tags": [
@@ -11668,8 +11804,8 @@
       "name": "positiveInteger",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1292,
-        1299
+        1303,
+        1310
       ],
       "summary": "positiveInteger in tomesto.adapter.ts.",
       "tags": [
@@ -11685,8 +11821,8 @@
       "name": "nonNegativeInteger",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1301,
-        1308
+        1312,
+        1319
       ],
       "summary": "nonNegativeInteger in tomesto.adapter.ts.",
       "tags": [
@@ -11702,8 +11838,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1310,
-        1312
+        1321,
+        1323
       ],
       "summary": "object in tomesto.adapter.ts.",
       "tags": [
@@ -11719,8 +11855,8 @@
       "name": "mergeRaw",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1314,
-        1319
+        1325,
+        1330
       ],
       "summary": "mergeRaw in tomesto.adapter.ts.",
       "tags": [
@@ -11736,8 +11872,8 @@
       "name": "delay",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1321,
-        1323
+        1332,
+        1334
       ],
       "summary": "delay in tomesto.adapter.ts.",
       "tags": [
@@ -11753,8 +11889,8 @@
       "name": "normalizeToken",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1325,
-        1333
+        1336,
+        1344
       ],
       "summary": "normalizeToken in tomesto.adapter.ts.",
       "tags": [
@@ -11770,8 +11906,8 @@
       "name": "normalizeSlug",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1335,
-        1343
+        1346,
+        1354
       ],
       "summary": "normalizeSlug in tomesto.adapter.ts.",
       "tags": [
@@ -11787,8 +11923,8 @@
       "name": "transliterate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1345,
-        1385
+        1356,
+        1396
       ],
       "summary": "transliterate in tomesto.adapter.ts.",
       "tags": [
@@ -11804,8 +11940,8 @@
       "name": "dedupe",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1387,
-        1389
+        1398,
+        1400
       ],
       "summary": "dedupe in tomesto.adapter.ts.",
       "tags": [
@@ -11821,8 +11957,8 @@
       "name": "isString",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1391,
-        1393
+        1402,
+        1404
       ],
       "summary": "isString in tomesto.adapter.ts.",
       "tags": [
@@ -11838,8 +11974,8 @@
       "name": "emptyTaxonomyCounts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1395,
-        1401
+        1406,
+        1412
       ],
       "summary": "emptyTaxonomyCounts in tomesto.adapter.ts.",
       "tags": [
@@ -11855,8 +11991,8 @@
       "name": "countTaxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1403,
-        1413
+        1414,
+        1424
       ],
       "summary": "countTaxonomyTags in tomesto.adapter.ts.",
       "tags": [
@@ -11872,8 +12008,8 @@
       "name": "isSitemapPlacePath",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1415,
-        1429
+        1426,
+        1440
       ],
       "summary": "isSitemapPlacePath in tomesto.adapter.ts.",
       "tags": [
@@ -11889,8 +12025,8 @@
       "name": "isTomestoNotFound",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1431,
-        1433
+        1442,
+        1444
       ],
       "summary": "isTomestoNotFound in tomesto.adapter.ts.",
       "tags": [
@@ -11907,7 +12043,7 @@
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
         42,
-        683
+        694
       ],
       "summary": "TomestoAdapter in tomesto.adapter.ts.",
       "tags": [
@@ -12235,8 +12371,8 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2288,
-        2294
+        2291,
+        2297
       ],
       "summary": "csv in worker.service.ts.",
       "tags": [
@@ -12252,8 +12388,8 @@
       "name": "weekdayNumber",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2296,
-        2315
+        2299,
+        2318
       ],
       "summary": "weekdayNumber in worker.service.ts.",
       "tags": [
@@ -12269,8 +12405,8 @@
       "name": "addCalendarDays",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2317,
-        2328
+        2320,
+        2331
       ],
       "summary": "addCalendarDays in worker.service.ts.",
       "tags": [
@@ -12286,8 +12422,8 @@
       "name": "zonedDateTimeToUtc",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2330,
-        2343
+        2333,
+        2346
       ],
       "summary": "zonedDateTimeToUtc in worker.service.ts.",
       "tags": [
@@ -12303,8 +12439,8 @@
       "name": "timeZoneOffsetMs",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2345,
-        2367
+        2348,
+        2370
       ],
       "summary": "timeZoneOffsetMs in worker.service.ts.",
       "tags": [
@@ -12320,8 +12456,8 @@
       "name": "streamToBuffer",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2369,
-        2375
+        2372,
+        2378
       ],
       "summary": "streamToBuffer in worker.service.ts.",
       "tags": [
@@ -12338,7 +12474,7 @@
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
         70,
-        2286
+        2289
       ],
       "summary": "WorkerService in worker.service.ts.",
       "tags": [
@@ -21325,6 +21461,19 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260526120000_free_meetup_weekly_limit/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260526120000_free_meetup_weekly_limit/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -24227,7 +24376,7 @@
       "type": "file",
       "name": "venue-geocoder.ts",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "summary": "venue-geocoder.ts contains 2 classes, 24 functions.",
+      "summary": "venue-geocoder.ts contains 2 classes, 19 functions.",
       "tags": [
         "backend",
         "code",
@@ -24241,8 +24390,8 @@
       "name": "isVenueGeocoderLimitError",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        47,
-        50
+        43,
+        46
       ],
       "summary": "isVenueGeocoderLimitError in venue-geocoder.ts.",
       "tags": [
@@ -24258,44 +24407,10 @@
       "name": "geocodeQuery",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        227,
-        241
+        212,
+        226
       ],
       "summary": "geocodeQuery in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:nominatimQuery",
-      "type": "function",
-      "name": "nominatimQuery",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        243,
-        250
-      ],
-      "summary": "nominatimQuery in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:highConfidenceNominatimResult",
-      "type": "function",
-      "name": "highConfidenceNominatimResult",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        252,
-        299
-      ],
-      "summary": "highConfidenceNominatimResult in venue-geocoder.ts.",
       "tags": [
         "backend",
         "function",
@@ -24309,10 +24424,27 @@
       "name": "highConfidenceResult",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        301,
-        332
+        228,
+        259
       ],
       "summary": "highConfidenceResult in venue-geocoder.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:nominatimResult",
+      "type": "function",
+      "name": "nominatimResult",
+      "filePath": "backend/packages/database/src/venue-geocoder.ts",
+      "lineRange": [
+        261,
+        304
+      ],
+      "summary": "nominatimResult in venue-geocoder.ts.",
       "tags": [
         "backend",
         "function",
@@ -24326,10 +24458,78 @@
       "name": "isNominatimPlaceLike",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        334,
-        366
+        306,
+        339
       ],
       "summary": "isNominatimPlaceLike in venue-geocoder.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:nameLooksSimilar",
+      "type": "function",
+      "name": "nameLooksSimilar",
+      "filePath": "backend/packages/database/src/venue-geocoder.ts",
+      "lineRange": [
+        341,
+        350
+      ],
+      "summary": "nameLooksSimilar in venue-geocoder.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:normalizedTokens",
+      "type": "function",
+      "name": "normalizedTokens",
+      "filePath": "backend/packages/database/src/venue-geocoder.ts",
+      "lineRange": [
+        352,
+        359
+      ],
+      "summary": "normalizedTokens in venue-geocoder.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:normalizedCacheKey",
+      "type": "function",
+      "name": "normalizedCacheKey",
+      "filePath": "backend/packages/database/src/venue-geocoder.ts",
+      "lineRange": [
+        361,
+        363
+      ],
+      "summary": "normalizedCacheKey in venue-geocoder.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:nominatimViewbox",
+      "type": "function",
+      "name": "nominatimViewbox",
+      "filePath": "backend/packages/database/src/venue-geocoder.ts",
+      "lineRange": [
+        365,
+        375
+      ],
+      "summary": "nominatimViewbox in venue-geocoder.ts.",
       "tags": [
         "backend",
         "function",
@@ -24343,112 +24543,10 @@
       "name": "isHighConfidence",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        368,
-        382
+        377,
+        391
       ],
       "summary": "isHighConfidence in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:isVenueNameMatch",
-      "type": "function",
-      "name": "isVenueNameMatch",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        384,
-        410
-      ],
-      "summary": "isVenueNameMatch in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:distinctiveTokens",
-      "type": "function",
-      "name": "distinctiveTokens",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        412,
-        437
-      ],
-      "summary": "distinctiveTokens in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:sameToken",
-      "type": "function",
-      "name": "sameToken",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        439,
-        445
-      ],
-      "summary": "sameToken in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:normalizeNameText",
-      "type": "function",
-      "name": "normalizeNameText",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        447,
-        454
-      ],
-      "summary": "normalizeNameText in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:isResidentialComplexText",
-      "type": "function",
-      "name": "isResidentialComplexText",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        456,
-        459
-      ],
-      "summary": "isResidentialComplexText in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:firstDisplayNamePart",
-      "type": "function",
-      "name": "firstDisplayNamePart",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        461,
-        463
-      ],
-      "summary": "firstDisplayNamePart in venue-geocoder.ts.",
       "tags": [
         "backend",
         "function",
@@ -24462,8 +24560,8 @@
       "name": "withinCity",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        465,
-        491
+        393,
+        419
       ],
       "summary": "withinCity in venue-geocoder.ts.",
       "tags": [
@@ -24479,10 +24577,44 @@
       "name": "parsePoint",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        493,
-        507
+        421,
+        435
       ],
       "summary": "parsePoint in venue-geocoder.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:numberFromString",
+      "type": "function",
+      "name": "numberFromString",
+      "filePath": "backend/packages/database/src/venue-geocoder.ts",
+      "lineRange": [
+        437,
+        443
+      ],
+      "summary": "numberFromString in venue-geocoder.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:numberFromUnknown",
+      "type": "function",
+      "name": "numberFromUnknown",
+      "filePath": "backend/packages/database/src/venue-geocoder.ts",
+      "lineRange": [
+        445,
+        452
+      ],
+      "summary": "numberFromUnknown in venue-geocoder.ts.",
       "tags": [
         "backend",
         "function",
@@ -24496,8 +24628,8 @@
       "name": "object",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        509,
-        511
+        454,
+        456
       ],
       "summary": "object in venue-geocoder.ts.",
       "tags": [
@@ -24513,44 +24645,10 @@
       "name": "array",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        513,
-        515
+        458,
+        460
       ],
       "summary": "array in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:optionalFloat",
-      "type": "function",
-      "name": "optionalFloat",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        517,
-        524
-      ],
-      "summary": "optionalFloat in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:optionalNumberOrString",
-      "type": "function",
-      "name": "optionalNumberOrString",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        526,
-        534
-      ],
-      "summary": "optionalNumberOrString in venue-geocoder.ts.",
       "tags": [
         "backend",
         "function",
@@ -24564,8 +24662,8 @@
       "name": "cleanText",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        536,
-        542
+        462,
+        468
       ],
       "summary": "cleanText in venue-geocoder.ts.",
       "tags": [
@@ -24581,8 +24679,8 @@
       "name": "positiveInt",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        544,
-        551
+        470,
+        477
       ],
       "summary": "positiveInt in venue-geocoder.ts.",
       "tags": [
@@ -24593,49 +24691,15 @@
       "complexity": "complex"
     },
     {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:booleanFlag",
+      "id": "function:backend/packages/database/src/venue-geocoder.ts:nonNegativeInt",
       "type": "function",
-      "name": "booleanFlag",
+      "name": "nonNegativeInt",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        553,
-        561
+        479,
+        486
       ],
-      "summary": "booleanFlag in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:nominatimCacheKey",
-      "type": "function",
-      "name": "nominatimCacheKey",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        563,
-        568
-      ],
-      "summary": "nominatimCacheKey in venue-geocoder.ts.",
-      "tags": [
-        "backend",
-        "function",
-        "structure"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "function:backend/packages/database/src/venue-geocoder.ts:sleep",
-      "type": "function",
-      "name": "sleep",
-      "filePath": "backend/packages/database/src/venue-geocoder.ts",
-      "lineRange": [
-        570,
-        572
-      ],
-      "summary": "sleep in venue-geocoder.ts.",
+      "summary": "nonNegativeInt in venue-geocoder.ts.",
       "tags": [
         "backend",
         "function",
@@ -24649,8 +24713,8 @@
       "name": "VenueGeocoderHttpError",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        40,
-        45
+        36,
+        41
       ],
       "summary": "VenueGeocoderHttpError in venue-geocoder.ts.",
       "tags": [
@@ -24666,8 +24730,8 @@
       "name": "VenueGeocoderClient",
       "filePath": "backend/packages/database/src/venue-geocoder.ts",
       "lineRange": [
-        52,
-        225
+        48,
+        210
       ],
       "summary": "VenueGeocoderClient in venue-geocoder.ts.",
       "tags": [
@@ -27505,6 +27569,13 @@
     },
     {
       "source": "file:backend/apps/api/src/common/presenters.ts",
+      "target": "function:backend/apps/api/src/common/presenters.ts:mapEventImageVariants",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/presenters.ts",
       "target": "function:backend/apps/api/src/common/presenters.ts:mapExternalContentImageUrl",
       "type": "contains",
       "direction": "forward",
@@ -28205,6 +28276,27 @@
     },
     {
       "source": "file:backend/apps/api/src/services/affiche.service.ts",
+      "target": "function:backend/apps/api/src/services/affiche.service.ts:cleanPublicText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/affiche.service.ts",
+      "target": "function:backend/apps/api/src/services/affiche.service.ts:decodeHtmlEntities",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/affiche.service.ts",
+      "target": "function:backend/apps/api/src/services/affiche.service.ts:safeCodePoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/affiche.service.ts",
       "target": "class:backend/apps/api/src/services/affiche.service.ts:AfficheService",
       "type": "contains",
       "direction": "forward",
@@ -28275,6 +28367,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:areaOrNull",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasCandidateCoords",
       "type": "contains",
       "direction": "forward",
@@ -28290,6 +28389,27 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stringOrNull",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:integerFromEnv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetOrNull",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:timezoneForCity",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -28338,7 +28458,21 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:promptTermIndex",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:uniqueStrings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:promptExplicitStepCount",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -28366,21 +28500,21 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stepCountFromPrompt",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:todayEventDateWindow",
       "type": "contains",
       "direction": "forward",
       "weight": 1
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:participantsCountFromPrompt",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:localDateFromIsoDate",
       "type": "contains",
       "direction": "forward",
       "weight": 1
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowFromPrompt",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:eventDateWindowFromStored",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -28408,21 +28542,14 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:localDateIso",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:zonedTimeToUtc",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:addLocalDays",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:weekdayForLocalDate",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -28451,13 +28578,6 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:intentStepCountFromGenerated",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:intentParticipantsCountFromGenerated",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -28513,28 +28633,7 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetFromPrompt",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:areaFromPrompt",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:explicitAreaFromPrompt",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeAreaPhrase",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:budgetFromText",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -28542,6 +28641,13 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:areaTermsFor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:displayAreaForRoute",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -29451,6 +29557,13 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/advcake-ticketland.adapter.ts:safeCodePoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "target": "function:backend/apps/worker/src/content/advcake-ticketland.adapter.ts:parseMoscowDate",
       "type": "contains",
       "direction": "forward",
@@ -29696,13 +29809,6 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/content-import.service.ts",
-      "target": "function:backend/apps/worker/src/content/content-import.service.ts:geocoderEnrichmentFields",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/apps/worker/src/content/content-import.service.ts",
       "target": "function:backend/apps/worker/src/content/content-import.service.ts:mergeRaw",
       "type": "contains",
       "direction": "forward",
@@ -29914,6 +30020,20 @@
     {
       "source": "file:backend/apps/worker/src/content/content-normalizer.service.ts",
       "target": "function:backend/apps/worker/src/content/content-normalizer.service.ts:cleanText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-normalizer.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-normalizer.service.ts:decodeHtmlEntities",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-normalizer.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-normalizer.service.ts:safeCodePoint",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -35506,21 +35626,14 @@
     },
     {
       "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:nominatimQuery",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:highConfidenceNominatimResult",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
       "target": "function:backend/packages/database/src/venue-geocoder.ts:highConfidenceResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/venue-geocoder.ts",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:nominatimResult",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -35534,49 +35647,35 @@
     },
     {
       "source": "file:backend/packages/database/src/venue-geocoder.ts",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:nameLooksSimilar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/venue-geocoder.ts",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:normalizedTokens",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/venue-geocoder.ts",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:normalizedCacheKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/venue-geocoder.ts",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:nominatimViewbox",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/venue-geocoder.ts",
       "target": "function:backend/packages/database/src/venue-geocoder.ts:isHighConfidence",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:isVenueNameMatch",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:distinctiveTokens",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:sameToken",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:normalizeNameText",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:isResidentialComplexText",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:firstDisplayNamePart",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -35597,6 +35696,20 @@
     },
     {
       "source": "file:backend/packages/database/src/venue-geocoder.ts",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:numberFromString",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/venue-geocoder.ts",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:numberFromUnknown",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/packages/database/src/venue-geocoder.ts",
       "target": "function:backend/packages/database/src/venue-geocoder.ts:object",
       "type": "contains",
       "direction": "forward",
@@ -35605,20 +35718,6 @@
     {
       "source": "file:backend/packages/database/src/venue-geocoder.ts",
       "target": "function:backend/packages/database/src/venue-geocoder.ts:array",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:optionalFloat",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:optionalNumberOrString",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -35639,21 +35738,7 @@
     },
     {
       "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:booleanFlag",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:nominatimCacheKey",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1
-    },
-    {
-      "source": "file:backend/packages/database/src/venue-geocoder.ts",
-      "target": "function:backend/packages/database/src/venue-geocoder.ts:sleep",
+      "target": "function:backend/packages/database/src/venue-geocoder.ts:nonNegativeInt",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -40847,6 +40932,7 @@
         "table:backend/packages/database/prisma/migrations/20260525160000_token_catalog_packs/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260525160000_token_catalog_packs/migration.sql:TokenCatalogPack",
         "index:backend/packages/database/prisma/migrations/20260525160000_token_catalog_packs/migration.sql:TokenCatalogPack_active_sortOrder_idx",
+        "table:backend/packages/database/prisma/migrations/20260526120000_free_meetup_weekly_limit/migration.sql",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",

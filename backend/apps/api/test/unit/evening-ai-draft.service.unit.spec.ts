@@ -2076,7 +2076,7 @@ describe('EveningAiDraftService unit', () => {
         latencyMs: 20,
       },
     },
-  ])('uses generic fallback only when $name', async ({ intentResponse }) => {
+  ])('uses prompt-aware fallback when $name', async ({ intentResponse }) => {
     const { service, openRouter } = createService({
       intentResponse,
       externalItems: {
@@ -2115,11 +2115,12 @@ describe('EveningAiDraftService unit', () => {
       openRouterResponses: [
         {
           parsedJson: {
-            title: 'Ресторан',
+            title: 'Ресторан и спектакль',
             vibe: 'Fallback',
-            blurb: 'Generic fallback without prompt parsing.',
+            blurb: 'Fallback from prompt text.',
             steps: [
               { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-theatre', timeLabel: '20:30' },
             ],
           },
           rawResponse: {},
@@ -2141,9 +2142,207 @@ describe('EveningAiDraftService unit', () => {
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.config.roles).toEqual(['place_food']);
-    expect(routePrompt.config.area).toBeNull();
-    expect(routePrompt.config.stepCount).toBe(1);
+    expect(routePrompt.config.roles).toEqual(['place_food', 'show']);
+    expect(routePrompt.config.area).toBe('center');
+    expect(routePrompt.config.stepCount).toBe(2);
+  });
+
+  it('uses prompt sequence as fallback when intent call fails', async () => {
+    const { service, openRouter, draftCreate } = createService({
+      intentResponse: new Error('intent down'),
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-center-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Прогулка по центру',
+            category: 'walk',
+            tags: ['прогулка', 'центр'],
+            startsAt: new Date('2099-06-01T16:00:00.000Z'),
+            priceFrom: 0,
+            priceMode: 'free',
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-beer-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Пивной бар в центре',
+            category: 'bar',
+            tags: ['пиво', 'бар', 'area:center'],
+            area: 'Центр',
+            priceFrom: 1200,
+            placeKind: 'bar',
+            venueName: 'Пивной бар в центре',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [
+          {
+            id: 'ticketland-standup',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап в центре',
+            category: 'standup',
+            tags: ['стендап'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 1800,
+            sourceProvider: 'Ticketland / MTS Live',
+            actionUrl: 'https://ticket.example.test/standup',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Прогулка, бар и стендап',
+            vibe: 'Вечер по шагам',
+            blurb: 'Сначала прогулка, потом пиво и стендап.',
+            steps: [
+              { externalContentItemId: 'kudago-center-walk', timeLabel: '18:00' },
+              { externalContentItemId: 'tomesto-beer-bar', timeLabel: '19:00' },
+              { externalContentItemId: 'ticketland-standup', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу погулять в центре, потом попить пива, потом на стендап',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['walk', 'place_bar', 'show']);
+    expect(routePrompt.config.area).toBe('center');
+    expect(routePrompt.config.stepCount).toBe(3);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Прогулка по центру',
+      'Пивной бар в центре',
+      'Стендап в центре',
+    ]);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stepCount: 3,
+        }),
+      }),
+    );
+  });
+
+  it('uses explicit prompt place count as fallback when intent call fails', async () => {
+    const { service, openRouter, draftCreate } = createService({
+      intentResponse: new Error('intent down'),
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Необычная кухня',
+            category: 'restaurant',
+            tags: ['кухня', 'гастро', 'area:center', 'set:patriki'],
+            area: 'Патрики',
+            priceFrom: 2500,
+            placeKind: 'restaurant',
+            venueName: 'Необычная кухня',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-cocktails',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Авторские коктейли',
+            category: 'bar',
+            tags: ['коктейли', 'bar', 'area:center', 'set:patriki'],
+            area: 'Патрики',
+            priceFrom: 1800,
+            placeKind: 'bar',
+            venueName: 'Авторские коктейли',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        kudago: [
+          {
+            id: 'kudago-experience',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Новые впечатления',
+            category: 'performance',
+            tags: ['перформанс', 'впечатления'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceFrom: 0,
+            priceMode: 'free',
+            sourceProvider: 'KudaGo',
+          },
+        ],
+      },
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'Хочу гастро-тур по 3 местам в районе Патриарших: необычная кухня, авторские коктейли, новые впечатления.',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['place_food', 'place_bar', 'free_activity']);
+    expect(routePrompt.config.area).toBe('patriki');
+    expect(routePrompt.config.stepCount).toBe(3);
+    expect(result.route.steps).toHaveLength(3);
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stepCount: 3,
+        }),
+      }),
+    );
+  });
+
+  it('does not treat Barrikadnaya area wording as a bar in prompt fallback', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: new Error('intent down'),
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-barrikadnaya-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Прогулка на Баррикадной',
+            category: 'walk',
+            tags: ['прогулка', 'патрики'],
+            startsAt: new Date('2099-06-01T16:00:00.000Z'),
+            priceFrom: 0,
+            priceMode: 'free',
+            sourceProvider: 'KudaGo',
+          },
+        ],
+      },
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'хочу погулять на Баррикадной',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['walk']);
+    expect(routePrompt.config.area).toBe('patriki');
   });
 
   it('defaults timed event candidates to today when intent has no date', async () => {

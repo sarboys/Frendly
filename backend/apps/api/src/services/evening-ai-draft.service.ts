@@ -151,6 +151,14 @@ type RoleIntentHint = {
   instruction: string | null;
 };
 
+type PromptFallbackIntent = {
+  roles: RouteRole[];
+  roleHints: RoleIntentHint[];
+  stepCount: number | null;
+  area: string | null;
+  budget: string | null;
+};
+
 type DraftIntent = {
   roles: RouteRole[];
   roleHints: RoleIntentHint[];
@@ -1324,18 +1332,131 @@ export class EveningAiDraftService {
   }
 
   private fallbackDraftIntent(input: ParsedDraftInput): DraftIntent {
-    const fallbackRoles = this.resolveRoles(
-      input.format,
-      this.intentFallbackStepCount(input),
-    );
+    const promptFallback = this.promptFallbackIntent(input);
+    const fallbackStepCount = input.stepCountExplicit
+      ? input.stepCount
+      : promptFallback.stepCount ?? this.intentFallbackStepCount(input);
+    const fallbackRoles = promptFallback.roles.length > 0
+      ? this.fillFallbackRoles(promptFallback.roles, input.format, fallbackStepCount)
+      : this.resolveRoles(input.format, fallbackStepCount);
     return {
       roles: fallbackRoles,
-      roleHints: fallbackRoles.map((role) => this.roleIntentHint(input, role)),
+      roleHints: fallbackRoles.map((role, index) =>
+        promptFallback.roleHints[index]?.role === role
+          ? promptFallback.roleHints[index]
+          : this.roleIntentHint(input, role, promptFallback.roleHints),
+      ),
       eventDateWindow: input.eventDateWindow,
-      area: input.area,
-      budget: input.budget,
+      area: input.area ?? promptFallback.area,
+      budget: input.budget ?? promptFallback.budget,
       source: 'rules',
     };
+  }
+
+  private promptFallbackIntent(input: ParsedDraftInput): PromptFallbackIntent {
+    const prompt = input.prompt ? normalizeText(input.prompt) : '';
+    if (!prompt) {
+      return {
+        roles: [],
+        roleHints: [],
+        stepCount: null,
+        area: null,
+        budget: null,
+      };
+    }
+
+    const roleMatches = this.promptRoleMatches(prompt);
+    const roles = roleMatches.map((match) => match.role);
+    return {
+      roles,
+      roleHints: roleMatches.map((match) => ({
+        role: match.role,
+        preferredTerms: match.preferredTerms,
+        avoidTerms: [],
+        instruction: null,
+      })),
+      stepCount: this.promptFallbackStepCount(prompt, roles.length),
+      area: areaOrNull(prompt),
+      budget: budgetFromText(prompt),
+    };
+  }
+
+  private promptRoleMatches(prompt: string) {
+    const roleTerms: Array<{ role: RouteRole; terms: string[] }> = [
+      {
+        role: 'walk',
+        terms: ['погуля', 'прогул', 'пройтись', 'пешком', 'пеший', 'маршрут'],
+      },
+      {
+        role: 'place_food',
+        terms: [
+          'гастро',
+          'кухн',
+          'еда',
+          'ресторан',
+          'ужин',
+          'поесть',
+          'покуш',
+          'кафе',
+          'кофе',
+          'бранч',
+          'паста',
+        ],
+      },
+      {
+        role: 'place_bar',
+        terms: ['пиво', 'пив', 'бар', 'коктейл', 'паб', 'вино', 'винный', 'сидр', 'настой'],
+      },
+      {
+        role: 'show',
+        terms: ['стендап', 'спектак', 'театр', 'концерт', 'шоу', 'джаз', 'комеди'],
+      },
+      {
+        role: 'free_activity',
+        terms: ['выстав', 'музей', 'перформанс', 'квест', 'лекци', 'фестивал', 'впечатлен'],
+      },
+      {
+        role: 'place_club',
+        terms: ['клуб', 'танцы', 'караоке'],
+      },
+    ];
+
+    return roleTerms
+      .map(({ role, terms }) => {
+        const matchedTerms = terms.filter((term) => promptTermIndex(prompt, term) >= 0);
+        return {
+          role,
+          index: firstTermIndex(prompt, terms),
+          preferredTerms: uniqueStrings(matchedTerms),
+        };
+      })
+      .filter((match) => match.index >= 0)
+      .sort((left, right) => left.index - right.index);
+  }
+
+  private promptFallbackStepCount(prompt: string, roleCount: number) {
+    const explicitCount = promptExplicitStepCount(prompt);
+    const inferredCount = Math.max(roleCount, explicitCount ?? 0);
+    if (inferredCount <= 0) {
+      return null;
+    }
+    return Math.max(MIN_STEP_COUNT, Math.min(MAX_STEP_COUNT, inferredCount));
+  }
+
+  private fillFallbackRoles(roles: RouteRole[], format: string | null, stepCount: number) {
+    const fallbackRoles = [...roles];
+    for (const role of this.resolveRoles(format, stepCount)) {
+      if (fallbackRoles.length >= stepCount) {
+        break;
+      }
+      if (!fallbackRoles.includes(role)) {
+        fallbackRoles.push(role);
+      }
+    }
+    while (fallbackRoles.length < stepCount) {
+      fallbackRoles.push(fallbackRoles[fallbackRoles.length - 1] ?? 'place_food');
+    }
+    return fallbackRoles.slice(0, stepCount);
   }
 
   private parseIntentResponse(
@@ -2219,7 +2340,7 @@ const AREA_ALIASES: AreaAlias[] = [
   },
   {
     code: 'patriki',
-    detectTerms: ['патрики', 'патриках', 'патриарш', 'баррикадная', 'маяковская'],
+    detectTerms: ['патрики', 'патриках', 'патриарш', 'баррикадн', 'маяковская'],
     scoreTerms: [
       'патрик',
       'патриарш',
@@ -2522,8 +2643,51 @@ function hasAny(value: string, terms: string[]) {
   return terms.some((term) => value.includes(normalizeText(term)));
 }
 
+function firstTermIndex(value: string, terms: string[]) {
+  return terms.reduce((best, term) => {
+    const index = promptTermIndex(value, term);
+    if (index < 0) {
+      return best;
+    }
+    return best < 0 ? index : Math.min(best, index);
+  }, -1);
+}
+
+function promptTermIndex(value: string, term: string) {
+  const normalizedTerm = normalizeText(term);
+  if (normalizedTerm === 'бар') {
+    const match = /(?:^|[^а-яa-z])бар(?:$|[^а-яa-z])/.exec(value);
+    if (!match || match.index == null) {
+      return -1;
+    }
+    return value.indexOf('бар', match.index);
+  }
+  return value.indexOf(normalizedTerm);
+}
+
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.map(normalizeText).filter(Boolean)));
+}
+
+function promptExplicitStepCount(prompt: string) {
+  const digitMatch = prompt.match(/(?:по|из)?\s*(\d+)\s*(?:мест|точк|локац)/);
+  if (digitMatch?.[1]) {
+    return normalizedCount(digitMatch[1], MAX_STEP_COUNT);
+  }
+
+  const wordCounts: Array<{ terms: string[]; count: number }> = [
+    { terms: ['один', 'одно', 'одна', 'одну'], count: 1 },
+    { terms: ['два', 'две'], count: 2 },
+    { terms: ['три', 'трех', 'трем'], count: 3 },
+    { terms: ['четыре', 'четырех', 'четырем'], count: 4 },
+    { terms: ['пять', 'пяти'], count: 5 },
+  ];
+  for (const item of wordCounts) {
+    if (item.terms.some((term) => new RegExp(`(?:по|из)?\\s*${term}\\s*(?:мест|точк|локац)`).test(prompt))) {
+      return item.count;
+    }
+  }
+  return null;
 }
 
 function uniqueById<T extends { id?: unknown }>(items: T[]) {
