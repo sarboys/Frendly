@@ -4,6 +4,8 @@ describe('EveningAiDraftService unit', () => {
   const originalEveningAiModel = process.env.EVENING_AI_MODEL;
   const originalIntentMaxTokens = process.env.EVENING_AI_INTENT_MAX_TOKENS;
   const originalRouteMaxTokens = process.env.EVENING_AI_ROUTE_MAX_TOKENS;
+  const originalIntentTimeoutMs = process.env.EVENING_AI_INTENT_TIMEOUT_MS;
+  const originalRouteTimeoutMs = process.env.EVENING_AI_ROUTE_TIMEOUT_MS;
 
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2099-06-01T12:00:00.000Z'));
@@ -25,6 +27,16 @@ describe('EveningAiDraftService unit', () => {
       delete process.env.EVENING_AI_ROUTE_MAX_TOKENS;
     } else {
       process.env.EVENING_AI_ROUTE_MAX_TOKENS = originalRouteMaxTokens;
+    }
+    if (originalIntentTimeoutMs == null) {
+      delete process.env.EVENING_AI_INTENT_TIMEOUT_MS;
+    } else {
+      process.env.EVENING_AI_INTENT_TIMEOUT_MS = originalIntentTimeoutMs;
+    }
+    if (originalRouteTimeoutMs == null) {
+      delete process.env.EVENING_AI_ROUTE_TIMEOUT_MS;
+    } else {
+      process.env.EVENING_AI_ROUTE_TIMEOUT_MS = originalRouteTimeoutMs;
     }
   });
 
@@ -578,7 +590,7 @@ describe('EveningAiDraftService unit', () => {
     expect(openRouter.generateJson).toHaveBeenCalledWith(
       expect.objectContaining({
         model: 'openrouter/owl-alpha',
-        timeoutMs: 4500,
+          timeoutMs: 90000,
         responseFormat: expect.objectContaining({
           type: 'json_schema',
         }),
@@ -663,9 +675,11 @@ describe('EveningAiDraftService unit', () => {
     expect(draftCreate).not.toHaveBeenCalled();
   });
 
-  it('uses configurable token budgets for intent and route calls', async () => {
+  it('uses configurable token budgets and timeouts for intent and route calls', async () => {
     process.env.EVENING_AI_INTENT_MAX_TOKENS = '4096';
     process.env.EVENING_AI_ROUTE_MAX_TOKENS = '32768';
+    process.env.EVENING_AI_INTENT_TIMEOUT_MS = '91000';
+    process.env.EVENING_AI_ROUTE_TIMEOUT_MS = '92000';
     const { service, openRouter } = createService();
 
     await service.createDraft('user-1', {
@@ -682,6 +696,8 @@ describe('EveningAiDraftService unit', () => {
     )?.[0];
     expect(intentCall.maxTokens).toBe(4096);
     expect(routeCall.maxTokens).toBe(32768);
+    expect(intentCall.timeoutMs).toBe(91000);
+    expect(routeCall.timeoutMs).toBe(92000);
   });
 
   it('loads Tomesto candidates by city without text filters or take limit', async () => {
@@ -4423,7 +4439,7 @@ describe('EveningAiDraftService unit', () => {
     await service.regenerateStep('user-1', 'draft-1', 1);
     expect(openRouter.generateJson).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        timeoutMs: 3500,
+        timeoutMs: 90000,
         userPrompt: expect.stringContaining('old-rejected'),
       }),
     );

@@ -14,6 +14,7 @@ const DEFAULT_CITY = 'Москва';
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
 const MAX_STEP_COUNT = 5;
 const MIN_STEP_COUNT = 1;
+const DEFAULT_AI_TIMEOUT_MS = 90000;
 const AI_ROUTE_CANDIDATE_STEP_LIMITS: Record<CandidateCard['source'], number> = {
   tomesto: 20,
   kudago: 10,
@@ -275,7 +276,7 @@ export class EveningAiDraftService {
       roles: intent.roles,
       roleHints: intent.roleHints,
       candidates,
-      timeoutMs: 4500,
+      timeoutMs: this.routeTimeoutMs(),
     });
     const expiresAt = new Date(Date.now() + DRAFT_TTL_MS);
     const routeSnapshot = this.routeWithIntent(generated.route, intent);
@@ -372,7 +373,7 @@ export class EveningAiDraftService {
       roles: intent.roles,
       roleHints: intent.roleHints,
       candidates: availableCandidates,
-      timeoutMs: 3500,
+      timeoutMs: this.routeTimeoutMs(),
       previousRoute: route,
       regenerateStepIndex: stepIndex,
       rejectedIds: [...rejected],
@@ -436,7 +437,7 @@ export class EveningAiDraftService {
       roles: intent.roles,
       roleHints: intent.roleHints,
       candidates: availableCandidates,
-      timeoutMs: 4500,
+      timeoutMs: this.routeTimeoutMs(),
       previousRoute: route,
       rejectedIds: [...rejected],
     });
@@ -480,6 +481,14 @@ export class EveningAiDraftService {
 
   private routeMaxTokens() {
     return integerFromEnv('EVENING_AI_ROUTE_MAX_TOKENS', DEFAULT_ROUTE_MAX_TOKENS, 1024, 131072);
+  }
+
+  private intentTimeoutMs() {
+    return integerFromEnv('EVENING_AI_INTENT_TIMEOUT_MS', DEFAULT_AI_TIMEOUT_MS, 1000, 180000);
+  }
+
+  private routeTimeoutMs() {
+    return integerFromEnv('EVENING_AI_ROUTE_TIMEOUT_MS', DEFAULT_AI_TIMEOUT_MS, 1000, 180000);
   }
 
   async confirmDraft(userId: string, draftId: string) {
@@ -1354,7 +1363,7 @@ export class EveningAiDraftService {
     try {
       const response = await this.openRouterService.generateJson<GeneratedIntentJson>({
         model: this.eveningAiModel(),
-        timeoutMs: 1800,
+        timeoutMs: this.intentTimeoutMs(),
         systemPrompt: this.intentSystemPrompt(),
         userPrompt: this.intentUserPrompt(input),
         temperature: 0,
