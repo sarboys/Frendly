@@ -3,6 +3,7 @@ import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
 
 const DEFAULT_FREE_MEETUP_WEEKLY_LIMIT = 7;
+const DEFAULT_FREE_AI_DRAFT_WEEKLY_LIMIT = 3;
 
 export async function assertCanCreateWeeklyMeetup(
   userId: string,
@@ -63,6 +64,49 @@ export async function assertCanCreateWeeklyMeetup(
       'Weekly meetup creation limit reached',
       {
         limit,
+        remaining: 0,
+        resetAt: window.end.toISOString(),
+      },
+    );
+  }
+}
+
+export async function assertCanCreateWeeklyAiDraft(
+  userId: string,
+  prismaService: PrismaService,
+  subscriptionService: SubscriptionService,
+) {
+  const client = prismaService.client as any;
+  if (typeof client.eveningAiRouteDraft?.count !== 'function') {
+    return;
+  }
+
+  const premium =
+    typeof (subscriptionService as any).hasPremiumAccess === 'function'
+      ? await subscriptionService.hasPremiumAccess(userId)
+      : false;
+  if (premium) {
+    return;
+  }
+
+  const window = currentMoscowWeekWindow();
+  const createdAiDrafts = await client.eveningAiRouteDraft.count({
+    where: {
+      userId,
+      createdAt: {
+        gte: window.start,
+        lt: window.end,
+      },
+    },
+  });
+
+  if (createdAiDrafts >= DEFAULT_FREE_AI_DRAFT_WEEKLY_LIMIT) {
+    throw new ApiError(
+      429,
+      'event_weekly_limit_reached',
+      'Weekly AI builder limit reached',
+      {
+        limit: DEFAULT_FREE_AI_DRAFT_WEEKLY_LIMIT,
         remaining: 0,
         resetAt: window.end.toISOString(),
       },

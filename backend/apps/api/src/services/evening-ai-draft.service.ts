@@ -3,7 +3,10 @@ import { timezoneForContentCity } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
-import { assertCanCreateWeeklyMeetup } from './meetup-creation-limit';
+import {
+  assertCanCreateWeeklyAiDraft,
+  assertCanCreateWeeklyMeetup,
+} from './meetup-creation-limit';
 import { OpenRouterService } from './openrouter.service';
 import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
@@ -169,6 +172,7 @@ type GeneratedIntentJson = {
   budget?: unknown;
   steps?: Array<{
     role?: unknown;
+    taxonomyTags?: unknown;
     preferredTerms?: unknown;
     avoidTerms?: unknown;
     instruction?: unknown;
@@ -185,6 +189,8 @@ type IntentTaxonomy = {
   setTags: string[];
   featureTags: string[];
   categoryTags: string[];
+  areaTags: string[];
+  budgetTags: string[];
 };
 
 type TaxonomyTagRow = {
@@ -201,6 +207,7 @@ type DraftValidationIssue = {
 
 type RoleIntentHint = {
   role: RouteRole;
+  taxonomyTags: string[];
   preferredTerms: string[];
   avoidTerms: string[];
   instruction: string | null;
@@ -249,6 +256,8 @@ const EMPTY_INTENT_TAXONOMY: IntentTaxonomy = {
   setTags: [],
   featureTags: [],
   categoryTags: [],
+  areaTags: [],
+  budgetTags: [],
 };
 
 const ROUTE_ROLES: RouteRole[] = [
@@ -299,6 +308,11 @@ export class EveningAiDraftService {
   async createDraft(userId: string, body: Record<string, unknown>) {
     const parsedInput = this.parseInput(body);
     if (this.subscriptionService) {
+      await assertCanCreateWeeklyAiDraft(
+        userId,
+        this.prismaService,
+        this.subscriptionService,
+      );
       await assertCanCreateWeeklyMeetup(
         userId,
         this.prismaService,
@@ -1326,6 +1340,7 @@ export class EveningAiDraftService {
     const normalizedHints = roles.map((role, index) => {
       const rawLocation = rawHints[index]?.location;
       const hint = this.normalizeLlmIntentHint(input, role, {
+        taxonomyTags: rawHints[index]?.taxonomyTags,
         preferredTerms: rawHints[index]?.preferredTerms,
         avoidTerms: rawHints[index]?.avoidTerms,
         instruction: rawHints[index]?.instruction,
@@ -1491,9 +1506,11 @@ export class EveningAiDraftService {
           OR tag LIKE 'set:%'
           OR tag LIKE 'feature:%'
           OR tag LIKE 'category:%'
+          OR tag LIKE 'area:%'
+          OR tag LIKE 'budget:%'
         GROUP BY tag
         ORDER BY count DESC, tag ASC
-        LIMIT 300
+        LIMIT 1200
       `);
       return taxonomyFromRows(rows);
     } catch {
@@ -1541,6 +1558,7 @@ export class EveningAiDraftService {
       roles,
       roleHints: roleMatches.map((match) => ({
         role: match.role,
+        taxonomyTags: [],
         preferredTerms: match.preferredTerms,
         avoidTerms: [],
         instruction: null,
@@ -1667,6 +1685,7 @@ export class EveningAiDraftService {
         return null;
       }
       const rawHint = {
+        taxonomyTags: step?.taxonomyTags,
         preferredTerms: step?.preferredTerms,
         avoidTerms: step?.avoidTerms,
         instruction: step?.instruction,
@@ -1678,6 +1697,12 @@ export class EveningAiDraftService {
       };
       if (role === 'show' && shouldUseBarAlternative(input.prompt, step)) {
         role = 'place_bar';
+        rawHint.taxonomyTags = uniqueStrings([
+          'place:bar',
+          ...stringArray(step?.taxonomyTags, 12).filter((tag) =>
+            !hasAny(normalizeText(tag), ['стендап', 'standup', 'stand-up']),
+          ),
+        ]);
         rawHint.preferredTerms = uniqueStrings([
           'place:bar',
           'бар',
@@ -1749,6 +1774,7 @@ export class EveningAiDraftService {
     input: ParsedDraftInput,
     role: RouteRole,
     rawHint: {
+      taxonomyTags?: unknown;
       preferredTerms?: unknown;
       avoidTerms?: unknown;
       instruction?: unknown;
@@ -1759,9 +1785,15 @@ export class EveningAiDraftService {
       previousLocation?: StepLocation;
     },
   ): RoleIntentHint {
+    const preferredTerms = uniqueStrings(stringArray(rawHint.preferredTerms, 10));
+    const taxonomyTags = normalizeIntentTaxonomyTags([
+      ...stringArray(rawHint.taxonomyTags, 20),
+      ...explicitIntentTaxonomyTagsForTerms(preferredTerms),
+    ]);
     return {
       role,
-      preferredTerms: uniqueStrings(stringArray(rawHint.preferredTerms, 10)),
+      taxonomyTags,
+      preferredTerms,
       avoidTerms: uniqueStrings(stringArray(rawHint.avoidTerms, 10)),
       instruction: stringOrNull(rawHint.instruction),
       location: normalizeStepLocation(rawHint),
@@ -1988,6 +2020,10 @@ export class EveningAiDraftService {
         score -= 20;
       }
     }
+    if (intent.taxonomyTags.length > 0) {
+      const matchedTagCount = countIntentTaxonomyTagMatches(candidate, intent.taxonomyTags);
+      score += matchedTagCount > 0 ? -280 - matchedTagCount * 20 : 220;
+    }
     if (intent.preferredTerms.length > 0) {
       const hasSpecificPreferred = hasSpecificPreferredTerms(intent.preferredTerms);
       if (hasSpecificPreferred) {
@@ -2044,6 +2080,7 @@ export class EveningAiDraftService {
         explicitHints.find((hint) => hasStepLocation(hint.location))?.location ?? emptyStepLocation();
       return {
         role,
+        taxonomyTags: normalizeIntentTaxonomyTags(explicitHints.flatMap((hint) => hint.taxonomyTags)),
         preferredTerms: uniqueStrings(explicitHints.flatMap((hint) => hint.preferredTerms)),
         avoidTerms: uniqueStrings(explicitHints.flatMap((hint) => hint.avoidTerms)),
         instruction:
@@ -2057,6 +2094,7 @@ export class EveningAiDraftService {
 
     return {
       role,
+      taxonomyTags: [],
       preferredTerms: [],
       avoidTerms: [],
       instruction: null,
@@ -2080,7 +2118,10 @@ export class EveningAiDraftService {
     if (!candidateMatchesTerms(candidate, intent.avoidTerms)) {
       return true;
     }
-    return candidateMatchesPreferredTerms(candidate, intent.preferredTerms);
+    return (
+      candidateMatchesIntentTaxonomyTags(candidate, intent.taxonomyTags) ||
+      candidateMatchesPreferredTerms(candidate, intent.preferredTerms)
+    );
   }
 
   private isWalkCandidate(candidate: CandidateCard) {
@@ -2192,8 +2233,9 @@ export class EveningAiDraftService {
         'If the user lists activities with words like сначала, потом, затем, routeStepCount is the number of listed activities.',
         'routeStepCount must describe places or activities, not people.',
         'If the user asks the same kind of step twice, keep it twice.',
-        'For Tomesto food, bar and club steps, first choose matching tags from availableTaxonomy and put them into preferredTerms before natural text terms.',
-        'If the user mentions a dish, drink or cuisine name, infer the matching cuisine, set, feature or place tags yourself using culinary knowledge and availableTaxonomy. Do not rely on backend keyword aliases.',
+        'For every step, choose all matching tags from availableTaxonomy and put them into taxonomyTags.',
+        'For Tomesto food, bar and club steps, taxonomyTags are the primary structured filter. preferredTerms are only natural text hints.',
+        'If the user mentions a dish, drink, cuisine, atmosphere, feature, place type, area or budget, infer matching taxonomyTags yourself using world knowledge and availableTaxonomy.',
         'If no availableTaxonomy tag fits, still return natural text terms in preferredTerms.',
         'For sport or adrenaline requests prefer sport, karting, quests, VR, trampolines or attractions and do not add bars, shows or walks unless explicitly asked.',
         'For gastro-tour, unusual cuisine, cocktails or new taste impressions, use place_food and place_bar only. Do not use free_activity unless the user explicitly asks for a non-food activity such as karting, quest, exhibition or performance.',
@@ -2247,6 +2289,10 @@ export class EveningAiDraftService {
                 additionalProperties: false,
                 properties: {
                   role: { type: 'string', enum: ROUTE_ROLES },
+                  taxonomyTags: {
+                    type: 'array',
+                    items: { type: 'string' },
+                  },
                   preferredTerms: {
                     type: 'array',
                     items: { type: 'string' },
@@ -2269,6 +2315,7 @@ export class EveningAiDraftService {
                 },
                 required: [
                   'role',
+                  'taxonomyTags',
                   'preferredTerms',
                   'avoidTerms',
                   'instruction',
@@ -2466,6 +2513,18 @@ export class EveningAiDraftService {
           ? roleHints[index]
           : this.roleIntentHint(input, role, roleHints);
       const roleCandidates = candidates.filter((item) => item.role === role);
+      if (
+        intent.taxonomyTags.length > 0 &&
+        roleCandidates.some((item) => candidateMatchesIntentTaxonomyTags(item, intent.taxonomyTags)) &&
+        !candidateMatchesIntentTaxonomyTags(candidate, intent.taxonomyTags)
+      ) {
+        issues.push({
+          code: 'intent_mismatch',
+          message: 'Step does not match requested taxonomy tags',
+          stepIndex: index,
+          externalContentItemId,
+        });
+      }
       if (
         intent.preferredTerms.length > 0 &&
         roleCandidates.some((item) => candidateMatchesPreferredTerms(item, intent.preferredTerms)) &&
@@ -3223,8 +3282,10 @@ function taxonomyFromRows(rows: TaxonomyTagRow[]): IntentTaxonomy {
     cuisineTags: taxonomyTagsByPrefix(tags, 'cuisine:', 140),
     placeTags: taxonomyTagsByPrefix(tags, 'place:', 80),
     setTags: taxonomyTagsByPrefix(tags, 'set:', 80),
-    featureTags: taxonomyTagsByPrefix(tags, 'feature:', 80),
+    featureTags: taxonomyTagsByPrefix(tags, 'feature:', 180),
     categoryTags: taxonomyTagsByPrefix(tags, 'category:', 80),
+    areaTags: taxonomyTagsByPrefix(tags, 'area:', 40),
+    budgetTags: taxonomyTagsByPrefix(tags, 'budget:', 40),
   };
 }
 
@@ -3289,11 +3350,27 @@ function candidateMatchesSpecificPreferredTerms(candidate: CandidateCard, terms:
   if (tagTerms.size === 0) {
     return false;
   }
-  if (candidate.tags.some((tag) => tagTerms.has(normalizeText(tag)))) {
+  if (candidateMatchesIntentTaxonomyTags(candidate, [...tagTerms])) {
     return true;
+  }
+  if ([...tagTerms].some(isStrongIntentTaxonomyTag)) {
+    return false;
   }
   const textTerms = specificTextTermsForTerms(terms);
   return textTerms.length > 0 && hasAny(candidateSearchText(candidate), textTerms);
+}
+
+function candidateMatchesIntentTaxonomyTags(candidate: CandidateCard, tags: string[]) {
+  return countIntentTaxonomyTagMatches(candidate, tags) > 0;
+}
+
+function countIntentTaxonomyTagMatches(candidate: CandidateCard, tags: string[]) {
+  const effectiveTags = effectiveIntentTaxonomyTags(tags);
+  if (effectiveTags.length === 0) {
+    return 0;
+  }
+  const candidateTags = new Set(candidate.tags.map(normalizeText));
+  return effectiveTags.filter((tag) => candidateTags.has(tag)).length;
 }
 
 type LocalDateParts = {
@@ -3662,6 +3739,58 @@ function specificTaxonomyTagsForTerms(terms: string[]) {
   return uniqueStrings(tags);
 }
 
+function normalizeIntentTaxonomyTags(values: string[]) {
+  return uniqueStrings(
+    values
+      .map((value) => normalizeText(value))
+      .filter((value): value is string => Boolean(value) && isIntentTaxonomyTag(value)),
+  );
+}
+
+function explicitIntentTaxonomyTagsForTerms(terms: string[]) {
+  return terms
+    .map((term) => normalizeText(term))
+    .filter(
+      (term): term is string =>
+        Boolean(term) &&
+        term.includes(':') &&
+        isIntentTaxonomyTag(term),
+    );
+}
+
+function effectiveIntentTaxonomyTags(tags: string[]) {
+  const normalized = normalizeIntentTaxonomyTags(tags);
+  const strongTags = normalized.filter(isStrongIntentTaxonomyTag);
+  if (strongTags.length > 0) {
+    return strongTags;
+  }
+  const nonBroadTags = normalized.filter((tag) => !BROAD_TAXONOMY_TAGS.has(tag));
+  return nonBroadTags.length > 0 ? nonBroadTags : normalized;
+}
+
+function isIntentTaxonomyTag(tag: string) {
+  return [
+    'cuisine:',
+    'place:',
+    'set:',
+    'feature:',
+    'category:',
+    'area:',
+    'budget:',
+    'metro:',
+    'occasion:',
+  ].some((prefix) => tag.startsWith(prefix));
+}
+
+function isStrongIntentTaxonomyTag(tag: string) {
+  return (
+    tag.startsWith('cuisine:') ||
+    tag.startsWith('set:') ||
+    tag.startsWith('feature:') ||
+    tag.startsWith('category:')
+  );
+}
+
 function specificTextTermsForTerms(terms: string[]) {
   const values: string[] = [];
   for (const rawTerm of terms) {
@@ -3693,7 +3822,8 @@ function isSpecificTaxonomyTag(tag: string) {
   return (
     (normalized.startsWith('cuisine:') ||
       normalized.startsWith('feature:') ||
-      normalized.startsWith('set:')) &&
+      normalized.startsWith('set:') ||
+      normalized.startsWith('category:')) &&
     !BROAD_TAXONOMY_TAGS.has(normalized)
   );
 }

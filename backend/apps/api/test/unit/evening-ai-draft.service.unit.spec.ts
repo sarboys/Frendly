@@ -174,6 +174,7 @@ describe('EveningAiDraftService unit', () => {
     intentResponse?: Record<string, unknown> | Error;
     draftOverrides?: Record<string, unknown>;
     weeklyLimitRejected?: boolean;
+    aiDraftsThisWeek?: number;
   } = {}) {
     const externalFindMany = jest.fn((query: any) => {
       const code = query?.where?.source?.code;
@@ -344,7 +345,7 @@ describe('EveningAiDraftService unit', () => {
       options.weeklyLimitRejected ? 6 : 0,
     );
     const aiDraftCount = jest.fn().mockResolvedValue(
-      options.weeklyLimitRejected ? 1 : 0,
+      options.aiDraftsThisWeek ?? (options.weeklyLimitRejected ? 1 : 0),
     );
     const routeCreate = jest.fn().mockResolvedValue({});
     const stepCreateMany = jest.fn().mockResolvedValue({ count: 2 });
@@ -684,6 +685,35 @@ describe('EveningAiDraftService unit', () => {
     expect(draftCreate).not.toHaveBeenCalled();
   });
 
+  it('limits free AI builder usage to 3 drafts per week', async () => {
+    const {
+      service,
+      openRouter,
+      externalFindMany,
+      draftCreate,
+      aiDraftCount,
+    } = createService({ aiDraftsThisWeek: 3 });
+
+    await expect(
+      service.createDraft('user-1', {
+        prompt: 'Винный бар и стендап',
+        city: 'Москва',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'event_weekly_limit_reached',
+      details: {
+        limit: 3,
+        remaining: 0,
+      },
+    });
+
+    expect(aiDraftCount).toHaveBeenCalled();
+    expect(openRouter.generateJson).not.toHaveBeenCalled();
+    expect(externalFindMany).not.toHaveBeenCalled();
+    expect(draftCreate).not.toHaveBeenCalled();
+  });
+
   it('uses configurable token budgets and timeouts for intent and route calls', async () => {
     process.env.EVENING_AI_INTENT_MAX_TOKENS = '4096';
     process.env.EVENING_AI_ROUTE_MAX_TOKENS = '32768';
@@ -747,7 +777,7 @@ describe('EveningAiDraftService unit', () => {
       'cuisine:italyanskaya',
     ]);
     expect(intentPrompt.availableTaxonomy.setTags).toEqual(['set:cocktails']);
-    expect(intentPrompt.rules.join(' ')).toContain('Do not rely on backend keyword aliases');
+    expect(intentPrompt.rules.join(' ')).toContain('taxonomyTags are the primary structured filter');
   });
 
   it('loads Tomesto candidates by city without text filters or take limit', async () => {
@@ -1123,7 +1153,7 @@ describe('EveningAiDraftService unit', () => {
             contentKind: 'place',
             title: 'Pasta Fresca',
             category: 'italian',
-            tags: ['паста', 'итальянская кухня'],
+            tags: ['паста', 'итальянская кухня', 'cuisine:italyanskaya'],
             placeKind: 'restaurant',
             venueName: 'Pasta Fresca',
             shortSummary: 'Итальянский ресторан с пастой',
@@ -2521,7 +2551,7 @@ describe('EveningAiDraftService unit', () => {
             contentKind: 'place',
             title: 'Необычная кухня',
             category: 'restaurant',
-            tags: ['кухня', 'гастро', 'area:center', 'set:patriki'],
+            tags: ['кухня', 'гастро', 'place:restaurant', 'area:center', 'set:patriki'],
             area: 'Патрики',
             priceFrom: 2500,
             placeKind: 'restaurant',
@@ -2534,7 +2564,7 @@ describe('EveningAiDraftService unit', () => {
             contentKind: 'place',
             title: 'Авторские коктейли',
             category: 'bar',
-            tags: ['коктейли', 'bar', 'area:center', 'set:patriki'],
+            tags: ['коктейли', 'bar', 'place:bar', 'set:cocktails', 'area:center', 'set:patriki'],
             area: 'Патрики',
             priceFrom: 1800,
             placeKind: 'bar',
@@ -2547,7 +2577,7 @@ describe('EveningAiDraftService unit', () => {
             contentKind: 'place',
             title: 'Новые вкусы',
             category: 'restaurant',
-            tags: ['кухня', 'гастро', 'area:center', 'set:patriki'],
+            tags: ['кухня', 'гастро', 'place:restaurant', 'area:center', 'set:patriki'],
             area: 'Патрики',
             priceFrom: 2200,
             placeKind: 'restaurant',
@@ -3842,6 +3872,106 @@ describe('EveningAiDraftService unit', () => {
     expect(candidateIds).toContain('tomesto-generic-cafe-00');
     expect(routeCalls[1][0].userPrompt).toContain('intent_mismatch');
     expect(result.route.steps.map((step: any) => step.title)).toEqual(['100 хинкали']);
+  });
+
+  it('uses intent taxonomy tags as the primary match signal', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          stepCountReason: 'Пользователь просит грузинскую еду.',
+          participantsCount: 1,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: '',
+          area: '',
+          budget: '',
+          steps: [
+            {
+              role: 'place_food',
+              taxonomyTags: ['cuisine:gruzinskaya'],
+              preferredTerms: [],
+              avoidTerms: [],
+              instruction: 'Грузинская еда',
+              locationMode: 'none',
+              locationKind: 'none',
+              locationQuery: '',
+              locationCode: '',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-no-sugar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'No Sugar',
+            category: 'food',
+            shortSummary: 'Ресторан на Грузинском Валу',
+            tags: ['occasion:food', 'place:restaurant', 'area:center'],
+            lat: 55.735,
+            lng: 37.605,
+            placeKind: 'food',
+            venueName: 'No Sugar',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-shvili',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Швили',
+            category: 'food',
+            shortSummary: 'Грузинская кухня',
+            tags: ['occasion:food', 'place:restaurant', 'cuisine:gruzinskaya', 'area:center'],
+            lat: 55.736,
+            lng: 37.606,
+            placeKind: 'food',
+            venueName: 'Швили',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Не тот ресторан',
+            vibe: 'Проверка тегов',
+            blurb: 'Модель выбрала место без cuisine tag.',
+            steps: [{ externalContentItemId: 'tomesto-no-sugar', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+        {
+          parsedJson: {
+            title: 'Грузинская еда',
+            vibe: 'По тегу',
+            blurb: 'Модель выбрала место с cuisine tag.',
+            steps: [{ externalContentItemId: 'tomesto-shvili', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу грузинскую еду',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    expect(routeCalls[1][0].userPrompt).toContain('intent_mismatch');
+    expect(result.route.steps.map((step: any) => step.title)).toEqual(['Швили']);
   });
 
   it('filters non-standup ticket events when intent asks for standup', async () => {
