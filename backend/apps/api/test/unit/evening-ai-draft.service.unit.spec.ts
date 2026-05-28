@@ -168,6 +168,7 @@ describe('EveningAiDraftService unit', () => {
     ticketlandWithoutCoords?: boolean;
     externalItems?: Record<string, Array<Record<string, unknown>>>;
     filterExternalItemsByQuery?: boolean;
+    taxonomyRows?: Array<{ tag: string; count?: number }>;
     openRouterResponses?: Array<Record<string, unknown> | Error>;
     intentResponse?: Record<string, unknown> | Error;
     draftOverrides?: Record<string, unknown>;
@@ -350,6 +351,7 @@ describe('EveningAiDraftService unit', () => {
       client: {
         event: { count: eventCount },
         externalContentItem: { findMany: externalFindMany },
+        $queryRaw: jest.fn().mockResolvedValue(options.taxonomyRows ?? []),
         eveningAiRouteDraft: {
           count: aiDraftCount,
           create: draftCreate,
@@ -453,6 +455,7 @@ describe('EveningAiDraftService unit', () => {
       subscriptionService,
       eventCount,
       aiDraftCount,
+      taxonomyQuery: prisma.client.$queryRaw,
     };
   }
 
@@ -700,6 +703,47 @@ describe('EveningAiDraftService unit', () => {
     expect(routeCall.maxTokens).toBe(32768);
     expect(intentCall.timeoutMs).toBe(91000);
     expect(routeCall.timeoutMs).toBe(92000);
+  });
+
+  it('passes real Tomesto taxonomy tags to the intent model', async () => {
+    const { service, openRouter, taxonomyQuery } = createService({
+      taxonomyRows: [
+        { tag: 'cuisine:gruzinskaya', count: 120 },
+        { tag: 'cuisine:italyanskaya', count: 100 },
+        { tag: 'place:restaurant', count: 300 },
+        { tag: 'set:cocktails', count: 40 },
+        { tag: 'feature:quiet', count: 30 },
+      ],
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'place_food',
+              preferredTerms: ['cuisine:gruzinskaya', 'хинкали'],
+              avoidTerms: [],
+              instruction: 'Грузинская кухня',
+            },
+          ],
+        },
+      },
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'хочу поесть хинкали',
+      city: 'Москва',
+    });
+
+    const intentCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route_intent',
+    )?.[0];
+    const intentPrompt = JSON.parse(intentCall.userPrompt);
+    expect(taxonomyQuery).toHaveBeenCalled();
+    expect(intentPrompt.availableTaxonomy.cuisineTags).toEqual([
+      'cuisine:gruzinskaya',
+      'cuisine:italyanskaya',
+    ]);
+    expect(intentPrompt.availableTaxonomy.setTags).toEqual(['set:cocktails']);
+    expect(intentPrompt.rules.join(' ')).toContain('Do not rely on backend keyword aliases');
   });
 
   it('loads Tomesto candidates by city without text filters or take limit', async () => {
@@ -3732,6 +3776,76 @@ describe('EveningAiDraftService unit', () => {
     expect(candidateIds).toContain('tomesto-generic-cafe-00');
     expect(routeCalls[1][0].userPrompt).toContain('intent_mismatch');
     expect(result.route.steps.map((step: any) => step.title)).toEqual(['100 хинкали']);
+  });
+
+  it('filters non-standup ticket events when intent asks for standup', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'show',
+              preferredTerms: ['стендап'],
+              avoidTerms: ['театр', 'опера', 'оперетта', 'концерт'],
+              instruction: 'Стендап вечером',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        advcake_ticketland: [
+          {
+            id: 'ticketland-operetta',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Оперетта за столиками',
+            category: 'theatre',
+            tags: ['театр', 'оперетта'],
+            startsAt: new Date('2099-06-01T19:00:00.000Z'),
+            priceFrom: 800,
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+          {
+            id: 'ticketland-standup',
+            source: { code: 'advcake_ticketland', name: 'Ticketland' },
+            contentKind: 'event',
+            title: 'Стендап без пафоса',
+            category: 'standup',
+            tags: ['standup', 'стендап'],
+            startsAt: new Date('2099-06-01T19:30:00.000Z'),
+            priceFrom: 900,
+            sourceProvider: 'Ticketland / MTS Live',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Стендап',
+            vibe: 'Без театра',
+            blurb: 'Проверка фильтра.',
+            steps: [{ externalContentItemId: 'ticketland-standup', timeLabel: '20:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу стендап вечером',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.candidates.map((candidate: any) => candidate.id)).toEqual([
+      'ticketland-standup',
+    ]);
+    expect(result.route.steps.map((step: any) => step.title)).toEqual(['Стендап без пафоса']);
   });
 
   it('keeps per-step locations and inherits same-as-previous location', async () => {

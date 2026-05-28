@@ -179,6 +179,19 @@ type GeneratedIntentJson = {
   }>;
 };
 
+type IntentTaxonomy = {
+  cuisineTags: string[];
+  placeTags: string[];
+  setTags: string[];
+  featureTags: string[];
+  categoryTags: string[];
+};
+
+type TaxonomyTagRow = {
+  tag: string | null;
+  count: number | bigint | string | null;
+};
+
 type DraftValidationIssue = {
   code: string;
   message: string;
@@ -228,6 +241,14 @@ type EventDateWindow = {
   label: string;
   from: Date;
   to: Date;
+};
+
+const EMPTY_INTENT_TAXONOMY: IntentTaxonomy = {
+  cuisineTags: [],
+  placeTags: [],
+  setTags: [],
+  featureTags: [],
+  categoryTags: [],
 };
 
 const ROUTE_ROLES: RouteRole[] = [
@@ -1217,9 +1238,7 @@ export class EveningAiDraftService {
           imageVariants: item.imageVariants ?? null,
         };
       });
-    return source === 'kudago'
-      ? mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent))
-      : mapped;
+    return mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));
   }
 
   private mapDraftResponse(draft: AiDraftRecord) {
@@ -1402,11 +1421,12 @@ export class EveningAiDraftService {
     }
 
     try {
+      const taxonomy = await this.loadIntentTaxonomy(input.city);
       const response = await this.openRouterService.generateJson<GeneratedIntentJson>({
         model: this.eveningAiModel(),
         timeoutMs: this.intentTimeoutMs(),
         systemPrompt: this.intentSystemPrompt(),
-        userPrompt: this.intentUserPrompt(input),
+        userPrompt: this.intentUserPrompt(input, taxonomy),
         temperature: 0,
         maxTokens: this.intentMaxTokens(),
         responseFormat: this.intentResponseFormat(),
@@ -1428,6 +1448,40 @@ export class EveningAiDraftService {
     }
 
     return fallbackIntent;
+  }
+
+  private async loadIntentTaxonomy(city: string): Promise<IntentTaxonomy> {
+    try {
+      const rows = await this.prismaService.client.$queryRaw<TaxonomyTagRow[]>(Prisma.sql`
+        SELECT tag, COUNT(*)::int AS count
+        FROM (
+          SELECT jsonb_array_elements_text("ExternalContentItem"."tags"::jsonb) AS tag
+          FROM "ExternalContentItem"
+          JOIN "ExternalContentSource"
+            ON "ExternalContentSource"."id" = "ExternalContentItem"."sourceId"
+          WHERE "ExternalContentSource"."code" = 'tomesto'
+            AND "ExternalContentItem"."contentKind" = 'place'
+            AND "ExternalContentItem"."publicStatus" = 'published'
+            AND "ExternalContentItem"."city" = ${city}
+            AND "ExternalContentItem"."lat" IS NOT NULL
+            AND "ExternalContentItem"."lng" IS NOT NULL
+            AND "ExternalContentItem"."imageUrl" IS NOT NULL
+            AND "ExternalContentItem"."tags" IS NOT NULL
+            AND jsonb_typeof("ExternalContentItem"."tags"::jsonb) = 'array'
+        ) AS tags
+        WHERE tag LIKE 'cuisine:%'
+          OR tag LIKE 'place:%'
+          OR tag LIKE 'set:%'
+          OR tag LIKE 'feature:%'
+          OR tag LIKE 'category:%'
+        GROUP BY tag
+        ORDER BY count DESC, tag ASC
+        LIMIT 300
+      `);
+      return taxonomyFromRows(rows);
+    } catch {
+      return EMPTY_INTENT_TAXONOMY;
+    }
   }
 
   private fallbackDraftIntent(input: ParsedDraftInput): DraftIntent {
@@ -1984,6 +2038,12 @@ export class EveningAiDraftService {
     if (candidate.role === 'walk' && !this.isWalkCandidate(candidate)) {
       return false;
     }
+    if (
+      candidate.role === 'show' &&
+      hasAny(normalizeText(intent.preferredTerms.join(' ')), ['стендап', 'standup', 'stand-up'])
+    ) {
+      return candidateMatchesTerms(candidate, ['стендап', 'standup', 'stand-up', 'комед']);
+    }
     if (intent.avoidTerms.length === 0) {
       return true;
     }
@@ -2030,7 +2090,7 @@ export class EveningAiDraftService {
     ].join('\n');
   }
 
-  private intentUserPrompt(input: ParsedDraftInput) {
+  private intentUserPrompt(input: ParsedDraftInput, taxonomy: IntentTaxonomy = EMPTY_INTENT_TAXONOMY) {
     return JSON.stringify({
       prompt: input.prompt,
       config: {
@@ -2079,6 +2139,7 @@ export class EveningAiDraftService {
           meaning: 'активность, спорт, адреналин, картинг, квест, VR, батуты, аттракционы, выставка, перформанс',
         },
       ],
+      availableTaxonomy: taxonomy,
       rules: [
         'If stepCountMode is exact, return exactly requestedStepCount steps.',
         'If stepCountMode is infer, choose the smallest coherent routeStepCount from minStepCount to maxStepCount.',
@@ -2101,10 +2162,14 @@ export class EveningAiDraftService {
         'If the user lists activities with words like сначала, потом, затем, routeStepCount is the number of listed activities.',
         'routeStepCount must describe places or activities, not people.',
         'If the user asks the same kind of step twice, keep it twice.',
+        'For Tomesto food, bar and club steps, first choose matching tags from availableTaxonomy and put them into preferredTerms before natural text terms.',
+        'If the user mentions a dish, drink or cuisine name, infer the matching cuisine, set, feature or place tags yourself using culinary knowledge and availableTaxonomy. Do not rely on backend keyword aliases.',
+        'If no availableTaxonomy tag fits, still return natural text terms in preferredTerms.',
         'For sport or adrenaline requests prefer sport, karting, quests, VR, trampolines or attractions and do not add bars, shows or walks unless explicitly asked.',
         'For gastro-tour, unusual cuisine, cocktails or new taste impressions, use place_food and place_bar only. Do not use free_activity unless the user explicitly asks for a non-food activity such as karting, quest, exhibition or performance.',
         'For a creative date with examples such as exhibition, performance or unusual place, treat the examples as one activity unless the user asks for a sequence or a specific step count.',
-        'If the user asks for standup, keep preferredTerms specific to standup and avoid theatre, opera, operetta and concerts unless the user explicitly allows them.',
+        'If the user says standup or bar as alternatives, choose place_bar unless the wording clearly requires a performance.',
+        'If the user asks for standup, keep preferredTerms specific to standup and avoid theatre, opera, operetta, musicals, ballet and concerts unless the user explicitly allows them.',
         'preferredTerms must describe what the candidate should match.',
         'avoidTerms must describe wrong candidates for this step.',
         'For theatre requests prefer театр, спектакль, опера, балет, мюзикл and avoid музей, выставка.',
@@ -3116,6 +3181,25 @@ function uniqueById<T extends { id?: unknown }>(items: T[]) {
     seen.add(item.id);
     return true;
   });
+}
+
+function taxonomyFromRows(rows: TaxonomyTagRow[]): IntentTaxonomy {
+  const tags = rows
+    .map((row) => stringOrNull(row.tag))
+    .filter((tag): tag is string => typeof tag === 'string')
+    .map((tag) => normalizeText(tag))
+    .filter((tag): tag is string => typeof tag === 'string' && tag.includes(':'));
+  return {
+    cuisineTags: taxonomyTagsByPrefix(tags, 'cuisine:', 140),
+    placeTags: taxonomyTagsByPrefix(tags, 'place:', 80),
+    setTags: taxonomyTagsByPrefix(tags, 'set:', 80),
+    featureTags: taxonomyTagsByPrefix(tags, 'feature:', 80),
+    categoryTags: taxonomyTagsByPrefix(tags, 'category:', 80),
+  };
+}
+
+function taxonomyTagsByPrefix(tags: string[], prefix: string, limit: number) {
+  return uniqueStrings(tags.filter((tag) => tag.startsWith(prefix))).slice(0, limit);
 }
 
 function candidateSearchText(candidate: CandidateCard) {
