@@ -3524,6 +3524,106 @@ describe('EveningAiDraftService unit', () => {
     expect(result.route.steps.map((step: any) => step.title)).toContain('Istanbul');
   });
 
+  it('prioritizes exact cuisine intent over generic cafe matches', async () => {
+    const genericCafes = Array.from({ length: 30 }, (_, index) => ({
+      id: `tomesto-generic-cafe-${String(index).padStart(2, '0')}`,
+      source: { code: 'tomesto', name: 'ТоМесто' },
+      contentKind: 'place',
+      title: index === 0
+        ? 'Кафе ресторан кофе бранч ужин еда покушать перекус coffee десерт паста итальянская'
+        : `Кафе еда ресторан кофе ${index}`,
+      category: 'food',
+      shortSummary: index === 0
+        ? 'Обычное кафе ресторан кофе бранч ужин еда покушать перекус coffee десерт паста итальянская в центре'
+        : 'Обычное кафе ресторан кофе в центре',
+      tags: ['occasion:food', 'place:cafe', 'area:center'],
+      lat: 55.731 + index * 0.0001,
+      lng: 37.601,
+      placeKind: 'food',
+      venueName: `Generic Cafe ${index}`,
+      sourceProvider: 'ТоМесто',
+    }));
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'place_food',
+              preferredTerms: ['хинкали', 'грузинская кухня', 'кафе'],
+              avoidTerms: [],
+              instruction: 'Поесть хинкали в центре',
+              locationMode: 'explicit',
+              locationKind: 'area',
+              locationQuery: 'центр',
+              locationCode: 'center',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          ...genericCafes,
+          {
+            id: 'tomesto-khinkali',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: '100 хинкали',
+            category: 'food',
+            shortSummary: 'Грузинская кухня и хинкали',
+            tags: ['occasion:food', 'place:restaurant', 'cuisine:gruzinskaya', 'area:center'],
+            lat: 55.735,
+            lng: 37.605,
+            placeKind: 'food',
+            venueName: '100 хинкали',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Кафе вместо хинкали',
+            vibe: 'Не по запросу',
+            blurb: 'Проверка валидатора.',
+            steps: [{ externalContentItemId: 'tomesto-generic-cafe-00', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+        {
+          parsedJson: {
+            title: 'Хинкали',
+            vibe: 'По кухне',
+            blurb: 'Проверка кухни.',
+            steps: [{ externalContentItemId: 'tomesto-khinkali', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу погулять в центре и потом поесть хинкали',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    const routePrompt = JSON.parse(routeCalls[0][0].userPrompt);
+    const candidateIds = routePrompt.candidates.map((candidate: any) => candidate.id);
+    expect(candidateIds).toContain('tomesto-khinkali');
+    expect(candidateIds).toContain('tomesto-generic-cafe-00');
+    expect(routeCalls[1][0].userPrompt).toContain('intent_mismatch');
+    expect(result.route.steps.map((step: any) => step.title)).toEqual(['100 хинкали']);
+  });
+
   it('keeps per-step locations and inherits same-as-previous location', async () => {
     const { service, openRouter } = createService({
       intentResponse: {

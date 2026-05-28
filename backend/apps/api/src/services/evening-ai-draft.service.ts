@@ -1789,7 +1789,14 @@ export class EveningAiDraftService {
       }
     }
     if (intent.preferredTerms.length > 0) {
-      score += candidateMatchesTerms(candidate, intent.preferredTerms) ? -90 : 20;
+      const hasSpecificPreferred = hasSpecificPreferredTerms(intent.preferredTerms);
+      if (hasSpecificPreferred) {
+        score += candidateMatchesSpecificPreferredTerms(candidate, intent.preferredTerms)
+          ? -260
+          : 180;
+      } else {
+        score += candidateMatchesTerms(candidate, intent.preferredTerms) ? -90 : 20;
+      }
     }
     if (intent.avoidTerms.length > 0 && candidateMatchesTerms(candidate, intent.avoidTerms)) {
       score += 150;
@@ -1867,7 +1874,7 @@ export class EveningAiDraftService {
     if (!candidateMatchesTerms(candidate, intent.avoidTerms)) {
       return true;
     }
-    return candidateMatchesTerms(candidate, intent.preferredTerms);
+    return candidateMatchesPreferredTerms(candidate, intent.preferredTerms);
   }
 
   private isWalkCandidate(candidate: CandidateCard) {
@@ -2248,8 +2255,8 @@ export class EveningAiDraftService {
       const roleCandidates = candidates.filter((item) => item.role === role);
       if (
         intent.preferredTerms.length > 0 &&
-        roleCandidates.some((item) => candidateMatchesTerms(item, intent.preferredTerms)) &&
-        !candidateMatchesTerms(candidate, intent.preferredTerms)
+        roleCandidates.some((item) => candidateMatchesPreferredTerms(item, intent.preferredTerms)) &&
+        !candidateMatchesPreferredTerms(candidate, intent.preferredTerms)
       ) {
         issues.push({
           code: 'intent_mismatch',
@@ -3020,6 +3027,28 @@ function candidateMatchesTerms(candidate: CandidateCard, terms: string[]) {
   return candidate.tags.some((tag) => tagTerms.has(normalizeText(tag)));
 }
 
+function candidateMatchesPreferredTerms(candidate: CandidateCard, terms: string[]) {
+  return hasSpecificPreferredTerms(terms)
+    ? candidateMatchesSpecificPreferredTerms(candidate, terms)
+    : candidateMatchesTerms(candidate, terms);
+}
+
+function hasSpecificPreferredTerms(terms: string[]) {
+  return specificTaxonomyTagsForTerms(terms).length > 0;
+}
+
+function candidateMatchesSpecificPreferredTerms(candidate: CandidateCard, terms: string[]) {
+  const tagTerms = new Set(specificTaxonomyTagsForTerms(terms));
+  if (tagTerms.size === 0) {
+    return false;
+  }
+  if (candidate.tags.some((tag) => tagTerms.has(normalizeText(tag)))) {
+    return true;
+  }
+  const textTerms = specificTextTermsForTerms(terms);
+  return textTerms.length > 0 && hasAny(candidateSearchText(candidate), textTerms);
+}
+
 type LocalDateParts = {
   year: number;
   month: number;
@@ -3210,7 +3239,7 @@ const TAXONOMY_TERM_GROUPS: Array<{ aliases: string[]; tags: string[] }> = [
     tags: ['cuisine:italyanskaya', 'cuisine:italian'],
   },
   {
-    aliases: ['грузин', 'хинкали', 'хачапури', 'georgian'],
+    aliases: ['грузин', 'хинкал', 'хинкали', 'хачапури', 'georgian'],
     tags: ['cuisine:gruzinskaya', 'cuisine:georgian'],
   },
   {
@@ -3361,6 +3390,76 @@ function taxonomyTagQueriesForTerms(terms: string[]) {
   return hasSpecificTags
     ? unique.filter((tag) => !BROAD_TAXONOMY_TAGS.has(tag))
     : unique;
+}
+
+function specificTaxonomyTagsForTerms(terms: string[]) {
+  const tags: string[] = [];
+  for (const rawTerm of terms) {
+    const term = normalizeText(rawTerm);
+    if (!term) {
+      continue;
+    }
+    if (term.includes(':') && isSpecificTaxonomyTag(term)) {
+      tags.push(term);
+    }
+    const token = normalizeTaxonomyToken(term);
+    if (token && isSpecificDynamicTaxonomyTerm(term, token)) {
+      tags.push(...taxonomyTagsForNormalizedToken(token).filter(isSpecificTaxonomyTag));
+    }
+    for (const group of TAXONOMY_TERM_GROUPS) {
+      if (taxonomyTermMatches(term, group.aliases)) {
+        tags.push(...group.tags.filter(isSpecificTaxonomyTag));
+      }
+    }
+  }
+  return uniqueStrings(tags);
+}
+
+function specificTextTermsForTerms(terms: string[]) {
+  const values: string[] = [];
+  for (const rawTerm of terms) {
+    const term = normalizeText(rawTerm);
+    if (!term) {
+      continue;
+    }
+    if (term.includes(':') && isSpecificTaxonomyTag(term)) {
+      continue;
+    }
+    const token = normalizeTaxonomyToken(term);
+    if (token && isSpecificDynamicTaxonomyTerm(term, token)) {
+      values.push(term);
+    }
+    for (const group of TAXONOMY_TERM_GROUPS) {
+      if (
+        taxonomyTermMatches(term, group.aliases) &&
+        group.tags.some(isSpecificTaxonomyTag)
+      ) {
+        values.push(term, ...group.aliases);
+      }
+    }
+  }
+  return uniqueStrings(values);
+}
+
+function isSpecificTaxonomyTag(tag: string) {
+  const normalized = normalizeText(tag);
+  return (
+    (normalized.startsWith('cuisine:') ||
+      normalized.startsWith('feature:') ||
+      normalized.startsWith('set:')) &&
+    !BROAD_TAXONOMY_TAGS.has(normalized)
+  );
+}
+
+function isSpecificDynamicTaxonomyTerm(term: string, token: string) {
+  return term.includes('кухн') ||
+    token.split('_').some((part) =>
+      part === 'kuhnya' ||
+      part === 'kuhni' ||
+      part === 'kuhney' ||
+      part === 'kitchen' ||
+      part === 'cuisine',
+    );
 }
 
 function taxonomyTagsForNormalizedToken(token: string) {
