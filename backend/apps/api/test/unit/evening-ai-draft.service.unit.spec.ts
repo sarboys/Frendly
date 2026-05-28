@@ -59,6 +59,8 @@ describe('EveningAiDraftService unit', () => {
     priceMode: 'paid',
     sourceProvider: 'ТоМесто',
     placeKind: 'bar',
+    imageUrl: 'https://cdn.test/default.jpg',
+    imageVariants: null,
     source: { code: 'tomesto', name: 'ТоМесто' },
     ...overrides,
   });
@@ -749,6 +751,84 @@ describe('EveningAiDraftService unit', () => {
       }),
     );
     expect(tomestoQueries[0]?.take).toBeUndefined();
+  });
+
+  it('excludes Tomesto candidates without images from the AI route pack', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'place_food',
+              preferredTerms: ['ресторан'],
+              avoidTerms: [],
+              instruction: 'Ресторан',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-no-image',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан без фото',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant'],
+            lat: 55.731,
+            lng: 37.601,
+            placeKind: 'food',
+            venueName: 'Ресторан без фото',
+            sourceProvider: 'ТоМесто',
+            imageUrl: null,
+          },
+          {
+            id: 'tomesto-with-image',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан с фото',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant'],
+            lat: 55.732,
+            lng: 37.602,
+            placeKind: 'food',
+            venueName: 'Ресторан с фото',
+            sourceProvider: 'ТоМесто',
+            imageUrl: 'https://cdn.test/restaurant.jpg',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ресторан',
+            vibe: 'С фото',
+            blurb: 'Проверка картинок.',
+            steps: [{ externalContentItemId: 'tomesto-with-image', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу поесть в ресторане',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    const candidateIds = routePrompt.candidates.map((candidate: any) => candidate.id);
+    expect(candidateIds).toEqual(['tomesto-with-image']);
+    expect(result.route.steps[0].title).toBe('Ресторан с фото');
   });
 
   it('carries candidate images into AI draft route steps', async () => {
@@ -2351,6 +2431,19 @@ describe('EveningAiDraftService unit', () => {
             venueName: 'Авторские коктейли',
             sourceProvider: 'ТоМесто',
           },
+          {
+            id: 'tomesto-tastes',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Новые вкусы',
+            category: 'restaurant',
+            tags: ['кухня', 'гастро', 'area:center', 'set:patriki'],
+            area: 'Патрики',
+            priceFrom: 2200,
+            placeKind: 'restaurant',
+            venueName: 'Новые вкусы',
+            sourceProvider: 'ТоМесто',
+          },
         ],
         kudago: [
           {
@@ -2378,7 +2471,7 @@ describe('EveningAiDraftService unit', () => {
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.config.roles).toEqual(['place_food', 'place_bar', 'free_activity']);
+    expect(routePrompt.config.roles).toEqual(['place_food', 'place_bar', 'place_food']);
     expect(routePrompt.config.area).toBe('patriki');
     expect(routePrompt.config.stepCount).toBe(3);
     expect(result.route.steps).toHaveLength(3);
@@ -3333,6 +3426,7 @@ describe('EveningAiDraftService unit', () => {
       'Casa Bella',
       'Спектакль',
     ]);
+    expect(result.route.steps[1].tagLabel).toBe('Итальянская');
   });
 
   it('scores expanded bar, cuisine, atmosphere and diet terms after loading all Tomesto candidates', async () => {

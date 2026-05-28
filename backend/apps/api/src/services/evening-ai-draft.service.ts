@@ -20,6 +20,36 @@ const AI_ROUTE_CANDIDATE_STEP_LIMITS: Record<CandidateCard['source'], number> = 
   kudago: 10,
   advcake_ticketland: 10,
 };
+const CUISINE_LABELS: Record<string, string> = {
+  'cuisine:italyanskaya': 'Итальянская',
+  'cuisine:italian': 'Итальянская',
+  'cuisine:gruzinskaya': 'Грузинская',
+  'cuisine:georgian': 'Грузинская',
+  'cuisine:yaponskaya': 'Японская',
+  'cuisine:japanese': 'Японская',
+  'cuisine:panaziatskaya': 'Паназиатская',
+  'cuisine:asian': 'Азиатская',
+  'cuisine:kitayskaya': 'Китайская',
+  'cuisine:chinese': 'Китайская',
+  'cuisine:koreyskaya': 'Корейская',
+  'cuisine:korean': 'Корейская',
+  'cuisine:meksikanskaya': 'Мексиканская',
+  'cuisine:mexican': 'Мексиканская',
+  'cuisine:indiyskaya': 'Индийская',
+  'cuisine:indian': 'Индийская',
+  'cuisine:sredizemnomorskaya': 'Средиземноморская',
+  'cuisine:mediterranean': 'Средиземноморская',
+  'cuisine:russkaya': 'Русская',
+  'cuisine:russian': 'Русская',
+  'cuisine:steakhouse': 'Стейки',
+  'cuisine:seafood': 'Морепродукты',
+  'cuisine:rybnaya': 'Рыбная',
+  'cuisine:vegan': 'Веганская',
+  'cuisine:vegetarianskaya': 'Вегетарианская',
+  'cuisine:evropeyskaya': 'Европейская',
+  'cuisine:amerikanskaya': 'Американская',
+  'cuisine:vostochnaya': 'Восточная',
+};
 const KUDAGO_CANDIDATE_QUERY_LIMIT = 50;
 const DEFAULT_INTENT_MAX_TOKENS = 4096;
 const DEFAULT_ROUTE_MAX_TOKENS = 32768;
@@ -861,6 +891,7 @@ export class EveningAiDraftService {
           candidate.shortSummary ??
           this.labelForRole(candidate.role),
         vibeTag: this.labelForRole(candidate.role),
+        tagLabel: this.tagLabelForCandidate(candidate),
         lat: routePoint.lat,
         lng: routePoint.lng,
         hasShareable: ticketUrl != null,
@@ -1020,6 +1051,12 @@ export class EveningAiDraftService {
       city: input.city,
       ...(source === 'advcake_ticketland'
         ? {}
+        : source === 'tomesto'
+          ? {
+              lat: { not: null },
+              lng: { not: null },
+              imageUrl: { not: null },
+            }
         : {
             lat: { not: null },
             lng: { not: null },
@@ -1141,7 +1178,11 @@ export class EveningAiDraftService {
       .filter(
         (item: any) =>
           source === 'advcake_ticketland' ||
-          (typeof item.lat === 'number' && typeof item.lng === 'number'),
+          (
+            typeof item.lat === 'number' &&
+            typeof item.lng === 'number' &&
+            (source !== 'tomesto' || stringOrNull(item.imageUrl) != null)
+          ),
       )
       .map((item: any) => {
         const contentKind: CandidateCard['contentKind'] =
@@ -1472,7 +1513,7 @@ export class EveningAiDraftService {
       },
       {
         role: 'free_activity',
-        terms: ['выстав', 'музей', 'перформанс', 'квест', 'лекци', 'фестивал', 'впечатлен'],
+        terms: ['выстав', 'музей', 'перформанс', 'квест', 'лекци', 'фестивал'],
       },
       {
         role: 'place_club',
@@ -1504,6 +1545,18 @@ export class EveningAiDraftService {
 
   private fillFallbackRoles(roles: RouteRole[], format: string | null, stepCount: number) {
     const fallbackRoles = [...roles];
+    if (
+      fallbackRoles.includes('place_food') &&
+      fallbackRoles.includes('place_bar') &&
+      !fallbackRoles.includes('show') &&
+      !fallbackRoles.includes('walk') &&
+      !fallbackRoles.includes('free_activity')
+    ) {
+      while (fallbackRoles.length < stepCount) {
+        fallbackRoles.push('place_food');
+      }
+      return fallbackRoles.slice(0, stepCount);
+    }
     for (const role of this.resolveRoles(format, stepCount)) {
       if (fallbackRoles.length >= stepCount) {
         break;
@@ -1780,6 +1833,60 @@ export class EveningAiDraftService {
     return 'Еда';
   }
 
+  private tagLabelForCandidate(candidate: CandidateCard) {
+    if (candidate.role === 'walk') {
+      return 'Прогулка';
+    }
+    if (candidate.role === 'free_activity') {
+      return 'Активность';
+    }
+    if (candidate.role === 'show') {
+      return this.showTagLabel(candidate);
+    }
+    if (candidate.role === 'place_bar') {
+      return this.barTagLabel(candidate);
+    }
+    if (candidate.role === 'place_club') {
+      return 'Клуб';
+    }
+    return this.foodTagLabel(candidate);
+  }
+
+  private foodTagLabel(candidate: CandidateCard) {
+    const cuisine = candidate.tags
+      .map((tag) => CUISINE_LABELS[normalizeText(tag)])
+      .find((label): label is string => Boolean(label));
+    return cuisine ?? 'Ресторан';
+  }
+
+  private barTagLabel(candidate: CandidateCard) {
+    const tags = candidate.tags.map(normalizeText);
+    if (tags.some((tag) => tag === 'set:cocktails')) {
+      return 'Коктейли';
+    }
+    if (tags.some((tag) => tag === 'set:wine')) {
+      return 'Вино';
+    }
+    if (tags.some((tag) => tag === 'set:craft_beer' || tag === 'feature:craft_beer')) {
+      return 'Пиво';
+    }
+    return 'Бар';
+  }
+
+  private showTagLabel(candidate: CandidateCard) {
+    const text = candidateSearchText(candidate);
+    if (hasAny(text, ['стендап', 'standup', 'stand-up'])) {
+      return 'Стендап';
+    }
+    if (hasAny(text, ['спектак', 'театр', 'опера', 'балет', 'мюзикл', 'оперетт'])) {
+      return 'Театр';
+    }
+    if (hasAny(text, ['концерт', 'джаз'])) {
+      return 'Концерт';
+    }
+    return 'Шоу';
+  }
+
   private titleForRoles(roles: RouteRole[]) {
     return Array.from(new Set(roles.map((role) => this.labelForRole(role)))).join(' + ');
   }
@@ -1995,7 +2102,9 @@ export class EveningAiDraftService {
         'routeStepCount must describe places or activities, not people.',
         'If the user asks the same kind of step twice, keep it twice.',
         'For sport or adrenaline requests prefer sport, karting, quests, VR, trampolines or attractions and do not add bars, shows or walks unless explicitly asked.',
+        'For gastro-tour, unusual cuisine, cocktails or new taste impressions, use place_food and place_bar only. Do not use free_activity unless the user explicitly asks for a non-food activity such as karting, quest, exhibition or performance.',
         'For a creative date with examples such as exhibition, performance or unusual place, treat the examples as one activity unless the user asks for a sequence or a specific step count.',
+        'If the user asks for standup, keep preferredTerms specific to standup and avoid theatre, opera, operetta and concerts unless the user explicitly allows them.',
         'preferredTerms must describe what the candidate should match.',
         'avoidTerms must describe wrong candidates for this step.',
         'For theatre requests prefer театр, спектакль, опера, балет, мюзикл and avoid музей, выставка.',
