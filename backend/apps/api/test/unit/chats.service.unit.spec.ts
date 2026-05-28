@@ -411,6 +411,41 @@ describe('ChatsService unit', () => {
     });
   });
 
+  it('exposes chat updated timestamp when the chat has no messages', async () => {
+    const chatUpdatedAt = new Date('2026-04-24T15:45:00.000Z');
+    const chat = makeChatListItem('empty-chat', chatUpdatedAt) as any;
+
+    const service = new ChatsService({
+      client: {
+        chat: {
+          findMany: jest.fn().mockResolvedValue([chat]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              chatId: 'empty-chat',
+              unreadCount: 0,
+              isPinned: false,
+              pinnedAt: null,
+            },
+          ]),
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(result.items[0]).toMatchObject({
+      id: 'empty-chat',
+      lastMessageAt: null,
+      updatedAt: '2026-04-24T15:45:00.000Z',
+    });
+  });
+
   it('exposes peer gender for direct chat list items', async () => {
     const directChat = {
       ...makeChatListItem('direct-chat', new Date('2026-04-24T12:00:00.000Z')),
