@@ -169,6 +169,7 @@ describe('EveningAiDraftService unit', () => {
     externalItems?: Record<string, Array<Record<string, unknown>>>;
     filterExternalItemsByQuery?: boolean;
     taxonomyRows?: Array<{ tag: string; count?: number }>;
+    tomestoImageCount?: number;
     openRouterResponses?: Array<Record<string, unknown> | Error>;
     intentResponse?: Record<string, unknown> | Error;
     draftOverrides?: Record<string, unknown>;
@@ -350,7 +351,10 @@ describe('EveningAiDraftService unit', () => {
     const prisma = {
       client: {
         event: { count: eventCount },
-        externalContentItem: { findMany: externalFindMany },
+        externalContentItem: {
+          findMany: externalFindMany,
+          count: jest.fn().mockResolvedValue(options.tomestoImageCount ?? 1),
+        },
         $queryRaw: jest.fn().mockResolvedValue(options.taxonomyRows ?? []),
         eveningAiRouteDraft: {
           count: aiDraftCount,
@@ -873,6 +877,68 @@ describe('EveningAiDraftService unit', () => {
     const candidateIds = routePrompt.candidates.map((candidate: any) => candidate.id);
     expect(candidateIds).toEqual(['tomesto-with-image']);
     expect(result.route.steps[0].title).toBe('Ресторан с фото');
+  });
+
+  it('keeps Tomesto candidates when the city has no imported Tomesto images yet', async () => {
+    const { service, openRouter } = createService({
+      tomestoImageCount: 0,
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'place_food',
+              preferredTerms: ['ресторан'],
+              avoidTerms: [],
+              instruction: 'Ресторан',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-no-city-images-yet',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан без импортированной картинки',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant'],
+            lat: 55.732,
+            lng: 37.602,
+            placeKind: 'food',
+            venueName: 'Ресторан без импортированной картинки',
+            sourceProvider: 'ТоМесто',
+            imageUrl: null,
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ресторан',
+            vibe: 'Без падения',
+            blurb: 'Проверка fallback.',
+            steps: [{ externalContentItemId: 'tomesto-no-city-images-yet', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'хочу ресторан',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.candidates.map((candidate: any) => candidate.id)).toEqual([
+      'tomesto-no-city-images-yet',
+    ]);
   });
 
   it('carries candidate images into AI draft route steps', async () => {
@@ -3846,6 +3912,116 @@ describe('EveningAiDraftService unit', () => {
       'ticketland-standup',
     ]);
     expect(result.route.steps.map((step: any) => step.title)).toEqual(['Стендап без пафоса']);
+  });
+
+  it('uses bar when the prompt says standup or bar and standup is only an alternative', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          steps: [
+            {
+              role: 'walk',
+              preferredTerms: ['прогулка'],
+              avoidTerms: [],
+              instruction: 'Спокойная прогулка',
+            },
+            {
+              role: 'place_food',
+              preferredTerms: ['ресторан'],
+              avoidTerms: [],
+              instruction: 'Ресторан',
+            },
+            {
+              role: 'show',
+              preferredTerms: ['стендап'],
+              avoidTerms: ['театр', 'опера', 'оперетта'],
+              instruction: 'Стендап или бар',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-walk',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Тихая набережная',
+            category: 'walk',
+            tags: ['walk'],
+            lat: 55.731,
+            lng: 37.601,
+            priceMode: 'unknown',
+            priceFrom: null,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'tomesto-dinner',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан без пафоса',
+            category: 'food',
+            tags: ['occasion:food', 'place:restaurant'],
+            lat: 55.732,
+            lng: 37.602,
+            placeKind: 'food',
+            venueName: 'Ресторан без пафоса',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'tomesto-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Бар без пафоса',
+            category: 'bar',
+            tags: ['place:bar'],
+            lat: 55.733,
+            lng: 37.603,
+            placeKind: 'bar',
+            venueName: 'Бар без пафоса',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+        advcake_ticketland: [],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Суббота без пафоса',
+            vibe: 'Спокойный вечер',
+            blurb: 'Прогулка, ресторан и бар.',
+            steps: [
+              { externalContentItemId: 'kudago-walk', timeLabel: '16:00' },
+              { externalContentItemId: 'tomesto-dinner', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-bar', timeLabel: '21:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt:
+        'Хочу провести субботу в Москве с девушкой: днем что-то спокойное и красивое, вечером ресторан, потом стендап или бар. Бюджет средний, без пафоса.',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['walk', 'place_food', 'place_bar']);
+    expect(routePrompt.candidates.map((candidate: any) => candidate.id)).toContain('tomesto-bar');
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Тихая набережная',
+      'Ресторан без пафоса',
+      'Бар без пафоса',
+    ]);
   });
 
   it('keeps per-step locations and inherits same-as-previous location', async () => {

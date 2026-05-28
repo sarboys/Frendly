@@ -1065,6 +1065,9 @@ export class EveningAiDraftService {
           ? { in: ['event', 'place'] }
           : 'event';
     const intent = this.roleIntentHint(input, role, roleHints);
+    const requireTomestoImage = source === 'tomesto'
+      ? await this.hasTomestoImages(input.city)
+      : false;
     const baseWhere: Prisma.ExternalContentItemWhereInput = {
       source: { code: source },
       contentKind: contentKindWhere,
@@ -1076,7 +1079,7 @@ export class EveningAiDraftService {
           ? {
               lat: { not: null },
               lng: { not: null },
-              imageUrl: { not: null },
+              ...(requireTomestoImage ? { imageUrl: { not: null } } : {}),
             }
         : {
             lat: { not: null },
@@ -1202,7 +1205,7 @@ export class EveningAiDraftService {
           (
             typeof item.lat === 'number' &&
             typeof item.lng === 'number' &&
-            (source !== 'tomesto' || stringOrNull(item.imageUrl) != null)
+            (source !== 'tomesto' || !requireTomestoImage || stringOrNull(item.imageUrl) != null)
           ),
       )
       .map((item: any) => {
@@ -1239,6 +1242,21 @@ export class EveningAiDraftService {
         };
       });
     return mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));
+  }
+
+  private async hasTomestoImages(city: string) {
+    const count = await this.prismaService.client.externalContentItem.count({
+      where: {
+        source: { code: 'tomesto' },
+        contentKind: 'place',
+        publicStatus: 'published',
+        city,
+        lat: { not: null },
+        lng: { not: null },
+        imageUrl: { not: null },
+      },
+    });
+    return count > 0;
   }
 
   private mapDraftResponse(draft: AiDraftRecord) {
@@ -1465,7 +1483,6 @@ export class EveningAiDraftService {
             AND "ExternalContentItem"."city" = ${city}
             AND "ExternalContentItem"."lat" IS NOT NULL
             AND "ExternalContentItem"."lng" IS NOT NULL
-            AND "ExternalContentItem"."imageUrl" IS NOT NULL
             AND "ExternalContentItem"."tags" IS NOT NULL
             AND jsonb_typeof("ExternalContentItem"."tags"::jsonb) = 'array'
         ) AS tags
@@ -1645,22 +1662,35 @@ export class EveningAiDraftService {
       if (roles.length >= targetStepCount) {
         break;
       }
-      const role = this.routeRoleOrNull(step?.role);
+      let role = this.routeRoleOrNull(step?.role);
       if (!role) {
         return null;
       }
+      const rawHint = {
+        preferredTerms: step?.preferredTerms,
+        avoidTerms: step?.avoidTerms,
+        instruction: step?.instruction,
+        locationMode: step?.locationMode,
+        locationKind: step?.locationKind,
+        locationQuery: step?.locationQuery,
+        locationCode: step?.locationCode,
+        previousLocation,
+      };
+      if (role === 'show' && shouldUseBarAlternative(input.prompt, step)) {
+        role = 'place_bar';
+        rawHint.preferredTerms = uniqueStrings([
+          'place:bar',
+          'бар',
+          ...stringArray(step?.preferredTerms, 8).filter((term) =>
+            !hasAny(normalizeText(term), ['стендап', 'standup', 'stand-up']),
+          ),
+        ]);
+        rawHint.avoidTerms = [];
+        rawHint.instruction = stringOrNull(step?.instruction) ?? 'Бар как альтернатива стендапу';
+      }
       roles.push(role);
       roleHints.push(
-        this.normalizeLlmIntentHint(input, role, {
-          preferredTerms: step?.preferredTerms,
-          avoidTerms: step?.avoidTerms,
-          instruction: step?.instruction,
-          locationMode: step?.locationMode,
-          locationKind: step?.locationKind,
-          locationQuery: step?.locationQuery,
-          locationCode: step?.locationCode,
-          previousLocation,
-        }),
+        this.normalizeLlmIntentHint(input, role, rawHint),
       );
       previousLocation = roleHints[roleHints.length - 1]?.location ?? previousLocation;
     }
@@ -3200,6 +3230,21 @@ function taxonomyFromRows(rows: TaxonomyTagRow[]): IntentTaxonomy {
 
 function taxonomyTagsByPrefix(tags: string[], prefix: string, limit: number) {
   return uniqueStrings(tags.filter((tag) => tag.startsWith(prefix))).slice(0, limit);
+}
+
+function shouldUseBarAlternative(
+  prompt: string | null,
+  step: GeneratedIntentJson['steps'] extends Array<infer Step> ? Step : unknown,
+) {
+  const promptText = normalizeText(prompt ?? '');
+  if (!promptText) {
+    return false;
+  }
+  const preferredText = normalizeText(stringArray((step as any)?.preferredTerms, 10).join(' '));
+  if (!hasAny(preferredText, ['стендап', 'standup', 'stand-up'])) {
+    return false;
+  }
+  return /(?:стендап|standup|stand-up).{0,40}или.{0,40}(?:бар|паб|коктейл|пив|вино)|(?:бар|паб|коктейл|пив|вино).{0,40}или.{0,40}(?:стендап|standup|stand-up)/.test(promptText);
 }
 
 function candidateSearchText(candidate: CandidateCard) {
