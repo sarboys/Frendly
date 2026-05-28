@@ -21,8 +21,8 @@
       "NestJS",
       "Prisma"
     ],
-    "analyzedAt": "2026-05-27T08:19:36.403Z",
-    "gitCommitHash": "065cfa6e26a2c2da1c26f8ef02733d83040c2291"
+    "analyzedAt": "2026-05-28T08:18:34.072Z",
+    "gitCommitHash": "d9ea7c82a04cb5c33f897a590dc0f5255cc6c7a8"
   },
   "nodes": [
     {
@@ -3912,7 +3912,7 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 1 classes, 46 functions.",
+      "summary": "evening-ai-draft.service.ts contains 1 classes, 66 functions.",
       "tags": [
         "backend",
         "code",
@@ -3926,10 +3926,214 @@
       "name": "areaOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2525,
-        2541
+        2663,
+        2679
       ],
       "summary": "areaOrNull in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:emptyStepLocation",
+      "type": "function",
+      "name": "emptyStepLocation",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2681,
+        2689
+      ],
+      "summary": "emptyStepLocation in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeStepLocation",
+      "type": "function",
+      "name": "normalizeStepLocation",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2691,
+        2730
+      ],
+      "summary": "normalizeStepLocation in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeStepLocationMode",
+      "type": "function",
+      "name": "normalizeStepLocationMode",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2732,
+        2738
+      ],
+      "summary": "normalizeStepLocationMode in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeStepLocationKind",
+      "type": "function",
+      "name": "normalizeStepLocationKind",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2740,
+        2746
+      ],
+      "summary": "normalizeStepLocationKind in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stepLocationCode",
+      "type": "function",
+      "name": "stepLocationCode",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2748,
+        2757
+      ],
+      "summary": "stepLocationCode in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:metroLocationCode",
+      "type": "function",
+      "name": "metroLocationCode",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2759,
+        2780
+      ],
+      "summary": "metroLocationCode in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:metroSlugFromToken",
+      "type": "function",
+      "name": "metroSlugFromToken",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2782,
+        2791
+      ],
+      "summary": "metroSlugFromToken in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stepLocationTerms",
+      "type": "function",
+      "name": "stepLocationTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2793,
+        2810
+      ],
+      "summary": "stepLocationTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasStepLocation",
+      "type": "function",
+      "name": "hasStepLocation",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2812,
+        2814
+      ],
+      "summary": "hasStepLocation in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesLocation",
+      "type": "function",
+      "name": "candidateMatchesLocation",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2816,
+        2828
+      ],
+      "summary": "candidateMatchesLocation in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:locationAnchor",
+      "type": "function",
+      "name": "locationAnchor",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2830,
+        2839
+      ],
+      "summary": "locationAnchor in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:locationRadiusKm",
+      "type": "function",
+      "name": "locationRadiusKm",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        2841,
+        2849
+      ],
+      "summary": "locationRadiusKm in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -3943,8 +4147,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2562,
-        2566
+        2870,
+        2874
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -3960,8 +4164,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2568,
-        2577
+        2876,
+        2885
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -3977,8 +4181,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2579,
-        2581
+        2887,
+        2889
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -3994,8 +4198,8 @@
       "name": "integerFromEnv",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2583,
-        2590
+        2891,
+        2898
       ],
       "summary": "integerFromEnv in evening-ai-draft.service.ts.",
       "tags": [
@@ -4011,8 +4215,8 @@
       "name": "budgetOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2592,
-        2605
+        2900,
+        2913
       ],
       "summary": "budgetOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -4028,8 +4232,8 @@
       "name": "timezoneForCity",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2607,
-        2609
+        2915,
+        2917
       ],
       "summary": "timezoneForCity in evening-ai-draft.service.ts.",
       "tags": [
@@ -4045,8 +4249,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2611,
-        2619
+        2919,
+        2927
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -4062,8 +4266,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2621,
-        2626
+        2929,
+        2934
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -4079,8 +4283,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2628,
-        2636
+        2936,
+        2944
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -4096,8 +4300,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2638,
-        2640
+        2946,
+        2948
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -4113,8 +4317,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2642,
-        2644
+        2950,
+        2952
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -4130,8 +4334,8 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2646,
-        2654
+        2954,
+        2962
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -4147,8 +4351,8 @@
       "name": "promptTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2656,
-        2666
+        2964,
+        2974
       ],
       "summary": "promptTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -4164,8 +4368,8 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2668,
-        2670
+        2976,
+        2978
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -4181,8 +4385,8 @@
       "name": "promptExplicitStepCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2672,
-        2691
+        2980,
+        2999
       ],
       "summary": "promptExplicitStepCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -4198,8 +4402,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2693,
-        2702
+        3001,
+        3010
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -4215,8 +4419,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2704,
-        2718
+        3012,
+        3026
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -4232,10 +4436,61 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2720,
-        2729
+        3028,
+        3037
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesPreferredTerms",
+      "type": "function",
+      "name": "candidateMatchesPreferredTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3039,
+        3043
+      ],
+      "summary": "candidateMatchesPreferredTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasSpecificPreferredTerms",
+      "type": "function",
+      "name": "hasSpecificPreferredTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3045,
+        3047
+      ],
+      "summary": "hasSpecificPreferredTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesSpecificPreferredTerms",
+      "type": "function",
+      "name": "candidateMatchesSpecificPreferredTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3049,
+        3059
+      ],
+      "summary": "candidateMatchesSpecificPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4249,8 +4504,8 @@
       "name": "todayEventDateWindow",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2737,
-        2745
+        3067,
+        3075
       ],
       "summary": "todayEventDateWindow in evening-ai-draft.service.ts.",
       "tags": [
@@ -4266,8 +4521,8 @@
       "name": "localDateFromIsoDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2747,
-        2750
+        3077,
+        3080
       ],
       "summary": "localDateFromIsoDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4283,8 +4538,8 @@
       "name": "eventDateWindowFromStored",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2752,
-        2768
+        3082,
+        3098
       ],
       "summary": "eventDateWindowFromStored in evening-ai-draft.service.ts.",
       "tags": [
@@ -4300,8 +4555,8 @@
       "name": "eventDateWindowForLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2770,
-        2784
+        3100,
+        3114
       ],
       "summary": "eventDateWindowForLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4317,8 +4572,8 @@
       "name": "localDateFromValues",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2786,
-        2806
+        3116,
+        3136
       ],
       "summary": "localDateFromValues in evening-ai-draft.service.ts.",
       "tags": [
@@ -4334,8 +4589,8 @@
       "name": "zonedDateParts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2808,
-        2821
+        3138,
+        3151
       ],
       "summary": "zonedDateParts in evening-ai-draft.service.ts.",
       "tags": [
@@ -4351,8 +4606,8 @@
       "name": "localDateIso",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2823,
-        2825
+        3153,
+        3155
       ],
       "summary": "localDateIso in evening-ai-draft.service.ts.",
       "tags": [
@@ -4368,8 +4623,8 @@
       "name": "zonedTimeToUtc",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2827,
-        2857
+        3157,
+        3187
       ],
       "summary": "zonedTimeToUtc in evening-ai-draft.service.ts.",
       "tags": [
@@ -4385,8 +4640,8 @@
       "name": "sameLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2859,
-        2861
+        3189,
+        3191
       ],
       "summary": "sameLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4402,8 +4657,8 @@
       "name": "compareLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2863,
-        2865
+        3193,
+        3195
       ],
       "summary": "compareLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4419,8 +4674,8 @@
       "name": "validLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2867,
-        2872
+        3197,
+        3202
       ],
       "summary": "validLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4436,8 +4691,8 @@
       "name": "intentStepCountFromGenerated",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2874,
-        2880
+        3204,
+        3210
       ],
       "summary": "intentStepCountFromGenerated in evening-ai-draft.service.ts.",
       "tags": [
@@ -4453,8 +4708,8 @@
       "name": "normalizedCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2882,
-        2897
+        3212,
+        3227
       ],
       "summary": "normalizedCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -4470,10 +4725,95 @@
       "name": "taxonomyTagQueriesForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3038,
-        3064
+        3368,
+        3402
       ],
       "summary": "taxonomyTagQueriesForTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:specificTaxonomyTagsForTerms",
+      "type": "function",
+      "name": "specificTaxonomyTagsForTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3404,
+        3425
+      ],
+      "summary": "specificTaxonomyTagsForTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:specificTextTermsForTerms",
+      "type": "function",
+      "name": "specificTextTermsForTerms",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3427,
+        3451
+      ],
+      "summary": "specificTextTermsForTerms in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:isSpecificTaxonomyTag",
+      "type": "function",
+      "name": "isSpecificTaxonomyTag",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3453,
+        3461
+      ],
+      "summary": "isSpecificTaxonomyTag in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:isSpecificDynamicTaxonomyTerm",
+      "type": "function",
+      "name": "isSpecificDynamicTaxonomyTerm",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3463,
+        3472
+      ],
+      "summary": "isSpecificDynamicTaxonomyTerm in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyTagsForNormalizedToken",
+      "type": "function",
+      "name": "taxonomyTagsForNormalizedToken",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        3474,
+        3489
+      ],
+      "summary": "taxonomyTagsForNormalizedToken in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4487,8 +4827,8 @@
       "name": "taxonomyTermMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3066,
-        3068
+        3508,
+        3510
       ],
       "summary": "taxonomyTermMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -4504,8 +4844,8 @@
       "name": "taxonomyAliasMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3070,
-        3075
+        3512,
+        3517
       ],
       "summary": "taxonomyAliasMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -4521,8 +4861,8 @@
       "name": "escapeRegExp",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3077,
-        3079
+        3519,
+        3521
       ],
       "summary": "escapeRegExp in evening-ai-draft.service.ts.",
       "tags": [
@@ -4538,8 +4878,8 @@
       "name": "normalizeTaxonomyToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3081,
-        3088
+        3523,
+        3530
       ],
       "summary": "normalizeTaxonomyToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -4555,8 +4895,8 @@
       "name": "transliterateRu",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3090,
-        3126
+        3532,
+        3568
       ],
       "summary": "transliterateRu in evening-ai-draft.service.ts.",
       "tags": [
@@ -4572,8 +4912,8 @@
       "name": "budgetFromText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3128,
-        3148
+        3570,
+        3590
       ],
       "summary": "budgetFromText in evening-ai-draft.service.ts.",
       "tags": [
@@ -4589,8 +4929,8 @@
       "name": "areaTermsFor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3150,
-        3159
+        3592,
+        3601
       ],
       "summary": "areaTermsFor in evening-ai-draft.service.ts.",
       "tags": [
@@ -4606,8 +4946,8 @@
       "name": "displayAreaForRoute",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3161,
-        3191
+        3603,
+        3633
       ],
       "summary": "displayAreaForRoute in evening-ai-draft.service.ts.",
       "tags": [
@@ -4623,8 +4963,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3193,
-        3195
+        3635,
+        3637
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -4640,8 +4980,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3197,
-        3199
+        3639,
+        3641
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -4657,8 +4997,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3201,
-        3207
+        3643,
+        3649
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -4674,8 +5014,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3209,
-        3222
+        3651,
+        3664
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -4691,8 +5031,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3224,
-        3226
+        3666,
+        3668
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -4708,8 +5048,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        214,
-        2303
+        238,
+        2424
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -5071,8 +5411,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4832,
-        4862
+        4774,
+        4804
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -5088,8 +5428,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4864,
-        4868
+        4806,
+        4810
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -5105,8 +5445,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4870,
-        4872
+        4812,
+        4814
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -5122,8 +5462,8 @@
       "name": "cleanEventText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4874,
-        4880
+        4816,
+        4822
       ],
       "summary": "cleanEventText in events.service.ts.",
       "tags": [
@@ -5139,8 +5479,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4882,
-        4884
+        4824,
+        4826
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -5156,8 +5496,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4886,
-        4905
+        4828,
+        4847
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -5173,8 +5513,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        254,
-        4830
+        255,
+        4772
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -5273,6 +5613,53 @@
         "structure"
       ],
       "complexity": "complex"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "type": "file",
+      "name": "meetup-creation-limit.ts",
+      "filePath": "backend/apps/api/src/services/meetup-creation-limit.ts",
+      "summary": "meetup-creation-limit.ts contains 2 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/meetup-creation-limit.ts:assertCanCreateWeeklyMeetup",
+      "type": "function",
+      "name": "assertCanCreateWeeklyMeetup",
+      "filePath": "backend/apps/api/src/services/meetup-creation-limit.ts",
+      "lineRange": [
+        7,
+        71
+      ],
+      "summary": "assertCanCreateWeeklyMeetup in meetup-creation-limit.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/meetup-creation-limit.ts:currentMoscowWeekWindow",
+      "type": "function",
+      "name": "currentMoscowWeekWindow",
+      "filePath": "backend/apps/api/src/services/meetup-creation-limit.ts",
+      "lineRange": [
+        73,
+        93
+      ],
+      "summary": "currentMoscowWeekWindow in meetup-creation-limit.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "file:backend/apps/api/src/services/notifications.service.ts",
@@ -5950,8 +6337,8 @@
       "name": "mapPlacePromoListItem",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        285,
-        316
+        287,
+        318
       ],
       "summary": "mapPlacePromoListItem in places.service.ts.",
       "tags": [
@@ -5967,8 +6354,8 @@
       "name": "comparePlacePromoListItems",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        318,
-        337
+        320,
+        339
       ],
       "summary": "comparePlacePromoListItems in places.service.ts.",
       "tags": [
@@ -5984,8 +6371,8 @@
       "name": "mapPromoDto",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        339,
-        353
+        341,
+        355
       ],
       "summary": "mapPromoDto in places.service.ts.",
       "tags": [
@@ -6001,8 +6388,8 @@
       "name": "mapPlaceSearchResult",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        355,
-        379
+        357,
+        381
       ],
       "summary": "mapPlaceSearchResult in places.service.ts.",
       "tags": [
@@ -6018,8 +6405,8 @@
       "name": "placeSearchScore",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        381,
-        406
+        383,
+        408
       ],
       "summary": "placeSearchScore in places.service.ts.",
       "tags": [
@@ -6035,8 +6422,8 @@
       "name": "promoMatchesPlace",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        408,
-        424
+        410,
+        430
       ],
       "summary": "promoMatchesPlace in places.service.ts.",
       "tags": [
@@ -6052,8 +6439,8 @@
       "name": "placeSlug",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        426,
-        428
+        432,
+        434
       ],
       "summary": "placeSlug in places.service.ts.",
       "tags": [
@@ -6069,8 +6456,8 @@
       "name": "ratingFromRaw",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        430,
-        433
+        436,
+        439
       ],
       "summary": "ratingFromRaw in places.service.ts.",
       "tags": [
@@ -6086,8 +6473,8 @@
       "name": "normalizeLimit",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        435,
-        440
+        441,
+        446
       ],
       "summary": "normalizeLimit in places.service.ts.",
       "tags": [
@@ -6103,8 +6490,8 @@
       "name": "normalizePromoLimit",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        442,
-        447
+        448,
+        453
       ],
       "summary": "normalizePromoLimit in places.service.ts.",
       "tags": [
@@ -6120,8 +6507,8 @@
       "name": "distanceKm",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        449,
-        467
+        455,
+        473
       ],
       "summary": "distanceKm in places.service.ts.",
       "tags": [
@@ -6137,8 +6524,8 @@
       "name": "toRadians",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        469,
-        471
+        475,
+        477
       ],
       "summary": "toRadians in places.service.ts.",
       "tags": [
@@ -6154,8 +6541,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        473,
-        475
+        479,
+        481
       ],
       "summary": "normalizeText in places.service.ts.",
       "tags": [
@@ -6171,8 +6558,8 @@
       "name": "normalizeTagQuery",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        477,
-        480
+        483,
+        486
       ],
       "summary": "normalizeTagQuery in places.service.ts.",
       "tags": [
@@ -6188,8 +6575,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        482,
-        484
+        488,
+        490
       ],
       "summary": "text in places.service.ts.",
       "tags": [
@@ -6205,8 +6592,8 @@
       "name": "isString",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        486,
-        488
+        492,
+        494
       ],
       "summary": "isString in places.service.ts.",
       "tags": [
@@ -6222,8 +6609,8 @@
       "name": "isFiniteNumber",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        490,
-        492
+        496,
+        498
       ],
       "summary": "isFiniteNumber in places.service.ts.",
       "tags": [
@@ -6239,8 +6626,8 @@
       "name": "hasValidCoordinates",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        494,
-        502
+        500,
+        508
       ],
       "summary": "hasValidCoordinates in places.service.ts.",
       "tags": [
@@ -6256,8 +6643,8 @@
       "name": "asRecord",
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
-        504,
-        508
+        510,
+        514
       ],
       "summary": "asRecord in places.service.ts.",
       "tags": [
@@ -6274,7 +6661,7 @@
       "filePath": "backend/apps/api/src/services/places.service.ts",
       "lineRange": [
         57,
-        283
+        285
       ],
       "summary": "PlacesService in places.service.ts.",
       "tags": [
@@ -11008,7 +11395,7 @@
       "type": "file",
       "name": "tomesto.adapter.ts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "summary": "tomesto.adapter.ts contains 1 classes, 60 functions.",
+      "summary": "tomesto.adapter.ts contains 1 classes, 65 functions.",
       "tags": [
         "backend",
         "code",
@@ -11022,8 +11409,8 @@
       "name": "isDetailPath",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        696,
-        709
+        721,
+        734
       ],
       "summary": "isDetailPath in tomesto.adapter.ts.",
       "tags": [
@@ -11039,8 +11426,8 @@
       "name": "tomestoSourceItemId",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        711,
-        713
+        736,
+        738
       ],
       "summary": "tomestoSourceItemId in tomesto.adapter.ts.",
       "tags": [
@@ -11056,8 +11443,8 @@
       "name": "stripHash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        715,
-        719
+        740,
+        744
       ],
       "summary": "stripHash in tomesto.adapter.ts.",
       "tags": [
@@ -11073,8 +11460,8 @@
       "name": "canonicalUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        721,
-        731
+        746,
+        756
       ],
       "summary": "canonicalUrl in tomesto.adapter.ts.",
       "tags": [
@@ -11090,8 +11477,8 @@
       "name": "slugFromUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        733,
-        741
+        758,
+        766
       ],
       "summary": "slugFromUrl in tomesto.adapter.ts.",
       "tags": [
@@ -11107,8 +11494,8 @@
       "name": "firstText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        743,
-        755
+        768,
+        780
       ],
       "summary": "firstText in tomesto.adapter.ts.",
       "tags": [
@@ -11124,10 +11511,61 @@
       "name": "firstAttr",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        757,
-        765
+        782,
+        790
       ],
       "summary": "firstAttr in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:placeInfoLabels",
+      "type": "function",
+      "name": "placeInfoLabels",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        792,
+        815
+      ],
+      "summary": "placeInfoLabels in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:labeledInfoValue",
+      "type": "function",
+      "name": "labeledInfoValue",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        817,
+        819
+      ],
+      "summary": "labeledInfoValue in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:labeledInfoValues",
+      "type": "function",
+      "name": "labeledInfoValues",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        821,
+        828
+      ],
+      "summary": "labeledInfoValues in tomesto.adapter.ts.",
       "tags": [
         "backend",
         "function",
@@ -11141,8 +11579,8 @@
       "name": "placeSlugFromVenueUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        767,
-        783
+        830,
+        846
       ],
       "summary": "placeSlugFromVenueUrl in tomesto.adapter.ts.",
       "tags": [
@@ -11158,8 +11596,8 @@
       "name": "collectTexts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        785,
-        797
+        848,
+        860
       ],
       "summary": "collectTexts in tomesto.adapter.ts.",
       "tags": [
@@ -11175,8 +11613,8 @@
       "name": "meta",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        799,
-        805
+        862,
+        868
       ],
       "summary": "meta in tomesto.adapter.ts.",
       "tags": [
@@ -11192,8 +11630,8 @@
       "name": "shortDescription",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        807,
-        813
+        870,
+        876
       ],
       "summary": "shortDescription in tomesto.adapter.ts.",
       "tags": [
@@ -11209,8 +11647,8 @@
       "name": "blockedTomestoPromoReason",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        815,
-        839
+        878,
+        902
       ],
       "summary": "blockedTomestoPromoReason in tomesto.adapter.ts.",
       "tags": [
@@ -11226,8 +11664,8 @@
       "name": "cleanText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        841,
-        850
+        904,
+        913
       ],
       "summary": "cleanText in tomesto.adapter.ts.",
       "tags": [
@@ -11243,8 +11681,8 @@
       "name": "normalizeSearchText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        852,
-        854
+        915,
+        917
       ],
       "summary": "normalizeSearchText in tomesto.adapter.ts.",
       "tags": [
@@ -11260,8 +11698,8 @@
       "name": "coordinates",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        856,
-        878
+        919,
+        941
       ],
       "summary": "coordinates in tomesto.adapter.ts.",
       "tags": [
@@ -11277,8 +11715,8 @@
       "name": "jsonLdObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        880,
-        891
+        943,
+        954
       ],
       "summary": "jsonLdObjects in tomesto.adapter.ts.",
       "tags": [
@@ -11294,8 +11732,8 @@
       "name": "collectJsonObjects",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        893,
-        904
+        956,
+        967
       ],
       "summary": "collectJsonObjects in tomesto.adapter.ts.",
       "tags": [
@@ -11311,8 +11749,8 @@
       "name": "placeCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        906,
-        932
+        969,
+        995
       ],
       "summary": "placeCategory in tomesto.adapter.ts.",
       "tags": [
@@ -11328,8 +11766,8 @@
       "name": "averageCheck",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        934,
-        941
+        997,
+        1004
       ],
       "summary": "averageCheck in tomesto.adapter.ts.",
       "tags": [
@@ -11345,8 +11783,8 @@
       "name": "visiblePrice",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        943,
-        957
+        1006,
+        1020
       ],
       "summary": "visiblePrice in tomesto.adapter.ts.",
       "tags": [
@@ -11362,8 +11800,8 @@
       "name": "rating",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        959,
-        965
+        1022,
+        1028
       ],
       "summary": "rating in tomesto.adapter.ts.",
       "tags": [
@@ -11379,8 +11817,8 @@
       "name": "metroLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        967,
-        981
+        1030,
+        1044
       ],
       "summary": "metroLabels in tomesto.adapter.ts.",
       "tags": [
@@ -11396,8 +11834,8 @@
       "name": "featureLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        983,
-        997
+        1046,
+        1074
       ],
       "summary": "featureLabels in tomesto.adapter.ts.",
       "tags": [
@@ -11413,10 +11851,27 @@
       "name": "cuisineLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        999,
-        1005
+        1076,
+        1109
       ],
       "summary": "cuisineLabels in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:cuisineSlugFromHref",
+      "type": "function",
+      "name": "cuisineSlugFromHref",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        1111,
+        1124
+      ],
+      "summary": "cuisineSlugFromHref in tomesto.adapter.ts.",
       "tags": [
         "backend",
         "function",
@@ -11430,8 +11885,8 @@
       "name": "setLabels",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1007,
-        1032
+        1126,
+        1151
       ],
       "summary": "setLabels in tomesto.adapter.ts.",
       "tags": [
@@ -11447,8 +11902,8 @@
       "name": "sourceUpdatedText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1034,
-        1041
+        1153,
+        1160
       ],
       "summary": "sourceUpdatedText in tomesto.adapter.ts.",
       "tags": [
@@ -11464,8 +11919,8 @@
       "name": "compactPageText",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1043,
-        1047
+        1162,
+        1166
       ],
       "summary": "compactPageText in tomesto.adapter.ts.",
       "tags": [
@@ -11481,8 +11936,8 @@
       "name": "tomestoClosedPlaceStatus",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1049,
-        1063
+        1168,
+        1182
       ],
       "summary": "tomestoClosedPlaceStatus in tomesto.adapter.ts.",
       "tags": [
@@ -11498,10 +11953,27 @@
       "name": "buildPlaceTaxonomy",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1065,
-        1099
+        1184,
+        1218
       ],
       "summary": "buildPlaceTaxonomy in tomesto.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/tomesto.adapter.ts:tomestoAreaTokens",
+      "type": "function",
+      "name": "tomestoAreaTokens",
+      "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
+      "lineRange": [
+        1220,
+        1238
+      ],
+      "summary": "tomestoAreaTokens in tomesto.adapter.ts.",
       "tags": [
         "backend",
         "function",
@@ -11515,8 +11987,8 @@
       "name": "taxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1101,
-        1112
+        1240,
+        1251
       ],
       "summary": "taxonomyTags in tomesto.adapter.ts.",
       "tags": [
@@ -11532,8 +12004,8 @@
       "name": "normalizeFeature",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1114,
-        1138
+        1253,
+        1283
       ],
       "summary": "normalizeFeature in tomesto.adapter.ts.",
       "tags": [
@@ -11549,8 +12021,8 @@
       "name": "extractImageUrl",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1140,
-        1151
+        1285,
+        1296
       ],
       "summary": "extractImageUrl in tomesto.adapter.ts.",
       "tags": [
@@ -11566,8 +12038,8 @@
       "name": "firstDateWindow",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1153,
-        1161
+        1298,
+        1306
       ],
       "summary": "firstDateWindow in tomesto.adapter.ts.",
       "tags": [
@@ -11583,8 +12055,8 @@
       "name": "dateWindows",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1163,
-        1188
+        1308,
+        1340
       ],
       "summary": "dateWindows in tomesto.adapter.ts.",
       "tags": [
@@ -11600,8 +12072,8 @@
       "name": "parseDate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1190,
-        1211
+        1342,
+        1397
       ],
       "summary": "parseDate in tomesto.adapter.ts.",
       "tags": [
@@ -11617,8 +12089,8 @@
       "name": "eventCategory",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1213,
-        1234
+        1399,
+        1420
       ],
       "summary": "eventCategory in tomesto.adapter.ts.",
       "tags": [
@@ -11634,8 +12106,8 @@
       "name": "ensureTrailingSlash",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1236,
-        1238
+        1422,
+        1424
       ],
       "summary": "ensureTrailingSlash in tomesto.adapter.ts.",
       "tags": [
@@ -11651,8 +12123,8 @@
       "name": "normalizeRefQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1240,
-        1246
+        1426,
+        1432
       ],
       "summary": "normalizeRefQuery in tomesto.adapter.ts.",
       "tags": [
@@ -11668,8 +12140,8 @@
       "name": "safeQuery",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1248,
-        1254
+        1434,
+        1440
       ],
       "summary": "safeQuery in tomesto.adapter.ts.",
       "tags": [
@@ -11685,8 +12157,8 @@
       "name": "dateKey",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1256,
-        1258
+        1442,
+        1444
       ],
       "summary": "dateKey in tomesto.adapter.ts.",
       "tags": [
@@ -11702,8 +12174,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1260,
-        1266
+        1446,
+        1452
       ],
       "summary": "text in tomesto.adapter.ts.",
       "tags": [
@@ -11719,8 +12191,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1268,
-        1278
+        1454,
+        1464
       ],
       "summary": "number in tomesto.adapter.ts.",
       "tags": [
@@ -11736,8 +12208,8 @@
       "name": "positiveNumber",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1280,
-        1283
+        1466,
+        1469
       ],
       "summary": "positiveNumber in tomesto.adapter.ts.",
       "tags": [
@@ -11753,8 +12225,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1285,
-        1288
+        1471,
+        1474
       ],
       "summary": "positiveInt in tomesto.adapter.ts.",
       "tags": [
@@ -11770,8 +12242,8 @@
       "name": "nonNegativeInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1290,
-        1293
+        1476,
+        1479
       ],
       "summary": "nonNegativeInt in tomesto.adapter.ts.",
       "tags": [
@@ -11787,8 +12259,8 @@
       "name": "boundedPositiveInt",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1295,
-        1301
+        1481,
+        1487
       ],
       "summary": "boundedPositiveInt in tomesto.adapter.ts.",
       "tags": [
@@ -11804,8 +12276,8 @@
       "name": "positiveInteger",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1303,
-        1310
+        1489,
+        1496
       ],
       "summary": "positiveInteger in tomesto.adapter.ts.",
       "tags": [
@@ -11821,8 +12293,8 @@
       "name": "nonNegativeInteger",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1312,
-        1319
+        1498,
+        1505
       ],
       "summary": "nonNegativeInteger in tomesto.adapter.ts.",
       "tags": [
@@ -11838,8 +12310,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1321,
-        1323
+        1507,
+        1509
       ],
       "summary": "object in tomesto.adapter.ts.",
       "tags": [
@@ -11855,8 +12327,8 @@
       "name": "mergeRaw",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1325,
-        1330
+        1511,
+        1516
       ],
       "summary": "mergeRaw in tomesto.adapter.ts.",
       "tags": [
@@ -11872,8 +12344,8 @@
       "name": "delay",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1332,
-        1334
+        1518,
+        1520
       ],
       "summary": "delay in tomesto.adapter.ts.",
       "tags": [
@@ -11889,8 +12361,8 @@
       "name": "normalizeToken",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1336,
-        1344
+        1522,
+        1530
       ],
       "summary": "normalizeToken in tomesto.adapter.ts.",
       "tags": [
@@ -11906,8 +12378,8 @@
       "name": "normalizeSlug",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1346,
-        1354
+        1532,
+        1540
       ],
       "summary": "normalizeSlug in tomesto.adapter.ts.",
       "tags": [
@@ -11923,8 +12395,8 @@
       "name": "transliterate",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1356,
-        1396
+        1542,
+        1582
       ],
       "summary": "transliterate in tomesto.adapter.ts.",
       "tags": [
@@ -11940,8 +12412,8 @@
       "name": "dedupe",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1398,
-        1400
+        1584,
+        1586
       ],
       "summary": "dedupe in tomesto.adapter.ts.",
       "tags": [
@@ -11957,8 +12429,8 @@
       "name": "isString",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1402,
-        1404
+        1588,
+        1590
       ],
       "summary": "isString in tomesto.adapter.ts.",
       "tags": [
@@ -11974,8 +12446,8 @@
       "name": "emptyTaxonomyCounts",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1406,
-        1412
+        1592,
+        1598
       ],
       "summary": "emptyTaxonomyCounts in tomesto.adapter.ts.",
       "tags": [
@@ -11991,8 +12463,8 @@
       "name": "countTaxonomyTags",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1414,
-        1424
+        1600,
+        1610
       ],
       "summary": "countTaxonomyTags in tomesto.adapter.ts.",
       "tags": [
@@ -12008,8 +12480,8 @@
       "name": "isSitemapPlacePath",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1426,
-        1440
+        1612,
+        1626
       ],
       "summary": "isSitemapPlacePath in tomesto.adapter.ts.",
       "tags": [
@@ -12025,8 +12497,8 @@
       "name": "isTomestoNotFound",
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
-        1442,
-        1444
+        1628,
+        1630
       ],
       "summary": "isTomestoNotFound in tomesto.adapter.ts.",
       "tags": [
@@ -12043,7 +12515,7 @@
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
       "lineRange": [
         42,
-        694
+        719
       ],
       "summary": "TomestoAdapter in tomesto.adapter.ts.",
       "tags": [
@@ -21474,6 +21946,19 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260527120000_free_meetup_weekly_limit_7/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260527120000_free_meetup_weekly_limit_7/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -28374,6 +28859,90 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:emptyStepLocation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeStepLocation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeStepLocationMode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeStepLocationKind",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stepLocationCode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:metroLocationCode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:metroSlugFromToken",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:stepLocationTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasStepLocation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesLocation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:locationAnchor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:locationRadiusKm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasCandidateCoords",
       "type": "contains",
       "direction": "forward",
@@ -28500,6 +29069,27 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesPreferredTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasSpecificPreferredTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesSpecificPreferredTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:todayEventDateWindow",
       "type": "contains",
       "direction": "forward",
@@ -28592,6 +29182,41 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyTagQueriesForTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:specificTaxonomyTagsForTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:specificTextTermsForTerms",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:isSpecificTaxonomyTag",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:isSpecificDynamicTaxonomyTerm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:taxonomyTagsForNormalizedToken",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -28865,6 +29490,20 @@
     {
       "source": "file:backend/apps/api/src/services/media.service.ts",
       "target": "class:backend/apps/api/src/services/media.service.ts:MediaService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "target": "function:backend/apps/api/src/services/meetup-creation-limit.ts:assertCanCreateWeeklyMeetup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "target": "function:backend/apps/api/src/services/meetup-creation-limit.ts:currentMoscowWeekWindow",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -30915,6 +31554,27 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:placeInfoLabels",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:labeledInfoValue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:labeledInfoValues",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
       "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:placeSlugFromVenueUrl",
       "type": "contains",
       "direction": "forward",
@@ -31034,6 +31694,13 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:cuisineSlugFromHref",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
       "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:setLabels",
       "type": "contains",
       "direction": "forward",
@@ -31063,6 +31730,13 @@
     {
       "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
       "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:buildPlaceTaxonomy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/tomesto.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/tomesto.adapter.ts:tomestoAreaTokens",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -38230,6 +38904,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "file:backend/apps/api/src/services/openrouter.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -38238,6 +38919,13 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "file:backend/apps/api/src/services/subscription.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -38356,6 +39044,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/events.service.ts",
+      "target": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
       "type": "imports",
       "direction": "forward",
@@ -38441,6 +39136,27 @@
     {
       "source": "file:backend/apps/api/src/services/media.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/meetup-creation-limit.ts",
+      "target": "file:backend/apps/api/src/services/subscription.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -40299,6 +41015,7 @@
         "file:backend/apps/api/src/services/host.service.ts",
         "file:backend/apps/api/src/services/matches.service.ts",
         "file:backend/apps/api/src/services/media.service.ts",
+        "file:backend/apps/api/src/services/meetup-creation-limit.ts",
         "file:backend/apps/api/src/services/notifications.service.ts",
         "file:backend/apps/api/src/services/onboarding.service.ts",
         "file:backend/apps/api/src/services/openrouter.service.ts",
@@ -40933,6 +41650,7 @@
         "table:backend/packages/database/prisma/migrations/20260525160000_token_catalog_packs/migration.sql:TokenCatalogPack",
         "index:backend/packages/database/prisma/migrations/20260525160000_token_catalog_packs/migration.sql:TokenCatalogPack_active_sortOrder_idx",
         "table:backend/packages/database/prisma/migrations/20260526120000_free_meetup_weekly_limit/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260527120000_free_meetup_weekly_limit_7/migration.sql",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",

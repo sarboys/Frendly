@@ -3,23 +3,23 @@
     "name": "Frendly backend-mobile-admin",
     "description": "Focused graph for backend, mobile Flutter app, admin app, business logic, and their runtime/deploy links."
   },
-  "filesAnalyzed": 344,
+  "filesAnalyzed": 346,
   "fileCategories": {
     "config": 22,
-    "code": 210,
+    "code": 211,
     "infra": 22,
-    "data": 86,
+    "data": 87,
     "docs": 3,
     "script": 1
   },
   "nodeTypes": {
     "config": 22,
-    "file": 210,
+    "file": 211,
     "class": 159,
-    "function": 651,
+    "function": 678,
     "service": 23,
     "pipeline": 16,
-    "table": 503,
+    "table": 504,
     "schema": 1,
     "document": 3,
     "domain": 7,
@@ -27,8 +27,8 @@
     "step": 65
   },
   "edgeTypes": {
-    "contains": 1244,
-    "imports": 504,
+    "contains": 1271,
+    "imports": 510,
     "contains_flow": 12,
     "flow_step": 65,
     "cross_domain": 8
@@ -50,11 +50,11 @@
     "domains": 7,
     "flows": 12,
     "steps": 65,
-    "domainGraphPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/backend-main-push-20260527/.understand-anything/domain-graph.json"
+    "domainGraphPath": "/private/tmp/frendly-ci-fix.1HaLYP/.understand-anything/domain-graph.json"
   },
   "review": {
     "issues": [],
     "warnings": []
   },
-  "outputPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/backend-main-push-20260527/.understand-anything/knowledge-graph.json"
+  "outputPath": "/private/tmp/frendly-ci-fix.1HaLYP/.understand-anything/knowledge-graph.json"
 }

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "065cfa6e26a2c2da1c26f8ef02733d83040c2291",
-  "generatedAt": "2026-05-27T08:19:36.632Z",
+  "gitCommitHash": "d9ea7c82a04cb5c33f897a590dc0f5255cc6c7a8",
+  "generatedAt": "2026-05-28T08:18:34.312Z",
   "files": {
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
@@ -7026,7 +7026,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "1d1e87d5099e3604e407c7d640d4693ad5c44e4b7c677cb0d3a7836345aeccb0",
+      "contentHash": "8fb1de61c98e3466af02c3f262b94012098a1db3cfeea48b583d8fe3a72955ef",
       "functions": [
         {
           "name": "areaOrNull",
@@ -7035,6 +7035,109 @@
           ],
           "exported": false,
           "lineCount": 17
+        },
+        {
+          "name": "emptyStepLocation",
+          "params": [],
+          "returnType": "StepLocation",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "normalizeStepLocation",
+          "params": [
+            "raw"
+          ],
+          "returnType": "StepLocation",
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "normalizeStepLocationMode",
+          "params": [
+            "value"
+          ],
+          "returnType": "StepLocationMode",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "normalizeStepLocationKind",
+          "params": [
+            "value"
+          ],
+          "returnType": "StepLocationKind",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "stepLocationCode",
+          "params": [
+            "kind",
+            "query",
+            "rawCode"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "metroLocationCode",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "metroSlugFromToken",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "stepLocationTerms",
+          "params": [
+            "kind",
+            "code",
+            "query"
+          ],
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "hasStepLocation",
+          "params": [
+            "location"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "candidateMatchesLocation",
+          "params": [
+            "candidate",
+            "location"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "locationAnchor",
+          "params": [
+            "location"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "locationRadiusKm",
+          "params": [
+            "location"
+          ],
+          "exported": false,
+          "lineCount": 9
         },
         {
           "name": "hasCandidateCoords",
@@ -7190,6 +7293,32 @@
           "lineCount": 10
         },
         {
+          "name": "candidateMatchesPreferredTerms",
+          "params": [
+            "candidate",
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "hasSpecificPreferredTerms",
+          "params": [
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "candidateMatchesSpecificPreferredTerms",
+          "params": [
+            "candidate",
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
           "name": "todayEventDateWindow",
           "params": [
             "timezone",
@@ -7322,7 +7451,48 @@
             "terms"
           ],
           "exported": false,
-          "lineCount": 27
+          "lineCount": 35
+        },
+        {
+          "name": "specificTaxonomyTagsForTerms",
+          "params": [
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "specificTextTermsForTerms",
+          "params": [
+            "terms"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "isSpecificTaxonomyTag",
+          "params": [
+            "tag"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "isSpecificDynamicTaxonomyTerm",
+          "params": [
+            "term",
+            "token"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "taxonomyTagsForNormalizedToken",
+          "params": [
+            "token"
+          ],
+          "exported": false,
+          "lineCount": 16
         },
         {
           "name": "taxonomyTermMatches",
@@ -7446,6 +7616,8 @@
             "eveningAiModel",
             "intentMaxTokens",
             "routeMaxTokens",
+            "intentTimeoutMs",
+            "routeTimeoutMs",
             "confirmDraft",
             "loadDraft",
             "generateRouteWithFallback",
@@ -7509,14 +7681,15 @@
             "candidateSeedCounter"
           ],
           "exported": true,
-          "lineCount": 2090
+          "lineCount": 2187
         }
       ],
       "imports": [
         {
           "source": "@nestjs/common",
           "specifiers": [
-            "Injectable"
+            "Injectable",
+            "Optional"
           ]
         },
         {
@@ -7544,6 +7717,12 @@
           ]
         },
         {
+          "source": "./meetup-creation-limit",
+          "specifiers": [
+            "assertCanCreateWeeklyMeetup"
+          ]
+        },
+        {
           "source": "./openrouter.service",
           "specifiers": [
             "OpenRouterService"
@@ -7554,12 +7733,18 @@
           "specifiers": [
             "PrismaService"
           ]
+        },
+        {
+          "source": "./subscription.service",
+          "specifiers": [
+            "SubscriptionService"
+          ]
         }
       ],
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 3227,
+      "totalLines": 3669,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -8028,7 +8213,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "39a1839da6e28d1ac5f68e434f8486b43a9820a0f86287cab3feb6dd55e1174b",
+      "contentHash": "9dabf0b24d64ce431c356eede1fc416af54230d5fb577f49d948de867039f750",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -8148,7 +8333,6 @@
             "markInviteNotificationsRead",
             "assertAfterDarkUnlocked",
             "assertHostCanCreateWeeklyMeetup",
-            "currentMoscowWeekWindow",
             "parseEventRouteSelection",
             "parseEventRouteStep",
             "createPrivateEventRoute",
@@ -8176,7 +8360,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 4577
+          "lineCount": 4518
         }
       ],
       "imports": [
@@ -8251,6 +8435,12 @@
           ]
         },
         {
+          "source": "./meetup-creation-limit",
+          "specifiers": [
+            "assertCanCreateWeeklyMeetup"
+          ]
+        },
+        {
           "source": "./prisma.service",
           "specifiers": [
             "PrismaService"
@@ -8272,7 +8462,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4906,
+      "totalLines": 4848,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -8547,6 +8737,54 @@
         "MediaService"
       ],
       "totalLines": 732,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/meetup-creation-limit.ts": {
+      "filePath": "backend/apps/api/src/services/meetup-creation-limit.ts",
+      "contentHash": "fa322cdf6e094a6d819f1b72f134244ab5a09aadadf61f5dc983f0cef5ce940b",
+      "functions": [
+        {
+          "name": "assertCanCreateWeeklyMeetup",
+          "params": [
+            "userId",
+            "prismaService",
+            "subscriptionService"
+          ],
+          "exported": true,
+          "lineCount": 65
+        },
+        {
+          "name": "currentMoscowWeekWindow",
+          "params": [],
+          "exported": false,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "./subscription.service",
+          "specifiers": [
+            "SubscriptionService"
+          ]
+        }
+      ],
+      "exports": [
+        "assertCanCreateWeeklyMeetup"
+      ],
+      "totalLines": 94,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/notifications.service.ts": {
@@ -9534,7 +9772,7 @@
     },
     "backend/apps/api/src/services/places.service.ts": {
       "filePath": "backend/apps/api/src/services/places.service.ts",
-      "contentHash": "936e80e39dcc79b215c21291dcc5bc9ca8fc4aa6f897ebc608bcba327059a9d1",
+      "contentHash": "2a388e81a4c4e3a8c6c8b8b08d7acfbff376f786747b9ffdfa61e942fdfa1265",
       "functions": [
         {
           "name": "mapPlacePromoListItem",
@@ -9595,7 +9833,7 @@
             "place"
           ],
           "exported": true,
-          "lineCount": 17
+          "lineCount": 21
         },
         {
           "name": "placeSlug",
@@ -9718,7 +9956,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 227
+          "lineCount": 229
         }
       ],
       "imports": [
@@ -9746,7 +9984,7 @@
         "mapPromoDto",
         "promoMatchesPlace"
       ],
-      "totalLines": 509,
+      "totalLines": 515,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/prisma.service.ts": {
@@ -10396,7 +10634,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "8ad8caf2e3670492238349e92e8a80ca74b4ce3d96fa82707ff101273e16f1e7",
+      "contentHash": "c0e8f127bda8742a5fa7675706cb4571020003bf5a5cdad667b5315f9515fad2",
       "functions": [],
       "classes": [
         {
@@ -14194,7 +14432,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "aa355e6b15134a8f298b49126b9287b5607d99d049cee3be20654870acf16568",
+      "contentHash": "12fd5f55f5b62ab8975cb610a313c78c2c9e82f65452b194c5f27951ec7a931c",
       "functions": [
         {
           "name": "isDetailPath",
@@ -14259,6 +14497,32 @@
           ],
           "exported": false,
           "lineCount": 9
+        },
+        {
+          "name": "placeInfoLabels",
+          "params": [
+            "$"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "labeledInfoValue",
+          "params": [
+            "values",
+            "labels"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "labeledInfoValues",
+          "params": [
+            "values",
+            "labels"
+          ],
+          "exported": false,
+          "lineCount": 8
         },
         {
           "name": "placeSlugFromVenueUrl",
@@ -14388,18 +14652,29 @@
         {
           "name": "featureLabels",
           "params": [
-            "$"
+            "$",
+            "labeledInfo"
           ],
           "exported": false,
-          "lineCount": 15
+          "lineCount": 29
         },
         {
           "name": "cuisineLabels",
           "params": [
-            "$"
+            "$",
+            "sourceUrl"
           ],
           "exported": false,
-          "lineCount": 7
+          "lineCount": 34
+        },
+        {
+          "name": "cuisineSlugFromHref",
+          "params": [
+            "value",
+            "sourceUrl"
+          ],
+          "exported": false,
+          "lineCount": 14
         },
         {
           "name": "setLabels",
@@ -14444,6 +14719,14 @@
           "lineCount": 35
         },
         {
+          "name": "tomestoAreaTokens",
+          "params": [
+            "sourceTokens"
+          ],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
           "name": "taxonomyTags",
           "params": [
             "taxonomy"
@@ -14457,7 +14740,7 @@
             "value"
           ],
           "exported": false,
-          "lineCount": 25
+          "lineCount": 31
         },
         {
           "name": "extractImageUrl",
@@ -14482,19 +14765,21 @@
         {
           "name": "dateWindows",
           "params": [
-            "$"
+            "$",
+            "defaultYear"
           ],
           "returnType": "ParsedDateWindow[]",
           "exported": false,
-          "lineCount": 26
+          "lineCount": 33
         },
         {
           "name": "parseDate",
           "params": [
-            "value"
+            "value",
+            "defaultYear"
           ],
           "exported": false,
-          "lineCount": 22
+          "lineCount": 56
         },
         {
           "name": "eventCategory",
@@ -14743,7 +15028,7 @@
             "catalogFallbackMaxPages"
           ],
           "exported": true,
-          "lineCount": 653
+          "lineCount": 678
         }
       ],
       "imports": [
@@ -14766,7 +15051,7 @@
       "exports": [
         "TomestoAdapter"
       ],
-      "totalLines": 1445,
+      "totalLines": 1631,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/health.controller.ts": {

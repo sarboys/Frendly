@@ -13,7 +13,14 @@ describe('SubscriptionService unit', () => {
     dropsRewardService.grantSubscriptionReward.mockReset();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('loads only fields needed for the current subscription response', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-13T10:00:00.000Z').getTime());
     const subscription = {
       plan: 'month',
       status: 'active',
@@ -54,6 +61,9 @@ describe('SubscriptionService unit', () => {
   });
 
   it('returns matching active subscription without reading it again', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-13T10:00:00.000Z').getTime());
     const subscription = {
       plan: 'month',
       status: 'active',
