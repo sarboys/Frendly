@@ -223,6 +223,67 @@ describe('EveningService unit', () => {
     );
   });
 
+  it('maps confirmed route metadata on route details', async () => {
+    const route = routeFixture();
+    route.steps = [
+      {
+        ...(route.steps[0] as any),
+        matchMetadata: {
+          matchQuality: 'substitution',
+          matchedTraits: ['place:bar', 'area:center'],
+          missingTraits: ['set:cocktails'],
+          avoidHits: ['set:craft_beer'],
+          substitutionReason: 'Коктейли не подтверждены. Подобрали ближайший бар.',
+        },
+      },
+      {
+        ...(route.steps[1] as any),
+        matchMetadata: {
+          matchQuality: 42,
+          matchedTraits: ['standup', 42],
+          missingTraits: 'set:jazz',
+          avoidHits: null,
+          substitutionReason: ['bad'],
+        },
+      },
+    ];
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findUnique: jest.fn().mockResolvedValue(route),
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          externalContentItem: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+    );
+
+    const result = await service.getRoute('user-me', 'r-cozy-circle');
+
+    expect(result.steps[0]).toMatchObject({
+      matchQuality: 'substitution',
+      matchedTraits: ['place:bar', 'area:center'],
+      missingTraits: ['set:cocktails'],
+      avoidHits: ['set:craft_beer'],
+      substitutionReason: 'Коктейли не подтверждены. Подобрали ближайший бар.',
+    });
+    expect(result.steps[1]).toMatchObject({
+      matchQuality: null,
+      matchedTraits: [],
+      missingTraits: [],
+      avoidHits: [],
+      substitutionReason: null,
+    });
+  });
+
   it('shares a step to the route chat only once', async () => {
     const step = {
       id: 's1-1',

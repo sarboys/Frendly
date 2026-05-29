@@ -5328,6 +5328,52 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('preserves confirmed route metadata on route steps', async () => {
+    const routeWithMetadata = {
+      ...routeSnapshot,
+      steps: [
+        {
+          ...routeSnapshot.steps[0],
+          matchQuality: 'substitution',
+          matchedTraits: ['place:bar', 'area:center'],
+          missingTraits: ['set:cocktails'],
+          avoidHits: ['set:craft_beer'],
+          substitutionReason: 'Коктейли не подтверждены. Подобрали ближайший бар.',
+        },
+        routeSnapshot.steps[1],
+      ],
+    };
+    const { service, stepCreateMany } = createService({
+      draftOverrides: {
+        routeSnapshotJson: routeWithMetadata,
+        acceptedStepIndexes: [0, 1],
+      },
+    });
+
+    await service.confirmDraft('user-1', 'draft-1');
+
+    expect(stepCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            title: 'Brix',
+            matchMetadata: {
+              matchQuality: 'substitution',
+              matchedTraits: ['place:bar', 'area:center'],
+              missingTraits: ['set:cocktails'],
+              avoidHits: ['set:craft_beer'],
+              substitutionReason: 'Коктейли не подтверждены. Подобрали ближайший бар.',
+            },
+          }),
+          expect.objectContaining({
+            title: 'Стендап',
+            matchMetadata: null,
+          }),
+        ]),
+      }),
+    );
+  });
+
   it('regenerates one step from the saved candidate pack without calling OpenRouter', async () => {
     const { service, draftUpdate, openRouter } = createService();
 

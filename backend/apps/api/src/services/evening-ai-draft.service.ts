@@ -3097,12 +3097,46 @@ export class EveningAiDraftService {
       partnerId: null,
       description: step.description ?? null,
       vibeTag: step.vibeTag ?? null,
+      matchMetadata: this.stepMatchMetadataFromDto(step),
       lat: step.lat,
       lng: step.lng,
       offerTitleSnapshot: null,
       offerDescriptionSnapshot: null,
       offerTermsSnapshot: null,
       offerShortLabelSnapshot: null,
+    };
+  }
+
+  private stepMatchMetadataFromDto(step: any): Prisma.InputJsonValue | null {
+    const matchQuality =
+      typeof step?.matchQuality === 'string' && step.matchQuality.length > 0
+        ? step.matchQuality
+        : null;
+    const matchedTraits = this.stringList(step?.matchedTraits);
+    const missingTraits = this.stringList(step?.missingTraits);
+    const avoidHits = this.stringList(step?.avoidHits);
+    const substitutionReason =
+      typeof step?.substitutionReason === 'string' && step.substitutionReason.length > 0
+        ? step.substitutionReason
+        : null;
+
+    const hasMetadata =
+      matchQuality != null ||
+      matchedTraits.length > 0 ||
+      missingTraits.length > 0 ||
+      avoidHits.length > 0 ||
+      substitutionReason != null;
+
+    if (!hasMetadata) {
+      return null;
+    }
+
+    return {
+      matchQuality,
+      matchedTraits,
+      missingTraits,
+      avoidHits,
+      substitutionReason,
     };
   }
 

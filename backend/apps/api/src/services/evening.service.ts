@@ -41,6 +41,7 @@ const eveningRouteStepSelect = {
   offerShortLabelSnapshot: true,
   description: true,
   vibeTag: true,
+  matchMetadata: true,
   lat: true,
   lng: true,
 } satisfies Prisma.EveningRouteStepSelect;
@@ -108,6 +109,24 @@ type TomestoStepBackfill = {
   price: number | null;
   provider: string | null;
 };
+
+type StepMatchMetadataResponse = {
+  matchQuality: string | null;
+  matchedTraits: string[];
+  missingTraits: string[];
+  avoidHits: string[];
+  substitutionReason: string | null;
+};
+
+function emptyStepMatchMetadata(): StepMatchMetadataResponse {
+  return {
+    matchQuality: null,
+    matchedTraits: [],
+    missingTraits: [],
+    avoidHits: [],
+    substitutionReason: null,
+  };
+}
 
 const eveningMessageMediaAssetSelect = {
   id: true,
@@ -1590,6 +1609,7 @@ export class EveningService {
     } | null,
     tomestoBackfill?: TomestoStepBackfill | null,
   ) {
+    const matchMetadata = this.mapStepMatchMetadata(step.matchMetadata);
     return {
       id: step.id,
       time: step.timeLabel,
@@ -1619,6 +1639,11 @@ export class EveningService {
       offerShortLabel: step.offerShortLabelSnapshot ?? null,
       description: step.description,
       vibeTag: step.vibeTag,
+      matchQuality: matchMetadata.matchQuality,
+      matchedTraits: matchMetadata.matchedTraits,
+      missingTraits: matchMetadata.missingTraits,
+      avoidHits: matchMetadata.avoidHits,
+      substitutionReason: matchMetadata.substitutionReason,
       lat: step.lat,
       lng: step.lng,
       status: sessionState?.status ?? null,
@@ -1637,6 +1662,30 @@ export class EveningService {
         chatMessageId: action?.chatMessageId ?? null,
       },
     };
+  }
+
+  private mapStepMatchMetadata(value: Prisma.JsonValue | null): StepMatchMetadataResponse {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      return emptyStepMatchMetadata();
+    }
+    const metadata = value as Record<string, Prisma.JsonValue>;
+    return {
+      matchQuality: this.stringOrNull(metadata.matchQuality),
+      matchedTraits: this.stringArrayOrEmpty(metadata.matchedTraits),
+      missingTraits: this.stringArrayOrEmpty(metadata.missingTraits),
+      avoidHits: this.stringArrayOrEmpty(metadata.avoidHits),
+      substitutionReason: this.stringOrNull(metadata.substitutionReason),
+    };
+  }
+
+  private stringOrNull(value: Prisma.JsonValue | undefined): string | null {
+    return typeof value === 'string' ? value : null;
+  }
+
+  private stringArrayOrEmpty(value: Prisma.JsonValue | undefined): string[] {
+    return Array.isArray(value) && value.every((item) => typeof item === 'string')
+      ? (value as string[])
+      : [];
   }
 
   private async loadTomestoStepBackfills(

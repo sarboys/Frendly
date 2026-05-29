@@ -1441,6 +1441,7 @@ model EveningRouteStep {
   partnerId                String?
   description              String?
   vibeTag                  String?
+  matchMetadata            Json?
   lat                      Float
   lng                      Float
   offerTitleSnapshot       String?
