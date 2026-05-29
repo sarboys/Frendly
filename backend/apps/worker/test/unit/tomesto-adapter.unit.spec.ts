@@ -100,6 +100,48 @@ describe('TomestoAdapter', () => {
     );
   });
 
+  it('adds semantic trait tags and evidence to catalog places', async () => {
+    jest.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.endsWith('/moskva/sitemap.xml')) {
+        return new Response(sitemapXml(1), {
+          status: 200,
+          headers: { 'content-type': 'application/xml' },
+        }) as any;
+      }
+
+      return new Response(
+        placeHtml(value, '<p>Коктейльный бар с уникальным дизайном интерьера для романтического ужина.</p>'),
+        {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        },
+      ) as any;
+    });
+
+    const items = await new TomestoAdapter().fetchItems({
+      city: 'Москва',
+      cityCode: 'moskva',
+      timezone: 'Europe/Moscow',
+      from,
+      to,
+      signal: new AbortController().signal,
+      importMode: 'tomesto_places_catalog',
+      catalogOffset: 0,
+      catalogLimit: 1,
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.tags).toEqual(expect.arrayContaining([
+      'set:cocktails',
+      'feature:beautiful_interior',
+      'feature:romantic',
+    ]));
+    expect((items[0]?.raw as any)?.traitEvidence).toEqual(expect.arrayContaining([
+      expect.objectContaining({ tag: 'set:cocktails' }),
+    ]));
+  });
+
   it('parses catalog promos from current Tomesto markup', async () => {
     jest.spyOn(global, 'fetch').mockImplementation(async (url) => {
       const value = String(url);

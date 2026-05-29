@@ -5,6 +5,7 @@ import type {
   ExternalSourceAdapter,
   ExternalSourceFetchInput,
 } from './content-source.types';
+import { extractTomestoPlaceTraits } from './tomesto-place-traits';
 
 const DEFAULT_BASE_URL = 'https://tomesto.ru';
 const DEFAULT_MAX_PAGES = 10;
@@ -495,6 +496,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       console.warn('[tomesto] place coordinates missing', { slug, title });
     }
 
+    const description = meta($, 'description');
     const categoryLabels = collectTexts($, [
       '.breadcrumbs a',
       '.place-category a',
@@ -523,6 +525,18 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       cuisine,
     });
     const tags = taxonomyTags(taxonomy);
+    const semanticTraits = extractTomestoPlaceTraits({
+      title,
+      description,
+      category,
+      categoryLabels,
+      features,
+      sets,
+      cuisine,
+      pageText,
+      sourceUrl,
+    });
+    const enrichedTags = dedupe([...tags, ...semanticTraits.tags]);
     const itemImageUrl = this.importImages ? extractImageUrl($, sourceUrl) : null;
     const actionUrl = this.actionUrl(sourceUrl);
     const closedStatus = tomestoClosedPlaceStatus(pageText);
@@ -531,7 +545,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       hasTitle: true,
       hasAddress: Boolean(address),
       hasCoords: coords.lat != null && coords.lng != null,
-      taxonomyTags: tags.length,
+      taxonomyTags: enrichedTags.length,
     });
 
     return {
@@ -542,9 +556,9 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       city: input.city,
       timezone: input.timezone,
       title,
-      description: meta($, 'description'),
+      description,
       category,
-      tags,
+      tags: enrichedTags,
       address,
       lat: coords.lat,
       lng: coords.lng,
@@ -571,6 +585,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
         sourceUpdatedText: sourceUpdatedText($),
         ...(closedStatus ? { status: closedStatus } : {}),
         taxonomy,
+        traitEvidence: semanticTraits.evidence,
       },
     };
   }
