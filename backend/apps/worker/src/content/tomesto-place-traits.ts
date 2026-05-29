@@ -33,17 +33,28 @@ type TraitRule = {
   tag: string;
   confidence: number;
   patterns: RegExp[];
-  sources?: EvidenceSource[];
+  sources: EvidenceSource[];
 };
 
+const TEXT_SOURCES: EvidenceSource[] = [
+  'category',
+  'description',
+  'page_text',
+  'feature',
+  'set',
+  'cuisine',
+];
+
 const TRAIT_RULES: TraitRule[] = [
-  trait('place:pub', 0.96, ['паб', 'pub']),
-  trait('place:bar', 0.95, ['бар', 'рюмочн', 'паб', 'cocktail bar', 'коктейльн']),
-  trait('place:restaurant', 0.94, ['ресторан']),
-  trait('place:cafe', 0.9, ['кафе', 'кофейн']),
-  trait('cuisine:seafood', 0.94, ['морск', 'морепродукт']),
-  trait('cuisine:russian', 0.94, ['русск']),
-  trait('set:fish', 0.9, ['рыб']),
+  trait('place:pub', 0.96, ['(^|[^а-яa-z])паб([^а-яa-z]|$)', '(^|[^а-яa-z])pub([^а-яa-z]|$)']),
+  trait('place:bar', 0.95, ['(^|[^а-яa-z])бар([^а-яa-z]|$)', 'рюмочн', 'паб', 'cocktail bar', 'коктейльн']),
+  trait('place:restaurant', 0.94, ['(^|[^а-яa-z])ресторан']),
+  trait('place:cafe', 0.9, ['(^|[^а-яa-z])кафе([^а-яa-z]|$)', 'кофейн']),
+  trait('cuisine:seafood', 0.94, ['морская кухня', 'морепродукт', 'seafood']),
+  trait('cuisine:seafood', 0.94, ['морск', 'морепродукт', 'seafood'], ['cuisine']),
+  trait('cuisine:russian', 0.94, ['русская кухня', 'русская гастрономия']),
+  trait('cuisine:russian', 0.94, ['русск', 'russian'], ['cuisine']),
+  trait('set:fish', 0.9, ['(^|[^а-яa-z])рыб[ауы]([^а-яa-z]|$)', 'рыбн', 'рыбная кухня']),
   trait('set:craft_beer', 0.93, ['крафт', 'craft beer', 'крафтов']),
   trait('set:cider', 0.92, ['сидр', 'cider']),
   trait('set:nastoyki', 0.93, ['настойк']),
@@ -77,7 +88,7 @@ function trait(tag: string, confidence: number, patterns: string[], sources?: Ev
     tag,
     confidence,
     patterns: patterns.map((pattern) => new RegExp(pattern, 'i')),
-    sources,
+    sources: sources ?? TEXT_SOURCES,
   };
 }
 
@@ -98,7 +109,7 @@ function inputParts(input: TomestoPlaceTraitInput): TextPart[] {
 
 function findEvidence(rule: TraitRule, parts: TextPart[]): TomestoTraitEvidence | null {
   for (const part of parts) {
-    if (rule.sources && !rule.sources.includes(part.source)) {
+    if (!rule.sources.includes(part.source)) {
       continue;
     }
     const normalized = normalize(part.value);

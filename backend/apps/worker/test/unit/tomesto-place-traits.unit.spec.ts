@@ -70,6 +70,30 @@ describe('extractTomestoPlaceTraits', () => {
 
     expect(result.tags).toEqual(expect.arrayContaining(['place:bar', 'set:cocktails']));
   });
+
+  it('does not infer bar from source URL city slug', () => {
+    const result = extractTomestoPlaceTraits(placeInput({
+      sourceUrl: 'https://tomesto.ru/barnaul/places/some-cafe',
+    }));
+
+    expect(result.tags).not.toContain('place:bar');
+  });
+
+  it('does not infer seafood from primorsky district text', () => {
+    const result = extractTomestoPlaceTraits(placeInput({
+      description: 'Приморский район, уютное кафе',
+    }));
+
+    expect(result.tags).not.toContain('cuisine:seafood');
+  });
+
+  it('does not infer russian cuisine from menu language text', () => {
+    const result = extractTomestoPlaceTraits(placeInput({
+      description: 'русский язык меню',
+    }));
+
+    expect(result.tags).not.toContain('cuisine:russian');
+  });
 });
 
 function placeInput(overrides: Partial<TomestoPlaceTraitInput>): TomestoPlaceTraitInput {
