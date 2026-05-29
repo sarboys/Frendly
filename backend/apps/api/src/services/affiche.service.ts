@@ -175,6 +175,7 @@ export class AfficheService {
         publicStatus: 'published',
         moderationStatus: { not: 'rejected' },
         priceMode: { in: ['free', 'paid'] },
+        NOT: this.movieShowingWhere(),
       },
       select: afficheEventSelect,
     });
@@ -407,6 +408,7 @@ export class AfficheService {
       publicStatus: 'published',
       moderationStatus: { not: 'rejected' },
       priceMode: priceMode === 'any' ? { in: ['free', 'paid'] } : priceMode,
+      NOT: this.movieShowingWhere(),
       ...(source ? { source: { code: source } } : {}),
       ...(category && !standupCategory ? { category } : {}),
       ...(standupCategory ? { AND: [this.buildStandupCategoryWhere()] } : {}),
@@ -509,6 +511,7 @@ export class AfficheService {
       Prisma.sql`item."contentKind" = 'event'`,
       Prisma.sql`item."publicStatus" = 'published'`,
       Prisma.sql`item."moderationStatus" <> 'rejected'`,
+      Prisma.sql`COALESCE(item."raw"->>'kind', '') <> 'movie_showing'`,
       priceMode === 'any'
         ? Prisma.sql`item."priceMode" IN ('free', 'paid')`
         : Prisma.sql`item."priceMode" = ${priceMode}`,
@@ -1119,6 +1122,10 @@ export class AfficheService {
       minute: '2-digit',
       timeZone: timezone ?? 'Europe/Moscow',
     }).format(value);
+  }
+
+  private movieShowingWhere(): Prisma.ExternalContentItemWhereInput {
+    return { raw: { path: ['kind'], equals: 'movie_showing' } as any };
   }
 }
 

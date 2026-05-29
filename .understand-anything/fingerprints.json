@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "9aae65de902aaf7622083d5c429f95b371002702",
-  "generatedAt": "2026-05-28T11:43:01.041Z",
+  "gitCommitHash": "d4a3eec7e70b55d55ab3ef0fac861d74ede4c210",
+  "generatedAt": "2026-05-29T04:22:59.276Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -15925,7 +15925,7 @@
     },
     "backend/apps/api/src/services/affiche.service.ts": {
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
-      "contentHash": "44391c101f2cb6dbf9f9ece199b11616ed595722c4183593c6f5d54132bca345",
+      "contentHash": "99c153631fe67cdd9ed8db649b35d7a1367693aaaef92df86b5f1fa697191f12",
       "functions": [
         {
           "name": "oneDayRange",
@@ -16018,13 +16018,14 @@
             "optionalText",
             "dateToIso",
             "dateLabel",
-            "timeLabel"
+            "timeLabel",
+            "movieShowingWhere"
           ],
           "properties": [
             "clientGeoRateLimits"
           ],
           "exported": true,
-          "lineCount": 984
+          "lineCount": 991
         }
       ],
       "imports": [
@@ -16092,7 +16093,7 @@
       "exports": [
         "AfficheService"
       ],
-      "totalLines": 1186,
+      "totalLines": 1193,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
@@ -16378,7 +16379,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "98364b8766c32c93bc7a9986c5b9632ba703c24bbb34a7efd140d1bc9c9726c4",
+      "contentHash": "1c253b23d6db0a88800992dfcbb5f1f2bf92f84aec434ab5f31d120f6e56fb20",
       "functions": [],
       "classes": [
         {
@@ -17075,7 +17076,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "ac5f4c50c91ed8e5a0d6dab6a66e69457b5a6f48613c158e353d1d1e7e432662",
+      "contentHash": "cc534eef072d062731b18b1ab98d714a1f7ef9381fc2916e741de565812ce67a",
       "functions": [
         {
           "name": "areaOrNull",
@@ -17822,7 +17823,7 @@
             "candidateSeedCounter"
           ],
           "exported": true,
-          "lineCount": 2390
+          "lineCount": 2424
         }
       ],
       "imports": [
@@ -17886,7 +17887,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 4037,
+      "totalLines": 4073,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -18355,7 +18356,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "fd17d1ae1a2fe4663255ec7387efd01af2ba71591e6c28f38a88842e793e5a4a",
+      "contentHash": "9dabf0b24d64ce431c356eede1fc416af54230d5fb577f49d948de867039f750",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -18883,7 +18884,7 @@
     },
     "backend/apps/api/src/services/meetup-creation-limit.ts": {
       "filePath": "backend/apps/api/src/services/meetup-creation-limit.ts",
-      "contentHash": "247e1093ec068a2aa158be6aed517263bf2ff77f66b8bf626ea2dd26d5b54acb",
+      "contentHash": "5231b9b1239d250220a62d4c3074384df798f2f916fc20afc50e005553117039",
       "functions": [
         {
           "name": "assertCanCreateWeeklyMeetup",
@@ -20787,7 +20788,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "d04f2533c83d194dd540c5dd20c8f371ce93a173ca2554e70588ea18ab211154",
+      "contentHash": "c0e8f127bda8742a5fa7675706cb4571020003bf5a5cdad667b5315f9515fad2",
       "functions": [],
       "classes": [
         {
@@ -22218,7 +22219,7 @@
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
-      "contentHash": "8fbf42ad9b5c350504ab4310ca040d282cff97b3a309f929d6322b87497ab311",
+      "contentHash": "b2f3be68a53d6e29e5063d0a3f609e0f3226a5ba1fb4689098b07e7e05b44eb8",
       "functions": [
         {
           "name": "maskAdvCakeSecrets",
@@ -22269,7 +22270,7 @@
             "value"
           ],
           "exported": false,
-          "lineCount": 9
+          "lineCount": 8
         },
         {
           "name": "parseUrl",
@@ -22478,7 +22479,7 @@
         "AdvCakeTicketlandAdapter",
         "maskAdvCakeSecrets"
       ],
-      "totalLines": 519,
+      "totalLines": 518,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-deduplication.service.ts": {
@@ -22733,7 +22734,7 @@
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "61b16d132ce5b8d8ad35d7fa56263960d31bc2a8024020c1a2827d9a20a1e22e",
+      "contentHash": "35928c31146cf73a21faf545f87e32390e3031bbe2813295f0421b3dbd0b148e",
       "functions": [
         {
           "name": "safeJson",
@@ -22956,7 +22957,7 @@
             "item"
           ],
           "exported": false,
-          "lineCount": 39
+          "lineCount": 47
         },
         {
           "name": "isAttachableSourceCandidate",
@@ -23155,7 +23156,7 @@
       "exports": [
         "ContentImportService"
       ],
-      "totalLines": 1782,
+      "totalLines": 1790,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-normalizer.service.ts": {
@@ -23292,7 +23293,7 @@
     },
     "backend/apps/worker/src/content/content-source.types.ts": {
       "filePath": "backend/apps/worker/src/content/content-source.types.ts",
-      "contentHash": "98cd3cf22c71ba9479867b2f9df35658b5022fd00669081ef16ebc3712dfee23",
+      "contentHash": "ea845744e6ecea7d6e8fac1b01000b48dc2d79dffd109ae4248fb79bc300f326",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -23417,7 +23418,7 @@
     },
     "backend/apps/worker/src/content/kudago.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
-      "contentHash": "87868c577870342b98e710463aa7d6a26248f581e4470b2fe2d347da1b701662",
+      "contentHash": "29075c5382e79a816b4f7fed113077d38cbb48682bea64584c76acc65c055b60",
       "functions": [
         {
           "name": "fetchJson",
@@ -23479,6 +23480,22 @@
           "lineCount": 3
         },
         {
+          "name": "tagStrings",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "uniqueStrings",
+          "params": [
+            "values"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
           "name": "firstImageUrl",
           "params": [
             "value"
@@ -23487,12 +23504,28 @@
           "lineCount": 13
         },
         {
+          "name": "posterImageUrl",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
           "name": "firstDate",
           "params": [
             "value"
           ],
           "exported": false,
           "lineCount": 15
+        },
+        {
+          "name": "timestampDate",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 4
         },
         {
           "name": "priceFrom",
@@ -23510,6 +23543,30 @@
           ],
           "exported": false,
           "lineCount": 4
+        },
+        {
+          "name": "metroTags",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "metroSlug",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "transliterate",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 41
         }
       ],
       "classes": [
@@ -23520,15 +23577,19 @@
             "fetchBatches",
             "fetchEvents",
             "fetchPlaces",
+            "fetchMovies",
+            "fetchMovieShowings",
             "mapEvent",
-            "mapPlace"
+            "mapPlace",
+            "mapMovie",
+            "mapMovieShowing"
           ],
           "properties": [
             "code",
             "baseUrl"
           ],
           "exported": true,
-          "lineCount": 125
+          "lineCount": 257
         }
       ],
       "imports": [
@@ -23551,7 +23612,7 @@
       "exports": [
         "KudaGoAdapter"
       ],
-      "totalLines": 290,
+      "totalLines": 523,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/overpass.adapter.ts": {
@@ -24585,7 +24646,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "0996ebe1e9e6bf1113f3130892a8c5db5a155fa45461ca49d54b332d1fc0f1da",
+      "contentHash": "12fd5f55f5b62ab8975cb610a313c78c2c9e82f65452b194c5f27951ec7a931c",
       "functions": [
         {
           "name": "isDetailPath",
@@ -27024,7 +27085,7 @@
     },
     "backend/packages/database/src/content-city-catalog.ts": {
       "filePath": "backend/packages/database/src/content-city-catalog.ts",
-      "contentHash": "831e2a9d2d2ce0538dff1d6c33ee3b51fd12e23104a471bebf628107a663b33c",
+      "contentHash": "6f5959d22ae9a5ea9b2973a7a0b3b8791f009715a3d7c1a8480521808fa74d65",
       "functions": [
         {
           "name": "contentImportCity",

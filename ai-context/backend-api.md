@@ -96,14 +96,14 @@ Affiche:
 - `GET /affiche/events`
 - `GET /affiche/events/:eventId`
 - `POST /affiche/events/:eventId/client-geo` is authenticated. Mobile uses it only for lazy user-triggered Ticketland geo enrichment after Yandex MapKit finds a venue for a single affiche event. It accepts `{ lat, lng, provider: "yandex_mapkit_client", query, displayName?, venueName? }`, validates Ticketland source, city bbox, event freshness, moderation, venue-name similarity and per-session rate limit, then saves missing `ExternalContentItem.lat/lng`, optional address and `raw.enrichment`. It never overwrites existing backend coordinates.
-- Public affiche returns only imported `ExternalContentItem` rows with `contentKind=event`, `publicStatus=published` and `priceMode in (free, paid)`.
+- Public affiche returns only imported `ExternalContentItem` rows with `contentKind=event`, `publicStatus=published`, `priceMode in (free, paid)` and excludes KudaGo movie showings with `raw.kind=movie_showing`.
 - Public affiche list/detail use narrow `select` and must not read `ExternalContentItem.raw` in the public request path.
 - Query params include `city`, `date`, `dateFrom`, `dateTo`, `priceMode`, `source`, `category`, `featured`, `q`, `cursor`, `limit`.
 - Without `category` and text search, public Affiche lists sort standups first, concerts second, then other events by date. Category and search filters keep their focused date ordering.
 - Paid public ticket events come from `advcake_ticketland` and use external `actionUrl`. Unknown price is not exposed as free.
 - Affiche `imageUrl` should normally point to a mirrored S3 object created by the worker during import. Public API responses keep owned mirrored `external-content/...` objects on their public CDN URL. If mirroring fails, the worker keeps the source image URL as fallback and API can expose it through `/affiche/images?url=...` only for allowed HTTPS hosts.
 - `GET /affiche/images` remains the public image proxy for allowed third-party fallbacks and legacy key reads. Mirrored images use immutable one-year cache headers, while third-party fallback proxy reads use `max-age` plus `stale-while-revalidate` from env.
-- KudaGo places stay outside affiche and should continue through places/search/route flows.
+- KudaGo places stay outside affiche and should continue through places/search/route flows. KudaGo movies stay hidden as catalog rows. KudaGo movie showings are stored as `cinema` events for AI movie roles, but are not exposed by public affiche list/detail.
 
 Chats:
 

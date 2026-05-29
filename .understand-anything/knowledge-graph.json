@@ -5,7 +5,6 @@
     "description": "Focused graph for backend, mobile Flutter app, admin app, business logic, and their runtime/deploy links.",
     "languages": [
       "css",
-      "dart",
       "docker-compose",
       "dockerfile",
       "javascript",
@@ -20,14 +19,13 @@
       "yaml"
     ],
     "frameworks": [
-      "Flutter",
       "NestJS",
       "Prisma",
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-28T11:43:00.719Z",
-    "gitCommitHash": "9aae65de902aaf7622083d5c429f95b371002702"
+    "analyzedAt": "2026-05-29T04:22:58.882Z",
+    "gitCommitHash": "d4a3eec7e70b55d55ab3ef0fac861d74ede4c210"
   },
   "nodes": [
     {
@@ -12693,8 +12691,8 @@
       "name": "oneDayRange",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        1125,
-        1136
+        1132,
+        1143
       ],
       "summary": "oneDayRange in affiche.service.ts.",
       "tags": [
@@ -12710,8 +12708,8 @@
       "name": "cleanPublicText",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        1138,
-        1152
+        1145,
+        1159
       ],
       "summary": "cleanPublicText in affiche.service.ts.",
       "tags": [
@@ -12727,8 +12725,8 @@
       "name": "decodeHtmlEntities",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        1154,
-        1177
+        1161,
+        1184
       ],
       "summary": "decodeHtmlEntities in affiche.service.ts.",
       "tags": [
@@ -12744,8 +12742,8 @@
       "name": "safeCodePoint",
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
-        1179,
-        1185
+        1186,
+        1192
       ],
       "summary": "safeCodePoint in affiche.service.ts.",
       "tags": [
@@ -12762,7 +12760,7 @@
       "filePath": "backend/apps/api/src/services/affiche.service.ts",
       "lineRange": [
         140,
-        1123
+        1130
       ],
       "summary": "AfficheService in affiche.service.ts.",
       "tags": [
@@ -13061,8 +13059,8 @@
       "name": "areaOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2926,
-        2942
+        2962,
+        2978
       ],
       "summary": "areaOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13078,8 +13076,8 @@
       "name": "emptyStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2944,
-        2952
+        2980,
+        2988
       ],
       "summary": "emptyStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13095,8 +13093,8 @@
       "name": "normalizeStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2954,
-        2993
+        2990,
+        3029
       ],
       "summary": "normalizeStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13112,8 +13110,8 @@
       "name": "normalizeStepLocationMode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        2995,
-        3001
+        3031,
+        3037
       ],
       "summary": "normalizeStepLocationMode in evening-ai-draft.service.ts.",
       "tags": [
@@ -13129,8 +13127,8 @@
       "name": "normalizeStepLocationKind",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3003,
-        3009
+        3039,
+        3045
       ],
       "summary": "normalizeStepLocationKind in evening-ai-draft.service.ts.",
       "tags": [
@@ -13146,8 +13144,8 @@
       "name": "stepLocationCode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3011,
-        3020
+        3047,
+        3056
       ],
       "summary": "stepLocationCode in evening-ai-draft.service.ts.",
       "tags": [
@@ -13163,8 +13161,8 @@
       "name": "metroLocationCode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3022,
-        3043
+        3058,
+        3079
       ],
       "summary": "metroLocationCode in evening-ai-draft.service.ts.",
       "tags": [
@@ -13180,8 +13178,8 @@
       "name": "metroSlugFromToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3045,
-        3054
+        3081,
+        3090
       ],
       "summary": "metroSlugFromToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -13197,8 +13195,8 @@
       "name": "stepLocationTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3056,
-        3073
+        3092,
+        3109
       ],
       "summary": "stepLocationTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13214,8 +13212,8 @@
       "name": "hasStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3075,
-        3077
+        3111,
+        3113
       ],
       "summary": "hasStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13231,8 +13229,8 @@
       "name": "candidateMatchesLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3079,
-        3091
+        3115,
+        3127
       ],
       "summary": "candidateMatchesLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13248,8 +13246,8 @@
       "name": "locationAnchor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3093,
-        3102
+        3129,
+        3138
       ],
       "summary": "locationAnchor in evening-ai-draft.service.ts.",
       "tags": [
@@ -13265,8 +13263,8 @@
       "name": "locationRadiusKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3104,
-        3112
+        3140,
+        3148
       ],
       "summary": "locationRadiusKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -13282,8 +13280,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3133,
-        3137
+        3169,
+        3173
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -13299,8 +13297,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3139,
-        3148
+        3175,
+        3184
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -13316,8 +13314,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3150,
-        3152
+        3186,
+        3188
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13333,8 +13331,8 @@
       "name": "integerFromEnv",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3154,
-        3161
+        3190,
+        3197
       ],
       "summary": "integerFromEnv in evening-ai-draft.service.ts.",
       "tags": [
@@ -13350,8 +13348,8 @@
       "name": "budgetOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3163,
-        3176
+        3199,
+        3212
       ],
       "summary": "budgetOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13367,8 +13365,8 @@
       "name": "timezoneForCity",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3178,
-        3180
+        3214,
+        3216
       ],
       "summary": "timezoneForCity in evening-ai-draft.service.ts.",
       "tags": [
@@ -13384,8 +13382,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3182,
-        3190
+        3218,
+        3226
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -13401,8 +13399,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3192,
-        3197
+        3228,
+        3233
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13418,8 +13416,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3199,
-        3207
+        3235,
+        3243
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -13435,8 +13433,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3209,
-        3211
+        3245,
+        3247
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -13452,8 +13450,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3213,
-        3215
+        3249,
+        3251
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -13469,8 +13467,8 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3217,
-        3225
+        3253,
+        3261
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -13486,8 +13484,8 @@
       "name": "promptTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3227,
-        3237
+        3263,
+        3273
       ],
       "summary": "promptTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -13503,8 +13501,8 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3239,
-        3241
+        3275,
+        3277
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -13520,8 +13518,8 @@
       "name": "promptExplicitStepCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3243,
-        3262
+        3279,
+        3298
       ],
       "summary": "promptExplicitStepCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -13537,8 +13535,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3264,
-        3273
+        3300,
+        3309
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -13554,8 +13552,8 @@
       "name": "taxonomyFromRows",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3275,
-        3290
+        3311,
+        3326
       ],
       "summary": "taxonomyFromRows in evening-ai-draft.service.ts.",
       "tags": [
@@ -13571,8 +13569,8 @@
       "name": "taxonomyTagsByPrefix",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3292,
-        3294
+        3328,
+        3330
       ],
       "summary": "taxonomyTagsByPrefix in evening-ai-draft.service.ts.",
       "tags": [
@@ -13588,8 +13586,8 @@
       "name": "shouldUseBarAlternative",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3296,
-        3309
+        3332,
+        3345
       ],
       "summary": "shouldUseBarAlternative in evening-ai-draft.service.ts.",
       "tags": [
@@ -13605,8 +13603,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3311,
-        3325
+        3347,
+        3361
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -13622,8 +13620,8 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3327,
-        3336
+        3363,
+        3372
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13639,8 +13637,8 @@
       "name": "candidateMatchesPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3338,
-        3342
+        3374,
+        3378
       ],
       "summary": "candidateMatchesPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13656,8 +13654,8 @@
       "name": "hasSpecificPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3344,
-        3346
+        3380,
+        3382
       ],
       "summary": "hasSpecificPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13673,8 +13671,8 @@
       "name": "candidateMatchesSpecificPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3348,
-        3361
+        3384,
+        3397
       ],
       "summary": "candidateMatchesSpecificPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13690,8 +13688,8 @@
       "name": "candidateMatchesIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3363,
-        3365
+        3399,
+        3401
       ],
       "summary": "candidateMatchesIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -13707,8 +13705,8 @@
       "name": "countIntentTaxonomyTagMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3367,
-        3374
+        3403,
+        3410
       ],
       "summary": "countIntentTaxonomyTagMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -13724,8 +13722,8 @@
       "name": "todayEventDateWindow",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3382,
-        3390
+        3418,
+        3426
       ],
       "summary": "todayEventDateWindow in evening-ai-draft.service.ts.",
       "tags": [
@@ -13741,8 +13739,8 @@
       "name": "localDateFromIsoDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3392,
-        3395
+        3428,
+        3431
       ],
       "summary": "localDateFromIsoDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -13758,8 +13756,8 @@
       "name": "eventDateWindowFromStored",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3397,
-        3413
+        3433,
+        3449
       ],
       "summary": "eventDateWindowFromStored in evening-ai-draft.service.ts.",
       "tags": [
@@ -13775,8 +13773,8 @@
       "name": "eventDateWindowForLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3415,
-        3429
+        3451,
+        3465
       ],
       "summary": "eventDateWindowForLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -13792,8 +13790,8 @@
       "name": "localDateFromValues",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3431,
-        3451
+        3467,
+        3487
       ],
       "summary": "localDateFromValues in evening-ai-draft.service.ts.",
       "tags": [
@@ -13809,8 +13807,8 @@
       "name": "zonedDateParts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3453,
-        3466
+        3489,
+        3502
       ],
       "summary": "zonedDateParts in evening-ai-draft.service.ts.",
       "tags": [
@@ -13826,8 +13824,8 @@
       "name": "localDateIso",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3468,
-        3470
+        3504,
+        3506
       ],
       "summary": "localDateIso in evening-ai-draft.service.ts.",
       "tags": [
@@ -13843,8 +13841,8 @@
       "name": "zonedTimeToUtc",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3472,
-        3502
+        3508,
+        3538
       ],
       "summary": "zonedTimeToUtc in evening-ai-draft.service.ts.",
       "tags": [
@@ -13860,8 +13858,8 @@
       "name": "sameLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3504,
-        3506
+        3540,
+        3542
       ],
       "summary": "sameLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -13877,8 +13875,8 @@
       "name": "compareLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3508,
-        3510
+        3544,
+        3546
       ],
       "summary": "compareLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -13894,8 +13892,8 @@
       "name": "validLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3512,
-        3517
+        3548,
+        3553
       ],
       "summary": "validLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -13911,8 +13909,8 @@
       "name": "intentStepCountFromGenerated",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3519,
-        3525
+        3555,
+        3561
       ],
       "summary": "intentStepCountFromGenerated in evening-ai-draft.service.ts.",
       "tags": [
@@ -13928,8 +13926,8 @@
       "name": "normalizedCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3527,
-        3542
+        3563,
+        3578
       ],
       "summary": "normalizedCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -13945,8 +13943,8 @@
       "name": "taxonomyTagQueriesForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3683,
-        3717
+        3719,
+        3753
       ],
       "summary": "taxonomyTagQueriesForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13962,8 +13960,8 @@
       "name": "specificTaxonomyTagsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3719,
-        3740
+        3755,
+        3776
       ],
       "summary": "specificTaxonomyTagsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13979,8 +13977,8 @@
       "name": "normalizeIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3742,
-        3748
+        3778,
+        3784
       ],
       "summary": "normalizeIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -13996,8 +13994,8 @@
       "name": "explicitIntentTaxonomyTagsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3750,
-        3759
+        3786,
+        3795
       ],
       "summary": "explicitIntentTaxonomyTagsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -14013,8 +14011,8 @@
       "name": "effectiveIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3761,
-        3769
+        3797,
+        3805
       ],
       "summary": "effectiveIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -14030,8 +14028,8 @@
       "name": "isIntentTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3771,
-        3783
+        3807,
+        3819
       ],
       "summary": "isIntentTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -14047,8 +14045,8 @@
       "name": "isStrongIntentTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3785,
-        3792
+        3821,
+        3828
       ],
       "summary": "isStrongIntentTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -14064,8 +14062,8 @@
       "name": "specificTextTermsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3794,
-        3818
+        3830,
+        3854
       ],
       "summary": "specificTextTermsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -14081,8 +14079,8 @@
       "name": "isSpecificTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3820,
-        3829
+        3856,
+        3865
       ],
       "summary": "isSpecificTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -14098,8 +14096,8 @@
       "name": "isSpecificDynamicTaxonomyTerm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3831,
-        3840
+        3867,
+        3876
       ],
       "summary": "isSpecificDynamicTaxonomyTerm in evening-ai-draft.service.ts.",
       "tags": [
@@ -14115,8 +14113,8 @@
       "name": "taxonomyTagsForNormalizedToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3842,
-        3857
+        3878,
+        3893
       ],
       "summary": "taxonomyTagsForNormalizedToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -14132,8 +14130,8 @@
       "name": "taxonomyTermMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3876,
-        3878
+        3912,
+        3914
       ],
       "summary": "taxonomyTermMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -14149,8 +14147,8 @@
       "name": "taxonomyAliasMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3880,
-        3885
+        3916,
+        3921
       ],
       "summary": "taxonomyAliasMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -14166,8 +14164,8 @@
       "name": "escapeRegExp",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3887,
-        3889
+        3923,
+        3925
       ],
       "summary": "escapeRegExp in evening-ai-draft.service.ts.",
       "tags": [
@@ -14183,8 +14181,8 @@
       "name": "normalizeTaxonomyToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3891,
-        3898
+        3927,
+        3934
       ],
       "summary": "normalizeTaxonomyToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -14200,8 +14198,8 @@
       "name": "transliterateRu",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3900,
-        3936
+        3936,
+        3972
       ],
       "summary": "transliterateRu in evening-ai-draft.service.ts.",
       "tags": [
@@ -14217,8 +14215,8 @@
       "name": "budgetFromText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3938,
-        3958
+        3974,
+        3994
       ],
       "summary": "budgetFromText in evening-ai-draft.service.ts.",
       "tags": [
@@ -14234,8 +14232,8 @@
       "name": "areaTermsFor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3960,
-        3969
+        3996,
+        4005
       ],
       "summary": "areaTermsFor in evening-ai-draft.service.ts.",
       "tags": [
@@ -14251,8 +14249,8 @@
       "name": "displayAreaForRoute",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3971,
-        4001
+        4007,
+        4037
       ],
       "summary": "displayAreaForRoute in evening-ai-draft.service.ts.",
       "tags": [
@@ -14268,8 +14266,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4003,
-        4005
+        4039,
+        4041
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -14285,8 +14283,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4007,
-        4009
+        4043,
+        4045
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -14302,8 +14300,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4011,
-        4017
+        4047,
+        4053
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -14319,8 +14317,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4019,
-        4032
+        4055,
+        4068
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -14336,8 +14334,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4034,
-        4036
+        4070,
+        4072
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -14353,8 +14351,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        298,
-        2687
+        300,
+        2723
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -17218,7 +17216,7 @@
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
         325,
-        333
+        332
       ],
       "summary": "isAllowedActionUrl in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17234,8 +17232,8 @@
       "name": "parseUrl",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        335,
-        341
+        334,
+        340
       ],
       "summary": "parseUrl in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17251,8 +17249,8 @@
       "name": "hostMatches",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        343,
-        345
+        342,
+        344
       ],
       "summary": "hostMatches in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17268,8 +17266,8 @@
       "name": "readField",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        347,
-        354
+        346,
+        353
       ],
       "summary": "readField in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17285,8 +17283,8 @@
       "name": "mapCategory",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        356,
-        362
+        355,
+        361
       ],
       "summary": "mapCategory in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17302,8 +17300,8 @@
       "name": "cleanHtml",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        364,
-        373
+        363,
+        372
       ],
       "summary": "cleanHtml in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17319,8 +17317,8 @@
       "name": "normalizeImageUrl",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        375,
-        389
+        374,
+        388
       ],
       "summary": "normalizeImageUrl in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17336,8 +17334,8 @@
       "name": "parseWebsites",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        391,
-        398
+        390,
+        397
       ],
       "summary": "parseWebsites in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17353,8 +17351,8 @@
       "name": "decodeEntities",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        400,
-        423
+        399,
+        422
       ],
       "summary": "decodeEntities in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17370,8 +17368,8 @@
       "name": "safeCodePoint",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        425,
-        431
+        424,
+        430
       ],
       "summary": "safeCodePoint in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17387,8 +17385,8 @@
       "name": "parseMoscowDate",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        433,
-        443
+        432,
+        442
       ],
       "summary": "parseMoscowDate in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17404,8 +17402,8 @@
       "name": "normalizeCity",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        445,
-        463
+        444,
+        462
       ],
       "summary": "normalizeCity in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17421,8 +17419,8 @@
       "name": "ensureTrailingSlash",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        465,
-        467
+        464,
+        466
       ],
       "summary": "ensureTrailingSlash in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17438,8 +17436,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        469,
-        471
+        468,
+        470
       ],
       "summary": "object in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17455,8 +17453,8 @@
       "name": "array",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        473,
-        478
+        472,
+        477
       ],
       "summary": "array in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17472,8 +17470,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        480,
-        489
+        479,
+        488
       ],
       "summary": "text in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17489,8 +17487,8 @@
       "name": "numberFromString",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        491,
-        497
+        490,
+        496
       ],
       "summary": "numberFromString in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17506,8 +17504,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        499,
-        508
+        498,
+        507
       ],
       "summary": "number in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17523,8 +17521,8 @@
       "name": "integer",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        510,
-        513
+        509,
+        512
       ],
       "summary": "integer in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17540,8 +17538,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        515,
-        518
+        514,
+        517
       ],
       "summary": "positiveInt in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -18328,7 +18326,7 @@
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
         1661,
-        1699
+        1707
       ],
       "summary": "publicStatusFor in content-import.service.ts.",
       "tags": [
@@ -18344,8 +18342,8 @@
       "name": "isAttachableSourceCandidate",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1701,
-        1703
+        1709,
+        1711
       ],
       "summary": "isAttachableSourceCandidate in content-import.service.ts.",
       "tags": [
@@ -18361,8 +18359,8 @@
       "name": "hasValidContentCoordinates",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1705,
-        1715
+        1713,
+        1723
       ],
       "summary": "hasValidContentCoordinates in content-import.service.ts.",
       "tags": [
@@ -18378,8 +18376,8 @@
       "name": "contentImportFailure",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1717,
-        1724
+        1725,
+        1732
       ],
       "summary": "contentImportFailure in content-import.service.ts.",
       "tags": [
@@ -18395,8 +18393,8 @@
       "name": "maskKnownSecrets",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1726,
-        1734
+        1734,
+        1742
       ],
       "summary": "maskKnownSecrets in content-import.service.ts.",
       "tags": [
@@ -18412,8 +18410,8 @@
       "name": "maskTomestoSecrets",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1736,
-        1738
+        1744,
+        1746
       ],
       "summary": "maskTomestoSecrets in content-import.service.ts.",
       "tags": [
@@ -18429,8 +18427,8 @@
       "name": "countTomestoHiddenReason",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1740,
-        1762
+        1748,
+        1770
       ],
       "summary": "countTomestoHiddenReason in content-import.service.ts.",
       "tags": [
@@ -18446,8 +18444,8 @@
       "name": "isTomestoClosedPlace",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1764,
-        1768
+        1772,
+        1776
       ],
       "summary": "isTomestoClosedPlace in content-import.service.ts.",
       "tags": [
@@ -18463,8 +18461,8 @@
       "name": "tomestoRawClosed",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1770,
-        1777
+        1778,
+        1785
       ],
       "summary": "tomestoRawClosed in content-import.service.ts.",
       "tags": [
@@ -18480,8 +18478,8 @@
       "name": "booleanTrue",
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
       "lineRange": [
-        1779,
-        1781
+        1787,
+        1789
       ],
       "summary": "booleanTrue in content-import.service.ts.",
       "tags": [
@@ -18786,13 +18784,13 @@
       "type": "file",
       "name": "kudago.adapter.ts",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
-      "summary": "kudago.adapter.ts contains 1 classes, 11 functions.",
+      "summary": "kudago.adapter.ts contains 1 classes, 18 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:fetchJson",
@@ -18800,8 +18798,8 @@
       "name": "fetchJson",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        185,
-        191
+        317,
+        323
       ],
       "summary": "fetchJson in kudago.adapter.ts.",
       "tags": [
@@ -18809,7 +18807,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:results",
@@ -18817,8 +18815,8 @@
       "name": "results",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        209,
-        214
+        341,
+        346
       ],
       "summary": "results in kudago.adapter.ts.",
       "tags": [
@@ -18826,7 +18824,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:object",
@@ -18834,8 +18832,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        216,
-        218
+        348,
+        350
       ],
       "summary": "object in kudago.adapter.ts.",
       "tags": [
@@ -18843,7 +18841,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:text",
@@ -18851,8 +18849,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        220,
-        229
+        352,
+        361
       ],
       "summary": "text in kudago.adapter.ts.",
       "tags": [
@@ -18860,7 +18858,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:number",
@@ -18868,8 +18866,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        231,
-        233
+        363,
+        365
       ],
       "summary": "number in kudago.adapter.ts.",
       "tags": [
@@ -18877,7 +18875,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:stringArray",
@@ -18885,8 +18883,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        235,
-        239
+        367,
+        371
       ],
       "summary": "stringArray in kudago.adapter.ts.",
       "tags": [
@@ -18894,7 +18892,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:firstString",
@@ -18902,8 +18900,8 @@
       "name": "firstString",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        241,
-        243
+        373,
+        375
       ],
       "summary": "firstString in kudago.adapter.ts.",
       "tags": [
@@ -18911,7 +18909,41 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:tagStrings",
+      "type": "function",
+      "name": "tagStrings",
+      "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
+      "lineRange": [
+        377,
+        391
+      ],
+      "summary": "tagStrings in kudago.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:uniqueStrings",
+      "type": "function",
+      "name": "uniqueStrings",
+      "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
+      "lineRange": [
+        393,
+        405
+      ],
+      "summary": "uniqueStrings in kudago.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:firstImageUrl",
@@ -18919,8 +18951,8 @@
       "name": "firstImageUrl",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        245,
-        257
+        407,
+        419
       ],
       "summary": "firstImageUrl in kudago.adapter.ts.",
       "tags": [
@@ -18928,7 +18960,24 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:posterImageUrl",
+      "type": "function",
+      "name": "posterImageUrl",
+      "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
+      "lineRange": [
+        421,
+        424
+      ],
+      "summary": "posterImageUrl in kudago.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:firstDate",
@@ -18936,8 +18985,8 @@
       "name": "firstDate",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        259,
-        273
+        426,
+        440
       ],
       "summary": "firstDate in kudago.adapter.ts.",
       "tags": [
@@ -18945,7 +18994,24 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:timestampDate",
+      "type": "function",
+      "name": "timestampDate",
+      "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
+      "lineRange": [
+        442,
+        445
+      ],
+      "summary": "timestampDate in kudago.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:priceFrom",
@@ -18953,8 +19019,8 @@
       "name": "priceFrom",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        275,
-        284
+        447,
+        456
       ],
       "summary": "priceFrom in kudago.adapter.ts.",
       "tags": [
@@ -18962,7 +19028,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:positiveInt",
@@ -18970,8 +19036,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
-        286,
-        289
+        458,
+        461
       ],
       "summary": "positiveInt in kudago.adapter.ts.",
       "tags": [
@@ -18979,7 +19045,58 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:metroTags",
+      "type": "function",
+      "name": "metroTags",
+      "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
+      "lineRange": [
+        463,
+        472
+      ],
+      "summary": "metroTags in kudago.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:metroSlug",
+      "type": "function",
+      "name": "metroSlug",
+      "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
+      "lineRange": [
+        474,
+        480
+      ],
+      "summary": "metroSlug in kudago.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/kudago.adapter.ts:transliterate",
+      "type": "function",
+      "name": "transliterate",
+      "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
+      "lineRange": [
+        482,
+        522
+      ],
+      "summary": "transliterate in kudago.adapter.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "class:backend/apps/worker/src/content/kudago.adapter.ts:KudaGoAdapter",
@@ -18988,7 +19105,7 @@
       "filePath": "backend/apps/worker/src/content/kudago.adapter.ts",
       "lineRange": [
         59,
-        183
+        315
       ],
       "summary": "KudaGoAdapter in kudago.adapter.ts.",
       "tags": [
@@ -18996,7 +19113,7 @@
         "class",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/worker/src/content/overpass.adapter.ts",
@@ -35821,1501 +35938,6 @@
       "complexity": "simple"
     },
     {
-      "id": "config:mobile2/analysis_options.yaml",
-      "type": "config",
-      "name": "analysis_options.yaml",
-      "filePath": "mobile2/analysis_options.yaml",
-      "summary": "analysis_options.yaml is a config file for mobile2.",
-      "tags": [
-        "mobile2",
-        "config",
-        "yaml"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/app_overlay/app_overlay_controller.dart",
-      "type": "file",
-      "name": "app_overlay_controller.dart",
-      "filePath": "mobile2/lib/app/core/app_overlay/app_overlay_controller.dart",
-      "summary": "app_overlay_controller.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/app_overlay/app_overlay_dialog.dart",
-      "type": "file",
-      "name": "app_overlay_dialog.dart",
-      "filePath": "mobile2/lib/app/core/app_overlay/app_overlay_dialog.dart",
-      "summary": "app_overlay_dialog.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/app_overlay/app_overlay_host.dart",
-      "type": "file",
-      "name": "app_overlay_host.dart",
-      "filePath": "mobile2/lib/app/core/app_overlay/app_overlay_host.dart",
-      "summary": "app_overlay_host.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/auth/auth_token_storage.dart",
-      "type": "file",
-      "name": "auth_token_storage.dart",
-      "filePath": "mobile2/lib/app/core/auth/auth_token_storage.dart",
-      "summary": "auth_token_storage.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/auth/social_auth_session_reset.dart",
-      "type": "file",
-      "name": "social_auth_session_reset.dart",
-      "filePath": "mobile2/lib/app/core/auth/social_auth_session_reset.dart",
-      "summary": "social_auth_session_reset.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "config:mobile2/lib/app/core/config/backend_config.dart",
-      "type": "config",
-      "name": "backend_config.dart",
-      "filePath": "mobile2/lib/app/core/config/backend_config.dart",
-      "summary": "backend_config.dart is a config file for mobile2.",
-      "tags": [
-        "mobile2",
-        "config",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/deep_links/payment_return_link.dart",
-      "type": "file",
-      "name": "payment_return_link.dart",
-      "filePath": "mobile2/lib/app/core/deep_links/payment_return_link.dart",
-      "summary": "payment_return_link.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/app_attachment_service.dart",
-      "type": "file",
-      "name": "app_attachment_service.dart",
-      "filePath": "mobile2/lib/app/core/device/app_attachment_service.dart",
-      "summary": "app_attachment_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/app_chat_media_file_store.dart",
-      "type": "file",
-      "name": "app_chat_media_file_store.dart",
-      "filePath": "mobile2/lib/app/core/device/app_chat_media_file_store.dart",
-      "summary": "app_chat_media_file_store.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/app_media_picker_service.dart",
-      "type": "file",
-      "name": "app_media_picker_service.dart",
-      "filePath": "mobile2/lib/app/core/device/app_media_picker_service.dart",
-      "summary": "app_media_picker_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/app_media_prewarm_service.dart",
-      "type": "file",
-      "name": "app_media_prewarm_service.dart",
-      "filePath": "mobile2/lib/app/core/device/app_media_prewarm_service.dart",
-      "summary": "app_media_prewarm_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/app_push_token_service.dart",
-      "type": "file",
-      "name": "app_push_token_service.dart",
-      "filePath": "mobile2/lib/app/core/device/app_push_token_service.dart",
-      "summary": "app_push_token_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/app_runtime_environment.dart",
-      "type": "file",
-      "name": "app_runtime_environment.dart",
-      "filePath": "mobile2/lib/app/core/device/app_runtime_environment.dart",
-      "summary": "app_runtime_environment.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/app_voice_recorder_service.dart",
-      "type": "file",
-      "name": "app_voice_recorder_service.dart",
-      "filePath": "mobile2/lib/app/core/device/app_voice_recorder_service.dart",
-      "summary": "app_voice_recorder_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/device/chat_media_upload_queue.dart",
-      "type": "file",
-      "name": "chat_media_upload_queue.dart",
-      "filePath": "mobile2/lib/app/core/device/chat_media_upload_queue.dart",
-      "summary": "chat_media_upload_queue.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/local_cache/app_cache_key.dart",
-      "type": "file",
-      "name": "app_cache_key.dart",
-      "filePath": "mobile2/lib/app/core/local_cache/app_cache_key.dart",
-      "summary": "app_cache_key.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/local_cache/app_local_cache_store.dart",
-      "type": "file",
-      "name": "app_local_cache_store.dart",
-      "filePath": "mobile2/lib/app/core/local_cache/app_local_cache_store.dart",
-      "summary": "app_local_cache_store.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/local_cache/app_local_database.dart",
-      "type": "file",
-      "name": "app_local_database.dart",
-      "filePath": "mobile2/lib/app/core/local_cache/app_local_database.dart",
-      "summary": "app_local_database.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/local_cache/app_local_database.g.dart",
-      "type": "file",
-      "name": "app_local_database.g.dart",
-      "filePath": "mobile2/lib/app/core/local_cache/app_local_database.g.dart",
-      "summary": "app_local_database.g.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/local_cache/chat_local_store.dart",
-      "type": "file",
-      "name": "chat_local_store.dart",
-      "filePath": "mobile2/lib/app/core/local_cache/chat_local_store.dart",
-      "summary": "chat_local_store.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/local_cache/local_first_repository.dart",
-      "type": "file",
-      "name": "local_first_repository.dart",
-      "filePath": "mobile2/lib/app/core/local_cache/local_first_repository.dart",
-      "summary": "local_first_repository.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/network/api_client.dart",
-      "type": "file",
-      "name": "api_client.dart",
-      "filePath": "mobile2/lib/app/core/network/api_client.dart",
-      "summary": "api_client.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/network/chat_socket_client.dart",
-      "type": "file",
-      "name": "chat_socket_client.dart",
-      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
-      "summary": "chat_socket_client.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/app/core/providers/core_providers.dart",
-      "type": "file",
-      "name": "core_providers.dart",
-      "filePath": "mobile2/lib/app/core/providers/core_providers.dart",
-      "summary": "core_providers.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/app/dateasy_app.dart",
-      "type": "file",
-      "name": "dateasy_app.dart",
-      "filePath": "mobile2/lib/app/dateasy_app.dart",
-      "summary": "dateasy_app.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/app/dateasy_router.dart",
-      "type": "file",
-      "name": "dateasy_router.dart",
-      "filePath": "mobile2/lib/app/dateasy_router.dart",
-      "summary": "dateasy_router.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/app/session/session_cleanup_controller.dart",
-      "type": "file",
-      "name": "session_cleanup_controller.dart",
-      "filePath": "mobile2/lib/app/session/session_cleanup_controller.dart",
-      "summary": "session_cleanup_controller.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/after_dark/presentation/after_dark_event_screen.dart",
-      "type": "file",
-      "name": "after_dark_event_screen.dart",
-      "filePath": "mobile2/lib/features/after_dark/presentation/after_dark_event_screen.dart",
-      "summary": "after_dark_event_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/after_dark/presentation/after_dark_screen.dart",
-      "type": "file",
-      "name": "after_dark_screen.dart",
-      "filePath": "mobile2/lib/features/after_dark/presentation/after_dark_screen.dart",
-      "summary": "after_dark_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/ai_builder/presentation/ai_builder_result_screen.dart",
-      "type": "file",
-      "name": "ai_builder_result_screen.dart",
-      "filePath": "mobile2/lib/features/ai_builder/presentation/ai_builder_result_screen.dart",
-      "summary": "ai_builder_result_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/ai_builder/presentation/ai_builder_screen.dart",
-      "type": "file",
-      "name": "ai_builder_screen.dart",
-      "filePath": "mobile2/lib/features/ai_builder/presentation/ai_builder_screen.dart",
-      "summary": "ai_builder_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/auth/presentation/auth_controls.dart",
-      "type": "file",
-      "name": "auth_controls.dart",
-      "filePath": "mobile2/lib/features/auth/presentation/auth_controls.dart",
-      "summary": "auth_controls.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/features/auth/presentation/phone_auth_screen.dart",
-      "type": "file",
-      "name": "phone_auth_screen.dart",
-      "filePath": "mobile2/lib/features/auth/presentation/phone_auth_screen.dart",
-      "summary": "phone_auth_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/auth/presentation/telegram_auth_screen.dart",
-      "type": "file",
-      "name": "telegram_auth_screen.dart",
-      "filePath": "mobile2/lib/features/auth/presentation/telegram_auth_screen.dart",
-      "summary": "telegram_auth_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/chats/presentation/chat_voice_playback_controller.dart",
-      "type": "file",
-      "name": "chat_voice_playback_controller.dart",
-      "filePath": "mobile2/lib/features/chats/presentation/chat_voice_playback_controller.dart",
-      "summary": "chat_voice_playback_controller.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/features/chats/presentation/chats_screen.dart",
-      "type": "file",
-      "name": "chats_screen.dart",
-      "filePath": "mobile2/lib/features/chats/presentation/chats_screen.dart",
-      "summary": "chats_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/chats/presentation/meeting_chat_screen.dart",
-      "type": "file",
-      "name": "meeting_chat_screen.dart",
-      "filePath": "mobile2/lib/features/chats/presentation/meeting_chat_screen.dart",
-      "summary": "meeting_chat_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/city/presentation/city_screen.dart",
-      "type": "file",
-      "name": "city_screen.dart",
-      "filePath": "mobile2/lib/features/city/presentation/city_screen.dart",
-      "summary": "city_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/communities/application/community_access.dart",
-      "type": "file",
-      "name": "community_access.dart",
-      "filePath": "mobile2/lib/features/communities/application/community_access.dart",
-      "summary": "community_access.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/communities/presentation/community_admin_screen.dart",
-      "type": "file",
-      "name": "community_admin_screen.dart",
-      "filePath": "mobile2/lib/features/communities/presentation/community_admin_screen.dart",
-      "summary": "community_admin_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/communities/presentation/community_chat_screen.dart",
-      "type": "file",
-      "name": "community_chat_screen.dart",
-      "filePath": "mobile2/lib/features/communities/presentation/community_chat_screen.dart",
-      "summary": "community_chat_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/communities/presentation/community_detail_screen.dart",
-      "type": "file",
-      "name": "community_detail_screen.dart",
-      "filePath": "mobile2/lib/features/communities/presentation/community_detail_screen.dart",
-      "summary": "community_detail_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/communities/presentation/community_new_screen.dart",
-      "type": "file",
-      "name": "community_new_screen.dart",
-      "filePath": "mobile2/lib/features/communities/presentation/community_new_screen.dart",
-      "summary": "community_new_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/dating/presentation/dating_filter_screen.dart",
-      "type": "file",
-      "name": "dating_filter_screen.dart",
-      "filePath": "mobile2/lib/features/dating/presentation/dating_filter_screen.dart",
-      "summary": "dating_filter_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/dating/presentation/dating_likes_screen.dart",
-      "type": "file",
-      "name": "dating_likes_screen.dart",
-      "filePath": "mobile2/lib/features/dating/presentation/dating_likes_screen.dart",
-      "summary": "dating_likes_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/dating/presentation/dating_screen.dart",
-      "type": "file",
-      "name": "dating_screen.dart",
-      "filePath": "mobile2/lib/features/dating/presentation/dating_screen.dart",
-      "summary": "dating_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/dating/presentation/match_screen.dart",
-      "type": "file",
-      "name": "match_screen.dart",
-      "filePath": "mobile2/lib/features/dating/presentation/match_screen.dart",
-      "summary": "match_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/evening/presentation/evening_screen.dart",
-      "type": "file",
-      "name": "evening_screen.dart",
-      "filePath": "mobile2/lib/features/evening/presentation/evening_screen.dart",
-      "summary": "evening_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/front2_placeholder/presentation/front2_placeholder_screen.dart",
-      "type": "file",
-      "name": "front2_placeholder_screen.dart",
-      "filePath": "mobile2/lib/features/front2_placeholder/presentation/front2_placeholder_screen.dart",
-      "summary": "front2_placeholder_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/giveaways/presentation/giveaway_teaser.dart",
-      "type": "file",
-      "name": "giveaway_teaser.dart",
-      "filePath": "mobile2/lib/features/giveaways/presentation/giveaway_teaser.dart",
-      "summary": "giveaway_teaser.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/features/giveaways/presentation/giveaways_screen.dart",
-      "type": "file",
-      "name": "giveaways_screen.dart",
-      "filePath": "mobile2/lib/features/giveaways/presentation/giveaways_screen.dart",
-      "summary": "giveaways_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/home/presentation/home_screen.dart",
-      "type": "file",
-      "name": "home_screen.dart",
-      "filePath": "mobile2/lib/features/home/presentation/home_screen.dart",
-      "summary": "home_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/host/presentation/host_dashboard_screen.dart",
-      "type": "file",
-      "name": "host_dashboard_screen.dart",
-      "filePath": "mobile2/lib/features/host/presentation/host_dashboard_screen.dart",
-      "summary": "host_dashboard_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/map/presentation/map_screen.dart",
-      "type": "file",
-      "name": "map_screen.dart",
-      "filePath": "mobile2/lib/features/map/presentation/map_screen.dart",
-      "summary": "map_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/meetings/application/new_meeting_payload.dart",
-      "type": "file",
-      "name": "new_meeting_payload.dart",
-      "filePath": "mobile2/lib/features/meetings/application/new_meeting_payload.dart",
-      "summary": "new_meeting_payload.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/meetings/presentation/meeting_boost.dart",
-      "type": "file",
-      "name": "meeting_boost.dart",
-      "filePath": "mobile2/lib/features/meetings/presentation/meeting_boost.dart",
-      "summary": "meeting_boost.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/features/meetings/presentation/meeting_detail_screen.dart",
-      "type": "file",
-      "name": "meeting_detail_screen.dart",
-      "filePath": "mobile2/lib/features/meetings/presentation/meeting_detail_screen.dart",
-      "summary": "meeting_detail_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/meetings/presentation/meeting_viewer_state.dart",
-      "type": "file",
-      "name": "meeting_viewer_state.dart",
-      "filePath": "mobile2/lib/features/meetings/presentation/meeting_viewer_state.dart",
-      "summary": "meeting_viewer_state.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/meetings/presentation/meetings_screen.dart",
-      "type": "file",
-      "name": "meetings_screen.dart",
-      "filePath": "mobile2/lib/features/meetings/presentation/meetings_screen.dart",
-      "summary": "meetings_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/meetings/presentation/new_meeting_screen.dart",
-      "type": "file",
-      "name": "new_meeting_screen.dart",
-      "filePath": "mobile2/lib/features/meetings/presentation/new_meeting_screen.dart",
-      "summary": "new_meeting_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/memory_map/presentation/memory_map_screen.dart",
-      "type": "file",
-      "name": "memory_map_screen.dart",
-      "filePath": "mobile2/lib/features/memory_map/presentation/memory_map_screen.dart",
-      "summary": "memory_map_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/notifications/presentation/notifications_screen.dart",
-      "type": "file",
-      "name": "notifications_screen.dart",
-      "filePath": "mobile2/lib/features/notifications/presentation/notifications_screen.dart",
-      "summary": "notifications_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/onboarding/application/onboarding_permission_service.dart",
-      "type": "file",
-      "name": "onboarding_permission_service.dart",
-      "filePath": "mobile2/lib/features/onboarding/application/onboarding_permission_service.dart",
-      "summary": "onboarding_permission_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/onboarding/presentation/onboarding_screen.dart",
-      "type": "file",
-      "name": "onboarding_screen.dart",
-      "filePath": "mobile2/lib/features/onboarding/presentation/onboarding_screen.dart",
-      "summary": "onboarding_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/paywall/presentation/paywall_screen.dart",
-      "type": "file",
-      "name": "paywall_screen.dart",
-      "filePath": "mobile2/lib/features/paywall/presentation/paywall_screen.dart",
-      "summary": "paywall_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/perks/presentation/perks_screen.dart",
-      "type": "file",
-      "name": "perks_screen.dart",
-      "filePath": "mobile2/lib/features/perks/presentation/perks_screen.dart",
-      "summary": "perks_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/posters/presentation/poster_detail_screen.dart",
-      "type": "file",
-      "name": "poster_detail_screen.dart",
-      "filePath": "mobile2/lib/features/posters/presentation/poster_detail_screen.dart",
-      "summary": "poster_detail_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/posters/presentation/posters_screen.dart",
-      "type": "file",
-      "name": "posters_screen.dart",
-      "filePath": "mobile2/lib/features/posters/presentation/posters_screen.dart",
-      "summary": "posters_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/profile/presentation/profile_edit_screen.dart",
-      "type": "file",
-      "name": "profile_edit_screen.dart",
-      "filePath": "mobile2/lib/features/profile/presentation/profile_edit_screen.dart",
-      "summary": "profile_edit_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/profile/presentation/profile_gallery_screen.dart",
-      "type": "file",
-      "name": "profile_gallery_screen.dart",
-      "filePath": "mobile2/lib/features/profile/presentation/profile_gallery_screen.dart",
-      "summary": "profile_gallery_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/features/profile/presentation/profile_helpers.dart",
-      "type": "file",
-      "name": "profile_helpers.dart",
-      "filePath": "mobile2/lib/features/profile/presentation/profile_helpers.dart",
-      "summary": "profile_helpers.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/profile/presentation/profile_history_screen.dart",
-      "type": "file",
-      "name": "profile_history_screen.dart",
-      "filePath": "mobile2/lib/features/profile/presentation/profile_history_screen.dart",
-      "summary": "profile_history_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/profile/presentation/profile_screen.dart",
-      "type": "file",
-      "name": "profile_screen.dart",
-      "filePath": "mobile2/lib/features/profile/presentation/profile_screen.dart",
-      "summary": "profile_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/profile/presentation/public_user_screen.dart",
-      "type": "file",
-      "name": "public_user_screen.dart",
-      "filePath": "mobile2/lib/features/profile/presentation/public_user_screen.dart",
-      "summary": "public_user_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/report/presentation/report_screen.dart",
-      "type": "file",
-      "name": "report_screen.dart",
-      "filePath": "mobile2/lib/features/report/presentation/report_screen.dart",
-      "summary": "report_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/routes/presentation/route_detail_screen.dart",
-      "type": "file",
-      "name": "route_detail_screen.dart",
-      "filePath": "mobile2/lib/features/routes/presentation/route_detail_screen.dart",
-      "summary": "route_detail_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/routes/presentation/routes_screen.dart",
-      "type": "file",
-      "name": "routes_screen.dart",
-      "filePath": "mobile2/lib/features/routes/presentation/routes_screen.dart",
-      "summary": "routes_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/search/presentation/search_screen.dart",
-      "type": "file",
-      "name": "search_screen.dart",
-      "filePath": "mobile2/lib/features/search/presentation/search_screen.dart",
-      "summary": "search_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/settings/presentation/settings_screen.dart",
-      "type": "file",
-      "name": "settings_screen.dart",
-      "filePath": "mobile2/lib/features/settings/presentation/settings_screen.dart",
-      "summary": "settings_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/share/presentation/share_screen.dart",
-      "type": "file",
-      "name": "share_screen.dart",
-      "filePath": "mobile2/lib/features/share/presentation/share_screen.dart",
-      "summary": "share_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/sos/presentation/sos_screen.dart",
-      "type": "file",
-      "name": "sos_screen.dart",
-      "filePath": "mobile2/lib/features/sos/presentation/sos_screen.dart",
-      "summary": "sos_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/splash/presentation/splash_screen.dart",
-      "type": "file",
-      "name": "splash_screen.dart",
-      "filePath": "mobile2/lib/features/splash/presentation/splash_screen.dart",
-      "summary": "splash_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/features/stories/presentation/stories_screen.dart",
-      "type": "file",
-      "name": "stories_screen.dart",
-      "filePath": "mobile2/lib/features/stories/presentation/stories_screen.dart",
-      "summary": "stories_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/streak/presentation/streak_screen.dart",
-      "type": "file",
-      "name": "streak_screen.dart",
-      "filePath": "mobile2/lib/features/streak/presentation/streak_screen.dart",
-      "summary": "streak_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/verify/presentation/verify_screen.dart",
-      "type": "file",
-      "name": "verify_screen.dart",
-      "filePath": "mobile2/lib/features/verify/presentation/verify_screen.dart",
-      "summary": "verify_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/wallet/presentation/wallet_screen.dart",
-      "type": "file",
-      "name": "wallet_screen.dart",
-      "filePath": "mobile2/lib/features/wallet/presentation/wallet_screen.dart",
-      "summary": "wallet_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/features/welcome/application/google_auth_client.dart",
-      "type": "file",
-      "name": "google_auth_client.dart",
-      "filePath": "mobile2/lib/features/welcome/application/google_auth_client.dart",
-      "summary": "google_auth_client.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/features/welcome/application/yandex_auth_client.dart",
-      "type": "file",
-      "name": "yandex_auth_client.dart",
-      "filePath": "mobile2/lib/features/welcome/application/yandex_auth_client.dart",
-      "summary": "yandex_auth_client.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/features/welcome/presentation/welcome_screen.dart",
-      "type": "file",
-      "name": "welcome_screen.dart",
-      "filePath": "mobile2/lib/features/welcome/presentation/welcome_screen.dart",
-      "summary": "welcome_screen.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/main.dart",
-      "type": "file",
-      "name": "main.dart",
-      "filePath": "mobile2/lib/main.dart",
-      "summary": "main.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/data/affiche_client_geo_enrichment_service.dart",
-      "type": "file",
-      "name": "affiche_client_geo_enrichment_service.dart",
-      "filePath": "mobile2/lib/shared/data/affiche_client_geo_enrichment_service.dart",
-      "summary": "affiche_client_geo_enrichment_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/shared/data/app_providers.dart",
-      "type": "file",
-      "name": "app_providers.dart",
-      "filePath": "mobile2/lib/shared/data/app_providers.dart",
-      "summary": "app_providers.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/shared/data/backend_repository.dart",
-      "type": "file",
-      "name": "backend_repository.dart",
-      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
-      "summary": "backend_repository.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/shared/data/city_catalog.dart",
-      "type": "file",
-      "name": "city_catalog.dart",
-      "filePath": "mobile2/lib/shared/data/city_catalog.dart",
-      "summary": "city_catalog.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/shared/data/city_search_service.dart",
-      "type": "file",
-      "name": "city_search_service.dart",
-      "filePath": "mobile2/lib/shared/data/city_search_service.dart",
-      "summary": "city_search_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/data/yandex_city_search_service.dart",
-      "type": "file",
-      "name": "yandex_city_search_service.dart",
-      "filePath": "mobile2/lib/shared/data/yandex_city_search_service.dart",
-      "summary": "yandex_city_search_service.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/models/backend_models.dart",
-      "type": "file",
-      "name": "backend_models.dart",
-      "filePath": "mobile2/lib/shared/models/backend_models.dart",
-      "summary": "backend_models.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "file:mobile2/lib/shared/models/backend_url.dart",
-      "type": "file",
-      "name": "backend_url.dart",
-      "filePath": "mobile2/lib/shared/models/backend_url.dart",
-      "summary": "backend_url.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/theme/dateasy_theme.dart",
-      "type": "file",
-      "name": "dateasy_theme.dart",
-      "filePath": "mobile2/lib/shared/theme/dateasy_theme.dart",
-      "summary": "dateasy_theme.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/utils/phone_number_text_input_formatter.dart",
-      "type": "file",
-      "name": "phone_number_text_input_formatter.dart",
-      "filePath": "mobile2/lib/shared/utils/phone_number_text_input_formatter.dart",
-      "summary": "phone_number_text_input_formatter.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_bottom_nav.dart",
-      "type": "file",
-      "name": "dateasy_bottom_nav.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_bottom_nav.dart",
-      "summary": "dateasy_bottom_nav.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_highlight_text.dart",
-      "type": "file",
-      "name": "dateasy_highlight_text.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_highlight_text.dart",
-      "summary": "dateasy_highlight_text.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_image_cache.dart",
-      "type": "file",
-      "name": "dateasy_image_cache.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_image_cache.dart",
-      "summary": "dateasy_image_cache.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_keyboard_dismiss.dart",
-      "type": "file",
-      "name": "dateasy_keyboard_dismiss.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_keyboard_dismiss.dart",
-      "summary": "dateasy_keyboard_dismiss.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_logo.dart",
-      "type": "file",
-      "name": "dateasy_logo.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_logo.dart",
-      "summary": "dateasy_logo.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_map_choice_sheet.dart",
-      "type": "file",
-      "name": "dateasy_map_choice_sheet.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_map_choice_sheet.dart",
-      "summary": "dateasy_map_choice_sheet.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_media_viewer.dart",
-      "type": "file",
-      "name": "dateasy_media_viewer.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_media_viewer.dart",
-      "summary": "dateasy_media_viewer.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_phone_frame.dart",
-      "type": "file",
-      "name": "dateasy_phone_frame.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_phone_frame.dart",
-      "summary": "dateasy_phone_frame.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_refresh_indicator.dart",
-      "type": "file",
-      "name": "dateasy_refresh_indicator.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_refresh_indicator.dart",
-      "summary": "dateasy_refresh_indicator.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_remote_image.dart",
-      "type": "file",
-      "name": "dateasy_remote_image.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_remote_image.dart",
-      "summary": "dateasy_remote_image.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_social_icons.dart",
-      "type": "file",
-      "name": "dateasy_social_icons.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_social_icons.dart",
-      "summary": "dateasy_social_icons.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "moderate"
-    },
-    {
-      "id": "file:mobile2/lib/shared/widgets/dateasy_top_bar.dart",
-      "type": "file",
-      "name": "dateasy_top_bar.dart",
-      "filePath": "mobile2/lib/shared/widgets/dateasy_top_bar.dart",
-      "summary": "dateasy_top_bar.dart is a code file for mobile2.",
-      "tags": [
-        "mobile2",
-        "code",
-        "dart"
-      ],
-      "complexity": "complex"
-    },
-    {
-      "id": "config:mobile2/pubspec.yaml",
-      "type": "config",
-      "name": "pubspec.yaml",
-      "filePath": "mobile2/pubspec.yaml",
-      "summary": "pubspec.yaml is a config file for mobile2.",
-      "tags": [
-        "mobile2",
-        "config",
-        "yaml"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "document:mobile2/README.md",
-      "type": "document",
-      "name": "README.md",
-      "filePath": "mobile2/README.md",
-      "summary": "README.md is a docs file for mobile2.",
-      "tags": [
-        "mobile2",
-        "docs",
-        "markdown"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "document:README.md",
       "type": "document",
       "name": "README.md",
@@ -37975,7 +36597,7 @@
         "user"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile/lib/shared/data/backend_repository.dart",
       "lineRange": [
         197,
         300
@@ -38065,7 +36687,7 @@
         "host"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile/lib/shared/data/backend_repository.dart",
       "lineRange": [
         358,
         409
@@ -38263,7 +36885,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
+      "filePath": "mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
       "lineRange": [
         1,
         200
@@ -38353,7 +36975,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
+      "filePath": "mobile/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
       "lineRange": [
         1,
         200
@@ -38407,7 +37029,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         90,
         321
@@ -38425,7 +37047,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         509,
         581
@@ -38569,7 +37191,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/onboarding/presentation/onboarding_screen.dart",
+      "filePath": "mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
       "lineRange": [
         153,
         222
@@ -38641,7 +37263,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/dating/presentation/dating_screen.dart",
+      "filePath": "mobile/lib/features/dating/presentation/dating_screen.dart",
       "lineRange": [
         460,
         520
@@ -38767,7 +37389,7 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/safety/presentation/safety_hub_screen.dart",
+      "filePath": "mobile/lib/features/safety/presentation/safety_hub_screen.dart",
       "lineRange": [
         138,
         293
@@ -38857,7 +37479,7 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/app/core/device/app_push_token_service.dart",
+      "filePath": "mobile/lib/app/core/device/app_push_token_service.dart",
       "lineRange": [
         1,
         160
@@ -45211,6 +43833,20 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:tagStrings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:uniqueStrings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
       "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:firstImageUrl",
       "type": "contains",
       "direction": "forward",
@@ -45218,7 +43854,21 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:posterImageUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
       "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:firstDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:timestampDate",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -45233,6 +43883,27 @@
     {
       "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
       "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:positiveInt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:metroTags",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:metroSlug",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/kudago.adapter.ts",
+      "target": "function:backend/apps/worker/src/content/kudago.adapter.ts:transliterate",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -58138,128 +56809,6 @@
       ]
     },
     {
-      "id": "layer:mobile-flutter",
-      "name": "Mobile Flutter",
-      "description": "Flutter source and mobile app configuration",
-      "nodeIds": [
-        "config:mobile2/analysis_options.yaml",
-        "file:mobile2/lib/app/core/app_overlay/app_overlay_controller.dart",
-        "file:mobile2/lib/app/core/app_overlay/app_overlay_dialog.dart",
-        "file:mobile2/lib/app/core/app_overlay/app_overlay_host.dart",
-        "file:mobile2/lib/app/core/auth/auth_token_storage.dart",
-        "file:mobile2/lib/app/core/auth/social_auth_session_reset.dart",
-        "config:mobile2/lib/app/core/config/backend_config.dart",
-        "file:mobile2/lib/app/core/deep_links/payment_return_link.dart",
-        "file:mobile2/lib/app/core/device/app_attachment_service.dart",
-        "file:mobile2/lib/app/core/device/app_chat_media_file_store.dart",
-        "file:mobile2/lib/app/core/device/app_media_picker_service.dart",
-        "file:mobile2/lib/app/core/device/app_media_prewarm_service.dart",
-        "file:mobile2/lib/app/core/device/app_push_token_service.dart",
-        "file:mobile2/lib/app/core/device/app_runtime_environment.dart",
-        "file:mobile2/lib/app/core/device/app_voice_recorder_service.dart",
-        "file:mobile2/lib/app/core/device/chat_media_upload_queue.dart",
-        "file:mobile2/lib/app/core/local_cache/app_cache_key.dart",
-        "file:mobile2/lib/app/core/local_cache/app_local_cache_store.dart",
-        "file:mobile2/lib/app/core/local_cache/app_local_database.dart",
-        "file:mobile2/lib/app/core/local_cache/app_local_database.g.dart",
-        "file:mobile2/lib/app/core/local_cache/chat_local_store.dart",
-        "file:mobile2/lib/app/core/local_cache/local_first_repository.dart",
-        "file:mobile2/lib/app/core/network/api_client.dart",
-        "file:mobile2/lib/app/core/network/chat_socket_client.dart",
-        "file:mobile2/lib/app/core/providers/core_providers.dart",
-        "file:mobile2/lib/app/dateasy_app.dart",
-        "file:mobile2/lib/app/dateasy_router.dart",
-        "file:mobile2/lib/app/session/session_cleanup_controller.dart",
-        "file:mobile2/lib/features/after_dark/presentation/after_dark_event_screen.dart",
-        "file:mobile2/lib/features/after_dark/presentation/after_dark_screen.dart",
-        "file:mobile2/lib/features/ai_builder/presentation/ai_builder_result_screen.dart",
-        "file:mobile2/lib/features/ai_builder/presentation/ai_builder_screen.dart",
-        "file:mobile2/lib/features/auth/presentation/auth_controls.dart",
-        "file:mobile2/lib/features/auth/presentation/phone_auth_screen.dart",
-        "file:mobile2/lib/features/auth/presentation/telegram_auth_screen.dart",
-        "file:mobile2/lib/features/chats/presentation/chat_voice_playback_controller.dart",
-        "file:mobile2/lib/features/chats/presentation/chats_screen.dart",
-        "file:mobile2/lib/features/chats/presentation/meeting_chat_screen.dart",
-        "file:mobile2/lib/features/city/presentation/city_screen.dart",
-        "file:mobile2/lib/features/communities/application/community_access.dart",
-        "file:mobile2/lib/features/communities/presentation/community_admin_screen.dart",
-        "file:mobile2/lib/features/communities/presentation/community_chat_screen.dart",
-        "file:mobile2/lib/features/communities/presentation/community_detail_screen.dart",
-        "file:mobile2/lib/features/communities/presentation/community_new_screen.dart",
-        "file:mobile2/lib/features/dating/presentation/dating_filter_screen.dart",
-        "file:mobile2/lib/features/dating/presentation/dating_likes_screen.dart",
-        "file:mobile2/lib/features/dating/presentation/dating_screen.dart",
-        "file:mobile2/lib/features/dating/presentation/match_screen.dart",
-        "file:mobile2/lib/features/evening/presentation/evening_screen.dart",
-        "file:mobile2/lib/features/front2_placeholder/presentation/front2_placeholder_screen.dart",
-        "file:mobile2/lib/features/giveaways/presentation/giveaway_teaser.dart",
-        "file:mobile2/lib/features/giveaways/presentation/giveaways_screen.dart",
-        "file:mobile2/lib/features/home/presentation/home_screen.dart",
-        "file:mobile2/lib/features/host/presentation/host_dashboard_screen.dart",
-        "file:mobile2/lib/features/map/presentation/map_screen.dart",
-        "file:mobile2/lib/features/meetings/application/new_meeting_payload.dart",
-        "file:mobile2/lib/features/meetings/presentation/meeting_boost.dart",
-        "file:mobile2/lib/features/meetings/presentation/meeting_detail_screen.dart",
-        "file:mobile2/lib/features/meetings/presentation/meeting_viewer_state.dart",
-        "file:mobile2/lib/features/meetings/presentation/meetings_screen.dart",
-        "file:mobile2/lib/features/meetings/presentation/new_meeting_screen.dart",
-        "file:mobile2/lib/features/memory_map/presentation/memory_map_screen.dart",
-        "file:mobile2/lib/features/notifications/presentation/notifications_screen.dart",
-        "file:mobile2/lib/features/onboarding/application/onboarding_permission_service.dart",
-        "file:mobile2/lib/features/onboarding/presentation/onboarding_screen.dart",
-        "file:mobile2/lib/features/paywall/presentation/paywall_screen.dart",
-        "file:mobile2/lib/features/perks/presentation/perks_screen.dart",
-        "file:mobile2/lib/features/posters/presentation/poster_detail_screen.dart",
-        "file:mobile2/lib/features/posters/presentation/posters_screen.dart",
-        "file:mobile2/lib/features/profile/presentation/profile_edit_screen.dart",
-        "file:mobile2/lib/features/profile/presentation/profile_gallery_screen.dart",
-        "file:mobile2/lib/features/profile/presentation/profile_helpers.dart",
-        "file:mobile2/lib/features/profile/presentation/profile_history_screen.dart",
-        "file:mobile2/lib/features/profile/presentation/profile_screen.dart",
-        "file:mobile2/lib/features/profile/presentation/public_user_screen.dart",
-        "file:mobile2/lib/features/report/presentation/report_screen.dart",
-        "file:mobile2/lib/features/routes/presentation/route_detail_screen.dart",
-        "file:mobile2/lib/features/routes/presentation/routes_screen.dart",
-        "file:mobile2/lib/features/search/presentation/search_screen.dart",
-        "file:mobile2/lib/features/settings/presentation/settings_screen.dart",
-        "file:mobile2/lib/features/share/presentation/share_screen.dart",
-        "file:mobile2/lib/features/sos/presentation/sos_screen.dart",
-        "file:mobile2/lib/features/splash/presentation/splash_screen.dart",
-        "file:mobile2/lib/features/stories/presentation/stories_screen.dart",
-        "file:mobile2/lib/features/streak/presentation/streak_screen.dart",
-        "file:mobile2/lib/features/verify/presentation/verify_screen.dart",
-        "file:mobile2/lib/features/wallet/presentation/wallet_screen.dart",
-        "file:mobile2/lib/features/welcome/application/google_auth_client.dart",
-        "file:mobile2/lib/features/welcome/application/yandex_auth_client.dart",
-        "file:mobile2/lib/features/welcome/presentation/welcome_screen.dart",
-        "file:mobile2/lib/main.dart",
-        "file:mobile2/lib/shared/data/affiche_client_geo_enrichment_service.dart",
-        "file:mobile2/lib/shared/data/app_providers.dart",
-        "file:mobile2/lib/shared/data/backend_repository.dart",
-        "file:mobile2/lib/shared/data/city_catalog.dart",
-        "file:mobile2/lib/shared/data/city_search_service.dart",
-        "file:mobile2/lib/shared/data/yandex_city_search_service.dart",
-        "file:mobile2/lib/shared/models/backend_models.dart",
-        "file:mobile2/lib/shared/models/backend_url.dart",
-        "file:mobile2/lib/shared/theme/dateasy_theme.dart",
-        "file:mobile2/lib/shared/utils/phone_number_text_input_formatter.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_bottom_nav.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_highlight_text.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_image_cache.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_keyboard_dismiss.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_logo.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_map_choice_sheet.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_media_viewer.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_phone_frame.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_refresh_indicator.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_remote_image.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_social_icons.dart",
-        "file:mobile2/lib/shared/widgets/dateasy_top_bar.dart",
-        "config:mobile2/pubspec.yaml",
-        "document:mobile2/README.md"
-      ]
-    },
-    {
       "id": "layer:root",
       "name": "Root",
       "description": "Root files that connect the selected apps",
@@ -58331,19 +56880,6 @@
     },
     {
       "order": 3,
-      "title": "Mobile Client",
-      "description": "Inspect Flutter app shell, navigation, features, and shared data layer.",
-      "nodeIds": [
-        "file:mobile2/lib/main.dart",
-        "file:mobile2/lib/shared/data/affiche_client_geo_enrichment_service.dart",
-        "file:mobile2/lib/shared/data/app_providers.dart",
-        "file:mobile2/lib/shared/data/backend_repository.dart",
-        "file:mobile2/lib/shared/data/city_catalog.dart",
-        "file:mobile2/lib/shared/data/city_search_service.dart"
-      ]
-    },
-    {
-      "order": 4,
       "title": "Admin Client",
       "description": "Review admin routes, layout, pages, and API client.",
       "nodeIds": [
@@ -58358,7 +56894,7 @@
       ]
     },
     {
-      "order": 5,
+      "order": 4,
       "title": "Runtime Link",
       "description": "Finish with compose files, Dockerfiles, nginx, and deploy scripts.",
       "nodeIds": [

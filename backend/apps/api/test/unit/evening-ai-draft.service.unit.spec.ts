@@ -492,6 +492,7 @@ describe('EveningAiDraftService unit', () => {
       { role: 'walk', index: firstTestTermIndex(text, ['погуля', 'прогул', 'парк']) },
       { role: 'place_food', index: firstTestTermIndex(text, ['ужин', 'поесть', 'покушать', 'кофе', 'ресторан']) },
       { role: 'place_bar', index: firstTestTermIndex(text, ['бар', 'пив', 'крафт', 'вино']) },
+      { role: 'movie', index: firstTestTermIndex(text, ['кино', 'фильм', 'сеанс']) },
       { role: 'show', index: firstTestTermIndex(text, ['стендап', 'спектак', 'театр', 'шоу']) },
     ]
       .filter((item) => item.index >= 0)
@@ -2759,6 +2760,87 @@ describe('EveningAiDraftService unit', () => {
         .filter((candidate: any) => candidate.role === 'show')
         .map((candidate: any) => candidate.id),
     ).toEqual(['ticketland-standup-today']);
+  });
+
+  it('uses KudaGo movie showings for the movie role', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-16T10:00:00.000Z'));
+
+    const { service, openRouter } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          stepCountReason: 'Пользователь просит кино.',
+          participantsCount: 0,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: 'Дата не указана.',
+          steps: [
+            { role: 'movie', preferredTerms: ['кино'], avoidTerms: [], instruction: '' },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-movie-showing',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Фильм',
+            category: 'cinema',
+            tags: ['movie', 'cinema', 'film', 'metro:kurskaya'],
+            startsAt: new Date('2026-05-16T17:30:00.000Z'),
+            priceFrom: 650,
+            priceMode: 'paid',
+            lat: 55.75,
+            lng: 37.61,
+            venueName: 'Кинотеатр',
+            sourceProvider: 'KudaGo',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Кино',
+            vibe: 'Один киносеанс.',
+            blurb: 'Выбираем ближайший сеанс.',
+            steps: [
+              { externalContentItemId: 'kudago-movie-showing', timeLabel: '20:30' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу в кино',
+      city: 'Москва',
+    });
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.config.roles).toEqual(['movie']);
+    expect(routePrompt.candidates).toEqual([
+      expect.objectContaining({
+        id: 'kudago-movie-showing',
+        role: 'movie',
+        source: 'kudago',
+        category: 'cinema',
+      }),
+    ]);
+    expect(result.route.steps[0]).toEqual(expect.objectContaining({
+      title: 'Фильм',
+      ticketSourceCode: 'kudago',
+    }));
   });
 
   it('defaults timed event candidates to today in the selected city timezone', async () => {

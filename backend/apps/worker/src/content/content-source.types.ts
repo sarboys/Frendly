@@ -6,7 +6,7 @@ export type ExternalRawItem = {
   sourceCode: ExternalSourceCode;
   sourceItemId: string;
   sourceUrl?: string | null;
-  contentKind: 'place' | 'event';
+  contentKind: 'place' | 'event' | 'movie';
   city: string;
   timezone: string;
   title: string;
@@ -36,7 +36,7 @@ export type NormalizedExternalContentItem = {
   sourceCode: ExternalSourceCode;
   sourceItemId: string;
   sourceUrl: string | null;
-  contentKind: 'place' | 'event';
+  contentKind: 'place' | 'event' | 'movie';
   city: string;
   timezone: string;
   area: string | null;

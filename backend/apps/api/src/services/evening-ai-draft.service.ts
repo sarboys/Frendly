@@ -121,6 +121,7 @@ type RouteRole =
   | 'place_bar'
   | 'place_club'
   | 'show'
+  | 'movie'
   | 'free_activity'
   | 'walk';
 
@@ -265,6 +266,7 @@ const ROUTE_ROLES: RouteRole[] = [
   'place_bar',
   'place_club',
   'show',
+  'movie',
   'free_activity',
   'walk',
 ];
@@ -1082,6 +1084,34 @@ export class EveningAiDraftService {
     const requireTomestoImage = source === 'tomesto'
       ? await this.hasTomestoImages(input.city)
       : false;
+    const kudagoRoleWhere: Prisma.ExternalContentItemWhereInput =
+      role === 'movie'
+        ? {
+            contentKind: 'event',
+            moderationStatus: { not: 'rejected' },
+            startsAt: eventStartsAtWhere,
+            priceMode: input.budget === 'free' ? 'free' : { in: ['free', 'paid'] },
+            OR: [
+              { category: 'cinema' },
+              { tags: { array_contains: ['movie'] } as any },
+              { tags: { array_contains: ['cinema'] } as any },
+              { tags: { array_contains: ['film'] } as any },
+            ],
+          }
+        : {
+            OR: [
+              { contentKind: 'place' },
+              {
+                contentKind: 'event',
+                moderationStatus: { not: 'rejected' },
+                startsAt: eventStartsAtWhere,
+                priceMode:
+                  role === 'free_activity' && input.budget !== 'free'
+                    ? { in: ['free', 'paid'] }
+                    : 'free',
+              },
+            ],
+          };
     const baseWhere: Prisma.ExternalContentItemWhereInput = {
       source: { code: source },
       contentKind: contentKindWhere,
@@ -1108,22 +1138,7 @@ export class EveningAiDraftService {
         : {}),
       ...(source === 'kudago'
         ? {
-            AND: [
-              {
-                OR: [
-                  { contentKind: 'place' },
-                  {
-                    contentKind: 'event',
-                    moderationStatus: { not: 'rejected' },
-                    startsAt: eventStartsAtWhere,
-                    priceMode:
-                      role === 'free_activity' && input.budget !== 'free'
-                        ? { in: ['free', 'paid'] }
-                        : 'free',
-                  },
-                ],
-              },
-            ],
+            AND: [kudagoRoleWhere],
           }
         : {}),
     };
@@ -1601,6 +1616,10 @@ export class EveningAiDraftService {
         terms: ['стендап', 'спектак', 'театр', 'концерт', 'шоу', 'джаз', 'комеди'],
       },
       {
+        role: 'movie',
+        terms: ['кино', 'фильм', 'сеанс', 'кинотеатр'],
+      },
+      {
         role: 'free_activity',
         terms: ['выстав', 'музей', 'перформанс', 'квест', 'лекци', 'фестивал'],
       },
@@ -1837,7 +1856,7 @@ export class EveningAiDraftService {
     if (role === 'show') {
       return 'advcake_ticketland' as const;
     }
-    if (role === 'walk' || role === 'free_activity') {
+    if (role === 'walk' || role === 'free_activity' || role === 'movie') {
       return 'kudago' as const;
     }
     return 'tomesto' as const;
@@ -1863,6 +1882,8 @@ export class EveningAiDraftService {
         return ['клуб', 'танцы', 'караоке', 'club'];
       case 'show':
         return ['стендап', 'спектакль', 'театр', 'концерт', 'джаз', 'шоу', 'опера', 'балет'];
+      case 'movie':
+        return ['кино', 'фильм', 'сеанс', 'кинотеатр', 'movie', 'cinema', 'film'];
       case 'walk':
         return ['прогулка', 'погулять', 'парк', 'маршрут', 'набережная', 'бульвар', 'экскурсия'];
       case 'free_activity':
@@ -1902,7 +1923,7 @@ export class EveningAiDraftService {
   }
 
   private kindForRole(role: RouteRole) {
-    if (role === 'show') {
+    if (role === 'show' || role === 'movie') {
       return 'show';
     }
     if (role === 'walk' || role === 'free_activity') {
@@ -1917,6 +1938,9 @@ export class EveningAiDraftService {
   private emojiForRole(role: RouteRole) {
     if (role === 'show') {
       return '🎤';
+    }
+    if (role === 'movie') {
+      return '🎬';
     }
     if (role === 'walk' || role === 'free_activity') {
       return '🌿';
@@ -1933,6 +1957,9 @@ export class EveningAiDraftService {
   private labelForRole(role: RouteRole) {
     if (role === 'show') {
       return 'Шоу';
+    }
+    if (role === 'movie') {
+      return 'Кино';
     }
     if (role === 'walk') {
       return 'Прогулка';
@@ -1958,6 +1985,9 @@ export class EveningAiDraftService {
     }
     if (candidate.role === 'show') {
       return this.showTagLabel(candidate);
+    }
+    if (candidate.role === 'movie') {
+      return 'Кино';
     }
     if (candidate.role === 'place_bar') {
       return this.barTagLabel(candidate);
@@ -2200,6 +2230,11 @@ export class EveningAiDraftService {
           meaning: 'театр, спектакль, стендап, концерт, джаз, шоу, опера, балет',
         },
         {
+          role: 'movie',
+          source: 'kudago',
+          meaning: 'кино, фильм, киносеанс, кинотеатр',
+        },
+        {
           role: 'walk',
           source: 'kudago',
           meaning: 'пешая прогулка, парк, маршрут, набережная, бульвар',
@@ -2241,6 +2276,7 @@ export class EveningAiDraftService {
         'For gastro-tour, unusual cuisine, cocktails or new taste impressions, use place_food and place_bar only. Do not use free_activity unless the user explicitly asks for a non-food activity such as karting, quest, exhibition or performance.',
         'For a creative date with examples such as exhibition, performance or unusual place, treat the examples as one activity unless the user asks for a sequence or a specific step count.',
         'If the user says standup or bar as alternatives, choose place_bar unless the wording clearly requires a performance.',
+        'If the user asks for cinema, movie or film, use movie, not show.',
         'If the user asks for standup, keep preferredTerms specific to standup and avoid theatre, opera, operetta, musicals, ballet and concerts unless the user explicitly allows them.',
         'preferredTerms must describe what the candidate should match.',
         'avoidTerms must describe wrong candidates for this step.',

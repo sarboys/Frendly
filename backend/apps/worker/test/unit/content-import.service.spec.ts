@@ -92,12 +92,17 @@ describe('ContentImportService', () => {
           'Санкт-Петербург': 'spb',
           'Екатеринбург': 'ekb',
           'Казань': 'kzn',
+          'Краснодар': 'krd',
+          'Красноярск': 'krasnoyarsk',
           'Нижний Новгород': 'nnv',
+          'Новосибирск': 'nsk',
+          'Самара': 'smr',
+          'Сочи': 'sochi',
+          'Уфа': 'ufa',
         }),
       }),
     }));
-    expect(sourceCreate.mock.calls[0]?.[0]?.create.cityCodes).not.toHaveProperty('Новосибирск');
-    expect(sourceCreate.mock.calls[0]?.[0]?.create.cityCodes).not.toHaveProperty('Краснодар');
+    expect(sourceCreate.mock.calls[0]?.[0]?.create.cityCodes).not.toHaveProperty('Барнаул');
     expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
       where: { sourceId_sourceItemId: { sourceId: 'source-1', sourceItemId: 'place-1' } },
       create: expect.objectContaining({
@@ -333,6 +338,67 @@ describe('ContentImportService', () => {
 
     const publicStatuses = itemUpsert.mock.calls.map((call) => call[0].create.publicStatus);
     expect(publicStatuses).toEqual(['published', 'hidden', 'hidden']);
+  });
+
+  it('keeps KudaGo movies hidden and publishes movie showings for AI candidates', async () => {
+    const itemUpsert = jest.fn().mockResolvedValue({});
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-1', code: 'kudago' },
+        itemUpsert,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'kudago',
+        fetchItems: jest.fn().mockResolvedValue([
+          {
+            sourceCode: 'kudago',
+            sourceItemId: 'movie-1',
+            contentKind: 'movie',
+            city: 'Москва',
+            timezone: 'Europe/Moscow',
+            title: 'Фильм',
+            category: 'movie',
+            tags: ['movie', 'cinema'],
+            priceFrom: null,
+            raw: { kind: 'movie' },
+          },
+          rawEvent({
+            sourceItemId: 'movie-showing-1',
+            category: 'cinema',
+            tags: ['movie', 'cinema', 'metro:kurskaya'],
+            priceFrom: 650,
+            lat: 55.75,
+            lng: 37.61,
+            raw: { kind: 'movie_showing' },
+          }),
+        ]),
+      }),
+    );
+
+    await service.runImport({
+      city: 'Москва',
+      sources: ['kudago'],
+      from: new Date('2026-05-04T00:00:00.000Z'),
+      to: new Date('2026-05-11T00:00:00.000Z'),
+    });
+
+    expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceItemId: 'movie-1',
+        contentKind: 'movie',
+        publicStatus: 'hidden',
+      }),
+    }));
+    expect(itemUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceItemId: 'movie-showing-1',
+        contentKind: 'event',
+        category: 'cinema',
+        priceMode: 'paid',
+        publicStatus: 'published',
+      }),
+    }));
   });
 
   it('keeps missing coordinate counters but hides public attach candidates without coordinates', async () => {

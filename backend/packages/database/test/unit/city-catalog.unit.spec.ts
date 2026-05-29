@@ -46,7 +46,7 @@ describe('content city catalog', () => {
     expect(RUSSIA_CONTENT_IMPORT_CITIES).toHaveLength(30);
   });
 
-  it('keeps KudaGo codes only for cities supported by the KudaGo locations API', () => {
+  it('keeps KudaGo codes for product cities accepted by the KudaGo locations API', () => {
     const citiesWithKudagoCode = RUSSIA_CONTENT_IMPORT_CITIES
       .filter((city) => city.kudagoCode)
       .map((city) => city.name);
@@ -56,9 +56,16 @@ describe('content city catalog', () => {
       'Санкт-Петербург',
       'Екатеринбург',
       'Казань',
+      'Краснодар',
+      'Красноярск',
       'Нижний Новгород',
+      'Новосибирск',
+      'Самара',
+      'Сочи',
+      'Уфа',
     ]);
     expect(kudagoCityCode('Барнаул')).toBeNull();
+    expect(kudagoCityCode('Выборг')).toBeNull();
   });
 
   it('has Tomesto codes and geocoder bounding boxes for every import city', () => {

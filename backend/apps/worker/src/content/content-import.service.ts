@@ -51,7 +51,7 @@ type EventDuplicateCandidate = {
   id: string;
   sourceItemId: string;
   sourceUrl: string | null;
-  contentKind: 'place' | 'event';
+  contentKind: 'place' | 'event' | 'movie';
   city: string;
   title: string;
   venueName: string | null;
@@ -1669,6 +1669,14 @@ function publicStatusFor(item: NormalizedExternalContentItem) {
   }
   if (isTomestoClosedPlace(item)) {
     return PUBLIC_STATUS_HIDDEN;
+  }
+  if (item.sourceCode === 'kudago' && item.contentKind === 'movie') {
+    return PUBLIC_STATUS_HIDDEN;
+  }
+  if (item.sourceCode === 'kudago' && object(item.raw)?.kind === 'movie_showing') {
+    return item.contentKind === 'event' && (item.priceMode === 'free' || item.priceMode === 'paid')
+      ? PUBLIC_STATUS_PUBLISHED
+      : PUBLIC_STATUS_HIDDEN;
   }
   if (item.contentKind === 'place') {
     return PUBLIC_STATUS_PUBLISHED;

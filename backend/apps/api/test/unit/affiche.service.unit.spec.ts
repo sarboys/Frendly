@@ -49,6 +49,7 @@ describe('AfficheService', () => {
         contentKind: 'event',
         publicStatus: 'published',
         priceMode: 'paid',
+        NOT: { raw: { path: ['kind'], equals: 'movie_showing' } },
         source: { code: 'advcake_ticketland' },
         category: 'comedy',
         imageUrl: { not: null },
@@ -176,6 +177,7 @@ describe('AfficheService', () => {
         contentKind: 'event',
         publicStatus: 'published',
         priceMode: { in: ['free', 'paid'] },
+        NOT: { raw: { path: ['kind'], equals: 'movie_showing' } },
       }),
     }));
     const findFirstArgs = findFirst.mock.calls[0][0];

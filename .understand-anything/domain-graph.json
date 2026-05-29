@@ -5,7 +5,6 @@
     "description": "Business domain map for backend, mobile, and admin flows.",
     "languages": [
       "css",
-      "dart",
       "docker-compose",
       "dockerfile",
       "javascript",
@@ -20,14 +19,13 @@
       "yaml"
     ],
     "frameworks": [
-      "Flutter",
       "NestJS",
       "Prisma",
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-28T11:43:00.719Z",
-    "gitCommitHash": "9aae65de902aaf7622083d5c429f95b371002702"
+    "analyzedAt": "2026-05-29T04:22:58.882Z",
+    "gitCommitHash": "d4a3eec7e70b55d55ab3ef0fac861d74ede4c210"
   },
   "nodes": [
     {
@@ -560,7 +558,7 @@
         "user"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile/lib/shared/data/backend_repository.dart",
       "lineRange": [
         197,
         300
@@ -650,7 +648,7 @@
         "host"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/shared/data/backend_repository.dart",
+      "filePath": "mobile/lib/shared/data/backend_repository.dart",
       "lineRange": [
         358,
         409
@@ -848,7 +846,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
+      "filePath": "mobile/lib/features/evening_routes/presentation/evening_route_detail_screen.dart",
       "lineRange": [
         1,
         200
@@ -938,7 +936,7 @@
         "partners"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
+      "filePath": "mobile/lib/features/evening_routes/presentation/partner_offer_qr_screen.dart",
       "lineRange": [
         1,
         200
@@ -992,7 +990,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         90,
         321
@@ -1010,7 +1008,7 @@
         "messages"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/app/core/network/chat_socket_client.dart",
+      "filePath": "mobile/lib/app/core/network/chat_socket_client.dart",
       "lineRange": [
         509,
         581
@@ -1154,7 +1152,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/onboarding/presentation/onboarding_screen.dart",
+      "filePath": "mobile/lib/features/onboarding/presentation/onboarding_screen.dart",
       "lineRange": [
         153,
         222
@@ -1226,7 +1224,7 @@
         "social"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/dating/presentation/dating_screen.dart",
+      "filePath": "mobile/lib/features/dating/presentation/dating_screen.dart",
       "lineRange": [
         460,
         520
@@ -1352,7 +1350,7 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/features/safety/presentation/safety_hub_screen.dart",
+      "filePath": "mobile/lib/features/safety/presentation/safety_hub_screen.dart",
       "lineRange": [
         138,
         293
@@ -1442,7 +1440,7 @@
         "notifications"
       ],
       "complexity": "moderate",
-      "filePath": "mobile2/lib/app/core/device/app_push_token_service.dart",
+      "filePath": "mobile/lib/app/core/device/app_push_token_service.dart",
       "lineRange": [
         1,
         160

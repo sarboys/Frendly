@@ -121,6 +121,8 @@ describe('content source adapters', () => {
     expect(eventCategories).not.toContain('stock');
     expect(eventExpand).toBe('place');
     expect(eventFields).toContain('images');
+    expect(eventFields).toContain('slug');
+    expect(eventFields).toContain('tags');
 
     expect(placeCategories).toBe([
       'amusement',
@@ -163,6 +165,9 @@ describe('content source adapters', () => {
     expect(placeCategories).not.toContain('metro');
     expect(placeCategories).not.toContain('animal-shelters');
     expect(placeFields).toContain('images');
+    expect(placeFields).toContain('slug');
+    expect(placeFields).toContain('tags');
+    expect(placeFields).toContain('subway');
   });
 
   it('uses KudaGo location codes for supported million-plus cities', async () => {
@@ -192,12 +197,17 @@ describe('content source adapters', () => {
         results: [kudagoEvent(100, {
           place: {
             id: 96,
+            slug: 'darwin-museum',
             title: 'Дарвиновский музей',
             address: 'ул. Вавилова, 57',
             coords: { lat: 55.6894, lon: 37.5629 },
+            subway: 'Академическая',
+            tags: [{ slug: 'museum' }],
           },
         })],
       }) as any)
+      .mockResolvedValueOnce(jsonResponse({ results: [] }) as any)
+      .mockResolvedValueOnce(jsonResponse({ results: [] }) as any)
       .mockResolvedValueOnce(jsonResponse({ results: [] }) as any);
 
     const items = await adapter.fetchItems(fetchInput());
@@ -210,6 +220,13 @@ describe('content source adapters', () => {
       address: 'ул. Вавилова, 57',
       lat: 55.6894,
       lng: 37.5629,
+      tags: expect.arrayContaining(['concert', 'museum', 'metro:akademicheskaya']),
+    });
+    expect(items[0]?.raw).toMatchObject({
+      place: {
+        slug: 'darwin-museum',
+        subway: 'Академическая',
+      },
     });
   });
 
@@ -239,7 +256,9 @@ describe('content source adapters', () => {
             },
           ],
         }],
-      }) as any);
+      }) as any)
+      .mockResolvedValueOnce(jsonResponse({ results: [] }) as any)
+      .mockResolvedValueOnce(jsonResponse({ results: [] }) as any);
 
     const items = await adapter.fetchItems(fetchInput());
 
@@ -251,6 +270,76 @@ describe('content source adapters', () => {
       expect.objectContaining({
         sourceItemId: 'place-200',
         imageUrl: 'https://media.kudago.com/images/place/place.jpg',
+      }),
+    ]));
+  });
+
+  it('maps KudaGo movies and movie showings for AI movie candidates', async () => {
+    const adapter = new KudaGoAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ results: [] }) as any)
+      .mockResolvedValueOnce(jsonResponse({ results: [] }) as any)
+      .mockResolvedValueOnce(jsonResponse({
+        results: [{
+          id: 300,
+          slug: 'movie-one',
+          title: 'Фильм',
+          description: 'Описание фильма',
+          site_url: 'https://kudago.com/msk/movie/movie-one/',
+          genres: [{ slug: 'drama', name: 'Драма' }],
+          poster: { image: 'https://media.kudago.com/images/movie/poster.jpg' },
+        }],
+      }) as any)
+      .mockResolvedValueOnce(jsonResponse({
+        results: [{
+          id: 400,
+          site_url: 'https://kudago.com/msk/movie-showing/400/',
+          datetime: 1770000000,
+          price: '650',
+          movie: {
+            id: 300,
+            slug: 'movie-one',
+            title: 'Фильм',
+            description: 'Описание фильма',
+            genres: [{ slug: 'drama', name: 'Драма' }],
+            poster: { image: 'https://media.kudago.com/images/movie/poster.jpg' },
+          },
+          place: {
+            id: 200,
+            slug: 'cinema-one',
+            title: 'Кинотеатр',
+            site_url: 'https://kudago.com/msk/place/cinema-one/',
+            address: 'ул. Кино, 1',
+            coords: { lat: 55.7, lon: 37.6 },
+            subway: 'Курская',
+          },
+        }],
+      }) as any);
+
+    const items = await adapter.fetchItems(fetchInput());
+
+    expect(items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceItemId: 'movie-300',
+        contentKind: 'movie',
+        category: 'movie',
+        tags: expect.arrayContaining(['movie', 'cinema', 'film', 'drama']),
+        imageUrl: 'https://media.kudago.com/images/movie/poster.jpg',
+        raw: expect.objectContaining({ kind: 'movie', slug: 'movie-one' }),
+      }),
+      expect.objectContaining({
+        sourceItemId: 'movie-showing-400',
+        contentKind: 'event',
+        category: 'cinema',
+        title: 'Фильм',
+        venueName: 'Кинотеатр',
+        address: 'ул. Кино, 1',
+        lat: 55.7,
+        lng: 37.6,
+        startsAt: new Date(1770000000 * 1000),
+        priceFrom: 650,
+        tags: expect.arrayContaining(['movie', 'cinema', 'film', 'drama', 'metro:kurskaya']),
+        raw: expect.objectContaining({ kind: 'movie_showing' }),
       }),
     ]));
   });
