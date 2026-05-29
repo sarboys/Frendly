@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "ab7c9437c5552b15b94bb6631bff7addc9460130",
-  "generatedAt": "2026-05-29T08:07:27.585Z",
+  "gitCommitHash": "3ba78007c42c7f1d5303f65892b9b762b3803f51",
+  "generatedAt": "2026-05-29T08:13:12.757Z",
   "files": {
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
@@ -14755,7 +14755,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "b91cf1e6f45219a9ac9b8ecbb3c3a5044d31d80a316a99e917493c7ab2af77cf",
+      "contentHash": "60300ea6db87daf94c2dc512b58e61085a0ad6f791e1ab02ca2caf2006590786",
       "functions": [
         {
           "name": "isDetailPath",
