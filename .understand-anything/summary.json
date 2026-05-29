@@ -3,24 +3,23 @@
     "name": "Frendly backend-mobile-admin",
     "description": "Focused graph for backend, mobile Flutter app, admin app, business logic, and their runtime/deploy links."
   },
-  "filesAnalyzed": 503,
+  "filesAnalyzed": 348,
   "fileCategories": {
-    "infra": 24,
-    "config": 28,
-    "code": 359,
-    "markup": 1,
-    "data": 87,
+    "config": 22,
+    "code": 212,
+    "infra": 22,
+    "data": 88,
     "docs": 3,
     "script": 1
   },
   "nodeTypes": {
-    "service": 27,
-    "pipeline": 31,
-    "config": 28,
-    "file": 360,
-    "function": 1129,
-    "class": 162,
-    "table": 504,
+    "config": 22,
+    "file": 212,
+    "class": 160,
+    "function": 709,
+    "service": 23,
+    "pipeline": 16,
+    "table": 505,
     "schema": 1,
     "document": 3,
     "domain": 7,
@@ -28,15 +27,14 @@
     "step": 65
   },
   "edgeTypes": {
-    "contains": 1742,
-    "imports": 755,
+    "contains": 1303,
+    "imports": 511,
     "contains_flow": 12,
     "flow_step": 65,
     "cross_domain": 8
   },
   "layers": [
     "Business Logic",
-    "Admin React",
     "Backend API",
     "Backend Realtime",
     "Backend Shared",
@@ -47,16 +45,16 @@
     "Shared Contracts",
     "Telegram Relay"
   ],
-  "tourSteps": 4,
+  "tourSteps": 3,
   "businessLogic": {
     "domains": 7,
     "flows": 12,
     "steps": 65,
-    "domainGraphPath": "/Users/sergeypolyakov/MyApp/.understand-anything/domain-graph.json"
+    "domainGraphPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/evening-place-intent-matching/.understand-anything/domain-graph.json"
   },
   "review": {
     "issues": [],
     "warnings": []
   },
-  "outputPath": "/Users/sergeypolyakov/MyApp/.understand-anything/knowledge-graph.json"
+  "outputPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/evening-place-intent-matching/.understand-anything/knowledge-graph.json"
 }
