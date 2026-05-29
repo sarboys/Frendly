@@ -142,6 +142,56 @@ describe('TomestoAdapter', () => {
     ]));
   });
 
+  it('keeps semantic trait tags before long taxonomy tags', async () => {
+    jest.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.endsWith('/moskva/sitemap.xml')) {
+        return new Response(sitemapXml(1), {
+          status: 200,
+          headers: { 'content-type': 'application/xml' },
+        }) as any;
+      }
+
+      return new Response(
+        placeHtml(
+          value,
+          [
+            '<p>Коктейльный бар с уникальным дизайном интерьера для романтического ужина.</p>',
+            ...Array.from({ length: 16 }, (_, index) =>
+              `<a href="https://tomesto.ru/moskva/places/cuisines/cuisine-${index}">Кухня ${index}</a>`
+            ),
+          ].join(''),
+        ),
+        {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        },
+      ) as any;
+    });
+
+    const items = await new TomestoAdapter().fetchItems({
+      city: 'Москва',
+      cityCode: 'moskva',
+      timezone: 'Europe/Moscow',
+      from,
+      to,
+      signal: new AbortController().signal,
+      importMode: 'tomesto_places_catalog',
+      catalogOffset: 0,
+      catalogLimit: 1,
+    });
+
+    expect(items).toHaveLength(1);
+    const item = items[0];
+    expect(item).toBeDefined();
+    expect(item?.tags).toBeDefined();
+    expect((item?.tags ?? []).slice(0, 3)).toEqual([
+      'place:bar',
+      'set:cocktails',
+      'feature:beautiful_interior',
+    ]);
+  });
+
   it('parses catalog promos from current Tomesto markup', async () => {
     jest.spyOn(global, 'fetch').mockImplementation(async (url) => {
       const value = String(url);

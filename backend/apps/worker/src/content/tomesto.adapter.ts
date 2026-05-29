@@ -536,7 +536,7 @@ export class TomestoAdapter implements ExternalSourceAdapter {
       pageText,
       sourceUrl,
     });
-    const enrichedTags = dedupe([...tags, ...semanticTraits.tags]);
+    const enrichedTags = dedupe([...semanticTraits.tags, ...tags]);
     const itemImageUrl = this.importImages ? extractImageUrl($, sourceUrl) : null;
     const actionUrl = this.actionUrl(sourceUrl);
     const closedStatus = tomestoClosedPlaceStatus(pageText);
