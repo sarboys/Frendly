@@ -39,6 +39,31 @@ describe('app metrics', () => {
     expect(text).not.toContain('object_key');
   });
 
+  it('exports evening AI draft phase duration metrics with low-cardinality labels', async () => {
+    const histogram = (appMetrics as any).eveningAiDraftPhaseDurationSeconds;
+    expect(histogram).toBeDefined();
+
+    histogram.observe(
+      {
+        service: 'api',
+        operation: 'create_draft',
+        phase: 'candidate_load',
+        status: 'ok',
+      },
+      0.25,
+    );
+
+    const text = await renderAppMetrics();
+
+    expect(text).toContain('frendly_evening_ai_draft_phase_duration_seconds');
+    expect(text).toContain('operation="create_draft"');
+    expect(text).toContain('phase="candidate_load"');
+    expect(text).toContain('status="ok"');
+    expect(text).not.toContain('user_id');
+    expect(text).not.toContain('draft_id');
+    expect(text).not.toContain('prompt');
+  });
+
   it('records prisma query events without SQL labels', async () => {
     let queryHandler: ((event: { duration: number; query: string }) => void) | undefined;
     const prisma = {

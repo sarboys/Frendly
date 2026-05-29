@@ -1,3 +1,4 @@
+import { appMetrics } from '@big-break/database';
 import { EveningAiDraftService } from '../../src/services/evening-ai-draft.service';
 
 describe('EveningAiDraftService unit', () => {
@@ -9,6 +10,7 @@ describe('EveningAiDraftService unit', () => {
 
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2099-06-01T12:00:00.000Z'));
+    appMetrics.reset();
   });
 
   afterEach(() => {
@@ -623,6 +625,71 @@ describe('EveningAiDraftService unit', () => {
         }),
       }),
     );
+  });
+
+  it('records successful AI draft phase metrics', async () => {
+    const histogram = (appMetrics as any).eveningAiDraftPhaseDurationSeconds;
+    expect(histogram).toBeDefined();
+    const observe = jest.spyOn(histogram, 'observe');
+    const { service } = createService();
+
+    try {
+      await service.createDraft('user-1', {
+        prompt: 'Винный бар и стендап',
+        city: 'Москва',
+        stepCount: 2,
+      });
+
+      const labels = observe.mock.calls.map(([callLabels]) => callLabels);
+      expect(labels).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ operation: 'create_draft', phase: 'quota_checks', status: 'ok' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'intent_taxonomy', status: 'ok' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'intent_llm', status: 'ok' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'candidate_load', status: 'ok' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'candidate_rank', status: 'ok' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'route_llm', status: 'ok' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'draft_save', status: 'ok' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'total', status: 'ok' }),
+        ]),
+      );
+      for (const [callLabels, durationSeconds] of observe.mock.calls) {
+        expect(callLabels).toEqual(expect.objectContaining({ service: 'api' }));
+        expect(typeof durationSeconds).toBe('number');
+        expect(durationSeconds).toBeGreaterThanOrEqual(0);
+      }
+    } finally {
+      observe.mockRestore();
+    }
+  });
+
+  it('marks total AI draft metrics as fallback when route generation falls back', async () => {
+    const histogram = (appMetrics as any).eveningAiDraftPhaseDurationSeconds;
+    expect(histogram).toBeDefined();
+    const observe = jest.spyOn(histogram, 'observe');
+    const { service } = createService({
+      openRouterResponses: [
+        new Error('route model unavailable'),
+        new Error('route retry unavailable'),
+      ],
+    });
+
+    try {
+      await service.createDraft('user-1', {
+        prompt: 'Винный бар и стендап',
+        city: 'Москва',
+        stepCount: 2,
+      });
+
+      expect(observe.mock.calls.map(([callLabels]) => callLabels)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ operation: 'create_draft', phase: 'route_llm', status: 'fallback' }),
+          expect.objectContaining({ operation: 'create_draft', phase: 'total', status: 'fallback' }),
+        ]),
+      );
+    } finally {
+      observe.mockRestore();
+    }
   });
 
   it('uses EVENING_AI_MODEL when it is configured', async () => {
@@ -1690,6 +1757,116 @@ describe('EveningAiDraftService unit', () => {
     ).toHaveLength(10);
     expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(10);
     expect(routePrompt.candidates).toHaveLength(40);
+  });
+
+  it('reuses the city Tomesto candidate scan across repeated Tomesto steps', async () => {
+    const cityPlaces = [
+      {
+        id: 'tomesto-bar-1',
+        source: { code: 'tomesto', name: 'ТоМесто' },
+        contentKind: 'place',
+        title: 'Craft Bar',
+        category: 'bar',
+        tags: ['place:bar', 'feature:craft_beer'],
+        area: 'Центр',
+        lat: 55.731,
+        lng: 37.601,
+        priceFrom: 1600,
+        placeKind: 'bar',
+        venueName: 'Craft Bar',
+        sourceProvider: 'ТоМесто',
+      },
+      {
+        id: 'tomesto-food-1',
+        source: { code: 'tomesto', name: 'ТоМесто' },
+        contentKind: 'place',
+        title: 'Casa Bella',
+        category: 'food',
+        tags: ['occasion:food', 'cuisine:italyanskaya'],
+        area: 'Центр',
+        lat: 55.732,
+        lng: 37.602,
+        priceFrom: 2100,
+        placeKind: 'food',
+        venueName: 'Casa Bella',
+        sourceProvider: 'ТоМесто',
+      },
+      {
+        id: 'tomesto-bar-2',
+        source: { code: 'tomesto', name: 'ТоМесто' },
+        contentKind: 'place',
+        title: 'Wine Room',
+        category: 'bar',
+        tags: ['place:bar', 'set:wine'],
+        area: 'Центр',
+        lat: 55.733,
+        lng: 37.603,
+        priceFrom: 1800,
+        placeKind: 'bar',
+        venueName: 'Wine Room',
+        sourceProvider: 'ТоМесто',
+      },
+    ];
+    const { service, externalFindMany } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 3,
+          steps: [
+            {
+              role: 'place_bar',
+              taxonomyTags: ['place:bar'],
+              preferredTerms: ['крафт'],
+              avoidTerms: [],
+              instruction: '',
+            },
+            {
+              role: 'place_food',
+              taxonomyTags: ['cuisine:italyanskaya'],
+              preferredTerms: ['итальянская кухня'],
+              avoidTerms: [],
+              instruction: '',
+            },
+            {
+              role: 'place_bar',
+              taxonomyTags: ['place:bar'],
+              preferredTerms: ['вино'],
+              avoidTerms: [],
+              instruction: '',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: cityPlaces,
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Три места',
+            vibe: 'Места из одного городского пула',
+            blurb: 'Проверяем повторное чтение.',
+            steps: [
+              { externalContentItemId: 'tomesto-bar-1', timeLabel: '18:00' },
+              { externalContentItemId: 'tomesto-food-1', timeLabel: '19:00' },
+              { externalContentItemId: 'tomesto-bar-2', timeLabel: '20:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: '3 места: крафтовое пиво, итальянская кухня и винный бар',
+      city: 'Москва',
+    });
+
+    const tomestoQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'tomesto');
+    expect(tomestoQueries).toHaveLength(1);
   });
 
   it('lets intent turn an explicit three-place prompt into three steps', async () => {
@@ -5032,13 +5209,12 @@ describe('EveningAiDraftService unit', () => {
     expect(accepted.acceptedStepIndexes).toEqual([0, 1]);
     expect(accepted.canConfirm).toBe(true);
 
-    await service.regenerateStep('user-1', 'draft-1', 1);
-    expect(openRouter.generateJson).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        timeoutMs: 90000,
-        userPrompt: expect.stringContaining('old-rejected'),
-      }),
-    );
+    const regenerated = await service.regenerateStep('user-1', 'draft-1', 1);
+    expect(openRouter.generateJson).not.toHaveBeenCalled();
+    expect(regenerated.route.steps.map((step: any) => step.title)).toEqual([
+      'Brix',
+      'Джаз',
+    ]);
     expect(draftUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -5067,7 +5243,32 @@ describe('EveningAiDraftService unit', () => {
             routeId: confirmed.route.id,
             title: 'Brix',
           }),
+          expect.objectContaining({
+            routeId: confirmed.route.id,
+            title: 'Джаз',
+          }),
         ]),
+      }),
+    );
+  });
+
+  it('regenerates one step from the saved candidate pack without calling OpenRouter', async () => {
+    const { service, draftUpdate, openRouter } = createService();
+
+    const result = await service.regenerateStep('user-1', 'draft-1', 1);
+
+    expect(openRouter.generateJson).not.toHaveBeenCalled();
+    expect(result.route.steps.map((step: any) => step.title)).toEqual([
+      'Brix',
+      'Джаз',
+    ]);
+    expect(result.acceptedStepIndexes).toEqual([0]);
+    expect(draftUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          acceptedStepIndexes: [0],
+          rejectedExternalItemIds: expect.arrayContaining(['old-rejected', 'ticketland-show']),
+        }),
       }),
     );
   });

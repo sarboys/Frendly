@@ -55,12 +55,12 @@ kudago,timepad,advcake_ticketland,tomesto
 ```
 
 Overpass code remains available for explicit manual import, but it is not part of default scheduled import.
-Default scheduled cities are the 30-city product list in `@big-break/database` `content-city-catalog`. KudaGo runs only for the five cities supported by its locations API: Москва, Санкт-Петербург, Екатеринбург, Казань, Нижний Новгород.
+Default scheduled cities are the 30-city product list in `@big-break/database` `content-city-catalog`. KudaGo runs only for product cities accepted by its locations API: Москва, Санкт-Петербург, Екатеринбург, Казань, Краснодар, Красноярск, Нижний Новгород, Новосибирск, Самара, Сочи, Уфа.
 
 Source roles:
 
 - `advcake_ticketland`: paid affiliate ticket events from Ticketland and MTS Live.
-- `kudago`: free events and places.
+- `kudago`: free events, places, hidden movie catalog rows and cinema showings for AI movie candidates.
 - `timepad`: free events.
 - `tomesto`: affiliate places, events and promos. Places can feed route candidates. Events and promos stay hidden unless `TOMESTO_PUBLIC_EVENTS_ENABLED=true`.
 - `overpass`: explicit places import only when requested.
@@ -111,6 +111,8 @@ Affiliate URL rules:
 
 `contentKind=place` means the item stays in places/search/route planner flows.
 
+`contentKind=movie` means a source catalog row. KudaGo movies are stored hidden and do not enter route candidates directly.
+
 Places are not affiche. Bars, restaurants, cafes, museums and similar places must not be rendered as event cards.
 
 Public affiche endpoints must always filter:
@@ -158,6 +160,12 @@ Unknown-price event
 
 KudaGo place
   -> published as place, not as affiche event
+
+KudaGo movie
+  -> hidden catalog row
+
+KudaGo movie showing
+  -> published event for AI candidates, hidden from public affiche by raw.kind filter
 ```
 
 Paid KudaGo or Timepad fallback exists only behind:
@@ -233,7 +241,7 @@ AdvCake item stays primary
 
 This lets paid affiliate events appear in affiche even without coordinates. User-facing AI show drafts may also use Ticketland rows without coordinates, while enrichment still improves walking distance and map quality when coordinates are found. User-facing AI walk drafts can use KudaGo event rows and KudaGo place rows, so parks and walking places are not lost when there is no timed event. Walk candidate filtering is stricter than the broad search query: parks, embankments, boulevards and walking routes pass, while skating rinks, quests, museums, exhibitions, theatres, cinemas, restaurants, bars, clubs and sport or active entertainment rows are rejected even if their text mentions a park.
 
-KudaGo event import requests `expand=place`, so event rows can store `venueName`, `address`, `lat` and `lng` from the linked place. If an older or partial KudaGo event only has `raw.place.id`, worker can copy the missing venue fields from the already imported `kudago` place row. The enrichment is recorded in `raw.enrichment` with `method=kudago_place_id` and `geoConfidence=high`.
+KudaGo event import requests `expand=place`, so event rows can store `venueName`, `address`, `lat`, `lng`, `slug`, `tags` and `subway` from the linked place. KudaGo places also import `slug`, `tags` and `subway`. Subway is kept in `raw`, and useful metro values are added to `tags` as `metro:<slug>`. If an older or partial KudaGo event only has `raw.place.id`, worker can copy the missing venue fields from the already imported `kudago` place row. The enrichment is recorded in `raw.enrichment` with `method=kudago_place_id` and `geoConfidence=high`.
 
 AdvCake Ticketland rows can also be enriched before upsert:
 
@@ -371,7 +379,7 @@ Food, cafe and bar must not fill a free outdoor route unless the place is explic
 
 Route generation keeps the place pool bounded before planner prompt building: DB query is capped, then places are balanced by requested area, category quota and geo bucket. Batch logs include RSS and duration.
 
-User-facing AI drafts run a fast Qwen intent pass before building the candidate pack. That intent pass is the only semantic parser for free text and returns ordered roles, inferred step count, participants, date, area, budget and per-step search hints. Backend no longer extracts prompt counts, people counts, dates, area, budget or roles from keywords. Prompt-only drafts infer 1-5 steps through intent and do not pad to 5 by default. Source mapping stays backend-owned: Tomesto for food, bars, clubs and restaurants; Ticketland/MTS Live for theatre, shows, concerts and standup; KudaGo for walks, parks, free activities, sport, adrenaline, exhibitions and creative activity ideas. Area and budget can come from intent or structured request fields and affect scoring. Area terms are searched in candidate text fields and then boosted in scoring through `area`, `metro:*`, `tags` and `set:*`; this is a boost, not a hard filter. Walk roles use an extra semantic filter after DB search, so `Каток у парка` is not treated as a walk just because it mentions a park.
+User-facing AI drafts run a fast Qwen intent pass before building the candidate pack. That intent pass is the only semantic parser for free text and returns ordered roles, inferred step count, participants, date, area, budget and per-step search hints. Backend no longer extracts prompt counts, people counts, dates, area, budget or roles from keywords. Prompt-only drafts infer 1-5 steps through intent and do not pad to 5 by default. Source mapping stays backend-owned: Tomesto for food, bars, clubs and restaurants; Ticketland/MTS Live for theatre, shows, concerts and standup; KudaGo for walks, parks, free activities, sport, adrenaline, exhibitions and creative activity ideas. AI role `movie` also uses KudaGo movie showings with `category=cinema` and tags `movie`, `cinema` or `film`. KudaGo movie catalog rows stay hidden and serve as raw source data, not direct route candidates. Area and budget can come from intent or structured request fields and affect scoring. Area terms are searched in candidate text fields and then boosted in scoring through `area`, `metro:*`, `tags` and `set:*`; this is a boost, not a hard filter. Walk roles use an extra semantic filter after DB search, so `Каток у парка` is not treated as a walk just because it mentions a park.
 
 AdvCake events without coordinates stay in public affiche only. They must not be selected for generated routes.
 
@@ -407,7 +415,7 @@ Free CTA:
 Подробнее
 ```
 
-Mobile affiche reads public affiche events only. KudaGo places stay in their own product flows.
+Mobile affiche reads public affiche events only. KudaGo places stay in their own product flows. KudaGo movie showings are excluded from public affiche list and detail by `raw.kind=movie_showing`, even when stored as published events for AI.
 
 ## Worker schedule
 

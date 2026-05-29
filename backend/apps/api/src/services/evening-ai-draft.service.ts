@@ -1,5 +1,5 @@
-import { Injectable, Optional } from '@nestjs/common';
-import { timezoneForContentCity } from '@big-break/database';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { appMetrics, timezoneForContentCity } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../common/api-error';
@@ -58,6 +58,12 @@ const DEFAULT_INTENT_MAX_TOKENS = 4096;
 const DEFAULT_ROUTE_MAX_TOKENS = 32768;
 const MAX_LEG_KM = 3.5;
 const CANDIDATE_CORE_RATIO = 0.7;
+const AI_DRAFT_METRICS_SERVICE = 'api';
+const AI_DRAFT_CREATE_OPERATION = 'create_draft';
+const AI_DRAFT_TOTAL_SLOW_MS = 5000;
+const AI_DRAFT_PHASE_SLOW_MS = 2000;
+const FOOD_ROLE_TERMS = ['кухн', 'гастро', 'restaurant', 'place:restaurant', 'cuisine:'];
+const BAR_ROLE_TERMS = ['place:bar', 'set:cocktails', 'cocktail'];
 const WALK_ALLOWED_CATEGORY_TERMS = ['walk', 'outdoor', 'park', 'route', 'маршрут', 'прогул', 'парк'];
 const WALK_STRONG_TERMS = [
   'прогул',
@@ -148,6 +154,37 @@ type CandidateCard = {
   shortSummary: string | null;
   imageUrl: string | null;
   imageVariants: unknown;
+};
+
+type CandidateLoadContext = {
+  sourceItems: Map<CandidateCard['source'], Promise<any[]>>;
+  tomestoImagesByCity: Map<string, Promise<boolean>>;
+  candidateStats: AiDraftCandidateStats;
+};
+
+type AiDraftPhase =
+  | 'quota_checks'
+  | 'intent_taxonomy'
+  | 'intent_llm'
+  | 'candidate_load'
+  | 'candidate_rank'
+  | 'route_llm'
+  | 'draft_save'
+  | 'total';
+
+type AiDraftPhaseStatus = 'ok' | 'error' | 'fallback';
+
+type AiDraftPhaseSample = {
+  phase: AiDraftPhase;
+  status: AiDraftPhaseStatus;
+  durationMs: number;
+};
+
+type AiDraftCandidateStats = {
+  total: number;
+  tomesto: number;
+  advcakeTicketland: number;
+  kudago: number;
 };
 
 type GeneratedDraftJson = {
@@ -296,10 +333,71 @@ type AiDraftRecord = {
   expiresAt: Date;
 };
 
+class AiDraftPhaseTracker {
+  private readonly totalStartedAt = process.hrtime.bigint();
+  readonly samples: AiDraftPhaseSample[] = [];
+
+  constructor(
+    private readonly service: string,
+    private readonly operation: string,
+  ) {}
+
+  start() {
+    return process.hrtime.bigint();
+  }
+
+  async measure<T>(phase: AiDraftPhase, task: () => Promise<T>): Promise<T> {
+    const startedAt = this.start();
+    try {
+      const result = await task();
+      this.end(phase, startedAt, 'ok');
+      return result;
+    } catch (caught) {
+      this.end(phase, startedAt, 'error');
+      throw caught;
+    }
+  }
+
+  measureSync<T>(phase: AiDraftPhase, task: () => T): T {
+    const startedAt = this.start();
+    try {
+      const result = task();
+      this.end(phase, startedAt, 'ok');
+      return result;
+    } catch (caught) {
+      this.end(phase, startedAt, 'error');
+      throw caught;
+    }
+  }
+
+  end(phase: AiDraftPhase, startedAt: bigint, status: AiDraftPhaseStatus) {
+    const durationMs = durationMsSince(startedAt);
+    this.samples.push({ phase, status, durationMs });
+    appMetrics.eveningAiDraftPhaseDurationSeconds.observe(
+      {
+        service: this.service,
+        operation: this.operation,
+        phase,
+        status,
+      },
+      durationMs / 1000,
+    );
+  }
+
+  finish(status: AiDraftPhaseStatus) {
+    this.end('total', this.totalStartedAt, status);
+    return {
+      status,
+      phases: this.samples,
+    };
+  }
+}
+
 @Injectable()
 export class EveningAiDraftService {
   private readonly candidateSeedSalt = stableHash(randomUUID());
   private candidateSeedCounter = 0;
+  private readonly logger = new Logger(EveningAiDraftService.name);
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -308,70 +406,119 @@ export class EveningAiDraftService {
   ) {}
 
   async createDraft(userId: string, body: Record<string, unknown>) {
-    const parsedInput = this.parseInput(body);
-    if (this.subscriptionService) {
-      await assertCanCreateWeeklyAiDraft(
-        userId,
-        this.prismaService,
-        this.subscriptionService,
-      );
-      await assertCanCreateWeeklyMeetup(
-        userId,
-        this.prismaService,
-        this.subscriptionService,
-      );
-    }
-    const intent = await this.resolveDraftIntent(parsedInput);
-    const input = {
-      ...parsedInput,
-      stepCount: intent.roles.length,
-      eventDateWindow: intent.eventDateWindow,
-      area: intent.area,
-      budget: intent.budget,
-    };
-    const candidates = await this.loadCandidatePack(input, intent.roles, intent.roleHints);
-    const requiredRoles = this.requiredCandidateRoles(input, intent);
-    if (
-      candidates.length < MIN_STEP_COUNT ||
-      (requiredRoles.length > 0 && !this.hasEnoughCandidatesForRoles(candidates, requiredRoles))
-    ) {
-      throw new ApiError(404, 'evening_ai_candidates_not_found', 'Route candidates not found');
-    }
+    const trace = new AiDraftPhaseTracker(
+      AI_DRAFT_METRICS_SERVICE,
+      AI_DRAFT_CREATE_OPERATION,
+    );
+    let parsedInput: ParsedDraftInput | null = null;
+    let totalStatus: AiDraftPhaseStatus = 'ok';
+    let rolesCount = 0;
+    let candidateStats = emptyCandidateStats();
 
-    const generated = await this.generateRouteWithFallback({
-      input,
-      roles: intent.roles,
-      roleHints: intent.roleHints,
-      candidates,
-      timeoutMs: this.routeTimeoutMs(),
-    });
-    const expiresAt = new Date(Date.now() + DRAFT_TTL_MS);
-    const routeSnapshot = this.routeWithIntent(generated.route, intent);
-    const draft = await (this.prismaService.client as any).eveningAiRouteDraft.create({
-      data: {
-        userId,
-        status: 'reviewing',
-        city: input.city,
-        timezone: input.timezone,
-        prompt: input.prompt,
-        goal: input.goal,
-        mood: input.mood,
-        budget: input.budget,
-        format: input.format,
-        area: input.area,
-        stepCount: input.stepCount,
-        candidatePackJson: candidates as unknown as Prisma.InputJsonValue,
-        routeSnapshotJson: routeSnapshot as unknown as Prisma.InputJsonValue,
-        acceptedStepIndexes: [],
-        rejectedExternalItemIds: [],
-        model: generated.model,
-        latencyMs: generated.latencyMs,
-        validationIssues: generated.warnings as unknown as Prisma.InputJsonValue,
-        expiresAt,
-      },
-    });
+    try {
+      parsedInput = this.parseInput(body);
+      await trace.measure('quota_checks', async () => {
+        if (this.subscriptionService) {
+          await assertCanCreateWeeklyAiDraft(
+            userId,
+            this.prismaService,
+            this.subscriptionService,
+          );
+          await assertCanCreateWeeklyMeetup(
+            userId,
+            this.prismaService,
+            this.subscriptionService,
+          );
+        }
+      });
 
-    return this.mapDraftResponse(draft);
+      const intent = await this.resolveDraftIntent(parsedInput, trace);
+      if (parsedInput.prompt && intent.source !== 'llm') {
+        totalStatus = 'fallback';
+      }
+      rolesCount = intent.roles.length;
+      const input = {
+        ...parsedInput,
+        stepCount: intent.roles.length,
+        eventDateWindow: intent.eventDateWindow,
+        area: intent.area,
+        budget: intent.budget,
+      };
+      const candidatePack = await this.loadCandidatePack(
+        input,
+        intent.roles,
+        intent.roleHints,
+        trace,
+      );
+      const candidates = candidatePack.candidates;
+      candidateStats = candidatePack.candidateStats;
+      const requiredRoles = this.requiredCandidateRoles(input, intent);
+      if (
+        candidates.length < MIN_STEP_COUNT ||
+        (requiredRoles.length > 0 && !this.hasEnoughCandidatesForRoles(candidates, requiredRoles))
+      ) {
+        throw new ApiError(404, 'evening_ai_candidates_not_found', 'Route candidates not found');
+      }
+
+      const routeStartedAt = trace.start();
+      let generated: Awaited<ReturnType<EveningAiDraftService['generateRouteWithFallback']>>;
+      try {
+        generated = await this.generateRouteWithFallback({
+          input,
+          roles: intent.roles,
+          roleHints: intent.roleHints,
+          candidates,
+          timeoutMs: this.routeTimeoutMs(),
+        });
+        const routeStatus = generatedRouteStatus(generated);
+        trace.end('route_llm', routeStartedAt, routeStatus);
+        if (routeStatus === 'fallback') {
+          totalStatus = 'fallback';
+        }
+      } catch (caught) {
+        trace.end('route_llm', routeStartedAt, 'error');
+        throw caught;
+      }
+
+      const expiresAt = new Date(Date.now() + DRAFT_TTL_MS);
+      const routeSnapshot = this.routeWithIntent(generated.route, intent);
+      const draft = await trace.measure<AiDraftRecord>('draft_save', () =>
+        (this.prismaService.client as any).eveningAiRouteDraft.create({
+          data: {
+            userId,
+            status: 'reviewing',
+            city: input.city,
+            timezone: input.timezone,
+            prompt: input.prompt,
+            goal: input.goal,
+            mood: input.mood,
+            budget: input.budget,
+            format: input.format,
+            area: input.area,
+            stepCount: input.stepCount,
+            candidatePackJson: candidates as unknown as Prisma.InputJsonValue,
+            routeSnapshotJson: routeSnapshot as unknown as Prisma.InputJsonValue,
+            acceptedStepIndexes: [],
+            rejectedExternalItemIds: [],
+            model: generated.model,
+            latencyMs: generated.latencyMs,
+            validationIssues: generated.warnings as unknown as Prisma.InputJsonValue,
+            expiresAt,
+          },
+        }) as Promise<AiDraftRecord>,
+      );
+
+      return this.mapDraftResponse(draft);
+    } catch (caught) {
+      totalStatus = 'error';
+      throw caught;
+    } finally {
+      this.logSlowDraftIfNeeded(trace.finish(totalStatus), {
+        city: parsedInput?.city ?? null,
+        rolesCount,
+        candidateStats,
+      });
+    }
   }
 
   async getDraft(userId: string, draftId: string) {
@@ -415,13 +562,20 @@ export class EveningAiDraftService {
       .filter((index) => index !== stepIndex)
       .sort((left, right) => left - right);
     const input = this.inputFromDraft(draft);
-    const intent = this.intentFromRoute(route, input) ?? await this.resolveDraftIntent(input);
+    const intent = this.intentFromRoute(route, input) ?? this.fallbackDraftIntent(input);
     const roleToRegenerate = intent.roles[stepIndex];
-    const availableCandidates = candidates.filter((candidate) => !rejected.has(candidate.id));
-    if (
-      !roleToRegenerate ||
-      !this.hasEnoughCandidatesForRoles(availableCandidates, [roleToRegenerate])
-    ) {
+    const replacement = roleToRegenerate
+      ? this.pickStepRegenerationCandidate({
+          input,
+          route,
+          candidates,
+          role: roleToRegenerate,
+          roleHint: intent.roleHints[stepIndex],
+          stepIndex,
+          rejected,
+        })
+      : null;
+    if (!replacement) {
       throw new ApiError(
         409,
         'evening_ai_regenerate_candidates_exhausted',
@@ -435,22 +589,17 @@ export class EveningAiDraftService {
       area: intent.area,
       budget: intent.budget,
     };
-    const generated = await this.generateRouteWithFallback({
-      input: intentInput,
-      roles: intent.roles,
-      roleHints: intent.roleHints,
-      candidates: availableCandidates,
-      timeoutMs: this.routeTimeoutMs(),
-      previousRoute: route,
-      regenerateStepIndex: stepIndex,
-      rejectedIds: [...rejected],
-    });
-    const nextRoute = this.routeWithIntent({
-      ...route,
-      steps: route.steps.map((step: any, index: number) =>
-        index === stepIndex ? generated.route.steps[stepIndex] ?? step : step,
-      ),
-    }, intent);
+    const nextRoute = this.routeWithIntent(
+      this.routeWithRegeneratedStep({
+        input: intentInput,
+        route,
+        roles: intent.roles,
+        candidates,
+        stepIndex,
+        replacement,
+      }),
+      intent,
+    );
 
     const updated = await (this.prismaService.client as any).eveningAiRouteDraft.update({
       where: { id: draft.id },
@@ -458,9 +607,6 @@ export class EveningAiDraftService {
         routeSnapshotJson: nextRoute as Prisma.InputJsonValue,
         acceptedStepIndexes: accepted,
         rejectedExternalItemIds: [...rejected],
-        model: generated.model,
-        latencyMs: generated.latencyMs,
-        validationIssues: generated.warnings as unknown as Prisma.InputJsonValue,
       },
     });
     return this.mapDraftResponse(updated);
@@ -521,6 +667,140 @@ export class EveningAiDraftService {
       },
     });
     return this.mapDraftResponse(updated);
+  }
+
+  private pickStepRegenerationCandidate(input: {
+    input: ParsedDraftInput;
+    route: any;
+    candidates: CandidateCard[];
+    role: RouteRole;
+    roleHint?: RoleIntentHint;
+    stepIndex: number;
+    rejected: Set<string>;
+  }) {
+    const usedByOtherSteps = new Set(
+      (input.route.steps ?? [])
+        .map((step: any, index: number) =>
+          index === input.stepIndex ? null : this.hiddenExternalId(step),
+        )
+        .filter((id: string | null): id is string => id != null),
+    );
+    const hint =
+      input.roleHint?.role === input.role
+        ? input.roleHint
+        : this.roleIntentHint(input.input, input.role);
+    const candidateOrder = new Map(
+      input.candidates.map((candidate, index) => [candidate.id, index]),
+    );
+    const options = input.candidates.filter(
+      (candidate) =>
+        candidate.role === input.role &&
+        !input.rejected.has(candidate.id) &&
+        !usedByOtherSteps.has(candidate.id),
+    );
+    const intentOptions = options.filter((candidate) =>
+      this.isCandidateAllowedForIntent(candidate, hint),
+    );
+    const pool = intentOptions.length > 0 ? intentOptions : options;
+    return pool
+      .slice()
+      .sort((left, right) => {
+        const scoreDelta =
+          this.candidateScore(input.input, left, [hint]) -
+          this.candidateScore(input.input, right, [hint]);
+        if (scoreDelta !== 0) {
+          return scoreDelta;
+        }
+        return (candidateOrder.get(left.id) ?? 0) - (candidateOrder.get(right.id) ?? 0);
+      })[0] ?? null;
+  }
+
+  private routeWithRegeneratedStep(input: {
+    input: ParsedDraftInput;
+    route: any;
+    roles: RouteRole[];
+    candidates: CandidateCard[];
+    stepIndex: number;
+    replacement: CandidateCard;
+  }) {
+    const generatedSteps = input.roles.map((_role, index) => {
+      const currentStep = input.route.steps?.[index] ?? {};
+      const externalContentItemId =
+        index === input.stepIndex
+          ? input.replacement.id
+          : this.hiddenExternalId(currentStep);
+      const step: {
+        externalContentItemId?: string;
+        timeLabel?: string;
+        endTimeLabel?: string;
+        description?: string;
+      } = {};
+      if (externalContentItemId) {
+        step.externalContentItemId = externalContentItemId;
+      }
+      const timeLabel = stringOrNull(currentStep.time);
+      if (timeLabel) {
+        step.timeLabel = timeLabel;
+      }
+      const endTimeLabel = stringOrNull(currentStep.endTime);
+      if (endTimeLabel) {
+        step.endTimeLabel = endTimeLabel;
+      }
+      const description = stringOrNull(currentStep.description);
+      if (index !== input.stepIndex && description) {
+        step.description = description;
+      }
+      return step;
+    });
+    const rebuilt = this.routeFromGenerated(input.input, input.roles, input.candidates, {
+      title: input.route.title,
+      vibe: input.route.vibe,
+      blurb: input.route.blurb,
+      steps: generatedSteps,
+    });
+    return {
+      ...rebuilt,
+      id: input.route.id ?? rebuilt.id,
+      userState: input.route.userState ?? rebuilt.userState,
+    };
+  }
+
+  private logSlowDraftIfNeeded(
+    summary: { status: AiDraftPhaseStatus; phases: AiDraftPhaseSample[] },
+    context: {
+      city: string | null;
+      rolesCount: number;
+      candidateStats: AiDraftCandidateStats;
+    },
+  ) {
+    const total = summary.phases.find((sample) => sample.phase === 'total');
+    const slowPhases = summary.phases.filter(
+      (sample) =>
+        sample.phase !== 'total' &&
+        sample.durationMs > AI_DRAFT_PHASE_SLOW_MS,
+    );
+    const totalMs = total?.durationMs ?? 0;
+    if (totalMs <= AI_DRAFT_TOTAL_SLOW_MS && slowPhases.length === 0) {
+      return;
+    }
+
+    this.logger.warn(
+      `AI draft creation slow ${JSON.stringify({
+        status: summary.status,
+        city: context.city,
+        rolesCount: context.rolesCount,
+        candidateCount: context.candidateStats.total,
+        tomestoCount: context.candidateStats.tomesto,
+        ticketlandCount: context.candidateStats.advcakeTicketland,
+        kudagoCount: context.candidateStats.kudago,
+        totalMs: roundDurationMs(totalMs),
+        slowPhases: slowPhases.map((sample) => ({
+          phase: sample.phase,
+          status: sample.status,
+          durationMs: roundDurationMs(sample.durationMs),
+        })),
+      })}`,
+    );
   }
 
   private hasEnoughCandidatesForRoles(candidates: CandidateCard[], roles: RouteRole[]) {
@@ -976,48 +1256,69 @@ export class EveningAiDraftService {
     input: ParsedDraftInput,
     roles: RouteRole[],
     roleHints: RoleIntentHint[] = [],
+    trace?: AiDraftPhaseTracker,
   ) {
-    const groups = await Promise.all(
-      roles.map((role, index) => {
+    const context: CandidateLoadContext = {
+      sourceItems: new Map(),
+      tomestoImagesByCity: new Map(),
+      candidateStats: emptyCandidateStats(),
+    };
+    const loadGroups = () =>
+      Promise.all(
+        roles.map((role, index) => {
+          const hint =
+            roleHints[index]?.role === role
+              ? roleHints[index]
+              : this.roleIntentHint(input, role, roleHints);
+          return this.loadRoleCandidates(input, role, [hint], context);
+        }),
+      );
+    const groups = trace
+      ? await trace.measure('candidate_load', loadGroups)
+      : await loadGroups();
+
+    const rankCandidates = () => {
+      const seed = input.candidateSeed;
+      const rankedGroups = groups.map((group, index) => {
+        const role = roles[index] ?? group[0]?.role ?? 'place_food';
         const hint =
           roleHints[index]?.role === role
             ? roleHints[index]
             : this.roleIntentHint(input, role, roleHints);
-        return this.loadRoleCandidates(input, role, [hint]);
-      }),
-    );
-    const seed = input.candidateSeed;
-    const rankedGroups = groups.map((group, index) => {
-      const role = roles[index] ?? group[0]?.role ?? 'place_food';
-      const hint =
-        roleHints[index]?.role === role
-          ? roleHints[index]
-          : this.roleIntentHint(input, role, roleHints);
-      const source = this.sourceForRole(role);
-      return this.rankCandidateGroup(
-        input,
-        group,
-        seed + index,
-        hint ? [hint] : [],
-      ).slice(0, AI_ROUTE_CANDIDATE_STEP_LIMITS[source]);
-    });
-    const candidates: CandidateCard[] = [];
-    const seenIds = new Set<string>();
-    const maxGroupLength = Math.max(0, ...rankedGroups.map((group) => group.length));
-    for (let index = 0; index < maxGroupLength; index += 1) {
-      for (const group of rankedGroups) {
-        const candidate = group[index];
-        if (!candidate) {
-          continue;
+        const source = this.sourceForRole(role);
+        return this.rankCandidateGroup(
+          input,
+          group,
+          seed + index,
+          hint ? [hint] : [],
+        ).slice(0, AI_ROUTE_CANDIDATE_STEP_LIMITS[source]);
+      });
+      const candidates: CandidateCard[] = [];
+      const seenIds = new Set<string>();
+      const maxGroupLength = Math.max(0, ...rankedGroups.map((group) => group.length));
+      for (let index = 0; index < maxGroupLength; index += 1) {
+        for (const group of rankedGroups) {
+          const candidate = group[index];
+          if (!candidate) {
+            continue;
+          }
+          if (seenIds.has(candidate.id)) {
+            continue;
+          }
+          candidates.push(candidate);
+          seenIds.add(candidate.id);
         }
-        if (seenIds.has(candidate.id)) {
-          continue;
-        }
-        candidates.push(candidate);
-        seenIds.add(candidate.id);
       }
-    }
-    return candidates;
+      return candidates;
+    };
+
+    const candidates = trace
+      ? trace.measureSync('candidate_rank', rankCandidates)
+      : rankCandidates();
+    return {
+      candidates,
+      candidateStats: context.candidateStats,
+    };
   }
 
   private rankCandidateGroup(
@@ -1069,6 +1370,7 @@ export class EveningAiDraftService {
     input: ParsedDraftInput,
     role: RouteRole,
     roleHints: RoleIntentHint[] = [],
+    context?: CandidateLoadContext,
   ): Promise<CandidateCard[]> {
     const source = this.sourceForRole(role);
     const eventStartsAtWhere = input.eventDateWindow
@@ -1082,7 +1384,7 @@ export class EveningAiDraftService {
           : 'event';
     const intent = this.roleIntentHint(input, role, roleHints);
     const requireTomestoImage = source === 'tomesto'
-      ? await this.hasTomestoImages(input.city)
+      ? await this.hasTomestoImages(input.city, context)
       : false;
     const kudagoRoleWhere: Prisma.ExternalContentItemWhereInput =
       role === 'movie'
@@ -1201,7 +1503,7 @@ export class EveningAiDraftService {
     };
 
     const items = source === 'tomesto' || source === 'advcake_ticketland'
-      ? await (this.prismaService.client as any).externalContentItem.findMany({
+      ? await this.findCachedSourceItems(context, source, {
           where: baseWhere,
           select,
           orderBy,
@@ -1273,8 +1575,50 @@ export class EveningAiDraftService {
     return mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));
   }
 
-  private async hasTomestoImages(city: string) {
-    const count = await this.prismaService.client.externalContentItem.count({
+  private findCachedSourceItems(
+    context: CandidateLoadContext | undefined,
+    source: CandidateCard['source'],
+    query: Record<string, unknown>,
+  ) {
+    if (!context) {
+      return (this.prismaService.client as any).externalContentItem.findMany(query);
+    }
+    if (source === 'kudago') {
+      return this.recordSourceItems(
+        context,
+        source,
+        (this.prismaService.client as any).externalContentItem.findMany(query),
+      );
+    }
+    const cached = context.sourceItems.get(source);
+    if (cached) {
+      return cached;
+    }
+    const promise = this.recordSourceItems(
+      context,
+      source,
+      (this.prismaService.client as any).externalContentItem.findMany(query),
+    );
+    context.sourceItems.set(source, promise);
+    return promise;
+  }
+
+  private async recordSourceItems(
+    context: CandidateLoadContext,
+    source: CandidateCard['source'],
+    promise: Promise<any[]>,
+  ) {
+    const items = await promise;
+    addCandidateSourceCount(context.candidateStats, source, items.length);
+    return items;
+  }
+
+  private async hasTomestoImages(city: string, context?: CandidateLoadContext) {
+    const cached = context?.tomestoImagesByCity.get(city);
+    if (cached) {
+      return cached;
+    }
+    const promise = this.prismaService.client.externalContentItem.count({
       where: {
         source: { code: 'tomesto' },
         contentKind: 'place',
@@ -1284,8 +1628,9 @@ export class EveningAiDraftService {
         lng: { not: null },
         imageUrl: { not: null },
       },
-    });
-    return count > 0;
+    }).then((count) => count > 0);
+    context?.tomestoImagesByCity.set(city, promise);
+    return promise;
   }
 
   private mapDraftResponse(draft: AiDraftRecord) {
@@ -1462,15 +1807,20 @@ export class EveningAiDraftService {
     return format;
   }
 
-  private async resolveDraftIntent(input: ParsedDraftInput): Promise<DraftIntent> {
+  private async resolveDraftIntent(
+    input: ParsedDraftInput,
+    trace?: AiDraftPhaseTracker,
+  ): Promise<DraftIntent> {
     const fallbackIntent = this.fallbackDraftIntent(input);
     if (!input.prompt) {
       return fallbackIntent;
     }
 
     try {
-      const taxonomy = await this.loadIntentTaxonomy(input.city);
-      const response = await this.openRouterService.generateJson<GeneratedIntentJson>({
+      const taxonomy = trace
+        ? await trace.measure('intent_taxonomy', () => this.loadIntentTaxonomy(input.city))
+        : await this.loadIntentTaxonomy(input.city);
+      const request = {
         model: this.eveningAiModel(),
         timeoutMs: this.intentTimeoutMs(),
         systemPrompt: this.intentSystemPrompt(),
@@ -1478,7 +1828,12 @@ export class EveningAiDraftService {
         temperature: 0,
         maxTokens: this.intentMaxTokens(),
         responseFormat: this.intentResponseFormat(),
-      });
+      };
+      const response = trace
+        ? await trace.measure('intent_llm', () =>
+            this.openRouterService.generateJson<GeneratedIntentJson>(request),
+          )
+        : await this.openRouterService.generateJson<GeneratedIntentJson>(request);
       const eventDateWindow = this.intentEventDateWindow(input, response.parsedJson);
       if (!eventDateWindow) {
         return fallbackIntent;
@@ -2048,6 +2403,32 @@ export class EveningAiDraftService {
     for (const term of this.searchTermsForRole(candidate.role)) {
       if (hasAny(text, [term])) {
         score -= 20;
+      }
+    }
+    if (candidate.role === 'place_food') {
+      const foodMatch = hasAny(text, [
+        ...this.searchTermsForRole('place_food'),
+        ...FOOD_ROLE_TERMS,
+      ]);
+      const barMatch = hasAny(text, [
+        ...this.searchTermsForRole('place_bar'),
+        ...BAR_ROLE_TERMS,
+      ]);
+      if (barMatch && !foodMatch) {
+        score += 260;
+      }
+    }
+    if (candidate.role === 'place_bar') {
+      const barMatch = hasAny(text, [
+        ...this.searchTermsForRole('place_bar'),
+        ...BAR_ROLE_TERMS,
+      ]);
+      const foodMatch = hasAny(text, [
+        ...this.searchTermsForRole('place_food'),
+        ...FOOD_ROLE_TERMS,
+      ]);
+      if (foodMatch && !barMatch) {
+        score += 260;
       }
     }
     if (intent.taxonomyTags.length > 0) {
@@ -2720,6 +3101,44 @@ export class EveningAiDraftService {
   private createId(prefix: string) {
     return `${prefix}_${randomUUID().replace(/-/g, '').slice(0, 24)}`;
   }
+}
+
+function durationMsSince(startedAt: bigint) {
+  return Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+}
+
+function roundDurationMs(durationMs: number) {
+  return Math.round(durationMs);
+}
+
+function emptyCandidateStats(): AiDraftCandidateStats {
+  return {
+    total: 0,
+    tomesto: 0,
+    advcakeTicketland: 0,
+    kudago: 0,
+  };
+}
+
+function addCandidateSourceCount(
+  stats: AiDraftCandidateStats,
+  source: CandidateCard['source'],
+  count: number,
+) {
+  stats.total += count;
+  if (source === 'tomesto') {
+    stats.tomesto += count;
+  } else if (source === 'advcake_ticketland') {
+    stats.advcakeTicketland += count;
+  } else if (source === 'kudago') {
+    stats.kudago += count;
+  }
+}
+
+function generatedRouteStatus(generated: { warnings?: unknown }) {
+  return Array.isArray(generated.warnings) && generated.warnings.length > 0
+    ? 'fallback'
+    : 'ok';
 }
 
 type ParsedDraftInput = {

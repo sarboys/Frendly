@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "d4a3eec7e70b55d55ab3ef0fac861d74ede4c210",
-  "generatedAt": "2026-05-29T04:22:59.276Z",
+  "gitCommitHash": "c3f61006ac3f01eeb45fceb4b7deea185f10b671",
+  "generatedAt": "2026-05-29T05:25:11.126Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -17076,8 +17076,49 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "cc534eef072d062731b18b1ab98d714a1f7ef9381fc2916e741de565812ce67a",
+      "contentHash": "817670da3d95d5324e0f85f4d984331060132410f3e3f38ff8b560d429f53b3c",
       "functions": [
+        {
+          "name": "durationMsSince",
+          "params": [
+            "startedAt"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "roundDurationMs",
+          "params": [
+            "durationMs"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "emptyCandidateStats",
+          "params": [],
+          "returnType": "AiDraftCandidateStats",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "addCandidateSourceCount",
+          "params": [
+            "stats",
+            "source",
+            "count"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "generatedRouteStatus",
+          "params": [
+            "generated"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
         {
           "name": "areaOrNull",
           "params": [
@@ -17740,6 +17781,23 @@
       ],
       "classes": [
         {
+          "name": "AiDraftPhaseTracker",
+          "methods": [
+            "constructor",
+            "start",
+            "measure",
+            "measureSync",
+            "end",
+            "finish"
+          ],
+          "properties": [
+            "totalStartedAt",
+            "samples"
+          ],
+          "exported": false,
+          "lineCount": 59
+        },
+        {
           "name": "EveningAiDraftService",
           "methods": [
             "constructor",
@@ -17748,6 +17806,9 @@
             "acceptStep",
             "regenerateStep",
             "regenerateDraft",
+            "pickStepRegenerationCandidate",
+            "routeWithRegeneratedStep",
+            "logSlowDraftIfNeeded",
             "hasEnoughCandidatesForRoles",
             "eveningAiModel",
             "intentMaxTokens",
@@ -17762,6 +17823,8 @@
             "loadCandidatePack",
             "rankCandidateGroup",
             "loadRoleCandidates",
+            "findCachedSourceItems",
+            "recordSourceItems",
             "hasTomestoImages",
             "mapDraftResponse",
             "publicRoute",
@@ -17820,10 +17883,11 @@
           ],
           "properties": [
             "candidateSeedSalt",
-            "candidateSeedCounter"
+            "candidateSeedCounter",
+            "logger"
           ],
           "exported": true,
-          "lineCount": 2424
+          "lineCount": 2708
         }
       ],
       "imports": [
@@ -17831,12 +17895,14 @@
           "source": "@nestjs/common",
           "specifiers": [
             "Injectable",
+            "Logger",
             "Optional"
           ]
         },
         {
           "source": "@big-break/database",
           "specifiers": [
+            "appMetrics",
             "timezoneForContentCity"
           ]
         },
@@ -17887,7 +17953,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 4073,
+      "totalLines": 4492,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -27397,7 +27463,7 @@
     },
     "backend/packages/database/src/metrics.ts": {
       "filePath": "backend/packages/database/src/metrics.ts",
-      "contentHash": "e5a4f0fa0f4d0c0fedff946baa98a10f559ddf66b5b0fc3c3a89bbd7cca351df",
+      "contentHash": "93bc7573a8fcd73db5ff0dc5250eb71f5b68aa215011b6bf3613f5cd77159f12",
       "functions": [
         {
           "name": "bindPrismaMetrics",
@@ -27441,7 +27507,7 @@
         "getMetricsContentType",
         "renderAppMetrics"
       ],
-      "totalLines": 251,
+      "totalLines": 260,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/openrouter.ts": {

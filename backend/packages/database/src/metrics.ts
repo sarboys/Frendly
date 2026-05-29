@@ -47,6 +47,14 @@ const dbQueryDurationSeconds = new Histogram({
   registers: [registry],
 });
 
+const eveningAiDraftPhaseDurationSeconds = new Histogram({
+  name: 'frendly_evening_ai_draft_phase_duration_seconds',
+  help: 'Evening AI draft phase duration by service, operation, phase and status.',
+  labelNames: ['service', 'operation', 'phase', 'status'],
+  buckets: secondsBuckets,
+  registers: [registry],
+});
+
 const redisPublishTotal = new Counter({
   name: 'frendly_redis_publish_total',
   help: 'Redis publish attempts by service, event type and status.',
@@ -221,6 +229,7 @@ export const appMetrics = {
   httpResponsePayloadBytes,
   dbQueryTotal,
   dbQueryDurationSeconds,
+  eveningAiDraftPhaseDurationSeconds,
   redisPublishTotal,
   redisSubscribeTotal,
   websocketActiveConnections,
