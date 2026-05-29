@@ -198,6 +198,20 @@ type AiDraftCandidateStats = {
   kudago: number;
 };
 
+type RouteLlmAttemptStatus = 'ok' | 'validation_error' | 'error';
+
+type RouteLlmAttemptDiagnostics = {
+  attempt: 'first' | 'retry_after_validation' | 'retry_after_error';
+  status: RouteLlmAttemptStatus;
+  durationMs: number;
+  latencyMs: number | null;
+  issueCount: number;
+  issueCodes: string[];
+  stepIndexes: number[];
+  externalContentItemIds: string[];
+  errorMessage?: string;
+};
+
 type GeneratedDraftJson = {
   title?: unknown;
   vibe?: unknown;
@@ -436,6 +450,7 @@ export class EveningAiDraftService {
     let totalStatus: AiDraftPhaseStatus = 'ok';
     let rolesCount = 0;
     let candidateStats = emptyCandidateStats();
+    let routeLlmAttempts: RouteLlmAttemptDiagnostics[] = [];
 
     try {
       parsedInput = this.parseInput(body);
@@ -492,6 +507,7 @@ export class EveningAiDraftService {
           candidates,
           timeoutMs: this.routeTimeoutMs(),
         });
+        routeLlmAttempts = generated.routeLlmAttempts ?? [];
         const routeStatus = generatedRouteStatus(generated);
         trace.end('route_llm', routeStartedAt, routeStatus);
         if (routeStatus === 'fallback') {
@@ -539,6 +555,7 @@ export class EveningAiDraftService {
         city: parsedInput?.city ?? null,
         rolesCount,
         candidateStats,
+        routeLlmAttempts,
       });
     }
   }
@@ -795,6 +812,7 @@ export class EveningAiDraftService {
       city: string | null;
       rolesCount: number;
       candidateStats: AiDraftCandidateStats;
+      routeLlmAttempts: RouteLlmAttemptDiagnostics[];
     },
   ) {
     const total = summary.phases.find((sample) => sample.phase === 'total');
@@ -822,6 +840,17 @@ export class EveningAiDraftService {
           phase: sample.phase,
           status: sample.status,
           durationMs: roundDurationMs(sample.durationMs),
+        })),
+        routeLlmAttempts: context.routeLlmAttempts.map((attempt) => ({
+          attempt: attempt.attempt,
+          status: attempt.status,
+          durationMs: roundDurationMs(attempt.durationMs),
+          latencyMs: attempt.latencyMs,
+          issueCount: attempt.issueCount,
+          issueCodes: attempt.issueCodes,
+          stepIndexes: attempt.stepIndexes,
+          externalContentItemIds: attempt.externalContentItemIds,
+          errorMessage: attempt.errorMessage,
         })),
       })}`,
     );
@@ -955,17 +984,15 @@ export class EveningAiDraftService {
     validationErrors?: DraftValidationIssue[];
   }) {
     let latestValidationIssues: DraftValidationIssue[] = [];
+    const routeLlmAttempts: RouteLlmAttemptDiagnostics[] = [];
     const geoPolicy = this.routeGeoPolicyForGeneration(input);
     try {
-      const firstResponse = await this.openRouterService.generateJson<GeneratedDraftJson>({
-        model: this.eveningAiModel(),
-        timeoutMs: input.timeoutMs,
-        systemPrompt: this.systemPrompt(),
-        userPrompt: this.userPrompt(input),
-        temperature: 0.2,
-        maxTokens: this.routeMaxTokens(),
-        responseFormat: this.responseFormat(),
-      });
+      const firstAttempt = await this.generateRouteLlmAttempt(
+        input,
+        'first',
+        routeLlmAttempts,
+      );
+      const firstResponse = firstAttempt.response;
       const firstIssues = this.validateGeneratedRoute(
         input.input,
         input.roles,
@@ -974,6 +1001,12 @@ export class EveningAiDraftService {
         input.roleHints,
         geoPolicy,
       );
+      routeLlmAttempts.push(this.routeLlmAttemptDiagnostics(
+        'first',
+        firstAttempt.durationMs,
+        firstResponse.latencyMs,
+        firstIssues,
+      ));
       if (firstIssues.length === 0) {
         const route = this.routeFromGenerated(
           input.input,
@@ -987,22 +1020,20 @@ export class EveningAiDraftService {
           model: firstResponse.model,
           latencyMs: firstResponse.latencyMs,
           warnings: [],
+          routeLlmAttempts,
         };
       }
 
       latestValidationIssues = firstIssues;
-      const retryResponse = await this.openRouterService.generateJson<GeneratedDraftJson>({
-        model: this.eveningAiModel(),
-        timeoutMs: input.timeoutMs,
-        systemPrompt: this.systemPrompt(),
-        userPrompt: this.userPrompt({
+      const retryAttempt = await this.generateRouteLlmAttempt(
+        {
           ...input,
           validationErrors: firstIssues,
-        }),
-        temperature: 0.2,
-        maxTokens: this.routeMaxTokens(),
-        responseFormat: this.responseFormat(),
-      });
+        },
+        'retry_after_validation',
+        routeLlmAttempts,
+      );
+      const retryResponse = retryAttempt.response;
       const retryIssues = this.validateGeneratedRoute(
         input.input,
         input.roles,
@@ -1011,6 +1042,12 @@ export class EveningAiDraftService {
         input.roleHints,
         geoPolicy,
       );
+      routeLlmAttempts.push(this.routeLlmAttemptDiagnostics(
+        'retry_after_validation',
+        retryAttempt.durationMs,
+        retryResponse.latencyMs,
+        retryIssues,
+      ));
       if (retryIssues.length > 0) {
         latestValidationIssues = retryIssues;
         const route = this.deterministicRoute(input);
@@ -1025,6 +1062,7 @@ export class EveningAiDraftService {
               issues: retryIssues,
             },
           ],
+          routeLlmAttempts,
         };
       }
       const route = this.routeFromGenerated(
@@ -1039,6 +1077,7 @@ export class EveningAiDraftService {
         model: retryResponse.model,
         latencyMs: retryResponse.latencyMs,
         warnings: [],
+        routeLlmAttempts,
       };
     } catch (caught) {
       if (latestValidationIssues.length === 0) {
@@ -1049,18 +1088,15 @@ export class EveningAiDraftService {
           },
         ];
         try {
-          const retryResponse = await this.openRouterService.generateJson<GeneratedDraftJson>({
-            model: this.eveningAiModel(),
-            timeoutMs: input.timeoutMs,
-            systemPrompt: this.systemPrompt(),
-            userPrompt: this.userPrompt({
+          const retryAttempt = await this.generateRouteLlmAttempt(
+            {
               ...input,
               validationErrors: latestValidationIssues,
-            }),
-            temperature: 0.2,
-            maxTokens: this.routeMaxTokens(),
-            responseFormat: this.responseFormat(),
-          });
+            },
+            'retry_after_error',
+            routeLlmAttempts,
+          );
+          const retryResponse = retryAttempt.response;
           const retryIssues = this.validateGeneratedRoute(
             input.input,
             input.roles,
@@ -1069,6 +1105,12 @@ export class EveningAiDraftService {
             input.roleHints,
             geoPolicy,
           );
+          routeLlmAttempts.push(this.routeLlmAttemptDiagnostics(
+            'retry_after_error',
+            retryAttempt.durationMs,
+            retryResponse.latencyMs,
+            retryIssues,
+          ));
           if (retryIssues.length === 0) {
             const route = this.routeFromGenerated(
               input.input,
@@ -1082,6 +1124,7 @@ export class EveningAiDraftService {
               model: retryResponse.model,
               latencyMs: retryResponse.latencyMs,
               warnings: [],
+              routeLlmAttempts,
             };
           }
           latestValidationIssues = retryIssues;
@@ -1097,6 +1140,7 @@ export class EveningAiDraftService {
                 issues: retryIssues,
               },
             ],
+            routeLlmAttempts,
           };
         } catch (retryCaught) {
           const route = this.deterministicRoute(input);
@@ -1111,6 +1155,7 @@ export class EveningAiDraftService {
               },
               ...latestValidationIssues,
             ],
+            routeLlmAttempts,
           };
         }
       }
@@ -1126,8 +1171,81 @@ export class EveningAiDraftService {
           },
           ...latestValidationIssues,
         ],
+        routeLlmAttempts,
       };
     }
+  }
+
+  private async generateRouteLlmAttempt(
+    input: {
+      input: ParsedDraftInput;
+      roles: RouteRole[];
+      roleHints?: RoleIntentHint[];
+      candidates: CandidateCard[];
+      timeoutMs: number;
+      previousRoute?: any;
+      regenerateStepIndex?: number;
+      rejectedIds?: string[];
+      validationErrors?: DraftValidationIssue[];
+    },
+    attempt: RouteLlmAttemptDiagnostics['attempt'],
+    attempts: RouteLlmAttemptDiagnostics[],
+  ) {
+    const startedAt = process.hrtime.bigint();
+    try {
+      const response = await this.openRouterService.generateJson<GeneratedDraftJson>({
+        model: this.eveningAiModel(),
+        timeoutMs: input.timeoutMs,
+        systemPrompt: this.systemPrompt(),
+        userPrompt: this.userPrompt(input),
+        temperature: 0.2,
+        maxTokens: this.routeMaxTokens(),
+        responseFormat: this.responseFormat(),
+      });
+      return {
+        response,
+        durationMs: durationMsSince(startedAt),
+      };
+    } catch (caught) {
+      attempts.push({
+        attempt,
+        status: 'error',
+        durationMs: durationMsSince(startedAt),
+        latencyMs: null,
+        issueCount: 1,
+        issueCodes: ['llm_response_error'],
+        stepIndexes: [],
+        externalContentItemIds: [],
+        errorMessage: caught instanceof Error ? caught.message : 'LLM response failed',
+      });
+      throw caught;
+    }
+  }
+
+  private routeLlmAttemptDiagnostics(
+    attempt: RouteLlmAttemptDiagnostics['attempt'],
+    durationMs: number,
+    latencyMs: number | null,
+    issues: DraftValidationIssue[],
+  ): RouteLlmAttemptDiagnostics {
+    return {
+      attempt,
+      status: issues.length > 0 ? 'validation_error' : 'ok',
+      durationMs,
+      latencyMs,
+      issueCount: issues.length,
+      issueCodes: uniqueStrings(issues.map((issue) => issue.code)),
+      stepIndexes: uniqueNumbers(
+        issues
+          .map((issue) => issue.stepIndex)
+          .filter((value): value is number => typeof value === 'number'),
+      ),
+      externalContentItemIds: uniqueRawStrings(
+        issues
+          .map((issue) => issue.externalContentItemId)
+          .filter((value): value is string => typeof value === 'string' && value.length > 0),
+      ),
+    };
   }
 
   private deterministicRoute(input: {
@@ -2925,6 +3043,10 @@ export class EveningAiDraftService {
     validationErrors?: DraftValidationIssue[];
   }) {
     const geoPolicy = this.routeGeoPolicyForGeneration(input);
+    const roleHints =
+      input.roleHints && input.roleHints.length > 0
+        ? input.roleHints
+        : input.roles.map((role) => this.roleIntentHint(input.input, role));
     return JSON.stringify({
       prompt: input.input.prompt,
       rules: [
@@ -2932,7 +3054,21 @@ export class EveningAiDraftService {
         'Prefer closer transitions when the user did not request different explicit areas or locations.',
         'Preserve different explicit areas or locations when the user asked for them, even if they are far apart.',
         'If a step has explicit or same_as_previous location, choose a matching candidate when possible.',
+        'For each step, stepRequirements.hardCandidateIds are mandatory when non-empty.',
+        'If locationCandidateIds are non-empty, choose one of them for that step.',
+        'preferredTerms are soft text hints unless stepRequirements marks them as hard.',
+        'Candidates are already ranked by backend relevance. Prefer the earliest candidate that matches the step role and hard validation hints.',
+        'Use candidate.stepMatches for validation hints. For a required location choose matchesLocation=true when it exists. For specific tags choose matchesTaxonomy=true or matchesSpecificPreferred=true when they exist.',
+        'On retry, fix only the failed step indexes from retryInstructions and avoid the failed candidate id when another matching candidate exists.',
       ],
+      retryInstructions: this.routeRetryInstructions(input.validationErrors ?? []),
+      stepRequirements: this.routePromptStepRequirements(
+        input.input,
+        input.roles,
+        roleHints,
+        geoPolicy,
+        input.candidates,
+      ),
       geoPolicy: {
         routeArea: geoPolicy.routeArea,
         steps: geoPolicy.steps.map((step) => ({
@@ -2962,10 +3098,7 @@ export class EveningAiDraftService {
           : null,
         stepCount: input.input.stepCount,
         roles: input.roles,
-        roleHints:
-          input.roleHints && input.roleHints.length > 0
-            ? input.roleHints
-            : input.roles.map((role) => this.roleIntentHint(input.input, role)),
+        roleHints,
       },
       regenerateStepIndex: input.regenerateStepIndex ?? null,
       rejectedIds: input.rejectedIds ?? [],
@@ -2994,7 +3127,117 @@ export class EveningAiDraftService {
         venueName: candidate.venueName,
         address: candidate.address,
         geo: hasCandidateCoords(candidate) ? `${candidate.lat},${candidate.lng}` : null,
+        stepMatches: this.routePromptCandidateStepMatches(
+          input.input,
+          input.roles,
+          roleHints,
+          geoPolicy,
+          candidate,
+        ),
       })),
+    });
+  }
+
+  private routeRetryInstructions(issues: DraftValidationIssue[]) {
+    return issues.map((issue) => ({
+      stepIndex: issue.stepIndex ?? null,
+      failedExternalContentItemId: issue.externalContentItemId ?? null,
+      code: issue.code,
+      fix:
+        issue.code === 'location_mismatch'
+          ? 'choose a candidate for this step with stepMatches.matchesLocation=true'
+          : issue.code === 'intent_mismatch'
+            ? 'choose a candidate for this step with stepMatches.matchesTaxonomy=true or stepMatches.matchesSpecificPreferred=true'
+            : 'choose another valid candidate for this step',
+    }));
+  }
+
+  private routePromptStepRequirements(
+    input: ParsedDraftInput,
+    roles: RouteRole[],
+    roleHints: RoleIntentHint[],
+    geoPolicy: RouteGeoPolicy,
+    candidates: CandidateCard[],
+  ) {
+    return roles.map((role, index) => {
+      const intent =
+        roleHints[index]?.role === role
+          ? roleHints[index]!
+          : this.roleIntentHint(input, role, roleHints);
+      const roleCandidates = candidates.filter((candidate) => candidate.role === role);
+      const taxonomyCandidateIds =
+        intent.taxonomyTags.length > 0
+          ? roleCandidates
+              .filter((candidate) => candidateMatchesIntentTaxonomyTags(candidate, intent.taxonomyTags))
+              .map((candidate) => candidate.id)
+          : [];
+      const hasHardPreferred = this.hasHardPreferredTermsForValidation(intent);
+      const preferredCandidateIds = hasHardPreferred
+        ? roleCandidates
+            .filter((candidate) => candidateMatchesSpecificPreferredTerms(candidate, intent.preferredTerms))
+            .map((candidate) => candidate.id)
+        : [];
+      const location = geoPolicy.steps[index]?.location ?? intent.location;
+      const locationCandidateIds = hasStepLocation(location)
+        ? roleCandidates
+            .filter((candidate) => candidateMatchesLocation(candidate, location))
+            .map((candidate) => candidate.id)
+        : [];
+      return {
+        stepIndex: index,
+        role,
+        taxonomyCandidateIds,
+        preferredCandidateIds,
+        locationCandidateIds,
+        hardCandidateIds: intersectNonEmptyLists([
+          taxonomyCandidateIds,
+          preferredCandidateIds,
+          locationCandidateIds,
+        ]),
+      };
+    });
+  }
+
+  private routePromptCandidateStepMatches(
+    input: ParsedDraftInput,
+    roles: RouteRole[],
+    roleHints: RoleIntentHint[],
+    geoPolicy: RouteGeoPolicy,
+    candidate: CandidateCard,
+  ) {
+    return roles.flatMap((role, index) => {
+      if (candidate.role !== role) {
+        return [];
+      }
+      const intent =
+        roleHints[index]?.role === role
+          ? roleHints[index]!
+          : this.roleIntentHint(input, role, roleHints);
+      const location = geoPolicy.steps[index]?.location ?? intent.location;
+      const matchesTaxonomy =
+        intent.taxonomyTags.length > 0
+          ? candidateMatchesIntentTaxonomyTags(candidate, intent.taxonomyTags)
+          : null;
+      const hasHardPreferred = this.hasHardPreferredTermsForValidation(intent);
+      const matchesSpecificPreferred = hasHardPreferred
+        ? candidateMatchesSpecificPreferredTerms(candidate, intent.preferredTerms)
+        : null;
+      const matchesLocation = hasStepLocation(location)
+        ? candidateMatchesLocation(candidate, location)
+        : null;
+      return [
+        {
+          stepIndex: index,
+          role,
+          matchesTaxonomy,
+          matchesSpecificPreferred,
+          matchesLocation,
+          hardValidationMatch:
+            matchesTaxonomy !== false &&
+            matchesSpecificPreferred !== false &&
+            matchesLocation !== false,
+        },
+      ];
     });
   }
 
@@ -3118,9 +3361,9 @@ export class EveningAiDraftService {
         });
       }
       if (
-        intent.preferredTerms.length > 0 &&
-        roleCandidates.some((item) => candidateMatchesPreferredTerms(item, intent.preferredTerms)) &&
-        !candidateMatchesPreferredTerms(candidate, intent.preferredTerms)
+        this.hasHardPreferredTermsForValidation(intent) &&
+        roleCandidates.some((item) => candidateMatchesSpecificPreferredTerms(item, intent.preferredTerms)) &&
+        !candidateMatchesSpecificPreferredTerms(candidate, intent.preferredTerms)
       ) {
         issues.push({
           code: 'intent_mismatch',
@@ -3199,6 +3442,14 @@ export class EveningAiDraftService {
     });
 
     return issues;
+  }
+
+  private hasHardPreferredTermsForValidation(intent: RoleIntentHint) {
+    return (
+      intent.preferredTerms.length > 0 &&
+      hasSpecificPreferredTerms(intent.preferredTerms) &&
+      !effectiveIntentTaxonomyTags(intent.taxonomyTags).some(isSpecificTaxonomyTag)
+    );
   }
 
   private stepRecordFromDto(routeId: string, step: any, sortOrder: number) {
@@ -3834,6 +4085,10 @@ function stringArray(value: unknown, limit: number) {
     .slice(0, limit);
 }
 
+function uniqueNumbers(values: number[]) {
+  return [...new Set(values)];
+}
+
 function numberOrNull(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return null;
@@ -3883,6 +4138,20 @@ function promptTermIndex(value: string, term: string) {
 
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.map(normalizeText).filter(Boolean)));
+}
+
+function uniqueRawStrings(values: string[]) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function intersectNonEmptyLists(lists: string[][]) {
+  const nonEmpty = lists.filter((list) => list.length > 0);
+  if (nonEmpty.length === 0) {
+    return [];
+  }
+  return nonEmpty.reduce((left, right) =>
+    left.filter((value) => right.includes(value)),
+  );
 }
 
 function promptExplicitStepCount(prompt: string) {

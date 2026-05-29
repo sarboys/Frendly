@@ -488,6 +488,20 @@ describe('EveningAiDraftService unit', () => {
     };
   }
 
+  function mockSlowHrtime(stepMs = 3000) {
+    let current = 0n;
+    const stepNs = BigInt(stepMs) * 1_000_000n;
+    return jest.spyOn(process.hrtime, 'bigint').mockImplementation(() => {
+      current += stepNs;
+      return current;
+    });
+  }
+
+  function parseSlowWarn(warn: jest.Mock) {
+    const message = String(warn.mock.calls[0]?.[0] ?? '');
+    return JSON.parse(message.replace(/^AI draft creation slow /, ''));
+  }
+
   function testIntentRolesForPrompt(prompt: string | null, requestedStepCount?: number): string[] {
     const text = (prompt ?? '').toLowerCase();
     const mentions: Array<{ role: string; index: number }> = [
@@ -910,6 +924,231 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('does not hard fail soft preferred terms when taxonomy matches', async () => {
+    const { service, openRouter, draftCreate } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'place_food',
+              taxonomyTags: ['place:restaurant'],
+              preferredTerms: ['ужин рядом'],
+              avoidTerms: [],
+              instruction: '',
+              locationMode: 'none',
+              locationKind: 'none',
+              locationQuery: '',
+              locationCode: '',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'plain-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан без текстовой подсказки',
+            category: 'restaurant',
+            tags: ['place:restaurant'],
+            lat: 55.755,
+            lng: 37.61,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан без текстовой подсказки',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'hint-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ужин рядом',
+            category: 'restaurant',
+            tags: ['place:restaurant'],
+            lat: 55.756,
+            lng: 37.611,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Ужин рядом',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ужин',
+            vibe: 'Спокойный вечер',
+            blurb: 'Один ресторан.',
+            steps: [
+              {
+                externalContentItemId: 'plain-food',
+                timeLabel: '19:00',
+                endTimeLabel: '20:30',
+                description: 'Ужин',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Ужин рядом',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([input]: [any]) => input?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    expect(routeCalls).toHaveLength(1);
+    const routePrompt = JSON.parse(routeCalls[0][0].userPrompt);
+    expect(routePrompt.stepRequirements[0]).toEqual(
+      expect.objectContaining({
+        taxonomyCandidateIds: expect.arrayContaining(['plain-food', 'hint-food']),
+        preferredCandidateIds: [],
+      }),
+    );
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          validationIssues: [],
+        }),
+      }),
+    );
+  });
+
+  it('keeps specific preferred terms hard when taxonomy tags are only broad', async () => {
+    const { service, openRouter, draftCreate } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'place_food',
+              taxonomyTags: ['place:restaurant'],
+              preferredTerms: ['грузинская кухня'],
+              avoidTerms: [],
+              instruction: '',
+              locationMode: 'none',
+              locationKind: 'none',
+              locationQuery: '',
+              locationCode: '',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'italian-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Итальянский ресторан',
+            category: 'restaurant',
+            tags: ['place:restaurant', 'cuisine:italyanskaya'],
+            lat: 55.755,
+            lng: 37.61,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Итальянский ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'georgian-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Грузинский ресторан',
+            category: 'restaurant',
+            tags: ['place:restaurant', 'cuisine:gruzinskaya'],
+            lat: 55.756,
+            lng: 37.611,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Грузинский ресторан',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Неверный ужин',
+            vibe: 'Проверка',
+            blurb: 'Первый ответ не совпал с кухней.',
+            steps: [
+              {
+                externalContentItemId: 'italian-food',
+                timeLabel: '19:00',
+                endTimeLabel: '20:30',
+                description: 'Ужин',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+        {
+          parsedJson: {
+            title: 'Грузинский ужин',
+            vibe: 'Проверка',
+            blurb: 'Retry выбрал кухню из подсказки.',
+            steps: [
+              {
+                externalContentItemId: 'georgian-food',
+                timeLabel: '19:00',
+                endTimeLabel: '20:30',
+                description: 'Ужин',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Грузинская кухня',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([input]: [any]) => input?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    expect(routeCalls).toHaveLength(2);
+    const retryPrompt = JSON.parse(routeCalls[1][0].userPrompt);
+    expect(retryPrompt.stepRequirements[0]).toEqual(
+      expect.objectContaining({
+        preferredCandidateIds: ['georgian-food'],
+        hardCandidateIds: ['georgian-food'],
+      }),
+    );
+    expect(retryPrompt.retryInstructions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          stepIndex: 0,
+          failedExternalContentItemId: 'italian-food',
+          code: 'intent_mismatch',
+        }),
+      ]),
+    );
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          validationIssues: [],
+        }),
+      }),
+    );
+  });
+
   it('records successful AI draft phase metrics', async () => {
     const histogram = (appMetrics as any).eveningAiDraftPhaseDurationSeconds;
     expect(histogram).toBeDefined();
@@ -973,6 +1212,109 @@ describe('EveningAiDraftService unit', () => {
     } finally {
       observe.mockRestore();
     }
+  });
+
+  it('logs route LLM attempts in slow AI draft warnings', async () => {
+    const hrtime = mockSlowHrtime();
+    const { service } = createService({
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Плохой маршрут',
+            vibe: 'Ошибка',
+            blurb: 'Первый ответ выбрал неизвестный id.',
+            steps: [
+              {
+                externalContentItemId: 'missing-id',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Нет такого кандидата',
+              },
+              {
+                externalContentItemId: 'ticketland-show',
+                timeLabel: '20:30',
+                endTimeLabel: '22:00',
+                description: 'Шоу рядом',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 111,
+        },
+        {
+          parsedJson: {
+            title: 'Бар и стендап',
+            vibe: 'Живой вечер',
+            blurb: 'Сначала бар, потом шоу.',
+            steps: [
+              {
+                externalContentItemId: 'tomesto-bar',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Бар для старта',
+              },
+              {
+                externalContentItemId: 'ticketland-show',
+                timeLabel: '20:30',
+                endTimeLabel: '22:00',
+                description: 'Шоу рядом',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 222,
+        },
+      ],
+    });
+    const warn = jest.fn();
+    (service as any).logger.warn = warn;
+
+    try {
+      await service.createDraft('user-1', {
+        prompt: 'Винный бар и стендап',
+        city: 'Москва',
+        stepCount: 2,
+      });
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      const payload = parseSlowWarn(warn);
+      expect(payload.routeLlmAttempts).toEqual([
+        expect.objectContaining({
+          attempt: 'first',
+          status: 'validation_error',
+          latencyMs: 111,
+          issueCount: 1,
+          issueCodes: ['unknown_external_content_item_id'],
+          stepIndexes: [0],
+          externalContentItemIds: ['missing-id'],
+        }),
+        expect.objectContaining({
+          attempt: 'retry_after_validation',
+          status: 'ok',
+          latencyMs: 222,
+          issueCount: 0,
+          issueCodes: [],
+        }),
+      ]);
+    } finally {
+      hrtime.mockRestore();
+    }
+  });
+
+  it('does not write slow AI draft warnings for fast drafts', async () => {
+    const { service } = createService();
+    const warn = jest.fn();
+    (service as any).logger.warn = warn;
+
+    await service.createDraft('user-1', {
+      prompt: 'Винный бар и стендап',
+      city: 'Москва',
+      stepCount: 2,
+    });
+
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('uses EVENING_AI_MODEL when it is configured', async () => {
