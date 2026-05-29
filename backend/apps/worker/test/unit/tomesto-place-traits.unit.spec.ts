@@ -94,6 +94,30 @@ describe('extractTomestoPlaceTraits', () => {
 
     expect(result.tags).not.toContain('cuisine:russian');
   });
+
+  it('does not infer seafood from primorskaya cuisine text', () => {
+    const result = extractTomestoPlaceTraits(placeInput({
+      description: 'Приморская кухня, уютное кафе',
+    }));
+
+    expect(result.tags).not.toContain('cuisine:seafood');
+  });
+
+  it('does not infer russian cuisine from belarusian cuisine text', () => {
+    const result = extractTomestoPlaceTraits(placeInput({
+      description: 'Белорусская кухня',
+    }));
+
+    expect(result.tags).not.toContain('cuisine:russian');
+  });
+
+  it('does not infer fish from street address text', () => {
+    const result = extractTomestoPlaceTraits(placeInput({
+      description: 'Рыбный переулок, уютное кафе',
+    }));
+
+    expect(result.tags).not.toContain('set:fish');
+  });
 });
 
 function placeInput(overrides: Partial<TomestoPlaceTraitInput>): TomestoPlaceTraitInput {
