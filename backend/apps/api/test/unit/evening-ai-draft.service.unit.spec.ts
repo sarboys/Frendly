@@ -3963,6 +3963,82 @@ describe('EveningAiDraftService unit', () => {
     expect(tomestoQuery?.take).toBeUndefined();
   });
 
+  it('marks beer pub as substitution when cocktails are missing', async () => {
+    const { service } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'place_bar',
+              taxonomyTags: ['place:bar', 'set:cocktails'],
+              preferredTerms: ['коктейльный бар'],
+              avoidTerms: ['пивной бар', 'крафтовое пиво'],
+              instruction: 'Нужен бар с коктейлями.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-beermood',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'BeerMood',
+            category: 'bar',
+            tags: ['place:bar', 'set:craft_beer'],
+            lat: 55.731,
+            lng: 37.601,
+            priceFrom: 1600,
+            placeKind: 'bar',
+            venueName: 'BeerMood',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Коктейльный бар',
+            vibe: 'Барный вечер',
+            blurb: 'Ближайший бар под запрос.',
+            steps: [
+              {
+                externalContentItemId: 'tomesto-beermood',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Бар рядом.',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 95,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'третья точка бар с вкусными коктейлями',
+      city: 'Москва',
+    });
+
+    expect(result.route.steps[0]).toEqual(
+      expect.objectContaining({
+        title: 'BeerMood',
+        matchQuality: 'substitution',
+        matchedTraits: [],
+        missingTraits: ['set:cocktails'],
+        avoidHits: ['set:craft_beer'],
+        substitutionReason: 'Коктейли не подтверждены. Подобрали ближайший бар.',
+      }),
+    );
+  });
+
   it('matches arbitrary Tomesto cuisine tags from intent terms', async () => {
     const { service, openRouter } = createService({
       intentResponse: {

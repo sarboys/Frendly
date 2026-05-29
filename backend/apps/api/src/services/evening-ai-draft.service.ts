@@ -156,6 +156,16 @@ type CandidateCard = {
   imageVariants: unknown;
 };
 
+type PlaceMatchQuality = 'exact' | 'partial' | 'substitution' | 'rejected';
+
+type PlaceMatchMetadata = {
+  matchQuality: PlaceMatchQuality;
+  matchedTraits: string[];
+  missingTraits: string[];
+  avoidHits: string[];
+  substitutionReason: string | null;
+};
+
 type CandidateLoadContext = {
   sourceItems: Map<CandidateCard['source'], Promise<any[]>>;
   tomestoImagesByCity: Map<string, Promise<boolean>>;
@@ -594,6 +604,7 @@ export class EveningAiDraftService {
         input: intentInput,
         route,
         roles: intent.roles,
+        roleHints: intent.roleHints,
         candidates,
         stepIndex,
         replacement,
@@ -719,6 +730,7 @@ export class EveningAiDraftService {
     input: ParsedDraftInput;
     route: any;
     roles: RouteRole[];
+    roleHints?: RoleIntentHint[];
     candidates: CandidateCard[];
     stepIndex: number;
     replacement: CandidateCard;
@@ -757,7 +769,7 @@ export class EveningAiDraftService {
       vibe: input.route.vibe,
       blurb: input.route.blurb,
       steps: generatedSteps,
-    });
+    }, input.roleHints);
     return {
       ...rebuilt,
       id: input.route.id ?? rebuilt.id,
@@ -954,6 +966,7 @@ export class EveningAiDraftService {
           input.roles,
           input.candidates,
           firstResponse.parsedJson,
+          input.roleHints,
         );
         return {
           route,
@@ -1004,6 +1017,7 @@ export class EveningAiDraftService {
         input.roles,
         input.candidates,
         retryResponse.parsedJson,
+        input.roleHints,
       );
       return {
         route,
@@ -1045,6 +1059,7 @@ export class EveningAiDraftService {
               input.roles,
               input.candidates,
               retryResponse.parsedJson,
+              input.roleHints,
             );
             return {
               route,
@@ -1103,6 +1118,7 @@ export class EveningAiDraftService {
     input: ParsedDraftInput;
     roles: RouteRole[];
     candidates: CandidateCard[];
+    roleHints?: RoleIntentHint[];
   }) {
     return this.routeFromGenerated(input.input, input.roles, input.candidates, {
       title: null,
@@ -1114,7 +1130,7 @@ export class EveningAiDraftService {
           externalContentItemId: candidate?.id,
         };
       }),
-    });
+    }, input.roleHints);
   }
 
   private routeFromGenerated(
@@ -1122,6 +1138,7 @@ export class EveningAiDraftService {
     roles: RouteRole[],
     candidates: CandidateCard[],
     generated: GeneratedDraftJson,
+    roleHints: RoleIntentHint[] = [],
   ) {
     const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
     const selected: CandidateCard[] = [];
@@ -1157,6 +1174,11 @@ export class EveningAiDraftService {
     const steps = selected.map((candidate, index) => {
       const generatedStep = generatedSteps[index] ?? {};
       const previous = selected[index - 1] ?? null;
+      const intent =
+        roleHints[index]?.role === candidate.role
+          ? roleHints[index]
+          : this.roleIntentHint(input, candidate.role, roleHints);
+      const matchMetadata = placeMatchMetadata(candidate, intent);
       const legKm =
         previous && hasCandidateCoords(previous) && hasCandidateCoords(candidate)
           ? geoDistanceKm(previous, candidate)
@@ -1207,6 +1229,7 @@ export class EveningAiDraftService {
           stringOrNull(generatedStep.description) ??
           candidate.shortSummary ??
           this.labelForRole(candidate.role),
+        ...matchMetadata,
         vibeTag: this.labelForRole(candidate.role),
         tagLabel: this.tagLabelForCandidate(candidate),
         lat: routePoint.lat,
@@ -1572,7 +1595,8 @@ export class EveningAiDraftService {
           imageVariants: item.imageVariants ?? null,
         };
       });
-    return mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));
+    const allowed = mapped.filter((candidate) => this.isCandidateAllowedForIntent(candidate, intent));
+    return allowed.length > 0 || source !== 'tomesto' ? allowed : mapped;
   }
 
   private findCachedSourceItems(
@@ -3817,6 +3841,53 @@ function candidateMatchesSpecificPreferredTerms(candidate: CandidateCard, terms:
 
 function candidateMatchesIntentTaxonomyTags(candidate: CandidateCard, tags: string[]) {
   return countIntentTaxonomyTagMatches(candidate, tags) > 0;
+}
+
+function placeMatchMetadata(candidate: CandidateCard, intent: RoleIntentHint): PlaceMatchMetadata {
+  const required = effectiveIntentTaxonomyTags(intent.taxonomyTags);
+  const candidateTags = new Set(candidate.tags.map(normalizeText));
+  const matchedTraits = required.filter((tag) => candidateTags.has(tag));
+  const missingTraits = required.filter((tag) => !candidateTags.has(tag));
+  const avoidHits = taxonomyTagQueriesForTerms(intent.avoidTerms)
+    .filter((tag) => candidateTags.has(tag));
+  const hasStrongMissing = missingTraits.some(isStrongIntentTaxonomyTag) &&
+    (candidate.role === 'place_bar' || candidate.role === 'place_food');
+  const matchQuality: PlaceMatchQuality =
+    missingTraits.length === 0 && avoidHits.length === 0
+      ? 'exact'
+      : avoidHits.length > 0 || hasStrongMissing
+        ? 'substitution'
+        : 'partial';
+
+  return {
+    matchQuality,
+    matchedTraits,
+    missingTraits,
+    avoidHits,
+    substitutionReason:
+      matchQuality === 'substitution'
+        ? substitutionReasonForMissingTraits(candidate.role, missingTraits)
+        : null,
+  };
+}
+
+function substitutionReasonForMissingTraits(role: RouteRole, missingTraits: string[]) {
+  if (missingTraits.includes('set:cocktails')) {
+    return 'Коктейли не подтверждены. Подобрали ближайший бар.';
+  }
+  if (missingTraits.includes('feature:quiet')) {
+    return 'Тихая атмосфера не подтверждена. Подобрали похожее место.';
+  }
+  if (missingTraits.includes('feature:panoramic_view')) {
+    return 'Вид не подтвержден. Подобрали похожее место.';
+  }
+  if (role === 'place_food') {
+    return 'Не все пожелания по ресторану подтверждены. Подобрали ближайший вариант.';
+  }
+  if (role === 'place_bar') {
+    return 'Не все пожелания по бару подтверждены. Подобрали ближайший вариант.';
+  }
+  return 'Не все пожелания подтверждены. Подобрали ближайший вариант.';
 }
 
 function countIntentTaxonomyTagMatches(candidate: CandidateCard, tags: string[]) {
