@@ -59,6 +59,8 @@ const DEFAULT_ROUTE_MAX_TOKENS = 32768;
 const CANDIDATE_CORE_RATIO = 0.7;
 const TOMESTO_TARGETED_QUERY_LIMIT = 250;
 const TOMESTO_TARGETED_MIN_CANDIDATES = 20;
+const AI_ROUTE_PROMPT_STEP_CANDIDATE_LIMIT = 8;
+const AI_ROUTE_PROMPT_TAG_LIMIT = 6;
 const AI_DRAFT_METRICS_SERVICE = 'api';
 const AI_DRAFT_CREATE_OPERATION = 'create_draft';
 const AI_DRAFT_TOTAL_SLOW_MS = 5000;
@@ -985,7 +987,9 @@ export class EveningAiDraftService {
   }) {
     let latestValidationIssues: DraftValidationIssue[] = [];
     const routeLlmAttempts: RouteLlmAttemptDiagnostics[] = [];
-    const geoPolicy = this.routeGeoPolicyForGeneration(input);
+    const promptContext = this.routePromptContext(input);
+    const geoPolicy = promptContext.geoPolicy;
+    const promptCandidates = promptContext.candidates;
     try {
       const firstAttempt = await this.generateRouteLlmAttempt(
         input,
@@ -996,7 +1000,7 @@ export class EveningAiDraftService {
       const firstIssues = this.validateGeneratedRoute(
         input.input,
         input.roles,
-        input.candidates,
+        promptCandidates,
         firstResponse.parsedJson,
         input.roleHints,
         geoPolicy,
@@ -1037,7 +1041,7 @@ export class EveningAiDraftService {
       const retryIssues = this.validateGeneratedRoute(
         input.input,
         input.roles,
-        input.candidates,
+        promptCandidates,
         retryResponse.parsedJson,
         input.roleHints,
         geoPolicy,
@@ -1100,7 +1104,7 @@ export class EveningAiDraftService {
           const retryIssues = this.validateGeneratedRoute(
             input.input,
             input.roles,
-            input.candidates,
+            promptCandidates,
             retryResponse.parsedJson,
             input.roleHints,
             geoPolicy,
@@ -3042,11 +3046,8 @@ export class EveningAiDraftService {
     rejectedIds?: string[];
     validationErrors?: DraftValidationIssue[];
   }) {
-    const geoPolicy = this.routeGeoPolicyForGeneration(input);
-    const roleHints =
-      input.roleHints && input.roleHints.length > 0
-        ? input.roleHints
-        : input.roles.map((role) => this.roleIntentHint(input.input, role));
+    const promptContext = this.routePromptContext(input);
+    const { geoPolicy, roleHints, stepRequirements } = promptContext;
     return JSON.stringify({
       prompt: input.input.prompt,
       rules: [
@@ -3061,14 +3062,8 @@ export class EveningAiDraftService {
         'Use candidate.stepMatches for validation hints. For a required location choose matchesLocation=true when it exists. For specific tags choose matchesTaxonomy=true or matchesSpecificPreferred=true when they exist.',
         'On retry, fix only the failed step indexes from retryInstructions and avoid the failed candidate id when another matching candidate exists.',
       ],
-      retryInstructions: this.routeRetryInstructions(input.validationErrors ?? []),
-      stepRequirements: this.routePromptStepRequirements(
-        input.input,
-        input.roles,
-        roleHints,
-        geoPolicy,
-        input.candidates,
-      ),
+      retryInstructions: this.routeRetryInstructions(input.validationErrors ?? [], stepRequirements),
+      stepRequirements,
       geoPolicy: {
         routeArea: geoPolicy.routeArea,
         steps: geoPolicy.steps.map((step) => ({
@@ -3112,21 +3107,19 @@ export class EveningAiDraftService {
             })),
           }
         : null,
-      candidates: input.candidates.map((candidate) => ({
+      candidates: promptContext.candidates.map((candidate) => ({
         id: candidate.id,
         role: candidate.role,
         source: candidate.source,
         title: candidate.title,
         area: candidate.area,
-        tags: candidate.tags.slice(0, 8),
+        tags: candidate.tags.slice(0, AI_ROUTE_PROMPT_TAG_LIMIT),
         category: candidate.category,
         placeKind: candidate.placeKind,
         priceMode: candidate.priceMode,
         priceFrom: candidate.priceFrom,
         startsAt: candidate.startsAt,
         venueName: candidate.venueName,
-        address: candidate.address,
-        geo: hasCandidateCoords(candidate) ? `${candidate.lat},${candidate.lng}` : null,
         stepMatches: this.routePromptCandidateStepMatches(
           input.input,
           input.roles,
@@ -3138,11 +3131,60 @@ export class EveningAiDraftService {
     });
   }
 
-  private routeRetryInstructions(issues: DraftValidationIssue[]) {
+  private routePromptContext(input: {
+    input: ParsedDraftInput;
+    roles: RouteRole[];
+    roleHints?: RoleIntentHint[];
+    candidates: CandidateCard[];
+  }) {
+    const geoPolicy = this.routeGeoPolicyForGeneration(input);
+    const roleHints =
+      input.roleHints && input.roleHints.length > 0
+        ? input.roleHints
+        : input.roles.map((role) => this.roleIntentHint(input.input, role));
+    const fullStepRequirements = this.routePromptStepRequirements(
+      input.input,
+      input.roles,
+      roleHints,
+      geoPolicy,
+      input.candidates,
+    );
+    const candidates = this.routePromptCandidates(
+      input.roles,
+      input.candidates,
+      fullStepRequirements,
+    );
+    const stepRequirements = this.routePromptStepRequirements(
+      input.input,
+      input.roles,
+      roleHints,
+      geoPolicy,
+      candidates,
+    );
+    return {
+      geoPolicy,
+      roleHints,
+      candidates,
+      stepRequirements,
+    };
+  }
+
+  private routeRetryInstructions(
+    issues: DraftValidationIssue[],
+    stepRequirements: Array<{
+      stepIndex: number;
+      role: RouteRole;
+      taxonomyCandidateIds: string[];
+      preferredCandidateIds: string[];
+      locationCandidateIds: string[];
+      hardCandidateIds: string[];
+    }> = [],
+  ) {
     return issues.map((issue) => ({
       stepIndex: issue.stepIndex ?? null,
       failedExternalContentItemId: issue.externalContentItemId ?? null,
       code: issue.code,
+      useCandidateIds: this.routeRetryCandidateIds(issue, stepRequirements),
       fix:
         issue.code === 'location_mismatch'
           ? 'choose a candidate for this step with stepMatches.matchesLocation=true'
@@ -3150,6 +3192,66 @@ export class EveningAiDraftService {
             ? 'choose a candidate for this step with stepMatches.matchesTaxonomy=true or stepMatches.matchesSpecificPreferred=true'
             : 'choose another valid candidate for this step',
     }));
+  }
+
+  private routeRetryCandidateIds(
+    issue: DraftValidationIssue,
+    stepRequirements: Array<{
+      stepIndex: number;
+      taxonomyCandidateIds: string[];
+      preferredCandidateIds: string[];
+      locationCandidateIds: string[];
+      hardCandidateIds: string[];
+    }>,
+  ) {
+    const requirement = stepRequirements.find((step) => step.stepIndex === issue.stepIndex);
+    if (!requirement) {
+      return [];
+    }
+    if (requirement.hardCandidateIds.length > 0) {
+      return requirement.hardCandidateIds;
+    }
+    if (issue.code === 'location_mismatch') {
+      return requirement.locationCandidateIds;
+    }
+    if (issue.code === 'intent_mismatch') {
+      return uniqueRawStrings([
+        ...requirement.taxonomyCandidateIds,
+        ...requirement.preferredCandidateIds,
+      ]);
+    }
+    return [];
+  }
+
+  private routePromptCandidates(
+    roles: RouteRole[],
+    candidates: CandidateCard[],
+    stepRequirements: Array<{
+      stepIndex: number;
+      role: RouteRole;
+      taxonomyCandidateIds: string[];
+      preferredCandidateIds: string[];
+      locationCandidateIds: string[];
+      hardCandidateIds: string[];
+    }>,
+  ) {
+    const selectedIds = new Set<string>();
+    roles.forEach((role, index) => {
+      const requirement = stepRequirements[index];
+      const roleCandidates = candidates.filter((candidate) => candidate.role === role);
+      const priorityIds = new Set([
+        ...(requirement?.hardCandidateIds ?? []),
+        ...(requirement?.locationCandidateIds ?? []),
+        ...(requirement?.taxonomyCandidateIds ?? []),
+        ...(requirement?.preferredCandidateIds ?? []),
+      ]);
+      const prioritized = roleCandidates.filter((candidate) => priorityIds.has(candidate.id));
+      const fallback = roleCandidates.filter((candidate) => !priorityIds.has(candidate.id));
+      [...prioritized, ...fallback]
+        .slice(0, AI_ROUTE_PROMPT_STEP_CANDIDATE_LIMIT)
+        .forEach((candidate) => selectedIds.add(candidate.id));
+    });
+    return candidates.filter((candidate) => selectedIds.has(candidate.id));
   }
 
   private routePromptStepRequirements(

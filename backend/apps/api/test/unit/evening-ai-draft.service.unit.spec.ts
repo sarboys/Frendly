@@ -1744,7 +1744,12 @@ describe('EveningAiDraftService unit', () => {
     )?.[0];
     expect(ticketlandCall?.where).not.toHaveProperty('lat');
     expect(ticketlandCall?.where).not.toHaveProperty('lng');
-    expect(routeCall?.userPrompt).toContain('"geo":null');
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    const ticketlandPromptCandidate = routePrompt.candidates.find(
+      (candidate: any) => candidate.id === 'ticketland-show',
+    );
+    expect(ticketlandPromptCandidate).not.toHaveProperty('geo');
+    expect(ticketlandPromptCandidate).not.toHaveProperty('address');
     expect(draftCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -2288,7 +2293,7 @@ describe('EveningAiDraftService unit', () => {
       contentKind: 'event',
       title: `Стендап ${String(index).padStart(3, '0')}`,
       category: 'standup',
-      tags: ['standup'],
+      tags: index === 0 ? ['standup', 'feature:headliner'] : ['standup'],
       area: 'Центр',
       lat: 55.73 + index / 10000,
       lng: 37.53 + index / 10000,
@@ -2303,7 +2308,7 @@ describe('EveningAiDraftService unit', () => {
       contentKind: 'place',
       title: `Парк прогулка ${String(index).padStart(3, '0')}`,
       category: 'park',
-      tags: ['walk', 'outdoor', 'park'],
+      tags: index === 0 ? ['walk', 'outdoor', 'park', 'feature:scenic'] : ['walk', 'outdoor', 'park'],
       area: 'Центр',
       lat: 55.74 + index / 10000,
       lng: 37.54 + index / 10000,
@@ -2332,13 +2337,13 @@ describe('EveningAiDraftService unit', () => {
             },
             {
               role: 'show',
-              preferredTerms: ['стендап'],
+              preferredTerms: ['стендап', 'feature:headliner'],
               avoidTerms: [],
               instruction: 'Подобрать шоу.',
             },
             {
               role: 'walk',
-              preferredTerms: ['прогулка', 'парк'],
+              preferredTerms: ['прогулка', 'парк', 'feature:scenic'],
               avoidTerms: [],
               instruction: 'Подобрать прогулку.',
             },
@@ -2378,12 +2383,121 @@ describe('EveningAiDraftService unit', () => {
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
     )?.[0];
     const routePrompt = JSON.parse(routeCall.userPrompt);
-    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'tomesto')).toHaveLength(20);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'tomesto')).toHaveLength(8);
     expect(
       routePrompt.candidates.filter((candidate: any) => candidate.source === 'advcake_ticketland'),
-    ).toHaveLength(10);
-    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(10);
-    expect(routePrompt.candidates).toHaveLength(40);
+    ).toHaveLength(8);
+    expect(routePrompt.candidates.filter((candidate: any) => candidate.source === 'kudago')).toHaveLength(8);
+    expect(routePrompt.candidates).toHaveLength(24);
+    expect(routePrompt.candidates.map((candidate: any) => candidate.id)).toEqual(
+      expect.arrayContaining(['tomesto-large-0', 'ticketland-large-0', 'kudago-large-0']),
+    );
+    expect(routePrompt.candidates.every((candidate: any) => candidate.address == null)).toBe(true);
+    expect(routePrompt.candidates.every((candidate: any) => candidate.geo == null)).toBe(true);
+    expect(routeCall.userPrompt.length).toBeLessThan(25_000);
+  });
+
+  it('rejects route ids that are in the saved pack but outside the route prompt shortlist', async () => {
+    const cityBars = [
+      ...Array.from({ length: 12 }, (_item, index) => ({
+        id: `tomesto-shortlist-${index}`,
+        source: { code: 'tomesto', name: 'ТоМесто' },
+        contentKind: 'place',
+        title: index === 0 ? 'Бар 0' : `Лаунж ${index}`,
+        category: index === 0 ? 'bar' : 'lounge',
+        tags: index === 0 ? ['place:bar'] : ['lounge'],
+        area: 'Центр',
+        lat: 55.75 + index / 10000,
+        lng: 37.61 + index / 10000,
+        priceFrom: 1000 + index,
+        placeKind: 'bar',
+        venueName: `Бар ${index}`,
+        sourceProvider: 'ТоМесто',
+      })),
+      {
+        id: 'tomesto-shortlist-hidden',
+        source: { code: 'tomesto', name: 'ТоМесто' },
+        contentKind: 'place',
+        title: 'Лаунж без явного бара',
+        category: 'lounge',
+        tags: ['lounge'],
+        area: 'Центр',
+        lat: 55.76,
+        lng: 37.62,
+        priceFrom: 5000,
+        placeKind: 'lounge',
+        venueName: 'Лаунж без явного бара',
+        sourceProvider: 'ТоМесто',
+      },
+    ];
+    const { service, openRouter, draftCreate } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          budget: 'low',
+          steps: [
+            {
+              role: 'place_bar',
+              taxonomyTags: [],
+              preferredTerms: [],
+              avoidTerms: [],
+              instruction: 'Подобрать бар.',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: cityBars,
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Скрытый id',
+            vibe: 'Проверка',
+            blurb: 'Модель вернула id не из prompt.',
+            steps: [
+              { externalContentItemId: 'tomesto-shortlist-hidden', timeLabel: '19:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 80,
+        },
+        {
+          parsedJson: {
+            title: 'Видимый id',
+            vibe: 'Проверка',
+            blurb: 'Retry вернул id из prompt.',
+            steps: [
+              { externalContentItemId: 'tomesto-shortlist-0', timeLabel: '19:00' },
+            ],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 80,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'бар в центре',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    const firstPrompt = JSON.parse(routeCalls[0][0].userPrompt);
+    expect(firstPrompt.candidates.map((candidate: any) => candidate.id)).not.toContain('tomesto-shortlist-hidden');
+    expect(routeCalls).toHaveLength(2);
+    expect(routeCalls[1][0].userPrompt).toContain('unknown_external_content_item_id');
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          validationIssues: [],
+        }),
+      }),
+    );
   });
 
   it('uses targeted Tomesto query when intent tags return enough candidates', async () => {
