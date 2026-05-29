@@ -56,8 +56,9 @@ const CUISINE_LABELS: Record<string, string> = {
 const KUDAGO_CANDIDATE_QUERY_LIMIT = 50;
 const DEFAULT_INTENT_MAX_TOKENS = 4096;
 const DEFAULT_ROUTE_MAX_TOKENS = 32768;
-const MAX_LEG_KM = 3.5;
 const CANDIDATE_CORE_RATIO = 0.7;
+const TOMESTO_TARGETED_QUERY_LIMIT = 250;
+const TOMESTO_TARGETED_MIN_CANDIDATES = 20;
 const AI_DRAFT_METRICS_SERVICE = 'api';
 const AI_DRAFT_CREATE_OPERATION = 'create_draft';
 const AI_DRAFT_TOTAL_SLOW_MS = 5000;
@@ -167,7 +168,7 @@ type PlaceMatchMetadata = {
 };
 
 type CandidateLoadContext = {
-  sourceItems: Map<CandidateCard['source'], Promise<any[]>>;
+  sourceItems: Map<string, Promise<any[]>>;
   tomestoImagesByCity: Map<string, Promise<boolean>>;
   candidateStats: AiDraftCandidateStats;
 };
@@ -271,6 +272,17 @@ type StepLocation = {
   query: string | null;
   code: string | null;
   terms: string[];
+};
+
+type RouteGeoPolicy = {
+  routeArea: string | null;
+  steps: RouteGeoStepPolicy[];
+};
+
+type RouteGeoStepPolicy = {
+  role: RouteRole;
+  location: StepLocation;
+  hasHardLocation: boolean;
 };
 
 type PromptFallbackIntent = {
@@ -943,6 +955,7 @@ export class EveningAiDraftService {
     validationErrors?: DraftValidationIssue[];
   }) {
     let latestValidationIssues: DraftValidationIssue[] = [];
+    const geoPolicy = this.routeGeoPolicyForGeneration(input);
     try {
       const firstResponse = await this.openRouterService.generateJson<GeneratedDraftJson>({
         model: this.eveningAiModel(),
@@ -959,6 +972,7 @@ export class EveningAiDraftService {
         input.candidates,
         firstResponse.parsedJson,
         input.roleHints,
+        geoPolicy,
       );
       if (firstIssues.length === 0) {
         const route = this.routeFromGenerated(
@@ -995,6 +1009,7 @@ export class EveningAiDraftService {
         input.candidates,
         retryResponse.parsedJson,
         input.roleHints,
+        geoPolicy,
       );
       if (retryIssues.length > 0) {
         latestValidationIssues = retryIssues;
@@ -1052,6 +1067,7 @@ export class EveningAiDraftService {
             input.candidates,
             retryResponse.parsedJson,
             input.roleHints,
+            geoPolicy,
           );
           if (retryIssues.length === 0) {
             const route = this.routeFromGenerated(
@@ -1501,36 +1517,30 @@ export class EveningAiDraftService {
         : [{ startsAt: 'asc' as const }, { title: 'asc' as const }, { id: 'asc' as const }];
 
     const findManyByTerms = (terms: string[], take: number) => {
-      const tagTerms = taxonomyTagQueriesForTerms(terms);
-      const where: Prisma.ExternalContentItemWhereInput = {
-        ...baseWhere,
-        OR: [
-          ...terms.flatMap((term) => [
-            { title: { contains: term, mode: 'insensitive' as const } },
-            { area: { contains: term, mode: 'insensitive' as const } },
-            { category: { contains: term, mode: 'insensitive' as const } },
-            { shortSummary: { contains: term, mode: 'insensitive' as const } },
-            { venueName: { contains: term, mode: 'insensitive' as const } },
-            { placeKind: { contains: term, mode: 'insensitive' as const } },
-          ]),
-          ...tagTerms.map((tag) => ({ tags: { array_contains: [tag] } as any })),
-        ],
-      };
-
       return (this.prismaService.client as any).externalContentItem.findMany({
-        where,
+        where: this.whereWithTerms(baseWhere, terms),
         select,
         orderBy,
         take,
       });
     };
 
-    const items = source === 'tomesto' || source === 'advcake_ticketland'
-      ? await this.findCachedSourceItems(context, source, {
-          where: baseWhere,
+    const items = source === 'tomesto'
+      ? await this.loadTomestoRoleItems({
+          input,
+          role,
+          intent,
+          context,
+          baseWhere,
           select,
           orderBy,
         })
+      : source === 'advcake_ticketland'
+        ? await this.findCachedSourceItems(context, source, {
+            where: baseWhere,
+            select,
+            orderBy,
+          })
       : await (async () => {
           const areaTerms = uniqueStrings([
             ...areaTermsFor(input.area),
@@ -1599,6 +1609,75 @@ export class EveningAiDraftService {
     return allowed.length > 0 || source !== 'tomesto' ? allowed : mapped;
   }
 
+  private async loadTomestoRoleItems(input: {
+    input: ParsedDraftInput;
+    role: RouteRole;
+    intent: RoleIntentHint;
+    context?: CandidateLoadContext;
+    baseWhere: Prisma.ExternalContentItemWhereInput;
+    select: Record<string, unknown>;
+    orderBy: Array<Record<string, unknown>>;
+  }) {
+    const broadQuery = {
+      where: input.baseWhere,
+      select: input.select,
+      orderBy: input.orderBy,
+    };
+    if (this.hasCachedSourceItems(input.context, 'tomesto', broadQuery)) {
+      return this.findCachedSourceItems(input.context, 'tomesto', broadQuery);
+    }
+
+    const terms = this.tomestoTargetTermsForIntent(input.input, input.intent, input.role);
+    if (terms.length > 0) {
+      const targeted = await this.findCachedSourceItems(input.context, 'tomesto', {
+        where: this.whereWithTerms(input.baseWhere, terms),
+        select: input.select,
+        orderBy: input.orderBy,
+        take: TOMESTO_TARGETED_QUERY_LIMIT,
+      });
+      if (targeted.length >= TOMESTO_TARGETED_MIN_CANDIDATES) {
+        return targeted;
+      }
+    }
+
+    return this.findCachedSourceItems(input.context, 'tomesto', broadQuery);
+  }
+
+  private tomestoTargetTermsForIntent(
+    input: ParsedDraftInput,
+    intent: RoleIntentHint,
+    role: RouteRole,
+  ) {
+    const strictTerms = uniqueStrings([
+      ...effectiveIntentTaxonomyTags(intent.taxonomyTags).filter(isStrongTomestoTaxonomyTag),
+      ...intent.preferredTerms,
+      ...intent.location.terms,
+      ...areaTermsFor(input.area),
+    ]);
+    if (strictTerms.length > 0) {
+      return strictTerms.slice(0, 24);
+    }
+    return this.searchTermsForRole(role).slice(0, 24);
+  }
+
+  private whereWithTerms(baseWhere: Prisma.ExternalContentItemWhereInput, terms: string[]) {
+    const tagTerms = taxonomyTagQueriesForTerms(terms);
+    return {
+      ...baseWhere,
+      OR: [
+        ...terms.flatMap((term) => [
+          { title: { contains: term, mode: 'insensitive' as const } },
+          { area: { contains: term, mode: 'insensitive' as const } },
+          { category: { contains: term, mode: 'insensitive' as const } },
+          { shortSummary: { contains: term, mode: 'insensitive' as const } },
+          { venueName: { contains: term, mode: 'insensitive' as const } },
+          { placeKind: { contains: term, mode: 'insensitive' as const } },
+        ]),
+        ...tagTerms.map((tag) => ({ tags: { array_contains: [tag] } as any })),
+      ],
+    };
+  }
+
   private findCachedSourceItems(
     context: CandidateLoadContext | undefined,
     source: CandidateCard['source'],
@@ -1614,7 +1693,8 @@ export class EveningAiDraftService {
         (this.prismaService.client as any).externalContentItem.findMany(query),
       );
     }
-    const cached = context.sourceItems.get(source);
+    const cacheKey = this.sourceItemsCacheKey(source, query);
+    const cached = context.sourceItems.get(cacheKey);
     if (cached) {
       return cached;
     }
@@ -1623,8 +1703,20 @@ export class EveningAiDraftService {
       source,
       (this.prismaService.client as any).externalContentItem.findMany(query),
     );
-    context.sourceItems.set(source, promise);
+    context.sourceItems.set(cacheKey, promise);
     return promise;
+  }
+
+  private hasCachedSourceItems(
+    context: CandidateLoadContext | undefined,
+    source: CandidateCard['source'],
+    query: Record<string, unknown>,
+  ) {
+    return Boolean(context?.sourceItems.has(this.sourceItemsCacheKey(source, query)));
+  }
+
+  private sourceItemsCacheKey(source: CandidateCard['source'], query: Record<string, unknown>) {
+    return `${source}:${JSON.stringify(query)}`;
   }
 
   private async recordSourceItems(
@@ -2537,6 +2629,45 @@ export class EveningAiDraftService {
     };
   }
 
+  private routeGeoPolicyForGeneration(input: {
+    input: ParsedDraftInput;
+    roles: RouteRole[];
+    roleHints?: RoleIntentHint[];
+  }): RouteGeoPolicy {
+    const roleHints = input.roleHints ?? [];
+    return {
+      routeArea: input.input.area,
+      steps: input.roles.map((role, index) => {
+        const hint =
+          roleHints[index]?.role === role
+            ? roleHints[index]!
+            : this.roleIntentHint(input.input, role, roleHints);
+        const location = this.effectiveStepLocation(input.input, hint);
+        return {
+          role,
+          location,
+          hasHardLocation: hasStepLocation(location),
+        };
+      }),
+    };
+  }
+
+  private effectiveStepLocation(input: ParsedDraftInput, hint: RoleIntentHint): StepLocation {
+    if (hasStepLocation(hint.location)) {
+      return hint.location;
+    }
+    if (!input.area) {
+      return emptyStepLocation();
+    }
+    return {
+      mode: 'explicit',
+      kind: 'area',
+      query: input.area,
+      code: input.area,
+      terms: areaTermsFor(input.area),
+    };
+  }
+
   private isCandidateAllowedForIntent(candidate: CandidateCard, intent: RoleIntentHint) {
     if (candidate.role === 'walk' && !this.isWalkCandidate(candidate)) {
       return false;
@@ -2793,8 +2924,27 @@ export class EveningAiDraftService {
     rejectedIds?: string[];
     validationErrors?: DraftValidationIssue[];
   }) {
+    const geoPolicy = this.routeGeoPolicyForGeneration(input);
     return JSON.stringify({
       prompt: input.input.prompt,
+      rules: [
+        'Distance between steps is not a rejection reason by itself.',
+        'Prefer closer transitions when the user did not request different explicit areas or locations.',
+        'Preserve different explicit areas or locations when the user asked for them, even if they are far apart.',
+        'If a step has explicit or same_as_previous location, choose a matching candidate when possible.',
+      ],
+      geoPolicy: {
+        routeArea: geoPolicy.routeArea,
+        steps: geoPolicy.steps.map((step) => ({
+          role: step.role,
+          hasHardLocation: step.hasHardLocation,
+          locationMode: step.location.mode,
+          locationKind: step.location.kind,
+          locationQuery: step.location.query,
+          locationCode: step.location.code,
+          locationTerms: step.location.terms.slice(0, 8),
+        })),
+      },
       config: {
         city: input.input.city,
         timezone: input.input.timezone,
@@ -2888,6 +3038,7 @@ export class EveningAiDraftService {
     candidates: CandidateCard[],
     generated: GeneratedDraftJson,
     roleHints: RoleIntentHint[] = [],
+    geoPolicy: RouteGeoPolicy = { routeArea: input.area, steps: [] },
   ) {
     const issues: DraftValidationIssue[] = [];
     const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
@@ -2990,10 +3141,11 @@ export class EveningAiDraftService {
           externalContentItemId,
         });
       }
+      const location = geoPolicy.steps[index]?.location ?? intent.location;
       if (
-        hasStepLocation(intent.location) &&
-        roleCandidates.some((item) => candidateMatchesLocation(item, intent.location)) &&
-        !candidateMatchesLocation(candidate, intent.location)
+        hasStepLocation(location) &&
+        roleCandidates.some((item) => candidateMatchesLocation(item, location)) &&
+        !candidateMatchesLocation(candidate, location)
       ) {
         issues.push({
           code: 'location_mismatch',
@@ -3045,26 +3197,6 @@ export class EveningAiDraftService {
       }
       selected.push(candidate);
     });
-
-    for (let index = 1; index < selected.length; index += 1) {
-      const previous = selected[index - 1];
-      const current = selected[index];
-      if (!previous || !current) {
-        continue;
-      }
-      if (!hasCandidateCoords(previous) || !hasCandidateCoords(current)) {
-        continue;
-      }
-      const distanceKm = geoDistanceKm(previous, current);
-      if (distanceKm > MAX_LEG_KM) {
-        issues.push({
-          code: 'max_walk_exceeded',
-          message: `Leg distance ${distanceKm.toFixed(1)} km exceeds ${MAX_LEG_KM} km`,
-          stepIndex: index,
-          externalContentItemId: current.id,
-        });
-      }
-    }
 
     return issues;
   }
@@ -3931,6 +4063,18 @@ function countIntentTaxonomyTagMatches(candidate: CandidateCard, tags: string[])
   }
   const candidateTags = new Set(candidate.tags.map(normalizeText));
   return effectiveTags.filter((tag) => candidateTags.has(tag)).length;
+}
+
+function isStrongTomestoTaxonomyTag(tag: string) {
+  return (
+    tag.startsWith('cuisine:') ||
+    tag.startsWith('place:') ||
+    tag.startsWith('set:') ||
+    tag.startsWith('feature:') ||
+    tag.startsWith('category:') ||
+    tag.startsWith('area:') ||
+    tag.startsWith('budget:')
+  );
 }
 
 type LocalDateParts = {

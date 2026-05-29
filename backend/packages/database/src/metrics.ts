@@ -14,6 +14,7 @@ collectDefaultMetrics({
 });
 
 const secondsBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+const longSecondsBuckets = [...secondsBuckets, 30, 60, 120, 180];
 const byteBuckets = [128, 512, 1024, 4096, 16384, 65536, 262144, 1048576, 5242880];
 
 const httpRequestDurationSeconds = new Histogram({
@@ -51,7 +52,7 @@ const eveningAiDraftPhaseDurationSeconds = new Histogram({
   name: 'frendly_evening_ai_draft_phase_duration_seconds',
   help: 'Evening AI draft phase duration by service, operation, phase and status.',
   labelNames: ['service', 'operation', 'phase', 'status'],
-  buckets: secondsBuckets,
+  buckets: longSecondsBuckets,
   registers: [registry],
 });
 

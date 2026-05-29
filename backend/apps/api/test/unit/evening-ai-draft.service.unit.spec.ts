@@ -627,6 +627,289 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('does not fallback when valid AI route points are far apart without a same-area request', async () => {
+    const { service, openRouter, draftCreate } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 2,
+          steps: [
+            {
+              role: 'walk',
+              taxonomyTags: [],
+              preferredTerms: ['парк на севере'],
+              avoidTerms: [],
+              instruction: '',
+              locationMode: 'explicit',
+              locationKind: 'area',
+              locationQuery: 'север',
+              locationCode: 'north',
+            },
+            {
+              role: 'place_food',
+              taxonomyTags: ['place:restaurant'],
+              preferredTerms: ['ужин в центре'],
+              avoidTerms: [],
+              instruction: '',
+              locationMode: 'explicit',
+              locationKind: 'area',
+              locationQuery: 'центр',
+              locationCode: 'center',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'north-park',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'place',
+            title: 'Парк на севере',
+            category: 'park',
+            tags: ['park', 'walk', 'area:north'],
+            lat: 55.85,
+            lng: 37.56,
+            priceMode: 'free',
+            priceFrom: 0,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+        tomesto: [
+          {
+            id: 'center-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ужин в центре',
+            category: 'restaurant',
+            tags: ['place:restaurant', 'area:center'],
+            lat: 55.7558,
+            lng: 37.6173,
+            priceFrom: 2200,
+            placeKind: 'restaurant',
+            venueName: 'Ужин в центре',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Север и центр',
+            vibe: 'Вечер с двумя районами',
+            blurb: 'Сначала парк, потом ужин.',
+            steps: [
+              {
+                externalContentItemId: 'north-park',
+                timeLabel: '18:00',
+                endTimeLabel: '19:00',
+                description: 'Погулять',
+              },
+              {
+                externalContentItemId: 'center-food',
+                timeLabel: '20:00',
+                endTimeLabel: '21:30',
+                description: 'Поесть',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Погулять в парке на севере и потом покушать в центре',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([input]: [any]) => input?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    expect(routeCalls).toHaveLength(1);
+    const routePrompt = JSON.parse(routeCalls[0][0].userPrompt);
+    expect(routePrompt.rules).toEqual(
+      expect.arrayContaining([
+        'Distance between steps is not a rejection reason by itself.',
+        'Prefer closer transitions when the user did not request different explicit areas or locations.',
+        'Preserve different explicit areas or locations when the user asked for them, even if they are far apart.',
+        'If a step has explicit or same_as_previous location, choose a matching candidate when possible.',
+      ]),
+    );
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          validationIssues: [],
+        }),
+      }),
+    );
+  });
+
+  it('keeps explicit same-area intent as hard location validation when matching candidates exist', async () => {
+    const { service, openRouter, draftCreate } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 2,
+          area: 'center',
+          steps: [
+            {
+              role: 'place_bar',
+              taxonomyTags: ['place:bar'],
+              preferredTerms: ['бар в центре'],
+              avoidTerms: [],
+              instruction: '',
+              locationMode: 'explicit',
+              locationKind: 'area',
+              locationQuery: 'центр',
+              locationCode: 'center',
+            },
+            {
+              role: 'place_food',
+              taxonomyTags: ['place:restaurant'],
+              preferredTerms: ['ужин рядом'],
+              avoidTerms: [],
+              instruction: '',
+              locationMode: 'same_as_previous',
+              locationKind: 'area',
+              locationQuery: '',
+              locationCode: '',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'center-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Бар в центре',
+            category: 'bar',
+            tags: ['place:bar', 'area:center'],
+            lat: 55.7558,
+            lng: 37.6173,
+            priceFrom: 1800,
+            placeKind: 'bar',
+            venueName: 'Бар в центре',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'wrong-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан на севере',
+            category: 'restaurant',
+            tags: ['place:restaurant', 'area:north'],
+            lat: 55.85,
+            lng: 37.56,
+            priceFrom: 2200,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан на севере',
+            sourceProvider: 'ТоМесто',
+          },
+          {
+            id: 'center-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Ресторан в центре',
+            category: 'restaurant',
+            tags: ['place:restaurant', 'area:center'],
+            lat: 55.756,
+            lng: 37.618,
+            priceFrom: 2200,
+            placeKind: 'restaurant',
+            venueName: 'Ресторан в центре',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Центр',
+            vibe: 'Рядом',
+            blurb: 'Бар и ужин.',
+            steps: [
+              {
+                externalContentItemId: 'center-bar',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Бар',
+              },
+              {
+                externalContentItemId: 'wrong-food',
+                timeLabel: '20:30',
+                endTimeLabel: '22:00',
+                description: 'Ужин',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+        {
+          parsedJson: {
+            title: 'Центр',
+            vibe: 'Рядом',
+            blurb: 'Бар и ужин.',
+            steps: [
+              {
+                externalContentItemId: 'center-bar',
+                timeLabel: '19:00',
+                endTimeLabel: '20:00',
+                description: 'Бар',
+              },
+              {
+                externalContentItemId: 'center-food',
+                timeLabel: '20:30',
+                endTimeLabel: '22:00',
+                description: 'Ужин',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Бар в центре и ужин рядом',
+      city: 'Москва',
+    });
+
+    const routeCalls = openRouter.generateJson.mock.calls.filter(
+      ([input]: [any]) => input?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    );
+    expect(routeCalls).toHaveLength(2);
+    const routePrompt = JSON.parse(routeCalls[0][0].userPrompt);
+    expect(routePrompt.geoPolicy.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'place_bar',
+          hasHardLocation: true,
+          locationCode: 'center',
+        }),
+        expect.objectContaining({
+          role: 'place_food',
+          hasHardLocation: true,
+          locationMode: 'same_as_previous',
+          locationCode: 'center',
+        }),
+      ]),
+    );
+    expect(draftCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          validationIssues: [],
+        }),
+      }),
+    );
+  });
+
   it('records successful AI draft phase metrics', async () => {
     const histogram = (appMetrics as any).eveningAiDraftPhaseDurationSeconds;
     expect(histogram).toBeDefined();
@@ -890,13 +1173,15 @@ describe('EveningAiDraftService unit', () => {
     const tomestoQueries = externalFindMany.mock.calls
       .map(([query]: [any]) => query)
       .filter((query: any) => query?.where?.source?.code === 'tomesto');
-    expect(tomestoQueries).toHaveLength(1);
-    expect(tomestoQueries[0]).toEqual(
+    expect(tomestoQueries).toHaveLength(2);
+    expect(tomestoQueries.some((query: any) => Array.isArray(query?.where?.OR))).toBe(true);
+    const broadQuery = tomestoQueries.find((query: any) => query?.where?.OR == null);
+    expect(broadQuery).toEqual(
       expect.objectContaining({
         where: expect.not.objectContaining({ OR: expect.any(Array) }),
       }),
     );
-    expect(tomestoQueries[0]?.take).toBeUndefined();
+    expect(broadQuery?.take).toBeUndefined();
   });
 
   it('excludes Tomesto candidates without images from the AI route pack', async () => {
@@ -1613,7 +1898,7 @@ describe('EveningAiDraftService unit', () => {
     const sourceCodes = externalFindMany.mock.calls.map(
       ([query]: [any]) => query?.where?.source?.code,
     );
-    expect(sourceCodes).toEqual(['tomesto']);
+    expect(sourceCodes).toEqual(['tomesto', 'tomesto']);
 
     const routeCall = openRouter.generateJson.mock.calls.find(
       ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
@@ -1759,7 +2044,239 @@ describe('EveningAiDraftService unit', () => {
     expect(routePrompt.candidates).toHaveLength(40);
   });
 
-  it('reuses the city Tomesto candidate scan across repeated Tomesto steps', async () => {
+  it('uses targeted Tomesto query when intent tags return enough candidates', async () => {
+    const targetedItems = Array.from({ length: 24 }, (_item, index) =>
+      externalItemFixture({
+        id: `cocktail-${index}`,
+        source: { code: 'tomesto', name: 'ТоМесто' },
+        contentKind: 'place',
+        title: `Коктейльный бар ${index}`,
+        category: 'bar',
+        tags: ['place:bar', 'set:cocktails', 'area:center'],
+        lat: 55.75 + index * 0.001,
+        lng: 37.61 + index * 0.001,
+        placeKind: 'bar',
+        venueName: `Коктейльный бар ${index}`,
+        sourceProvider: 'ТоМесто',
+      }),
+    );
+    const { service, externalFindMany } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'place_bar',
+              taxonomyTags: ['set:cocktails'],
+              preferredTerms: ['коктейли'],
+              avoidTerms: [],
+              instruction: '',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: targetedItems,
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Коктейли',
+            vibe: 'Бар',
+            blurb: 'Один бар.',
+            steps: [
+              {
+                externalContentItemId: 'cocktail-0',
+                timeLabel: '20:00',
+                endTimeLabel: '22:00',
+                description: 'Бар',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Хочу коктейльный бар',
+      city: 'Москва',
+    });
+
+    const tomestoQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'tomesto');
+    expect(tomestoQueries).toHaveLength(1);
+    expect(tomestoQueries[0].where.OR).toEqual(expect.any(Array));
+    expect(tomestoQueries[0].take).toBe(250);
+  });
+
+  it('does not let broad role terms hide a specific Tomesto cuisine intent', async () => {
+    const genericFood = Array.from({ length: 260 }, (_item, index) => ({
+      id: `generic-food-${index}`,
+      source: { code: 'tomesto', name: 'ТоМесто' },
+      contentKind: 'place',
+      title: `Ресторан ${String(index).padStart(3, '0')}`,
+      category: 'restaurant',
+      tags: ['place:restaurant'],
+      lat: 55.7 + index / 10000,
+      lng: 37.5 + index / 10000,
+      priceFrom: 1800,
+      placeKind: 'restaurant',
+      venueName: `Ресторан ${index}`,
+      sourceProvider: 'ТоМесто',
+    }));
+    const { service, externalFindMany, openRouter } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'place_food',
+              taxonomyTags: ['place:restaurant', 'cuisine:gruzinskaya'],
+              preferredTerms: ['грузинская кухня'],
+              avoidTerms: [],
+              instruction: '',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: [
+          ...genericFood,
+          {
+            id: 'georgian-food',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Грузинский дом',
+            category: 'restaurant',
+            tags: ['place:restaurant', 'cuisine:gruzinskaya'],
+            lat: 55.76,
+            lng: 37.62,
+            priceFrom: 2000,
+            placeKind: 'restaurant',
+            venueName: 'Грузинский дом',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Грузинский ужин',
+            vibe: 'Ужин',
+            blurb: 'Один ресторан.',
+            steps: [
+              {
+                externalContentItemId: 'georgian-food',
+                timeLabel: '20:00',
+                endTimeLabel: '22:00',
+                description: 'Ужин',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Хочу грузинский ресторан',
+      city: 'Москва',
+    });
+
+    const tomestoQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'tomesto');
+    expect(tomestoQueries).toHaveLength(2);
+    const targetedTerms = JSON.stringify(tomestoQueries[0].where.OR);
+    expect(targetedTerms).toContain('cuisine:gruzinskaya');
+    expect(targetedTerms).not.toContain('ресторан');
+    expect(tomestoQueries[1].where.OR).toBeUndefined();
+
+    const routeCall = openRouter.generateJson.mock.calls.find(
+      ([call]) => call?.responseFormat?.json_schema?.name === 'evening_ai_route',
+    )?.[0];
+    const routePrompt = JSON.parse(routeCall.userPrompt);
+    expect(routePrompt.candidates.map((candidate: any) => candidate.id)).toContain('georgian-food');
+  });
+
+  it('falls back to broad Tomesto scan when targeted query has too few candidates', async () => {
+    const { service, externalFindMany } = createService({
+      filterExternalItemsByQuery: true,
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'place_bar',
+              taxonomyTags: ['set:rare_test_tag'],
+              preferredTerms: ['редкий формат'],
+              avoidTerms: [],
+              instruction: '',
+            },
+          ],
+        },
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'fallback-bar',
+            source: { code: 'tomesto', name: 'ТоМесто' },
+            contentKind: 'place',
+            title: 'Обычный бар',
+            category: 'bar',
+            tags: ['place:bar'],
+            lat: 55.75,
+            lng: 37.61,
+            placeKind: 'bar',
+            venueName: 'Обычный бар',
+            sourceProvider: 'ТоМесто',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Бар',
+            vibe: 'Бар',
+            blurb: 'Один бар.',
+            steps: [
+              {
+                externalContentItemId: 'fallback-bar',
+                timeLabel: '20:00',
+                endTimeLabel: '22:00',
+                description: 'Бар',
+              },
+            ],
+          },
+          rawResponse: {},
+          model: 'deepseek/deepseek-v4-flash',
+          latencyMs: 1000,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'Редкий формат бара',
+      city: 'Москва',
+    });
+
+    const tomestoQueries = externalFindMany.mock.calls
+      .map(([query]: [any]) => query)
+      .filter((query: any) => query?.where?.source?.code === 'tomesto');
+    expect(tomestoQueries.length).toBeGreaterThanOrEqual(2);
+    expect(tomestoQueries.some((query: any) => Array.isArray(query?.where?.OR))).toBe(true);
+    expect(tomestoQueries.some((query: any) => query?.where?.OR == null)).toBe(true);
+  });
+
+  it('reuses the broad Tomesto candidate scan after targeted fallback', async () => {
     const cityPlaces = [
       {
         id: 'tomesto-bar-1',
@@ -1866,7 +2383,9 @@ describe('EveningAiDraftService unit', () => {
     const tomestoQueries = externalFindMany.mock.calls
       .map(([query]: [any]) => query)
       .filter((query: any) => query?.where?.source?.code === 'tomesto');
-    expect(tomestoQueries).toHaveLength(1);
+    expect(tomestoQueries).toHaveLength(4);
+    expect(tomestoQueries.filter((query: any) => Array.isArray(query?.where?.OR))).toHaveLength(3);
+    expect(tomestoQueries.filter((query: any) => query?.where?.OR == null)).toHaveLength(1);
   });
 
   it('lets intent turn an explicit three-place prompt into three steps', async () => {
@@ -3958,7 +4477,7 @@ describe('EveningAiDraftService unit', () => {
     expect(result.route.steps).toHaveLength(5);
     const tomestoQuery = externalFindMany.mock.calls
       .map(([query]: [any]) => query)
-      .find((query: any) => query?.where?.source?.code === 'tomesto');
+      .find((query: any) => query?.where?.source?.code === 'tomesto' && query?.where?.OR == null);
     expect(tomestoQuery?.where?.OR).toBeUndefined();
     expect(tomestoQuery?.take).toBeUndefined();
   });
@@ -4735,7 +5254,7 @@ describe('EveningAiDraftService unit', () => {
 
     const tomestoQuery = externalFindMany.mock.calls
       .map(([query]: [any]) => query)
-      .find((query: any) => query?.where?.source?.code === 'tomesto');
+      .find((query: any) => query?.where?.source?.code === 'tomesto' && query?.where?.OR == null);
     expect(tomestoQuery?.where?.OR).toBeUndefined();
     expect(tomestoQuery?.take).toBeUndefined();
   });

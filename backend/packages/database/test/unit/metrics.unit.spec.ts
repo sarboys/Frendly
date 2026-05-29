@@ -59,6 +59,11 @@ describe('app metrics', () => {
     expect(text).toContain('operation="create_draft"');
     expect(text).toContain('phase="candidate_load"');
     expect(text).toContain('status="ok"');
+    expect(text).toContain('frendly_evening_ai_draft_phase_duration_seconds_bucket');
+    expect(text).toContain('le="30"');
+    expect(text).toContain('le="60"');
+    expect(text).toContain('le="120"');
+    expect(text).toContain('le="180"');
     expect(text).not.toContain('user_id');
     expect(text).not.toContain('draft_id');
     expect(text).not.toContain('prompt');
