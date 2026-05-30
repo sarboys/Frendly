@@ -73,10 +73,33 @@ COMPOSE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-$(read_env_value COMPOSE_EXTRA_FILES
 CORE_SERVICES="${CORE_SERVICES:-$(read_env_value CORE_SERVICES)}"
 RUNTIME_SERVICES="${RUNTIME_SERVICES:-$(read_env_value RUNTIME_SERVICES)}"
 NGINX_SERVICE="${NGINX_SERVICE:-$(read_env_value NGINX_SERVICE)}"
+ENABLE_POSTGIS_EVENT_FEED="${ENABLE_POSTGIS_EVENT_FEED:-$(read_env_value ENABLE_POSTGIS_EVENT_FEED)}"
 
 CORE_SERVICES="${CORE_SERVICES:-postgres redis pgbouncer}"
 RUNTIME_SERVICES="${RUNTIME_SERVICES:-api chat worker landing admin_internal admin_partner}"
 NGINX_SERVICE="${NGINX_SERVICE:-nginx}"
+ENABLE_POSTGIS_EVENT_FEED="${ENABLE_POSTGIS_EVENT_FEED:-false}"
+
+compose_extra_includes() {
+  local expected_file="$1"
+  local extra_file
+  for extra_file in $COMPOSE_EXTRA_FILES; do
+    if [ "$(basename "$extra_file")" = "$expected_file" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+if compose_extra_includes compose.scale.yml; then
+  for forbidden_service in api chat worker; do
+    if [[ " ${RUNTIME_SERVICES} " == *" ${forbidden_service} "* ]]; then
+      echo "Scale mode must not include base runtime service: ${forbidden_service}" >&2
+      echo "Use api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules instead." >&2
+      exit 1
+    fi
+  done
+fi
 
 COMPOSE_ARGS=(-f "$COMPOSE_FILE")
 for extra_file in $COMPOSE_EXTRA_FILES; do
@@ -89,6 +112,48 @@ read -r -a NGINX_SERVICE_ARGS <<< "$NGINX_SERVICE"
 
 docker_compose() {
   docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" "$@"
+}
+
+verify_scale_nginx_routes() {
+  local service
+  local nginx_config
+  local nginx_service
+
+  for service in api_a api_b chat_a chat_b; do
+    if ! docker_compose ps --status running --services "$service" | grep -qx "$service"; then
+      echo "Scale service is not running: ${service}" >&2
+      docker_compose ps || true
+      exit 1
+    fi
+  done
+
+  if [ "${#NGINX_SERVICE_ARGS[@]}" -ne 1 ]; then
+    echo "Scale route verification expects exactly one nginx service" >&2
+    exit 1
+  fi
+  nginx_service="${NGINX_SERVICE_ARGS[0]}"
+
+  if ! nginx_config="$(docker_compose exec -T "$nginx_service" nginx -T 2>/dev/null)"; then
+    echo "Could not read nginx runtime config in scale mode" >&2
+    exit 1
+  fi
+
+  for service in "api_a:3000" "api_b:3000" "chat_a:3001" "chat_b:3001"; do
+    if ! grep -Fq "server ${service}" <<< "$nginx_config"; then
+      echo "Nginx scale config does not route to ${service}" >&2
+      exit 1
+    fi
+  done
+}
+
+verify_postgis_event_feed() {
+  if [ "$ENABLE_POSTGIS_EVENT_FEED" != "true" ]; then
+    return
+  fi
+
+  echo "ENABLE_POSTGIS_EVENT_FEED=true, verifying PostGIS event geo prerequisites"
+  docker_compose run --rm --no-deps migrate \
+    pnpm --filter @big-break/database db:verify:postgis:event-geo
 }
 
 exec 9>"$LOCK_FILE"
@@ -176,7 +241,7 @@ df -h / /tmp || true
 docker system df || true
 docker_compose rm -sf migrate || true
 docker ps -aq \
-  --filter 'name=^[0-9a-f]+_frendly-backend-(api|api_a|api_b|chat|chat_a|chat_b|worker|worker_realtime|worker_content|worker_schedules|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
+  --filter 'name=^/?([0-9a-f]+_)?frendly-backend-(api|api_a|api_b|chat|chat_a|chat_b|worker|worker_realtime|worker_content|worker_schedules|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
   | xargs -r docker rm -f
 docker container prune -f || true
 docker image prune -f || true
@@ -186,7 +251,21 @@ df -h / /tmp || true
 docker system df || true
 
 docker_compose up -d --build --remove-orphans "${CORE_SERVICE_ARGS[@]}"
-docker_compose up --build migrate
+
+if [[ " ${CORE_SERVICES} " != *" postgres "* ]]; then
+  echo "External Postgres mode detected. Local postgres service is not part of CORE_SERVICES."
+fi
+
+if [[ " ${CORE_SERVICES} " != *" pgbouncer "* ]]; then
+  echo "External PgBouncer mode detected. Local pgbouncer service is not part of CORE_SERVICES."
+fi
+
+if [[ " ${CORE_SERVICES} " == *" postgres "* ]]; then
+  docker_compose up --build migrate
+else
+  docker_compose run --rm --no-deps migrate
+fi
+verify_postgis_event_feed
 docker_compose rm -sf migrate || true
 docker_compose up -d --build --no-deps "${RUNTIME_SERVICE_ARGS[@]}"
 docker_compose up -d --no-deps --force-recreate "${NGINX_SERVICE_ARGS[@]}"
@@ -211,4 +290,8 @@ if [ "$health_ready" != "true" ]; then
   echo "Health endpoint did not become ready after ${HEALTHCHECK_RETRIES} attempts" >&2
   docker_compose ps || true
   exit 1
+fi
+
+if compose_extra_includes compose.scale.yml; then
+  verify_scale_nginx_routes
 fi

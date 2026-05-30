@@ -108,6 +108,7 @@ import { TelegramAuthService } from './services/telegram-auth.service';
 import { PhoneOtpService } from './services/phone-otp.service';
 import { SubscriptionService } from './services/subscription.service';
 import { TbankAcquiringService } from './services/tbank-acquiring.service';
+import { RedisCacheService } from './services/redis-cache.service';
 import { TokensService } from './services/tokens.service';
 import { UploadsService } from './services/uploads.service';
 import { VerificationService } from './services/verification.service';
@@ -211,6 +212,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     PhoneOtpService,
     PrismaService,
     ProfileService,
+    RedisCacheService,
     SafetyService,
     SearchService,
     SettingsService,

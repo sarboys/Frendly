@@ -146,7 +146,7 @@ Public:
 - Profile social counts use `UserFollow.targetUserId`, `ProfileReaction.targetUserId + kind` and viewer state uses actor plus target. `ProfileReaction` is unique by `actorUserId + targetUserId + kind`, so like and super-like can both exist for one viewer.
 - `db:perf:hot-queries` covers reciprocal dating matches, bounded push token dispatch reads, public Affiche list/search/price filters, and route generation ExternalContentItem event/place scans.
 - Host Evening pending requests use `EveningSessionJoinRequest.sessionId + status + createdAt + id`.
-- Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`. The generated `Event.geo` column and GiST index are enabled by `db:postgis:event-geo`, not by normal Prisma deploy, so do not make it the production default unless that rollout step is guaranteed. Geo cursors must use the same effective distance that sorted the page.
+- Event geo can use optional PostGIS with `ENABLE_POSTGIS_EVENT_FEED=true`. The generated `Event.geo` column and GiST index are enabled by `db:postgis:event-geo`, not by normal Prisma deploy, so do not make it the production default unless that rollout step is guaranteed. Deploy verifies this with `db:verify:postgis:event-geo` before starting runtime services when the flag is true. Geo cursors must use the same effective distance that sorted the page.
 - Evening analytics admin filters use `EveningAnalyticsEvent.venueId + name + createdAt + id`.
 - Public affiche reads use partial `ExternalContentItem` indexes on `city + startsAt + id`, plus category, price and featured variants, filtered by `contentKind=event`, `publicStatus=published`, non-rejected moderation and `priceMode in (free, paid)`.
 - Public affiche search uses trigram indexes on `title`, `venueName` and `address`; keep `pg_trgm` available in migrations and hot-path index scripts.
@@ -162,6 +162,7 @@ cd backend && pnpm --filter @big-break/database db:backfill:chat-unread
 cd backend && pnpm --filter @big-break/database db:backfill:private-media-public-urls
 cd backend && pnpm --filter @big-break/database db:verify:chat-unread
 cd backend && pnpm --filter @big-break/database db:verify:private-media-public-urls
+cd backend && pnpm --filter @big-break/database db:verify:postgis:event-geo
 cd backend && pnpm --filter @big-break/database db:cleanup:retention
 cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 cd backend && pnpm --filter @big-break/database db:seed:test-accounts

@@ -6,8 +6,13 @@ import {
   EventLifestyleFilter,
   EventPriceFilter,
 } from '@big-break/contracts';
-import { Prisma } from '@prisma/client';
-import { createHmac, randomUUID } from 'node:crypto';
+import {
+  Prisma,
+  type EventAttendance,
+  type EventJoinRequest,
+  type EventLiveState,
+} from '@prisma/client';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
 import {
   OUTBOX_EVENT_TYPES,
   buildMediaProxyPath,
@@ -29,7 +34,13 @@ import { normalizeSearchQuery } from '../common/search-query';
 import { assertEventCapacityAvailable } from './event-capacity';
 import { assertCanCreateWeeklyMeetup } from './meetup-creation-limit';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 import { SubscriptionService } from './subscription.service';
+import {
+  buildEventsFeedCacheKey,
+  eventsFeedCacheTtlSeconds,
+  shouldBypassEventsFeedCache,
+} from './events-feed-cache';
 import { VenueGeocoderService } from './venue-geocoder.service';
 
 type EventGeoPoint = {
@@ -76,6 +87,41 @@ type EventListCursor = {
   distanceKm: number;
   startsAt: Date;
   promoted: boolean;
+};
+
+type EventListBasePage = {
+  page: any[];
+  hasMore: boolean;
+};
+
+type EventParticipantCount = {
+  eventId: string;
+  _count: {
+    _all: number;
+  };
+};
+
+type EventParticipantPreview = {
+  eventId: string;
+  userId: string;
+  user: {
+    displayName: string;
+    profile?: {
+      avatarUrl: string | null;
+    } | null;
+  };
+};
+
+type EventJoinRequestOverlay = Pick<EventJoinRequest, 'status'> & {
+  eventId: string;
+};
+
+type EventAttendanceOverlay = Pick<EventAttendance, 'status'> & {
+  eventId: string;
+};
+
+type EventLiveStateOverlay = Pick<EventLiveState, 'status'> & {
+  eventId: string;
 };
 
 type NormalizedEventRouteStep = {
@@ -257,6 +303,7 @@ export class EventsService {
     private readonly prismaService: PrismaService,
     private readonly subscriptionService: SubscriptionService,
     @Optional() private readonly venueGeocoder?: VenueGeocoderService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async listEvents(
@@ -290,12 +337,36 @@ export class EventsService {
     const take = this.normalizeListLimit(params.limit);
     const filter = params.filter as EventFilter | undefined;
     const geoQuery = this.normalizeEventGeoQuery(params);
-    const where = this.buildListWhere(
-      userId,
-      blockedUserIds,
-      userGender,
-      filter,
-      {
+    const cursorEvent = await this.resolveListCursor(params.cursor, filter);
+
+    const loadBasePage = async (): Promise<EventListBasePage> => {
+      const where = this.buildListWhere(
+        userId,
+        blockedUserIds,
+        userGender,
+        filter,
+        {
+          q: params.q,
+          lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
+          price: params.price as EventPriceFilter | undefined,
+          gender: params.gender as EventGenderFilter | undefined,
+          access: params.access as EventAccessFilter | undefined,
+          city: params.city,
+          requiresVerification: params.requiresVerification,
+          requiresFrendlyPlus: params.requiresFrendlyPlus,
+          date: params.date,
+        },
+        geoQuery?.bounds,
+      );
+      const postgisCandidates = await this.loadPostgisEventCandidates({
+        geoQuery,
+        cursorEvent,
+        take,
+        radiusKm: params.radiusKm,
+        blockedUserIds,
+        userId,
+        userGender,
+        filter,
         q: params.q,
         lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
         price: params.price as EventPriceFilter | undefined,
@@ -305,118 +376,142 @@ export class EventsService {
         requiresVerification: params.requiresVerification,
         requiresFrendlyPlus: params.requiresFrendlyPlus,
         date: params.date,
-      },
-      geoQuery?.bounds,
-    );
-    const cursorEvent = await this.resolveListCursor(params.cursor, filter);
-    const postgisCandidates = await this.loadPostgisEventCandidates({
-      geoQuery,
-      cursorEvent,
-      take,
-      radiusKm: params.radiusKm,
-      blockedUserIds,
-      userId,
-      userGender,
-      filter,
-      q: params.q,
-      lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
-      price: params.price as EventPriceFilter | undefined,
-      gender: params.gender as EventGenderFilter | undefined,
-      access: params.access as EventAccessFilter | undefined,
-      city: params.city,
-      requiresVerification: params.requiresVerification,
-      requiresFrendlyPlus: params.requiresFrendlyPlus,
-      date: params.date,
-    });
-    if (postgisCandidates != null && postgisCandidates.length === 0) {
-      return {
-        items: [],
-        nextCursor: null,
-      };
-    }
+      });
+      if (postgisCandidates != null && postgisCandidates.length === 0) {
+        return { page: [], hasMore: false };
+      }
 
-    const postgisDistanceByEventId = new Map(
-      (postgisCandidates ?? []).map((candidate) => [
-        candidate.eventId,
-        candidate.distanceKm,
-      ]),
-    );
+      const postgisDistanceByEventId = new Map(
+        (postgisCandidates ?? []).map((candidate) => [
+          candidate.eventId,
+          candidate.distanceKm,
+        ]),
+      );
 
-    if (postgisCandidates != null) {
-      const conditions = (where.AND as Prisma.EventWhereInput[] | undefined) ?? [];
-      const candidateIds = postgisCandidates.map((candidate) => candidate.eventId);
-      where.AND = [
-        ...conditions,
-        {
-          id: {
-            in: candidateIds,
+      if (postgisCandidates != null) {
+        const conditions = (where.AND as Prisma.EventWhereInput[] | undefined) ?? [];
+        const candidateIds = postgisCandidates.map((candidate) => candidate.eventId);
+        where.AND = [
+          ...conditions,
+          {
+            id: {
+              in: candidateIds,
+            },
           },
-        },
-      ];
-    }
+        ];
+      }
 
-    let cursorFilteredEvents: any[];
-    if (postgisCandidates == null && geoQuery?.center == null) {
-      cursorFilteredEvents = await this.loadPromotedEventListPage({
-        where,
-        orderBy: this.listOrderBy(filter, geoQuery),
-        cursorEvent,
-        filter,
-        take,
-        userId,
-        blockedUserIds,
-      });
-    } else if (postgisCandidates == null && geoQuery?.center != null) {
-      cursorFilteredEvents = await this.loadPromotedGeoEventCandidates({
-        where,
-        geoQuery,
-        cursorEvent,
-        take,
-        filter,
-      });
-    } else {
-      const events = await this.prismaService.client.event.findMany({
-        where,
-        select: this.eventListSelect(userId, blockedUserIds, {
-          includeRoutePoints: geoQuery != null,
-        }),
-        orderBy: this.listOrderBy(
+      let cursorFilteredEvents: any[];
+      if (postgisCandidates == null && geoQuery?.center == null) {
+        cursorFilteredEvents = await this.loadPromotedEventListPage({
+          where,
+          orderBy: this.listOrderBy(filter, geoQuery),
+          cursorEvent,
           filter,
-          postgisCandidates == null ? geoQuery : undefined,
-        ),
-        take:
-          postgisCandidates == null
-            ? this.listTake(take, geoQuery)
-            : postgisCandidates.length,
-      });
-
-      const orderedEvents =
-        postgisCandidates == null
-          ? this.orderEventsByGeo(events, geoQuery)
-          : this.orderEventsByPostgisCandidates(events, postgisCandidates);
-      cursorFilteredEvents = orderedEvents.map((event) =>
-        this.eventWithGeoDistance(
-          event,
+          take,
+        });
+      } else if (postgisCandidates == null && geoQuery?.center != null) {
+        cursorFilteredEvents = await this.loadPromotedGeoEventCandidates({
+          where,
           geoQuery,
-          postgisDistanceByEventId.get(event.id),
+          cursorEvent,
+          take,
+          filter,
+        });
+      } else {
+        const events = await this.prismaService.client.event.findMany({
+          where,
+          select: this.eventListBaseSelect({
+            includeRoutePoints: geoQuery != null,
+          }),
+          orderBy: this.listOrderBy(
+            filter,
+            postgisCandidates == null ? geoQuery : undefined,
           ),
-      );
-    }
-    const hasMore = cursorFilteredEvents.length > take;
-    let page = hasMore
-      ? cursorFilteredEvents.slice(0, take)
-      : cursorFilteredEvents;
-    if (postgisCandidates == null && geoQuery?.center != null) {
-      page = await this.loadEventListDetailsForCandidates(
-        page,
-        userId,
-        blockedUserIds,
-      );
-    }
+          take:
+            postgisCandidates == null
+              ? this.listTake(take, geoQuery)
+              : postgisCandidates.length,
+        });
+
+        const orderedEvents =
+          postgisCandidates == null
+            ? this.orderEventsByGeo(events, geoQuery)
+            : this.orderEventsByPostgisCandidates(events, postgisCandidates);
+        cursorFilteredEvents = orderedEvents.map((event) =>
+          this.eventWithGeoDistance(
+            event,
+            geoQuery,
+            postgisDistanceByEventId.get(event.id),
+          ),
+        );
+      }
+
+      const hasMore = cursorFilteredEvents.length > take;
+      let page = hasMore
+        ? cursorFilteredEvents.slice(0, take)
+        : cursorFilteredEvents;
+      if (postgisCandidates == null && geoQuery?.center != null) {
+        page = await this.loadEventListDetailsForCandidates(page);
+      }
+
+      return {
+        page: this.stripEventListViewerState(page),
+        hasMore,
+      };
+    };
+    const cacheKey = await this.shouldUseEventsFeedCache(
+      userId,
+      params,
+      blockedUserIds,
+    )
+      ? await this.eventsFeedCacheKey(userId, params)
+      : null;
+    const { page, hasMore } = cacheKey == null
+      ? await loadBasePage()
+      : await this.loadCachedEventBasePage(
+          cacheKey,
+          eventsFeedCacheTtlSeconds(params),
+          loadBasePage,
+          (cachedPage) =>
+            this.isCachedEventBasePageStillVisible(
+              cachedPage,
+              userId,
+              blockedUserIds,
+              userGender,
+              filter,
+              {
+                q: params.q,
+                lifestyle: params.lifestyle as EventLifestyleFilter | undefined,
+                price: params.price as EventPriceFilter | undefined,
+                gender: params.gender as EventGenderFilter | undefined,
+                access: params.access as EventAccessFilter | undefined,
+                city: params.city,
+                requiresVerification: params.requiresVerification,
+                requiresFrendlyPlus: params.requiresFrendlyPlus,
+                date: params.date,
+              },
+              geoQuery?.bounds,
+            ),
+        );
     const pageEventIds = page.map((event) => event.id);
-    const [participantCounts, currentParticipations] =
+    const [
+      participantCounts,
+      currentParticipations,
+      participantPreviews,
+      joinRequests,
+      attendances,
+      liveStates,
+    ]: [
+      EventParticipantCount[],
+      Array<{ eventId: string }>,
+      EventParticipantPreview[],
+      EventJoinRequestOverlay[],
+      EventAttendanceOverlay[],
+      EventLiveStateOverlay[],
+    ] =
       pageEventIds.length === 0
-        ? [[], []]
+        ? [[], [], [], [], [], []]
         : await Promise.all([
             this.prismaService.client.eventParticipant.groupBy({
               by: ['eventId'],
@@ -443,6 +538,39 @@ export class EventsService {
                 eventId: true,
               },
             }),
+            this.prismaService.client.eventParticipant.findMany({
+              where: {
+                eventId: {
+                  in: pageEventIds,
+                },
+                userId: {
+                  notIn: [...blockedUserIds],
+                },
+              },
+              select: {
+                eventId: true,
+                userId: true,
+                user: {
+                  select: {
+                    displayName: true,
+                    profile: {
+                      select: {
+                        avatarUrl: true,
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: [
+                { eventId: 'asc' as const },
+                { joinedAt: 'asc' as const },
+                { id: 'asc' as const },
+              ],
+              take: pageEventIds.length * 6,
+            }),
+            this.findEventJoinRequestOverlay(pageEventIds, userId),
+            this.findEventAttendanceOverlay(pageEventIds, userId),
+            this.findEventLiveStateOverlay(pageEventIds),
           ]);
     const participantCountByEventId = new Map(
       participantCounts.map((item) => [item.eventId, item._count._all]),
@@ -450,17 +578,29 @@ export class EventsService {
     const joinedEventIds = new Set(
       currentParticipations.map((item) => item.eventId),
     );
+    const participantPreviewByEventId = this.groupEventParticipantPreviews(
+      participantPreviews,
+    );
+    const joinRequestByEventId = new Map<string, Pick<EventJoinRequest, 'status'>>(
+      joinRequests.map((item: EventJoinRequestOverlay) => [item.eventId, item]),
+    );
+    const attendanceByEventId = new Map<string, Pick<EventAttendance, 'status'>>(
+      attendances.map((item: EventAttendanceOverlay) => [item.eventId, item]),
+    );
+    const liveStateByEventId = new Map<string, Pick<EventLiveState, 'status'>>(
+      liveStates.map((item: EventLiveStateOverlay) => [item.eventId, item]),
+    );
 
     const mapped = page.map((event) =>
       mapEventSummary({
         event,
-        participants: event.participants,
+        participants: participantPreviewByEventId.get(event.id) ?? [],
         currentUserId: userId,
         participantCount: participantCountByEventId.get(event.id),
         joined: joinedEventIds.has(event.id),
-        joinRequest: event.joinRequests[0],
-        attendance: event.attendances[0],
-        liveState: event.liveState,
+        joinRequest: joinRequestByEventId.get(event.id),
+        attendance: attendanceByEventId.get(event.id),
+        liveState: liveStateByEventId.get(event.id),
       }),
     );
 
@@ -790,6 +930,7 @@ export class EventsService {
         where: { id: eventId },
         select: {
           hostId: true,
+          city: true,
           genderMode: true,
           joinMode: true,
           requiresVerification: true,
@@ -899,6 +1040,8 @@ export class EventsService {
         data: { updatedAt: new Date() },
       });
     });
+
+    await this.incrementEventsFeedCityVersion(event.city);
 
     return this.getEventDetail(userId, eventId);
   }
@@ -1230,6 +1373,7 @@ export class EventsService {
         chat: {
           select: { id: true },
         },
+        city: true,
       },
     });
 
@@ -1267,6 +1411,8 @@ export class EventsService {
         where: { chatId, userId },
       });
     });
+
+    await this.incrementEventsFeedCityVersion(event.city);
 
     return this.getEventDetail(userId, eventId);
   }
@@ -1863,6 +2009,8 @@ export class EventsService {
       throw error;
     }
 
+    await this.incrementEventsFeedCityVersion(city);
+
     return this.getEventDetail(userId, created.id);
   }
 
@@ -2122,6 +2270,7 @@ export class EventsService {
         event: {
           select: {
             hostId: true,
+            city: true,
             requiresVerification: true,
             requiresFrendlyPlus: true,
             chat: {
@@ -2228,6 +2377,8 @@ export class EventsService {
 
       await this.markInviteNotificationsRead(tx, userId, eventId, requestId);
     });
+
+    await this.incrementEventsFeedCityVersion(invite.event.city);
 
     return this.getEventDetail(userId, eventId);
   }
@@ -3084,8 +3235,6 @@ export class EventsService {
 
   private async loadEventListDetailsForCandidates(
     candidates: Array<{ id: string; distanceKm: number }>,
-    userId: string,
-    blockedUserIds: Set<string>,
   ) {
     if (candidates.length === 0) {
       return [];
@@ -3097,7 +3246,7 @@ export class EventsService {
           in: candidates.map((event) => event.id),
         },
       },
-      select: this.eventListSelect(userId, blockedUserIds, {
+      select: this.eventListBaseSelect({
         includeRoutePoints: true,
       }),
     });
@@ -3113,15 +3262,21 @@ export class EventsService {
     return page;
   }
 
+  private eventListBaseSelect(
+    options: { includeRoutePoints?: boolean } = {},
+  ) {
+    return options.includeRoutePoints
+      ? eventListSummaryWithRoutePointsSelect
+      : eventListSummaryBaseSelect;
+  }
+
   private eventListSelect(
     userId: string,
     blockedUserIds: Set<string>,
     options: { includeRoutePoints?: boolean } = {},
   ) {
     return {
-      ...(options.includeRoutePoints
-        ? eventListSummaryWithRoutePointsSelect
-        : eventListSummaryBaseSelect),
+      ...this.eventListBaseSelect(options),
       participants: {
         where: {
           userId: {
@@ -3158,6 +3313,372 @@ export class EventsService {
         select: { status: true },
       },
     };
+  }
+
+  private async shouldUseEventsFeedCache(
+    userId: string,
+    params: {
+      q?: string;
+    },
+    blockedUserIds: Set<string>,
+  ) {
+    if (
+      this.redisCache == null ||
+      shouldBypassEventsFeedCache(params) ||
+      blockedUserIds.size > 0
+    ) {
+      return false;
+    }
+
+    return !(await this.hasViewerScopedPrivateFeedEntries(userId));
+  }
+
+  private async eventsFeedCacheKey(
+    userId: string,
+    params: {
+      filter?: string;
+      q?: string;
+      lifestyle?: string;
+      price?: string;
+      gender?: string;
+      access?: string;
+      city?: string;
+      requiresVerification?: string;
+      requiresFrendlyPlus?: string;
+      date?: string;
+      cursor?: string;
+      limit?: number;
+      latitude?: number;
+      longitude?: number;
+      radiusKm?: number;
+      southWestLatitude?: number;
+      southWestLongitude?: number;
+      northEastLatitude?: number;
+      northEastLongitude?: number;
+    },
+  ): Promise<string> {
+    const viewerHash = createHash('sha1').update(userId).digest('hex');
+    const cityVersion = await this.eventsFeedCityVersion(params.city);
+
+    return `${buildEventsFeedCacheKey({ ...params, cityVersion })}:viewer:${viewerHash}`;
+  }
+
+  private async eventsFeedCityVersion(city?: string | null): Promise<number | null> {
+    const key = this.eventsFeedCityVersionKey(city);
+
+    if (key == null || this.redisCache == null) {
+      return null;
+    }
+
+    try {
+      const version = await this.redisCache.getJson<number>(key);
+
+      return typeof version === 'number' && Number.isFinite(version)
+        ? version
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async incrementEventsFeedCityVersion(city?: string | null): Promise<void> {
+    const key = this.eventsFeedCityVersionKey(city);
+
+    if (key == null || this.redisCache == null) {
+      return;
+    }
+
+    try {
+      await this.redisCache.increment(key);
+    } catch {
+      return;
+    }
+  }
+
+  private eventsFeedCityVersionKey(city?: string | null): string | null {
+    const normalizedCity = typeof city === 'string' ? city.trim() : '';
+
+    return normalizedCity.length > 0
+      ? `events:feed-version:v1:${normalizedCity}`
+      : null;
+  }
+
+  private async loadCachedEventBasePage(
+    cacheKey: string,
+    ttlSeconds: number,
+    loader: () => Promise<EventListBasePage>,
+    isCachedPageValid: (page: any[]) => Promise<boolean>,
+  ): Promise<EventListBasePage> {
+    try {
+      const cached = await this.redisCache?.getJson<EventListBasePage>(cacheKey);
+
+      if (
+        cached != null &&
+        Array.isArray(cached.page) &&
+        typeof cached.hasMore === 'boolean'
+      ) {
+        const page = this.restoreCachedEventBasePage(cached.page);
+
+        if (!(await isCachedPageValid(page))) {
+          return this.loadFreshCachedEventBasePage(cacheKey, ttlSeconds, loader);
+        }
+
+        return {
+          page,
+          hasMore: cached.hasMore,
+        };
+      }
+    } catch {
+      // Redis is a performance hint here. Feed correctness must stay on Postgres.
+    }
+
+    return this.loadFreshCachedEventBasePage(cacheKey, ttlSeconds, loader);
+  }
+
+  private async loadFreshCachedEventBasePage(
+    cacheKey: string,
+    ttlSeconds: number,
+    loader: () => Promise<EventListBasePage>,
+  ): Promise<EventListBasePage> {
+    const loaded = await loader();
+
+    if (!this.isEventBasePageCacheSafe(loaded.page)) {
+      return loaded;
+    }
+
+    try {
+      await this.redisCache?.setJson(cacheKey, loaded, ttlSeconds);
+    } catch {
+      return loaded;
+    }
+
+    return loaded;
+  }
+
+  private async isCachedEventBasePageStillVisible(
+    events: any[],
+    userId: string,
+    blockedUserIds: Set<string>,
+    userGender: 'male' | 'female' | null,
+    filter: EventFilter | undefined,
+    params: {
+      q?: string;
+      lifestyle?: EventLifestyleFilter;
+      price?: EventPriceFilter;
+      gender?: EventGenderFilter;
+      access?: EventAccessFilter;
+      city?: string;
+      requiresVerification?: string;
+      requiresFrendlyPlus?: string;
+      date?: string;
+    },
+    geoBounds?: EventGeoBounds,
+  ) {
+    if (events.length === 0) {
+      return true;
+    }
+
+    const eventIds = events.map((event) => event.id);
+    const where = this.buildListWhere(
+      userId,
+      blockedUserIds,
+      userGender,
+      filter,
+      params,
+      geoBounds,
+    );
+    const conditions = (where.AND as Prisma.EventWhereInput[] | undefined) ?? [];
+    where.AND = [
+      ...conditions,
+      {
+        id: {
+          in: eventIds,
+        },
+      },
+    ];
+    const visibleEvents = await this.prismaService.client.event.findMany({
+      where,
+      select: {
+        id: true,
+        visibilityMode: true,
+      },
+    });
+
+    return (
+      visibleEvents.length === eventIds.length &&
+      visibleEvents.every((event) => event.visibilityMode === 'public')
+    );
+  }
+
+  private stripEventListViewerState(events: any[]) {
+    return events.map((event) => {
+      const {
+        participants: _participants,
+        joinRequests: _joinRequests,
+        attendances: _attendances,
+        liveState: _liveState,
+        ...baseEvent
+      } = event;
+
+      return baseEvent;
+    });
+  }
+
+  private isEventBasePageCacheSafe(events: any[]) {
+    return events.every((event) => event.visibilityMode === 'public');
+  }
+
+  private async hasViewerScopedPrivateFeedEntries(userId: string) {
+    const eventDelegate = this.prismaService.client.event as any;
+
+    if (eventDelegate?.findFirst == null) {
+      return true;
+    }
+
+    const event = await eventDelegate.findFirst({
+      where: {
+        canceledAt: null,
+        isAfterDark: false,
+        visibilityMode: {
+          not: 'public',
+        },
+        startsAt: {
+          gte: this.recentEventStartBoundary(new Date()),
+        },
+        NOT: {
+          liveState: {
+            is: {
+              status: 'finished',
+            },
+          },
+        },
+        OR: [
+          { hostId: userId },
+          {
+            participants: {
+              some: {
+                userId,
+              },
+            },
+          },
+          {
+            attendances: {
+              some: {
+                userId,
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return event != null;
+  }
+
+  private restoreCachedEventBasePage(events: any[]) {
+    return events.map((event) => ({
+      ...event,
+      startsAt: this.restoreDate(event.startsAt),
+      tokenPromotions: Array.isArray(event.tokenPromotions)
+        ? event.tokenPromotions.map((promotion: any) => ({
+            ...promotion,
+            expiresAt: this.restoreDate(promotion.expiresAt),
+          }))
+        : event.tokenPromotions,
+    }));
+  }
+
+  private restoreDate(value: unknown) {
+    return value instanceof Date ? value : new Date(value as string);
+  }
+
+  private groupEventParticipantPreviews(
+    participants: EventParticipantPreview[],
+  ) {
+    const byEventId = new Map<string, EventParticipantPreview[]>();
+
+    for (const participant of participants) {
+      const group = byEventId.get(participant.eventId) ?? [];
+      if (group.length < 6) {
+        group.push(participant);
+        byEventId.set(participant.eventId, group);
+      }
+    }
+
+    return byEventId;
+  }
+
+  private async findEventJoinRequestOverlay(
+    eventIds: string[],
+    userId: string,
+  ): Promise<EventJoinRequestOverlay[]> {
+    const delegate = (this.prismaService.client as any).eventJoinRequest;
+
+    if (delegate?.findMany == null) {
+      return [];
+    }
+
+    return delegate.findMany({
+      where: {
+        eventId: {
+          in: eventIds,
+        },
+        userId,
+      },
+      select: {
+        eventId: true,
+        status: true,
+      },
+    }) as Promise<EventJoinRequestOverlay[]>;
+  }
+
+  private async findEventAttendanceOverlay(
+    eventIds: string[],
+    userId: string,
+  ): Promise<EventAttendanceOverlay[]> {
+    const delegate = (this.prismaService.client as any).eventAttendance;
+
+    if (delegate?.findMany == null) {
+      return [];
+    }
+
+    return delegate.findMany({
+      where: {
+        eventId: {
+          in: eventIds,
+        },
+        userId,
+      },
+      select: {
+        eventId: true,
+        status: true,
+      },
+    }) as Promise<EventAttendanceOverlay[]>;
+  }
+
+  private async findEventLiveStateOverlay(
+    eventIds: string[],
+  ): Promise<EventLiveStateOverlay[]> {
+    const delegate = (this.prismaService.client as any).eventLiveState;
+
+    if (delegate?.findMany == null) {
+      return [];
+    }
+
+    return delegate.findMany({
+      where: {
+        eventId: {
+          in: eventIds,
+        },
+      },
+      select: {
+        eventId: true,
+        status: true,
+      },
+    }) as Promise<EventLiveStateOverlay[]>;
   }
 
   private parseIsoDateRange(raw?: string) {
@@ -3208,8 +3729,6 @@ export class EventsService {
     cursorEvent: EventListCursor | null;
     filter?: EventFilter;
     take: number;
-    userId: string;
-    blockedUserIds: Set<string>;
   }) {
     const now = new Date();
     const promotedRows = params.cursorEvent?.promoted === false
@@ -3222,7 +3741,7 @@ export class EventsService {
               ? this.buildListCursorWhere(params.cursorEvent, params.filter)
               : null,
           ),
-          select: this.eventListSelect(params.userId, params.blockedUserIds),
+          select: this.eventListBaseSelect(),
           orderBy: params.orderBy,
           take: params.take + 1,
         });
@@ -3240,7 +3759,7 @@ export class EventsService {
           ? this.buildListCursorWhere(params.cursorEvent, params.filter)
           : null,
       ),
-      select: this.eventListSelect(params.userId, params.blockedUserIds),
+      select: this.eventListBaseSelect(),
       orderBy: params.orderBy,
       take: remaining,
     });

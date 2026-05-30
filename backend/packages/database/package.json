@@ -16,6 +16,7 @@
     "db:backfill:private-media-public-urls": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/backfill-private-media-public-urls.ts",
     "db:verify:chat-unread": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/verify-chat-unread-counts.ts",
     "db:verify:private-media-public-urls": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/verify-private-media-public-urls.ts",
+    "db:verify:postgis:event-geo": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/verify-postgis-event-geo.ts",
     "s3:verify-upload-cors": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/verify-s3-upload-cors.ts",
     "db:cleanup:retention": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/cleanup-retention.ts",
     "db:postgis:event-geo": "ts-node -r tsconfig-paths/register --project tsconfig.json prisma/enable-postgis-event-geo.ts",

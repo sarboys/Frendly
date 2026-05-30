@@ -3,10 +3,10 @@
     "name": "Frendly backend-mobile-admin",
     "description": "Focused graph for backend, mobile Flutter app, admin app, business logic, and their runtime/deploy links."
   },
-  "filesAnalyzed": 348,
+  "filesAnalyzed": 352,
   "fileCategories": {
     "config": 22,
-    "code": 212,
+    "code": 216,
     "infra": 22,
     "data": 88,
     "docs": 3,
@@ -14,9 +14,9 @@
   },
   "nodeTypes": {
     "config": 22,
-    "file": 212,
-    "class": 160,
-    "function": 709,
+    "file": 216,
+    "class": 161,
+    "function": 732,
     "service": 23,
     "pipeline": 16,
     "table": 505,
@@ -27,8 +27,8 @@
     "step": 65
   },
   "edgeTypes": {
-    "contains": 1303,
-    "imports": 511,
+    "contains": 1327,
+    "imports": 514,
     "contains_flow": 12,
     "flow_step": 65,
     "cross_domain": 8
@@ -50,11 +50,11 @@
     "domains": 7,
     "flows": 12,
     "steps": 65,
-    "domainGraphPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/evening-place-intent-matching/.understand-anything/domain-graph.json"
+    "domainGraphPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/1000rps-readiness/.understand-anything/domain-graph.json"
   },
   "review": {
     "issues": [],
     "warnings": []
   },
-  "outputPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/evening-place-intent-matching/.understand-anything/knowledge-graph.json"
+  "outputPath": "/Users/sergeypolyakov/.config/superpowers/worktrees/MyApp/1000rps-readiness/.understand-anything/knowledge-graph.json"
 }

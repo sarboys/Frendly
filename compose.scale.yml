@@ -1,5 +1,9 @@
 name: frendly-backend
 
+# Scale deploy runtime:
+# RUNTIME_SERVICES=api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules landing admin_internal admin_partner
+# Do not include base api, chat or worker in scale mode.
+
 services:
   api_a:
     extends:

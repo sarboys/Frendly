@@ -34,8 +34,8 @@ services:
     image: bitnamilegacy/pgbouncer:1.24.1-debian-12-r10
     restart: unless-stopped
     environment:
-      POSTGRESQL_HOST: postgres
-      POSTGRESQL_PORT: 5432
+      POSTGRESQL_HOST: ${POSTGRESQL_HOST:-postgres}
+      POSTGRESQL_PORT: ${POSTGRESQL_PORT:-5432}
       POSTGRESQL_USERNAME: ${POSTGRES_USER}
       POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRESQL_DATABASE: ${POSTGRES_DB}
@@ -60,6 +60,21 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "${REDIS_MAXMEMORY:-1536mb}",
+        "--maxmemory-policy",
+        "${REDIS_MAXMEMORY_POLICY:-allkeys-lru}",
+        "--maxmemory-samples",
+        "10",
+        "--loglevel",
+        "warning",
+      ]
+    mem_limit: ${REDIS_CONTAINER_MEMORY_LIMIT:-2g}
     volumes:
       - redis_data:/data
     healthcheck:

@@ -32,8 +32,9 @@ postgres + redis
 
 ## Production stack
 
-- `postgres`: persistent volume, `pg_stat_statements`, slow query logging, timeouts.
-- `pgbouncer`: transaction pooling, internal port `6432`.
+- Local mode: `postgres` is a persistent container with `pg_stat_statements`, slow query logging and timeouts.
+- Local mode: `pgbouncer` is a transaction pooler container on internal port `6432`.
+- External DB mode: VPS1 runs app containers and Redis only. PostgreSQL 16, PostGIS and PgBouncer live on the DB host, currently `192.168.0.6`.
 - `redis`: persistent volume.
 - `migrate`: Prisma deploy, hot-path indexes, optional seed.
 - `api`: internal port `3000`, health `/health`.
@@ -45,7 +46,8 @@ postgres + redis
 - `admin_partner`: `partner.frendly.tech`.
 - `nginx`: public port `80`.
 
-Runtime services use pooled DB URL through PgBouncer. Migrations and concurrent index scripts use direct DB URL.
+Runtime services use pooled DB URL through PgBouncer. In external DB mode this points to `192.168.0.6:6432`. Migrations and concurrent index scripts use direct DB URL. In external DB mode this points to `192.168.0.6:5432`.
+If `ENABLE_POSTGIS_EVENT_FEED=true`, deploy runs `db:verify:postgis:event-geo` through the migrate image before runtime containers start.
 
 Public routing:
 
@@ -135,10 +137,13 @@ Do not commit real tokens or production smoke output with secrets.
 ## Redis
 
 - Env: `REDIS_URL`.
+- Production memory knobs: `REDIS_MAXMEMORY`, `REDIS_MAXMEMORY_POLICY`, `REDIS_CONTAINER_MEMORY_LIMIT`.
+- On VPS1 with `8 CPU / 12 GB RAM`, start with `REDIS_MAXMEMORY=1536mb`, `REDIS_MAXMEMORY_POLICY=allkeys-lru` and `REDIS_CONTAINER_MEMORY_LIMIT=2g`.
 - Channel: `big-break:events`.
-- Used by chat server and worker.
-- Bus only, not primary storage.
+- Used by chat server, worker and API feed cache.
+- Redis is not primary storage. Current Redis code publishes and subscribes transient events, stores short TTL `events:feed:v1:*` base feed cache entries and keeps `events:feed-version:v1:<city>` counters for coarse event feed invalidation. Durable product data stays in Postgres.
 - Main events: chat, notification, unread, attachment ready.
+- If future durable Redis keys without TTL appear, use `volatile-lru` instead of `allkeys-lru`.
 
 ## Worker and outbox
 
@@ -184,6 +189,7 @@ cd backend && pnpm --filter @big-break/database db:backfill:chat-unread
 cd backend && pnpm --filter @big-break/database db:backfill:private-media-public-urls
 cd backend && pnpm --filter @big-break/database db:verify:chat-unread
 cd backend && pnpm --filter @big-break/database db:verify:private-media-public-urls
+cd backend && pnpm --filter @big-break/database db:verify:postgis:event-geo
 cd backend && pnpm --filter @big-break/database db:cleanup:retention
 cd backend && pnpm --filter @big-break/database db:perf:hot-queries
 cd backend && pnpm --filter @big-break/database db:postgis:event-geo
@@ -258,7 +264,10 @@ Flow:
 - Production app path: `/opt/frendly`.
 - Deploy workflow and script discard tracked local changes in server checkouts before switching to the target branch, then use `flock` before Docker cleanup and compose recreate.
 - `scripts/deploy.sh` waits for `http://127.0.0.1/health` after compose recreate before returning. Defaults: `HEALTHCHECK_RETRIES=60`, `HEALTHCHECK_DELAY_SECONDS=5`, `HEALTHCHECK_TIMEOUT_SECONDS=10`.
-- Scale compose: add `COMPOSE_EXTRA_FILES=/opt/frendly/compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
+- Scale compose: add `COMPOSE_EXTRA_FILES=compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
+- In scale mode, `RUNTIME_SERVICES` must not include base `api`, `chat` or `worker`; `scripts/deploy.sh` rejects that combination.
+- External DB mode uses `CORE_SERVICES=redis`. This keeps local `postgres` and local `pgbouncer` stopped while `migrate` runs with `--no-deps` against the direct external DB URL.
+- Rollback to local DB mode uses `CORE_SERVICES=postgres redis pgbouncer`, `POSTGRESQL_HOST=postgres`, a local `DATABASE_DIRECT_URL` to `postgres:5432` and a local `DATABASE_POOL_URL` to `pgbouncer:6432`.
 - Scale nginx config: `deploy/nginx/frendly.scale.conf` balances API and chat through `api_a/api_b` and `chat_a/chat_b`, while the default `deploy/nginx/frendly.conf` stays single-instance.
 - `scripts/deploy.sh` and `scripts/deploy-landing.sh` both read `COMPOSE_EXTRA_FILES` and `NGINX_SERVICE` from env or `.env.production`.
 - Worker role gates: `WORKER_OUTBOX_ENABLED`, `WORKER_CONTENT_ENABLED`, `WORKER_SCHEDULES_ENABLED`.

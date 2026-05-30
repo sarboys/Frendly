@@ -11,6 +11,8 @@ admin/
 landing/
 docs/*
 !docs/backend_performance_audit.md
+!docs/audits/
+!docs/audits/*.md
 *.html
 backend/node_modules/
 backend/**/node_modules/

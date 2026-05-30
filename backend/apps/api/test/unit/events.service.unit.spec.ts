@@ -47,6 +47,7 @@ describe('EventsService unit', () => {
     hostedMeetupsThisPeriod = 0,
     hostedAiDraftsThisPeriod = 0,
     freeMeetupWeeklyLimit = 7,
+    redisCache,
   }: {
     hostVerified?: boolean;
     hostPremium?: boolean;
@@ -54,6 +55,7 @@ describe('EventsService unit', () => {
     hostedMeetupsThisPeriod?: number;
     hostedAiDraftsThisPeriod?: number;
     freeMeetupWeeklyLimit?: number;
+    redisCache?: { increment: jest.Mock };
   } = {}) => {
     const eventCreate = jest.fn().mockResolvedValue({ id: 'event-1' });
     const eventCount = jest.fn().mockResolvedValue(hostedMeetupsThisPeriod);
@@ -112,6 +114,8 @@ describe('EventsService unit', () => {
           plusMeetupMonthlyLimit: null,
         }),
       } as any,
+      undefined,
+      redisCache as any,
     );
     jest.spyOn(service, 'getEventDetail').mockResolvedValue({ id: 'event-1' } as any);
 
@@ -129,6 +133,62 @@ describe('EventsService unit', () => {
     latitude: 55.756,
     longitude: 37.64,
   });
+
+  const listEventOverlayMocks = () => ({
+    participantGroupBy: jest.fn().mockResolvedValue([]),
+    participantFindMany: jest.fn().mockResolvedValue([]),
+    joinRequestFindMany: jest.fn().mockResolvedValue([]),
+    attendanceFindMany: jest.fn().mockResolvedValue([]),
+    liveStateFindMany: jest.fn().mockResolvedValue([]),
+  });
+
+  const makeListEventsService = ({
+    eventFindMany,
+    eventFindFirst = jest.fn().mockResolvedValue(null),
+    cache,
+    overlay = listEventOverlayMocks(),
+  }: {
+    eventFindMany: jest.Mock;
+    eventFindFirst?: jest.Mock;
+    cache?: {
+      getJson: jest.Mock;
+      setJson: jest.Mock;
+    };
+    overlay?: ReturnType<typeof listEventOverlayMocks>;
+  }) =>
+    new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'male' }),
+          },
+          event: {
+            findMany: eventFindMany,
+            findFirst: eventFindFirst,
+            findUnique: jest.fn(),
+          },
+          eventParticipant: {
+            groupBy: overlay.participantGroupBy,
+            findMany: overlay.participantFindMany,
+          },
+          eventJoinRequest: {
+            findMany: overlay.joinRequestFindMany,
+          },
+          eventAttendance: {
+            findMany: overlay.attendanceFindMany,
+          },
+          eventLiveState: {
+            findMany: overlay.liveStateFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      undefined,
+      cache as any,
+    );
 
   it('caps event search query before building contains filters', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
@@ -525,6 +585,7 @@ describe('EventsService unit', () => {
         },
       ])
       .mockResolvedValueOnce([]);
+    const participantFindMany = jest.fn().mockResolvedValue([]);
     const participantGroupBy = jest.fn().mockResolvedValue([
       {
         eventId: 'event-1',
@@ -542,7 +603,7 @@ describe('EventsService unit', () => {
             findUnique: jest.fn(),
           },
           eventParticipant: {
-            findMany: jest.fn().mockResolvedValue([]),
+            findMany: participantFindMany,
             groupBy: participantGroupBy,
           },
           userBlock: {
@@ -559,12 +620,36 @@ describe('EventsService unit', () => {
       expect.objectContaining({
         select: expect.objectContaining({
           capacity: true,
-          participants: expect.objectContaining({
-            take: 6,
-          }),
         }),
       }),
     );
+    expect(eventFindMany.mock.calls[0][0].select.participants).toBeUndefined();
+    expect(participantFindMany).toHaveBeenCalledWith({
+      where: {
+        eventId: { in: ['event-1'] },
+        userId: { notIn: [] },
+      },
+      select: {
+        eventId: true,
+        userId: true,
+        user: {
+          select: {
+            displayName: true,
+            profile: {
+              select: {
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { eventId: 'asc' },
+        { joinedAt: 'asc' },
+        { id: 'asc' },
+      ],
+      take: 6,
+    });
     expect(participantGroupBy).toHaveBeenCalledWith({
       by: ['eventId'],
       where: {
@@ -647,6 +732,330 @@ describe('EventsService unit', () => {
     expect(result.items.map((item) => item.id)).toEqual(['event-boosted']);
     expect(result.items[0]!.promoted).toBe(true);
     expect(result.nextCursor).toEqual(expect.any(String));
+  });
+
+  it('stores event feed base page on cache miss without viewer overlay fields', async () => {
+    const event = eventFixture({
+      id: 'event-cache-miss',
+      tokenPromotions: [],
+      participants: [
+        {
+          userId: 'guest-1',
+          user: { displayName: 'Guest 1', profile: { avatarUrl: null } },
+        },
+      ],
+      joinRequests: [{ status: 'pending' }],
+      attendances: [{ status: 'checked_in' }],
+      liveState: { status: 'live' },
+    });
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([event]);
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn().mockResolvedValue(undefined),
+    };
+    const overlay = listEventOverlayMocks();
+    overlay.participantGroupBy.mockResolvedValue([
+      { eventId: 'event-cache-miss', _count: { _all: 3 } },
+    ]);
+    const service = makeListEventsService({ eventFindMany, cache, overlay });
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      limit: 10,
+    });
+
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        id: 'event-cache-miss',
+        going: 3,
+        joined: false,
+        joinRequestStatus: null,
+        attendanceStatus: 'not_checked_in',
+        liveStatus: 'idle',
+      }),
+    );
+    expect(cache.getJson).toHaveBeenCalledWith(expect.stringContaining('events:feed:v1:'));
+    expect(cache.setJson).toHaveBeenCalledWith(
+      expect.stringContaining('events:feed:v1:'),
+      {
+        page: [
+          expect.not.objectContaining({
+            participants: expect.anything(),
+            joinRequests: expect.anything(),
+            attendances: expect.anything(),
+            liveState: expect.anything(),
+          }),
+        ],
+        hasMore: false,
+      },
+      expect.any(Number),
+    );
+  });
+
+  it('uses cached event feed base page and skips base event findMany', async () => {
+    const cachedEvent = eventFixture({
+      id: 'event-cache-hit',
+      startsAt: new Date('2026-05-03T18:00:00.000Z'),
+      tokenPromotions: [
+        {
+          optionId: 'boost-6',
+          expiresAt: new Date('2026-05-03T20:00:00.000Z'),
+        },
+      ],
+    });
+    const eventFindMany = jest.fn().mockResolvedValue([
+      { id: 'event-cache-hit', visibilityMode: 'public' },
+    ]);
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        page: [
+          {
+            ...cachedEvent,
+            startsAt: cachedEvent.startsAt.toISOString(),
+            tokenPromotions: (cachedEvent as any).tokenPromotions.map((item: any) => ({
+              ...item,
+              expiresAt: item.expiresAt.toISOString(),
+            })),
+          },
+        ],
+        hasMore: false,
+      }),
+      setJson: jest.fn(),
+    };
+    const overlay = listEventOverlayMocks();
+    overlay.participantGroupBy.mockResolvedValue([
+      { eventId: 'event-cache-hit', _count: { _all: 2 } },
+    ]);
+    const eventFindFirst = jest.fn().mockResolvedValue(null);
+    const service = makeListEventsService({
+      eventFindMany,
+      eventFindFirst,
+      cache,
+      overlay,
+    });
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      limit: 10,
+    });
+
+    expect(eventFindMany).toHaveBeenCalledTimes(1);
+    expect(eventFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          id: true,
+          visibilityMode: true,
+        },
+      }),
+    );
+    expect(eventFindFirst).toHaveBeenCalledTimes(1);
+    expect(cache.setJson).not.toHaveBeenCalled();
+    expect(overlay.participantGroupBy).toHaveBeenCalledWith({
+      by: ['eventId'],
+      where: {
+        eventId: { in: ['event-cache-hit'] },
+        userId: { notIn: [] },
+      },
+      _count: { _all: true },
+    });
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        id: 'event-cache-hit',
+        going: 2,
+      }),
+    );
+  });
+
+  it('reloads event feed cache when a cached public event is no longer visible', async () => {
+    const cachedEvent = eventFixture({
+      id: 'event-cache-stale-private',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000),
+      tokenPromotions: [],
+    });
+    const freshEvent = eventFixture({
+      id: 'event-cache-fresh',
+      startsAt: new Date(Date.now() + 90 * 60 * 1000),
+      tokenPromotions: [],
+    });
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([freshEvent]);
+    const eventFindFirst = jest.fn().mockResolvedValue(null);
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        page: [cachedEvent],
+        hasMore: false,
+      }),
+      setJson: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = makeListEventsService({
+      eventFindMany,
+      eventFindFirst,
+      cache,
+    });
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      limit: 10,
+    });
+
+    expect(eventFindMany).toHaveBeenCalledTimes(3);
+    expect(eventFindMany.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              id: {
+                in: ['event-cache-stale-private'],
+              },
+            },
+          ]),
+        }),
+        select: {
+          id: true,
+          visibilityMode: true,
+        },
+      }),
+    );
+    expect(cache.setJson).toHaveBeenCalledWith(
+      expect.stringContaining('events:feed:v1:'),
+      {
+        page: [expect.objectContaining({ id: 'event-cache-fresh' })],
+        hasMore: false,
+      },
+      expect.any(Number),
+    );
+    expect(result.items.map((item) => item.id)).toEqual(['event-cache-fresh']);
+  });
+
+  it('keeps event feed viewer overlay live per user on the same cached base page', async () => {
+    const cachedEvent = eventFixture({
+      id: 'event-live-overlay',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000),
+      tokenPromotions: [],
+    });
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValue([
+        { id: 'event-live-overlay', visibilityMode: 'public' },
+      ]);
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        page: [cachedEvent],
+        hasMore: false,
+      }),
+      setJson: jest.fn(),
+    };
+    const overlay = listEventOverlayMocks();
+    overlay.participantGroupBy.mockResolvedValue([
+      { eventId: 'event-live-overlay', _count: { _all: 4 } },
+    ]);
+    overlay.participantFindMany.mockImplementation((query: any) => {
+      if (query.select?.user != null) {
+        return Promise.resolve([
+          {
+            eventId: 'event-live-overlay',
+            userId: 'guest-1',
+            user: {
+              displayName: 'Guest 1',
+              profile: { avatarUrl: 'https://cdn.test/guest.jpg' },
+            },
+          },
+        ]);
+      }
+
+      return Promise.resolve(
+        query.where.userId === 'user-a'
+          ? [{ eventId: 'event-live-overlay' }]
+          : [],
+      );
+    });
+    overlay.joinRequestFindMany.mockImplementation((query: any) =>
+      Promise.resolve(
+        query.where.userId === 'user-a'
+          ? [{ eventId: 'event-live-overlay', status: 'approved' }]
+          : [{ eventId: 'event-live-overlay', status: 'pending' }],
+      ),
+    );
+    overlay.attendanceFindMany.mockImplementation((query: any) =>
+      Promise.resolve(
+        query.where.userId === 'user-a'
+          ? [{ eventId: 'event-live-overlay', status: 'checked_in' }]
+          : [],
+      ),
+    );
+    overlay.liveStateFindMany.mockResolvedValue([
+      { eventId: 'event-live-overlay', status: 'live' },
+    ]);
+    const eventFindFirst = jest.fn().mockResolvedValue(null);
+    const service = makeListEventsService({
+      eventFindMany,
+      eventFindFirst,
+      cache,
+      overlay,
+    });
+
+    const first = await service.listEvents('user-a', { filter: 'nearby' });
+    const second = await service.listEvents('user-b', { filter: 'nearby' });
+
+    expect(eventFindMany).toHaveBeenCalledTimes(2);
+    expect(first.items[0]).toEqual(
+      expect.objectContaining({
+        joined: true,
+        going: 4,
+        joinRequestStatus: 'approved',
+        attendanceStatus: 'checked_in',
+        liveStatus: 'live',
+        memberProfiles: [
+          {
+            userId: 'guest-1',
+            displayName: 'Guest 1',
+            avatarUrl: 'https://cdn.test/guest.jpg',
+          },
+        ],
+      }),
+    );
+    expect(second.items[0]).toEqual(
+      expect.objectContaining({
+        joined: false,
+        joinRequestStatus: 'pending',
+        attendanceStatus: 'not_checked_in',
+        liveStatus: 'live',
+      }),
+    );
+  });
+
+  it('falls back to database when event feed cache get or set fails', async () => {
+    const event = eventFixture({
+      id: 'event-cache-fail-open',
+      tokenPromotions: [],
+    });
+    const eventFindMany = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([event]);
+    const cache = {
+      getJson: jest.fn().mockRejectedValue(new Error('redis get failed')),
+      setJson: jest.fn().mockRejectedValue(new Error('redis set failed')),
+    };
+    const service = makeListEventsService({ eventFindMany, cache });
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      limit: 10,
+    });
+
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({ id: 'event-cache-fail-open' }),
+    );
+    expect(eventFindMany).toHaveBeenCalledTimes(2);
+    expect(cache.getJson).toHaveBeenCalledTimes(1);
+    expect(cache.setJson).toHaveBeenCalledTimes(1);
   });
 
   it('lists public active Moscow meetups without private participant previews', async () => {
@@ -1210,6 +1619,22 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('increments city feed version after event creation', async () => {
+    const redisCache = {
+      increment: jest.fn().mockResolvedValue(2),
+    };
+    const { service } = makeCreateEventService({ redisCache });
+
+    await service.createEvent('host-1', {
+      ...createEventPayload(),
+      city: 'Москва',
+    });
+
+    expect(redisCache.increment).toHaveBeenCalledWith(
+      'events:feed-version:v1:Москва',
+    );
+  });
+
   it('saves request join mode and cover asset on create', async () => {
     const { service, eventCreate } = makeCreateEventService();
 
@@ -1674,6 +2099,7 @@ describe('EventsService unit', () => {
       .mockResolvedValueOnce([farEvent, nearEvent])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([farEvent, nearEvent]);
+    const eventParticipantFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(
       {
         client: {
@@ -1685,7 +2111,7 @@ describe('EventsService unit', () => {
             findUnique: jest.fn(),
           },
           eventParticipant: {
-            findMany: jest.fn().mockResolvedValue([]),
+            findMany: eventParticipantFindMany,
             groupBy: jest.fn().mockResolvedValue([]),
           },
           userBlock: {
@@ -1738,10 +2164,29 @@ describe('EventsService unit', () => {
           },
         },
         select: expect.objectContaining({
-          participants: expect.any(Object),
-          joinRequests: expect.any(Object),
-          attendances: expect.any(Object),
-          liveState: expect.any(Object),
+          id: true,
+          eveningRoute: expect.objectContaining({
+            select: expect.objectContaining({
+              steps: expect.any(Object),
+            }),
+          }),
+        }),
+      }),
+    );
+    expect(eventFindMany.mock.calls[2][0].select.participants).toBeUndefined();
+    expect(eventParticipantFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          eventId: {
+            in: ['event-near', 'event-far'],
+          },
+          userId: {
+            notIn: ['blocked-host'],
+          },
+        },
+        select: expect.objectContaining({
+          eventId: true,
+          user: expect.any(Object),
         }),
       }),
     );

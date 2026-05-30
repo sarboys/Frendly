@@ -1,11 +1,11 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "3ba78007c42c7f1d5303f65892b9b762b3803f51",
-  "generatedAt": "2026-05-29T08:13:12.757Z",
+  "gitCommitHash": "c6b35bd75d2e306f7e6c26cf07475579de2e4baf",
+  "generatedAt": "2026-05-30T09:42:35.646Z",
   "files": {
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "b8c596afcaf61879623cfd8a6caf79656d4c1e2481bfbbc0cbed6277807dcdfb",
+      "contentHash": "da5f2e5673e061365c7d347066e3280ebb3b89f0864fded165bd3ea01cfcf836",
       "functions": [],
       "classes": [
         {
@@ -683,6 +683,12 @@
           ]
         },
         {
+          "source": "./services/redis-cache.service",
+          "specifiers": [
+            "RedisCacheService"
+          ]
+        },
+        {
           "source": "./services/tokens.service",
           "specifiers": [
             "TokensService"
@@ -710,7 +716,7 @@
       "exports": [
         "ApiAppModule"
       ],
-      "totalLines": 244,
+      "totalLines": 246,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/admin-audit.interceptor.ts": {
@@ -7027,7 +7033,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "371d789c8311217acda4595c0f43d283cd376ec4aa2af45b0d0c4f5bb7a1669a",
+      "contentHash": "0b6e847444c9f49d93b63defc7de113eceedbc7fbee9bf6ee93b2634d04e8f31",
       "functions": [
         {
           "name": "durationMsSince",
@@ -7426,6 +7432,14 @@
           "lineCount": 8
         },
         {
+          "name": "isStrongTomestoTaxonomyTag",
+          "params": [
+            "tag"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
           "name": "todayEventDateWindow",
           "params": [
             "timezone",
@@ -7793,7 +7807,12 @@
             "loadCandidatePack",
             "rankCandidateGroup",
             "loadRoleCandidates",
+            "loadTomestoRoleItems",
+            "tomestoTargetTermsForIntent",
+            "whereWithTerms",
             "findCachedSourceItems",
+            "hasCachedSourceItems",
+            "sourceItemsCacheKey",
             "recordSourceItems",
             "hasTomestoImages",
             "mapDraftResponse",
@@ -7835,6 +7854,8 @@
             "candidateScore",
             "routePointForCandidate",
             "roleIntentHint",
+            "routeGeoPolicyForGeneration",
+            "effectiveStepLocation",
             "isCandidateAllowedForIntent",
             "isWalkCandidate",
             "candidateTailScore",
@@ -7858,7 +7879,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 2756
+          "lineCount": 2876
         }
       ],
       "imports": [
@@ -7924,7 +7945,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 4597,
+      "totalLines": 4741,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -8230,7 +8251,7 @@
     },
     "backend/apps/api/src/services/evening.service.ts": {
       "filePath": "backend/apps/api/src/services/evening.service.ts",
-      "contentHash": "84307dc45bdfdfc06d342a9360b2b56fc37aab50aea5b76647df10215133a548",
+      "contentHash": "617db05046a557a5cb817c03866c4900a6af399fb653e4af2278c53db22cca4f",
       "functions": [
         {
           "name": "emptyStepMatchMetadata",
@@ -8402,9 +8423,134 @@
       "totalLines": 28,
       "hasStructuralAnalysis": true
     },
+    "backend/apps/api/src/services/events-feed-cache.ts": {
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "contentHash": "c2ac75a4b8a9d8e46e67ab4112c2a81fa3aef13115ba0c78357dd05c95814b5b",
+      "functions": [
+        {
+          "name": "clean",
+          "params": [
+            "value"
+          ],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "toFiniteNumber",
+          "params": [
+            "value"
+          ],
+          "returnType": "number | null",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "roundNumber",
+          "params": [
+            "value",
+            "decimals"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "clamp",
+          "params": [
+            "value",
+            "min",
+            "max"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeBounds",
+          "params": [
+            "input"
+          ],
+          "returnType": "number[] | null",
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "normalizeLimit",
+          "params": [
+            "value"
+          ],
+          "returnType": "number",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "isTrue",
+          "params": [
+            "value"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizeEventsFeedGeo",
+          "params": [
+            "input"
+          ],
+          "returnType": "NormalizedEventsFeedGeo | null",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "shouldBypassEventsFeedCache",
+          "params": [
+            "input"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "eventsFeedCacheTtlSeconds",
+          "params": [
+            "input"
+          ],
+          "returnType": "number",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "buildEventsFeedCacheKey",
+          "params": [
+            "input"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 25
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "createHash"
+          ]
+        }
+      ],
+      "exports": [
+        "normalizeEventsFeedGeo",
+        "shouldBypassEventsFeedCache",
+        "eventsFeedCacheTtlSeconds",
+        "buildEventsFeedCacheKey"
+      ],
+      "totalLines": 169,
+      "hasStructuralAnalysis": true
+    },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "9dabf0b24d64ce431c356eede1fc416af54230d5fb577f49d948de867039f750",
+      "contentHash": "8d953f9f17fb584b43542729e4ea03237fce3f4de0cc66b8a1c7b741dcff0f8e",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -8486,7 +8632,25 @@
             "buildPublicMeetupCityWhere",
             "buildPriceWhere",
             "loadEventListDetailsForCandidates",
+            "eventListBaseSelect",
             "eventListSelect",
+            "shouldUseEventsFeedCache",
+            "eventsFeedCacheKey",
+            "eventsFeedCityVersion",
+            "incrementEventsFeedCityVersion",
+            "eventsFeedCityVersionKey",
+            "loadCachedEventBasePage",
+            "loadFreshCachedEventBasePage",
+            "isCachedEventBasePageStillVisible",
+            "stripEventListViewerState",
+            "isEventBasePageCacheSafe",
+            "hasViewerScopedPrivateFeedEntries",
+            "restoreCachedEventBasePage",
+            "restoreDate",
+            "groupEventParticipantPreviews",
+            "findEventJoinRequestOverlay",
+            "findEventAttendanceOverlay",
+            "findEventLiveStateOverlay",
             "parseIsoDateRange",
             "listOrderBy",
             "listTake",
@@ -8551,7 +8715,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 4518
+          "lineCount": 4991
         }
       ],
       "imports": [
@@ -8575,12 +8739,16 @@
         {
           "source": "@prisma/client",
           "specifiers": [
-            "Prisma"
+            "Prisma",
+            "EventAttendance",
+            "EventJoinRequest",
+            "EventLiveState"
           ]
         },
         {
           "source": "node:crypto",
           "specifiers": [
+            "createHash",
             "createHmac",
             "randomUUID"
           ]
@@ -8638,9 +8806,23 @@
           ]
         },
         {
+          "source": "./redis-cache.service",
+          "specifiers": [
+            "RedisCacheService"
+          ]
+        },
+        {
           "source": "./subscription.service",
           "specifiers": [
             "SubscriptionService"
+          ]
+        },
+        {
+          "source": "./events-feed-cache",
+          "specifiers": [
+            "buildEventsFeedCacheKey",
+            "eventsFeedCacheTtlSeconds",
+            "shouldBypassEventsFeedCache"
           ]
         },
         {
@@ -8653,7 +8835,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 4848,
+      "totalLines": 5367,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -10370,6 +10552,50 @@
         "ProfileService"
       ],
       "totalLines": 1646,
+      "hasStructuralAnalysis": true
+    },
+    "backend/apps/api/src/services/redis-cache.service.ts": {
+      "filePath": "backend/apps/api/src/services/redis-cache.service.ts",
+      "contentHash": "90509de26fae300e2893635d6ac32f9a36aa4272c824d108b568a9e91e94bc8a",
+      "functions": [],
+      "classes": [
+        {
+          "name": "RedisCacheService",
+          "methods": [
+            "constructor",
+            "getJson",
+            "setJson",
+            "delete",
+            "increment",
+            "onModuleDestroy"
+          ],
+          "properties": [
+            "redis"
+          ],
+          "exported": true,
+          "lineCount": 67
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "OnModuleDestroy",
+            "Optional"
+          ]
+        },
+        {
+          "source": "ioredis",
+          "specifiers": [
+            "Redis"
+          ]
+        }
+      ],
+      "exports": [
+        "RedisCacheService"
+      ],
+      "totalLines": 72,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -14694,7 +14920,7 @@
     },
     "backend/apps/worker/src/content/tomesto-place-traits.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto-place-traits.ts",
-      "contentHash": "6f9edf0d9fcea9e3104a52230f422bf00edc1772cc4d6aa5640db6b1dde788ec",
+      "contentHash": "313a1ccb8ba5aee9a7d62c52324f4368547532424068b7e26b82abc6291a915f",
       "functions": [
         {
           "name": "extractTomestoPlaceTraits",
@@ -14755,7 +14981,7 @@
     },
     "backend/apps/worker/src/content/tomesto.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/tomesto.adapter.ts",
-      "contentHash": "60300ea6db87daf94c2dc512b58e61085a0ad6f791e1ab02ca2caf2006590786",
+      "contentHash": "ce4ce3dc80d1737f3008cca4b48087c41152092aee268fb47ee4ef6e29945a25",
       "functions": [
         {
           "name": "isDetailPath",
@@ -16590,6 +16816,30 @@
       "totalLines": 51,
       "hasStructuralAnalysis": true
     },
+    "backend/packages/database/prisma/verify-postgis-event-geo.ts": {
+      "filePath": "backend/packages/database/prisma/verify-postgis-event-geo.ts",
+      "contentHash": "bc5b664e56b185ad0f17ede3c3156c0b6a3cea2fe4decfaa05da34a491af264b",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 88
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "PrismaClient"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 102,
+      "hasStructuralAnalysis": true
+    },
     "backend/packages/database/prisma/verify-private-media-public-urls.ts": {
       "filePath": "backend/packages/database/prisma/verify-private-media-public-urls.ts",
       "contentHash": "28721e484cf93e358265a156e5cec28df5f135f7449108a14a0dee865a7f1f9d",
@@ -17318,7 +17568,7 @@
     },
     "backend/packages/database/src/metrics.ts": {
       "filePath": "backend/packages/database/src/metrics.ts",
-      "contentHash": "0badb457f7d17e54dfea7123543e4fafd03593873237a3785197f791a18cef61",
+      "contentHash": "33351289371f460249240f14e08e1189e26657b8c0d340f8cf7302791df5586a",
       "functions": [
         {
           "name": "bindPrismaMetrics",
@@ -17362,7 +17612,7 @@
         "getMetricsContentType",
         "renderAppMetrics"
       ],
-      "totalLines": 260,
+      "totalLines": 261,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/openrouter.ts": {
@@ -18467,6 +18717,103 @@
         "VenueGeocoderClient"
       ],
       "totalLines": 487,
+      "hasStructuralAnalysis": true
+    },
+    "backend/scripts/load-mixed-rps.mjs": {
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "contentHash": "cb3ad9f1cbc50f5147647e44b43c118e65950472796f435a57363d4a0d615f2d",
+      "functions": [
+        {
+          "name": "parseArgs",
+          "params": [
+            "argv"
+          ],
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "parsePositiveInteger",
+          "params": [
+            "value",
+            "fallback"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "pickEndpoint",
+          "params": [
+            "requestIndex"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "percentile",
+          "params": [
+            "values",
+            "p"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "createEndpointStats",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "publicEndpointStats",
+          "params": [
+            "stats"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "sleep",
+          "params": [
+            "ms"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "createSlotWaiter",
+          "params": [],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "runRequest",
+          "params": [
+            "config",
+            "endpoint",
+            "statsByEndpoint",
+            "totals"
+          ],
+          "exported": false,
+          "lineCount": 47
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 62
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:perf_hooks",
+          "specifiers": [
+            "performance"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 298,
       "hasStructuralAnalysis": true
     },
     "backend/scripts/perf-20k-smoke.mjs": {

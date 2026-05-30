@@ -21,8 +21,8 @@
       "NestJS",
       "Prisma"
     ],
-    "analyzedAt": "2026-05-29T08:13:12.518Z",
-    "gitCommitHash": "3ba78007c42c7f1d5303f65892b9b762b3803f51"
+    "analyzedAt": "2026-05-30T09:42:35.394Z",
+    "gitCommitHash": "c6b35bd75d2e306f7e6c26cf07475579de2e4baf"
   },
   "nodes": [
     {
@@ -70,8 +70,8 @@
       "name": "ApiAppModule",
       "filePath": "backend/apps/api/src/app.module.ts",
       "lineRange": [
-        239,
-        243
+        241,
+        245
       ],
       "summary": "ApiAppModule in app.module.ts.",
       "tags": [
@@ -3912,7 +3912,7 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 2 classes, 83 functions.",
+      "summary": "evening-ai-draft.service.ts contains 2 classes, 84 functions.",
       "tags": [
         "backend",
         "code",
@@ -3926,8 +3926,8 @@
       "name": "durationMsSince",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3164,
-        3166
+        3296,
+        3298
       ],
       "summary": "durationMsSince in evening-ai-draft.service.ts.",
       "tags": [
@@ -3943,8 +3943,8 @@
       "name": "roundDurationMs",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3168,
-        3170
+        3300,
+        3302
       ],
       "summary": "roundDurationMs in evening-ai-draft.service.ts.",
       "tags": [
@@ -3960,8 +3960,8 @@
       "name": "emptyCandidateStats",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3172,
-        3179
+        3304,
+        3311
       ],
       "summary": "emptyCandidateStats in evening-ai-draft.service.ts.",
       "tags": [
@@ -3977,8 +3977,8 @@
       "name": "addCandidateSourceCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3181,
-        3194
+        3313,
+        3326
       ],
       "summary": "addCandidateSourceCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -3994,8 +3994,8 @@
       "name": "generatedRouteStatus",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3196,
-        3200
+        3328,
+        3332
       ],
       "summary": "generatedRouteStatus in evening-ai-draft.service.ts.",
       "tags": [
@@ -4011,8 +4011,8 @@
       "name": "areaOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3439,
-        3455
+        3571,
+        3587
       ],
       "summary": "areaOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -4028,8 +4028,8 @@
       "name": "emptyStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3457,
-        3465
+        3589,
+        3597
       ],
       "summary": "emptyStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -4045,8 +4045,8 @@
       "name": "normalizeStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3467,
-        3506
+        3599,
+        3638
       ],
       "summary": "normalizeStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -4062,8 +4062,8 @@
       "name": "normalizeStepLocationMode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3508,
-        3514
+        3640,
+        3646
       ],
       "summary": "normalizeStepLocationMode in evening-ai-draft.service.ts.",
       "tags": [
@@ -4079,8 +4079,8 @@
       "name": "normalizeStepLocationKind",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3516,
-        3522
+        3648,
+        3654
       ],
       "summary": "normalizeStepLocationKind in evening-ai-draft.service.ts.",
       "tags": [
@@ -4096,8 +4096,8 @@
       "name": "stepLocationCode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3524,
-        3533
+        3656,
+        3665
       ],
       "summary": "stepLocationCode in evening-ai-draft.service.ts.",
       "tags": [
@@ -4113,8 +4113,8 @@
       "name": "metroLocationCode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3535,
-        3556
+        3667,
+        3688
       ],
       "summary": "metroLocationCode in evening-ai-draft.service.ts.",
       "tags": [
@@ -4130,8 +4130,8 @@
       "name": "metroSlugFromToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3558,
-        3567
+        3690,
+        3699
       ],
       "summary": "metroSlugFromToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -4147,8 +4147,8 @@
       "name": "stepLocationTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3569,
-        3586
+        3701,
+        3718
       ],
       "summary": "stepLocationTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4164,8 +4164,8 @@
       "name": "hasStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3588,
-        3590
+        3720,
+        3722
       ],
       "summary": "hasStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -4181,8 +4181,8 @@
       "name": "candidateMatchesLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3592,
-        3604
+        3724,
+        3736
       ],
       "summary": "candidateMatchesLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -4198,8 +4198,8 @@
       "name": "locationAnchor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3606,
-        3615
+        3738,
+        3747
       ],
       "summary": "locationAnchor in evening-ai-draft.service.ts.",
       "tags": [
@@ -4215,8 +4215,8 @@
       "name": "locationRadiusKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3617,
-        3625
+        3749,
+        3757
       ],
       "summary": "locationRadiusKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -4232,8 +4232,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3646,
-        3650
+        3778,
+        3782
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -4249,8 +4249,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3652,
-        3661
+        3784,
+        3793
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -4266,8 +4266,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3663,
-        3665
+        3795,
+        3797
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -4283,8 +4283,8 @@
       "name": "integerFromEnv",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3667,
-        3674
+        3799,
+        3806
       ],
       "summary": "integerFromEnv in evening-ai-draft.service.ts.",
       "tags": [
@@ -4300,8 +4300,8 @@
       "name": "budgetOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3676,
-        3689
+        3808,
+        3821
       ],
       "summary": "budgetOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -4317,8 +4317,8 @@
       "name": "timezoneForCity",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3691,
-        3693
+        3823,
+        3825
       ],
       "summary": "timezoneForCity in evening-ai-draft.service.ts.",
       "tags": [
@@ -4334,8 +4334,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3695,
-        3703
+        3827,
+        3835
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -4351,8 +4351,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3705,
-        3710
+        3837,
+        3842
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -4368,8 +4368,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3712,
-        3720
+        3844,
+        3852
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -4385,8 +4385,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3722,
-        3724
+        3854,
+        3856
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -4402,8 +4402,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3726,
-        3728
+        3858,
+        3860
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -4419,8 +4419,8 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3730,
-        3738
+        3862,
+        3870
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -4436,8 +4436,8 @@
       "name": "promptTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3740,
-        3750
+        3872,
+        3882
       ],
       "summary": "promptTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -4453,8 +4453,8 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3752,
-        3754
+        3884,
+        3886
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -4470,8 +4470,8 @@
       "name": "promptExplicitStepCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3756,
-        3775
+        3888,
+        3907
       ],
       "summary": "promptExplicitStepCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -4487,8 +4487,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3777,
-        3786
+        3909,
+        3918
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -4504,8 +4504,8 @@
       "name": "taxonomyFromRows",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3788,
-        3803
+        3920,
+        3935
       ],
       "summary": "taxonomyFromRows in evening-ai-draft.service.ts.",
       "tags": [
@@ -4521,8 +4521,8 @@
       "name": "taxonomyTagsByPrefix",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3805,
-        3807
+        3937,
+        3939
       ],
       "summary": "taxonomyTagsByPrefix in evening-ai-draft.service.ts.",
       "tags": [
@@ -4538,8 +4538,8 @@
       "name": "shouldUseBarAlternative",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3809,
-        3822
+        3941,
+        3954
       ],
       "summary": "shouldUseBarAlternative in evening-ai-draft.service.ts.",
       "tags": [
@@ -4555,8 +4555,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3824,
-        3838
+        3956,
+        3970
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -4572,8 +4572,8 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3840,
-        3849
+        3972,
+        3981
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4589,8 +4589,8 @@
       "name": "candidateMatchesPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3851,
-        3855
+        3983,
+        3987
       ],
       "summary": "candidateMatchesPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4606,8 +4606,8 @@
       "name": "hasSpecificPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3857,
-        3859
+        3989,
+        3991
       ],
       "summary": "hasSpecificPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4623,8 +4623,8 @@
       "name": "candidateMatchesSpecificPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3861,
-        3874
+        3993,
+        4006
       ],
       "summary": "candidateMatchesSpecificPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4640,8 +4640,8 @@
       "name": "candidateMatchesIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3876,
-        3878
+        4008,
+        4010
       ],
       "summary": "candidateMatchesIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -4657,8 +4657,8 @@
       "name": "placeMatchMetadata",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3880,
-        3906
+        4012,
+        4038
       ],
       "summary": "placeMatchMetadata in evening-ai-draft.service.ts.",
       "tags": [
@@ -4674,8 +4674,8 @@
       "name": "substitutionReasonForMissingTraits",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3908,
-        3925
+        4040,
+        4057
       ],
       "summary": "substitutionReasonForMissingTraits in evening-ai-draft.service.ts.",
       "tags": [
@@ -4691,10 +4691,27 @@
       "name": "countIntentTaxonomyTagMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3927,
-        3934
+        4059,
+        4066
       ],
       "summary": "countIntentTaxonomyTagMatches in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:isStrongTomestoTaxonomyTag",
+      "type": "function",
+      "name": "isStrongTomestoTaxonomyTag",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4068,
+        4078
+      ],
+      "summary": "isStrongTomestoTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -4708,8 +4725,8 @@
       "name": "todayEventDateWindow",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3942,
-        3950
+        4086,
+        4094
       ],
       "summary": "todayEventDateWindow in evening-ai-draft.service.ts.",
       "tags": [
@@ -4725,8 +4742,8 @@
       "name": "localDateFromIsoDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3952,
-        3955
+        4096,
+        4099
       ],
       "summary": "localDateFromIsoDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4742,8 +4759,8 @@
       "name": "eventDateWindowFromStored",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3957,
-        3973
+        4101,
+        4117
       ],
       "summary": "eventDateWindowFromStored in evening-ai-draft.service.ts.",
       "tags": [
@@ -4759,8 +4776,8 @@
       "name": "eventDateWindowForLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3975,
-        3989
+        4119,
+        4133
       ],
       "summary": "eventDateWindowForLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4776,8 +4793,8 @@
       "name": "localDateFromValues",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3991,
-        4011
+        4135,
+        4155
       ],
       "summary": "localDateFromValues in evening-ai-draft.service.ts.",
       "tags": [
@@ -4793,8 +4810,8 @@
       "name": "zonedDateParts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4013,
-        4026
+        4157,
+        4170
       ],
       "summary": "zonedDateParts in evening-ai-draft.service.ts.",
       "tags": [
@@ -4810,8 +4827,8 @@
       "name": "localDateIso",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4028,
-        4030
+        4172,
+        4174
       ],
       "summary": "localDateIso in evening-ai-draft.service.ts.",
       "tags": [
@@ -4827,8 +4844,8 @@
       "name": "zonedTimeToUtc",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4032,
-        4062
+        4176,
+        4206
       ],
       "summary": "zonedTimeToUtc in evening-ai-draft.service.ts.",
       "tags": [
@@ -4844,8 +4861,8 @@
       "name": "sameLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4064,
-        4066
+        4208,
+        4210
       ],
       "summary": "sameLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4861,8 +4878,8 @@
       "name": "compareLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4068,
-        4070
+        4212,
+        4214
       ],
       "summary": "compareLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4878,8 +4895,8 @@
       "name": "validLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4072,
-        4077
+        4216,
+        4221
       ],
       "summary": "validLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -4895,8 +4912,8 @@
       "name": "intentStepCountFromGenerated",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4079,
-        4085
+        4223,
+        4229
       ],
       "summary": "intentStepCountFromGenerated in evening-ai-draft.service.ts.",
       "tags": [
@@ -4912,8 +4929,8 @@
       "name": "normalizedCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4087,
-        4102
+        4231,
+        4246
       ],
       "summary": "normalizedCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -4929,8 +4946,8 @@
       "name": "taxonomyTagQueriesForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4243,
-        4277
+        4387,
+        4421
       ],
       "summary": "taxonomyTagQueriesForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4946,8 +4963,8 @@
       "name": "specificTaxonomyTagsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4279,
-        4300
+        4423,
+        4444
       ],
       "summary": "specificTaxonomyTagsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4963,8 +4980,8 @@
       "name": "normalizeIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4302,
-        4308
+        4446,
+        4452
       ],
       "summary": "normalizeIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -4980,8 +4997,8 @@
       "name": "explicitIntentTaxonomyTagsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4310,
-        4319
+        4454,
+        4463
       ],
       "summary": "explicitIntentTaxonomyTagsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -4997,8 +5014,8 @@
       "name": "effectiveIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4321,
-        4329
+        4465,
+        4473
       ],
       "summary": "effectiveIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -5014,8 +5031,8 @@
       "name": "isIntentTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4331,
-        4343
+        4475,
+        4487
       ],
       "summary": "isIntentTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -5031,8 +5048,8 @@
       "name": "isStrongIntentTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4345,
-        4352
+        4489,
+        4496
       ],
       "summary": "isStrongIntentTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -5048,8 +5065,8 @@
       "name": "specificTextTermsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4354,
-        4378
+        4498,
+        4522
       ],
       "summary": "specificTextTermsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -5065,8 +5082,8 @@
       "name": "isSpecificTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4380,
-        4389
+        4524,
+        4533
       ],
       "summary": "isSpecificTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -5082,8 +5099,8 @@
       "name": "isSpecificDynamicTaxonomyTerm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4391,
-        4400
+        4535,
+        4544
       ],
       "summary": "isSpecificDynamicTaxonomyTerm in evening-ai-draft.service.ts.",
       "tags": [
@@ -5099,8 +5116,8 @@
       "name": "taxonomyTagsForNormalizedToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4402,
-        4417
+        4546,
+        4561
       ],
       "summary": "taxonomyTagsForNormalizedToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -5116,8 +5133,8 @@
       "name": "taxonomyTermMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4436,
-        4438
+        4580,
+        4582
       ],
       "summary": "taxonomyTermMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -5133,8 +5150,8 @@
       "name": "taxonomyAliasMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4440,
-        4445
+        4584,
+        4589
       ],
       "summary": "taxonomyAliasMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -5150,8 +5167,8 @@
       "name": "escapeRegExp",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4447,
-        4449
+        4591,
+        4593
       ],
       "summary": "escapeRegExp in evening-ai-draft.service.ts.",
       "tags": [
@@ -5167,8 +5184,8 @@
       "name": "normalizeTaxonomyToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4451,
-        4458
+        4595,
+        4602
       ],
       "summary": "normalizeTaxonomyToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -5184,8 +5201,8 @@
       "name": "transliterateRu",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4460,
-        4496
+        4604,
+        4640
       ],
       "summary": "transliterateRu in evening-ai-draft.service.ts.",
       "tags": [
@@ -5201,8 +5218,8 @@
       "name": "budgetFromText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4498,
-        4518
+        4642,
+        4662
       ],
       "summary": "budgetFromText in evening-ai-draft.service.ts.",
       "tags": [
@@ -5218,8 +5235,8 @@
       "name": "areaTermsFor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4520,
-        4529
+        4664,
+        4673
       ],
       "summary": "areaTermsFor in evening-ai-draft.service.ts.",
       "tags": [
@@ -5235,8 +5252,8 @@
       "name": "displayAreaForRoute",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4531,
-        4561
+        4675,
+        4705
       ],
       "summary": "displayAreaForRoute in evening-ai-draft.service.ts.",
       "tags": [
@@ -5252,8 +5269,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4563,
-        4565
+        4707,
+        4709
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -5269,8 +5286,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4567,
-        4569
+        4711,
+        4713
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -5286,8 +5303,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4571,
-        4577
+        4715,
+        4721
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -5303,8 +5320,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4579,
-        4592
+        4723,
+        4736
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -5320,8 +5337,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4594,
-        4596
+        4738,
+        4740
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -5337,8 +5354,8 @@
       "name": "AiDraftPhaseTracker",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        346,
-        404
+        358,
+        416
       ],
       "summary": "AiDraftPhaseTracker in evening-ai-draft.service.ts.",
       "tags": [
@@ -5354,8 +5371,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        407,
-        3162
+        419,
+        3294
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -5716,6 +5733,206 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "type": "file",
+      "name": "events-feed-cache.ts",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "summary": "events-feed-cache.ts contains 11 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:clean",
+      "type": "function",
+      "name": "clean",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        34,
+        42
+      ],
+      "summary": "clean in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:toFiniteNumber",
+      "type": "function",
+      "name": "toFiniteNumber",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        44,
+        62
+      ],
+      "summary": "toFiniteNumber in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:roundNumber",
+      "type": "function",
+      "name": "roundNumber",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        64,
+        68
+      ],
+      "summary": "roundNumber in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:clamp",
+      "type": "function",
+      "name": "clamp",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        70,
+        72
+      ],
+      "summary": "clamp in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:normalizeBounds",
+      "type": "function",
+      "name": "normalizeBounds",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        74,
+        97
+      ],
+      "summary": "normalizeBounds in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:normalizeLimit",
+      "type": "function",
+      "name": "normalizeLimit",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        99,
+        107
+      ],
+      "summary": "normalizeLimit in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:isTrue",
+      "type": "function",
+      "name": "isTrue",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        109,
+        111
+      ],
+      "summary": "isTrue in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:normalizeEventsFeedGeo",
+      "type": "function",
+      "name": "normalizeEventsFeedGeo",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        113,
+        130
+      ],
+      "summary": "normalizeEventsFeedGeo in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:shouldBypassEventsFeedCache",
+      "type": "function",
+      "name": "shouldBypassEventsFeedCache",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        132,
+        136
+      ],
+      "summary": "shouldBypassEventsFeedCache in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:eventsFeedCacheTtlSeconds",
+      "type": "function",
+      "name": "eventsFeedCacheTtlSeconds",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        138,
+        142
+      ],
+      "summary": "eventsFeedCacheTtlSeconds in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/events-feed-cache.ts:buildEventsFeedCacheKey",
+      "type": "function",
+      "name": "buildEventsFeedCacheKey",
+      "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
+      "lineRange": [
+        144,
+        168
+      ],
+      "summary": "buildEventsFeedCacheKey in events-feed-cache.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:backend/apps/api/src/services/events.service.ts",
       "type": "file",
       "name": "events.service.ts",
@@ -5734,8 +5951,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4774,
-        4804
+        5293,
+        5323
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -5751,8 +5968,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4806,
-        4810
+        5325,
+        5329
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -5768,8 +5985,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4812,
-        4814
+        5331,
+        5333
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -5785,8 +6002,8 @@
       "name": "cleanEventText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4816,
-        4822
+        5335,
+        5341
       ],
       "summary": "cleanEventText in events.service.ts.",
       "tags": [
@@ -5802,8 +6019,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4824,
-        4826
+        5343,
+        5345
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -5819,8 +6036,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        4828,
-        4847
+        5347,
+        5366
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -5836,8 +6053,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        255,
-        4772
+        301,
+        5291
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -7070,6 +7287,36 @@
         "structure"
       ],
       "complexity": "complex"
+    },
+    {
+      "id": "file:backend/apps/api/src/services/redis-cache.service.ts",
+      "type": "file",
+      "name": "redis-cache.service.ts",
+      "filePath": "backend/apps/api/src/services/redis-cache.service.ts",
+      "summary": "redis-cache.service.ts contains 1 classes.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/apps/api/src/services/redis-cache.service.ts:RedisCacheService",
+      "type": "class",
+      "name": "RedisCacheService",
+      "filePath": "backend/apps/api/src/services/redis-cache.service.ts",
+      "lineRange": [
+        5,
+        71
+      ],
+      "summary": "RedisCacheService in redis-cache.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "file:backend/apps/api/src/services/safety.service.ts",
@@ -22930,6 +23177,36 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/packages/database/prisma/verify-postgis-event-geo.ts",
+      "type": "file",
+      "name": "verify-postgis-event-geo.ts",
+      "filePath": "backend/packages/database/prisma/verify-postgis-event-geo.ts",
+      "summary": "verify-postgis-event-geo.ts contains 1 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "typescript"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/packages/database/prisma/verify-postgis-event-geo.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/packages/database/prisma/verify-postgis-event-geo.ts",
+      "lineRange": [
+        5,
+        92
+      ],
+      "summary": "main in verify-postgis-event-geo.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "file:backend/packages/database/prisma/verify-private-media-public-urls.ts",
       "type": "file",
       "name": "verify-private-media-public-urls.ts",
@@ -24035,8 +24312,8 @@
       "name": "bindPrismaMetrics",
       "filePath": "backend/packages/database/src/metrics.ts",
       "lineRange": [
-        204,
-        224
+        205,
+        225
       ],
       "summary": "bindPrismaMetrics in metrics.ts.",
       "tags": [
@@ -24052,8 +24329,8 @@
       "name": "getMetricsContentType",
       "filePath": "backend/packages/database/src/metrics.ts",
       "lineRange": [
-        257,
-        257
+        258,
+        258
       ],
       "summary": "getMetricsContentType in metrics.ts.",
       "tags": [
@@ -24069,8 +24346,8 @@
       "name": "renderAppMetrics",
       "filePath": "backend/packages/database/src/metrics.ts",
       "lineRange": [
-        259,
-        259
+        260,
+        260
       ],
       "summary": "renderAppMetrics in metrics.ts.",
       "tags": [
@@ -25836,6 +26113,189 @@
       "complexity": "simple"
     },
     {
+      "id": "file:backend/scripts/load-mixed-rps.mjs",
+      "type": "file",
+      "name": "load-mixed-rps.mjs",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "summary": "load-mixed-rps.mjs contains 10 functions.",
+      "tags": [
+        "backend",
+        "code",
+        "javascript"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:parseArgs",
+      "type": "function",
+      "name": "parseArgs",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        49,
+        88
+      ],
+      "summary": "parseArgs in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:parsePositiveInteger",
+      "type": "function",
+      "name": "parsePositiveInteger",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        90,
+        102
+      ],
+      "summary": "parsePositiveInteger in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:pickEndpoint",
+      "type": "function",
+      "name": "pickEndpoint",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        104,
+        116
+      ],
+      "summary": "pickEndpoint in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:percentile",
+      "type": "function",
+      "name": "percentile",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        118,
+        129
+      ],
+      "summary": "percentile in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:createEndpointStats",
+      "type": "function",
+      "name": "createEndpointStats",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        131,
+        140
+      ],
+      "summary": "createEndpointStats in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:publicEndpointStats",
+      "type": "function",
+      "name": "publicEndpointStats",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        142,
+        155
+      ],
+      "summary": "publicEndpointStats in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:sleep",
+      "type": "function",
+      "name": "sleep",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        157,
+        165
+      ],
+      "summary": "sleep in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:createSlotWaiter",
+      "type": "function",
+      "name": "createSlotWaiter",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        167,
+        181
+      ],
+      "summary": "createSlotWaiter in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:runRequest",
+      "type": "function",
+      "name": "runRequest",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        183,
+        229
+      ],
+      "summary": "runRequest in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        231,
+        292
+      ],
+      "summary": "main in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
       "id": "file:backend/scripts/perf-20k-smoke.mjs",
       "type": "file",
       "name": "perf-20k-smoke.mjs",
@@ -26623,7 +27083,7 @@
       "type": "service",
       "name": "deploy.sh",
       "filePath": "scripts/deploy.sh",
-      "summary": "deploy.sh contains 2 functions.",
+      "summary": "deploy.sh contains 5 functions.",
       "tags": [
         "scripts",
         "infra",
@@ -26636,13 +27096,13 @@
       "type": "service",
       "name": "setup-api-ssl.sh",
       "filePath": "scripts/setup-api-ssl.sh",
-      "summary": "setup-api-ssl.sh is a infra file for scripts.",
+      "summary": "setup-api-ssl.sh contains 1 functions.",
       "tags": [
         "scripts",
         "infra",
         "shell"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "service:scripts/ua-query.mjs",
@@ -29744,6 +30204,13 @@
     },
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:isStrongTomestoTaxonomyTag",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:todayEventDateWindow",
       "type": "contains",
       "direction": "forward",
@@ -30123,6 +30590,83 @@
     {
       "source": "file:backend/apps/api/src/services/event-capacity.ts",
       "target": "function:backend/apps/api/src/services/event-capacity.ts:assertEventCapacityAvailable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:clean",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:toFiniteNumber",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:roundNumber",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:clamp",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:normalizeBounds",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:normalizeLimit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:isTrue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:normalizeEventsFeedGeo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:shouldBypassEventsFeedCache",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:eventsFeedCacheTtlSeconds",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events-feed-cache.ts",
+      "target": "function:backend/apps/api/src/services/events-feed-cache.ts:buildEventsFeedCacheKey",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -30585,6 +31129,13 @@
     {
       "source": "file:backend/apps/api/src/services/profile.service.ts",
       "target": "class:backend/apps/api/src/services/profile.service.ts:ProfileService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/redis-cache.service.ts",
+      "target": "class:backend/apps/api/src/services/redis-cache.service.ts:RedisCacheService",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -36190,6 +36741,13 @@
       "weight": 1
     },
     {
+      "source": "file:backend/packages/database/prisma/verify-postgis-event-geo.ts",
+      "target": "function:backend/packages/database/prisma/verify-postgis-event-geo.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/packages/database/prisma/verify-private-media-public-urls.ts",
       "target": "function:backend/packages/database/prisma/verify-private-media-public-urls.ts:main",
       "type": "contains",
@@ -37226,6 +37784,76 @@
       "weight": 1
     },
     {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:parseArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:parsePositiveInteger",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:pickEndpoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:percentile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:createEndpointStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:publicEndpointStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:sleep",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:createSlotWaiter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:runRequest",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
       "source": "file:backend/scripts/perf-20k-smoke.mjs",
       "target": "function:backend/scripts/perf-20k-smoke.mjs:parseArgs",
       "type": "contains",
@@ -38187,6 +38815,13 @@
     {
       "source": "file:backend/apps/api/src/app.module.ts",
       "target": "file:backend/apps/api/src/services/tbank-acquiring.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/app.module.ts",
+      "target": "file:backend/apps/api/src/services/redis-cache.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -39852,7 +40487,21 @@
     },
     {
       "source": "file:backend/apps/api/src/services/events.service.ts",
+      "target": "file:backend/apps/api/src/services/redis-cache.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events.service.ts",
       "target": "file:backend/apps/api/src/services/subscription.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/events.service.ts",
+      "target": "file:backend/apps/api/src/services/events-feed-cache.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -41812,6 +42461,7 @@
         "file:backend/apps/api/src/services/evening-route-template.service.ts",
         "file:backend/apps/api/src/services/evening.service.ts",
         "file:backend/apps/api/src/services/event-capacity.ts",
+        "file:backend/apps/api/src/services/events-feed-cache.ts",
         "file:backend/apps/api/src/services/events.service.ts",
         "file:backend/apps/api/src/services/host.service.ts",
         "file:backend/apps/api/src/services/matches.service.ts",
@@ -41830,6 +42480,7 @@
         "file:backend/apps/api/src/services/places.service.ts",
         "file:backend/apps/api/src/services/prisma.service.ts",
         "file:backend/apps/api/src/services/profile.service.ts",
+        "file:backend/apps/api/src/services/redis-cache.service.ts",
         "file:backend/apps/api/src/services/safety.service.ts",
         "file:backend/apps/api/src/services/search.service.ts",
         "file:backend/apps/api/src/services/settings.service.ts",
@@ -41894,6 +42545,7 @@
         "config:backend/package.json",
         "config:backend/pnpm-workspace.yaml",
         "document:backend/README.md",
+        "file:backend/scripts/load-mixed-rps.mjs",
         "file:backend/scripts/perf-20k-smoke.mjs",
         "file:backend/scripts/perf-hotpaths.mjs",
         "config:backend/tsconfig.base.json"
@@ -42460,6 +43112,7 @@
         "file:backend/packages/database/prisma/seed-test-accounts.ts",
         "file:backend/packages/database/prisma/seed.ts",
         "file:backend/packages/database/prisma/verify-chat-unread-counts.ts",
+        "file:backend/packages/database/prisma/verify-postgis-event-geo.ts",
         "file:backend/packages/database/prisma/verify-private-media-public-urls.ts",
         "file:backend/packages/database/prisma/verify-s3-upload-cors.ts",
         "file:backend/packages/database/src/auth-tokens.ts",
