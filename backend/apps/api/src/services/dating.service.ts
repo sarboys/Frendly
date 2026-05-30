@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { DatingActionKind, Prisma } from '@prisma/client';
 import {
   OUTBOX_EVENT_TYPES,
@@ -10,6 +11,7 @@ import { ApiError } from '../common/api-error';
 import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
 import { PeopleService } from './people.service';
+import { RedisCacheService } from './redis-cache.service';
 import { SubscriptionService } from './subscription.service';
 import { TokensService } from './tokens.service';
 
@@ -27,6 +29,7 @@ const PAID_REWIND_COST = 25;
 const FREE_SWIPE_HOURLY_LIMIT = 100;
 const MOSCOW_UTC_OFFSET_MS = 3 * 60 * 60 * 1000;
 const DATING_PROFILE_PHOTO_LIMIT = 6;
+const DATING_DISCOVER_CACHE_SECONDS = 5;
 const DATING_PROFILE_PHOTO_MEDIA_SELECT = {
   id: true,
   kind: true,
@@ -184,6 +187,10 @@ type DatingDiscoverCursor = {
   cycle: 'fresh' | 'pass';
   bufferIds: string[];
 };
+type DatingDiscoverResult = {
+  items: any[];
+  nextCursor: string | null;
+};
 
 const _datingLocationByCityArea: Record<
   string,
@@ -237,9 +244,19 @@ export class DatingService {
     private readonly peopleService: PeopleService,
     private readonly subscriptionService: SubscriptionService,
     private readonly tokensService?: TokensService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
-  async listDiscover(userId: string, params: DatingDiscoverParams = {}) {
+  async listDiscover(
+    userId: string,
+    params: DatingDiscoverParams = {},
+  ): Promise<DatingDiscoverResult> {
+    const cacheKey = await this.datingDiscoverCacheKey(userId, params);
+    const cached = await this.readDatingDiscoverCache(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -340,7 +357,7 @@ export class DatingService {
       cycle: nextCycle,
     });
 
-    return {
+    const result = {
       items: page.map((candidate) =>
         this.mapDatingProfile(candidate.user, selfInterests, {
           likedYou: candidate.likedYou,
@@ -349,6 +366,9 @@ export class DatingService {
       ),
       nextCursor,
     };
+    await this.writeDatingDiscoverCache(cacheKey, result);
+
+    return result;
   }
 
   private buildDiscoverWhere(params: {
@@ -904,6 +924,12 @@ export class DatingService {
     const chat = matched
       ? await this.peopleService.createOrGetDirectChat(userId, targetUserId)
       : null;
+    if (actionChanged) {
+      await Promise.all([
+        this.incrementDatingDiscoverVersion(userId),
+        this.incrementDatingDiscoverVersion(targetUserId),
+      ]);
+    }
 
     return {
       ok: true,
@@ -992,6 +1018,7 @@ export class DatingService {
       });
       return quota;
     });
+    await this.incrementDatingDiscoverVersion(userId);
 
     return {
       ok: true,
@@ -1712,6 +1739,92 @@ export class DatingService {
     }
 
     return Math.max(1, Math.min(Math.trunc(limit), 50));
+  }
+
+  private async datingDiscoverCacheKey(
+    userId: string,
+    params: DatingDiscoverParams,
+  ) {
+    if (this.redisCache == null || params.cursor != null) {
+      return null;
+    }
+
+    const version =
+      (await this.redisCache.getJson<number>(
+        this.datingDiscoverVersionKey(userId),
+      )) ?? 0;
+    const digest = createHash('sha1')
+      .update(
+        JSON.stringify({
+          userId,
+          limit: this.normalizeListLimit(params.limit),
+          gender: params.gender ?? null,
+          ageMin: this.normalizeOptionalNumber(params.ageMin),
+          ageMax: this.normalizeOptionalNumber(params.ageMax),
+          radiusKm: this.normalizeOptionalNumber(params.radiusKm),
+          interests: [...(params.interests ?? [])].sort(),
+          verifiedOnly: params.verifiedOnly === true,
+          onlineOnly: params.onlineOnly === true,
+          newThisWeekOnly: params.newThisWeekOnly === true,
+          version,
+        }),
+      )
+      .digest('hex');
+
+    return `dating:discover:v1:${digest}`;
+  }
+
+  private async readDatingDiscoverCache(cacheKey: string | null) {
+    if (cacheKey == null) {
+      return null;
+    }
+
+    const cached =
+      await this.redisCache?.getJson<DatingDiscoverResult>(cacheKey);
+    if (
+      cached == null ||
+      !Array.isArray(cached.items) ||
+      (cached.nextCursor !== null && typeof cached.nextCursor !== 'string')
+    ) {
+      return null;
+    }
+
+    return cached;
+  }
+
+  private async writeDatingDiscoverCache(
+    cacheKey: string | null,
+    result: DatingDiscoverResult,
+  ) {
+    if (cacheKey == null) {
+      return;
+    }
+
+    await this.redisCache?.setJson(
+      cacheKey,
+      result,
+      this.datingDiscoverCacheTtlSeconds(),
+    );
+  }
+
+  private async incrementDatingDiscoverVersion(userId: string) {
+    await this.redisCache?.increment(this.datingDiscoverVersionKey(userId));
+  }
+
+  private datingDiscoverVersionKey(userId: string) {
+    return `dating:discover-version:v1:${userId}`;
+  }
+
+  private datingDiscoverCacheTtlSeconds() {
+    const value = Number(process.env.DATING_DISCOVER_CACHE_SECONDS);
+
+    return Number.isFinite(value) && value > 0
+      ? Math.trunc(value)
+      : DATING_DISCOVER_CACHE_SECONDS;
+  }
+
+  private normalizeOptionalNumber(value?: number) {
+    return value == null || !Number.isFinite(value) ? null : value;
   }
 
   private decodeCursor(cursor?: string) {

@@ -6,6 +6,49 @@ const plusAccess = {
 };
 
 describe('DatingService unit', () => {
+  it('returns cached first discover page without Prisma reads', async () => {
+    const cached = {
+      items: [],
+      nextCursor: null,
+    };
+    const redisCache = {
+      getJson: jest.fn()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(cached),
+      setJson: jest.fn(),
+      increment: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const userFindMany = jest.fn();
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: userFindUnique,
+            findMany: userFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn(),
+          },
+          datingAction: {
+            findMany: jest.fn(),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+      undefined,
+      redisCache as any,
+    );
+
+    await expect(service.listDiscover('user-me')).resolves.toEqual(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith(
+      expect.stringContaining('dating:discover:v1:'),
+    );
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(userFindMany).not.toHaveBeenCalled();
+  });
+
   it('does not load all prior dating actions before discover query', async () => {
     const datingActionFindMany = jest.fn().mockImplementation(() => {
       throw new Error('should not load all prior dating actions');

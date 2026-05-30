@@ -177,12 +177,60 @@ describe('AfficheService', () => {
         contentKind: 'event',
         publicStatus: 'published',
         priceMode: { in: ['free', 'paid'] },
-        NOT: { raw: { path: ['kind'], equals: 'movie_showing' } },
       }),
     }));
     const findFirstArgs = findFirst.mock.calls[0][0];
     expect(findFirstArgs).not.toHaveProperty('include');
-    expect(findFirstArgs.select).not.toHaveProperty('raw');
+    expect(findFirstArgs.select).toHaveProperty('raw', true);
+  });
+
+  it('opens imported events that do not have a raw kind', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'event-without-kind',
+        title: 'Imported event without raw kind',
+        moderationStatus: 'pending',
+        raw: {},
+      }),
+    );
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst,
+        },
+      },
+    } as any);
+
+    const result = await service.getEvent('event-without-kind');
+
+    expect(result.id).toBe('event-without-kind');
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        id: 'event-without-kind',
+        publicStatus: 'published',
+        moderationStatus: { not: 'rejected' },
+      }),
+    }));
+  });
+
+  it('does not expose movie showings through affiche detail', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'movie-showing',
+        raw: { kind: 'movie_showing' },
+      }),
+    );
+    const service = new AfficheService({
+      client: {
+        externalContentItem: {
+          findFirst,
+        },
+      },
+    } as any);
+
+    await expect(service.getEvent('movie-showing')).rejects.toMatchObject({
+      code: 'affiche_event_not_found',
+    });
   });
 
   it('saves valid Ticketland client coordinates and enrichment metadata', async () => {

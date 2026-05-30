@@ -61,8 +61,17 @@ const afficheEventSelect = {
   },
 } satisfies Prisma.ExternalContentItemSelect;
 
+const afficheEventDetailSelect = {
+  ...afficheEventSelect,
+  raw: true,
+} satisfies Prisma.ExternalContentItemSelect;
+
 type AfficheEventRecord = Prisma.ExternalContentItemGetPayload<{
   select: typeof afficheEventSelect;
+}>;
+
+type AfficheEventDetailRecord = Prisma.ExternalContentItemGetPayload<{
+  select: typeof afficheEventDetailSelect;
 }>;
 
 type AfficheImageNotModified = {
@@ -175,11 +184,10 @@ export class AfficheService {
         publicStatus: 'published',
         moderationStatus: { not: 'rejected' },
         priceMode: { in: ['free', 'paid'] },
-        NOT: this.movieShowingWhere(),
       },
-      select: afficheEventSelect,
+      select: afficheEventDetailSelect,
     });
-    if (!item) {
+    if (!item || this.isMovieShowing(item.raw)) {
       throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
     }
     return this.mapEvent(item);
@@ -1126,6 +1134,13 @@ export class AfficheService {
 
   private movieShowingWhere(): Prisma.ExternalContentItemWhereInput {
     return { raw: { path: ['kind'], equals: 'movie_showing' } as any };
+  }
+
+  private isMovieShowing(raw: AfficheEventDetailRecord['raw']) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return false;
+    }
+    return (raw as Record<string, unknown>).kind === 'movie_showing';
   }
 }
 

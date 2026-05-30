@@ -9,6 +9,7 @@ export class RedisCacheService implements OnModuleDestroy {
     this.redis =
       redis ??
       new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+        connectTimeout: 200,
         maxRetriesPerRequest: 1,
         enableReadyCheck: true,
         lazyConnect: true,
