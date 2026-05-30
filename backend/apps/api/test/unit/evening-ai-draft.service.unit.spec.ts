@@ -2438,7 +2438,7 @@ describe('EveningAiDraftService unit', () => {
           steps: [
             {
               role: 'place_bar',
-              taxonomyTags: [],
+              taxonomyTags: ['place:bar'],
               preferredTerms: [],
               avoidTerms: [],
               instruction: 'Подобрать бар.',

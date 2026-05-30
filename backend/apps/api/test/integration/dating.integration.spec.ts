@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { buildDirectChatKey, buildPublicAssetUrl } from '@big-break/database';
 import { ApiAppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/services/prisma.service';
+import { RedisCacheService } from '../../src/services/redis-cache.service';
 import { seedIntegrationTestData } from './seed-test-data';
 
 jest.setTimeout(30000);
@@ -16,6 +17,7 @@ describe('dating api flows', () => {
   let sonyaAccessToken = '';
   let olegAccessToken = '';
   let markAccessToken = '';
+  let redisCache: RedisCacheService;
 
   const futureIso = (daysFromNow: number, hourUtc: number, minute = 0) => {
     const date = new Date();
@@ -49,6 +51,7 @@ describe('dating api flows', () => {
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = moduleRef.get(PrismaService).client;
+    redisCache = moduleRef.get(RedisCacheService);
     await seedIntegrationTestData(prisma);
 
     accessToken = (
@@ -81,6 +84,13 @@ describe('dating api flows', () => {
   });
 
   beforeEach(async () => {
+    await Promise.all([
+      redisCache.increment('dating:discover-version:v1:user-me'),
+      redisCache.increment('dating:discover-version:v1:user-sonya'),
+      redisCache.increment('dating:discover-version:v1:user-oleg'),
+      redisCache.increment('dating:discover-version:v1:user-mark'),
+    ]);
+
     await prisma.userSubscription.deleteMany({
       where: {
         userId: {
