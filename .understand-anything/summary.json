@@ -16,7 +16,7 @@
     "config": 22,
     "file": 216,
     "class": 161,
-    "function": 732,
+    "function": 735,
     "service": 23,
     "pipeline": 16,
     "table": 505,
@@ -27,7 +27,7 @@
     "step": 65
   },
   "edgeTypes": {
-    "contains": 1327,
+    "contains": 1330,
     "imports": 514,
     "contains_flow": 12,
     "flow_step": 65,

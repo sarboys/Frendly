@@ -1,11 +1,11 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "c6b35bd75d2e306f7e6c26cf07475579de2e4baf",
-  "generatedAt": "2026-05-30T09:42:35.646Z",
+  "gitCommitHash": "762c9475e9e0cef7c52f04bd70a3bc13959ca6b1",
+  "generatedAt": "2026-05-30T10:40:10.087Z",
   "files": {
     "backend/apps/api/src/app.module.ts": {
       "filePath": "backend/apps/api/src/app.module.ts",
-      "contentHash": "da5f2e5673e061365c7d347066e3280ebb3b89f0864fded165bd3ea01cfcf836",
+      "contentHash": "078ecc2f876e328d931dbca912c81770b52e751edfd91a9750c6c0e561a4e0e0",
       "functions": [],
       "classes": [
         {
@@ -7033,7 +7033,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "0b6e847444c9f49d93b63defc7de113eceedbc7fbee9bf6ee93b2634d04e8f31",
+      "contentHash": "1d4c56af4b9467c3a6c231b55f4f3ecbb5fbc312e0c77378178e7f8544e548fa",
       "functions": [
         {
           "name": "durationMsSince",
@@ -7249,6 +7249,14 @@
           "lineCount": 9
         },
         {
+          "name": "uniqueNumbers",
+          "params": [
+            "values"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
           "name": "numberOrNull",
           "params": [
             "value"
@@ -7306,6 +7314,22 @@
           ],
           "exported": false,
           "lineCount": 3
+        },
+        {
+          "name": "uniqueRawStrings",
+          "params": [
+            "values"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "intersectNonEmptyLists",
+          "params": [
+            "lists"
+          ],
+          "exported": false,
+          "lineCount": 9
         },
         {
           "name": "promptExplicitStepCount",
@@ -7802,6 +7826,8 @@
             "confirmDraft",
             "loadDraft",
             "generateRouteWithFallback",
+            "generateRouteLlmAttempt",
+            "routeLlmAttemptDiagnostics",
             "deterministicRoute",
             "routeFromGenerated",
             "loadCandidatePack",
@@ -7864,8 +7890,15 @@
             "intentResponseFormat",
             "systemPrompt",
             "userPrompt",
+            "routePromptContext",
+            "routeRetryInstructions",
+            "routeRetryCandidateIds",
+            "routePromptCandidates",
+            "routePromptStepRequirements",
+            "routePromptCandidateStepMatches",
             "responseFormat",
             "validateGeneratedRoute",
+            "hasHardPreferredTermsForValidation",
             "stepRecordFromDto",
             "stepMatchMetadataFromDto",
             "hiddenExternalId",
@@ -7879,7 +7912,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 2876
+          "lineCount": 3213
         }
       ],
       "imports": [
@@ -7945,7 +7978,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 4741,
+      "totalLines": 5112,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -8425,7 +8458,7 @@
     },
     "backend/apps/api/src/services/events-feed-cache.ts": {
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
-      "contentHash": "c2ac75a4b8a9d8e46e67ab4112c2a81fa3aef13115ba0c78357dd05c95814b5b",
+      "contentHash": "118342bcf23e6b234ef7a920a8e80762d527b21f46532a4c2650b5e1d9ff24b2",
       "functions": [
         {
           "name": "clean",
@@ -8550,7 +8583,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "8d953f9f17fb584b43542729e4ea03237fce3f4de0cc66b8a1c7b741dcff0f8e",
+      "contentHash": "542d171c2a8bdfc0b37e4255f5c258a1b6a46cc470e22fba483159db96e5e94b",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -10556,7 +10589,7 @@
     },
     "backend/apps/api/src/services/redis-cache.service.ts": {
       "filePath": "backend/apps/api/src/services/redis-cache.service.ts",
-      "contentHash": "90509de26fae300e2893635d6ac32f9a36aa4272c824d108b568a9e91e94bc8a",
+      "contentHash": "10aec1c43a5d4a3f4c096dcef221690fa3abd6d7cb0726be688f584aad103f3c",
       "functions": [],
       "classes": [
         {
@@ -16818,7 +16851,7 @@
     },
     "backend/packages/database/prisma/verify-postgis-event-geo.ts": {
       "filePath": "backend/packages/database/prisma/verify-postgis-event-geo.ts",
-      "contentHash": "bc5b664e56b185ad0f17ede3c3156c0b6a3cea2fe4decfaa05da34a491af264b",
+      "contentHash": "ca9df1b506eeb91318f0240687cf008f0601df01e015094cc06598d8167446c6",
       "functions": [
         {
           "name": "main",
@@ -18721,7 +18754,7 @@
     },
     "backend/scripts/load-mixed-rps.mjs": {
       "filePath": "backend/scripts/load-mixed-rps.mjs",
-      "contentHash": "cb3ad9f1cbc50f5147647e44b43c118e65950472796f435a57363d4a0d615f2d",
+      "contentHash": "f4ce3ed0007e3cdf6763a9fa013b79b924d661698c9794143e3754a13b947b00",
       "functions": [
         {
           "name": "parseArgs",

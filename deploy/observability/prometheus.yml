@@ -13,6 +13,8 @@ scrape_configs:
       - targets:
           - api_a:3000
           - api_b:3000
+          - api_c:3000
+          - api_d:3000
         labels:
           topology: scale
 

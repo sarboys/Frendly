@@ -95,7 +95,7 @@ if compose_extra_includes compose.scale.yml; then
   for forbidden_service in api chat worker; do
     if [[ " ${RUNTIME_SERVICES} " == *" ${forbidden_service} "* ]]; then
       echo "Scale mode must not include base runtime service: ${forbidden_service}" >&2
-      echo "Use api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules instead." >&2
+      echo "Use api_a api_b api_c api_d chat_a chat_b worker_realtime worker_content worker_schedules instead." >&2
       exit 1
     fi
   done
@@ -119,7 +119,7 @@ verify_scale_nginx_routes() {
   local nginx_config
   local nginx_service
 
-  for service in api_a api_b chat_a chat_b; do
+  for service in api_a api_b api_c api_d chat_a chat_b; do
     if ! docker_compose ps --status running --services "$service" | grep -qx "$service"; then
       echo "Scale service is not running: ${service}" >&2
       docker_compose ps || true
@@ -138,7 +138,7 @@ verify_scale_nginx_routes() {
     exit 1
   fi
 
-  for service in "api_a:3000" "api_b:3000" "chat_a:3001" "chat_b:3001"; do
+  for service in "api_a:3000" "api_b:3000" "api_c:3000" "api_d:3000" "chat_a:3001" "chat_b:3001"; do
     if ! grep -Fq "server ${service}" <<< "$nginx_config"; then
       echo "Nginx scale config does not route to ${service}" >&2
       exit 1
@@ -241,7 +241,7 @@ df -h / /tmp || true
 docker system df || true
 docker_compose rm -sf migrate || true
 docker ps -aq \
-  --filter 'name=^/?([0-9a-f]+_)?frendly-backend-(api|api_a|api_b|chat|chat_a|chat_b|worker|worker_realtime|worker_content|worker_schedules|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
+  --filter 'name=^/?([0-9a-f]+_)?frendly-backend-(api|api_a|api_b|api_c|api_d|chat|chat_a|chat_b|worker|worker_realtime|worker_content|worker_schedules|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
   | xargs -r docker rm -f
 docker container prune -f || true
 docker image prune -f || true

@@ -6,8 +6,9 @@ Environment:
 
 - API: `https://api.frendly.tech`.
 - App node: VPS1.
-- Current DB runtime still points to local VPS1 Postgres through local PgBouncer.
-- External DB server is prepared, but production env is not cut over to it yet.
+- Current DB runtime points to DB-host PgBouncer on `192.168.0.6:6432`.
+- Migration direct DB points to DB-host Postgres on `192.168.0.6:5432`.
+- VPS1 runs Redis and scale app runtime only. Local Postgres and local PgBouncer containers are not running after cutover.
 - Auth used a seeded QA account. Token and auth headers are not stored here.
 
 ## Prechecks
@@ -25,6 +26,7 @@ Environment:
 | 10 RPS cold smoke, 10s | 100 | 100 | 0 | 0 | 300 | 1179 | 1410 | fail, p95 above 800 |
 | 10 RPS warm smoke, 10s | 100 | 100 | 0 | 0 | 274 | 734 | 814 | pass overall |
 | 50 RPS warm stage, 30s | 1500 | 1500 | 0 | 0 | 290 | 857 | 1269 | fail, p95 above 800 |
+| 50 RPS warm stage after external DB cutover, 30s | 1500 | 1500 | 0 | 0 | 326 | 864 | 1242 | fail, p95 above 800 |
 
 ## 50 RPS Endpoint Breakdown
 
@@ -43,6 +45,10 @@ Environment:
 - Nginx peaked around 21% CPU in sampled output.
 - Redis memory stayed about 15 MiB.
 - Postgres and PgBouncer were low after the run. PgBouncer had no waiting clients.
+- After external DB cutover, 50 RPS still had `cl_waiting=0` on DB-host PgBouncer.
+- After external DB cutover, DB server memory stayed healthy, about 7.2 GiB available after the run.
+- After external DB cutover, VPS1 memory stayed healthy, about 9.4 GiB available after the run.
+- After external DB cutover, `api_a` and `api_b` again exceeded the CPU gate during the active 50 RPS window, with samples around 70-111% CPU per container.
 
 ## Decision
 
@@ -52,11 +58,12 @@ Reason:
 
 - Gate requires p95 under 800 ms.
 - 50 RPS p95 was 857 ms, with `/events`, `/dating/discover` and `/affiche/events` above target.
-- Current production runtime still uses local VPS1 Postgres and local PgBouncer, not the prepared external DB server.
+- External DB cutover removed PgBouncer wait and DB server pressure as the likely bottleneck.
+- The remaining 50 RPS failure is API CPU and endpoint cost, especially `/events`, `/dating/discover` and `/affiche/events`.
 - Mobile map throttling is not implemented in this branch because `mobile2/` is absent from this worktree HEAD.
 
 Next checks:
 
-- Cut over to DB server only after dump/restore and rollback window are ready.
-- Deploy the Redis `/events` cache code from this branch before repeating load gates.
-- Re-run warm 50 RPS after deploy. Continue to 100 RPS only if p95 is below 800 ms and API CPU is not sustained above 70%.
+- Add `api_c` and `api_d` only after cache, PostGIS and external DB are active.
+- Re-run warm 50 RPS after deploying four API containers.
+- Continue to 100 RPS only if p95 is below 800 ms and API CPU is not sustained above 70%.
