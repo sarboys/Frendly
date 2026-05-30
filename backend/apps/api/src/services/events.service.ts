@@ -94,6 +94,11 @@ type EventListBasePage = {
   hasMore: boolean;
 };
 
+type EventListResponse = {
+  items: any[];
+  nextCursor: string | null;
+};
+
 type EventParticipantCount = {
   eventId: string;
   _count: {
@@ -467,6 +472,13 @@ export class EventsService {
     )
       ? await this.eventsFeedCacheKey(userId, params)
       : null;
+    const cachedResponse = cacheKey == null
+      ? null
+      : await this.loadCachedEventListResponse(cacheKey);
+    if (cachedResponse != null) {
+      return cachedResponse;
+    }
+
     const { page, hasMore } = cacheKey == null
       ? await loadBasePage()
       : await this.loadCachedEventBasePage(
@@ -604,13 +616,23 @@ export class EventsService {
       }),
     );
 
-    return {
+    const response = {
       items: mapped,
       nextCursor:
         hasMore && page.length > 0
           ? this.encodeListCursor(page[page.length - 1]!)
           : null,
     };
+
+    if (cacheKey != null) {
+      await this.storeCachedEventListResponse(
+        cacheKey,
+        response,
+        Math.min(eventsFeedCacheTtlSeconds(params), 5),
+      );
+    }
+
+    return response;
   }
 
   async listPublicActiveMeetups(params: { city?: string; limit?: number }) {
@@ -3453,6 +3475,48 @@ export class EventsService {
     }
 
     return loaded;
+  }
+
+  private async loadCachedEventListResponse(
+    cacheKey: string,
+  ): Promise<EventListResponse | null> {
+    try {
+      const cached = await this.redisCache?.getJson<EventListResponse>(
+        this.eventsFeedResponseCacheKey(cacheKey),
+      );
+
+      if (
+        cached != null &&
+        Array.isArray(cached.items) &&
+        (cached.nextCursor == null || typeof cached.nextCursor === 'string')
+      ) {
+        return cached;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private async storeCachedEventListResponse(
+    cacheKey: string,
+    response: EventListResponse,
+    ttlSeconds: number,
+  ): Promise<void> {
+    try {
+      await this.redisCache?.setJson(
+        this.eventsFeedResponseCacheKey(cacheKey),
+        response,
+        ttlSeconds,
+      );
+    } catch {
+      return;
+    }
+  }
+
+  private eventsFeedResponseCacheKey(cacheKey: string): string {
+    return `${cacheKey}:response:v1`;
   }
 
   private async isCachedEventBasePageStillVisible(

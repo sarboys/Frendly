@@ -852,7 +852,19 @@ describe('EventsService unit', () => {
       }),
     );
     expect(eventFindFirst).toHaveBeenCalledTimes(1);
-    expect(cache.setJson).not.toHaveBeenCalled();
+    expect(cache.setJson).toHaveBeenCalledWith(
+      expect.stringContaining(':response:v1'),
+      {
+        items: [
+          expect.objectContaining({
+            id: 'event-cache-hit',
+            going: 2,
+          }),
+        ],
+        nextCursor: null,
+      },
+      5,
+    );
     expect(overlay.participantGroupBy).toHaveBeenCalledWith({
       by: ['eventId'],
       where: {
@@ -867,6 +879,58 @@ describe('EventsService unit', () => {
         going: 2,
       }),
     );
+  });
+
+  it('uses cached event feed response before loading viewer overlay', async () => {
+    const eventFindMany = jest.fn();
+    const cache = {
+      getJson: jest.fn().mockImplementation((key: string) =>
+        key.endsWith(':response:v1')
+          ? Promise.resolve({
+              items: [
+                {
+                  id: 'event-response-cache-hit',
+                  joined: false,
+                  going: 2,
+                },
+              ],
+              nextCursor: null,
+            })
+          : Promise.resolve(null),
+      ),
+      setJson: jest.fn(),
+    };
+    const overlay = listEventOverlayMocks();
+    const eventFindFirst = jest.fn().mockResolvedValue(null);
+    const service = makeListEventsService({
+      eventFindMany,
+      eventFindFirst,
+      cache,
+      overlay,
+    });
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      limit: 10,
+    });
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'event-response-cache-hit',
+          joined: false,
+          going: 2,
+        },
+      ],
+      nextCursor: null,
+    });
+    expect(eventFindMany).not.toHaveBeenCalled();
+    expect(overlay.participantGroupBy).not.toHaveBeenCalled();
+    expect(overlay.participantFindMany).not.toHaveBeenCalled();
+    expect(overlay.joinRequestFindMany).not.toHaveBeenCalled();
+    expect(overlay.attendanceFindMany).not.toHaveBeenCalled();
+    expect(overlay.liveStateFindMany).not.toHaveBeenCalled();
+    expect(cache.setJson).not.toHaveBeenCalled();
   });
 
   it('reloads event feed cache when a cached public event is no longer visible', async () => {
@@ -1054,8 +1118,8 @@ describe('EventsService unit', () => {
       expect.objectContaining({ id: 'event-cache-fail-open' }),
     );
     expect(eventFindMany).toHaveBeenCalledTimes(2);
-    expect(cache.getJson).toHaveBeenCalledTimes(1);
-    expect(cache.setJson).toHaveBeenCalledTimes(1);
+    expect(cache.getJson).toHaveBeenCalledTimes(2);
+    expect(cache.setJson).toHaveBeenCalledTimes(2);
   });
 
   it('lists public active Moscow meetups without private participant previews', async () => {
