@@ -27,6 +27,8 @@ Environment:
 | 10 RPS warm smoke, 10s | 100 | 100 | 0 | 0 | 274 | 734 | 814 | pass overall |
 | 50 RPS warm stage, 30s | 1500 | 1500 | 0 | 0 | 290 | 857 | 1269 | fail, p95 above 800 |
 | 50 RPS warm stage after external DB cutover, 30s | 1500 | 1500 | 0 | 0 | 326 | 864 | 1242 | fail, p95 above 800 |
+| 50 RPS first stage with 4 API containers, 30s | 1500 | 1417 | 29 | 54 | 377 | 2331 | 3000 | fail, timeouts and p95 above gate |
+| 50 RPS warm stage with 4 API containers, 30s | 1500 | 1499 | 0 | 1 | 371 | 889 | 1049 | fail, p95 above 800 |
 
 ## 50 RPS Endpoint Breakdown
 
@@ -49,6 +51,8 @@ Environment:
 - After external DB cutover, DB server memory stayed healthy, about 7.2 GiB available after the run.
 - After external DB cutover, VPS1 memory stayed healthy, about 9.4 GiB available after the run.
 - After external DB cutover, `api_a` and `api_b` again exceeded the CPU gate during the active 50 RPS window, with samples around 70-111% CPU per container.
+- Four API containers were tested after external DB cutover. They did not improve the gate: the first run had timeouts and the second warm run still had p95 `889 ms`.
+- During the second four-container 50 RPS run, API CPU samples ranged roughly 36-92% per container during the active window.
 
 ## Decision
 
@@ -65,5 +69,6 @@ Reason:
 Next checks:
 
 - Add `api_c` and `api_d` only after cache, PostGIS and external DB are active.
-- Re-run warm 50 RPS after deploying four API containers.
+- Four API containers were reverted because Task 15 requires keeping them only if p95 improves and Postgres wait does not worsen.
+- Next work should focus on endpoint cost and cache hit rate before repeating scale-out.
 - Continue to 100 RPS only if p95 is below 800 ms and API CPU is not sustained above 70%.
