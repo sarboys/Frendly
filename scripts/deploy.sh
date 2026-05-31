@@ -241,7 +241,7 @@ df -h / /tmp || true
 docker system df || true
 docker_compose rm -sf migrate || true
 docker ps -aq \
-  --filter 'name=^/?([0-9a-f]+_)?frendly-backend-(api|api_a|api_b|chat|chat_a|chat_b|worker|worker_realtime|worker_content|worker_schedules|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
+  --filter 'name=^/?([0-9a-f]+_)?frendly-backend-(api|api_a|api_b|api_c|api_d|api_e|api_f|api_g|api_h|chat|chat_a|chat_b|worker|worker_realtime|worker_content|worker_schedules|landing|admin_internal|admin_partner|nginx|migrate|pgbouncer|postgres|redis)-1$' \
   | xargs -r docker rm -f
 docker container prune -f || true
 docker image prune -f || true
