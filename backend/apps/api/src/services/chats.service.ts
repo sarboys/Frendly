@@ -24,8 +24,12 @@ import { RedisCacheService } from './redis-cache.service';
 
 const CHAT_MEMBER_PREVIEW_LIMIT = 8;
 const CHAT_LIST_CACHE_SECONDS = 2;
+const CHAT_MESSAGES_CACHE_SECONDS = 1;
+const READ_MARKER_LOCAL_CACHE_SECONDS = 10;
+const LOCAL_CACHE_MAX_ENTRIES = 5000;
 const MEETUP_AUTO_FINISH_MS = 24 * 60 * 60 * 1000;
 type ChatListRequestKind = 'meetup' | 'direct' | 'community';
+type ChatListCachePayload = { etag: string; response: unknown };
 
 const chatMessageMediaAssetSelect = {
   id: true,
@@ -146,6 +150,18 @@ interface ChatListMemberState {
   pinnedAt: Date | null;
 }
 
+export interface ChatMessagesResponse {
+  currentUserId: string;
+  items: ReturnType<typeof mapMessage>[];
+  nextCursor: string | null;
+  lastEventId: string | null;
+}
+
+interface LocalCacheEntry<T> {
+  expiresAt: number;
+  value: T;
+}
+
 type ChatListMemberProfile = {
   avatarUrl?: string | null;
   photos?: Array<Parameters<typeof mapProfilePhoto>[0]>;
@@ -156,7 +172,23 @@ export class ChatsService {
   private readonly logger = new Logger(ChatsService.name);
   private readonly pendingChatListLoads = new Map<
     string,
-    Promise<{ etag: string; response: unknown }>
+    Promise<ChatListCachePayload>
+  >();
+  private readonly pendingMessageLoads = new Map<
+    string,
+    Promise<ChatMessagesResponse>
+  >();
+  private readonly localChatListCache = new Map<
+    string,
+    LocalCacheEntry<ChatListCachePayload>
+  >();
+  private readonly localMessageCache = new Map<
+    string,
+    LocalCacheEntry<ChatMessagesResponse>
+  >();
+  private readonly localReadMarkerCache = new Map<
+    string,
+    LocalCacheEntry<true>
   >();
 
   constructor(
@@ -171,10 +203,25 @@ export class ChatsService {
     ifNoneMatch?: string,
   ) {
     const cacheKey = this.chatListCacheKey(userId, kind, params);
-    const cached = await this.redisCache?.getJson<{ etag: string; response: unknown }>(
-      cacheKey,
-    );
+    const local = this.getLocalCache(this.localChatListCache, cacheKey);
+    if (local?.etag && local.response != null) {
+      if (this.matchesEntityTag(ifNoneMatch, local.etag)) {
+        return {
+          etag: local.etag,
+          notModified: true as const,
+        };
+      }
+      return local;
+    }
+
+    const cached = await this.redisCache?.getJson<ChatListCachePayload>(cacheKey);
     if (cached?.etag && cached.response != null) {
+      this.setLocalCache(
+        this.localChatListCache,
+        cacheKey,
+        cached,
+        CHAT_LIST_CACHE_SECONDS,
+      );
       if (this.matchesEntityTag(ifNoneMatch, cached.etag)) {
         return {
           etag: cached.etag,
@@ -214,6 +261,12 @@ export class ChatsService {
         etag: this.buildChatListEtag(response),
         response,
       };
+      this.setLocalCache(
+        this.localChatListCache,
+        cacheKey,
+        payload,
+        CHAT_LIST_CACHE_SECONDS,
+      );
       await this.redisCache?.setJson(cacheKey, payload, CHAT_LIST_CACHE_SECONDS);
       return payload;
     } finally {
@@ -625,8 +678,63 @@ export class ChatsService {
     ].join(':');
   }
 
+  private chatMessagesCacheKey(
+    userId: string,
+    chatId: string,
+    params: { cursor?: string; limit?: number },
+  ) {
+    return [
+      'api',
+      'chat-messages',
+      'v1',
+      userId,
+      chatId,
+      params.cursor ?? '',
+      this.normalizeMessagesLimit(params.limit),
+    ].join(':');
+  }
+
+  private readMarkerCacheKey(userId: string, chatId: string, messageId: string) {
+    return ['api', 'chat-read', 'v1', userId, chatId, messageId].join(':');
+  }
+
+  private getLocalCache<T>(cache: Map<string, LocalCacheEntry<T>>, key: string) {
+    const entry = cache.get(key);
+    if (!entry) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      cache.delete(key);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setLocalCache<T>(
+    cache: Map<string, LocalCacheEntry<T>>,
+    key: string,
+    value: T,
+    ttlSeconds: number,
+  ) {
+    if (cache.size >= LOCAL_CACHE_MAX_ENTRIES) {
+      const oldestKey = cache.keys().next().value;
+      if (oldestKey) {
+        cache.delete(oldestKey);
+      }
+    }
+    cache.set(key, {
+      expiresAt: Date.now() + ttlSeconds * 1000,
+      value,
+    });
+  }
+
   private async clearChatListCache(userId: string) {
     this.pendingChatListLoads.clear();
+    for (const key of this.localChatListCache.keys()) {
+      if (key.startsWith(`api:chat-list:v1:${userId}:`)) {
+        this.localChatListCache.delete(key);
+      }
+    }
     await Promise.all([
       this.redisCache?.delete(this.chatListCacheKey(userId, 'meetup', {
         limit: 20,
@@ -1212,79 +1320,142 @@ export class ChatsService {
     }).format(value);
   }
 
-  async getMessages(userId: string, chatId: string, params: { cursor?: string; limit?: number }) {
-    await this.assertMembership(userId, chatId);
-    const blockedUserIds = await this.getBlockedUserIds(userId);
-    const take = this.normalizeMessagesLimit(params.limit);
-    const cursorMessage = await this.resolveMessageCursor(
-      chatId,
-      params.cursor,
-      blockedUserIds,
-    );
+  async getMessages(
+    userId: string,
+    chatId: string,
+    params: { cursor?: string; limit?: number },
+  ): Promise<ChatMessagesResponse> {
+    const cacheKey = this.chatMessagesCacheKey(userId, chatId, params);
+    const local = this.getLocalCache(this.localMessageCache, cacheKey);
+    if (local) {
+      return local;
+    }
 
-    const [messages, latestEvent] = await Promise.all([
-      this.prismaService.client.message.findMany({
-        where: {
-          chatId,
-          senderId: {
-            notIn: [...blockedUserIds],
+    const cached = await this.redisCache?.getJson<ChatMessagesResponse>(cacheKey);
+    if (cached) {
+      this.setLocalCache(
+        this.localMessageCache,
+        cacheKey,
+        cached,
+        CHAT_MESSAGES_CACHE_SECONDS,
+      );
+      return cached;
+    }
+
+    const pending = this.pendingMessageLoads.get(cacheKey);
+    const payload = pending ?? this.loadMessages(userId, chatId, params, cacheKey);
+    if (pending == null) {
+      this.pendingMessageLoads.set(cacheKey, payload);
+    }
+
+    return payload;
+  }
+
+  private async loadMessages(
+    userId: string,
+    chatId: string,
+    params: { cursor?: string; limit?: number },
+    cacheKey: string,
+  ): Promise<ChatMessagesResponse> {
+    try {
+      await this.assertMembership(userId, chatId);
+      const blockedUserIds = await this.getBlockedUserIds(userId);
+      const take = this.normalizeMessagesLimit(params.limit);
+      const cursorMessage = await this.resolveMessageCursor(
+        chatId,
+        params.cursor,
+        blockedUserIds,
+      );
+
+      const [messages, latestEvent] = await Promise.all([
+        this.prismaService.client.message.findMany({
+          where: {
+            chatId,
+            senderId: {
+              notIn: [...blockedUserIds],
+            },
+            ...(cursorMessage
+              ? {
+                  OR: [
+                    {
+                      createdAt: {
+                        lt: cursorMessage.createdAt,
+                      },
+                    },
+                    {
+                      createdAt: cursorMessage.createdAt,
+                      id: {
+                        lt: cursorMessage.id,
+                      },
+                    },
+                  ],
+                }
+              : {}),
           },
-          ...(cursorMessage
-            ? {
-                OR: [
-                  {
-                    createdAt: {
-                      lt: cursorMessage.createdAt,
-                    },
-                  },
-                  {
-                    createdAt: cursorMessage.createdAt,
-                    id: {
-                      lt: cursorMessage.id,
-                    },
-                  },
-                ],
-              }
-            : {}),
-        },
-        select: chatMessageSelect,
-        orderBy: [
-          { createdAt: 'desc' },
-          { id: 'desc' },
-        ],
-        take: take + 1,
-      }),
-      this.prismaService.client.realtimeEvent.findFirst({
-        where: { chatId },
-        orderBy: { id: 'desc' },
-        select: { id: true },
-      }),
-    ]);
-    const hasMore = messages.length > take;
-    const page = hasMore ? messages.slice(0, take) : messages;
-    const visiblePage = page.map((message) => ({
-      ...message,
-      replyTo:
-        message.replyTo != null && blockedUserIds.has(message.replyTo.senderId)
-          ? null
-          : message.replyTo,
-    }));
-    const mapped = [...visiblePage]
-      .reverse()
-      .map((message) => mapMessage(message));
-    return {
-      currentUserId: userId,
-      items: mapped,
-      nextCursor:
-        hasMore && page.length > 0
-          ? this.encodeMessageCursor(page[page.length - 1]!)
-          : null,
-      lastEventId: latestEvent?.id.toString() ?? null,
-    };
+          select: chatMessageSelect,
+          orderBy: [
+            { createdAt: 'desc' },
+            { id: 'desc' },
+          ],
+          take: take + 1,
+        }),
+        this.prismaService.client.realtimeEvent.findFirst({
+          where: { chatId },
+          orderBy: { id: 'desc' },
+          select: { id: true },
+        }),
+      ]);
+      const hasMore = messages.length > take;
+      const page = hasMore ? messages.slice(0, take) : messages;
+      const visiblePage = page.map((message) => ({
+        ...message,
+        replyTo:
+          message.replyTo != null && blockedUserIds.has(message.replyTo.senderId)
+            ? null
+            : message.replyTo,
+      }));
+      const mapped = [...visiblePage]
+        .reverse()
+        .map((message) => mapMessage(message));
+      const response = {
+        currentUserId: userId,
+        items: mapped,
+        nextCursor:
+          hasMore && page.length > 0
+            ? this.encodeMessageCursor(page[page.length - 1]!)
+            : null,
+        lastEventId: latestEvent?.id.toString() ?? null,
+      };
+      this.setLocalCache(
+        this.localMessageCache,
+        cacheKey,
+        response,
+        CHAT_MESSAGES_CACHE_SECONDS,
+      );
+      await this.redisCache?.setJson(cacheKey, response, CHAT_MESSAGES_CACHE_SECONDS);
+      return response;
+    } finally {
+      this.pendingMessageLoads.delete(cacheKey);
+    }
   }
 
   async markRead(userId: string, chatId: string, messageId: string) {
-    await this.assertMembership(userId, chatId);
+    const readCacheKey = this.readMarkerCacheKey(userId, chatId, messageId);
+    if (this.getLocalCache(this.localReadMarkerCache, readCacheKey)) {
+      return { ok: true };
+    }
+
+    const member = await this.assertMembership(userId, chatId);
+    if (member.lastReadMessageId === messageId && member.unreadCount === 0) {
+      this.setLocalCache(
+        this.localReadMarkerCache,
+        readCacheKey,
+        true,
+        READ_MARKER_LOCAL_CACHE_SECONDS,
+      );
+      return { ok: true };
+    }
+
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const message = await this.prismaService.client.message.findFirst({
       where: {
@@ -1332,6 +1503,12 @@ export class ChatsService {
       });
     });
     await this.clearChatListCache(userId);
+    this.setLocalCache(
+      this.localReadMarkerCache,
+      readCacheKey,
+      true,
+      READ_MARKER_LOCAL_CACHE_SECONDS,
+    );
 
     return { ok: true };
   }
@@ -1457,6 +1634,8 @@ export class ChatsService {
         },
       },
       select: {
+        lastReadMessageId: true,
+        unreadCount: true,
         chat: {
           select: {
             kind: true,
@@ -1505,6 +1684,8 @@ export class ChatsService {
         throw new ApiError(403, 'chat_forbidden', 'You are not a member of this chat');
       }
     }
+
+    return member;
   }
 
   private async restoreMeetupChatMembership(userId: string, chatId: string) {
@@ -1550,6 +1731,8 @@ export class ChatsService {
     });
 
     return {
+      lastReadMessageId: null,
+      unreadCount: 0,
       chat: {
         kind: chat.kind,
         event: {
@@ -1603,6 +1786,8 @@ export class ChatsService {
     });
 
     return {
+      lastReadMessageId: null,
+      unreadCount: 0,
       chat: {
         kind: chat.kind,
         event: null,

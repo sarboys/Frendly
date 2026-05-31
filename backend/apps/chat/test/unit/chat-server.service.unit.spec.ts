@@ -253,6 +253,55 @@ describe('ChatServerService unit', () => {
     });
   });
 
+  it('coalesces active session rechecks across websocket commands', async () => {
+    const firstSocket = createOpenSocket();
+    const secondSocket = createOpenSocket();
+    const sessionFindUnique = jest.fn().mockResolvedValue({
+      userId: 'user-me',
+      revokedAt: null,
+    });
+    const service = new ChatServerService({
+      client: {
+        session: {
+          findUnique: sessionFindUnique,
+        },
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'direct',
+              event: null,
+            },
+          }),
+          findFirst: jest.fn().mockResolvedValue({ userId: 'user-peer' }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        realtimeEvent: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    } as any);
+
+    const staleCheckedAt = Date.now() - 60_000;
+    for (const socket of [firstSocket, secondSocket]) {
+      (service as any).stateBySocket.set(socket, {
+        userId: 'user-me',
+        sessionId: 'session-1',
+        tokenExpiresAtMs: Date.now() + 60_000,
+        authCheckedAtMs: staleCheckedAt,
+        subscriptions: new Set(['chat-1']),
+      });
+    }
+
+    await Promise.all([
+      (service as any).sync(firstSocket, { chatId: 'chat-1' }),
+      (service as any).sync(secondSocket, { chatId: 'chat-1' }),
+    ]);
+
+    expect(sessionFindUnique).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects oversized message text before any membership or database write', async () => {
     const socket = createOpenSocket();
     const chatMemberFindFirst = jest.fn();
@@ -739,6 +788,51 @@ describe('ChatServerService unit', () => {
           userId: `user-${index}`,
         })),
       );
+      const transaction = jest.fn(async (callback) =>
+        callback({
+          message: {
+            create: txMessageCreate,
+          },
+          chat: {
+            update: jest.fn().mockResolvedValue({}),
+          },
+          realtimeEvent: {
+            create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
+          },
+          chatMember: {
+            findMany: txChatMemberFindMany,
+          },
+          notification: {
+            createMany: txNotificationCreateMany,
+          },
+          outboxEvent: {
+            create: txOutboxCreate,
+            createMany: txOutboxCreateMany,
+          },
+        }),
+      );
+      const txMessageCreate = jest.fn().mockResolvedValue({
+        id: 'message-1',
+        chatId: 'community-chat',
+        senderId: 'user-me',
+        text: 'hello',
+        clientMessageId: 'client-1',
+        locationLatitude: null,
+        locationLongitude: null,
+        locationLabel: null,
+        locationExpiresAt: null,
+        createdAt: new Date('2026-04-24T00:00:00.000Z'),
+        sender: {
+          displayName: 'Никита',
+          profile: {
+            avatarUrl: null,
+          },
+        },
+        replyTo: null,
+        attachments: [],
+      });
+      const messageFindFirst = jest.fn().mockResolvedValue(null);
+      const mediaAssetFindMany = jest.fn().mockResolvedValue([]);
       const service = new ChatServerService({
         client: {
           chatMember: {
@@ -753,44 +847,12 @@ describe('ChatServerService unit', () => {
             findMany: jest.fn().mockResolvedValue([]),
           },
           message: {
-            findFirst: jest.fn().mockResolvedValue(null),
+            findFirst: messageFindFirst,
           },
           mediaAsset: {
-            findMany: jest.fn().mockResolvedValue([]),
+            findMany: mediaAssetFindMany,
           },
-          $transaction: jest.fn(async (callback) =>
-            callback({
-              message: {
-                create: jest.fn().mockResolvedValue({
-                  id: 'message-1',
-                  chatId: 'community-chat',
-                  senderId: 'user-me',
-                  text: 'hello',
-                  clientMessageId: 'client-1',
-                  createdAt: new Date('2026-04-24T00:00:00.000Z'),
-                  sender: { displayName: 'Никита' },
-                  replyTo: null,
-                  attachments: [],
-                }),
-              },
-              chat: {
-                update: jest.fn().mockResolvedValue({}),
-              },
-              realtimeEvent: {
-                create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
-              },
-              chatMember: {
-                findMany: txChatMemberFindMany,
-              },
-              notification: {
-                createMany: txNotificationCreateMany,
-              },
-              outboxEvent: {
-                create: txOutboxCreate,
-                createMany: txOutboxCreateMany,
-              },
-            }),
-          ),
+          $transaction: transaction,
         },
       } as any);
 
@@ -808,6 +870,16 @@ describe('ChatServerService unit', () => {
       expect(txChatMemberFindMany).not.toHaveBeenCalled();
       expect(txNotificationCreateMany).not.toHaveBeenCalled();
       expect(txOutboxCreateMany).not.toHaveBeenCalled();
+      expect(messageFindFirst).not.toHaveBeenCalled();
+      expect(mediaAssetFindMany).not.toHaveBeenCalled();
+      const createCall = txMessageCreate.mock.calls[0]?.[0];
+      expect(createCall.data).not.toHaveProperty('attachments');
+      expect(createCall.select).not.toHaveProperty('attachments');
+      expect(createCall.select).not.toHaveProperty('replyTo');
+      expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
+        maxWait: 10000,
+        timeout: 10000,
+      });
       expect(txOutboxCreate).toHaveBeenCalledWith({
         data: {
           type: 'chat.unread_fanout',
@@ -877,6 +949,86 @@ describe('ChatServerService unit', () => {
       }),
     );
     expect(socket.send).not.toHaveBeenCalled();
+  });
+
+  it('throttles chat updatedAt touches for rapid message sends in the same chat', async () => {
+    const socket = createOpenSocket();
+    const txChatUpdate = jest.fn().mockResolvedValue({});
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'community',
+              event: null,
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        mediaAsset: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        $transaction: jest.fn(async (callback) =>
+          callback({
+            message: {
+              create: jest.fn(async (input) => ({
+                id: `message-${input.data.clientMessageId}`,
+                chatId: input.data.chatId,
+                senderId: input.data.senderId,
+                text: input.data.text,
+                clientMessageId: input.data.clientMessageId,
+                locationLatitude: null,
+                locationLongitude: null,
+                locationLabel: null,
+                locationExpiresAt: null,
+                createdAt: new Date('2026-04-24T00:00:00.000Z'),
+                sender: {
+                  displayName: 'Никита',
+                  profile: {
+                    avatarUrl: null,
+                  },
+                },
+              })),
+            },
+            chat: {
+              update: txChatUpdate,
+            },
+            realtimeEvent: {
+              create: jest
+                .fn()
+                .mockResolvedValueOnce({ id: BigInt(10) })
+                .mockResolvedValueOnce({ id: BigInt(11) }),
+            },
+            outboxEvent: {
+              create: jest.fn().mockResolvedValue({}),
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(
+      socket,
+      authenticatedState('user-me', ['chat-1']),
+    );
+
+    await (service as any).sendMessage(socket, {
+      chatId: 'chat-1',
+      text: 'hello 1',
+      clientMessageId: 'client-1',
+    });
+    await (service as any).sendMessage(socket, {
+      chatId: 'chat-1',
+      text: 'hello 2',
+      clientMessageId: 'client-2',
+    });
+
+    expect(txChatUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('rejects websocket read markers for missing chat messages', async () => {

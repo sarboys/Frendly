@@ -31,6 +31,21 @@ interface Envelope {
   payload: any;
 }
 
+interface AuthSessionSnapshot {
+  userId: string;
+  revokedAt: Date | null;
+}
+
+interface AuthSessionCacheEntry {
+  expiresAt: number;
+  value: AuthSessionSnapshot;
+}
+
+interface BlockedUserIdsCacheEntry {
+  expiresAt: number;
+  value: Set<string>;
+}
+
 class ChatServerError extends Error {
   constructor(
     readonly code: string,
@@ -46,6 +61,13 @@ const DEFAULT_TYPING_THROTTLE_MS = 1500;
 const DEFAULT_MEMBERSHIP_CACHE_TTL_MS = 5000;
 const DEFAULT_MEMBERSHIP_CACHE_MAX_ENTRIES = 10_000;
 const DEFAULT_AUTH_RECHECK_MS = 30_000;
+const DEFAULT_MESSAGE_TRANSACTION_MAX_WAIT_MS = 10_000;
+const DEFAULT_MESSAGE_TRANSACTION_TIMEOUT_MS = 10_000;
+const DEFAULT_MESSAGE_CHAT_TOUCH_INTERVAL_MS = 1000;
+const AUTH_SESSION_CACHE_SECONDS = 5;
+const AUTH_SESSION_CACHE_MAX_ENTRIES = 10_000;
+const BLOCKED_USER_IDS_CACHE_SECONDS = 5;
+const BLOCKED_USER_IDS_CACHE_MAX_ENTRIES = 10_000;
 const DEFAULT_MAX_PAYLOAD_BYTES = 64 * 1024;
 const DEFAULT_MAX_MESSAGE_TEXT_LENGTH = 4000;
 const DEFAULT_MAX_ATTACHMENT_COUNT = 10;
@@ -117,6 +139,29 @@ const chatMessageSelect = {
   },
 } satisfies Prisma.MessageSelect;
 
+const plainChatMessageSelect = {
+  id: true,
+  chatId: true,
+  senderId: true,
+  text: true,
+  clientMessageId: true,
+  locationLatitude: true,
+  locationLongitude: true,
+  locationLabel: true,
+  locationExpiresAt: true,
+  createdAt: true,
+  sender: {
+    select: {
+      displayName: true,
+      profile: {
+        select: {
+          avatarUrl: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.MessageSelect;
+
 @Injectable()
 export class ChatServerService implements OnModuleDestroy {
   private wss?: WebSocketServer;
@@ -156,12 +201,33 @@ export class ChatServerService implements OnModuleDestroy {
     process.env.CHAT_MEMBERSHIP_CACHE_MAX_ENTRIES,
     DEFAULT_MEMBERSHIP_CACHE_MAX_ENTRIES,
   );
+  private readonly messageTransactionMaxWaitMs = this.resolveDurationMs(
+    process.env.CHAT_MESSAGE_TRANSACTION_MAX_WAIT_MS,
+    DEFAULT_MESSAGE_TRANSACTION_MAX_WAIT_MS,
+  );
+  private readonly messageTransactionTimeoutMs = this.resolveDurationMs(
+    process.env.CHAT_MESSAGE_TRANSACTION_TIMEOUT_MS,
+    DEFAULT_MESSAGE_TRANSACTION_TIMEOUT_MS,
+  );
+  private readonly messageChatTouchIntervalMs = this.resolveDurationMs(
+    process.env.CHAT_MESSAGE_CHAT_TOUCH_INTERVAL_MS,
+    DEFAULT_MESSAGE_CHAT_TOUCH_INTERVAL_MS,
+  );
   private readonly heartbeatIntervalMs = this.resolveDurationMs(
     process.env.CHAT_WS_HEARTBEAT_INTERVAL_MS,
     DEFAULT_HEARTBEAT_INTERVAL_MS,
   );
   private readonly lastTypingSentAtBySocket = new Map<WebSocket, Map<string, number>>();
   private readonly membershipCache = new Map<string, number>();
+  private readonly pendingMembershipChecks = new Map<string, Promise<void>>();
+  private readonly authSessionCache = new Map<string, AuthSessionCacheEntry>();
+  private readonly pendingAuthSessionLoads = new Map<
+    string,
+    Promise<AuthSessionSnapshot | null>
+  >();
+  private readonly blockedUserIdsCache = new Map<string, BlockedUserIdsCacheEntry>();
+  private readonly pendingBlockedUserLoads = new Map<string, Promise<Set<string>>>();
+  private readonly lastMessageChatTouchAt = new Map<string, number>();
   private readonly publisher: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly subscriber: Redis = createRedisSubscriber(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private heartbeatTimer?: NodeJS.Timeout;
@@ -354,13 +420,7 @@ export class ChatServerService implements OnModuleDestroy {
       throw new ChatServerError('invalid_access_token', 'Access token is invalid');
     }
 
-    const session = await this.prismaService.client.session.findUnique({
-      where: { id: payload.sessionId },
-      select: {
-        userId: true,
-        revokedAt: true,
-      },
-    });
+    const session = await this.loadSession(payload.sessionId);
 
     if (!session || session.userId !== payload.userId || session.revokedAt != null) {
       throw new ChatServerError('stale_access_token', 'Access token is stale');
@@ -457,36 +517,21 @@ export class ChatServerService implements OnModuleDestroy {
 
     await this.assertMembership(state.userId!, chatId);
 
-    const existing = await this.prismaService.client.message.findFirst({
-      where: {
-        chatId,
-        senderId: state.userId!,
-        clientMessageId,
-      },
-      select: chatMessageSelect,
-    });
-
-    if (existing) {
-      this.send(socket, {
-        type: 'message.created',
-        payload: await this.mapMessageForUser(existing, undefined, state.userId!),
-      });
-      return;
-    }
-
-    const readyAssets = await this.prismaService.client.mediaAsset.findMany({
-      where: {
-        id: {
-          in: attachmentIds,
-        },
-        ownerId: state.userId!,
-        status: 'ready',
-      },
-      select: {
-        id: true,
-        chatId: true,
-      },
-    });
+    const readyAssets = attachmentIds.length > 0
+      ? await this.prismaService.client.mediaAsset.findMany({
+          where: {
+            id: {
+              in: attachmentIds,
+            },
+            ownerId: state.userId!,
+            status: 'ready',
+          },
+          select: {
+            id: true,
+            chatId: true,
+          },
+        })
+      : [];
 
     if (readyAssets.length !== attachmentIds.length) {
       throw new Error('Some attachments are missing or not ready');
@@ -524,10 +569,11 @@ export class ChatServerService implements OnModuleDestroy {
       realtimeEventId: string;
     };
     try {
-      message = await this.prismaService.client.$transaction(async (tx) => {
-        const now = new Date();
-        const created = await tx.message.create({
-          data: {
+      message = await this.prismaService.client.$transaction(
+        async (tx) => {
+          const now = new Date();
+          const isPlainMessage = readyAssets.length === 0 && !replyToMessageId;
+          const messageData = {
             chatId,
             senderId: state.userId!,
             text,
@@ -537,47 +583,86 @@ export class ChatServerService implements OnModuleDestroy {
             locationLongitude: location?.longitude,
             locationLabel: location?.label,
             locationExpiresAt: location?.expiresAt,
-            attachments: {
-              createMany: {
-                data: readyAssets.map((asset) => ({
-                  mediaAssetId: asset.id,
+            ...(readyAssets.length > 0
+              ? {
+                  attachments: {
+                    createMany: {
+                      data: readyAssets.map((asset) => ({
+                        mediaAssetId: asset.id,
+                      })),
+                    },
+                  },
+                }
+              : {}),
+          };
+          const created = isPlainMessage
+            ? {
+                ...(await tx.message.create({
+                  data: messageData,
+                  select: plainChatMessageSelect,
                 })),
+                replyTo: null,
+                attachments: [],
+              }
+            : await tx.message.create({
+                data: messageData,
+                select: chatMessageSelect,
+              });
+
+          if (this.shouldTouchChatForMessage(chatId, now.getTime())) {
+            await tx.chat.update({
+              where: { id: chatId },
+              data: { updatedAt: now },
+            });
+          }
+
+          const realtimeEvent = await tx.realtimeEvent.create({
+            data: {
+              chatId,
+              eventType: 'message.created',
+              payload: this.mapMessage(created),
+            },
+          });
+
+          await tx.outboxEvent.create({
+            data: {
+              type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
+              payload: {
+                chatId,
+                actorUserId: state.userId!,
               },
             },
+          });
+
+          return {
+            created,
+            realtimeEventId: realtimeEvent.id.toString(),
+          };
+        },
+        {
+          maxWait: this.messageTransactionMaxWaitMs,
+          timeout: this.messageTransactionTimeoutMs,
+        },
+      );
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        const existing = await this.prismaService.client.message.findFirst({
+          where: {
+            chatId,
+            senderId: state.userId!,
+            clientMessageId,
           },
           select: chatMessageSelect,
         });
 
-        await tx.chat.update({
-          where: { id: chatId },
-          data: { updatedAt: now },
-        });
+        if (existing) {
+          this.send(socket, {
+            type: 'message.created',
+            payload: await this.mapMessageForUser(existing, undefined, state.userId!),
+          });
+          return;
+        }
 
-        const realtimeEvent = await tx.realtimeEvent.create({
-          data: {
-            chatId,
-            eventType: 'message.created',
-            payload: this.mapMessage(created),
-          },
-        });
-
-        await tx.outboxEvent.create({
-          data: {
-            type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
-            payload: {
-              chatId,
-              actorUserId: state.userId!,
-            },
-          },
-        });
-
-        return {
-          created,
-          realtimeEventId: realtimeEvent.id.toString(),
-        };
-      });
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
         throw new ChatServerError(
           'client_message_id_conflict',
           'clientMessageId already exists in this chat',
@@ -645,6 +730,20 @@ export class ChatServerService implements OnModuleDestroy {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     );
+  }
+
+  private shouldTouchChatForMessage(chatId: string, nowMs: number) {
+    if (this.messageChatTouchIntervalMs <= 0) {
+      return true;
+    }
+
+    const lastTouchedAt = this.lastMessageChatTouchAt.get(chatId);
+    if (lastTouchedAt != null && nowMs - lastTouchedAt < this.messageChatTouchIntervalMs) {
+      return false;
+    }
+
+    this.lastMessageChatTouchAt.set(chatId, nowMs);
+    return true;
   }
 
   private async editMessage(socket: WebSocket, payload: any) {
@@ -1242,13 +1341,7 @@ export class ChatServerService implements OnModuleDestroy {
       return state;
     }
 
-    const session = await this.prismaService.client.session.findUnique({
-      where: { id: state.sessionId },
-      select: {
-        userId: true,
-        revokedAt: true,
-      },
-    });
+    const session = await this.loadSession(state.sessionId);
 
     if (!session || session.userId !== state.userId || session.revokedAt != null) {
       this.clearAuthenticatedState(socket, state);
@@ -1257,6 +1350,66 @@ export class ChatServerService implements OnModuleDestroy {
 
     state.authCheckedAtMs = now;
     return state;
+  }
+
+  private async loadSession(sessionId: string): Promise<AuthSessionSnapshot | null> {
+    const cached = this.getAuthSessionCache(sessionId);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingAuthSessionLoads.get(sessionId);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshSession(sessionId)
+      .then((session) => {
+        if (session != null && session.revokedAt == null) {
+          this.setAuthSessionCache(sessionId, session);
+        }
+        return session;
+      })
+      .finally(() => {
+        this.pendingAuthSessionLoads.delete(sessionId);
+      });
+    this.pendingAuthSessionLoads.set(sessionId, loading);
+    return loading;
+  }
+
+  private async loadFreshSession(sessionId: string): Promise<AuthSessionSnapshot | null> {
+    return this.prismaService.client.session.findUnique({
+      where: { id: sessionId },
+      select: {
+        userId: true,
+        revokedAt: true,
+      },
+    });
+  }
+
+  private getAuthSessionCache(sessionId: string) {
+    const entry = this.authSessionCache.get(sessionId);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.authSessionCache.delete(sessionId);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setAuthSessionCache(sessionId: string, session: AuthSessionSnapshot) {
+    if (this.authSessionCache.size >= AUTH_SESSION_CACHE_MAX_ENTRIES) {
+      const oldestKey = this.authSessionCache.keys().next().value;
+      if (oldestKey) {
+        this.authSessionCache.delete(oldestKey);
+      }
+    }
+    this.authSessionCache.set(sessionId, {
+      expiresAt: Date.now() + AUTH_SESSION_CACHE_SECONDS * 1000,
+      value: session,
+    });
   }
 
   private getState(socket: WebSocket): SocketState {
@@ -1458,6 +1611,25 @@ export class ChatServerService implements OnModuleDestroy {
       status: 'miss',
     });
 
+    const pending = this.pendingMembershipChecks.get(membershipCacheKey);
+    if (pending != null) {
+      await pending;
+      return;
+    }
+
+    const loading = this.loadMembership(userId, chatId, membershipCacheKey)
+      .finally(() => {
+        this.pendingMembershipChecks.delete(membershipCacheKey);
+      });
+    this.pendingMembershipChecks.set(membershipCacheKey, loading);
+    await loading;
+  }
+
+  private async loadMembership(
+    userId: string,
+    chatId: string,
+    membershipCacheKey: string,
+  ) {
     let membership = await this.prismaService.client.chatMember.findUnique({
       where: {
         chatId_userId: {
@@ -1516,7 +1688,7 @@ export class ChatServerService implements OnModuleDestroy {
     if (this.membershipCacheTtlMs > 0) {
       this.setMembershipCache(
         membershipCacheKey,
-        now + this.membershipCacheTtlMs,
+        Date.now() + this.membershipCacheTtlMs,
       );
     }
   }
@@ -1646,7 +1818,51 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private async getBlockedUserIds(userId: string) {
-    return loadBlockedUserIds(this.prismaService.client, userId);
+    const cached = this.getBlockedUserIdsCache(userId);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingBlockedUserLoads.get(userId);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = loadBlockedUserIds(this.prismaService.client, userId)
+      .then((blockedUserIds) => {
+        this.setBlockedUserIdsCache(userId, blockedUserIds);
+        return blockedUserIds;
+      })
+      .finally(() => {
+        this.pendingBlockedUserLoads.delete(userId);
+      });
+    this.pendingBlockedUserLoads.set(userId, loading);
+    return loading;
+  }
+
+  private getBlockedUserIdsCache(userId: string) {
+    const entry = this.blockedUserIdsCache.get(userId);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.blockedUserIdsCache.delete(userId);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setBlockedUserIdsCache(userId: string, blockedUserIds: Set<string>) {
+    if (this.blockedUserIdsCache.size >= BLOCKED_USER_IDS_CACHE_MAX_ENTRIES) {
+      const oldestKey = this.blockedUserIdsCache.keys().next().value;
+      if (oldestKey) {
+        this.blockedUserIdsCache.delete(oldestKey);
+      }
+    }
+    this.blockedUserIdsCache.set(userId, {
+      expiresAt: Date.now() + BLOCKED_USER_IDS_CACHE_SECONDS * 1000,
+      value: blockedUserIds,
+    });
   }
 
   private updateWebSocketGauges() {

@@ -40,6 +40,7 @@ postgres + redis
 - `api`: internal port `3000`, health `/health`.
 - `chat`: internal port `3001`, health `/health`.
 - `worker`: internal port `3002`, health `/health`.
+- Production images build TypeScript during Docker build. Runtime API, chat and worker use `start:prod` and run compiled JS from `dist`, not `ts-node`.
 - API, chat and worker expose private `/metrics` endpoints for Prometheus scrapes inside the Docker network.
 - `landing`: Vite static build served by nginx.
 - `admin_internal`: `admin.frendly.tech`.
@@ -47,6 +48,8 @@ postgres + redis
 - `nginx`: public port `80`.
 
 Runtime services use pooled DB URL through PgBouncer. In external DB mode this points to `192.168.0.6:6432`. Migrations and concurrent index scripts use direct DB URL. In external DB mode this points to `192.168.0.6:5432`.
+Chat runtime can override the shared pooled URL with `CHAT_DATABASE_POOL_URL`, for example to give WebSocket event handling a higher Prisma `connection_limit` through PgBouncer without changing API pool settings.
+Current high-load chat evidence uses `CHAT_DATABASE_POOL_URL` with Prisma `connection_limit=30` for each chat container. DB-host PgBouncer uses `default_pool_size=100`, `reserve_pool_size=10`, while Postgres `max_connections` is 120. This is close to the DB connection ceiling; do not raise it further without DB sizing evidence.
 If `ENABLE_POSTGIS_EVENT_FEED=true`, deploy runs `db:verify:postgis:event-geo` through the migrate image before runtime containers start.
 
 Public routing:
@@ -57,6 +60,7 @@ Public routing:
 - `partner.frendly.tech` -> partner admin.
 - `/ws` on API host -> chat WebSocket.
 - public `/metrics` on the API host is blocked in nginx and must not be exposed through `api.frendly.tech`.
+- Scale nginx uses `worker_connections 65535` with high `worker_rlimit_nofile`. 15000 proxied WebSockets can need more than 30000 nginx connections because each client socket also has an upstream socket.
 
 ## Observability
 
@@ -78,7 +82,7 @@ Scrape targets:
 - API `/metrics` on `api:3000`.
 - Scale API `/metrics` on `api_a:3000` and `api_b:3000`.
 - Chat `/metrics` on `chat:3001`.
-- Scale chat `/metrics` on `chat_a:3001` and `chat_b:3001`.
+- Scale chat `/metrics` on `chat_a:3001` through `chat_d:3001`.
 - Worker `/metrics` on `worker:3002`.
 - Scale workers `/metrics` on `worker_realtime:3002`, `worker_content:3002`, `worker_schedules:3002`.
 - node exporter.
@@ -264,11 +268,11 @@ Flow:
 - Production app path: `/opt/frendly`.
 - Deploy workflow and script discard tracked local changes in server checkouts before switching to the target branch, then use `flock` before Docker cleanup and compose recreate.
 - `scripts/deploy.sh` waits for `http://127.0.0.1/health` after compose recreate before returning. Defaults: `HEALTHCHECK_RETRIES=60`, `HEALTHCHECK_DELAY_SECONDS=5`, `HEALTHCHECK_TIMEOUT_SECONDS=10`.
-- Scale compose: add `COMPOSE_EXTRA_FILES=compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
+- Scale compose: add `COMPOSE_EXTRA_FILES=compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b chat_a chat_b chat_c chat_d worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
 - In scale mode, `RUNTIME_SERVICES` must not include base `api`, `chat` or `worker`; `scripts/deploy.sh` rejects that combination.
 - External DB mode uses `CORE_SERVICES=redis`. This keeps local `postgres` and local `pgbouncer` stopped while `migrate` runs with `--no-deps` against the direct external DB URL.
 - Rollback to local DB mode uses `CORE_SERVICES=postgres redis pgbouncer`, `POSTGRESQL_HOST=postgres`, a local `DATABASE_DIRECT_URL` to `postgres:5432` and a local `DATABASE_POOL_URL` to `pgbouncer:6432`.
-- Scale nginx config: `deploy/nginx/frendly.scale.conf` balances API and chat through `api_a/api_b` and `chat_a/chat_b`, while the default `deploy/nginx/frendly.conf` stays single-instance.
+- Scale nginx config: `deploy/nginx/frendly.scale.conf` balances API through `api_a/api_b` and chat through `chat_a` to `chat_d`, while the default `deploy/nginx/frendly.conf` stays single-instance.
 - `scripts/deploy.sh` and `scripts/deploy-landing.sh` both read `COMPOSE_EXTRA_FILES` and `NGINX_SERVICE` from env or `.env.production`.
 - Worker role gates: `WORKER_OUTBOX_ENABLED`, `WORKER_CONTENT_ENABLED`, `WORKER_SCHEDULES_ENABLED`.
 - Landing repo syncs from `https://github.com/sarboys/frendly_landing.git`.

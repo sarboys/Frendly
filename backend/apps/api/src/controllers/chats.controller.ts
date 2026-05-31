@@ -138,7 +138,7 @@ export class ChatsController {
     response?.setHeader('Vary', 'Authorization');
 
     if ('notModified' in result) {
-      response?.status(304).end();
+      response?.status(304);
       return;
     }
 

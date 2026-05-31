@@ -52,4 +52,31 @@ describe('ChatsController unit', () => {
       ],
     });
   });
+
+  it('returns a 304 chat list response without ending the Express response manually', async () => {
+    const response = {
+      setHeader: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      end: jest.fn(),
+    } as any;
+    const chatsService = {
+      listChatsWithCache: jest.fn().mockResolvedValue({
+        etag: 'W/"community-chats"',
+        notModified: true,
+      }),
+    } as any;
+    const controller = new ChatsController(chatsService);
+
+    const result = await controller.listCommunityChats(
+      { userId: 'user-me' },
+      undefined,
+      '20',
+      'W/"community-chats"',
+      response,
+    );
+
+    expect(response.status).toHaveBeenCalledWith(304);
+    expect(response.end).not.toHaveBeenCalled();
+    expect(result).toBeUndefined();
+  });
 });

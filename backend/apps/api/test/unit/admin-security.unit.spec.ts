@@ -99,7 +99,7 @@ describe('Admin security unit', () => {
     await expect(guard.canActivate(contextWithBearer(token))).resolves.toBe(true);
 
     expect(findUnique).toHaveBeenCalledTimes(1);
-    expect(redisCache.getJson).toHaveBeenCalledTimes(2);
+    expect(redisCache.getJson).toHaveBeenCalledTimes(1);
     expect(redisCache.setJson).toHaveBeenCalledTimes(1);
   });
 });

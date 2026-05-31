@@ -13,6 +13,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     const requestId = request.context?.requestId ?? 'unknown-request';
 
+    if (response.headersSent) {
+      return;
+    }
+
     if (exception instanceof ApiError) {
       const payload: ApiErrorPayload = {
         code: exception.code,

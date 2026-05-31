@@ -84,13 +84,14 @@ Server events:
 
 - WebSocket uses the same access token as REST.
 - Server verifies JWT and DB `Session`.
-- Authenticated commands re-check session with short TTL.
+- Authenticated commands re-check session with `CHAT_AUTH_RECHECK_MS`, default 30 seconds. High-load chat runtime can raise this, for example 300 seconds, after accepting the longer revocation window.
+- Active session DB lookups have a 5 second process-local cache and in-flight coalescing by session id.
 - Payload size is bounded by `CHAT_WS_MAX_PAYLOAD_BYTES`.
 - Payload warning metrics use `CHAT_WS_PAYLOAD_WARN_BYTES`, default `32768`, and increment `frendly_payload_warning_total` for inbound or outbound payloads above the threshold.
 - All chat actions require `ChatMember`.
-- Membership check has bounded in-memory TTL cache.
+- Membership check has bounded in-memory TTL cache and in-flight miss coalescing by user and chat. High-load chat runtime can use `CHAT_MEMBERSHIP_CACHE_TTL_MS=60000` after accepting the longer membership revocation window.
 - Direct chat checks load current member plus one peer, not all members.
-- API and chat server share hidden-user set through `getBlockedUserIds`.
+- API and chat server share hidden-user set through `getBlockedUserIds`. Chat server keeps a short process-local blocked-user cache and coalesces in-flight loads.
 
 ## Messages
 
@@ -104,6 +105,8 @@ Event meetup chat phase becomes `done` once `startsAt` is at least 24 hours old,
 
 REST meetup and personal chat list endpoints support optional `If-None-Match`. They keep the same JSON body on normal `200`, set a private weak `ETag`, and return empty `304` when the list payload is unchanged.
 
+Backend chat REST hot paths use short process-local cache before Redis for repeated reads. Chat lists keep a 2 second local L1 and Redis L2 payload cache. Message history keeps a 1 second local L1 and Redis L2 cache plus in-flight coalescing by user, chat, cursor and limit. `POST /chats/:chatId/read` skips repeated already-read markers and keeps a short 10 second local idempotency cache by user, chat and message.
+
 Server validates:
 
 - auth and membership
@@ -112,7 +115,13 @@ Server validates:
 - reply target in same chat
 - blocked reply sender
 
-Server writes `Message`, attachment links, `RealtimeEvent`, updates `Chat.updatedAt`, queues unread fanout and publishes Redis event.
+Server writes `Message`, attachment links, `RealtimeEvent`, may update `Chat.updatedAt`, queues unread fanout and publishes Redis event.
+
+For the text-only new-message hot path, the chat server skips the duplicate preflight `Message.findFirst`, skips `MediaAsset.findMany` when `attachmentIds` is empty, selects the plain message shape without attachment and reply joins, and omits empty `attachments.createMany`. Duplicate retries are handled after the unique constraint conflict by loading the existing sender message.
+
+`Chat.updatedAt` touches are throttled per chat and per process by `CHAT_MESSAGE_CHAT_TOUCH_INTERVAL_MS`, default 1000 ms. This reduces row-update pressure during bursty sends, but means very rapid messages in the same chat can share one chat-list recency touch inside the interval.
+
+Message transaction wait and timeout are controlled by `CHAT_MESSAGE_TRANSACTION_MAX_WAIT_MS` and `CHAT_MESSAGE_TRANSACTION_TIMEOUT_MS`, both defaulting to 10000 ms.
 
 Retries are resolved by `chatId + senderId + clientMessageId`. Cross-sender client id collisions return `client_message_id_conflict`.
 
@@ -180,6 +189,11 @@ Flutter `AppAttachmentService` coalesces in-flight signed download URL requests 
 - WebSocket input payload, message text and attachment count are bounded before DB writes.
 - Slow sockets over `CHAT_WS_MAX_BUFFERED_BYTES` are skipped and counted through `frendly_websocket_dropped_total{reason="buffered_amount"}`.
 - Push and unread fanout stay outside the hot WebSocket path.
+- `backend/scripts/load-chat-ws.mjs` is the current WebSocket load tool. It can validate authenticated connection count, inbound typing event throughput and `message.send` write throughput without printing tokens.
+- Last verified high-load gate on VPS1: 15000 authenticated WebSocket connections passed, then 15000 active connections plus 5000 inbound typing events per second for 30 seconds passed with 0 send errors and 0 server errors.
+- That gate does not prove 5000 `message.send` writes per second or large-room fanout. Message write and fanout need separate room-size tests.
+- Current `message.send` write evidence on VPS1 after scaling chat to `chat_a` through `chat_d`, setting chat Prisma pool to 30, and PgBouncer to `default_pool_size=100`, `reserve_pool_size=10`: 15000 active WebSockets plus 200 message sends per second for 30 seconds passed with 0 errors. 225 message sends per second failed with 195 transaction start errors. 250 message sends per second still failed. Treat 200 message sends per second as the current durable write ceiling for this topology.
+- 5000 durable `message.send` writes per second is not supported by the current single Postgres and per-message transaction design. It needs an architecture change before more tuning, such as a dedicated write pipeline, less work inside the transaction, sharding or a stronger DB tier.
 
 ## Tests
 

@@ -171,7 +171,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    command: ["pnpm", "--filter", "@big-break/api", "start"]
+    command: ["pnpm", "--filter", "@big-break/api", "start:prod"]
 
   chat:
     build:
@@ -184,7 +184,7 @@ services:
       NODE_ENV: production
       DATABASE_DIRECT_URL: ${DATABASE_DIRECT_URL}
       DATABASE_POOL_URL: ${DATABASE_POOL_URL}
-      DATABASE_URL: ${DATABASE_POOL_URL}
+      DATABASE_URL: ${CHAT_DATABASE_POOL_URL:-${DATABASE_POOL_URL}}
       WORKER_OUTBOX_BATCH_CLAIM: ${WORKER_OUTBOX_BATCH_CLAIM:-false}
       WORKER_OUTBOX_PROCESSING_CONCURRENCY: ${WORKER_OUTBOX_PROCESSING_CONCURRENCY:-1}
       WORKER_RETENTION_CLEANUP_ENABLED: ${WORKER_RETENTION_CLEANUP_ENABLED:-false}
@@ -222,7 +222,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    command: ["pnpm", "--filter", "@big-break/chat", "start"]
+    command: ["pnpm", "--filter", "@big-break/chat", "start:prod"]
 
   worker:
     build:
@@ -303,7 +303,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    command: ["pnpm", "--filter", "@big-break/worker", "start"]
+    command: ["pnpm", "--filter", "@big-break/worker", "start:prod"]
 
   landing:
     build:

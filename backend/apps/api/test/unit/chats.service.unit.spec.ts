@@ -1473,6 +1473,151 @@ describe('ChatsService unit', () => {
     expect(redisCache.setJson).not.toHaveBeenCalled();
   });
 
+  it('returns message history from Redis cache without hitting the database', async () => {
+    const cached = {
+      currentUserId: 'user-me',
+      items: [],
+      nextCursor: null,
+      lastEventId: '7',
+    };
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const client = {
+      chatMember: {
+        findUnique: jest.fn(),
+      },
+      message: {
+        findMany: jest.fn(),
+      },
+      realtimeEvent: {
+        findFirst: jest.fn(),
+      },
+    };
+    const service = new ChatsService({ client } as any, redisCache as any);
+
+    const response = await service.getMessages('user-me', 'chat-1', { limit: 20 });
+
+    expect(response).toEqual(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith(
+      'api:chat-messages:v1:user-me:chat-1::20',
+    );
+    expect(client.chatMember.findUnique).not.toHaveBeenCalled();
+    expect(client.message.findMany).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
+  it('coalesces concurrent message history loads for the same cache key', async () => {
+    let resolveMessages!: (value: any[]) => void;
+    const messageFindMany = jest.fn(
+      () =>
+        new Promise<any[]>((resolve) => {
+          resolveMessages = resolve;
+        }),
+    );
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: ChatKind.meetup,
+              event: {
+                hostId: 'user-host',
+              },
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findMany: messageFindMany,
+        },
+        realtimeEvent: {
+          findFirst: jest.fn().mockResolvedValue({ id: BigInt(7) }),
+        },
+      },
+    } as any, redisCache as any);
+
+    const first = service.getMessages('user-me', 'chat-1', { limit: 20 });
+    const second = service.getMessages('user-me', 'chat-1', { limit: 20 });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(messageFindMany).toHaveBeenCalledTimes(1);
+
+    resolveMessages([]);
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      {
+        currentUserId: 'user-me',
+        items: [],
+        nextCursor: null,
+        lastEventId: '7',
+      },
+      {
+        currentUserId: 'user-me',
+        items: [],
+        nextCursor: null,
+        lastEventId: '7',
+      },
+    ]);
+    expect(redisCache.setJson).toHaveBeenCalledWith(
+      'api:chat-messages:v1:user-me:chat-1::20',
+      {
+        currentUserId: 'user-me',
+        items: [],
+        nextCursor: null,
+        lastEventId: '7',
+      },
+      1,
+    );
+  });
+
+  it('serves repeated message history requests from local cache before Redis', async () => {
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: ChatKind.meetup,
+              event: {
+                hostId: 'user-host',
+              },
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        realtimeEvent: {
+          findFirst: jest.fn().mockResolvedValue({ id: BigInt(7) }),
+        },
+      },
+    } as any, redisCache as any);
+
+    const first = await service.getMessages('user-me', 'chat-1', { limit: 20 });
+    const second = await service.getMessages('user-me', 'chat-1', { limit: 20 });
+
+    expect(second).toEqual(first);
+    expect(redisCache.getJson).toHaveBeenCalledTimes(1);
+  });
+
   it('returns not modified when a chat list ETag matches If-None-Match', async () => {
     const service = new ChatsService({ client: {} } as any);
     const payload = {
@@ -1731,6 +1876,8 @@ describe('ChatsService unit', () => {
         },
       },
       select: {
+        lastReadMessageId: true,
+        unreadCount: true,
         chat: {
           select: {
             kind: true,
@@ -1861,6 +2008,51 @@ describe('ChatsService unit', () => {
         userId: 'user-me',
       },
     });
+  });
+
+  it('skips read marker writes when the requested message is already read', async () => {
+    const findUnique = jest.fn().mockResolvedValue({
+      lastReadMessageId: 'message-1',
+      unreadCount: 0,
+      chat: {
+        kind: ChatKind.meetup,
+        event: {
+          hostId: 'user-host',
+        },
+      },
+    });
+    const memberUpdate = jest.fn();
+    const messageFindFirst = jest.fn();
+    const notificationUpdateMany = jest.fn();
+    const service = new ChatsService({
+      client: {
+        chatMember: {
+          findUnique,
+          update: memberUpdate,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findFirst: messageFindFirst,
+        },
+        notification: {
+          updateMany: notificationUpdateMany,
+        },
+        $transaction: jest.fn(),
+      },
+    } as any);
+
+    await expect(
+      service.markRead('user-me', 'chat-1', 'message-1'),
+    ).resolves.toEqual({ ok: true });
+    await expect(
+      service.markRead('user-me', 'chat-1', 'message-1'),
+    ).resolves.toEqual({ ok: true });
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(messageFindFirst).not.toHaveBeenCalled();
+    expect(memberUpdate).not.toHaveBeenCalled();
+    expect(notificationUpdateMany).not.toHaveBeenCalled();
   });
 
   it('does not advance read markers to messages from blocked senders', async () => {

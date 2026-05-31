@@ -17,5 +17,10 @@ RUN pnpm install --frozen-lockfile
 COPY backend ./
 
 RUN pnpm --filter @big-break/database prisma:generate
+RUN pnpm --filter @big-break/contracts build \
+  && pnpm --filter @big-break/database build \
+  && pnpm --filter @big-break/api build \
+  && pnpm --filter @big-break/chat build \
+  && pnpm --filter @big-break/worker build
 
-CMD ["pnpm", "--filter", "@big-break/api", "start"]
+CMD ["pnpm", "--filter", "@big-break/api", "start:prod"]

@@ -4,6 +4,7 @@
     "name": "Frendly Business Logic",
     "description": "Business domain map for backend, mobile, and admin flows.",
     "languages": [
+      "css",
       "docker-compose",
       "dockerfile",
       "javascript",
@@ -19,10 +20,12 @@
     ],
     "frameworks": [
       "NestJS",
-      "Prisma"
+      "Prisma",
+      "React",
+      "Vite"
     ],
-    "analyzedAt": "2026-05-31T05:41:28.927Z",
-    "gitCommitHash": "a6c998bc4fbe43db56ad5e02fa6d2b7276361170"
+    "analyzedAt": "2026-05-31T11:19:59.532Z",
+    "gitCommitHash": "19352743179470757f9a8b84796d7b8912383f5b"
   },
   "nodes": [
     {

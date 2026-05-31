@@ -14,6 +14,7 @@ import { RedisCacheService } from '../services/redis-cache.service';
 
 export const IS_PUBLIC_ROUTE = 'isPublicRoute';
 const AUTH_SESSION_CACHE_SECONDS = 5;
+const AUTH_SESSION_LOCAL_CACHE_MAX_ENTRIES = 10000;
 
 type AuthSessionSnapshot = {
   userId: string;
@@ -23,6 +24,11 @@ type AuthSessionSnapshot = {
   };
 };
 
+type AuthSessionCacheEntry = {
+  expiresAt: number;
+  value: AuthSessionSnapshot;
+};
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly logger = new Logger(AuthGuard.name);
@@ -30,6 +36,7 @@ export class AuthGuard implements CanActivate {
     string,
     Promise<AuthSessionSnapshot | null>
   >();
+  private readonly localSessionCache = new Map<string, AuthSessionCacheEntry>();
 
   constructor(
     private readonly reflector: Reflector,
@@ -86,8 +93,14 @@ export class AuthGuard implements CanActivate {
 
   private async loadSession(sessionId: string): Promise<AuthSessionSnapshot | null> {
     const cacheKey = this.sessionCacheKey(sessionId);
+    const local = this.getLocalSession(cacheKey);
+    if (local != null) {
+      return local;
+    }
+
     const cached = await this.redisCache?.getJson<AuthSessionSnapshot>(cacheKey);
     if (cached != null) {
+      this.setLocalSession(cacheKey, cached);
       return cached;
     }
 
@@ -108,6 +121,7 @@ export class AuthGuard implements CanActivate {
             session,
             AUTH_SESSION_CACHE_SECONDS,
           );
+          this.setLocalSession(cacheKey, session);
         }
 
         return session;
@@ -139,5 +153,30 @@ export class AuthGuard implements CanActivate {
 
   private sessionCacheKey(sessionId: string) {
     return ['api', 'auth-session', 'v1', sessionId].join(':');
+  }
+
+  private getLocalSession(cacheKey: string) {
+    const entry = this.localSessionCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.localSessionCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setLocalSession(cacheKey: string, session: AuthSessionSnapshot) {
+    if (this.localSessionCache.size >= AUTH_SESSION_LOCAL_CACHE_MAX_ENTRIES) {
+      const oldestKey = this.localSessionCache.keys().next().value;
+      if (oldestKey) {
+        this.localSessionCache.delete(oldestKey);
+      }
+    }
+    this.localSessionCache.set(cacheKey, {
+      expiresAt: Date.now() + AUTH_SESSION_CACHE_SECONDS * 1000,
+      value: session,
+    });
   }
 }
