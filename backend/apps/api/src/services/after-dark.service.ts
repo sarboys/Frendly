@@ -199,6 +199,10 @@ export class AfterDarkService {
     options: { includePreviewCount?: boolean } = {},
   ) {
     const includePreviewCount = options.includePreviewCount !== false;
+    if (!this.isAccessCacheEnabled()) {
+      return this.loadFreshAccess(userId, includePreviewCount);
+    }
+
     const cacheKey = this.accessCacheKey(userId, includePreviewCount);
     const cached = this.getMemoryCachedAccess(cacheKey);
     if (cached != null) {
@@ -292,6 +296,21 @@ export class AfterDarkService {
       expiresAt: Date.now() + AFTER_DARK_ACCESS_CACHE_SECONDS * 1000,
       value,
     });
+  }
+
+  private isAccessCacheEnabled() {
+    return (
+      process.env.NODE_ENV !== 'test' ||
+      process.env.API_AFTER_DARK_ACCESS_CACHE_IN_TESTS === 'true'
+    );
+  }
+
+  clearAccessCache(userId: string) {
+    for (const includePreviewCount of [true, false]) {
+      const cacheKey = this.accessCacheKey(userId, includePreviewCount);
+      this.pendingAccessLoads.delete(cacheKey);
+      this.accessMemoryCache.delete(cacheKey);
+    }
   }
 
   private async assertUnlocked(userId: string) {

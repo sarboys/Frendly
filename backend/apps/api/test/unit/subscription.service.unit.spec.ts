@@ -18,6 +18,9 @@ describe('SubscriptionService unit', () => {
   });
 
   it('loads only fields needed for the current subscription response', async () => {
+    const previousCacheFlag =
+      process.env.API_CURRENT_SUBSCRIPTION_CACHE_IN_TESTS;
+    process.env.API_CURRENT_SUBSCRIPTION_CACHE_IN_TESTS = 'true';
     jest
       .spyOn(Date, 'now')
       .mockReturnValue(new Date('2026-05-13T10:00:00.000Z').getTime());
@@ -40,32 +43,41 @@ describe('SubscriptionService unit', () => {
       tokensService as any,
     );
 
-    await expect(service.getCurrent('user-me')).resolves.toEqual({
-      plan: 'month',
-      status: 'active',
-      startedAt: '2026-04-28T00:00:00.000Z',
-      renewsAt: '2026-05-28T00:00:00.000Z',
-      trialEndsAt: null,
-    });
-    await expect(service.getCurrent('user-me')).resolves.toEqual({
-      plan: 'month',
-      status: 'active',
-      startedAt: '2026-04-28T00:00:00.000Z',
-      renewsAt: '2026-05-28T00:00:00.000Z',
-      trialEndsAt: null,
-    });
-    expect(findFirst).toHaveBeenCalledWith({
-      where: { userId: 'user-me' },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        plan: true,
-        status: true,
-        startedAt: true,
-        renewsAt: true,
-        trialEndsAt: true,
-      },
-    });
-    expect(findFirst).toHaveBeenCalledTimes(1);
+    try {
+      await expect(service.getCurrent('user-me')).resolves.toEqual({
+        plan: 'month',
+        status: 'active',
+        startedAt: '2026-04-28T00:00:00.000Z',
+        renewsAt: '2026-05-28T00:00:00.000Z',
+        trialEndsAt: null,
+      });
+      await expect(service.getCurrent('user-me')).resolves.toEqual({
+        plan: 'month',
+        status: 'active',
+        startedAt: '2026-04-28T00:00:00.000Z',
+        renewsAt: '2026-05-28T00:00:00.000Z',
+        trialEndsAt: null,
+      });
+      expect(findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-me' },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          plan: true,
+          status: true,
+          startedAt: true,
+          renewsAt: true,
+          trialEndsAt: true,
+        },
+      });
+      expect(findFirst).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previousCacheFlag == null) {
+        delete process.env.API_CURRENT_SUBSCRIPTION_CACHE_IN_TESTS;
+      } else {
+        process.env.API_CURRENT_SUBSCRIPTION_CACHE_IN_TESTS =
+          previousCacheFlag;
+      }
+    }
   });
 
   it('returns matching active subscription without reading it again', async () => {

@@ -24,8 +24,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-31T03:22:06.057Z",
-    "gitCommitHash": "d15d4eefcc532bca22dd6bccf8ceb3e09353e4a8"
+    "analyzedAt": "2026-05-31T03:52:35.346Z",
+    "gitCommitHash": "2e2db6d73b2e521bfcd9c8414bf0271c312899d0"
   },
   "nodes": [
     {
@@ -9434,8 +9434,8 @@
       "name": "AuthGuard",
       "filePath": "backend/apps/api/src/common/auth.guard.ts",
       "lineRange": [
-        25,
-        148
+        27,
+        143
       ],
       "summary": "AuthGuard in auth.guard.ts.",
       "tags": [
@@ -12790,7 +12790,7 @@
       "filePath": "backend/apps/api/src/services/after-dark.service.ts",
       "lineRange": [
         23,
-        608
+        627
       ],
       "summary": "AfterDarkService in after-dark.service.ts.",
       "tags": [
@@ -12850,7 +12850,7 @@
       "filePath": "backend/apps/api/src/services/auth.service.ts",
       "lineRange": [
         40,
-        916
+        921
       ],
       "summary": "AuthService in auth.service.ts.",
       "tags": [
@@ -15135,8 +15135,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5511,
-        5541
+        5520,
+        5550
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -15152,8 +15152,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5543,
-        5547
+        5552,
+        5556
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -15169,8 +15169,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5549,
-        5551
+        5558,
+        5560
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -15186,8 +15186,8 @@
       "name": "cleanEventText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5553,
-        5559
+        5562,
+        5568
       ],
       "summary": "cleanEventText in events.service.ts.",
       "tags": [
@@ -15203,8 +15203,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5561,
-        5563
+        5570,
+        5572
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -15220,8 +15220,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5565,
-        5584
+        5574,
+        5593
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -15238,7 +15238,7 @@
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
         330,
-        5509
+        5518
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [
@@ -15422,7 +15422,7 @@
       "filePath": "backend/apps/api/src/services/notifications.service.ts",
       "lineRange": [
         20,
-        654
+        663
       ],
       "summary": "NotificationsService in notifications.service.ts.",
       "tags": [
@@ -15604,8 +15604,8 @@
       "name": "contactAlreadyUsedError",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        620,
-        627
+        624,
+        631
       ],
       "summary": "contactAlreadyUsedError in onboarding.service.ts.",
       "tags": [
@@ -15621,8 +15621,8 @@
       "name": "contactFieldFromUniqueError",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        629,
-        645
+        633,
+        649
       ],
       "summary": "contactFieldFromUniqueError in onboarding.service.ts.",
       "tags": [
@@ -15639,7 +15639,7 @@
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
         244,
-        618
+        622
       ],
       "summary": "OnboardingService in onboarding.service.ts.",
       "tags": [
@@ -16509,7 +16509,7 @@
       "filePath": "backend/apps/api/src/services/redis-cache.service.ts",
       "lineRange": [
         5,
-        72
+        102
       ],
       "summary": "RedisCacheService in redis-cache.service.ts.",
       "tags": [
@@ -16598,8 +16598,8 @@
       "name": "mapSettings",
       "filePath": "backend/apps/api/src/services/settings.service.ts",
       "lineRange": [
-        6,
-        28
+        8,
+        30
       ],
       "summary": "mapSettings in settings.service.ts.",
       "tags": [
@@ -16615,8 +16615,8 @@
       "name": "SettingsService",
       "filePath": "backend/apps/api/src/services/settings.service.ts",
       "lineRange": [
-        44,
-        216
+        46,
+        222
       ],
       "summary": "SettingsService in settings.service.ts.",
       "tags": [
@@ -16766,7 +16766,7 @@
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
       "lineRange": [
         123,
-        940
+        955
       ],
       "summary": "SubscriptionService in subscription.service.ts.",
       "tags": [
@@ -53534,6 +53534,13 @@
       "weight": 0.7
     },
     {
+      "source": "file:backend/apps/api/src/common/auth.guard.ts",
+      "target": "file:backend/apps/api/src/services/redis-cache.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
       "source": "file:backend/apps/api/src/common/current-admin.decorator.ts",
       "target": "file:backend/apps/api/src/common/request-context.ts",
       "type": "imports",
@@ -55614,7 +55621,21 @@
     },
     {
       "source": "file:backend/apps/api/src/services/settings.service.ts",
+      "target": "file:backend/apps/api/src/services/after-dark.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/settings.service.ts",
       "target": "file:backend/apps/api/src/services/redis-cache.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/settings.service.ts",
+      "target": "file:backend/apps/api/src/services/subscription.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7

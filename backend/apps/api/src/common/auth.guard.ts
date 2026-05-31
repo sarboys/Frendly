@@ -1,13 +1,19 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { verifyAccessToken } from '@big-break/database';
 import { ApiError } from './api-error';
 import { RequestWithContext } from './request-context';
 import { PrismaService } from '../services/prisma.service';
+import { RedisCacheService } from '../services/redis-cache.service';
 
 export const IS_PUBLIC_ROUTE = 'isPublicRoute';
-const AUTH_SESSION_CACHE_TTL_MS = 5000;
-const AUTH_SESSION_CACHE_MAX_ENTRIES = 5000;
+const AUTH_SESSION_CACHE_SECONDS = 5;
 
 type AuthSessionSnapshot = {
   userId: string;
@@ -17,14 +23,9 @@ type AuthSessionSnapshot = {
   };
 };
 
-type CachedAuthSession = AuthSessionSnapshot & {
-  expiresAt: number;
-};
-
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly logger = new Logger(AuthGuard.name);
-  private readonly sessionCache = new Map<string, CachedAuthSession>();
   private readonly pendingSessionLoads = new Map<
     string,
     Promise<AuthSessionSnapshot | null>
@@ -33,6 +34,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -83,14 +85,10 @@ export class AuthGuard implements CanActivate {
   }
 
   private async loadSession(sessionId: string): Promise<AuthSessionSnapshot | null> {
-    const now = Date.now();
-    const cached = this.sessionCache.get(sessionId);
+    const cacheKey = this.sessionCacheKey(sessionId);
+    const cached = await this.redisCache?.getJson<AuthSessionSnapshot>(cacheKey);
     if (cached != null) {
-      if (cached.expiresAt > now) {
-        return cached;
-      }
-
-      this.sessionCache.delete(sessionId);
+      return cached;
     }
 
     const pending = this.pendingSessionLoads.get(sessionId);
@@ -99,6 +97,21 @@ export class AuthGuard implements CanActivate {
     }
 
     const loading = this.loadFreshSession(sessionId)
+      .then(async (session) => {
+        if (
+          session != null &&
+          session.revokedAt == null &&
+          session.user.status !== 'suspended'
+        ) {
+          await this.redisCache?.setJson(
+            cacheKey,
+            session,
+            AUTH_SESSION_CACHE_SECONDS,
+          );
+        }
+
+        return session;
+      })
       .finally(() => {
         this.pendingSessionLoads.delete(sessionId);
       });
@@ -121,28 +134,10 @@ export class AuthGuard implements CanActivate {
       },
     });
 
-    if (
-      session != null &&
-      session.revokedAt == null &&
-      session.user.status !== 'suspended'
-    ) {
-      this.storeSession(sessionId, session);
-    }
-
     return session;
   }
 
-  private storeSession(sessionId: string, session: AuthSessionSnapshot) {
-    if (this.sessionCache.size >= AUTH_SESSION_CACHE_MAX_ENTRIES) {
-      const firstKey = this.sessionCache.keys().next().value;
-      if (firstKey != null) {
-        this.sessionCache.delete(firstKey);
-      }
-    }
-
-    this.sessionCache.set(sessionId, {
-      ...session,
-      expiresAt: Date.now() + AUTH_SESSION_CACHE_TTL_MS,
-    });
+  private sessionCacheKey(sessionId: string) {
+    return ['api', 'auth-session', 'v1', sessionId].join(':');
   }
 }

@@ -34,6 +34,10 @@ export class NotificationsService {
   ) {}
 
   async listNotifications(userId: string, params: { cursor?: string; limit?: number }) {
+    if (!this.isNotificationListCacheEnabled()) {
+      return this.loadFreshNotifications(userId, params);
+    }
+
     const cacheKey = this.listCacheKey(userId, params);
     const cached = this.getMemoryCachedList(cacheKey);
     if (cached != null) {
@@ -128,6 +132,11 @@ export class NotificationsService {
   private clearListCache() {
     this.pendingListLoads.clear();
     this.listMemoryCache.clear();
+  }
+
+  private isNotificationListCacheEnabled() {
+    const runtimeFlag = (this.redisCache as any)?.isRuntimeCacheEnabled;
+    return typeof runtimeFlag === 'function' ? runtimeFlag.call(this.redisCache) : true;
   }
 
   async getUnreadCount(userId: string) {

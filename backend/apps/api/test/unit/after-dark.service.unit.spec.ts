@@ -33,6 +33,8 @@ describe('AfterDarkService', () => {
   });
 
   it('uses a short cache for after-dark access checks', async () => {
+    const previousCacheFlag = process.env.API_AFTER_DARK_ACCESS_CACHE_IN_TESTS;
+    process.env.API_AFTER_DARK_ACCESS_CACHE_IN_TESTS = 'true';
     const client = {
       userSettings: {
         findUnique: jest.fn().mockResolvedValue({
@@ -59,19 +61,27 @@ describe('AfterDarkService', () => {
       {} as any,
     );
 
-    const result = await service.getAccess('user-me');
-    const cachedResult = await service.getAccess('user-me');
+    try {
+      const result = await service.getAccess('user-me');
+      const cachedResult = await service.getAccess('user-me');
 
-    expect(result).toMatchObject({
-      unlocked: true,
-      previewCount: 3,
-      kinkVerified: true,
-    });
-    expect(cachedResult).toBe(result);
-    expect(client.userSettings.findUnique).toHaveBeenCalledTimes(1);
-    expect(client.userVerification.findUnique).toHaveBeenCalledTimes(1);
-    expect(client.event.count).toHaveBeenCalledTimes(1);
-    expect(subscriptionService.getCurrent).toHaveBeenCalledTimes(1);
+      expect(result).toMatchObject({
+        unlocked: true,
+        previewCount: 3,
+        kinkVerified: true,
+      });
+      expect(cachedResult).toBe(result);
+      expect(client.userSettings.findUnique).toHaveBeenCalledTimes(1);
+      expect(client.userVerification.findUnique).toHaveBeenCalledTimes(1);
+      expect(client.event.count).toHaveBeenCalledTimes(1);
+      expect(subscriptionService.getCurrent).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previousCacheFlag == null) {
+        delete process.env.API_AFTER_DARK_ACCESS_CACHE_IN_TESTS;
+      } else {
+        process.env.API_AFTER_DARK_ACCESS_CACHE_IN_TESTS = previousCacheFlag;
+      }
+    }
   });
 
   it('does not load all event participants for after-dark list summaries', async () => {

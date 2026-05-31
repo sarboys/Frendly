@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "d15d4eefcc532bca22dd6bccf8ceb3e09353e4a8",
-  "generatedAt": "2026-05-31T03:22:06.733Z",
+  "gitCommitHash": "2e2db6d73b2e521bfcd9c8414bf0271c312899d0",
+  "generatedAt": "2026-05-31T03:52:36.001Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -11044,7 +11044,7 @@
     },
     "backend/apps/api/src/common/auth.guard.ts": {
       "filePath": "backend/apps/api/src/common/auth.guard.ts",
-      "contentHash": "deb5c07072368c04f71063077d2e2181b6e7ffe31b0b6213539081b86ea9d632",
+      "contentHash": "4261bda4443e27080776277b48152420dea485f6f1775768f199096a0c53d685",
       "functions": [],
       "classes": [
         {
@@ -11054,15 +11054,14 @@
             "canActivate",
             "loadSession",
             "loadFreshSession",
-            "storeSession"
+            "sessionCacheKey"
           ],
           "properties": [
             "logger",
-            "sessionCache",
             "pendingSessionLoads"
           ],
           "exported": true,
-          "lineCount": 124
+          "lineCount": 117
         }
       ],
       "imports": [
@@ -11072,7 +11071,8 @@
             "CanActivate",
             "ExecutionContext",
             "Injectable",
-            "Logger"
+            "Logger",
+            "Optional"
           ]
         },
         {
@@ -11104,13 +11104,19 @@
           "specifiers": [
             "PrismaService"
           ]
+        },
+        {
+          "source": "../services/redis-cache.service",
+          "specifiers": [
+            "RedisCacheService"
+          ]
         }
       ],
       "exports": [
         "IS_PUBLIC_ROUTE",
         "AuthGuard"
       ],
-      "totalLines": 149,
+      "totalLines": 144,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/current-admin.decorator.ts": {
@@ -16129,7 +16135,7 @@
     },
     "backend/apps/api/src/services/after-dark.service.ts": {
       "filePath": "backend/apps/api/src/services/after-dark.service.ts",
-      "contentHash": "5fc20dd4943eb828b576d16d55b91ab20340524cbdfc264e99bd11d4777a7961",
+      "contentHash": "74eb034767c0360ca8c07c03024417ea7b8da3d3c94e9e5688d1bbae52eed465",
       "functions": [],
       "classes": [
         {
@@ -16145,6 +16151,8 @@
             "accessCacheKey",
             "getMemoryCachedAccess",
             "setMemoryCachedAccess",
+            "isAccessCacheEnabled",
+            "clearAccessCache",
             "assertUnlocked",
             "loadEvent",
             "mapSummary",
@@ -16163,7 +16171,7 @@
             "accessMemoryCache"
           ],
           "exported": true,
-          "lineCount": 586
+          "lineCount": 605
         }
       ],
       "imports": [
@@ -16227,7 +16235,7 @@
       "exports": [
         "AfterDarkService"
       ],
-      "totalLines": 609,
+      "totalLines": 628,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/app-overlay.service.ts": {
@@ -16326,7 +16334,7 @@
     },
     "backend/apps/api/src/services/auth.service.ts": {
       "filePath": "backend/apps/api/src/services/auth.service.ts",
-      "contentHash": "e8cba9ef008d7f87527b134497e708cec2673053a3ea477f89f8a1c746a12587",
+      "contentHash": "d498da07dd05ce007890dbb78efd73e34153760ea13d108f46f850582c1ab09d",
       "functions": [],
       "classes": [
         {
@@ -16349,6 +16357,7 @@
             "getMe",
             "loadFreshMe",
             "meCacheKey",
+            "sessionCacheKey",
             "ensureUser",
             "normalizePhone",
             "isDevAuthEnabled",
@@ -16360,7 +16369,7 @@
             "pendingMeLoads"
           ],
           "exported": true,
-          "lineCount": 877
+          "lineCount": 882
         }
       ],
       "imports": [
@@ -16433,7 +16442,7 @@
       "exports": [
         "AuthService"
       ],
-      "totalLines": 917,
+      "totalLines": 922,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/chats.service.ts": {
@@ -18789,7 +18798,7 @@
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "2461b114f558a19cde89f21b99d7f7163a2e0e1cc73144956073e6658e52af9a",
+      "contentHash": "adbb1c61ae8a9eeddbf645ea5d5b2e55638b08765ee3fdf8b8da0d19e4e54b5e",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -18862,6 +18871,7 @@
             "getFreshEventDetailAfterMutation",
             "getMemoryCachedEventDetail",
             "setMemoryCachedEventDetail",
+            "isEventDetailCacheEnabled",
             "joinEvent",
             "loadActivePromosForPlace",
             "createJoinRequest",
@@ -18975,7 +18985,7 @@
             "publicActiveMeetupsMemoryCache"
           ],
           "exported": true,
-          "lineCount": 5180
+          "lineCount": 5189
         }
       ],
       "imports": [
@@ -19095,7 +19105,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 5585,
+      "totalLines": 5594,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {
@@ -19460,7 +19470,7 @@
     },
     "backend/apps/api/src/services/notifications.service.ts": {
       "filePath": "backend/apps/api/src/services/notifications.service.ts",
-      "contentHash": "4ff879febe1c5c027251b14aa95021048a21a36f85bcc94ec3d55218decf3f09",
+      "contentHash": "56ebf717c207049368dab75bf584a7d52b88980777b90ee2826b7ff596f99675",
       "functions": [],
       "classes": [
         {
@@ -19473,6 +19483,7 @@
             "getMemoryCachedList",
             "setMemoryCachedList",
             "clearListCache",
+            "isNotificationListCacheEnabled",
             "getUnreadCount",
             "loadFreshUnreadCount",
             "loadCachedUnreadCount",
@@ -19503,7 +19514,7 @@
             "listMemoryCache"
           ],
           "exported": true,
-          "lineCount": 635
+          "lineCount": 644
         }
       ],
       "imports": [
@@ -19550,12 +19561,12 @@
       "exports": [
         "NotificationsService"
       ],
-      "totalLines": 655,
+      "totalLines": 664,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/onboarding.service.ts": {
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
-      "contentHash": "5f02fec8665cf77f83d0e02b1a979f5adbf13ca29e57694babb9250ef962a775",
+      "contentHash": "a022c2fdf6f5bc774fb5994370815d38957cdcf891f9c326d7e183abbe2727f8",
       "functions": [
         {
           "name": "mapOnboarding",
@@ -19668,7 +19679,7 @@
             "pendingOnboardingLoads"
           ],
           "exported": true,
-          "lineCount": 375
+          "lineCount": 379
         }
       ],
       "imports": [
@@ -19714,7 +19725,7 @@
       "exports": [
         "OnboardingService"
       ],
-      "totalLines": 646,
+      "totalLines": 650,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/openrouter.service.ts": {
@@ -20957,13 +20968,14 @@
     },
     "backend/apps/api/src/services/redis-cache.service.ts": {
       "filePath": "backend/apps/api/src/services/redis-cache.service.ts",
-      "contentHash": "1b9257fd702a6fa4498de8e51d8e8d20eed5877807cec7fc9b2f73f1a6ef9b7a",
+      "contentHash": "4808c2d933a5f3bc929f911d8ff21097bffdd0eafff46ca201a95f7e262058bf",
       "functions": [],
       "classes": [
         {
           "name": "RedisCacheService",
           "methods": [
             "constructor",
+            "isRuntimeCacheEnabled",
             "getJson",
             "setJson",
             "delete",
@@ -20971,10 +20983,11 @@
             "onModuleDestroy"
           ],
           "properties": [
-            "redis"
+            "redis",
+            "runtimeCacheEnabled"
           ],
           "exported": true,
-          "lineCount": 68
+          "lineCount": 98
         }
       ],
       "imports": [
@@ -20996,7 +21009,7 @@
       "exports": [
         "RedisCacheService"
       ],
-      "totalLines": 73,
+      "totalLines": 103,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/safety.service.ts": {
@@ -21162,7 +21175,7 @@
     },
     "backend/apps/api/src/services/settings.service.ts": {
       "filePath": "backend/apps/api/src/services/settings.service.ts",
-      "contentHash": "8c51a95502807b02b4e3a24ceb58b3be69b0a461e065667fcc0907c3223cf440",
+      "contentHash": "69a2bdd8861eb7bcbbbcef8a05c441fca1111982059cd73ec57b01c7a7a0cb9e",
       "functions": [
         {
           "name": "mapSettings",
@@ -21189,7 +21202,7 @@
             "pendingSettingsLoads"
           ],
           "exported": true,
-          "lineCount": 173
+          "lineCount": 177
         }
       ],
       "imports": [
@@ -21213,16 +21226,28 @@
           ]
         },
         {
+          "source": "./after-dark.service",
+          "specifiers": [
+            "AfterDarkService"
+          ]
+        },
+        {
           "source": "./redis-cache.service",
           "specifiers": [
             "RedisCacheService"
+          ]
+        },
+        {
+          "source": "./subscription.service",
+          "specifiers": [
+            "SubscriptionService"
           ]
         }
       ],
       "exports": [
         "SettingsService"
       ],
-      "totalLines": 217,
+      "totalLines": 223,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/shares.service.ts": {
@@ -21505,7 +21530,7 @@
     },
     "backend/apps/api/src/services/subscription.service.ts": {
       "filePath": "backend/apps/api/src/services/subscription.service.ts",
-      "contentHash": "53ec82fdcd2921ad24d953a1d6e9eab3ef72fd1bdff824d373453bd99519d574",
+      "contentHash": "1c4c581338cfc1aa01c22260c266bab7acab73034305562eda3ccd61efe2108a",
       "functions": [],
       "classes": [
         {
@@ -21531,6 +21556,8 @@
             "setShortMemoryCache",
             "clearCatalogCache",
             "clearCurrentCache",
+            "clearCurrentSubscriptionCache",
+            "isCurrentSubscriptionCacheEnabled",
             "findCatalogProduct",
             "loadCatalogProducts",
             "loadCatalogSettings",
@@ -21563,7 +21590,7 @@
             "shortMemoryCache"
           ],
           "exported": true,
-          "lineCount": 818
+          "lineCount": 833
         }
       ],
       "imports": [
@@ -21617,7 +21644,7 @@
       "exports": [
         "SubscriptionService"
       ],
-      "totalLines": 941,
+      "totalLines": 956,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/support.service.ts": {

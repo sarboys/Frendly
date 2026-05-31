@@ -308,6 +308,10 @@ export class SubscriptionService {
   }
 
   async getCurrent(userId: string): Promise<CurrentSubscriptionResponse> {
+    if (!this.isCurrentSubscriptionCacheEnabled()) {
+      return this.loadFreshCurrent(userId);
+    }
+
     const cacheKey = this.currentSubscriptionCacheKey(userId);
     const cached = this.getShortMemoryCache<CurrentSubscriptionResponse>(cacheKey);
     if (cached != null) {
@@ -543,6 +547,17 @@ export class SubscriptionService {
     const cacheKey = this.currentSubscriptionCacheKey(userId);
     this.pendingCurrentLoads.delete(cacheKey);
     this.shortMemoryCache.delete(cacheKey);
+  }
+
+  clearCurrentSubscriptionCache(userId: string) {
+    this.clearCurrentCache(userId);
+  }
+
+  private isCurrentSubscriptionCacheEnabled() {
+    return (
+      process.env.NODE_ENV !== 'test' ||
+      process.env.API_CURRENT_SUBSCRIPTION_CACHE_IN_TESTS === 'true'
+    );
   }
 
   private async findCatalogProduct(

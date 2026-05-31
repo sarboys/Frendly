@@ -829,6 +829,10 @@ export class EventsService {
   }
 
   async getEventDetail(userId: string, eventId: string) {
+    if (!this.isEventDetailCacheEnabled()) {
+      return this.loadFreshEventDetail(userId, eventId);
+    }
+
     const cacheKey = this.eventDetailCacheKey(userId, eventId);
     const memoryCached = this.getMemoryCachedEventDetail(cacheKey);
     if (memoryCached != null) {
@@ -1105,6 +1109,11 @@ export class EventsService {
       expiresAt: Date.now() + EVENT_DETAIL_CACHE_SECONDS * 1000,
       value,
     });
+  }
+
+  private isEventDetailCacheEnabled() {
+    const runtimeFlag = (this.redisCache as any)?.isRuntimeCacheEnabled;
+    return typeof runtimeFlag === 'function' ? runtimeFlag.call(this.redisCache) : true;
   }
 
   async joinEvent(userId: string, eventId: string) {

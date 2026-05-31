@@ -1,7 +1,9 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
+import { AfterDarkService } from './after-dark.service';
 import { RedisCacheService } from './redis-cache.service';
+import { SubscriptionService } from './subscription.service';
 
 function mapSettings(settings: {
   allowLocation: boolean;
@@ -47,6 +49,8 @@ export class SettingsService {
   constructor(
     private readonly prismaService: PrismaService,
     @Optional() private readonly redisCache?: RedisCacheService,
+    @Optional() private readonly subscriptionService?: SubscriptionService,
+    @Optional() private readonly afterDarkService?: AfterDarkService,
   ) {}
 
   async getSettings(userId: string) {
@@ -198,6 +202,8 @@ export class SettingsService {
       });
     });
     await this.clearSettingsCache(userId);
+    this.subscriptionService?.clearCurrentSubscriptionCache(userId);
+    this.afterDarkService?.clearAccessCache(userId);
 
     return {
       frendlyPlusEnabled,

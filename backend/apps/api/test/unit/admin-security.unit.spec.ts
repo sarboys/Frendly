@@ -71,11 +71,18 @@ describe('Admin security unit', () => {
 
   it('caches active API sessions for repeated protected requests', async () => {
     const token = signAccessToken('user-1', 'session-1');
+    const cache = new Map<string, unknown>();
     const findUnique = jest.fn().mockResolvedValue({
       userId: 'user-1',
       revokedAt: null,
       user: { status: 'active' },
     });
+    const redisCache = {
+      getJson: jest.fn(async (key: string) => cache.get(key) ?? null),
+      setJson: jest.fn(async (key: string, value: unknown) => {
+        cache.set(key, value);
+      }),
+    };
     const guard = new AuthGuard(
       { getAllAndOverride: jest.fn().mockReturnValue(false) } as any,
       {
@@ -85,12 +92,15 @@ describe('Admin security unit', () => {
           },
         },
       } as any,
+      redisCache as any,
     );
 
     await expect(guard.canActivate(contextWithBearer(token))).resolves.toBe(true);
     await expect(guard.canActivate(contextWithBearer(token))).resolves.toBe(true);
 
     expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(redisCache.getJson).toHaveBeenCalledTimes(2);
+    expect(redisCache.setJson).toHaveBeenCalledTimes(1);
   });
 });
 

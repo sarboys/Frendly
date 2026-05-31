@@ -4,8 +4,13 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisCacheService implements OnModuleDestroy {
   private readonly redis: Redis;
+  private readonly runtimeCacheEnabled: boolean;
 
   constructor(@Optional() redis?: Redis) {
+    this.runtimeCacheEnabled =
+      redis != null ||
+      process.env.API_REDIS_CACHE_IN_TESTS === 'true' ||
+      process.env.NODE_ENV !== 'test';
     this.redis =
       redis ??
       new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
@@ -16,7 +21,15 @@ export class RedisCacheService implements OnModuleDestroy {
       });
   }
 
+  isRuntimeCacheEnabled() {
+    return this.runtimeCacheEnabled;
+  }
+
   async getJson<T>(key: string): Promise<T | null> {
+    if (!this.runtimeCacheEnabled) {
+      return null;
+    }
+
     try {
       const value = await this.redis.get(key);
 
@@ -35,6 +48,10 @@ export class RedisCacheService implements OnModuleDestroy {
     value: unknown,
     ttlSeconds: number,
   ): Promise<void> {
+    if (!this.runtimeCacheEnabled) {
+      return;
+    }
+
     if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
       return;
     }
@@ -47,6 +64,10 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async delete(key: string): Promise<void> {
+    if (!this.runtimeCacheEnabled) {
+      return;
+    }
+
     try {
       await this.redis.del(key);
     } catch {
@@ -55,6 +76,10 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async increment(key: string): Promise<number | null> {
+    if (!this.runtimeCacheEnabled) {
+      return null;
+    }
+
     try {
       return await this.redis.incr(key);
     } catch {
@@ -63,6 +88,11 @@ export class RedisCacheService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    if (!this.runtimeCacheEnabled) {
+      this.redis.disconnect();
+      return;
+    }
+
     try {
       await this.redis.quit();
     } catch {

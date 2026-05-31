@@ -513,7 +513,11 @@ export class OnboardingService {
         ...onboarding,
         requiredContact: requiredContactFor(sessionProvider, onboarding.user),
       });
-      await this.redisCache?.delete(this.onboardingCacheKey(userId, sessionId));
+      await Promise.all([
+        this.redisCache?.delete(this.onboardingCacheKey(userId, sessionId)),
+        this.redisCache?.delete(['api', 'auth-me', 'v1', userId].join(':')),
+        this.redisCache?.delete(['profile', 'me', 'v1', userId].join(':')),
+      ]);
       return response;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {

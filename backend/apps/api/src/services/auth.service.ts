@@ -562,6 +562,7 @@ export class AuthService {
         alreadyRevoked: result.count === 0,
       },
     });
+    await this.redisCache?.delete(this.sessionCacheKey(sessionId));
 
     return { ok: true };
   }
@@ -756,6 +757,10 @@ export class AuthService {
 
   private meCacheKey(userId: string) {
     return ['api', 'auth-me', 'v1', userId].join(':');
+  }
+
+  private sessionCacheKey(sessionId: string) {
+    return ['api', 'auth-session', 'v1', sessionId].join(':');
   }
 
   private async ensureUser(
