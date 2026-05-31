@@ -5,14 +5,14 @@ Date: 2026-05-31
 Topology:
 - VPS1: app node, private IP `192.168.0.5`, 8 CPU, 11 GiB RAM, Docker memory 12540772352 bytes.
 - DB host: separate server, private IP `192.168.0.6`.
-- API containers: `api_a` and `api_b`.
+- API containers for release 1500 RPS target: `api_a` through `api_h`.
 - Chat containers: `chat_a` through `chat_d`, all healthy after WebSocket and message-write follow-up.
 - Workers: `worker_realtime`, `worker_content`, `worker_schedules`, all healthy.
 - Redis: `frendly-backend-redis-1`, healthy on VPS1.
 - PgBouncer: expected on DB host, not present on VPS1.
 
 Docker limits:
-- API: no NanoCpus, CpuQuota, CpusetCpus or Memory limit on `api_a` and `api_b`.
+- API: no NanoCpus, CpuQuota, CpusetCpus or Memory limit was found on tested scale containers.
 - Chat: no NanoCpus, CpuQuota, CpusetCpus or Memory limit on `chat_a` through `chat_d`.
 - nginx: no NanoCpus, CpuQuota, CpusetCpus or Memory limit.
 - Redis: memory limit 2147483648 bytes. No CPU quota.
@@ -265,7 +265,7 @@ Date: 2026-05-31.
 
 Live topology after this follow-up:
 
-- VPS1 app node still owns nginx, Redis, landing, admin apps, 8 API containers, 4 chat containers and 3 worker role containers.
+- VPS1 app node owns nginx, Redis, landing, admin apps, 8 API containers, 4 chat containers and 3 worker role containers for the release scale target.
 - Chat containers: `chat_a`, `chat_b`, `chat_c`, `chat_d`.
 - DB and PgBouncer stay on `192.168.0.6`.
 - Runtime DB traffic uses PgBouncer on `192.168.0.6:6432`.
@@ -343,14 +343,14 @@ Release gate:
 - Release to normal tester traffic can proceed only if the product gate is normal app usage.
 - Release to the stated 1500 RPS or 5000 durable chat events/sec target is blocked.
 - Evidence: API CPU saturation, massive timeouts on `messages` and `read`, clean chat list cache, no DB wait evidence.
-- First next fix: `mixed-concurrency-fix` only if we decide to increase API capacity. If staying with exactly 2 API containers, the first code fix should target `chat-message-history-hot-path-fix`.
+- `mixed-concurrency-fix` is selected for release 1500 REST RPS, so API release runtime uses 8 scale containers. The remaining high-load blocker is durable chat writes, tracked under `chat-message-write-pipeline-fix`.
 
 ## Task 5 mixed concurrency and chat hot-path fixes
 
 Permission:
 - Mixed concurrency fix was allowed after CPU evidence.
-- Mixed concurrency testing temporarily used 8 API containers: `api_a` through `api_h`.
-- Current scale deploy reverted API runtime back to `api_a` and `api_b`; do not return extra API containers without new evidence.
+- Mixed concurrency testing used 8 API containers: `api_a` through `api_h`.
+- Release scale deploy uses `api_a` through `api_h` because 1500 REST RPS passed on that topology.
 - `RUNTIME_SERVICES` on VPS1 includes only scale services plus nginx, Redis, landing and admin services. Base `api`, `chat`, `worker`, local Postgres and local PgBouncer are not part of the runtime.
 
 Code fixes:
@@ -366,7 +366,7 @@ Verification:
 - `pnpm --filter @big-break/api test:unit -- test/unit/chats.service.unit.spec.ts`: PASS.
 - `pnpm --filter @big-break/api test:unit -- test/unit/admin-security.unit.spec.ts`: PASS.
 - `pnpm --filter @big-break/api build`: PASS.
-- VPS1 deploy during the temporary 8 API test: all `api_a` through `api_h` healthy, restart count 0, OOM false after load tests.
+- VPS1 deploy during the 8 API test: all `api_a` through `api_h` healthy, restart count 0, OOM false after load tests.
 
 Key load results:
 - `messages` 150 RPS after message cache: 9000 started, 9000 success, 0 timeouts, p50 6 ms, p95 134 ms, p99 198 ms.

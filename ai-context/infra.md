@@ -80,7 +80,7 @@ Default local bindings:
 Scrape targets:
 
 - API `/metrics` on `api:3000`.
-- Scale API `/metrics` on `api_a:3000` and `api_b:3000`.
+- Release scale API `/metrics` on `api_a:3000` through `api_h:3000`.
 - Chat `/metrics` on `chat:3001`.
 - Scale chat `/metrics` on `chat_a:3001` through `chat_d:3001`.
 - Worker `/metrics` on `worker:3002`.
@@ -268,11 +268,11 @@ Flow:
 - Production app path: `/opt/frendly`.
 - Deploy workflow and script discard tracked local changes in server checkouts before switching to the target branch, then use `flock` before Docker cleanup and compose recreate.
 - `scripts/deploy.sh` waits for `http://127.0.0.1/health` after compose recreate before returning. Defaults: `HEALTHCHECK_RETRIES=60`, `HEALTHCHECK_DELAY_SECONDS=5`, `HEALTHCHECK_TIMEOUT_SECONDS=10`.
-- Scale compose: add `COMPOSE_EXTRA_FILES=compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b chat_a chat_b chat_c chat_d worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
+- Release scale compose: add `COMPOSE_EXTRA_FILES=compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b api_c api_d api_e api_f api_g api_h chat_a chat_b chat_c chat_d worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
 - In scale mode, `RUNTIME_SERVICES` must not include base `api`, `chat` or `worker`; `scripts/deploy.sh` rejects that combination.
 - External DB mode uses `CORE_SERVICES=redis`. This keeps local `postgres` and local `pgbouncer` stopped while `migrate` runs with `--no-deps` against the direct external DB URL.
 - Rollback to local DB mode uses `CORE_SERVICES=postgres redis pgbouncer`, `POSTGRESQL_HOST=postgres`, a local `DATABASE_DIRECT_URL` to `postgres:5432` and a local `DATABASE_POOL_URL` to `pgbouncer:6432`.
-- Scale nginx config: `deploy/nginx/frendly.scale.conf` balances API through `api_a/api_b` and chat through `chat_a` to `chat_d`, while the default `deploy/nginx/frendly.conf` stays single-instance.
+- Release scale nginx config: `deploy/nginx/frendly.scale.conf` balances API through `api_a` to `api_h` and chat through `chat_a` to `chat_d`, while the default `deploy/nginx/frendly.conf` stays single-instance.
 - `scripts/deploy.sh` and `scripts/deploy-landing.sh` both read `COMPOSE_EXTRA_FILES` and `NGINX_SERVICE` from env or `.env.production`.
 - Worker role gates: `WORKER_OUTBOX_ENABLED`, `WORKER_CONTENT_ENABLED`, `WORKER_SCHEDULES_ENABLED`.
 - Landing repo syncs from `https://github.com/sarboys/frendly_landing.git`.
