@@ -69,7 +69,7 @@ describe('Admin security unit', () => {
     });
   });
 
-  it('caches active API sessions for repeated protected requests', async () => {
+  it('uses Redis session cache for repeated protected requests', async () => {
     const token = signAccessToken('user-1', 'session-1');
     const cache = new Map<string, unknown>();
     const findUnique = jest.fn().mockResolvedValue({
@@ -99,7 +99,7 @@ describe('Admin security unit', () => {
     await expect(guard.canActivate(contextWithBearer(token))).resolves.toBe(true);
 
     expect(findUnique).toHaveBeenCalledTimes(1);
-    expect(redisCache.getJson).toHaveBeenCalledTimes(1);
+    expect(redisCache.getJson).toHaveBeenCalledTimes(2);
     expect(redisCache.setJson).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "e4c68581721c5bf990e120d1016a685382b897e4",
-  "generatedAt": "2026-05-31T11:23:49.698Z",
+  "gitCommitHash": "a9f422aeaa2b4d1d40cd1acfc895adc30674a329",
+  "generatedAt": "2026-05-31T11:33:08.052Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -11044,7 +11044,7 @@
     },
     "backend/apps/api/src/common/auth.guard.ts": {
       "filePath": "backend/apps/api/src/common/auth.guard.ts",
-      "contentHash": "f2560eedc7bbb1f062fddc06554f229a2fc6dbc3380bcda4075c13ec891efc14",
+      "contentHash": "1b990242aedd808d0ce404f8925f57d5a4acd32da8b7cc59774b7e0eba867bda",
       "functions": [],
       "classes": [
         {
@@ -11054,17 +11054,14 @@
             "canActivate",
             "loadSession",
             "loadFreshSession",
-            "sessionCacheKey",
-            "getLocalSession",
-            "setLocalSession"
+            "sessionCacheKey"
           ],
           "properties": [
             "logger",
-            "pendingSessionLoads",
-            "localSessionCache"
+            "pendingSessionLoads"
           ],
           "exported": true,
-          "lineCount": 150
+          "lineCount": 117
         }
       ],
       "imports": [
@@ -11119,7 +11116,7 @@
         "IS_PUBLIC_ROUTE",
         "AuthGuard"
       ],
-      "totalLines": 183,
+      "totalLines": 144,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/current-admin.decorator.ts": {

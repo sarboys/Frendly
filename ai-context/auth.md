@@ -41,7 +41,7 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - Route is protected unless `@Public()`.
 - Guard reads `Authorization: Bearer <token>`.
 - Guard verifies access JWT and DB session.
-- Guard keeps active session snapshots in a 5 second process-local cache before Redis and DB. Redis remains the shared 5 second L2 cache. Suspended or revoked sessions are not cached.
+- Guard keeps active session snapshots in Redis for 5 seconds and coalesces concurrent DB loads in-process. It does not use process-local session cache, so logout invalidation is visible on the next protected request after Redis delete.
 - Controllers read user through `@CurrentUser()`.
 - Admin browser auth uses httpOnly cookies, `frendly_admin_access` and `frendly_admin_refresh`.
 - `AdminTokenGuard` accepts the admin access cookie or bearer admin access token.
