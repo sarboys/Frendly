@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { DropsRewardService } from './drops-reward.service';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 const VERIFICATION_TRIAL_DAYS = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -60,15 +61,43 @@ type CurrentSubscription = {
 
 @Injectable()
 export class VerificationService {
+  private readonly pendingVerificationLoads = new Map<string, Promise<any>>();
+
   constructor(
     private readonly prismaService: PrismaService,
     @Optional()
     private readonly dropsRewardService?: DropsRewardService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   private readonly s3 = createS3Client();
 
   async getVerification(userId: string) {
+    const cacheKey = this.verificationCacheKey(userId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingVerificationLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshVerification(userId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingVerificationLoads.delete(cacheKey);
+      });
+    this.pendingVerificationLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshVerification(userId: string) {
     const verification = await this.prismaService.client.userVerification.findUnique({
       where: { userId },
       select: verificationResponseSelect,
@@ -225,7 +254,16 @@ export class VerificationService {
       select: verificationResponseSelect,
     });
 
+    await this.clearVerificationCache(userId);
     return this.mapVerificationResponse(verification);
+  }
+
+  private verificationCacheKey(userId: string) {
+    return `verification:me:v1:${userId}`;
+  }
+
+  private async clearVerificationCache(userId: string) {
+    await this.redisCache?.delete(this.verificationCacheKey(userId));
   }
 
   async getAdminVerification(userId: string) {

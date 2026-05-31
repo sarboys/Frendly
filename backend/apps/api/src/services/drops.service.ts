@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   buildPublicAssetUrl,
@@ -19,6 +19,7 @@ import {
   DropsRewardService,
 } from './drops-reward.service';
 import { DropsDrawService } from './drops-draw.service';
+import { RedisCacheService } from './redis-cache.service';
 
 type DropRow = {
   id: string;
@@ -50,10 +51,27 @@ type AdminDropStats = {
   winnerCount: number;
 };
 
+type DropsHistoryItem = {
+  id: string;
+  source: string;
+  status: string;
+  title: string;
+  ticketCount: number;
+  cancellationReason: string | null;
+  relatedType: string | null;
+  relatedId: string | null;
+  createdAt: string;
+};
+
+type DropsHistoryResponse = {
+  items: DropsHistoryItem[];
+};
+
 const ADMIN_TICKET_STATUSES = ['active', 'used_in_draw', 'winner'] as const;
 export const MAX_DROP_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
 const DROP_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const IMMUTABLE_MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+const DROPS_HISTORY_CACHE_SECONDS = 10;
 
 const TASK_META = {
   verification: {
@@ -142,13 +160,64 @@ const TASK_META = {
 
 @Injectable()
 export class DropsService {
+  private readonly pendingHomeLoads = new Map<
+    string,
+    Promise<Awaited<ReturnType<DropsService['loadFreshHome']>>>
+  >();
+  private readonly pendingTasksLoads = new Map<
+    string,
+    Promise<Awaited<ReturnType<DropsService['loadFreshTasks']>>>
+  >();
+  private readonly pendingDetailLoads = new Map<
+    string,
+    Promise<Awaited<ReturnType<DropsService['loadFreshDrop']>>>
+  >();
+  private readonly pendingHistoryLoads = new Map<
+    string,
+    Promise<DropsHistoryResponse>
+  >();
+  private readonly historyMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly rewardService?: DropsRewardService,
     private readonly drawService?: DropsDrawService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
-  async getHome(userId: string) {
+  async getHome(
+    userId: string,
+  ): Promise<Awaited<ReturnType<DropsService['loadFreshHome']>>> {
+    const cacheKey = this.dropsHomeCacheKey(userId);
+    const cached = await this.redisCache?.getJson<
+      Awaited<ReturnType<DropsService['loadFreshHome']>>
+    >(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingHomeLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshHome(userId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingHomeLoads.delete(cacheKey);
+      });
+    this.pendingHomeLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshHome(userId: string) {
     const [drops, progress, tasks, history, pastWinners, eligibility] =
       await Promise.all([
         this.listVisibleDrops(userId),
@@ -189,6 +258,33 @@ export class DropsService {
   }
 
   async getDrop(userId: string, dropId: string) {
+    const cacheKey = this.dropsDetailCacheKey(userId, dropId);
+    const cached = await this.redisCache?.getJson<
+      Awaited<ReturnType<DropsService['loadFreshDrop']>>
+    >(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingDetailLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshDrop(userId, dropId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 15);
+        return response;
+      })
+      .finally(() => {
+        this.pendingDetailLoads.delete(cacheKey);
+      });
+    this.pendingDetailLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshDrop(userId: string, dropId: string) {
     const drop = await this.prismaService.client.drop.findUnique({
       where: { id: dropId },
       select: this.dropSelect(true),
@@ -200,7 +296,36 @@ export class DropsService {
     return this.mapDropForUser(drop, userId, true);
   }
 
-  async getTasks(userId: string) {
+  async getTasks(
+    userId: string,
+  ): Promise<Awaited<ReturnType<DropsService['loadFreshTasks']>>> {
+    const cacheKey = this.dropsTasksCacheKey(userId);
+    const cached = await this.redisCache?.getJson<
+      Awaited<ReturnType<DropsService['loadFreshTasks']>>
+    >(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingTasksLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshTasks(userId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingTasksLoads.delete(cacheKey);
+      });
+    this.pendingTasksLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshTasks(userId: string) {
     const rewardService = this.getRewardService();
     const month = rewardService.monthBounds();
     const todayKey = rewardService.localDateKey();
@@ -304,7 +429,32 @@ export class DropsService {
   async listHistory(
     userId: string,
     params: { month?: string; limit?: number } = {},
-  ) {
+  ): Promise<DropsHistoryResponse> {
+    const cacheKey = this.dropsHistoryCacheKey(userId, params);
+    const cached = this.getMemoryCachedHistory<DropsHistoryResponse>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingHistoryLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshHistory(userId, params)
+      .then((response) => {
+        this.setMemoryCachedHistory(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingHistoryLoads.delete(cacheKey);
+      });
+    this.pendingHistoryLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshHistory(
+    userId: string,
+    params: { month?: string; limit?: number } = {},
+  ): Promise<DropsHistoryResponse> {
     const limit = this.normalizeLimit(params.limit);
     const where: Prisma.DropRewardEventWhereInput = {
       userId,
@@ -344,17 +494,67 @@ export class DropsService {
     };
   }
 
+  private dropsHistoryCacheKey(
+    userId: string,
+    params: { month?: string; limit?: number },
+  ) {
+    return [
+      'drops',
+      'history',
+      'v1',
+      userId,
+      params.month ?? '',
+      this.normalizeLimit(params.limit),
+    ].join(':');
+  }
+
+  private getMemoryCachedHistory<T>(cacheKey: string): T | null {
+    const entry = this.historyMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.historyMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value as T;
+  }
+
+  private setMemoryCachedHistory(cacheKey: string, value: unknown) {
+    this.historyMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + DROPS_HISTORY_CACHE_SECONDS * 1000,
+      value,
+    });
+  }
+
+  private clearHistoryCache(userId: string) {
+    for (const cacheKey of this.historyMemoryCache.keys()) {
+      if (cacheKey.startsWith(`drops:history:v1:${userId}:`)) {
+        this.historyMemoryCache.delete(cacheKey);
+      }
+    }
+    for (const cacheKey of this.pendingHistoryLoads.keys()) {
+      if (cacheKey.startsWith(`drops:history:v1:${userId}:`)) {
+        this.pendingHistoryLoads.delete(cacheKey);
+      }
+    }
+  }
+
   async claimVerification(userId: string) {
-    return this.getRewardService().claimVerification(userId);
+    const response = await this.getRewardService().claimVerification(userId);
+    await this.clearUserDropsCache(userId);
+    return response;
   }
 
   async claimDailyLogin(userId: string) {
-    return this.getRewardService().claimDailyLogin(userId);
+    const response = await this.getRewardService().claimDailyLogin(userId);
+    await this.clearUserDropsCache(userId);
+    return response;
   }
 
   async applyTickets(userId: string, dropId: string, ticketCountRaw: number) {
     const ticketCount = this.normalizeTicketCount(ticketCountRaw);
-    return this.prismaService.client.$transaction(async (tx) => {
+    const response = await this.prismaService.client.$transaction(async (tx) => {
       const drop = await tx.drop.findUnique({
         where: { id: dropId },
         select: {
@@ -438,6 +638,8 @@ export class DropsService {
         availableTickets: availableCount - tickets.length,
       };
     });
+    await this.clearUserDropsCache(userId, dropId);
+    return response;
   }
 
   async createReferralLink(userId: string) {
@@ -484,7 +686,9 @@ export class DropsService {
       throw new ApiError(409, 'referral_self_invite', 'Self referral is not allowed');
     }
     if (referral.invitedUserId === userId) {
-      return this.mapReferral(referral);
+      const response = this.mapReferral(referral);
+      await this.clearUserDropsCache(userId);
+      return response;
     }
     if (referral.invitedUserId != null) {
       throw new ApiError(409, 'referral_already_used', 'Referral is already used');
@@ -519,7 +723,30 @@ export class DropsService {
     if (!updated) {
       throw new ApiError(404, 'referral_not_found', 'Referral not found');
     }
-    return this.mapReferral(updated);
+    const response = this.mapReferral(updated);
+    await this.clearUserDropsCache(userId);
+    return response;
+  }
+
+  private dropsHomeCacheKey(userId: string) {
+    return `drops:home:v1:${userId}`;
+  }
+
+  private dropsTasksCacheKey(userId: string) {
+    return `drops:tasks:v1:${userId}`;
+  }
+
+  private dropsDetailCacheKey(userId: string, dropId: string) {
+    return `drops:detail:v1:${userId}:${dropId}`;
+  }
+
+  private async clearUserDropsCache(userId: string, dropId?: string) {
+    this.clearHistoryCache(userId);
+    await Promise.all([
+      this.redisCache?.delete(this.dropsHomeCacheKey(userId)),
+      this.redisCache?.delete(this.dropsTasksCacheKey(userId)),
+      dropId ? this.redisCache?.delete(this.dropsDetailCacheKey(userId, dropId)) : undefined,
+    ]);
   }
 
   async listAdminDrops(query: Record<string, unknown> = {}) {

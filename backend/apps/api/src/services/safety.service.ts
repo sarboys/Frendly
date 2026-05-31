@@ -1,16 +1,54 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { OUTBOX_EVENT_TYPES } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 type TrustedContactChannel = 'phone' | 'telegram' | 'email';
 
+const SAFETY_LIST_CACHE_SECONDS = 10;
+
 @Injectable()
 export class SafetyService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingSafetyLoads = new Map<string, Promise<any>>();
+  private readonly pendingListLoads = new Map<string, Promise<any>>();
+  private readonly listMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async getSafety(userId: string) {
+    const cacheKey = this.safetyCacheKey(userId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingSafetyLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshSafety(userId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 15);
+        return response;
+      })
+      .finally(() => {
+        this.pendingSafetyLoads.delete(cacheKey);
+      });
+    this.pendingSafetyLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshSafety(userId: string) {
     const [user, settings, contacts, blocksCount, activeReportsCount, activeReportsAgainstUserCount] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -72,7 +110,7 @@ export class SafetyService {
   }
 
   async updateSafety(userId: string, body: Record<string, unknown>) {
-    return this.prismaService.client.userSettings.update({
+    const response = await this.prismaService.client.userSettings.update({
       where: { userId },
       data: {
         autoSharePlans:
@@ -81,13 +119,73 @@ export class SafetyService {
             typeof body.hideExactLocation === 'boolean' ? body.hideExactLocation : undefined,
       },
     });
+    await this.clearSafetyCache(userId);
+    return response;
   }
 
   async listTrustedContacts(userId: string) {
-    return this.prismaService.client.trustedContact.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
+    return this.loadCachedList(
+      this.safetyListCacheKey('trusted-contacts', userId),
+      () => this.prismaService.client.trustedContact.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
+  }
+
+  private async loadCachedList<T>(
+    cacheKey: string,
+    loadFresh: () => Promise<T>,
+  ): Promise<T> {
+    const cached = this.getMemoryCachedList<T>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingListLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = loadFresh()
+      .then((response) => {
+        this.setMemoryCachedList(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingListLoads.delete(cacheKey);
+      });
+    this.pendingListLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private safetyListCacheKey(kind: string, userId: string) {
+    return ['safety', kind, 'v1', userId].join(':');
+  }
+
+  private getMemoryCachedList<T>(cacheKey: string): T | null {
+    const entry = this.listMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.listMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value as T;
+  }
+
+  private setMemoryCachedList(cacheKey: string, value: unknown) {
+    this.listMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + SAFETY_LIST_CACHE_SECONDS * 1000,
+      value,
     });
+  }
+
+  private clearListCaches(userId: string) {
+    for (const kind of ['trusted-contacts', 'reports', 'blocks']) {
+      const cacheKey = this.safetyListCacheKey(kind, userId);
+      this.pendingListLoads.delete(cacheKey);
+      this.listMemoryCache.delete(cacheKey);
+    }
   }
 
   async createTrustedContact(userId: string, body: Record<string, unknown>) {
@@ -114,7 +212,7 @@ export class SafetyService {
     }
 
     try {
-      return await this.prismaService.client.trustedContact.create({
+      const response = await this.prismaService.client.trustedContact.create({
         data: {
           userId,
           name,
@@ -124,6 +222,9 @@ export class SafetyService {
           mode,
         },
       });
+      await this.clearSafetyCache(userId);
+      this.clearListCaches(userId);
+      return response;
     } catch (error) {
       if (this.isTrustedContactDuplicateError(error)) {
         throw new ApiError(409, 'trusted_contact_duplicate', 'Trusted contact already exists');
@@ -148,6 +249,8 @@ export class SafetyService {
       throw new ApiError(404, 'trusted_contact_not_found', 'Trusted contact not found');
     }
 
+    await this.clearSafetyCache(userId);
+    this.clearListCaches(userId);
     return {
       id: contactId,
       deleted: true,
@@ -155,7 +258,10 @@ export class SafetyService {
   }
 
   async listReports(userId: string) {
-    const reports = await this.prismaService.client.userReport.findMany({
+    return this.loadCachedList(
+      this.safetyListCacheKey('reports', userId),
+      async () => {
+        const reports = await this.prismaService.client.userReport.findMany({
       where: { reporterId: userId },
       select: {
         id: true,
@@ -167,17 +273,19 @@ export class SafetyService {
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
-    });
+        });
 
-    return reports.map((report) => ({
-      id: report.id,
-      targetUserId: report.targetUserId,
-      reason: report.reason,
-      details: report.details,
-      status: report.status,
-      blockRequested: report.blockRequested,
-      createdAt: report.createdAt.toISOString(),
-    }));
+        return reports.map((report) => ({
+          id: report.id,
+          targetUserId: report.targetUserId,
+          reason: report.reason,
+          details: report.details,
+          status: report.status,
+          blockRequested: report.blockRequested,
+          createdAt: report.createdAt.toISOString(),
+        }));
+      },
+    );
   }
 
   async createReport(userId: string, body: Record<string, unknown>) {
@@ -278,6 +386,11 @@ export class SafetyService {
       return created;
     });
 
+    await this.clearSafetyCache(userId);
+    await this.clearSafetyCache(targetUserId);
+    this.clearListCaches(userId);
+    this.clearListCaches(targetUserId);
+
     return {
       id: report.id,
       status: report.status,
@@ -286,7 +399,10 @@ export class SafetyService {
   }
 
   async listBlocks(userId: string) {
-    const blocks = await this.prismaService.client.userBlock.findMany({
+    return this.loadCachedList(
+      this.safetyListCacheKey('blocks', userId),
+      async () => {
+        const blocks = await this.prismaService.client.userBlock.findMany({
       where: { userId },
       select: {
         id: true,
@@ -300,17 +416,19 @@ export class SafetyService {
         },
       },
       orderBy: { createdAt: 'desc' },
-    });
+        });
 
-    return blocks.map((block) => ({
-      id: block.id,
-      blockedUserId: block.blockedUserId,
-      blockedUser: {
-        id: block.blockedUser.id,
-        displayName: block.blockedUser.displayName,
+        return blocks.map((block) => ({
+          id: block.id,
+          blockedUserId: block.blockedUserId,
+          blockedUser: {
+            id: block.blockedUser.id,
+            displayName: block.blockedUser.displayName,
+          },
+          createdAt: block.createdAt.toISOString(),
+        }));
       },
-      createdAt: block.createdAt.toISOString(),
-    }));
+    );
   }
 
   async createBlock(userId: string, body: Record<string, unknown>) {
@@ -352,6 +470,9 @@ export class SafetyService {
         createdAt: true,
       },
     });
+
+    await this.clearSafetyCache(userId);
+    this.clearListCaches(userId);
 
     return {
       id: block.id,
@@ -561,5 +682,13 @@ export class SafetyService {
       value = value * 256 + digest[index]!;
     }
     return value;
+  }
+
+  private safetyCacheKey(userId: string) {
+    return ['api', 'safety', 'me', userId].join(':');
+  }
+
+  private async clearSafetyCache(userId: string) {
+    await this.redisCache?.delete(this.safetyCacheKey(userId));
   }
 }

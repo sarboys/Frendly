@@ -6,6 +6,39 @@ const plusAccess = {
 };
 
 describe('DatingService unit', () => {
+  it('returns cached incoming likes without Prisma reads', async () => {
+    const cached = {
+      items: [],
+      nextCursor: null,
+    };
+    const redisCache = {
+      getJson: jest.fn()
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(cached),
+      setJson: jest.fn(),
+      increment: jest.fn(),
+    };
+    const datingFindMany = jest.fn();
+    const service = new DatingService(
+      {
+        client: {
+          datingAction: {
+            findMany: datingFindMany,
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+      undefined,
+      redisCache as any,
+    );
+
+    await expect(service.listLikes('user-me', { limit: 20 })).resolves.toEqual(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith('dating:likes-version:v1:user-me');
+    expect(redisCache.getJson).toHaveBeenCalledWith('dating:likes:v1:user-me:20:2');
+    expect(datingFindMany).not.toHaveBeenCalled();
+  });
+
   it('returns cached first discover page without Prisma reads', async () => {
     const cached = {
       items: [],
@@ -47,6 +80,63 @@ describe('DatingService unit', () => {
     );
     expect(userFindUnique).not.toHaveBeenCalled();
     expect(userFindMany).not.toHaveBeenCalled();
+  });
+
+  it('shares concurrent first discover cache misses through one Prisma load', async () => {
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      increment: jest.fn(),
+    };
+    const userFindUnique = jest.fn().mockResolvedValue({
+      displayName: 'Никита',
+      profile: {
+        gender: 'male',
+        city: 'Москва',
+        area: 'Патрики',
+      },
+      onboarding: {
+        gender: 'male',
+        city: 'Москва',
+        area: 'Патрики',
+        interests: [],
+      },
+    });
+    const userFindMany = jest.fn().mockResolvedValue([]);
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: userFindUnique,
+            findMany: userFindMany,
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+      undefined,
+      redisCache as any,
+    );
+
+    await expect(
+      Promise.all([
+        service.listDiscover('user-me'),
+        service.listDiscover('user-me'),
+      ]),
+    ).resolves.toEqual([
+      { items: [], nextCursor: null },
+      { items: [], nextCursor: null },
+    ]);
+
+    expect(userFindUnique).toHaveBeenCalledTimes(1);
+    expect(userFindMany).toHaveBeenCalledTimes(2);
+    expect(redisCache.setJson).toHaveBeenCalledTimes(1);
   });
 
   it('does not load all prior dating actions before discover query', async () => {
@@ -1535,6 +1625,58 @@ describe('DatingService unit', () => {
         paidCost: 40,
       },
     });
+  });
+
+  it('returns cached dating limits without usage counts', async () => {
+    const cached = {
+      premium: false,
+      hourlySwipes: {
+        unlimited: false,
+        limit: 100,
+        remaining: 100,
+        resetAt: '2026-05-30T10:00:00.000Z',
+      },
+      superLikes: {
+        freeLimit: 1,
+        freeRemaining: 1,
+        paidCost: 50,
+        resetAt: '2026-05-31T00:00:00.000Z',
+      },
+      rewinds: {
+        freeLimit: 0,
+        freeRemaining: 0,
+        paidCost: 25,
+        resetAt: '2026-05-31T00:00:00.000Z',
+      },
+    };
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const usageCount = jest.fn();
+    const service = new DatingService(
+      {
+        client: {
+          datingUsageEvent: {
+            count: usageCount,
+          },
+        },
+      } as any,
+      {} as any,
+      {
+        hasPremiumAccess: jest.fn(),
+      } as any,
+      {
+        spendTokens: jest.fn(),
+      } as any,
+      redisCache as any,
+    );
+
+    await expect(service.getLimits('user-me')).resolves.toEqual(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith('api:dating-limits:v1:user-me');
+    expect(usageCount).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
   });
 
   it('does not rate limit Frendly Plus swipes', async () => {

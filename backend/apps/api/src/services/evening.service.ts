@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { OUTBOX_EVENT_TYPES } from '@big-break/database';
 import { randomBytes } from 'crypto';
@@ -6,9 +6,12 @@ import { ApiError } from '../common/api-error';
 import { mapMessage } from '../common/presenters';
 import { EveningAnalyticsService } from './evening-analytics.service';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 const EVENING_PRIVACY = ['open', 'request', 'invite'] as const;
 const EVENING_SESSION_PUBLIC_PHASES = ['scheduled', 'live'] as const;
+const EVENING_ROUTE_CACHE_SECONDS = 10;
+const EVENING_SESSION_LIST_CACHE_SECONDS = 10;
 
 type EveningPrivacy = (typeof EVENING_PRIVACY)[number];
 
@@ -172,12 +175,56 @@ const eveningMessageSelect = {
 
 @Injectable()
 export class EveningService {
+  private readonly pendingRouteLoads = new Map<string, Promise<any>>();
+  private readonly pendingSessionListLoads = new Map<string, Promise<any>>();
+  private readonly routeMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+  private readonly sessionListMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly analytics?: EveningAnalyticsService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async getRoute(userId: string, routeId: string) {
+    const cacheKey = this.eveningRouteCacheKey(userId, routeId);
+    const memoryCached = this.getMemoryCachedRoute(cacheKey);
+    if (memoryCached != null) {
+      return memoryCached;
+    }
+
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      this.setMemoryCachedRoute(cacheKey, cached);
+      return cached;
+    }
+
+    const pending = this.pendingRouteLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshRoute(userId, routeId)
+      .then(async (response) => {
+        this.setMemoryCachedRoute(cacheKey, response);
+        await this.redisCache?.setJson(cacheKey, response, EVENING_ROUTE_CACHE_SECONDS);
+        return response;
+      })
+      .finally(() => {
+        this.pendingRouteLoads.delete(cacheKey);
+      });
+    this.pendingRouteLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshRoute(userId: string, routeId: string) {
     const route = await this.prismaService.client.eveningRoute.findUnique({
       where: { id: routeId },
       select: eveningRouteWithStepsSelect,
@@ -188,6 +235,36 @@ export class EveningService {
     }
 
     return this.mapRouteForUser(userId, route);
+  }
+
+  private eveningRouteCacheKey(userId: string, routeId: string) {
+    return ['api', 'evening-route', 'v1', userId, routeId].join(':');
+  }
+
+  private async clearEveningRouteCache(userId: string, routeId: string) {
+    const cacheKey = this.eveningRouteCacheKey(userId, routeId);
+    this.pendingRouteLoads.delete(cacheKey);
+    this.routeMemoryCache.delete(cacheKey);
+    await this.redisCache?.delete(cacheKey);
+  }
+
+  private getMemoryCachedRoute(cacheKey: string) {
+    const entry = this.routeMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.routeMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedRoute(cacheKey: string, value: unknown) {
+    this.routeMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + EVENING_ROUTE_CACHE_SECONDS * 1000,
+      value,
+    });
   }
 
   async markPerkUsed(userId: string, routeId: string, stepId: string) {
@@ -223,6 +300,8 @@ export class EveningService {
         chatMessageId: true,
       },
     });
+
+    await this.clearEveningRouteCache(userId, routeId);
 
     return this.mapActionResponse(stepId, action);
   }
@@ -260,6 +339,8 @@ export class EveningService {
         chatMessageId: true,
       },
     });
+
+    await this.clearEveningRouteCache(userId, routeId);
 
     return this.mapActionResponse(stepId, action);
   }
@@ -392,6 +473,8 @@ export class EveningService {
       };
     });
 
+    await this.clearEveningRouteCache(userId, routeId);
+
     return {
       stepId,
       sentToChat: true,
@@ -511,6 +594,8 @@ export class EveningService {
       return { chat, session };
     });
 
+    this.clearSessionListCache();
+
     return {
       sessionId: result.session.id,
       routeId: route.id,
@@ -531,6 +616,31 @@ export class EveningService {
   }
 
   async listSessions(userId: string, params: Record<string, unknown> = {}) {
+    const cacheKey = this.eveningSessionListCacheKey(userId, params);
+    const cached = this.getMemoryCachedSessionList(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingSessionListLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshSessions(userId, params)
+      .then((response) => {
+        this.setMemoryCachedSessionList(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingSessionListLoads.delete(cacheKey);
+      });
+    this.pendingSessionListLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshSessions(
+    userId: string,
+    params: Record<string, unknown> = {},
+  ) {
     const limit = this.normalizeSessionLimit(params.limit);
     const city = this.optionalText(params.city);
     const where: Prisma.EveningSessionWhereInput = {
@@ -555,6 +665,39 @@ export class EveningService {
     return {
       items: sessions.map((session) => this.mapSession(session, userId)),
     };
+  }
+
+  private eveningSessionListCacheKey(
+    userId: string,
+    params: Record<string, unknown>,
+  ) {
+    const limit = this.normalizeSessionLimit(params.limit);
+    const city = this.optionalText(params.city) ?? '';
+    return ['api', 'evening-sessions', 'v1', userId, city, limit].join(':');
+  }
+
+  private getMemoryCachedSessionList(cacheKey: string) {
+    const entry = this.sessionListMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.sessionListMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedSessionList(cacheKey: string, value: unknown) {
+    this.sessionListMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + EVENING_SESSION_LIST_CACHE_SECONDS * 1000,
+      value,
+    });
+  }
+
+  private clearSessionListCache() {
+    this.pendingSessionListLoads.clear();
+    this.sessionListMemoryCache.clear();
   }
 
   async getSession(userId: string, sessionId: string) {
@@ -1531,6 +1674,8 @@ export class EveningService {
         meetupEndsAt: finishedAt,
       },
     });
+
+    await this.clearEveningRouteCache(userId, routeId);
 
     return {
       routeId: route.id,

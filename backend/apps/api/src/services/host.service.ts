@@ -13,7 +13,7 @@ import {
   EventVisibilityMode,
   Prisma,
 } from '@prisma/client';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import {
   mapAttendanceStatus,
@@ -24,8 +24,10 @@ import {
 import { assertEventCapacityAvailable } from './event-capacity';
 import { DropsRewardService } from './drops-reward.service';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 const HOST_EVENT_PARTICIPANT_PREVIEW_LIMIT = 6;
+const HOST_DASHBOARD_CACHE_SECONDS = 10;
 const hostEventSummarySelect = {
   id: true,
   title: true,
@@ -82,9 +84,12 @@ type EventEntryRequirementsInput = {
 
 @Injectable()
 export class HostService {
+  private readonly pendingDashboardLoads = new Map<string, Promise<any>>();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dropsRewardService?: DropsRewardService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async getDashboard(
@@ -96,9 +101,54 @@ export class HostService {
       requestsLimit?: number;
     } = {},
   ) {
-    const blockedUserIds = await this.getBlockedUserIds(userId);
     const eventsTake = this.normalizeLimit(params.eventsLimit);
     const requestsTake = this.normalizeLimit(params.requestsLimit);
+    const cacheKey = this.hostDashboardCacheKey(userId, {
+      eventsCursor: params.eventsCursor,
+      eventsLimit: eventsTake,
+      requestsCursor: params.requestsCursor,
+      requestsLimit: requestsTake,
+    });
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingDashboardLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshDashboard(userId, {
+      eventsCursor: params.eventsCursor,
+      eventsLimit: eventsTake,
+      requestsCursor: params.requestsCursor,
+      requestsLimit: requestsTake,
+    })
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, HOST_DASHBOARD_CACHE_SECONDS);
+        return response;
+      })
+      .finally(() => {
+        this.pendingDashboardLoads.delete(cacheKey);
+      });
+    this.pendingDashboardLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshDashboard(
+    userId: string,
+    params: {
+      eventsCursor?: string;
+      eventsLimit: number;
+      requestsCursor?: string;
+      requestsLimit: number;
+    },
+  ) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const eventsTake = params.eventsLimit;
+    const requestsTake = params.requestsLimit;
     const [host, dashboardStats, pendingRequestsCount, eventsCursor, requestsCursor] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -492,6 +542,7 @@ export class HostService {
       where: { id: event.id },
       data,
     });
+    await this.clearHostDashboardCache(userId);
 
     return this.getHostedEvent(userId, event.id);
   }
@@ -694,6 +745,7 @@ export class HostService {
       return next;
     });
 
+    await this.clearHostDashboardCache(userId);
     return this.mapRequest(approved);
   }
 
@@ -836,6 +888,7 @@ export class HostService {
       return next;
     });
 
+    await this.clearHostDashboardCache(userId);
     return this.mapRequest(rejected);
   }
 
@@ -890,6 +943,7 @@ export class HostService {
         checkedInAt: true,
       },
     });
+    await this.clearHostDashboardCache(userId);
 
     return {
       eventId,
@@ -916,6 +970,7 @@ export class HostService {
         startedAt: new Date(),
       },
     });
+    await this.clearHostDashboardCache(userId);
 
     return {
       eventId,
@@ -1024,6 +1079,7 @@ export class HostService {
     });
 
     await this.evaluateDropsMeetingRewards(eventId);
+    await this.clearHostDashboardCache(userId);
 
     return {
       eventId,
@@ -1141,6 +1197,41 @@ export class HostService {
         'Host must have Frendly Plus to require Frendly Plus',
       );
     }
+  }
+
+  private hostDashboardCacheKey(
+    userId: string,
+    params: {
+      eventsCursor?: string;
+      eventsLimit: number;
+      requestsCursor?: string;
+      requestsLimit: number;
+    },
+  ) {
+    return [
+      'api',
+      'host-dashboard',
+      'v1',
+      userId,
+      params.eventsCursor ?? '',
+      params.eventsLimit,
+      params.requestsCursor ?? '',
+      params.requestsLimit,
+    ].join(':');
+  }
+
+  private async clearHostDashboardCache(userId: string) {
+    this.pendingDashboardLoads.clear();
+    await Promise.all([
+      this.redisCache?.delete(this.hostDashboardCacheKey(userId, {
+        eventsLimit: 20,
+        requestsLimit: 20,
+      })),
+      this.redisCache?.delete(this.hostDashboardCacheKey(userId, {
+        eventsLimit: 50,
+        requestsLimit: 50,
+      })),
+    ]);
   }
 
   private async resolveEventCoverAssetId(userId: string, value: unknown) {

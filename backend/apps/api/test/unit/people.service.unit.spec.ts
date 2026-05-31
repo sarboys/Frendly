@@ -473,6 +473,12 @@ describe('PeopleService unit', () => {
       q: '  аня  ',
       limit: 10,
     });
+    const findManyCallsAfterFirstLoad = userFollowFindMany.mock.calls.length;
+    const secondResult = await service.listFollowing('user-me', {
+      eventId: 'event-1',
+      q: '  аня  ',
+      limit: 10,
+    });
 
     expect(userFollowFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -506,6 +512,8 @@ describe('PeopleService unit', () => {
         inviteState: 'pending_request',
       }),
     ]);
+    expect(secondResult).toBe(result);
+    expect(userFollowFindMany).toHaveBeenCalledTimes(findManyCallsAfterFirstLoad);
     expect(result.nextCursor).toBeNull();
   });
 
@@ -820,6 +828,73 @@ describe('PeopleService unit', () => {
         iSuper: true,
       },
     });
+  });
+
+  it('serves person profile from cache when available', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        id: 'user-peer',
+        displayName: 'Аня',
+        social: {
+          followers: 1,
+        },
+      }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const service = new PeopleService(
+      {
+        client: {
+          user: { findUnique: userFindUnique },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(
+      service.getPersonProfile('user-me', 'user-peer'),
+    ).resolves.toMatchObject({
+      id: 'user-peer',
+      social: {
+        followers: 1,
+      },
+    });
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(cache.getJson).toHaveBeenCalledWith('people:profile:v1:user-me:user-peer');
+  });
+
+  it('serves profile social from cache when available', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        followers: 3,
+        likes: 4,
+        superLikes: 0,
+        iFollow: true,
+        iLike: false,
+        iSuper: false,
+        followNotifications: true,
+      }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const service = new PeopleService(
+      {
+        client: {
+          user: { findUnique: userFindUnique },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getProfileSocial('user-me', 'user-peer')).resolves.toMatchObject({
+      followers: 3,
+      likes: 4,
+      iFollow: true,
+    });
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(cache.getJson).toHaveBeenCalledWith('people:social:v1:user-me:user-peer');
   });
 
   it('keeps profile like and super-like as independent reactions', async () => {

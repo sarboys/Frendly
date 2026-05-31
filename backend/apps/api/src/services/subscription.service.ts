@@ -23,6 +23,8 @@ type CurrentSubscription = {
 
 const SETTINGS_ID = 'frendly_plus';
 const DAY_MS = 24 * 60 * 60 * 1000;
+const CATALOG_CACHE_SECONDS = 30;
+const CURRENT_SUBSCRIPTION_CACHE_SECONDS = 5;
 
 type SubscriptionCatalogPlanInput = {
   id: string;
@@ -52,6 +54,30 @@ type TokenCatalogPackInput = {
   sortOrder: number;
 };
 
+type PublicSubscriptionPlan = {
+  id: string;
+  label: string;
+  description: string;
+  priceRub: number;
+  priceMonthlyRub: number;
+  tokenCost: number;
+  tokenMonthlyCost: number;
+  trialDays: number;
+  durationDays: number;
+  badge: string | null;
+  benefits: string[];
+};
+
+type PublicTokenPack = {
+  id: string;
+  label: string;
+  description: string;
+  priceRub: number;
+  tokens: number;
+  bonus: number;
+  best: boolean;
+};
+
 export type PlusBenefitRules = {
   freeSwipeHourlyLimit: number;
   plusSwipeHourlyLimit: number | null;
@@ -63,6 +89,21 @@ export type PlusBenefitRules = {
   tokenPurchaseDiscountPercent: number;
   communityCreationRequiresPlus: boolean;
   incomingLikesRequiresPlus: boolean;
+};
+
+type SubscriptionCatalogResponse = {
+  plans: PublicSubscriptionPlan[];
+  plusBenefits: string[];
+  plusRules: PlusBenefitRules;
+  tokenPacks: PublicTokenPack[];
+};
+
+type CurrentSubscriptionResponse = {
+  plan: string | null;
+  status: 'inactive' | 'trial' | 'active' | 'canceled';
+  startedAt: string | null;
+  renewsAt: string | null;
+  trialEndsAt: string | null;
 };
 
 const defaultPlusRules: PlusBenefitRules = {
@@ -80,6 +121,19 @@ const defaultPlusRules: PlusBenefitRules = {
 
 @Injectable()
 export class SubscriptionService {
+  private readonly pendingCatalogLoads = new Map<
+    string,
+    Promise<SubscriptionCatalogResponse>
+  >();
+  private readonly pendingCurrentLoads = new Map<
+    string,
+    Promise<CurrentSubscriptionResponse>
+  >();
+  private readonly shortMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly tokensService: TokensService,
@@ -90,7 +144,37 @@ export class SubscriptionService {
     return this.getCatalog();
   }
 
-  async getCatalog(client: Prisma.TransactionClient = this.prismaService.client) {
+  async getCatalog(
+    client: Prisma.TransactionClient = this.prismaService.client,
+  ): Promise<SubscriptionCatalogResponse> {
+    if (client !== this.prismaService.client) {
+      return this.loadFreshCatalog(client);
+    }
+
+    const cacheKey = 'subscription:catalog:v1';
+    const cached = this.getShortMemoryCache<SubscriptionCatalogResponse>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingCatalogLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshCatalog(client)
+      .then((response) => {
+        this.setShortMemoryCache(cacheKey, response, CATALOG_CACHE_SECONDS);
+        return response;
+      })
+      .finally(() => {
+        this.pendingCatalogLoads.delete(cacheKey);
+      });
+    this.pendingCatalogLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshCatalog(
+    client: Prisma.TransactionClient,
+  ): Promise<SubscriptionCatalogResponse> {
     const [plans, settings] = await Promise.all([
       this.loadCatalogProducts(client, false),
       this.loadCatalogSettings(client),
@@ -156,7 +240,7 @@ export class SubscriptionService {
     const plusBenefits = this.parseTextList(body.plusBenefits);
     const plusRules = this.parsePlusRules(body.plusRules);
 
-    return this.prismaService.client.$transaction(async (client) => {
+    const result = await this.prismaService.client.$transaction(async (client) => {
       const [existing, existingTokenPacks] = await Promise.all([
         client.subscriptionCatalogPlan.findMany({
           select: { id: true },
@@ -212,6 +296,8 @@ export class SubscriptionService {
 
       return this.getAdminCatalog(client);
     });
+    this.clearCatalogCache();
+    return result;
   }
 
   async getPlusBenefitRules(
@@ -221,7 +307,35 @@ export class SubscriptionService {
     return settings.rules;
   }
 
-  async getCurrent(userId: string) {
+  async getCurrent(userId: string): Promise<CurrentSubscriptionResponse> {
+    const cacheKey = this.currentSubscriptionCacheKey(userId);
+    const cached = this.getShortMemoryCache<CurrentSubscriptionResponse>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingCurrentLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshCurrent(userId)
+      .then((response) => {
+        this.setShortMemoryCache(
+          cacheKey,
+          response,
+          CURRENT_SUBSCRIPTION_CACHE_SECONDS,
+        );
+        return response;
+      })
+      .finally(() => {
+        this.pendingCurrentLoads.delete(cacheKey);
+      });
+    this.pendingCurrentLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshCurrent(
+    userId: string,
+  ): Promise<CurrentSubscriptionResponse> {
     const subscription = await this.prismaService.client.userSubscription.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -236,7 +350,7 @@ export class SubscriptionService {
     return this.mapCurrent(subscription);
   }
 
-  private mapCurrent(subscription: CurrentSubscription) {
+  private mapCurrent(subscription: CurrentSubscription): CurrentSubscriptionResponse {
     const status = this.resolveStatus(subscription);
 
     return {
@@ -288,6 +402,7 @@ export class SubscriptionService {
       },
     });
 
+    this.clearCurrentCache(userId);
     return this.mapCurrent(subscription);
   }
 
@@ -295,7 +410,7 @@ export class SubscriptionService {
     const plan = typeof body.plan === 'string' ? body.plan : '';
     const product = await this.findCatalogProduct(plan);
 
-    return this.prismaService.client.$transaction(async (client) => {
+    const result = await this.prismaService.client.$transaction(async (client) => {
       const ledgerEntry = await this.tokensService.spendTokens(
         userId,
         {
@@ -315,6 +430,8 @@ export class SubscriptionService {
 
       return this.mapCurrent(subscription);
     });
+    this.clearCurrentCache(userId);
+    return result;
   }
 
   async activatePaidSubscription(
@@ -361,6 +478,7 @@ export class SubscriptionService {
       await this.grantDropsSubscriptionReward(userId, paymentOrderId, client);
     }
 
+    this.clearCurrentCache(userId);
     return subscription;
   }
 
@@ -387,6 +505,44 @@ export class SubscriptionService {
 
   async restore(userId: string) {
     return this.getCurrent(userId);
+  }
+
+  private currentSubscriptionCacheKey(userId: string) {
+    return ['subscription', 'current', 'v1', userId].join(':');
+  }
+
+  private getShortMemoryCache<T>(cacheKey: string): T | null {
+    const entry = this.shortMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.shortMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value as T;
+  }
+
+  private setShortMemoryCache(
+    cacheKey: string,
+    value: unknown,
+    ttlSeconds: number,
+  ) {
+    this.shortMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + ttlSeconds * 1000,
+      value,
+    });
+  }
+
+  private clearCatalogCache() {
+    this.pendingCatalogLoads.clear();
+    this.shortMemoryCache.delete('subscription:catalog:v1');
+  }
+
+  private clearCurrentCache(userId: string) {
+    const cacheKey = this.currentSubscriptionCacheKey(userId);
+    this.pendingCurrentLoads.delete(cacheKey);
+    this.shortMemoryCache.delete(cacheKey);
   }
 
   private async findCatalogProduct(

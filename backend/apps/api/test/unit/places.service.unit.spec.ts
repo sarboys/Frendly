@@ -182,6 +182,33 @@ describe('PlacesService unit', () => {
     ]);
   });
 
+  it('caches place promos by normalized query params', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const cache = {
+      getJson: jest.fn().mockResolvedValueOnce(null),
+      setJson: jest.fn(),
+    };
+    const service = new PlacesService(
+      {
+        client: {
+          externalContentItem: { findMany },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.listPlacePromos({ city: ' Москва ', limit: 20 })).resolves.toEqual([]);
+    cache.getJson.mockResolvedValueOnce([]);
+    await expect(service.listPlacePromos({ city: 'Москва', limit: 20 })).resolves.toEqual([]);
+
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(cache.setJson).toHaveBeenCalledWith(
+      'api:places:promos:москва::20::',
+      [],
+      30,
+    );
+  });
+
   it('hides promos when no matched published place with coordinates exists', async () => {
     const findMany = jest
       .fn()

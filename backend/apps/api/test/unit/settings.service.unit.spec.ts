@@ -23,20 +23,50 @@ describe('SettingsService unit', () => {
   });
 
   it('loads only response fields for current settings', async () => {
-    const upsert = jest.fn().mockResolvedValue(settingsRow);
+    const findUnique = jest.fn().mockResolvedValue(settingsRow);
+    const create = jest.fn();
     const service = new SettingsService({
       client: {
         userSettings: {
-          upsert,
+          findUnique,
+          create,
         },
       },
     } as any);
 
     await expect(service.getSettings('user-me')).resolves.toEqual(settingsRow);
-    expect(upsert).toHaveBeenCalledWith({
+    expect(findUnique).toHaveBeenCalledWith({
       where: { userId: 'user-me' },
-      update: {},
-      create: {
+      select: {
+        allowLocation: true,
+        allowPush: true,
+        allowContacts: true,
+        autoSharePlans: true,
+        hideExactLocation: true,
+        quietHours: true,
+        showAge: true,
+        discoverable: true,
+        darkMode: true,
+      },
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('creates settings on read only when current settings are missing', async () => {
+    const findUnique = jest.fn().mockResolvedValue(null);
+    const create = jest.fn().mockResolvedValue(settingsRow);
+    const service = new SettingsService({
+      client: {
+        userSettings: {
+          findUnique,
+          create,
+        },
+      },
+    } as any);
+
+    await expect(service.getSettings('user-me')).resolves.toEqual(settingsRow);
+    expect(create).toHaveBeenCalledWith({
+      data: {
         userId: 'user-me',
       },
       select: {
@@ -51,6 +81,26 @@ describe('SettingsService unit', () => {
         darkMode: true,
       },
     });
+  });
+
+  it('returns cached settings without database reads', async () => {
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(settingsRow),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const client = {
+      userSettings: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
+      },
+    };
+    const service = new SettingsService({ client } as any, redisCache as any);
+
+    await expect(service.getSettings('user-me')).resolves.toEqual(settingsRow);
+    expect(redisCache.getJson).toHaveBeenCalledWith('api:settings:v1:user-me');
+    expect(client.userSettings.findUnique).not.toHaveBeenCalled();
+    expect(client.userSettings.create).not.toHaveBeenCalled();
   });
 
   it('returns only response fields after updating settings', async () => {

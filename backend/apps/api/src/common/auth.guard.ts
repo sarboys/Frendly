@@ -6,10 +6,29 @@ import { RequestWithContext } from './request-context';
 import { PrismaService } from '../services/prisma.service';
 
 export const IS_PUBLIC_ROUTE = 'isPublicRoute';
+const AUTH_SESSION_CACHE_TTL_MS = 5000;
+const AUTH_SESSION_CACHE_MAX_ENTRIES = 5000;
+
+type AuthSessionSnapshot = {
+  userId: string;
+  revokedAt: Date | null;
+  user: {
+    status: string;
+  };
+};
+
+type CachedAuthSession = AuthSessionSnapshot & {
+  expiresAt: number;
+};
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly logger = new Logger(AuthGuard.name);
+  private readonly sessionCache = new Map<string, CachedAuthSession>();
+  private readonly pendingSessionLoads = new Map<
+    string,
+    Promise<AuthSessionSnapshot | null>
+  >();
 
   constructor(
     private readonly reflector: Reflector,
@@ -45,18 +64,7 @@ export class AuthGuard implements CanActivate {
       throw new ApiError(401, 'invalid_access_token', 'Access token is invalid');
     }
 
-    const session = await this.prismaService.client.session.findUnique({
-      where: { id: payload.sessionId },
-      select: {
-        userId: true,
-        revokedAt: true,
-        user: {
-          select: {
-            status: true,
-          },
-        },
-      },
-    });
+    const session = await this.loadSession(payload.sessionId);
 
     if (!session || session.userId !== payload.userId || session.revokedAt != null) {
       this.logger.warn(
@@ -72,5 +80,69 @@ export class AuthGuard implements CanActivate {
     request.context.sessionId = payload.sessionId;
 
     return true;
+  }
+
+  private async loadSession(sessionId: string): Promise<AuthSessionSnapshot | null> {
+    const now = Date.now();
+    const cached = this.sessionCache.get(sessionId);
+    if (cached != null) {
+      if (cached.expiresAt > now) {
+        return cached;
+      }
+
+      this.sessionCache.delete(sessionId);
+    }
+
+    const pending = this.pendingSessionLoads.get(sessionId);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshSession(sessionId)
+      .finally(() => {
+        this.pendingSessionLoads.delete(sessionId);
+      });
+    this.pendingSessionLoads.set(sessionId, loading);
+
+    return loading;
+  }
+
+  private async loadFreshSession(sessionId: string): Promise<AuthSessionSnapshot | null> {
+    const session = await this.prismaService.client.session.findUnique({
+      where: { id: sessionId },
+      select: {
+        userId: true,
+        revokedAt: true,
+        user: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (
+      session != null &&
+      session.revokedAt == null &&
+      session.user.status !== 'suspended'
+    ) {
+      this.storeSession(sessionId, session);
+    }
+
+    return session;
+  }
+
+  private storeSession(sessionId: string, session: AuthSessionSnapshot) {
+    if (this.sessionCache.size >= AUTH_SESSION_CACHE_MAX_ENTRIES) {
+      const firstKey = this.sessionCache.keys().next().value;
+      if (firstKey != null) {
+        this.sessionCache.delete(firstKey);
+      }
+    }
+
+    this.sessionCache.set(sessionId, {
+      ...session,
+      expiresAt: Date.now() + AUTH_SESSION_CACHE_TTL_MS,
+    });
   }
 }

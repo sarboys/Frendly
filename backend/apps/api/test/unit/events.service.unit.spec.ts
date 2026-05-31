@@ -863,7 +863,7 @@ describe('EventsService unit', () => {
         ],
         nextCursor: null,
       },
-      5,
+      15,
     );
     expect(overlay.participantGroupBy).toHaveBeenCalledWith({
       by: ['eventId'],
@@ -930,6 +930,84 @@ describe('EventsService unit', () => {
     expect(overlay.joinRequestFindMany).not.toHaveBeenCalled();
     expect(overlay.attendanceFindMany).not.toHaveBeenCalled();
     expect(overlay.liveStateFindMany).not.toHaveBeenCalled();
+    expect(cache.setJson).not.toHaveBeenCalled();
+  });
+
+  it('uses cached event feed response before viewer cache eligibility queries', async () => {
+    const eventFindMany = jest.fn();
+    const eventFindFirst = jest.fn();
+    const profileFindUnique = jest.fn();
+    const userBlockFindMany = jest.fn();
+    const cache = {
+      getJson: jest.fn().mockImplementation((key: string) => {
+        if (key.endsWith(':response:v1')) {
+          return Promise.resolve({
+            items: [
+              {
+                id: 'event-response-early-hit',
+                joined: false,
+                going: 2,
+              },
+            ],
+            nextCursor: null,
+          });
+        }
+
+        return Promise.resolve(null);
+      }),
+      setJson: jest.fn(),
+    };
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: profileFindUnique,
+          },
+          event: {
+            findMany: eventFindMany,
+            findFirst: eventFindFirst,
+            findUnique: jest.fn(),
+          },
+          eventParticipant: {
+            groupBy: jest.fn(),
+            findMany: jest.fn(),
+          },
+          eventJoinRequest: {
+            findMany: jest.fn(),
+          },
+          eventAttendance: {
+            findMany: jest.fn(),
+          },
+          eventLiveState: {
+            findMany: jest.fn(),
+          },
+          userBlock: {
+            findMany: userBlockFindMany,
+          },
+        },
+      } as any,
+      {} as any,
+      undefined,
+      cache as any,
+    );
+
+    const result = await service.listEvents('user-me', {
+      filter: 'nearby',
+      city: 'Москва',
+      limit: 10,
+    });
+
+    expect(result.items).toEqual([
+      {
+        id: 'event-response-early-hit',
+        joined: false,
+        going: 2,
+      },
+    ]);
+    expect(profileFindUnique).not.toHaveBeenCalled();
+    expect(userBlockFindMany).not.toHaveBeenCalled();
+    expect(eventFindFirst).not.toHaveBeenCalled();
+    expect(eventFindMany).not.toHaveBeenCalled();
     expect(cache.setJson).not.toHaveBeenCalled();
   });
 
@@ -1118,7 +1196,7 @@ describe('EventsService unit', () => {
       expect.objectContaining({ id: 'event-cache-fail-open' }),
     );
     expect(eventFindMany).toHaveBeenCalledTimes(2);
-    expect(cache.getJson).toHaveBeenCalledTimes(2);
+    expect(cache.getJson).toHaveBeenCalledTimes(3);
     expect(cache.setJson).toHaveBeenCalledTimes(2);
   });
 
@@ -1157,6 +1235,10 @@ describe('EventsService unit', () => {
     );
 
     const result = await service.listPublicActiveMeetups({
+      city: 'Москва',
+      limit: 5,
+    });
+    const secondResult = await service.listPublicActiveMeetups({
       city: 'Москва',
       limit: 5,
     });
@@ -1222,6 +1304,9 @@ describe('EventsService unit', () => {
         routePointCount: 3,
       }),
     ]);
+    expect(secondResult).toBe(result);
+    expect(eventFindMany).toHaveBeenCalledTimes(1);
+    expect(participantGroupBy).toHaveBeenCalledTimes(1);
     expect(result.items[0]).not.toHaveProperty('attendees');
   });
 
@@ -1440,6 +1525,104 @@ describe('EventsService unit', () => {
     expect(result.joined).toBe(true);
     expect(result.chatId).toBe('chat-1');
     expect(result.attendees).toHaveLength(24);
+  });
+
+  it('serves event detail from Redis cache', async () => {
+    const cached = {
+      id: 'event-1',
+      title: 'Cached event',
+      attendees: [],
+    };
+    const eventFindUnique = jest.fn();
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new EventsService(
+      {
+        client: {
+          event: {
+            findUnique: eventFindUnique,
+          },
+        },
+      } as any,
+      {} as any,
+      undefined,
+      redisCache as any,
+    );
+
+    await expect(service.getEventDetail('user-me', 'event-1')).resolves.toBe(cached);
+
+    expect(redisCache.getJson).toHaveBeenCalledWith(
+      'api:event-detail:v1:user-me:event-1',
+    );
+    expect(eventFindUnique).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
+  it('caches fresh event detail in process after loading it', async () => {
+    const eventFindUnique = jest.fn().mockResolvedValue(
+      eventFixture({
+        description: 'Описание',
+        partnerName: null,
+        partnerOffer: null,
+        canceledAt: null,
+        sourceExternalContentItem: null,
+        tokenPromotions: [],
+        eveningRoute: null,
+        host: {
+          id: 'host-1',
+          displayName: 'Host',
+          verified: true,
+          profile: {
+            rating: 4.8,
+            meetupCount: 12,
+            avatarUrl: null,
+          },
+        },
+        chat: { id: 'chat-1' },
+      }),
+    );
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new EventsService(
+      {
+        client: {
+          profile: {
+            findUnique: jest.fn().mockResolvedValue({ gender: 'female' }),
+          },
+          event: {
+            findUnique: eventFindUnique,
+          },
+          eventParticipant: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            count: jest.fn().mockResolvedValue(0),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      undefined,
+      redisCache as any,
+    );
+
+    const result = await service.getEventDetail('user-me', 'event-1');
+    const secondResult = await service.getEventDetail('user-me', 'event-1');
+
+    expect(result).toMatchObject({ id: 'event-1' });
+    expect(secondResult).toBe(result);
+    expect(eventFindUnique).toHaveBeenCalledTimes(1);
+    expect(redisCache.setJson).toHaveBeenCalledWith(
+      'api:event-detail:v1:user-me:event-1',
+      expect.objectContaining({ id: 'event-1' }),
+      5,
+    );
   });
 
   it('excludes host from event detail attendee preview', async () => {
@@ -1686,6 +1869,7 @@ describe('EventsService unit', () => {
   it('increments city feed version after event creation', async () => {
     const redisCache = {
       increment: jest.fn().mockResolvedValue(2),
+      delete: jest.fn(),
     };
     const { service } = makeCreateEventService({ redisCache });
 

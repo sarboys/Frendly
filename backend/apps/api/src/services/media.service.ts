@@ -49,11 +49,17 @@ type MediaVariantRecord = {
   expiresAt: string | null;
 };
 
+const MEDIA_ASSET_CACHE_MS = 30_000;
+
 @Injectable()
 export class MediaService {
   constructor(private readonly prismaService: PrismaService) {}
 
   private readonly s3 = createS3Client();
+  private readonly assetMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: any }
+  >();
 
   async getAsset(
     assetId: string,
@@ -64,22 +70,7 @@ export class MediaService {
   ): Promise<
     MediaStreamDelivery | MediaRedirectDelivery | MediaNotModifiedDelivery
   > {
-    const asset = await this.prismaService.client.mediaAsset.findUnique({
-      where: { id: assetId },
-      select: {
-        id: true,
-        status: true,
-        ownerId: true,
-        kind: true,
-        chatId: true,
-        bucket: true,
-        objectKey: true,
-        mimeType: true,
-        byteSize: true,
-        publicUrl: true,
-        updatedAt: true,
-      },
-    });
+    const asset = await this.loadMediaAsset(assetId);
 
     if (!asset || asset.status !== 'ready') {
       throw new ApiError(404, 'media_not_found', 'Media asset not found');
@@ -162,21 +153,7 @@ export class MediaService {
   }
 
   async getDownloadUrl(userId: string, assetId: string) {
-    const asset = await this.prismaService.client.mediaAsset.findUnique({
-      where: { id: assetId },
-      select: {
-        id: true,
-        status: true,
-        ownerId: true,
-        kind: true,
-        chatId: true,
-        objectKey: true,
-        publicUrl: true,
-        mimeType: true,
-        byteSize: true,
-        durationMs: true,
-      },
-    });
+    const asset = await this.loadMediaAsset(assetId);
 
     if (!asset || asset.status !== 'ready') {
       throw new ApiError(404, 'media_not_found', 'Media asset not found');
@@ -356,19 +333,7 @@ export class MediaService {
   }
 
   private async loadAssetVariant(assetId: string, variantKey: string) {
-    const asset = await this.prismaService.client.mediaAsset.findUnique({
-      where: { id: assetId },
-      select: {
-        id: true,
-        status: true,
-        ownerId: true,
-        kind: true,
-        chatId: true,
-        bucket: true,
-        variants: true,
-        updatedAt: true,
-      },
-    });
+    const asset = await this.loadMediaAsset(assetId);
 
     if (!asset || asset.status !== 'ready') {
       throw new ApiError(404, 'media_not_found', 'Media asset not found');
@@ -380,6 +345,57 @@ export class MediaService {
     }
 
     return { asset, variant };
+  }
+
+  private async loadMediaAsset(assetId: string) {
+    const cached = this.getMemoryCachedAsset(assetId);
+    if (cached != null) {
+      return cached;
+    }
+
+    const asset = await this.prismaService.client.mediaAsset.findUnique({
+      where: { id: assetId },
+      select: {
+        id: true,
+        status: true,
+        ownerId: true,
+        kind: true,
+        chatId: true,
+        bucket: true,
+        objectKey: true,
+        mimeType: true,
+        byteSize: true,
+        publicUrl: true,
+        durationMs: true,
+        variants: true,
+        updatedAt: true,
+      },
+    });
+
+    if (asset?.status === 'ready') {
+      this.setMemoryCachedAsset(assetId, asset);
+    }
+
+    return asset;
+  }
+
+  private getMemoryCachedAsset(assetId: string) {
+    const entry = this.assetMemoryCache.get(assetId);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.assetMemoryCache.delete(assetId);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedAsset(assetId: string, value: any) {
+    this.assetMemoryCache.set(assetId, {
+      expiresAt: Date.now() + MEDIA_ASSET_CACHE_MS,
+      value,
+    });
   }
 
   private mapVariant(raw: unknown, variantKey: string): MediaVariantRecord | null {

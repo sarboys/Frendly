@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma, TokenLedgerReason } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { DropsRewardService } from './drops-reward.service';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 import {
   findTokenPackProduct,
   findTokenPromotionOption,
@@ -10,6 +11,7 @@ import {
 } from './payment-catalog';
 
 type PrismaLike = Prisma.TransactionClient;
+const TOKEN_WALLET_CACHE_SECONDS = 5;
 
 const ledgerNotes: Record<string, string> = {
   purchase: 'Пополнение токенов',
@@ -22,12 +24,44 @@ const ledgerNotes: Record<string, string> = {
 
 @Injectable()
 export class TokensService {
+  private readonly pendingWalletLoads = new Map<string, Promise<any>>();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dropsRewardService?: DropsRewardService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async getWallet(userId: string, client: PrismaLike = this.prismaService.client) {
+    if (client !== this.prismaService.client) {
+      return this.loadFreshWallet(userId, client);
+    }
+
+    const cacheKey = this.walletCacheKey(userId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingWalletLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshWallet(userId, client)
+      .then(async (wallet) => {
+        await this.redisCache?.setJson(cacheKey, wallet, TOKEN_WALLET_CACHE_SECONDS);
+        return wallet;
+      })
+      .finally(() => {
+        this.pendingWalletLoads.delete(cacheKey);
+      });
+    this.pendingWalletLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshWallet(userId: string, client: PrismaLike) {
     const wallet = await this.ensureWallet(userId, client);
     const [history, promotions] = await Promise.all([
       client.tokenLedgerEntry.findMany({
@@ -107,6 +141,7 @@ export class TokensService {
         },
       },
     });
+    await this.clearWalletCache(userId);
   }
 
   async spendTokens(
@@ -144,13 +179,15 @@ export class TokensService {
       throw new ApiError(402, 'tokens_insufficient', 'Not enough tokens');
     }
 
-    return client.tokenLedgerEntry.create({
+    const ledgerEntry = await client.tokenLedgerEntry.create({
       data: {
         walletId: wallet.id,
         amount: -input.amount,
         reason: input.reason,
       },
     });
+    await this.clearWalletCache(userId);
+    return ledgerEntry;
   }
 
   async createPromotion(userId: string, body: Record<string, unknown>) {
@@ -166,7 +203,7 @@ export class TokensService {
       throw new ApiError(400, 'invalid_token_promotion_target', 'Promotion target is invalid');
     }
 
-    return this.prismaService.client.$transaction(async (client) => {
+    const wallet = await this.prismaService.client.$transaction(async (client) => {
       await this.assertPromotionAccess(userId, targetKind, targetId, client);
       const ledgerEntry = await this.spendTokens(
         userId,
@@ -192,6 +229,8 @@ export class TokensService {
 
       return this.getWallet(userId, client);
     });
+    await this.clearWalletCache(userId);
+    return wallet;
   }
 
   private async grantDropsBoostReward(
@@ -218,10 +257,20 @@ export class TokensService {
   }
 
   private async ensureWallet(userId: string, client: PrismaLike) {
-    return client.tokenWallet.upsert({
+    const wallet = await client.tokenWallet.findUnique({
       where: { userId },
-      update: {},
-      create: {
+      select: {
+        id: true,
+        userId: true,
+        balance: true,
+      },
+    });
+    if (wallet != null) {
+      return wallet;
+    }
+
+    return client.tokenWallet.create({
+      data: {
         userId,
         balance: 0,
       },
@@ -231,6 +280,15 @@ export class TokensService {
         balance: true,
       },
     });
+  }
+
+  private walletCacheKey(userId: string) {
+    return ['api', 'tokens-wallet', 'v1', userId].join(':');
+  }
+
+  private async clearWalletCache(userId: string) {
+    this.pendingWalletLoads.delete(this.walletCacheKey(userId));
+    await this.redisCache?.delete(this.walletCacheKey(userId));
   }
 
   private async assertPromotionAccess(

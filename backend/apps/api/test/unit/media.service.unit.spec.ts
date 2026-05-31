@@ -153,21 +153,22 @@ describe('MediaService', () => {
 
   it('redirects public S3 avatars to the stored CDN url', async () => {
     const s3Send = jest.fn();
+    const findUnique = jest.fn().mockResolvedValue({
+      id: 'asset-1',
+      status: 'ready',
+      ownerId: 'user-owner',
+      kind: 'avatar',
+      chatId: null,
+      bucket: 'media',
+      objectKey: 'avatars/user-owner/avatar.jpg',
+      publicUrl: 'https://cdn.example.com/avatars/user-owner/avatar.jpg',
+      mimeType: 'image/jpeg',
+      byteSize: 100,
+      updatedAt: mediaUpdatedAt,
+    });
     const client = {
       mediaAsset: {
-        findUnique: jest.fn().mockResolvedValue({
-          id: 'asset-1',
-          status: 'ready',
-          ownerId: 'user-owner',
-          kind: 'avatar',
-          chatId: null,
-          bucket: 'media',
-          objectKey: 'avatars/user-owner/avatar.jpg',
-          publicUrl: 'https://cdn.example.com/avatars/user-owner/avatar.jpg',
-          mimeType: 'image/jpeg',
-          byteSize: 100,
-          updatedAt: mediaUpdatedAt,
-        }),
+        findUnique,
       },
     };
     const service = new MediaService({ client } as any);
@@ -182,6 +183,8 @@ describe('MediaService', () => {
       }),
     );
     expect(s3Send).not.toHaveBeenCalled();
+    await service.getAsset('asset-1');
+    expect(findUnique).toHaveBeenCalledTimes(1);
   });
 
   it('redirects public event cover media to the stored CDN url', async () => {

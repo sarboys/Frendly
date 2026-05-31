@@ -9,7 +9,7 @@ describe('OnboardingService unit', () => {
           resolveSession = resolve;
         }),
     );
-    const onboardingUpsert = jest.fn().mockResolvedValue({
+    const onboardingFindUnique = jest.fn().mockResolvedValue({
       intent: 'dating',
       gender: 'female',
       birthDate: null,
@@ -27,7 +27,7 @@ describe('OnboardingService unit', () => {
         findUnique: sessionFindUnique,
       },
       onboardingPreferences: {
-        upsert: onboardingUpsert,
+        findUnique: onboardingFindUnique,
       },
     };
     const service = new OnboardingService({ client } as any);
@@ -37,7 +37,7 @@ describe('OnboardingService unit', () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(sessionFindUnique).toHaveBeenCalledTimes(1);
-    expect(onboardingUpsert).toHaveBeenCalledTimes(1);
+    expect(onboardingFindUnique).toHaveBeenCalledTimes(1);
 
     resolveSession({ provider: 'telegram' });
 
@@ -47,7 +47,7 @@ describe('OnboardingService unit', () => {
   });
 
   it('returns uploaded profile photos with onboarding state', async () => {
-    const onboardingUpsert = jest.fn().mockResolvedValue({
+    const onboardingFindUnique = jest.fn().mockResolvedValue({
       intent: 'dating',
       gender: 'female',
       birthDate: null,
@@ -82,7 +82,7 @@ describe('OnboardingService unit', () => {
         findUnique: jest.fn().mockResolvedValue(null),
       },
       onboardingPreferences: {
-        upsert: onboardingUpsert,
+        findUnique: onboardingFindUnique,
       },
     };
     const service = new OnboardingService({ client } as any);
@@ -96,6 +96,36 @@ describe('OnboardingService unit', () => {
         },
       ],
     });
+  });
+
+  it('serves onboarding state from cache when available', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        displayName: 'Аня',
+        requiredContact: null,
+        photos: [],
+      }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const onboardingFindUnique = jest.fn();
+    const service = new OnboardingService(
+      {
+        client: {
+          onboardingPreferences: {
+            findUnique: onboardingFindUnique,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getOnboarding('user-me', 'session-1')).resolves.toMatchObject({
+      displayName: 'Аня',
+      requiredContact: null,
+    });
+    expect(onboardingFindUnique).not.toHaveBeenCalled();
+    expect(cache.getJson).toHaveBeenCalledWith('api:onboarding:me:user-me:session-1');
   });
 
   it('stores birth date and updates profile age from onboarding', async () => {

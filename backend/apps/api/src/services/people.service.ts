@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   OUTBOX_EVENT_TYPES,
   buildDirectChatKey,
@@ -15,6 +15,7 @@ import {
 } from '../common/profile-social-preview';
 import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 type PeopleCursor = {
   id: string;
@@ -42,11 +43,53 @@ type InviteState =
   | 'pending_invite'
   | 'pending_request';
 
+const FOLLOWING_CACHE_SECONDS = 10;
+
 @Injectable()
 export class PeopleService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingPeopleLoads = new Map<string, Promise<any>>();
+  private readonly pendingFollowingLoads = new Map<string, Promise<any>>();
+  private readonly pendingPersonProfileLoads = new Map<string, Promise<any>>();
+  private readonly pendingProfileSocialLoads = new Map<string, Promise<ProfileSocialSnapshot>>();
+  private readonly followingMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async listPeople(
+    userId: string,
+    params: { cursor?: string; limit?: number; q?: string },
+  ) {
+    const cacheKey = this.peopleListCacheKey(userId, params);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingPeopleLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshPeople(userId, params)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingPeopleLoads.delete(cacheKey);
+      });
+    this.pendingPeopleLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshPeople(
     userId: string,
     params: { cursor?: string; limit?: number; q?: string },
   ) {
@@ -217,7 +260,67 @@ export class PeopleService {
     };
   }
 
+  private peopleListCacheKey(
+    userId: string,
+    params: { cursor?: string; limit?: number; q?: string },
+  ) {
+    const limit = params.limit == null ? 'default' : String(params.limit);
+    const cursor = params.cursor ?? '';
+    const q = normalizeSearchQuery(params.q) ?? '';
+    return `people:list:v1:${userId}:${limit}:${cursor}:${q}`;
+  }
+
+  private personProfileCacheKey(currentUserId: string, targetUserId: string) {
+    return `people:profile:v1:${currentUserId}:${targetUserId}`;
+  }
+
+  private profileSocialCacheKey(currentUserId: string, targetUserId: string) {
+    return `people:social:v1:${currentUserId}:${targetUserId}`;
+  }
+
+  private async clearPersonProfileCache(currentUserId: string, targetUserId: string) {
+    await Promise.all([
+      this.redisCache?.delete(this.personProfileCacheKey(currentUserId, targetUserId)),
+      this.redisCache?.delete(this.profileSocialCacheKey(currentUserId, targetUserId)),
+    ]);
+  }
+
   async listFollowing(
+    userId: string,
+    params: { eventId?: string; cursor?: string; limit?: number; q?: string },
+  ) {
+    const cacheKey = this.followingCacheKey(userId, params);
+    const memoryCached = this.getMemoryCachedFollowing(cacheKey);
+    if (memoryCached != null) {
+      return memoryCached;
+    }
+
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      this.setMemoryCachedFollowing(cacheKey, cached);
+      return cached;
+    }
+
+    const pending = this.pendingFollowingLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshFollowing(userId, params)
+      .then(async (response) => {
+        this.setMemoryCachedFollowing(cacheKey, response);
+        await this.redisCache?.setJson(cacheKey, response, FOLLOWING_CACHE_SECONDS);
+        return response;
+      })
+      .finally(() => {
+        this.pendingFollowingLoads.delete(cacheKey);
+      });
+    this.pendingFollowingLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshFollowing(
     userId: string,
     params: { eventId?: string; cursor?: string; limit?: number; q?: string },
   ) {
@@ -409,6 +512,36 @@ export class PeopleService {
     };
   }
 
+  private followingCacheKey(
+    userId: string,
+    params: { eventId?: string; cursor?: string; limit?: number; q?: string },
+  ) {
+    const eventId = params.eventId ?? '';
+    const limit = params.limit == null ? 'default' : String(params.limit);
+    const cursor = params.cursor ?? '';
+    const q = normalizeSearchQuery(params.q) ?? '';
+    return `people:following:v1:${userId}:${eventId}:${limit}:${cursor}:${q}`;
+  }
+
+  private getMemoryCachedFollowing(cacheKey: string) {
+    const entry = this.followingMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.followingMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedFollowing(cacheKey: string, value: unknown) {
+    this.followingMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + FOLLOWING_CACHE_SECONDS * 1000,
+      value,
+    });
+  }
+
   async createOrGetDirectChat(currentUserId: string, peerUserId: string) {
     if (currentUserId === peerUserId) {
       throw new ApiError(400, 'self_chat_not_allowed', 'Cannot create chat with yourself');
@@ -491,6 +624,31 @@ export class PeopleService {
   }
 
   async getPersonProfile(currentUserId: string, userId: string) {
+    const cacheKey = this.personProfileCacheKey(currentUserId, userId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingPersonProfileLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshPersonProfile(currentUserId, userId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 15);
+        return response;
+      })
+      .finally(() => {
+        this.pendingPersonProfileLoads.delete(cacheKey);
+      });
+    this.pendingPersonProfileLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshPersonProfile(currentUserId: string, userId: string) {
     if (currentUserId !== userId) {
       const blockedUserIds = await this.getBlockedUserIds(currentUserId);
       if (blockedUserIds.has(userId)) {
@@ -595,6 +753,34 @@ export class PeopleService {
     currentUserId: string,
     targetUserId: string,
   ): Promise<ProfileSocialSnapshot> {
+    const cacheKey = this.profileSocialCacheKey(currentUserId, targetUserId);
+    const cached = await this.redisCache?.getJson<ProfileSocialSnapshot>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingProfileSocialLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshProfileSocial(currentUserId, targetUserId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 15);
+        return response;
+      })
+      .finally(() => {
+        this.pendingProfileSocialLoads.delete(cacheKey);
+      });
+    this.pendingProfileSocialLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshProfileSocial(
+    currentUserId: string,
+    targetUserId: string,
+  ): Promise<ProfileSocialSnapshot> {
     await this.assertSocialTargetVisible(currentUserId, targetUserId, {
       allowSelf: true,
     });
@@ -632,6 +818,9 @@ export class PeopleService {
       });
     }
 
+    this.pendingFollowingLoads.clear();
+    this.followingMemoryCache.clear();
+    await this.clearPersonProfileCache(currentUserId, targetUserId);
     return this.getProfileSocialSnapshot(currentUserId, targetUserId);
   }
 
@@ -656,6 +845,7 @@ export class PeopleService {
       throw new ApiError(404, 'follow_not_found', 'Follow not found');
     }
 
+    await this.clearPersonProfileCache(currentUserId, targetUserId);
     return this.getProfileSocialSnapshot(currentUserId, targetUserId);
   }
 
@@ -698,6 +888,7 @@ export class PeopleService {
       });
     }
 
+    await this.clearPersonProfileCache(currentUserId, targetUserId);
     return this.getProfileSocialSnapshot(currentUserId, targetUserId);
   }
 

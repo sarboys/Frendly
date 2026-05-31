@@ -64,9 +64,12 @@ describe('NotificationsService unit', () => {
     };
     const service = new NotificationsService({ client } as any);
 
-    await expect(
-      service.listNotifications('user-me', { limit: 20 }),
-    ).resolves.toEqual({
+    const result = await service.listNotifications('user-me', { limit: 20 });
+    const cachedResult = await service.listNotifications('user-me', {
+      limit: 20,
+    });
+
+    expect(result).toEqual({
       items: [
         {
           id: 'notification-1',
@@ -80,6 +83,7 @@ describe('NotificationsService unit', () => {
       ],
       nextCursor: null,
     });
+    expect(cachedResult).toBe(result);
 
     expect(queryRaw).toHaveBeenCalledTimes(1);
     expect(client.notification.findMany).not.toHaveBeenCalled();
@@ -195,6 +199,68 @@ describe('NotificationsService unit', () => {
         },
       },
     });
+  });
+
+  it('uses cached unread count before database queries', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({ unreadCount: 4 }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const client = {
+      userBlock: {
+        findMany: jest.fn(),
+      },
+      notification: {
+        count: jest.fn(),
+      },
+      $queryRaw: jest.fn(),
+    };
+    const service = new NotificationsService({ client } as any, cache as any);
+
+    await expect(service.getUnreadCount('user-me')).resolves.toEqual({
+      unreadCount: 4,
+    });
+
+    expect(cache.getJson).toHaveBeenCalledWith(
+      'notifications:unread-count:v1:user-me',
+    );
+    expect(cache.setJson).not.toHaveBeenCalled();
+    expect(client.userBlock.findMany).not.toHaveBeenCalled();
+    expect(client.notification.count).not.toHaveBeenCalled();
+    expect(client.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('stores unread count on cache miss', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const count = jest.fn().mockResolvedValue(2);
+    const service = new NotificationsService(
+      {
+        client: {
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          notification: {
+            count,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getUnreadCount('user-me')).resolves.toEqual({
+      unreadCount: 2,
+    });
+
+    expect(cache.setJson).toHaveBeenCalledWith(
+      'notifications:unread-count:v1:user-me',
+      { unreadCount: 2 },
+      5,
+    );
   });
 
   it('deletes push tokens by current device id only for current user', async () => {
@@ -326,13 +392,21 @@ describe('NotificationsService unit', () => {
 
   it('marks only central notifications as read', async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 2 });
-    const service = new NotificationsService({
-      client: {
-        notification: {
-          updateMany,
+    const cache = {
+      getJson: jest.fn(),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new NotificationsService(
+      {
+        client: {
+          notification: {
+            updateMany,
+          },
         },
-      },
-    } as any);
+      } as any,
+      cache as any,
+    );
 
     await expect(service.markAllRead('user-me')).resolves.toEqual({
       ok: true,
@@ -351,21 +425,32 @@ describe('NotificationsService unit', () => {
         readAt: expect.any(Date),
       },
     });
+    expect(cache.delete).toHaveBeenCalledWith(
+      'notifications:unread-count:v1:user-me',
+    );
   });
 
   it('marks an unread central notification with a single update query', async () => {
     const findUnique = jest.fn();
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const update = jest.fn();
-    const service = new NotificationsService({
-      client: {
-        notification: {
-          findUnique,
-          updateMany,
-          update,
+    const cache = {
+      getJson: jest.fn(),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new NotificationsService(
+      {
+        client: {
+          notification: {
+            findUnique,
+            updateMany,
+            update,
+          },
         },
-      },
-    } as any);
+      } as any,
+      cache as any,
+    );
 
     await expect(
       service.markRead('user-me', 'notification-1'),
@@ -390,6 +475,9 @@ describe('NotificationsService unit', () => {
     });
     expect(findUnique).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
+    expect(cache.delete).toHaveBeenCalledWith(
+      'notifications:unread-count:v1:user-me',
+    );
   });
 
   it('does not mark chat message notifications through the central read endpoint', async () => {

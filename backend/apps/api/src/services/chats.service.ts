@@ -5,7 +5,7 @@ import {
   getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
 import { ChatKind, MediaAssetKind, Prisma } from '@prisma/client';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 import {
@@ -20,8 +20,10 @@ import {
   loadProfileSocialPreviews,
 } from '../common/profile-social-preview';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 const CHAT_MEMBER_PREVIEW_LIMIT = 8;
+const CHAT_LIST_CACHE_SECONDS = 2;
 const MEETUP_AUTO_FINISH_MS = 24 * 60 * 60 * 1000;
 type ChatListRequestKind = 'meetup' | 'direct' | 'community';
 
@@ -152,8 +154,15 @@ type ChatListMemberProfile = {
 @Injectable()
 export class ChatsService {
   private readonly logger = new Logger(ChatsService.name);
+  private readonly pendingChatListLoads = new Map<
+    string,
+    Promise<{ etag: string; response: unknown }>
+  >();
 
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async listChatsWithCache(
     userId: string,
@@ -161,20 +170,55 @@ export class ChatsService {
     params: { cursor?: string; limit?: number; includeSocial?: boolean },
     ifNoneMatch?: string,
   ) {
-    const response = await this.listChats(userId, kind, params);
-    const etag = this.buildChatListEtag(response);
+    const cacheKey = this.chatListCacheKey(userId, kind, params);
+    const cached = await this.redisCache?.getJson<{ etag: string; response: unknown }>(
+      cacheKey,
+    );
+    if (cached?.etag && cached.response != null) {
+      if (this.matchesEntityTag(ifNoneMatch, cached.etag)) {
+        return {
+          etag: cached.etag,
+          notModified: true as const,
+        };
+      }
+      return cached;
+    }
 
-    if (this.matchesEntityTag(ifNoneMatch, etag)) {
+    const pending = this.pendingChatListLoads.get(cacheKey);
+    const payload = pending ?? this.loadChatListCachePayload(userId, kind, params, cacheKey);
+    if (pending == null) {
+      this.pendingChatListLoads.set(cacheKey, payload);
+    }
+
+    const resolved = await payload;
+
+    if (this.matchesEntityTag(ifNoneMatch, resolved.etag)) {
       return {
-        etag,
+        etag: resolved.etag,
         notModified: true as const,
       };
     }
 
-    return {
-      etag,
-      response,
-    };
+    return resolved;
+  }
+
+  private async loadChatListCachePayload(
+    userId: string,
+    kind: ChatListRequestKind,
+    params: { cursor?: string; limit?: number; includeSocial?: boolean },
+    cacheKey: string,
+  ) {
+    try {
+      const response = await this.listChats(userId, kind, params);
+      const payload = {
+        etag: this.buildChatListEtag(response),
+        response,
+      };
+      await this.redisCache?.setJson(cacheKey, payload, CHAT_LIST_CACHE_SECONDS);
+      return payload;
+    } finally {
+      this.pendingChatListLoads.delete(cacheKey);
+    }
   }
 
   async listChats(
@@ -563,6 +607,44 @@ export class ChatsService {
     return `W/"chat-list-${hash}"`;
   }
 
+  private chatListCacheKey(
+    userId: string,
+    kind: ChatListRequestKind,
+    params: { cursor?: string; limit?: number; includeSocial?: boolean },
+  ) {
+    const includeSocial = kind === 'meetup' && params.includeSocial !== false;
+    return [
+      'api',
+      'chat-list',
+      'v1',
+      userId,
+      kind,
+      params.cursor ?? '',
+      this.normalizeChatListLimit(params.limit),
+      includeSocial ? 'social' : 'no-social',
+    ].join(':');
+  }
+
+  private async clearChatListCache(userId: string) {
+    this.pendingChatListLoads.clear();
+    await Promise.all([
+      this.redisCache?.delete(this.chatListCacheKey(userId, 'meetup', {
+        limit: 20,
+        includeSocial: true,
+      })),
+      this.redisCache?.delete(this.chatListCacheKey(userId, 'meetup', {
+        limit: 20,
+        includeSocial: false,
+      })),
+      this.redisCache?.delete(this.chatListCacheKey(userId, 'direct', {
+        limit: 20,
+      })),
+      this.redisCache?.delete(this.chatListCacheKey(userId, 'community', {
+        limit: 20,
+      })),
+    ]);
+  }
+
   private matchesEntityTag(ifNoneMatch: string | undefined, etag: string) {
     if (!ifNoneMatch) {
       return false;
@@ -610,6 +692,7 @@ export class ChatsService {
           pinnedAt: true,
         },
       });
+      await this.clearChatListCache(userId);
 
       return {
         id: member.chatId,
@@ -1248,6 +1331,7 @@ export class ChatsService {
         },
       });
     });
+    await this.clearChatListCache(userId);
 
     return { ok: true };
   }

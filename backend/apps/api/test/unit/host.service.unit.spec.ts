@@ -228,6 +228,49 @@ describe('HostService unit', () => {
     expect(client.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
+  it('returns cached host dashboard without database reads', async () => {
+    const cached = {
+      stats: {
+        meetupsCount: 1,
+        rating: 5,
+        guestsCount: 3,
+        fillRate: 75,
+      },
+      pendingRequestsCount: 0,
+      requests: [],
+      nextRequestsCursor: null,
+      events: [],
+      nextEventsCursor: null,
+    };
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const client = {
+      user: {
+        findUnique: jest.fn(),
+      },
+    };
+    const service = new HostService(
+      { client } as any,
+      undefined,
+      redisCache as any,
+    );
+
+    const result = await service.getDashboard('host-user', {
+      eventsLimit: 20,
+      requestsLimit: 20,
+    });
+
+    expect(result).toBe(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith(
+      'api:host-dashboard:v1:host-user::20::20',
+    );
+    expect(client.user.findUnique).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
   it('returns verified and Frendly+ flags for dashboard requests', async () => {
     const request = {
       ...makeDashboardRequest(

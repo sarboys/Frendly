@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 type AppPlatform = 'ios' | 'android';
 type CampaignStatus = 'draft' | 'active' | 'paused' | 'archived';
@@ -66,7 +67,12 @@ type CampaignRow = {
 
 @Injectable()
 export class AppOverlayService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingOverlayLoads = new Map<string, Promise<any>>();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async resolveOverlay(
     userId: string,
@@ -74,6 +80,35 @@ export class AppOverlayService {
   ) {
     const platform = this.parsePlatform(input.platform);
     const buildNumber = this.parseBuildNumber(input.buildNumber);
+    const cacheKey = this.overlayCacheKey(userId, platform, buildNumber);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingOverlayLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshOverlay(userId, platform, buildNumber)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingOverlayLoads.delete(cacheKey);
+      });
+    this.pendingOverlayLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshOverlay(
+    userId: string,
+    platform: AppPlatform,
+    buildNumber: number,
+  ) {
     const user = await this.loadUserContext(userId);
     const versionPolicy = await this.prismaService.client.appVersionPolicy.findUnique({
       where: { platform },
@@ -107,6 +142,10 @@ export class AppOverlayService {
       overlay: selected ? this.mapCampaignOverlay(selected) : null,
       checkAfterSeconds: 300,
     };
+  }
+
+  private overlayCacheKey(userId: string, platform: AppPlatform, buildNumber: number) {
+    return ['api', 'app-overlay', userId, platform, buildNumber].join(':');
   }
 
   async recordEvent(

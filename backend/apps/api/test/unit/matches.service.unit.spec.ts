@@ -116,6 +116,39 @@ describe('MatchesService unit', () => {
     });
   });
 
+  it('returns cached matches without database reads', async () => {
+    const cached = {
+      items: [
+        {
+          userId: 'peer-1',
+          displayName: 'Peer',
+        },
+      ],
+      nextCursor: null,
+    };
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const datingActionFindMany = jest.fn();
+    const service = new MatchesService(
+      {
+        client: {
+          datingAction: {
+            findMany: datingActionFindMany,
+          },
+        },
+      } as any,
+      redisCache as any,
+    );
+
+    await expect(service.listMatches('user-me', { limit: 20 })).resolves.toEqual(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith('api:matches:v1:user-me::20');
+    expect(datingActionFindMany).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
   it('uses a stable dating action cursor for the next match page', async () => {
     const datingActionFindMany = jest.fn().mockResolvedValue([
       {

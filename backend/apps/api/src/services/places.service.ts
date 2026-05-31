@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 export type PlaceSearchInput = {
   q: string;
@@ -55,7 +56,13 @@ const RAW_PROMO_PLACE_LIMIT = 500;
 
 @Injectable()
 export class PlacesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingSearchLoads = new Map<string, Promise<any>>();
+  private readonly pendingPromoLoads = new Map<string, Promise<PlacePromoListItemDto[]>>();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async searchPlaces(input: PlaceSearchInput) {
     const q = input.q.trim();
@@ -68,6 +75,44 @@ export class PlacesService {
       throw new ApiError(400, 'place_search_query_too_short', 'Search query is too short');
     }
 
+    const cacheKey = this.placeSearchCacheKey({
+      q,
+      city,
+      limit,
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingSearchLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshSearchPlaces({
+      ...input,
+      q,
+      city,
+      limit,
+    })
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingSearchLoads.delete(cacheKey);
+      });
+    this.pendingSearchLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshSearchPlaces(input: PlaceSearchInput & { q: string; city: string; limit: number }) {
+    const { q, city, limit } = input;
+    const hasCoords = isFiniteNumber(input.latitude) && isFiniteNumber(input.longitude);
     console.debug('[places] search requested', { q, city, limit, hasCoords });
     const query = q.toLowerCase();
     const tagQuery = normalizeTagQuery(q);
@@ -138,6 +183,45 @@ export class PlacesService {
     const city = input.city?.trim() || DEFAULT_CITY;
     const limit = normalizePromoLimit(input.limit);
     const category = input.category?.trim().toLowerCase() || null;
+    const cacheKey = this.placePromosCacheKey({
+      city,
+      limit,
+      category,
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+    const cached = await this.redisCache?.getJson<PlacePromoListItemDto[]>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingPromoLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshPlacePromos({
+      ...input,
+      city,
+      limit,
+      category,
+    })
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingPromoLoads.delete(cacheKey);
+      });
+    this.pendingPromoLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshPlacePromos(
+    input: PlacePromoListInput & { city: string; limit: number; category: string | null },
+  ): Promise<PlacePromoListItemDto[]> {
+    const { city, limit, category } = input;
     const now = new Date();
 
     const promos = await this.prismaService.client.externalContentItem.findMany({
@@ -231,6 +315,44 @@ export class PlacesService {
 
     console.info('[places] promos listed', { city, resultCount: result.length });
     return result;
+  }
+
+  private placeSearchCacheKey(input: {
+    q: string;
+    city: string;
+    limit: number;
+    latitude?: number | null;
+    longitude?: number | null;
+  }) {
+    return [
+      'api',
+      'places',
+      'search',
+      normalizeText(input.city),
+      normalizeText(input.q),
+      input.limit,
+      coordinateCachePart(input.latitude),
+      coordinateCachePart(input.longitude),
+    ].join(':');
+  }
+
+  private placePromosCacheKey(input: {
+    city: string;
+    limit: number;
+    category: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  }) {
+    return [
+      'api',
+      'places',
+      'promos',
+      normalizeText(input.city),
+      input.category ?? '',
+      input.limit,
+      coordinateCachePart(input.latitude),
+      coordinateCachePart(input.longitude),
+    ].join(':');
   }
 
   private async loadPromosForPlaces(places: any[], city: string) {
@@ -450,6 +572,13 @@ function normalizePromoLimit(value: number | null | undefined) {
     return DEFAULT_PROMO_LIMIT;
   }
   return Math.min(Math.max(Math.trunc(value), 1), MAX_PROMO_LIMIT);
+}
+
+function coordinateCachePart(value?: number | null) {
+  if (!isFiniteNumber(value)) {
+    return '';
+  }
+  return value.toFixed(4);
 }
 
 function distanceKm(

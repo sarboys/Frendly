@@ -49,6 +49,34 @@ function activeCampaign(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AppOverlayService unit', () => {
+  it('serves resolved overlay from cache when available', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        overlay: null,
+        checkAfterSeconds: 300,
+      }),
+      setJson: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const service = new AppOverlayService(
+      {
+        client: {
+          user: { findUnique: userFindUnique },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(
+      service.resolveOverlay('user-1', { platform: 'ios', buildNumber: 1 }),
+    ).resolves.toEqual({
+      overlay: null,
+      checkAfterSeconds: 300,
+    });
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(cache.getJson).toHaveBeenCalledWith('api:app-overlay:user-1:ios:1');
+  });
+
   it('returns blocking version policy overlay for unsupported build', async () => {
     const service = createService({
       user: { findUnique: jest.fn().mockResolvedValue(activeUser()) },

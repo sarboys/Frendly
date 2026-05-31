@@ -32,6 +32,48 @@ describe('AfterDarkService', () => {
     },
   });
 
+  it('uses a short cache for after-dark access checks', async () => {
+    const client = {
+      userSettings: {
+        findUnique: jest.fn().mockResolvedValue({
+          afterDarkAgeConfirmedAt: new Date('2026-01-01T00:00:00Z'),
+          afterDarkCodeAcceptedAt: new Date('2026-01-01T00:00:00Z'),
+        }),
+      },
+      userVerification: {
+        findUnique: jest.fn().mockResolvedValue({ status: 'verified' }),
+      },
+      event: {
+        count: jest.fn().mockResolvedValue(3),
+      },
+    };
+    const subscriptionService = {
+      getCurrent: jest.fn().mockResolvedValue({
+        status: 'active',
+        plan: 'month',
+      }),
+    };
+    const service = new AfterDarkService(
+      { client } as any,
+      subscriptionService as any,
+      {} as any,
+    );
+
+    const result = await service.getAccess('user-me');
+    const cachedResult = await service.getAccess('user-me');
+
+    expect(result).toMatchObject({
+      unlocked: true,
+      previewCount: 3,
+      kinkVerified: true,
+    });
+    expect(cachedResult).toBe(result);
+    expect(client.userSettings.findUnique).toHaveBeenCalledTimes(1);
+    expect(client.userVerification.findUnique).toHaveBeenCalledTimes(1);
+    expect(client.event.count).toHaveBeenCalledTimes(1);
+    expect(subscriptionService.getCurrent).toHaveBeenCalledTimes(1);
+  });
+
   it('does not load all event participants for after-dark list summaries', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const client = {

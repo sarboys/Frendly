@@ -111,6 +111,155 @@ describe('ProfileService', () => {
     });
   });
 
+  it('uses cached current profile before database queries', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        id: 'user-me',
+        displayName: 'Никита',
+      }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const service = new ProfileService(
+      {
+        client: {
+          user: {
+            findUnique: userFindUnique,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getProfile('user-me')).resolves.toEqual({
+      id: 'user-me',
+      displayName: 'Никита',
+    });
+
+    expect(cache.getJson).toHaveBeenCalledWith('profile:me:v1:user-me');
+    expect(cache.setJson).not.toHaveBeenCalled();
+    expect(userFindUnique).not.toHaveBeenCalled();
+  });
+
+  it('stores current profile on cache miss', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userFindUnique = jest.fn().mockResolvedValue({
+      id: 'user-me',
+      displayName: 'Никита',
+      verified: false,
+      online: true,
+      subscriptions: [],
+      onboarding: null,
+      profile: {
+        age: 29,
+        birthDate: null,
+        gender: 'male',
+        city: 'Москва',
+        area: 'Патрики',
+        bio: 'Люблю прогулки',
+        vibe: 'Спокойно',
+        rating: 0,
+        meetupCount: 0,
+        avatarAssetId: null,
+        avatarUrl: null,
+        photos: [],
+      },
+    });
+    const service = new ProfileService(
+      {
+        client: {
+          user: {
+            findUnique: userFindUnique,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getProfile('user-me')).resolves.toMatchObject({
+      id: 'user-me',
+      displayName: 'Никита',
+    });
+
+    expect(cache.setJson).toHaveBeenCalledWith(
+      'profile:me:v1:user-me',
+      expect.objectContaining({
+        id: 'user-me',
+        displayName: 'Никита',
+      }),
+      5,
+    );
+  });
+
+  it('clears current profile cache after profile updates', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userUpdate = jest.fn().mockResolvedValue({});
+    const userFindUnique = jest.fn().mockResolvedValue({
+      id: 'user-me',
+      displayName: 'Никита',
+      verified: false,
+      online: true,
+      subscriptions: [],
+      onboarding: null,
+      profile: {
+        age: 29,
+        birthDate: null,
+        gender: 'male',
+        city: 'Москва',
+        area: 'Патрики',
+        bio: 'Люблю прогулки',
+        vibe: 'Спокойно',
+        rating: 0,
+        meetupCount: 0,
+        avatarAssetId: null,
+        avatarUrl: null,
+        photos: [],
+      },
+    });
+    const service = new ProfileService(
+      {
+        client: {
+          $transaction: jest.fn((callback: any) =>
+            callback({
+              user: {
+                update: userUpdate,
+              },
+              profile: {
+                update: jest.fn(),
+              },
+            }),
+          ),
+          user: {
+            findUnique: userFindUnique,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await service.updateProfile('user-me', {
+      displayName: '  Никита  ',
+    });
+
+    expect(cache.delete).toHaveBeenCalledWith('profile:me:v1:user-me');
+    expect(cache.setJson).toHaveBeenCalledWith(
+      'profile:me:v1:user-me',
+      expect.objectContaining({
+        id: 'user-me',
+      }),
+      5,
+    );
+  });
+
   it('keeps profile photos on CDN URLs', async () => {
     const service = new ProfileService({
       client: {

@@ -1,7 +1,7 @@
 name: frendly-backend
 
 # Scale deploy runtime:
-# RUNTIME_SERVICES=api_a api_b chat_a chat_b worker_realtime worker_content worker_schedules landing admin_internal admin_partner
+# RUNTIME_SERVICES=api_a api_b api_c api_d api_e api_f api_g api_h chat_a chat_b worker_realtime worker_content worker_schedules landing admin_internal admin_partner
 # Do not include base api, chat or worker in scale mode.
 
 services:
@@ -18,6 +18,48 @@ services:
       service: api
     environment:
       METRICS_SERVICE_NAME: api_b
+
+  api_c:
+    extends:
+      file: compose.prod.yml
+      service: api
+    environment:
+      METRICS_SERVICE_NAME: api_c
+
+  api_d:
+    extends:
+      file: compose.prod.yml
+      service: api
+    environment:
+      METRICS_SERVICE_NAME: api_d
+
+  api_e:
+    extends:
+      file: compose.prod.yml
+      service: api
+    environment:
+      METRICS_SERVICE_NAME: api_e
+
+  api_f:
+    extends:
+      file: compose.prod.yml
+      service: api
+    environment:
+      METRICS_SERVICE_NAME: api_f
+
+  api_g:
+    extends:
+      file: compose.prod.yml
+      service: api
+    environment:
+      METRICS_SERVICE_NAME: api_g
+
+  api_h:
+    extends:
+      file: compose.prod.yml
+      service: api
+    environment:
+      METRICS_SERVICE_NAME: api_h
 
   chat_a:
     extends:
@@ -72,10 +114,26 @@ services:
       CONTENT_ROUTE_GENERATION_ENABLED: "false"
 
   nginx:
+    ulimits:
+      nofile:
+        soft: 200000
+        hard: 200000
     depends_on:
       api_a:
         condition: service_healthy
       api_b:
+        condition: service_healthy
+      api_c:
+        condition: service_healthy
+      api_d:
+        condition: service_healthy
+      api_e:
+        condition: service_healthy
+      api_f:
+        condition: service_healthy
+      api_g:
+        condition: service_healthy
+      api_h:
         condition: service_healthy
       chat_a:
         condition: service_healthy
@@ -88,5 +146,6 @@ services:
       admin_partner:
         condition: service_healthy
     volumes:
+      - ./deploy/nginx/nginx.scale.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/frendly.scale.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro

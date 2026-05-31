@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { TokenPair } from '@big-break/contracts';
 import {
@@ -18,8 +18,10 @@ import {
   PhoneOtpService,
 } from './phone-otp.service';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
+const AUTH_ME_CACHE_SECONDS = 5;
 type AuthSessionProvider =
   | 'dev'
   | 'phone_otp'
@@ -37,10 +39,12 @@ interface AuthRequestMeta {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly pendingMeLoads = new Map<string, Promise<any>>();
 
   constructor(
     private readonly prismaService: PrismaService,
     private readonly phoneOtpService: PhoneOtpService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async createDevSession(userId = 'user-me'): Promise<TokenPair> {
@@ -689,6 +693,31 @@ export class AuthService {
   }
 
   async getMe(userId: string) {
+    const cacheKey = this.meCacheKey(userId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingMeLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshMe(userId)
+      .then(async (me) => {
+        await this.redisCache?.setJson(cacheKey, me, AUTH_ME_CACHE_SECONDS);
+        return me;
+      })
+      .finally(() => {
+        this.pendingMeLoads.delete(cacheKey);
+      });
+    this.pendingMeLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshMe(userId: string) {
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
       select: {
@@ -723,6 +752,10 @@ export class AuthService {
       city: user.profile?.city ?? null,
       onboardingComplete: user.onboarding?.completedAt != null,
     };
+  }
+
+  private meCacheKey(userId: string) {
+    return ['api', 'auth-me', 'v1', userId].join(':');
   }
 
   private async ensureUser(

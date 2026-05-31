@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import {
   decodeCursor,
@@ -7,17 +7,58 @@ import {
 } from '@big-break/database';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 interface NotificationCursor {
   id: string;
   createdAt: Date;
 }
 
+const NOTIFICATION_LIST_CACHE_SECONDS = 5;
+
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingListLoads = new Map<string, Promise<any>>();
+  private readonly pendingUnreadCountLoads = new Map<
+    string,
+    Promise<{ unreadCount: number }>
+  >();
+  private readonly listMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async listNotifications(userId: string, params: { cursor?: string; limit?: number }) {
+    const cacheKey = this.listCacheKey(userId, params);
+    const cached = this.getMemoryCachedList(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingListLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshNotifications(userId, params)
+      .then((response) => {
+        this.setMemoryCachedList(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingListLoads.delete(cacheKey);
+      });
+    this.pendingListLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshNotifications(
+    userId: string,
+    params: { cursor?: string; limit?: number },
+  ) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const take = this.normalizeLimit(params.limit);
     const cursorNotification = await this.resolveNotificationCursor(userId, params.cursor);
@@ -51,7 +92,70 @@ export class NotificationsService {
     };
   }
 
+  private listCacheKey(
+    userId: string,
+    params: { cursor?: string; limit?: number },
+  ) {
+    return [
+      'notifications',
+      'list',
+      'v1',
+      userId,
+      params.cursor ?? '',
+      this.normalizeLimit(params.limit),
+    ].join(':');
+  }
+
+  private getMemoryCachedList(cacheKey: string) {
+    const entry = this.listMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.listMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedList(cacheKey: string, value: unknown) {
+    this.listMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + NOTIFICATION_LIST_CACHE_SECONDS * 1000,
+      value,
+    });
+  }
+
+  private clearListCache() {
+    this.pendingListLoads.clear();
+    this.listMemoryCache.clear();
+  }
+
   async getUnreadCount(userId: string) {
+    const cacheKey = this.unreadCountCacheKey(userId);
+    const cached = await this.loadCachedUnreadCount(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingUnreadCountLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshUnreadCount(userId)
+      .then(async (response) => {
+        await this.storeCachedUnreadCount(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingUnreadCountLoads.delete(cacheKey);
+      });
+    this.pendingUnreadCountLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshUnreadCount(userId: string) {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     if (blockedUserIds.size === 0) {
       const unreadCount = await this.prismaService.client.notification.count({
@@ -83,6 +187,50 @@ export class NotificationsService {
     return { unreadCount };
   }
 
+  private async loadCachedUnreadCount(
+    cacheKey: string,
+  ): Promise<{ unreadCount: number } | null> {
+    try {
+      const cached = await this.redisCache?.getJson<{ unreadCount: number }>(
+        cacheKey,
+      );
+      if (
+        cached != null &&
+        typeof cached.unreadCount === 'number' &&
+        Number.isFinite(cached.unreadCount)
+      ) {
+        return cached;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private async storeCachedUnreadCount(
+    cacheKey: string,
+    response: { unreadCount: number },
+  ): Promise<void> {
+    try {
+      await this.redisCache?.setJson(cacheKey, response, 5);
+    } catch {
+      return;
+    }
+  }
+
+  private async clearUnreadCountCache(userId: string): Promise<void> {
+    try {
+      await this.redisCache?.delete(this.unreadCountCacheKey(userId));
+    } catch {
+      return;
+    }
+  }
+
+  private unreadCountCacheKey(userId: string) {
+    return `notifications:unread-count:v1:${userId}`;
+  }
+
   async markRead(userId: string, notificationId: string) {
     const result = await this.prismaService.client.notification.updateMany({
       where: {
@@ -99,6 +247,8 @@ export class NotificationsService {
     });
 
     if (result.count > 0) {
+      await this.clearUnreadCountCache(userId);
+      this.clearListCache();
       return {
         ok: true,
         notificationId,
@@ -140,6 +290,8 @@ export class NotificationsService {
         readAt: new Date(),
       },
     });
+    await this.clearUnreadCountCache(userId);
+    this.clearListCache();
 
     return {
       ok: true,

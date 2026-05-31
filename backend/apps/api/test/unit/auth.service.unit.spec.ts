@@ -57,6 +57,40 @@ describe('AuthService unit', () => {
     });
   });
 
+  it('returns cached current user without database reads', async () => {
+    const cached = {
+      id: 'user-me',
+      displayName: 'User Me',
+      verified: true,
+      online: false,
+      city: 'Москва',
+      area: 'Покровка',
+      onboardingComplete: true,
+    };
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const service = new AuthService(
+      {
+        client: {
+          user: {
+            findUnique: userFindUnique,
+          },
+        },
+      } as any,
+      {} as any,
+      redisCache as any,
+    );
+
+    await expect(service.getMe('user-me')).resolves.toEqual(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith('api:auth-me:v1:user-me');
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
   it('starts existing phone user lookup while OTP delivery is still loading', async () => {
     let resolveDelivery!: (value: { provider: 'webhook'; localCodeHint: null }) => void;
     const deliver = jest.fn(

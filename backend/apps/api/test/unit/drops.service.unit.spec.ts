@@ -128,6 +128,47 @@ describe('DropsService unit', () => {
     );
   });
 
+  it('caches ticket history for repeated reads', async () => {
+    const { service, prismaClient } = makeService();
+    const createdAt = new Date('2026-06-09T12:00:00.000Z');
+    prismaClient.dropRewardEvent.findMany.mockResolvedValue([
+      {
+        id: 'reward-1',
+        source: 'daily_login',
+        status: 'active',
+        title: 'Ежедневный вход',
+        ticketCount: 1,
+        cancellationReason: null,
+        createdAt,
+        relatedType: 'daily_login',
+        relatedId: '2026-06-09',
+      },
+    ]);
+
+    const result = await service.listHistory('user-1', { month: '2026-06' });
+    const cachedResult = await service.listHistory('user-1', {
+      month: '2026-06',
+    });
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'reward-1',
+          source: 'daily_login',
+          status: 'active',
+          title: 'Ежедневный вход',
+          ticketCount: 1,
+          cancellationReason: null,
+          relatedType: 'daily_login',
+          relatedId: '2026-06-09',
+          createdAt: createdAt.toISOString(),
+        },
+      ],
+    });
+    expect(cachedResult).toBe(result);
+    expect(prismaClient.dropRewardEvent.findMany).toHaveBeenCalledTimes(1);
+  });
+
   it('uploads drop images with immutable public cache headers', async () => {
     const { service } = makeService();
 
@@ -475,6 +516,37 @@ describe('DropsService unit', () => {
         },
       ],
     });
+  });
+
+  it('serves drop detail from cache when available', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        id: 'drop-1',
+        myTickets: 2,
+      }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const dropFindUnique = jest.fn();
+    const service = new DropsService(
+      {
+        client: {
+          drop: {
+            findUnique: dropFindUnique,
+          },
+        },
+      } as any,
+      {} as any,
+      undefined,
+      cache as any,
+    );
+
+    await expect(service.getDrop('user-1', 'drop-1')).resolves.toMatchObject({
+      id: 'drop-1',
+      myTickets: 2,
+    });
+    expect(dropFindUnique).not.toHaveBeenCalled();
+    expect(cache.getJson).toHaveBeenCalledWith('drops:detail:v1:user-1:drop-1');
   });
 
   it('lists admin participants grouped by user', async () => {

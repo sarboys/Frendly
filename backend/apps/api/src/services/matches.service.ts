@@ -3,11 +3,13 @@ import {
   encodeCursor,
   getBlockedUserIds,
 } from '@big-break/database';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { mapProfilePhoto } from '../common/presenters';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 const MATCH_PHOTO_PREVIEW_LIMIT = 1;
+const MATCHES_CACHE_SECONDS = 5;
 const POSITIVE_DATING_ACTIONS = ['like', 'super_like'] as const;
 
 type MatchCursor = {
@@ -17,11 +19,48 @@ type MatchCursor = {
 
 @Injectable()
 export class MatchesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingMatchesLoads = new Map<string, Promise<any>>();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async listMatches(
     userId: string,
     params: { cursor?: string; limit?: number } = {},
+  ) {
+    const take = this.normalizeLimit(params.limit);
+    const cacheKey = this.matchesCacheKey(userId, params.cursor, take);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingMatchesLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshMatches(userId, {
+      cursor: params.cursor,
+      limit: take,
+    })
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, MATCHES_CACHE_SECONDS);
+        return response;
+      })
+      .finally(() => {
+        this.pendingMatchesLoads.delete(cacheKey);
+      });
+    this.pendingMatchesLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshMatches(
+    userId: string,
+    params: { cursor?: string; limit: number },
   ) {
     const take = this.normalizeLimit(params.limit);
     const blockedUserIds = await getBlockedUserIds(
@@ -199,6 +238,10 @@ export class MatchesService {
           ? this.encodeCursor(actionPage[actionPage.length - 1]!)
           : null,
     };
+  }
+
+  private matchesCacheKey(userId: string, cursor: string | undefined, limit: number) {
+    return ['api', 'matches', 'v1', userId, cursor ?? '', limit].join(':');
   }
 
   private normalizeLimit(limit?: number) {

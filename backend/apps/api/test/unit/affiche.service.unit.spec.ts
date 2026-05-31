@@ -158,6 +158,91 @@ describe('AfficheService', () => {
     expect(result.nextCursor).toEqual(expect.any(String));
   });
 
+  it('uses cached public affiche list response before database queries', async () => {
+    const queryRaw = jest.fn();
+    const findMany = jest.fn();
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'cached-affiche',
+            title: 'Cached',
+          },
+        ],
+        nextCursor: null,
+      }),
+      setJson: jest.fn(),
+    };
+    const service = new AfficheService(
+      {
+        client: {
+          $queryRaw: queryRaw,
+          externalContentItem: {
+            findMany,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    const result = await service.listEvents({ city: 'Москва', limit: '20' });
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'cached-affiche',
+          title: 'Cached',
+        },
+      ],
+      nextCursor: null,
+    });
+    expect(queryRaw).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
+    expect(cache.setJson).not.toHaveBeenCalled();
+  });
+
+  it('stores public affiche list response on cache miss', async () => {
+    const queryRaw = jest.fn().mockResolvedValue([
+      {
+        id: 'affiche-cache-miss',
+        startsAt: new Date('2026-05-07T16:00:00.000Z'),
+        sortPriority: 0,
+      },
+    ]);
+    const findMany = jest.fn().mockResolvedValue([
+      afficheItem({
+        id: 'affiche-cache-miss',
+        title: 'Cached later',
+      }),
+    ]);
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+    };
+    const service = new AfficheService(
+      {
+        client: {
+          $queryRaw: queryRaw,
+          externalContentItem: {
+            findMany,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    const result = await service.listEvents({ city: 'Москва', limit: '20' });
+
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({ id: 'affiche-cache-miss' }),
+    );
+    expect(cache.setJson).toHaveBeenCalledWith(
+      expect.stringContaining('affiche:events:list:v1:'),
+      result,
+      30,
+    );
+  });
+
   it('does not expose places through affiche detail', async () => {
     const findFirst = jest.fn().mockResolvedValue(null);
     const service = new AfficheService({
@@ -211,6 +296,71 @@ describe('AfficheService', () => {
         moderationStatus: { not: 'rejected' },
       }),
     }));
+  });
+
+  it('serves affiche detail from Redis cache', async () => {
+    const cached = {
+      id: 'event-1',
+      title: 'Cached event',
+    };
+    const findFirst = jest.fn();
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new AfficheService(
+      {
+        client: {
+          externalContentItem: {
+            findFirst,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getEvent('event-1')).resolves.toBe(cached);
+
+    expect(cache.getJson).toHaveBeenCalledWith('affiche:events:detail:v1:event-1');
+    expect(findFirst).not.toHaveBeenCalled();
+    expect(cache.setJson).not.toHaveBeenCalled();
+  });
+
+  it('caches fresh affiche detail in process after loading it', async () => {
+    const findFirst = jest.fn().mockResolvedValue(
+      afficheItem({
+        id: 'event-1',
+        raw: {},
+      }),
+    );
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new AfficheService(
+      {
+        client: {
+          externalContentItem: {
+            findFirst,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    const result = await service.getEvent('event-1');
+    const secondResult = await service.getEvent('event-1');
+
+    expect(result).toMatchObject({ id: 'event-1' });
+    expect(secondResult).toBe(result);
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(cache.setJson).toHaveBeenCalledWith(
+      'affiche:events:detail:v1:event-1',
+      expect.objectContaining({ id: 'event-1' }),
+      30,
+    );
   });
 
   it('does not expose movie showings through affiche detail', async () => {

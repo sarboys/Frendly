@@ -68,6 +68,30 @@ describe('Admin security unit', () => {
       code: 'user_suspended',
     });
   });
+
+  it('caches active API sessions for repeated protected requests', async () => {
+    const token = signAccessToken('user-1', 'session-1');
+    const findUnique = jest.fn().mockResolvedValue({
+      userId: 'user-1',
+      revokedAt: null,
+      user: { status: 'active' },
+    });
+    const guard = new AuthGuard(
+      { getAllAndOverride: jest.fn().mockReturnValue(false) } as any,
+      {
+        client: {
+          session: {
+            findUnique,
+          },
+        },
+      } as any,
+    );
+
+    await expect(guard.canActivate(contextWithBearer(token))).resolves.toBe(true);
+    await expect(guard.canActivate(contextWithBearer(token))).resolves.toBe(true);
+
+    expect(findUnique).toHaveBeenCalledTimes(1);
+  });
 });
 
 function contextWithBearer(token: string) {

@@ -59,6 +59,35 @@ describe('SafetyService unit', () => {
     });
   });
 
+  it('serves safety summary from cache when available', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        trustScore: 77,
+        settings: null,
+        trustedContacts: [],
+        blockedUsersCount: 0,
+        reportsCount: 0,
+      }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const service = new SafetyService(
+      {
+        client: {
+          user: { findUnique: userFindUnique },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getSafety('user-me')).resolves.toMatchObject({
+      trustScore: 77,
+    });
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(cache.getJson).toHaveBeenCalledWith('api:safety:me:user-me');
+  });
+
   it('rechecks active duplicate reports inside the write transaction', async () => {
     const reportCreate = jest.fn().mockResolvedValue({
       id: 'report-created',
@@ -252,6 +281,35 @@ describe('SafetyService unit', () => {
     });
   });
 
+  it('caches trusted contacts for repeated reads', async () => {
+    const contacts = [
+      {
+        id: 'contact-1',
+        userId: 'user-me',
+        name: 'Алина',
+        channel: 'telegram',
+        value: '@alina_k',
+        phoneNumber: '@alina_k',
+        mode: 'sos_only',
+      },
+    ];
+    const findMany = jest.fn().mockResolvedValue(contacts);
+    const service = new SafetyService({
+      client: {
+        trustedContact: {
+          findMany,
+        },
+      },
+    } as any);
+
+    const result = await service.listTrustedContacts('user-me');
+    const cachedResult = await service.listTrustedContacts('user-me');
+
+    expect(result).toBe(contacts);
+    expect(cachedResult).toBe(result);
+    expect(findMany).toHaveBeenCalledTimes(1);
+  });
+
   it('lists reports without loading unused target user data', async () => {
     const createdAt = new Date('2026-04-28T12:00:00.000Z');
     const findMany = jest.fn().mockResolvedValue([
@@ -273,7 +331,10 @@ describe('SafetyService unit', () => {
       },
     } as any);
 
-    await expect(service.listReports('user-me')).resolves.toEqual([
+    const result = await service.listReports('user-me');
+    const cachedResult = await service.listReports('user-me');
+
+    expect(result).toEqual([
       {
         id: 'report-1',
         targetUserId: 'user-target',
@@ -284,6 +345,7 @@ describe('SafetyService unit', () => {
         createdAt: createdAt.toISOString(),
       },
     ]);
+    expect(cachedResult).toBe(result);
     expect(findMany).toHaveBeenCalledWith({
       where: { reporterId: 'user-me' },
       select: {
@@ -297,6 +359,7 @@ describe('SafetyService unit', () => {
       },
       orderBy: { createdAt: 'desc' },
     });
+    expect(findMany).toHaveBeenCalledTimes(1);
   });
 
   it('lists blocks with only response fields and blocked user preview', async () => {
@@ -320,7 +383,10 @@ describe('SafetyService unit', () => {
       },
     } as any);
 
-    await expect(service.listBlocks('user-me')).resolves.toEqual([
+    const result = await service.listBlocks('user-me');
+    const cachedResult = await service.listBlocks('user-me');
+
+    expect(result).toEqual([
       {
         id: 'block-1',
         blockedUserId: 'user-blocked',
@@ -331,6 +397,7 @@ describe('SafetyService unit', () => {
         createdAt: createdAt.toISOString(),
       },
     ]);
+    expect(cachedResult).toBe(result);
     expect(findMany).toHaveBeenCalledWith({
       where: { userId: 'user-me' },
       select: {
@@ -346,6 +413,7 @@ describe('SafetyService unit', () => {
       },
       orderBy: { createdAt: 'desc' },
     });
+    expect(findMany).toHaveBeenCalledTimes(1);
   });
 
   it('persists sos alert and queues delivery payloads for trusted contacts', async () => {

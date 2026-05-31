@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import type {
   AfficheEventDto,
   AfficheEventListDto,
@@ -17,6 +17,7 @@ import { Readable } from 'node:stream';
 import { ApiError } from '../common/api-error';
 import { normalizeSearchQuery } from '../common/search-query';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 type AfficheCursor = {
   id: string;
@@ -113,6 +114,8 @@ type ClientGeoRateLimitEntry = {
 
 const AFFICHE_IMAGE_PROXY_CACHE_SECONDS = 86_400;
 const AFFICHE_IMAGE_PROXY_STALE_SECONDS = 604_800;
+const AFFICHE_EVENTS_CACHE_TTL_SECONDS = 30;
+const AFFICHE_EVENT_DETAIL_CACHE_TTL_SECONDS = 30;
 const AFFICHE_MIRRORED_IMAGE_CACHE_CONTROL =
   'public, max-age=31536000, immutable';
 const CLIENT_GEO_PROVIDER = 'yandex_mapkit_client';
@@ -148,10 +151,52 @@ const CLIENT_GEO_PLACE_KIND_WORDS = new Set([
 @Injectable()
 export class AfficheService {
   private readonly clientGeoRateLimits = new Map<string, ClientGeoRateLimitEntry>();
+  private readonly pendingListEventsLoads = new Map<
+    string,
+    Promise<AfficheEventListDto>
+  >();
+  private readonly pendingEventDetailLoads = new Map<
+    string,
+    Promise<AfficheEventDto>
+  >();
+  private readonly eventDetailMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: AfficheEventDto }
+  >();
 
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async listEvents(query: Record<string, unknown> = {}): Promise<AfficheEventListDto> {
+    const cacheKey = this.listEventsCacheKey(query);
+    const cached = await this.loadCachedListEvents(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingListEventsLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshListEvents(query)
+      .then(async (response) => {
+        await this.storeCachedListEvents(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingListEventsLoads.delete(cacheKey);
+      });
+    this.pendingListEventsLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshListEvents(
+    query: Record<string, unknown> = {},
+  ): Promise<AfficheEventListDto> {
     const limit = this.parseLimit(query.limit);
     const city = this.optionalText(query.city) ?? 'Москва';
     const cursor = await this.resolveCursor(this.optionalText(query.cursor));
@@ -176,7 +221,99 @@ export class AfficheService {
     };
   }
 
+  private async loadCachedListEvents(
+    cacheKey: string,
+  ): Promise<AfficheEventListDto | null> {
+    try {
+      const cached = await this.redisCache?.getJson<AfficheEventListDto>(cacheKey);
+      if (
+        cached != null &&
+        Array.isArray(cached.items) &&
+        (cached.nextCursor == null || typeof cached.nextCursor === 'string')
+      ) {
+        return cached;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private async storeCachedListEvents(
+    cacheKey: string,
+    response: AfficheEventListDto,
+  ): Promise<void> {
+    try {
+      await this.redisCache?.setJson(
+        cacheKey,
+        response,
+        AFFICHE_EVENTS_CACHE_TTL_SECONDS,
+      );
+    } catch {
+      return;
+    }
+  }
+
+  private listEventsCacheKey(query: Record<string, unknown>) {
+    const stable = {
+      version: 1,
+      city: this.optionalText(query.city) ?? 'Москва',
+      date: this.optionalText(query.date),
+      dateFrom: this.optionalText(query.dateFrom),
+      dateTo: this.optionalText(query.dateTo),
+      priceMode: this.parsePriceMode(query.priceMode),
+      source: this.optionalText(query.source),
+      category: this.optionalText(query.category),
+      featured: this.parseBoolean(query.featured),
+      q: normalizeSearchQuery(this.optionalText(query.q) ?? undefined) ?? null,
+      cursor: this.optionalText(query.cursor),
+      limit: this.parseLimit(query.limit),
+    };
+    const digest = createHash('sha1')
+      .update(JSON.stringify(stable))
+      .digest('hex');
+
+    return `affiche:events:list:v1:${digest}`;
+  }
+
   async getEvent(eventId: string): Promise<AfficheEventDto> {
+    const cacheKey = this.eventDetailCacheKey(eventId);
+    const memoryCached = this.getMemoryCachedEventDetail(cacheKey);
+    if (memoryCached != null) {
+      return memoryCached;
+    }
+
+    const cached = await this.redisCache?.getJson<AfficheEventDto>(cacheKey);
+    if (cached != null) {
+      this.setMemoryCachedEventDetail(cacheKey, cached);
+      return cached;
+    }
+
+    const pending = this.pendingEventDetailLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshEvent(eventId)
+      .then(async (response) => {
+        this.setMemoryCachedEventDetail(cacheKey, response);
+        await this.redisCache?.setJson(
+          cacheKey,
+          response,
+          AFFICHE_EVENT_DETAIL_CACHE_TTL_SECONDS,
+        );
+        return response;
+      })
+      .finally(() => {
+        this.pendingEventDetailLoads.delete(cacheKey);
+      });
+    this.pendingEventDetailLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshEvent(eventId: string): Promise<AfficheEventDto> {
     const item = await this.prismaService.client.externalContentItem.findFirst({
       where: {
         id: eventId,
@@ -191,6 +328,36 @@ export class AfficheService {
       throw new ApiError(404, 'affiche_event_not_found', 'Affiche event not found');
     }
     return this.mapEvent(item);
+  }
+
+  private eventDetailCacheKey(eventId: string) {
+    return `affiche:events:detail:v1:${eventId}`;
+  }
+
+  private async clearEventDetailCache(eventId: string) {
+    const cacheKey = this.eventDetailCacheKey(eventId);
+    this.pendingEventDetailLoads.delete(cacheKey);
+    this.eventDetailMemoryCache.delete(cacheKey);
+    await this.redisCache?.delete(cacheKey);
+  }
+
+  private getMemoryCachedEventDetail(cacheKey: string) {
+    const entry = this.eventDetailMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.eventDetailMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedEventDetail(cacheKey: string, value: AfficheEventDto) {
+    this.eventDetailMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + AFFICHE_EVENT_DETAIL_CACHE_TTL_SECONDS * 1000,
+      value,
+    });
   }
 
   async saveClientGeo(
@@ -305,6 +472,7 @@ export class AfficheService {
         longitude: lng,
       },
     });
+    await this.clearEventDetailCache(item.id);
 
     return {
       id: updated.id,

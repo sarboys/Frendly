@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { OUTBOX_EVENT_TYPES } from '@big-break/database';
 import {
   CreateEveningRouteTemplateSessionResponseDto,
@@ -8,13 +8,15 @@ import {
   EveningRouteTemplateSummaryDto,
 } from '@big-break/contracts';
 import { Prisma } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { ApiError } from '../common/api-error';
 import { normalizeSearchQuery } from '../common/search-query';
 import { EveningAnalyticsService } from './evening-analytics.service';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 const TEMPLATE_SESSION_PRIVACY = ['open', 'request', 'invite'] as const;
+const ROUTE_TEMPLATE_LIST_CACHE_TTL_SECONDS = 30;
 type TemplateSessionPrivacy = (typeof TEMPLATE_SESSION_PRIVACY)[number];
 
 const templateSessionSelect = {
@@ -151,12 +153,46 @@ type PartnerOfferStepRecord = Prisma.EveningRouteStepGetPayload<{
 
 @Injectable()
 export class EveningRouteTemplateService {
+  private readonly pendingRouteTemplateListLoads = new Map<
+    string,
+    Promise<{ items: EveningRouteTemplateSummaryDto[] }>
+  >();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly analytics: EveningAnalyticsService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async listRouteTemplates(
+    params: Record<string, unknown> = {},
+    userId?: string | null,
+  ) {
+    const cacheKey = this.routeTemplateListCacheKey(params);
+    const cached = await this.loadCachedRouteTemplateList(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingRouteTemplateListLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshRouteTemplates(params, userId)
+      .then(async (response) => {
+        await this.storeCachedRouteTemplateList(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingRouteTemplateListLoads.delete(cacheKey);
+      });
+    this.pendingRouteTemplateListLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshRouteTemplates(
     params: Record<string, unknown> = {},
     userId?: string | null,
   ) {
@@ -222,7 +258,7 @@ export class EveningRouteTemplateService {
       ),
     );
 
-    await this.analytics.track({
+    Promise.resolve(this.analytics.track({
       name: 'route_template_list_viewed',
       userId: userId ?? null,
       city,
@@ -230,11 +266,57 @@ export class EveningRouteTemplateService {
         surface: 'route_template_list',
         resultCount: summaries.length,
       },
-    });
+    })).catch(() => undefined);
 
     return {
       items: summaries,
     };
+  }
+
+  private async loadCachedRouteTemplateList(
+    cacheKey: string,
+  ): Promise<{ items: EveningRouteTemplateSummaryDto[] } | null> {
+    try {
+      const cached = await this.redisCache?.getJson<{
+        items: EveningRouteTemplateSummaryDto[];
+      }>(cacheKey);
+      if (cached != null && Array.isArray(cached.items)) {
+        return cached;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private async storeCachedRouteTemplateList(
+    cacheKey: string,
+    response: { items: EveningRouteTemplateSummaryDto[] },
+  ): Promise<void> {
+    try {
+      await this.redisCache?.setJson(
+        cacheKey,
+        response,
+        ROUTE_TEMPLATE_LIST_CACHE_TTL_SECONDS,
+      );
+    } catch {
+      return;
+    }
+  }
+
+  private routeTemplateListCacheKey(params: Record<string, unknown>) {
+    const stable = {
+      version: 1,
+      city: this.normalizeCityParam(params.city) ?? 'Москва',
+      q: normalizeSearchQuery(this.optionalText(params.q) ?? undefined) ?? null,
+      limit: this.parseLimit(params.limit),
+    };
+    const digest = createHash('sha1')
+      .update(JSON.stringify(stable))
+      .digest('hex');
+
+    return `evening:route-templates:list:v1:${digest}`;
   }
 
   async getRouteTemplate(userId: string, templateId: string) {

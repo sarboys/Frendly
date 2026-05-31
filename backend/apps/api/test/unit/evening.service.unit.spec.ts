@@ -223,6 +223,86 @@ describe('EveningService unit', () => {
     );
   });
 
+  it('serves route details from Redis cache', async () => {
+    const cached = {
+      id: 'r-cozy-circle',
+      title: 'Cached route',
+      steps: [],
+      userState: {
+        perkUsedStepIds: [],
+        ticketBoughtStepIds: [],
+        sentToChatStepIds: [],
+      },
+    };
+    const findUnique = jest.fn();
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findUnique,
+          },
+        },
+      } as any,
+      undefined,
+      redisCache as any,
+    );
+
+    await expect(service.getRoute('user-me', 'r-cozy-circle')).resolves.toBe(cached);
+
+    expect(redisCache.getJson).toHaveBeenCalledWith(
+      'api:evening-route:v1:user-me:r-cozy-circle',
+    );
+    expect(findUnique).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
+  it('caches fresh route details after loading them', async () => {
+    const route = routeFixture();
+    const findUnique = jest.fn().mockResolvedValue(route);
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new EveningService(
+      {
+        client: {
+          eveningRoute: {
+            findUnique,
+          },
+          userEveningStepAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          externalContentItem: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          userSubscription: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+        },
+      } as any,
+      undefined,
+      redisCache as any,
+    );
+
+    const result = await service.getRoute('user-me', 'r-cozy-circle');
+    const secondResult = await service.getRoute('user-me', 'r-cozy-circle');
+
+    expect(result).toMatchObject({ id: 'r-cozy-circle' });
+    expect(secondResult).toBe(result);
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(redisCache.setJson).toHaveBeenCalledWith(
+      'api:evening-route:v1:user-me:r-cozy-circle',
+      expect.objectContaining({ id: 'r-cozy-circle' }),
+      10,
+    );
+  });
+
   it('maps confirmed route metadata on route details', async () => {
     const route = routeFixture();
     route.steps = [
@@ -633,6 +713,8 @@ describe('EveningService unit', () => {
     } as any);
 
     const result = await service.listSessions('user-guest');
+    const freshCallCount = findMany.mock.calls.length;
+    const cachedResult = await service.listSessions('user-guest');
 
     expect(result.items[0]).toMatchObject({
       id: 'evening-session-live',
@@ -640,6 +722,8 @@ describe('EveningService unit', () => {
       lat: 0.55,
       lng: 0.32,
     });
+    expect(cachedResult).toBe(result);
+    expect(findMany).toHaveBeenCalledTimes(freshCallCount);
   });
 
   it('maps current user request state for request-only sessions', async () => {

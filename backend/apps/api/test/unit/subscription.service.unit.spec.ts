@@ -47,6 +47,13 @@ describe('SubscriptionService unit', () => {
       renewsAt: '2026-05-28T00:00:00.000Z',
       trialEndsAt: null,
     });
+    await expect(service.getCurrent('user-me')).resolves.toEqual({
+      plan: 'month',
+      status: 'active',
+      startedAt: '2026-04-28T00:00:00.000Z',
+      renewsAt: '2026-05-28T00:00:00.000Z',
+      trialEndsAt: null,
+    });
     expect(findFirst).toHaveBeenCalledWith({
       where: { userId: 'user-me' },
       orderBy: { createdAt: 'desc' },
@@ -58,6 +65,7 @@ describe('SubscriptionService unit', () => {
         trialEndsAt: true,
       },
     });
+    expect(findFirst).toHaveBeenCalledTimes(1);
   });
 
   it('returns matching active subscription without reading it again', async () => {
@@ -241,7 +249,10 @@ describe('SubscriptionService unit', () => {
       tokensService as any,
     );
 
-    await expect(service.getPlans()).resolves.toEqual({
+    const result = await service.getPlans();
+    const cachedResult = await service.getPlans();
+
+    expect(result).toEqual({
       plans: [
         expect.objectContaining({
           id: 'half-year',
@@ -276,14 +287,18 @@ describe('SubscriptionService unit', () => {
         }),
       ],
     });
+    expect(cachedResult).toBe(result);
     expect(prismaClient.subscriptionCatalogPlan.findMany).toHaveBeenCalledWith({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
+    expect(prismaClient.subscriptionCatalogPlan.findMany).toHaveBeenCalledTimes(1);
     expect(prismaClient.tokenCatalogPack.findMany).toHaveBeenCalledWith({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
+    expect(prismaClient.tokenCatalogPack.findMany).toHaveBeenCalledTimes(1);
+    expect(prismaClient.subscriptionCatalogSettings.findUnique).toHaveBeenCalledTimes(1);
   });
 
   it('saves editable Frendly Plus benefit rules', async () => {

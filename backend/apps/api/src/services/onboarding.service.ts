@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { mapProfilePhoto } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 type SessionProvider =
   | 'dev'
@@ -241,20 +242,42 @@ function requiredContactFor(provider: SessionProvider, user: {
 
 @Injectable()
 export class OnboardingService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingOnboardingLoads = new Map<string, Promise<any>>();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   async getOnboarding(userId: string, sessionId?: string) {
+    const cacheKey = this.onboardingCacheKey(userId, sessionId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingOnboardingLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshOnboarding(userId, sessionId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 15);
+        return response;
+      })
+      .finally(() => {
+        this.pendingOnboardingLoads.delete(cacheKey);
+      });
+    this.pendingOnboardingLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshOnboarding(userId: string, sessionId?: string) {
     const [sessionProvider, onboarding] = await Promise.all([
       this.resolveSessionProvider(sessionId),
-      this.prismaService.client.onboardingPreferences.upsert({
-        where: { userId },
-        update: {},
-        create: {
-          userId,
-          interests: [],
-        },
-        select: onboardingResponseSelect,
-      }),
+      this.findOrCreateOnboarding(userId),
     ]);
 
     return mapOnboarding({
@@ -486,16 +509,55 @@ export class OnboardingService {
         };
       });
 
-      return mapOnboarding({
+      const response = mapOnboarding({
         ...onboarding,
         requiredContact: requiredContactFor(sessionProvider, onboarding.user),
       });
+      await this.redisCache?.delete(this.onboardingCacheKey(userId, sessionId));
+      return response;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         throw contactAlreadyUsedError(contactFieldFromUniqueError(error));
       }
       throw error;
     }
+  }
+
+  private async findOrCreateOnboarding(userId: string) {
+    const existing = await this.prismaService.client.onboardingPreferences.findUnique({
+      where: { userId },
+      select: onboardingResponseSelect,
+    });
+    if (existing != null) {
+      return existing;
+    }
+
+    try {
+      return await this.prismaService.client.onboardingPreferences.create({
+        data: {
+          userId,
+          interests: [],
+        },
+        select: onboardingResponseSelect,
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintError(error)) {
+        throw error;
+      }
+      const createdByConcurrentRequest =
+        await this.prismaService.client.onboardingPreferences.findUnique({
+          where: { userId },
+          select: onboardingResponseSelect,
+        });
+      if (createdByConcurrentRequest == null) {
+        throw error;
+      }
+      return createdByConcurrentRequest;
+    }
+  }
+
+  private onboardingCacheKey(userId: string, sessionId?: string) {
+    return ['api', 'onboarding', 'me', userId, sessionId ?? ''].join(':');
   }
 
   private async resolveSessionProvider(sessionId?: string): Promise<SessionProvider> {

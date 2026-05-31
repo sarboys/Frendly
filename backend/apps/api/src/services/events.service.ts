@@ -99,6 +99,28 @@ type EventListResponse = {
   nextCursor: string | null;
 };
 
+type EventListParams = {
+  filter?: string;
+  q?: string;
+  lifestyle?: string;
+  price?: string;
+  gender?: string;
+  access?: string;
+  city?: string;
+  requiresVerification?: string;
+  requiresFrendlyPlus?: string;
+  date?: string;
+  cursor?: string;
+  limit?: number;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
+  southWestLatitude?: number;
+  southWestLongitude?: number;
+  northEastLatitude?: number;
+  northEastLongitude?: number;
+};
+
 type EventParticipantCount = {
   eventId: string;
   _count: {
@@ -151,6 +173,8 @@ type NormalizedEventRouteSelection =
 
 const EARTH_RADIUS_KM = 6371;
 const EVENT_DETAIL_ATTENDEE_LIMIT = 24;
+const EVENT_DETAIL_CACHE_SECONDS = 5;
+const PUBLIC_ACTIVE_MEETUPS_CACHE_SECONDS = 10;
 const MOSCOW_BOUNDS = {
   south: 55.1424,
   west: 36.8031,
@@ -304,6 +328,21 @@ const eventSystemMessageSelect = {
 
 @Injectable()
 export class EventsService {
+  private readonly pendingEventListResponseLoads = new Map<
+    string,
+    Promise<EventListResponse>
+  >();
+  private readonly pendingEventDetailLoads = new Map<string, Promise<any>>();
+  private readonly eventDetailMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+  private readonly pendingPublicActiveMeetupsLoads = new Map<string, Promise<any>>();
+  private readonly publicActiveMeetupsMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly subscriptionService: SubscriptionService,
@@ -313,28 +352,37 @@ export class EventsService {
 
   async listEvents(
     userId: string,
-    params: {
-      filter?: string;
-      q?: string;
-      lifestyle?: string;
-      price?: string;
-      gender?: string;
-      access?: string;
-      city?: string;
-      requiresVerification?: string;
-      requiresFrendlyPlus?: string;
-      date?: string;
-      cursor?: string;
-      limit?: number;
-      latitude?: number;
-      longitude?: number;
-      radiusKm?: number;
-      southWestLatitude?: number;
-      southWestLongitude?: number;
-      northEastLatitude?: number;
-      northEastLongitude?: number;
-    },
-  ) {
+    params: EventListParams,
+  ): Promise<EventListResponse> {
+    const earlyCacheKey = await this.earlyEventListResponseCacheKey(userId, params);
+    if (earlyCacheKey != null) {
+      const cachedResponse = await this.loadCachedEventListResponse(earlyCacheKey);
+      if (cachedResponse != null) {
+        return cachedResponse;
+      }
+
+      const pending = this.pendingEventListResponseLoads.get(earlyCacheKey);
+      if (pending != null) {
+        return pending;
+      }
+
+      const loading = this.loadEventListResponse(userId, params, earlyCacheKey)
+        .finally(() => {
+          this.pendingEventListResponseLoads.delete(earlyCacheKey);
+        });
+      this.pendingEventListResponseLoads.set(earlyCacheKey, loading);
+
+      return loading;
+    }
+
+    return this.loadEventListResponse(userId, params, null);
+  }
+
+  private async loadEventListResponse(
+    userId: string,
+    params: EventListParams,
+    earlyCacheKey: string | null,
+  ): Promise<EventListResponse> {
     const [blockedUserIds, userGender] = await Promise.all([
       this.getBlockedUserIds(userId),
       this.getUserGender(userId),
@@ -470,7 +518,7 @@ export class EventsService {
       params,
       blockedUserIds,
     )
-      ? await this.eventsFeedCacheKey(userId, params)
+      ? earlyCacheKey ?? await this.eventsFeedCacheKey(userId, params)
       : null;
     const cachedResponse = cacheKey == null
       ? null
@@ -628,7 +676,7 @@ export class EventsService {
       await this.storeCachedEventListResponse(
         cacheKey,
         response,
-        Math.min(eventsFeedCacheTtlSeconds(params), 5),
+        Math.min(eventsFeedCacheTtlSeconds(params), 15),
       );
     }
 
@@ -638,6 +686,31 @@ export class EventsService {
   async listPublicActiveMeetups(params: { city?: string; limit?: number }) {
     const take = this.normalizePublicMeetupLimit(params.limit);
     const city = this.normalizePublicMeetupCity(params.city);
+    const cacheKey = this.publicActiveMeetupsCacheKey(city, take);
+    const memoryCached = this.getMemoryCachedPublicActiveMeetups(cacheKey);
+    if (memoryCached != null) {
+      return memoryCached;
+    }
+
+    const pending = this.pendingPublicActiveMeetupsLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshPublicActiveMeetups(city, take)
+      .then((response) => {
+        this.setMemoryCachedPublicActiveMeetups(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingPublicActiveMeetupsLoads.delete(cacheKey);
+      });
+    this.pendingPublicActiveMeetupsLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshPublicActiveMeetups(city: string, take: number) {
     const cityWhere = this.buildPublicMeetupCityWhere(city);
     const now = new Date();
 
@@ -732,7 +805,62 @@ export class EventsService {
     };
   }
 
+  private publicActiveMeetupsCacheKey(city: string, take: number) {
+    return ['api', 'events-public-active', 'v1', city, take].join(':');
+  }
+
+  private getMemoryCachedPublicActiveMeetups(cacheKey: string) {
+    const entry = this.publicActiveMeetupsMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.publicActiveMeetupsMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedPublicActiveMeetups(cacheKey: string, value: unknown) {
+    this.publicActiveMeetupsMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + PUBLIC_ACTIVE_MEETUPS_CACHE_SECONDS * 1000,
+      value,
+    });
+  }
+
   async getEventDetail(userId: string, eventId: string) {
+    const cacheKey = this.eventDetailCacheKey(userId, eventId);
+    const memoryCached = this.getMemoryCachedEventDetail(cacheKey);
+    if (memoryCached != null) {
+      return memoryCached;
+    }
+
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      this.setMemoryCachedEventDetail(cacheKey, cached);
+      return cached;
+    }
+
+    const pending = this.pendingEventDetailLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshEventDetail(userId, eventId)
+      .then(async (response) => {
+        this.setMemoryCachedEventDetail(cacheKey, response);
+        await this.redisCache?.setJson(cacheKey, response, EVENT_DETAIL_CACHE_SECONDS);
+        return response;
+      })
+      .finally(() => {
+        this.pendingEventDetailLoads.delete(cacheKey);
+      });
+    this.pendingEventDetailLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshEventDetail(userId: string, eventId: string) {
     const [blockedUserIds, userGender] = await Promise.all([
       this.getBlockedUserIds(userId),
       this.getUserGender(userId),
@@ -944,6 +1072,41 @@ export class EventsService {
     };
   }
 
+  private eventDetailCacheKey(userId: string, eventId: string) {
+    return ['api', 'event-detail', 'v1', userId, eventId].join(':');
+  }
+
+  private async clearEventDetailCache(userId: string, eventId: string) {
+    const cacheKey = this.eventDetailCacheKey(userId, eventId);
+    this.pendingEventDetailLoads.delete(cacheKey);
+    this.eventDetailMemoryCache.delete(cacheKey);
+    await this.redisCache?.delete(cacheKey);
+  }
+
+  private async getFreshEventDetailAfterMutation(userId: string, eventId: string) {
+    await this.clearEventDetailCache(userId, eventId);
+    return this.getEventDetail(userId, eventId);
+  }
+
+  private getMemoryCachedEventDetail(cacheKey: string) {
+    const entry = this.eventDetailMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.eventDetailMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedEventDetail(cacheKey: string, value: unknown) {
+    this.eventDetailMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + EVENT_DETAIL_CACHE_SECONDS * 1000,
+      value,
+    });
+  }
+
   async joinEvent(userId: string, eventId: string) {
     const [blockedUserIds, userGender, event] = await Promise.all([
       this.getBlockedUserIds(userId),
@@ -1065,7 +1228,7 @@ export class EventsService {
 
     await this.incrementEventsFeedCityVersion(event.city);
 
-    return this.getEventDetail(userId, eventId);
+    return this.getFreshEventDetailAfterMutation(userId, eventId);
   }
 
   private async loadActivePromosForPlace(place: {
@@ -1346,7 +1509,7 @@ export class EventsService {
       return next;
     });
 
-    return this.getEventDetail(userId, eventId);
+    return this.getFreshEventDetailAfterMutation(userId, eventId);
   }
 
   async cancelJoinRequest(userId: string, eventId: string) {
@@ -1385,7 +1548,7 @@ export class EventsService {
       },
     });
 
-    return this.getEventDetail(userId, eventId);
+    return this.getFreshEventDetailAfterMutation(userId, eventId);
   }
 
   async leaveEvent(userId: string, eventId: string) {
@@ -1436,7 +1599,7 @@ export class EventsService {
 
     await this.incrementEventsFeedCityVersion(event.city);
 
-    return this.getEventDetail(userId, eventId);
+    return this.getFreshEventDetailAfterMutation(userId, eventId);
   }
 
   async createEvent(
@@ -1455,7 +1618,7 @@ export class EventsService {
       });
 
       if (existing) {
-        return this.getEventDetail(userId, existing.id);
+        return this.getFreshEventDetailAfterMutation(userId, existing.id);
       }
     }
 
@@ -2024,7 +2187,7 @@ export class EventsService {
         });
 
         if (existing) {
-          return this.getEventDetail(userId, existing.id);
+          return this.getFreshEventDetailAfterMutation(userId, existing.id);
         }
       }
 
@@ -2033,7 +2196,7 @@ export class EventsService {
 
     await this.incrementEventsFeedCityVersion(city);
 
-    return this.getEventDetail(userId, created.id);
+    return this.getFreshEventDetailAfterMutation(userId, created.id);
   }
 
   async inviteUserToEvent(
@@ -2402,7 +2565,7 @@ export class EventsService {
 
     await this.incrementEventsFeedCityVersion(invite.event.city);
 
-    return this.getEventDetail(userId, eventId);
+    return this.getFreshEventDetailAfterMutation(userId, eventId);
   }
 
   async declineInvite(userId: string, eventId: string, requestId: string) {
@@ -3355,29 +3518,20 @@ export class EventsService {
     return !(await this.hasViewerScopedPrivateFeedEntries(userId));
   }
 
+  private async earlyEventListResponseCacheKey(
+    userId: string,
+    params: EventListParams,
+  ): Promise<string | null> {
+    if (this.redisCache == null || shouldBypassEventsFeedCache(params)) {
+      return null;
+    }
+
+    return this.eventsFeedCacheKey(userId, params);
+  }
+
   private async eventsFeedCacheKey(
     userId: string,
-    params: {
-      filter?: string;
-      q?: string;
-      lifestyle?: string;
-      price?: string;
-      gender?: string;
-      access?: string;
-      city?: string;
-      requiresVerification?: string;
-      requiresFrendlyPlus?: string;
-      date?: string;
-      cursor?: string;
-      limit?: number;
-      latitude?: number;
-      longitude?: number;
-      radiusKm?: number;
-      southWestLatitude?: number;
-      southWestLongitude?: number;
-      northEastLatitude?: number;
-      northEastLongitude?: number;
-    },
+    params: EventListParams,
   ): Promise<string> {
     const viewerHash = createHash('sha1').update(userId).digest('hex');
     const cityVersion = await this.eventsFeedCityVersion(params.city);

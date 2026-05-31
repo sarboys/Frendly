@@ -1,20 +1,49 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ApiError } from '../common/api-error';
 import { AfficheService } from './affiche.service';
 import { AfterDarkService } from './after-dark.service';
 import { EveningRouteTemplateService } from './evening-route-template.service';
 import { EventsService } from './events.service';
+import { RedisCacheService } from './redis-cache.service';
 
 @Injectable()
 export class SearchService {
+  private readonly pendingSearchLoads = new Map<string, Promise<any>>();
+
   constructor(
     private readonly eventsService: EventsService,
     private readonly afterDarkService: AfterDarkService,
     private readonly routeTemplateService: EveningRouteTemplateService,
     private readonly afficheService: AfficheService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async groupedSearch(userId: string, query: Record<string, unknown>) {
+    const cacheKey = this.searchCacheKey(userId, query);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingSearchLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshGroupedSearch(userId, query)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 30);
+        return response;
+      })
+      .finally(() => {
+        this.pendingSearchLoads.delete(cacheKey);
+      });
+    this.pendingSearchLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshGroupedSearch(userId: string, query: Record<string, unknown>) {
     const q = this.optionalText(query.q);
     const date = this.optionalText(query.date);
     const meetupsLimit = this.parseLimit(query.meetupsLimit, 4, 20);
@@ -66,6 +95,26 @@ export class SearchService {
         affiche: affiche.nextCursor ?? null,
       },
     };
+  }
+
+  private searchCacheKey(userId: string, query: Record<string, unknown>) {
+    const fields = [
+      'q',
+      'date',
+      'city',
+      'lifestyle',
+      'price',
+      'gender',
+      'access',
+      'priceMode',
+      'meetupsLimit',
+      'eveningsLimit',
+      'routesLimit',
+      'afficheLimit',
+    ];
+    return `search:grouped:v1:${userId}:${fields
+      .map((field) => `${field}=${this.optionalText(query[field]) ?? ''}`)
+      .join('&')}`;
   }
 
   private async safeAfterDarkList(

@@ -1432,6 +1432,47 @@ describe('ChatsService unit', () => {
     expect(second).toEqual(first);
   });
 
+  it('returns chat list from Redis cache without rebuilding the list', async () => {
+    const cached = {
+      etag: 'W/"chat-list-cached"',
+      response: {
+        items: [{ id: 'chat-1', lastMessageId: 'message-1' }],
+        nextCursor: null,
+      },
+    };
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const service = new ChatsService({ client: {} } as any, redisCache as any);
+    const listChats = jest.spyOn(service, 'listChats');
+
+    const response = await service.listChatsWithCache(
+      'user-me',
+      'meetup',
+      { limit: 20 },
+      undefined,
+    );
+    const notModified = await service.listChatsWithCache(
+      'user-me',
+      'meetup',
+      { limit: 20 },
+      cached.etag,
+    );
+
+    expect(response).toEqual(cached);
+    expect(notModified).toEqual({
+      etag: cached.etag,
+      notModified: true,
+    });
+    expect(redisCache.getJson).toHaveBeenCalledWith(
+      'api:chat-list:v1:user-me:meetup::20:social',
+    );
+    expect(listChats).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
   it('returns not modified when a chat list ETag matches If-None-Match', async () => {
     const service = new ChatsService({ client: {} } as any);
     const payload = {

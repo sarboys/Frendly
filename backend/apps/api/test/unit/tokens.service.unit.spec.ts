@@ -4,8 +4,8 @@ describe('TokensService unit', () => {
   const makeService = (overrides: any = {}) => {
     const prismaClient: any = {
       tokenWallet: {
-        upsert: jest.fn(),
         findUnique: jest.fn(),
+        create: jest.fn(),
         update: jest.fn(),
         updateMany: jest.fn(),
       },
@@ -31,15 +31,19 @@ describe('TokensService unit', () => {
       ...overrides.dropsRewardService,
     };
     return {
-      service: new TokensService({ client: prismaClient } as any, dropsRewardService as any),
+      service: new TokensService(
+        { client: prismaClient } as any,
+        dropsRewardService as any,
+        overrides.redisCache as any,
+      ),
       prismaClient,
       dropsRewardService,
     };
   };
 
-  it('returns a zero wallet with empty history for a new user', async () => {
+  it('returns a zero wallet with empty history for an existing user', async () => {
     const { service, prismaClient } = makeService();
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 0,
@@ -53,10 +57,34 @@ describe('TokensService unit', () => {
       promoted: [],
     });
 
-    expect(prismaClient.tokenWallet.upsert).toHaveBeenCalledWith({
+    expect(prismaClient.tokenWallet.findUnique).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
-      update: {},
-      create: {
+      select: {
+        id: true,
+        userId: true,
+        balance: true,
+      },
+    });
+    expect(prismaClient.tokenWallet.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a zero wallet only when the user has no wallet', async () => {
+    const { service, prismaClient } = makeService();
+    prismaClient.tokenWallet.findUnique.mockResolvedValue(null);
+    prismaClient.tokenWallet.create.mockResolvedValue({
+      id: 'wallet-1',
+      userId: 'user-1',
+      balance: 0,
+    });
+
+    await expect(service.getWallet('user-1')).resolves.toMatchObject({
+      balance: 0,
+      history: [],
+      promoted: [],
+    });
+
+    expect(prismaClient.tokenWallet.create).toHaveBeenCalledWith({
+      data: {
         userId: 'user-1',
         balance: 0,
       },
@@ -68,9 +96,29 @@ describe('TokensService unit', () => {
     });
   });
 
+  it('returns cached wallet without database reads', async () => {
+    const cached = {
+      balance: 150,
+      history: [],
+      promoted: [],
+      promoOptions: [],
+    };
+    const redisCache = {
+      getJson: jest.fn().mockResolvedValue(cached),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const { service, prismaClient } = makeService({ redisCache });
+
+    await expect(service.getWallet('user-1')).resolves.toEqual(cached);
+    expect(redisCache.getJson).toHaveBeenCalledWith('api:tokens-wallet:v1:user-1');
+    expect(prismaClient.tokenWallet.findUnique).not.toHaveBeenCalled();
+    expect(redisCache.setJson).not.toHaveBeenCalled();
+  });
+
   it('maps ledger entries into wallet history newest first', async () => {
     const { service, prismaClient } = makeService();
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 350,
@@ -114,7 +162,7 @@ describe('TokensService unit', () => {
 
   it('credits purchased tokens once through a ledger entry tied to payment order', async () => {
     const { service, prismaClient } = makeService();
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 0,
@@ -152,7 +200,7 @@ describe('TokensService unit', () => {
 
   it('credits purchased tokens from a stored token pack snapshot', async () => {
     const { service, prismaClient } = makeService();
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 0,
@@ -194,7 +242,7 @@ describe('TokensService unit', () => {
 
   it('rejects promotion spend when wallet balance is not enough', async () => {
     const { service, prismaClient } = makeService();
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 10,
@@ -218,7 +266,7 @@ describe('TokensService unit', () => {
 
   it('spends tokens with an atomic balance guard', async () => {
     const { service, prismaClient } = makeService();
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 100,
@@ -262,7 +310,7 @@ describe('TokensService unit', () => {
   it('grants a Drops boost reward after promoting an event', async () => {
     const { service, prismaClient, dropsRewardService } = makeService();
     prismaClient.event.findFirst.mockResolvedValue({ id: 'event-1' });
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 100,
@@ -289,7 +337,7 @@ describe('TokensService unit', () => {
   it('spends 20 tokens for the 6 hour boost option', async () => {
     const { service, prismaClient } = makeService();
     prismaClient.event.findFirst.mockResolvedValue({ id: 'event-1' });
-    prismaClient.tokenWallet.upsert.mockResolvedValue({
+    prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
       balance: 25,

@@ -1,5 +1,5 @@
 import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   buildMediaProxyPath,
@@ -18,6 +18,7 @@ import { ApiError } from '../common/api-error';
 import { mapBasicProfile, mapProfilePhoto, mapUserPreview } from '../common/presenters';
 import { mapMediaResource } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
+import { RedisCacheService } from './redis-cache.service';
 
 const ALLOWED_AVATAR_MIME_TYPES = new Set([
   'image/heic',
@@ -33,6 +34,7 @@ const INLINE_MEDIA_BUCKET = '__inline__';
 const IMMUTABLE_MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const FR_PERIOD_DAY_MS = 24 * 60 * 60 * 1000;
 const FR_SEASON_HISTORY_LIMIT = 20;
+const FR_PROFILE_STATS_CACHE_SECONDS = 10;
 const FR_SEASON_REWARDS = [
   {
     key: 'checkin-1',
@@ -109,7 +111,22 @@ const EXISTING_AVATAR_ASSET_SELECT = {
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly pendingProfileLoads = new Map<
+    string,
+    Promise<ReturnType<typeof mapBasicProfile>>
+  >();
+  private readonly pendingSeasonLoads = new Map<string, Promise<any>>();
+  private readonly pendingHistoryLoads = new Map<string, Promise<any>>();
+  private readonly pendingPeopleLoads = new Map<string, Promise<any>>();
+  private readonly shortMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Optional() private readonly redisCache?: RedisCacheService,
+  ) {}
 
   private readonly s3 = createS3Client();
   private readonly s3Bucket = getS3Config().bucket;
@@ -125,7 +142,28 @@ export class ProfileService {
   }
 
   async getProfile(userId: string) {
-    return this.getBasicUser(userId);
+    const cacheKey = this.profileCacheKey(userId);
+    const cached = await this.loadCachedProfile(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingProfileLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.getBasicUser(userId)
+      .then(async (profile) => {
+        await this.storeCachedProfile(cacheKey, profile);
+        return profile;
+      })
+      .finally(() => {
+        this.pendingProfileLoads.delete(cacheKey);
+      });
+    this.pendingProfileLoads.set(cacheKey, loading);
+
+    return loading;
   }
 
   async updateProfile(userId: string, body: Record<string, unknown>) {
@@ -150,10 +188,33 @@ export class ProfileService {
       }
     });
 
+    await this.clearProfileCache(userId);
     return this.getProfile(userId);
   }
 
   async getFrendlySeason(userId: string) {
+    const cacheKey = this.frendlySeasonCacheKey(userId);
+    const cached = this.getShortMemoryCache(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingSeasonLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshFrendlySeason(userId)
+      .then((response) => {
+        this.setShortMemoryCache(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingSeasonLoads.delete(cacheKey);
+      });
+    this.pendingSeasonLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshFrendlySeason(userId: string) {
     const now = new Date(Date.now());
     const season = this.currentSeason(now);
     const [attendances, claims] = await Promise.all([
@@ -326,6 +387,31 @@ export class ProfileService {
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
+    const cacheKey = this.frendlyHistoryCacheKey(userId, params);
+    const cached = this.getShortMemoryCache(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingHistoryLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshFrendlyHistory(userId, params)
+      .then((response) => {
+        this.setShortMemoryCache(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingHistoryLoads.delete(cacheKey);
+      });
+    this.pendingHistoryLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshFrendlyHistory(
+    userId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ) {
     const now = new Date(Date.now());
     const limit = this.normalizeFrendlyListLimit(params.limit);
     const cursor = this.decodeFrendlyCursor(params.cursor);
@@ -437,6 +523,31 @@ export class ProfileService {
   }
 
   async listFrendlyPeople(
+    userId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ) {
+    const cacheKey = this.frendlyPeopleCacheKey(userId, params);
+    const cached = this.getShortMemoryCache(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingPeopleLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshFrendlyPeople(userId, params)
+      .then((response) => {
+        this.setShortMemoryCache(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingPeopleLoads.delete(cacheKey);
+      });
+    this.pendingPeopleLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshFrendlyPeople(
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
@@ -608,14 +719,15 @@ export class ProfileService {
       where: { objectKey },
       select: EXISTING_AVATAR_ASSET_SELECT,
     });
-    if (existing) {
-      this.assertExistingAvatarAsset(existing, userId);
-      await this.setProfileAvatar(userId, existing);
-      return {
-        assetId: existing.id,
-        status: existing.status,
-      };
-    }
+      if (existing) {
+        this.assertExistingAvatarAsset(existing, userId);
+        await this.setProfileAvatar(userId, existing);
+        await this.clearProfileCache(userId);
+        return {
+          assetId: existing.id,
+          status: existing.status,
+        };
+      }
 
     const verified = await this.resolveVerifiedAvatarMetadata(
       objectKey,
@@ -635,6 +747,7 @@ export class ProfileService {
     });
 
     await this.setProfileAvatar(userId, asset);
+    await this.clearProfileCache(userId);
 
     return {
       assetId: asset.id,
@@ -756,6 +869,7 @@ export class ProfileService {
     const media = mapMediaResource(result.asset, {
       visibility: 'public',
     });
+    await this.clearProfileCache(userId);
 
     return {
       assetId: result.asset.id,
@@ -805,6 +919,7 @@ export class ProfileService {
     });
 
     const photo = mapProfilePhoto(next.photo);
+    await this.clearProfileCache(userId);
     return {
       assetId: next.asset.id,
       status: next.asset.status,
@@ -852,6 +967,7 @@ export class ProfileService {
     });
 
     const photo = mapProfilePhoto(next.photo);
+    await this.clearProfileCache(userId);
     return {
       assetId: next.asset.id,
       status: next.asset.status,
@@ -906,6 +1022,7 @@ export class ProfileService {
       });
     });
 
+    await this.clearProfileCache(userId);
     return this.getProfile(userId);
   }
 
@@ -935,6 +1052,7 @@ export class ProfileService {
       await this._syncPrimaryPhoto(tx, userId);
     });
 
+    await this.clearProfileCache(userId);
     return this.getProfile(userId);
   }
 
@@ -979,7 +1097,99 @@ export class ProfileService {
       await this._syncPrimaryPhoto(tx, userId);
     });
 
+    await this.clearProfileCache(userId);
     return this.getProfile(userId);
+  }
+
+  private async loadCachedProfile(
+    cacheKey: string,
+  ): Promise<ReturnType<typeof mapBasicProfile> | null> {
+    try {
+      const cached = await this.redisCache?.getJson<
+        ReturnType<typeof mapBasicProfile>
+      >(cacheKey);
+      if (cached != null && typeof cached === 'object') {
+        return cached;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private async storeCachedProfile(
+    cacheKey: string,
+    profile: ReturnType<typeof mapBasicProfile>,
+  ): Promise<void> {
+    try {
+      await this.redisCache?.setJson(cacheKey, profile, 5);
+    } catch {
+      return;
+    }
+  }
+
+  private async clearProfileCache(userId: string): Promise<void> {
+    try {
+      await this.redisCache?.delete(this.profileCacheKey(userId));
+    } catch {
+      return;
+    }
+  }
+
+  private profileCacheKey(userId: string) {
+    return `profile:me:v1:${userId}`;
+  }
+
+  private frendlySeasonCacheKey(userId: string) {
+    return `profile:frendly-season:v1:${userId}`;
+  }
+
+  private frendlyHistoryCacheKey(
+    userId: string,
+    params: { cursor?: string; limit?: number },
+  ) {
+    return [
+      'profile',
+      'frendly-history',
+      'v1',
+      userId,
+      params.cursor ?? '',
+      params.limit == null ? 'default' : String(params.limit),
+    ].join(':');
+  }
+
+  private frendlyPeopleCacheKey(
+    userId: string,
+    params: { cursor?: string; limit?: number },
+  ) {
+    return [
+      'profile',
+      'frendly-people',
+      'v1',
+      userId,
+      params.cursor ?? '',
+      params.limit == null ? 'default' : String(params.limit),
+    ].join(':');
+  }
+
+  private getShortMemoryCache(cacheKey: string) {
+    const entry = this.shortMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.shortMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setShortMemoryCache(cacheKey: string, value: unknown) {
+    this.shortMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + FR_PROFILE_STATS_CACHE_SECONDS * 1000,
+      value,
+    });
   }
 
   private currentSeason(now: Date): FrendlySeasonBounds {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   PaymentOrderStatus,
   PaymentProductKind,
@@ -11,6 +11,7 @@ import { PrismaService } from './prisma.service';
 import { SubscriptionService } from './subscription.service';
 import { TbankAcquiringService } from './tbank-acquiring.service';
 import { TokensService } from './tokens.service';
+import { RedisCacheService } from './redis-cache.service';
 import {
   type PaymentProduct,
   type PaymentProductKindValue,
@@ -30,14 +31,42 @@ type ConfirmPaymentInput = {
 
 @Injectable()
 export class PaymentsService {
+  private readonly pendingCatalogLoads = new Map<string, Promise<any>>();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly tbank: TbankAcquiringService,
     private readonly subscriptionService: SubscriptionService,
     private readonly tokensService: TokensService,
+    @Optional() private readonly redisCache?: RedisCacheService,
   ) {}
 
   async getCatalog(userId?: string) {
+    const cacheKey = this.catalogCacheKey(userId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingCatalogLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshCatalog(userId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, 60);
+        return response;
+      })
+      .finally(() => {
+        this.pendingCatalogLoads.delete(cacheKey);
+      });
+    this.pendingCatalogLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshCatalog(userId?: string) {
     const tbankEnabled = this.tbank.isEnabled();
     const [subscriptionCatalog, tokenDiscountPercent] = await Promise.all([
       this.subscriptionService.getCatalog(),
@@ -66,6 +95,10 @@ export class PaymentsService {
       ),
       promoOptions: tokenPromotionOptions,
     };
+  }
+
+  private catalogCacheKey(userId?: string) {
+    return `payments:catalog:v1:${userId ?? 'anonymous'}`;
   }
 
   isEnabled() {

@@ -161,6 +161,98 @@ describe('EveningRouteTemplateService unit', () => {
     ]);
   });
 
+  it('uses cached route template list before database queries', async () => {
+    const findMany = jest.fn();
+    const partnerStepFindMany = jest.fn();
+    const track = jest.fn();
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'cached-template',
+            routeId: 'route-1',
+            title: 'Cached route',
+          },
+        ],
+      }),
+      setJson: jest.fn(),
+    };
+    const service = new EveningRouteTemplateService(
+      {
+        client: {
+          eveningRouteTemplate: {
+            findMany,
+          },
+          eveningRouteStep: {
+            findMany: partnerStepFindMany,
+          },
+        },
+      } as any,
+      { track } as any,
+      cache as any,
+    );
+
+    const result = await service.listRouteTemplates({ city: 'Москва' }, 'user-1');
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'cached-template',
+          routeId: 'route-1',
+          title: 'Cached route',
+        },
+      ],
+    });
+    expect(findMany).not.toHaveBeenCalled();
+    expect(partnerStepFindMany).not.toHaveBeenCalled();
+    expect(track).not.toHaveBeenCalled();
+    expect(cache.setJson).not.toHaveBeenCalled();
+  });
+
+  it('stores route template list response on cache miss', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'template-1',
+        status: 'published',
+        city: 'Москва',
+        area: 'центр',
+        currentRouteId: 'route-1',
+        currentRoute: route,
+        sessions: [],
+      },
+    ]);
+    const partnerStepFindMany = jest.fn().mockResolvedValue([]);
+    const cache = {
+      getJson: jest.fn().mockResolvedValue(null),
+      setJson: jest.fn(),
+    };
+    const service = new EveningRouteTemplateService(
+      {
+        client: {
+          eveningRouteTemplate: {
+            findMany,
+          },
+          eveningRouteStep: {
+            findMany: partnerStepFindMany,
+          },
+        },
+      } as any,
+      { track: jest.fn() } as any,
+      cache as any,
+    );
+
+    const result = await service.listRouteTemplates({ city: 'Москва' }, 'user-1');
+
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({ id: 'template-1' }),
+    );
+    expect(cache.setJson).toHaveBeenCalledWith(
+      expect.stringContaining('evening:route-templates:list:v1:'),
+      result,
+      30,
+    );
+  });
+
   it('normalizes Moscow location labels before querying public templates', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const service = new EveningRouteTemplateService(

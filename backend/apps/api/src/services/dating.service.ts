@@ -30,6 +30,7 @@ const FREE_SWIPE_HOURLY_LIMIT = 100;
 const MOSCOW_UTC_OFFSET_MS = 3 * 60 * 60 * 1000;
 const DATING_PROFILE_PHOTO_LIMIT = 6;
 const DATING_DISCOVER_CACHE_SECONDS = 5;
+const DATING_LIMITS_CACHE_SECONDS = 5;
 const DATING_PROFILE_PHOTO_MEDIA_SELECT = {
   id: true,
   kind: true,
@@ -239,6 +240,13 @@ const _datingEmojiByUserId: Record<string, string> = {
 
 @Injectable()
 export class DatingService {
+  private readonly pendingDiscoverLoads = new Map<
+    string,
+    Promise<DatingDiscoverResult>
+  >();
+  private readonly pendingLikesLoads = new Map<string, Promise<any>>();
+  private readonly pendingLimitsLoads = new Map<string, Promise<any>>();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly peopleService: PeopleService,
@@ -257,6 +265,29 @@ export class DatingService {
       return cached;
     }
 
+    if (cacheKey != null) {
+      const pending = this.pendingDiscoverLoads.get(cacheKey);
+      if (pending != null) {
+        return pending;
+      }
+
+      const loading = this.loadFreshDiscover(userId, params, cacheKey).finally(
+        () => {
+          this.pendingDiscoverLoads.delete(cacheKey);
+        },
+      );
+      this.pendingDiscoverLoads.set(cacheKey, loading);
+      return loading;
+    }
+
+    return this.loadFreshDiscover(userId, params, cacheKey);
+  }
+
+  private async loadFreshDiscover(
+    userId: string,
+    params: DatingDiscoverParams,
+    cacheKey: string | null,
+  ): Promise<DatingDiscoverResult> {
     const [self, blockedUserIds] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -707,6 +738,39 @@ export class DatingService {
     userId: string,
     params: { cursor?: string; limit?: number } = {},
   ) {
+    const cacheKey = await this.datingLikesCacheKey(userId, params);
+    const cached = cacheKey == null
+      ? null
+      : await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    if (cacheKey != null) {
+      const pending = this.pendingLikesLoads.get(cacheKey);
+      if (pending != null) {
+        return pending;
+      }
+
+      const loading = this.loadFreshLikes(userId, params)
+        .then(async (response) => {
+          await this.redisCache?.setJson(cacheKey, response, 15);
+          return response;
+        })
+        .finally(() => {
+          this.pendingLikesLoads.delete(cacheKey);
+        });
+      this.pendingLikesLoads.set(cacheKey, loading);
+      return loading;
+    }
+
+    return this.loadFreshLikes(userId, params);
+  }
+
+  private async loadFreshLikes(
+    userId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ) {
     const [self, blockedUserIds, premium, rules] = await Promise.all([
       this.prismaService.client.user.findUnique({
         where: { id: userId },
@@ -928,6 +992,8 @@ export class DatingService {
       await Promise.all([
         this.incrementDatingDiscoverVersion(userId),
         this.incrementDatingDiscoverVersion(targetUserId),
+        this.incrementDatingLikesVersion(targetUserId),
+        this.clearDatingLimitsCache(userId),
       ]);
     }
 
@@ -1019,6 +1085,7 @@ export class DatingService {
       return quota;
     });
     await this.incrementDatingDiscoverVersion(userId);
+    await this.clearDatingLimitsCache(userId);
 
     return {
       ok: true,
@@ -1037,6 +1104,31 @@ export class DatingService {
   }
 
   async getLimits(userId: string) {
+    const cacheKey = this.datingLimitsCacheKey(userId);
+    const cached = await this.redisCache?.getJson(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingLimitsLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.loadFreshLimits(userId)
+      .then(async (response) => {
+        await this.redisCache?.setJson(cacheKey, response, DATING_LIMITS_CACHE_SECONDS);
+        return response;
+      })
+      .finally(() => {
+        this.pendingLimitsLoads.delete(cacheKey);
+      });
+    this.pendingLimitsLoads.set(cacheKey, loading);
+
+    return loading;
+  }
+
+  private async loadFreshLimits(userId: string) {
     const premium = await this.subscriptionService.hasPremiumAccess(userId);
     const rules = await this.loadPlusRules();
     const hourWindow = this.currentRollingHourWindow();
@@ -1811,8 +1903,42 @@ export class DatingService {
     await this.redisCache?.increment(this.datingDiscoverVersionKey(userId));
   }
 
+  private async datingLikesCacheKey(
+    userId: string,
+    params: { cursor?: string; limit?: number },
+  ) {
+    if (this.redisCache == null || params.cursor != null) {
+      return null;
+    }
+
+    const version =
+      (await this.redisCache.getJson<number>(
+        this.datingLikesVersionKey(userId),
+      )) ?? 0;
+
+    return `dating:likes:v1:${userId}:${this.normalizeListLimit(params.limit)}:${version}`;
+  }
+
+  private async incrementDatingLikesVersion(userId: string) {
+    await this.redisCache?.increment(this.datingLikesVersionKey(userId));
+  }
+
+  private datingLikesVersionKey(userId: string) {
+    return `dating:likes-version:v1:${userId}`;
+  }
+
   private datingDiscoverVersionKey(userId: string) {
     return `dating:discover-version:v1:${userId}`;
+  }
+
+  private datingLimitsCacheKey(userId: string) {
+    return ['api', 'dating-limits', 'v1', userId].join(':');
+  }
+
+  private async clearDatingLimitsCache(userId: string) {
+    const cacheKey = this.datingLimitsCacheKey(userId);
+    this.pendingLimitsLoads.delete(cacheKey);
+    await this.redisCache?.delete(cacheKey);
   }
 
   private datingDiscoverCacheTtlSeconds() {

@@ -17,8 +17,16 @@ interface AfterDarkEventCursor {
   startsAt: Date;
 }
 
+const AFTER_DARK_ACCESS_CACHE_SECONDS = 10;
+
 @Injectable()
 export class AfterDarkService {
+  private readonly pendingAccessLoads = new Map<string, Promise<any>>();
+  private readonly accessMemoryCache = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly subscriptionService: SubscriptionService,
@@ -190,6 +198,32 @@ export class AfterDarkService {
     userId: string,
     options: { includePreviewCount?: boolean } = {},
   ) {
+    const includePreviewCount = options.includePreviewCount !== false;
+    const cacheKey = this.accessCacheKey(userId, includePreviewCount);
+    const cached = this.getMemoryCachedAccess(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const pending = this.pendingAccessLoads.get(cacheKey);
+    if (pending != null) {
+      return pending;
+    }
+    const loading = this.loadFreshAccess(userId, includePreviewCount)
+      .then((response) => {
+        this.setMemoryCachedAccess(cacheKey, response);
+        return response;
+      })
+      .finally(() => {
+        this.pendingAccessLoads.delete(cacheKey);
+      });
+    this.pendingAccessLoads.set(cacheKey, loading);
+    return loading;
+  }
+
+  private async loadFreshAccess(
+    userId: string,
+    includePreviewCount: boolean,
+  ) {
     const [settings, verification, subscription, previewCount] = await Promise.all([
       this.prismaService.client.userSettings.findUnique({
         where: { userId },
@@ -203,7 +237,7 @@ export class AfterDarkService {
         select: { status: true },
       }),
       this.subscriptionService.getCurrent(userId),
-      options.includePreviewCount === false
+      includePreviewCount === false
         ? Promise.resolve(0)
         : this.prismaService.client.event.count({
             where: {
@@ -229,6 +263,35 @@ export class AfterDarkService {
       kinkVerified,
       previewCount,
     };
+  }
+
+  private accessCacheKey(userId: string, includePreviewCount: boolean) {
+    return [
+      'after-dark',
+      'access',
+      'v1',
+      userId,
+      includePreviewCount ? 'preview' : 'no-preview',
+    ].join(':');
+  }
+
+  private getMemoryCachedAccess(cacheKey: string) {
+    const entry = this.accessMemoryCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.accessMemoryCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMemoryCachedAccess(cacheKey: string, value: unknown) {
+    this.accessMemoryCache.set(cacheKey, {
+      expiresAt: Date.now() + AFTER_DARK_ACCESS_CACHE_SECONDS * 1000,
+      value,
+    });
   }
 
   private async assertUnlocked(userId: string) {
