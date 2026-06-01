@@ -313,7 +313,7 @@ describe('TokensService unit', () => {
     prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
-      balance: 100,
+      balance: 300,
     });
     prismaClient.tokenWallet.updateMany.mockResolvedValue({ count: 1 });
     prismaClient.tokenLedgerEntry.create.mockResolvedValue({ id: 'ledger-1' });
@@ -334,13 +334,15 @@ describe('TokensService unit', () => {
     );
   });
 
-  it('spends 20 tokens for the 6 hour boost option', async () => {
+  it('spends 100 tokens for the 1 hour boost option', async () => {
     const { service, prismaClient } = makeService();
+    const now = new Date('2026-06-01T10:00:00.000Z');
+    const dateNow = jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
     prismaClient.event.findFirst.mockResolvedValue({ id: 'event-1' });
     prismaClient.tokenWallet.findUnique.mockResolvedValue({
       id: 'wallet-1',
       userId: 'user-1',
-      balance: 25,
+      balance: 100,
     });
     prismaClient.tokenWallet.updateMany.mockResolvedValue({ count: 1 });
     prismaClient.tokenLedgerEntry.create.mockResolvedValue({ id: 'ledger-1' });
@@ -355,9 +357,9 @@ describe('TokensService unit', () => {
     expect(prismaClient.tokenWallet.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          balance: { gte: 20 },
+          balance: { gte: 100 },
         }),
-        data: { balance: { decrement: 20 } },
+        data: { balance: { decrement: 100 } },
       }),
     );
     expect(prismaClient.tokenPromotion.create).toHaveBeenCalledWith(
@@ -365,8 +367,10 @@ describe('TokensService unit', () => {
         data: expect.objectContaining({
           optionId: 'boost-6',
           eventId: 'event-1',
+          expiresAt: new Date('2026-06-01T11:00:00.000Z'),
         }),
       }),
     );
+    dateNow.mockRestore();
   });
 });

@@ -615,27 +615,27 @@ function boostTierForOption(optionId: string) {
   switch (optionId) {
     case 'boost-6':
       return {
-        tierId: '6h',
-        hours: 6,
+        tierId: '1h',
+        hours: 1,
         label: 'Импульс',
-        badge: 'Boost 6ч',
+        badge: 'Boost 1ч',
         tone: 'lime',
       };
     case 'boost-72':
-      return {
-        tierId: '72h',
-        hours: 72,
-        label: 'Премиум',
-        badge: 'Premium 3д',
-        tone: 'gold',
-      };
-    case 'boost-24':
-    default:
       return {
         tierId: '24h',
         hours: 24,
         label: 'Сутки',
         badge: 'Boost 24ч',
+        tone: 'gold',
+      };
+    case 'boost-24':
+    default:
+      return {
+        tierId: '5h',
+        hours: 5,
+        label: 'Разгон',
+        badge: 'Boost 5ч',
         tone: 'pink',
       };
   }

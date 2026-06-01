@@ -1047,7 +1047,7 @@ describe('core api flows', () => {
       data: {
         id: ledgerEntryId,
         walletId: wallet.id,
-        amount: -20,
+        amount: -100,
         reason: 'promotion_spend',
       },
     });
@@ -1057,7 +1057,7 @@ describe('core api flows', () => {
         userId: 'user-me',
         eventId: 'boost-page-4',
         optionId: 'boost-6',
-        expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
         ledgerEntryId,
       },
     });
