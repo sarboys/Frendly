@@ -24,8 +24,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-06-01T09:50:47.008Z",
-    "gitCommitHash": "dc90bc1144d3af68106be3c6ab2c1c3a5fb46d12"
+    "analyzedAt": "2026-06-01T12:04:57.457Z",
+    "gitCommitHash": "2806771107d40fb84f7117b9aec7a8090b2a9ce6"
   },
   "nodes": [
     {
@@ -11263,7 +11263,7 @@
       "filePath": "backend/apps/api/src/controllers/events.controller.ts",
       "lineRange": [
         7,
-        181
+        183
       ],
       "summary": "EventsController in events.controller.ts.",
       "tags": [
@@ -14935,8 +14935,8 @@
       "name": "clean",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        34,
-        42
+        35,
+        43
       ],
       "summary": "clean in events-feed-cache.ts.",
       "tags": [
@@ -14952,8 +14952,8 @@
       "name": "toFiniteNumber",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        44,
-        62
+        45,
+        63
       ],
       "summary": "toFiniteNumber in events-feed-cache.ts.",
       "tags": [
@@ -14969,8 +14969,8 @@
       "name": "roundNumber",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        64,
-        68
+        65,
+        69
       ],
       "summary": "roundNumber in events-feed-cache.ts.",
       "tags": [
@@ -14986,8 +14986,8 @@
       "name": "clamp",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        70,
-        72
+        71,
+        73
       ],
       "summary": "clamp in events-feed-cache.ts.",
       "tags": [
@@ -15003,8 +15003,8 @@
       "name": "normalizeBounds",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        74,
-        97
+        75,
+        98
       ],
       "summary": "normalizeBounds in events-feed-cache.ts.",
       "tags": [
@@ -15020,8 +15020,8 @@
       "name": "normalizeLimit",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        99,
-        107
+        100,
+        108
       ],
       "summary": "normalizeLimit in events-feed-cache.ts.",
       "tags": [
@@ -15037,8 +15037,8 @@
       "name": "isTrue",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        109,
-        111
+        110,
+        112
       ],
       "summary": "isTrue in events-feed-cache.ts.",
       "tags": [
@@ -15054,8 +15054,8 @@
       "name": "normalizeEventsFeedGeo",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        113,
-        130
+        114,
+        131
       ],
       "summary": "normalizeEventsFeedGeo in events-feed-cache.ts.",
       "tags": [
@@ -15071,8 +15071,8 @@
       "name": "shouldBypassEventsFeedCache",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        132,
-        136
+        133,
+        137
       ],
       "summary": "shouldBypassEventsFeedCache in events-feed-cache.ts.",
       "tags": [
@@ -15088,8 +15088,8 @@
       "name": "eventsFeedCacheTtlSeconds",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        138,
-        142
+        139,
+        143
       ],
       "summary": "eventsFeedCacheTtlSeconds in events-feed-cache.ts.",
       "tags": [
@@ -15105,8 +15105,8 @@
       "name": "buildEventsFeedCacheKey",
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
       "lineRange": [
-        144,
-        168
+        145,
+        170
       ],
       "summary": "buildEventsFeedCacheKey in events-feed-cache.ts.",
       "tags": [
@@ -15135,8 +15135,8 @@
       "name": "promoMatchesExternalPlace",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5520,
-        5550
+        5566,
+        5596
       ],
       "summary": "promoMatchesExternalPlace in events.service.ts.",
       "tags": [
@@ -15152,8 +15152,8 @@
       "name": "jsonRecord",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5552,
-        5556
+        5598,
+        5602
       ],
       "summary": "jsonRecord in events.service.ts.",
       "tags": [
@@ -15169,8 +15169,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5558,
-        5560
+        5604,
+        5606
       ],
       "summary": "normalizeText in events.service.ts.",
       "tags": [
@@ -15186,8 +15186,8 @@
       "name": "cleanEventText",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5562,
-        5568
+        5608,
+        5614
       ],
       "summary": "cleanEventText in events.service.ts.",
       "tags": [
@@ -15203,8 +15203,8 @@
       "name": "text",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5570,
-        5572
+        5616,
+        5618
       ],
       "summary": "text in events.service.ts.",
       "tags": [
@@ -15220,8 +15220,8 @@
       "name": "emojiForCategory",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        5574,
-        5593
+        5620,
+        5639
       ],
       "summary": "emojiForCategory in events.service.ts.",
       "tags": [
@@ -15237,8 +15237,8 @@
       "name": "EventsService",
       "filePath": "backend/apps/api/src/services/events.service.ts",
       "lineRange": [
-        330,
-        5518
+        331,
+        5564
       ],
       "summary": "EventsService in events.service.ts.",
       "tags": [

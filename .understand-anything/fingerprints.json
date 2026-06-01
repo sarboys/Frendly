@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "dc90bc1144d3af68106be3c6ab2c1c3a5fb46d12",
-  "generatedAt": "2026-06-01T09:50:47.342Z",
+  "gitCommitHash": "2806771107d40fb84f7117b9aec7a8090b2a9ce6",
+  "generatedAt": "2026-06-01T12:04:57.796Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -13348,7 +13348,7 @@
     },
     "backend/apps/api/src/controllers/events.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/events.controller.ts",
-      "contentHash": "6630599cb64676a9f057280ff9470936dba8e3470b0cbfd2b07036b0b68784cb",
+      "contentHash": "5cb17703d6bf6789544db2ec5a7ab3893320ecc04e2ccb0e260afbf65434def4",
       "functions": [],
       "classes": [
         {
@@ -13374,7 +13374,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 175
+          "lineCount": 177
         }
       ],
       "imports": [
@@ -13413,7 +13413,7 @@
       "exports": [
         "EventsController"
       ],
-      "totalLines": 182,
+      "totalLines": 184,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/health.controller.ts": {
@@ -18690,7 +18690,7 @@
     },
     "backend/apps/api/src/services/events-feed-cache.ts": {
       "filePath": "backend/apps/api/src/services/events-feed-cache.ts",
-      "contentHash": "118342bcf23e6b234ef7a920a8e80762d527b21f46532a4c2650b5e1d9ff24b2",
+      "contentHash": "8ed2db421d55cf309dea2b7f65dcd50ee131a41657040ccc55deef274f9b37c8",
       "functions": [
         {
           "name": "clean",
@@ -18792,7 +18792,7 @@
           ],
           "returnType": "string",
           "exported": true,
-          "lineCount": 25
+          "lineCount": 26
         }
       ],
       "classes": [],
@@ -18810,12 +18810,12 @@
         "eventsFeedCacheTtlSeconds",
         "buildEventsFeedCacheKey"
       ],
-      "totalLines": 169,
+      "totalLines": 171,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/events.service.ts": {
       "filePath": "backend/apps/api/src/services/events.service.ts",
-      "contentHash": "adbb1c61ae8a9eeddbf645ea5d5b2e55638b08765ee3fdf8b8da0d19e4e54b5e",
+      "contentHash": "b1ccb6c1ed9e0d724f679f6bfd5ac8f6b9bee2113aeabf3e66af35bcad31e688",
       "functions": [
         {
           "name": "promoMatchesExternalPlace",
@@ -18935,6 +18935,7 @@
             "parseIsoDateRange",
             "listOrderBy",
             "listTake",
+            "loadEventListPage",
             "loadPromotedEventListPage",
             "loadPromotedGeoEventCandidates",
             "activePromotionWhere",
@@ -18958,6 +18959,7 @@
             "eventDistanceKm",
             "geoDistanceKm",
             "normalizeListLimit",
+            "normalizeListSort",
             "resolveListCursor",
             "encodeListCursor",
             "parseCursorNumber",
@@ -19002,7 +19004,7 @@
             "publicActiveMeetupsMemoryCache"
           ],
           "exported": true,
-          "lineCount": 5189
+          "lineCount": 5234
         }
       ],
       "imports": [
@@ -19122,7 +19124,7 @@
       "exports": [
         "EventsService"
       ],
-      "totalLines": 5594,
+      "totalLines": 5640,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/host.service.ts": {

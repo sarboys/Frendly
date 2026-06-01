@@ -57,6 +57,7 @@ Public routing:
 - `frendly.tech`, `www.frendly.tech` -> landing.
 - `api.frendly.tech`, direct IP, unknown hosts -> API.
 - `admin.frendly.tech` -> internal admin.
+- `admin.frendly.tech/metrics` -> Grafana when observability is running and Grafana is configured with `GRAFANA_ROOT_URL=https://admin.frendly.tech/metrics/` plus `GRAFANA_SERVE_FROM_SUB_PATH=true`.
 - `partner.frendly.tech` -> partner admin.
 - `/ws` on API host -> chat WebSocket.
 - public `/metrics` on the API host is blocked in nginx and must not be exposed through `api.frendly.tech`.
@@ -77,6 +78,12 @@ Default local bindings:
 
 - Prometheus: `127.0.0.1:9090`.
 - Grafana: `127.0.0.1:3009`.
+
+Production admin subpath:
+
+- nginx proxies `admin.frendly.tech/metrics/` to the Grafana container through Docker DNS.
+- Grafana must serve from the `/metrics/` subpath with `GRAFANA_ROOT_URL=https://admin.frendly.tech/metrics/` and `GRAFANA_SERVE_FROM_SUB_PATH=true`.
+- nginx uses runtime DNS for Grafana so the main app stack can still start when the observability stack is not running.
 
 Scrape targets:
 

@@ -24,6 +24,8 @@ Override with env only on a private network:
 ```bash
 PROMETHEUS_PORT=127.0.0.1:9090
 GRAFANA_PORT=127.0.0.1:3009
+GRAFANA_ROOT_URL=http://localhost:3009
+GRAFANA_SERVE_FROM_SUB_PATH=false
 GRAFANA_ADMIN_PASSWORD=change-me
 ```
 
@@ -36,6 +38,8 @@ Exporter connection strings can be passed through environment variables:
 - `POSTGRES_EXPORTER_DATA_SOURCE_NAME`
 - `REDIS_EXPORTER_ADDR`
 - `PGBOUNCER_EXPORTER_CONNECTION_STRING`
+- `GRAFANA_ROOT_URL`
+- `GRAFANA_SERVE_FROM_SUB_PATH`
 - `GRAFANA_ADMIN_PASSWORD`
 
 ## Public access
@@ -43,6 +47,14 @@ Exporter connection strings can be passed through environment variables:
 `deploy/nginx/frendly.conf` blocks public `/metrics` on the API host.
 
 Prometheus should scrape service metrics from the Docker network, not through `api.frendly.tech`.
+
+`admin.frendly.tech/metrics` proxies to Grafana when the observability stack is running.
+For production, set:
+
+```bash
+GRAFANA_ROOT_URL=https://admin.frendly.tech/metrics/
+GRAFANA_SERVE_FROM_SUB_PATH=true
+```
 
 ## Dashboards
 
