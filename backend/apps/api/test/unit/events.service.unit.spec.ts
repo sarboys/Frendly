@@ -325,6 +325,23 @@ describe('EventsService unit', () => {
     );
   });
 
+  it('orders event feed by startsAt when sort is time', async () => {
+    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const service = makeListEventsService({ eventFindMany });
+
+    await service.listEvents('user-me', {
+      limit: 5,
+      sort: 'time',
+    } as any);
+
+    expect(eventFindMany).toHaveBeenCalledTimes(1);
+    expect(eventFindMany.mock.calls[0][0].orderBy).toEqual([
+      { startsAt: 'asc' },
+      { id: 'asc' },
+    ]);
+    expect(eventFindMany.mock.calls[0][0].take).toBe(6);
+  });
+
   it('excludes manually finished meetups from event feed', async () => {
     const eventFindMany = jest.fn().mockResolvedValue([]);
     const service = new EventsService(

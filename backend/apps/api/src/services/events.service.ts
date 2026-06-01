@@ -109,6 +109,7 @@ type EventListParams = {
   city?: string;
   requiresVerification?: string;
   requiresFrendlyPlus?: string;
+  sort?: string;
   date?: string;
   cursor?: string;
   limit?: number;
@@ -389,8 +390,9 @@ export class EventsService {
     ]);
     const take = this.normalizeListLimit(params.limit);
     const filter = params.filter as EventFilter | undefined;
+    const sort = this.normalizeListSort(params.sort);
     const geoQuery = this.normalizeEventGeoQuery(params);
-    const cursorEvent = await this.resolveListCursor(params.cursor, filter);
+    const cursorEvent = await this.resolveListCursor(params.cursor);
 
     const loadBasePage = async (): Promise<EventListBasePage> => {
       const where = this.buildListWhere(
@@ -456,13 +458,23 @@ export class EventsService {
 
       let cursorFilteredEvents: any[];
       if (postgisCandidates == null && geoQuery?.center == null) {
-        cursorFilteredEvents = await this.loadPromotedEventListPage({
-          where,
-          orderBy: this.listOrderBy(filter, geoQuery),
-          cursorEvent,
-          filter,
-          take,
-        });
+        const orderBy = this.listOrderBy(filter, geoQuery, sort);
+        cursorFilteredEvents = sort === 'time'
+          ? await this.loadEventListPage({
+              where,
+              orderBy,
+              cursorEvent,
+              filter,
+              sort,
+              take,
+            })
+          : await this.loadPromotedEventListPage({
+              where,
+              orderBy,
+              cursorEvent,
+              filter,
+              take,
+            });
       } else if (postgisCandidates == null && geoQuery?.center != null) {
         cursorFilteredEvents = await this.loadPromotedGeoEventCandidates({
           where,
@@ -480,6 +492,7 @@ export class EventsService {
           orderBy: this.listOrderBy(
             filter,
             postgisCandidates == null ? geoQuery : undefined,
+            sort,
           ),
           take:
             postgisCandidates == null
@@ -3930,7 +3943,12 @@ export class EventsService {
   private listOrderBy(
     filter?: EventFilter,
     geoQuery?: EventGeoQuery,
+    sort?: 'time' | null,
   ): Prisma.EventOrderByWithRelationInput[] {
+    if (sort === 'time') {
+      return [{ startsAt: 'asc' }, { id: 'asc' }];
+    }
+
     if (geoQuery?.center != null) {
       return [{ startsAt: 'asc' }, { id: 'asc' }];
     }
@@ -3948,6 +3966,29 @@ export class EventsService {
     }
 
     return Math.max(take + 1, Math.min(take * 6, 300));
+  }
+
+  private loadEventListPage(params: {
+    where: Prisma.EventWhereInput;
+    orderBy: Prisma.EventOrderByWithRelationInput[];
+    cursorEvent: EventListCursor | null;
+    filter?: EventFilter;
+    sort?: 'time' | null;
+    take: number;
+  }) {
+    return this.prismaService.client.event.findMany({
+      where: this.combineEventWhere(
+        params.where,
+        this.buildListCursorWhere(
+          params.cursorEvent,
+          params.filter,
+          params.sort,
+        ),
+      ),
+      select: this.eventListBaseSelect(),
+      orderBy: params.orderBy,
+      take: params.take + 1,
+    });
   }
 
   private async loadPromotedEventListPage(params: {
@@ -4614,7 +4655,11 @@ export class EventsService {
     return Math.max(1, Math.min(Math.trunc(limit), 50));
   }
 
-  private async resolveListCursor(cursor?: string, filter?: EventFilter): Promise<EventListCursor | null> {
+  private normalizeListSort(sort?: string): 'time' | null {
+    return sort === 'time' ? 'time' : null;
+  }
+
+  private async resolveListCursor(cursor?: string): Promise<EventListCursor | null> {
     if (!cursor) {
       return null;
     }
@@ -4710,12 +4755,13 @@ export class EventsService {
   private buildListCursorWhere(
     cursorEvent: EventListCursor | null,
     filter?: EventFilter,
+    sort?: 'time' | null,
   ): Prisma.EventWhereInput | null {
     if (!cursorEvent) {
       return null;
     }
 
-    if (filter === 'nearby' || !filter) {
+    if (sort !== 'time' && (filter === 'nearby' || !filter)) {
       return {
         OR: [
           {

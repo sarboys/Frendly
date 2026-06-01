@@ -11,6 +11,7 @@ export interface EventsFeedCacheInput {
   city?: CacheInputValue;
   requiresVerification?: CacheInputValue;
   requiresFrendlyPlus?: CacheInputValue;
+  sort?: CacheInputValue;
   date?: CacheInputValue;
   cursor?: CacheInputValue;
   limit?: CacheInputValue;
@@ -152,6 +153,7 @@ export function buildEventsFeedCacheKey(input: EventsFeedCacheInput): string {
     city: clean(input.city),
     requiresVerification: isTrue(input.requiresVerification),
     requiresFrendlyPlus: isTrue(input.requiresFrendlyPlus),
+    sort: clean(input.sort),
     date: clean(input.date) ?? 'any',
     cursor: clean(input.cursor),
     limit: normalizeLimit(input.limit),
