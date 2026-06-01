@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "5fedac7fc30186d658d269514bc31dcc26086aae",
-  "generatedAt": "2026-06-01T05:15:34.202Z",
+  "gitCommitHash": "dc90bc1144d3af68106be3c6ab2c1c3a5fb46d12",
+  "generatedAt": "2026-06-01T09:50:47.342Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -11446,7 +11446,7 @@
     },
     "backend/apps/api/src/common/presenters.ts": {
       "filePath": "backend/apps/api/src/common/presenters.ts",
-      "contentHash": "5f1bf305276b4c0361d93fd607cce5971f3827f99eb61e24975dafec6030a04c",
+      "contentHash": "8a7dbc3cbc74c221f64007ba2fd9872a8d933c045eb21cccbf3df191fc7afde7",
       "functions": [
         {
           "name": "formatRelativeTime",
@@ -20174,7 +20174,7 @@
     },
     "backend/apps/api/src/services/payment-catalog.ts": {
       "filePath": "backend/apps/api/src/services/payment-catalog.ts",
-      "contentHash": "4d6ff0b7747e9605ada7bb85a6556fc29407374401edcd7658013c1d0a578a33",
+      "contentHash": "496a7a1c8e72505957476a606e07f746c901ac168763a94041e159605239f4f0",
       "functions": [
         {
           "name": "findPaymentProduct",

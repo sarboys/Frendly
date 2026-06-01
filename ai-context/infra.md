@@ -61,6 +61,7 @@ Public routing:
 - `/ws` on API host -> chat WebSocket.
 - public `/metrics` on the API host is blocked in nginx and must not be exposed through `api.frendly.tech`.
 - Scale nginx uses `worker_connections 65535` with high `worker_rlimit_nofile`. 15000 proxied WebSockets can need more than 30000 nginx connections because each client socket also has an upstream socket.
+- Scale nginx keeps normal API and `/events` proxy read/send timeouts at 210 seconds like the base production nginx config. Do not lower these timeouts for RPS tests; the RPS-critical scale settings are upstream keepalive, `least_conn`, disabled access logs, disabled gzip and high worker connection limits.
 
 ## Observability
 
