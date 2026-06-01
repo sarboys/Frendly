@@ -73,6 +73,9 @@ Public routing:
 - Grafana notes: `deploy/observability/grafana/README.md`.
 - Observability stack joins Docker network `frendly-backend_default` through `OBSERVABILITY_NETWORK`.
 - Grafana automatically provisions the `Prometheus` datasource with uid `prometheus` and loads Frendly dashboards from the dashboard directory.
+- Main manual API dashboard: `Frendly API Operations` from `frendly-api-operations.json`. Use it to see request rate, request counts by endpoint, 4xx, 5xx, status code, API error code, p95 latency, requests over 5 seconds, unmatched 404 traffic, WebSocket errors and worker lag.
+- API HTTP metrics use normalized route labels: `service`, `method`, `endpoint`, `status_class`, `status_code`, `error_code`. Known API errors come from the JSON `code` field. Successful responses use `error_code="none"`. 4xx and 5xx without a safe code use `error_code="unknown"`.
+- Requests that do not match an Express route use `endpoint="unmatched"` instead of the raw URL. This keeps scanner traffic such as `/.env` from creating thousands of Prometheus label values.
 
 Default local bindings:
 

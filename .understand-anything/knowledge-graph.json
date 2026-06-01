@@ -24,8 +24,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-06-01T12:04:57.457Z",
-    "gitCommitHash": "2806771107d40fb84f7117b9aec7a8090b2a9ce6"
+    "analyzedAt": "2026-06-01T12:39:57.653Z",
+    "gitCommitHash": "ee1ea33f2cbfb39b08c3a6cebf8f8c3b13b34bc3"
   },
   "nodes": [
     {
@@ -9489,13 +9489,13 @@
       "type": "file",
       "name": "http-metrics.middleware.ts",
       "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
-      "summary": "http-metrics.middleware.ts contains 4 functions.",
+      "summary": "http-metrics.middleware.ts contains 7 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:statusClassOf",
@@ -9503,8 +9503,8 @@
       "name": "statusClassOf",
       "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
       "lineRange": [
-        8,
-        8
+        17,
+        17
       ],
       "summary": "statusClassOf in http-metrics.middleware.ts.",
       "tags": [
@@ -9512,7 +9512,7 @@
         "function",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:routePathOf",
@@ -9520,8 +9520,8 @@
       "name": "routePathOf",
       "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
       "lineRange": [
-        10,
-        21
+        19,
+        29
       ],
       "summary": "routePathOf in http-metrics.middleware.ts.",
       "tags": [
@@ -9529,7 +9529,7 @@
         "function",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:payloadBytesOf",
@@ -9537,8 +9537,8 @@
       "name": "payloadBytesOf",
       "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
       "lineRange": [
-        23,
-        33
+        31,
+        41
       ],
       "summary": "payloadBytesOf in http-metrics.middleware.ts.",
       "tags": [
@@ -9546,7 +9546,58 @@
         "function",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:safeErrorCodeOf",
+      "type": "function",
+      "name": "safeErrorCodeOf",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "lineRange": [
+        43,
+        49
+      ],
+      "summary": "safeErrorCodeOf in http-metrics.middleware.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:errorCodeFromPayload",
+      "type": "function",
+      "name": "errorCodeFromPayload",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "lineRange": [
+        51,
+        56
+      ],
+      "summary": "errorCodeFromPayload in http-metrics.middleware.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:errorCodeLabelOf",
+      "type": "function",
+      "name": "errorCodeLabelOf",
+      "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
+      "lineRange": [
+        58,
+        63
+      ],
+      "summary": "errorCodeLabelOf in http-metrics.middleware.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
     },
     {
       "id": "function:backend/apps/api/src/common/http-metrics.middleware.ts:createHttpMetricsMiddleware",
@@ -9554,8 +9605,8 @@
       "name": "createHttpMetricsMiddleware",
       "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
       "lineRange": [
-        35,
-        57
+        65,
+        96
       ],
       "summary": "createHttpMetricsMiddleware in http-metrics.middleware.ts.",
       "tags": [
@@ -9563,7 +9614,7 @@
         "function",
         "structure"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:backend/apps/api/src/common/media-presenters.ts",
@@ -37698,6 +37749,19 @@
       "complexity": "simple"
     },
     {
+      "id": "service:deploy/observability/grafana/dashboards/frendly-api-operations.json",
+      "type": "service",
+      "name": "frendly-api-operations.json",
+      "filePath": "deploy/observability/grafana/dashboards/frendly-api-operations.json",
+      "summary": "frendly-api-operations.json is a infra file for deploy.",
+      "tags": [
+        "deploy",
+        "infra",
+        "json"
+      ],
+      "complexity": "complex"
+    },
+    {
       "id": "service:deploy/observability/grafana/dashboards/frendly-infrastructure.json",
       "type": "service",
       "name": "frendly-infrastructure.json",
@@ -42690,6 +42754,27 @@
     {
       "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
       "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:payloadBytesOf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:safeErrorCodeOf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:errorCodeFromPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/common/http-metrics.middleware.ts",
+      "target": "function:backend/apps/api/src/common/http-metrics.middleware.ts:errorCodeLabelOf",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -59617,6 +59702,7 @@
         "service:deploy/nginx/frendly.conf",
         "service:deploy/nginx/frendly.scale.conf",
         "service:deploy/nginx/nginx.scale.conf",
+        "service:deploy/observability/grafana/dashboards/frendly-api-operations.json",
         "service:deploy/observability/grafana/dashboards/frendly-infrastructure.json",
         "service:deploy/observability/grafana/dashboards/frendly-mobile-hot-paths.json",
         "service:deploy/observability/grafana/dashboards/frendly-runtime.json",
@@ -59739,7 +59825,7 @@
         "service:deploy/nginx/frendly.conf",
         "service:deploy/nginx/frendly.scale.conf",
         "service:deploy/nginx/nginx.scale.conf",
-        "service:deploy/observability/grafana/dashboards/frendly-infrastructure.json"
+        "service:deploy/observability/grafana/dashboards/frendly-api-operations.json"
       ]
     }
   ]

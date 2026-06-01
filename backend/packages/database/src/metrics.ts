@@ -19,16 +19,16 @@ const byteBuckets = [128, 512, 1024, 4096, 16384, 65536, 262144, 1048576, 524288
 
 const httpRequestDurationSeconds = new Histogram({
   name: 'frendly_http_request_duration_seconds',
-  help: 'HTTP request duration by service, method, normalized endpoint and status class.',
-  labelNames: ['service', 'method', 'endpoint', 'status_class'],
+  help: 'HTTP request duration by service, method, normalized endpoint, status code and error code.',
+  labelNames: ['service', 'method', 'endpoint', 'status_class', 'status_code', 'error_code'],
   buckets: secondsBuckets,
   registers: [registry],
 });
 
 const httpResponsePayloadBytes = new Histogram({
   name: 'frendly_http_response_payload_bytes',
-  help: 'HTTP response payload size by service, method, normalized endpoint and status class.',
-  labelNames: ['service', 'method', 'endpoint', 'status_class'],
+  help: 'HTTP response payload size by service, method, normalized endpoint, status code and error code.',
+  labelNames: ['service', 'method', 'endpoint', 'status_class', 'status_code', 'error_code'],
   buckets: byteBuckets,
   registers: [registry],
 });

@@ -5,6 +5,15 @@ type RouteLike = {
   path?: unknown;
 };
 
+type ErrorPayloadLike = {
+  code?: unknown;
+};
+
+const unmatchedEndpoint = 'unmatched';
+const noErrorCode = 'none';
+const unknownErrorCode = 'unknown';
+const safeErrorCodePattern = /^[a-zA-Z0-9_.:-]{1,80}$/;
+
 const statusClassOf = (statusCode: number) => `${Math.floor(statusCode / 100)}xx`;
 
 const routePathOf = (request: Request) => {
@@ -16,8 +25,7 @@ const routePathOf = (request: Request) => {
   if (Array.isArray(routePath) && typeof routePath[0] === 'string') {
     return `${request.baseUrl ?? ''}${routePath[0]}`;
   }
-  const fallbackUrl = request.path || request.url || 'unknown';
-  return fallbackUrl.split('?')[0] || 'unknown';
+  return unmatchedEndpoint;
 };
 
 const payloadBytesOf = (response: Response) => {
@@ -32,9 +40,38 @@ const payloadBytesOf = (response: Response) => {
   return null;
 };
 
+const safeErrorCodeOf = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return safeErrorCodePattern.test(trimmed) ? trimmed : null;
+};
+
+const errorCodeFromPayload = (payload: unknown) => {
+  if (payload == null || typeof payload !== 'object') {
+    return null;
+  }
+  return safeErrorCodeOf((payload as ErrorPayloadLike).code);
+};
+
+const errorCodeLabelOf = (statusCode: number, errorCode: string | null) => {
+  if (statusCode < 400) {
+    return noErrorCode;
+  }
+  return errorCode ?? unknownErrorCode;
+};
+
 export const createHttpMetricsMiddleware =
   (service: string) => (request: Request, response: Response, next: NextFunction) => {
     const startedAt = process.hrtime.bigint();
+    let capturedErrorCode: string | null = null;
+
+    const originalJson = response.json;
+    response.json = function jsonWithMetrics(this: Response, payload?: unknown) {
+      capturedErrorCode = errorCodeFromPayload(payload) ?? capturedErrorCode;
+      return originalJson.call(this, payload);
+    } as typeof response.json;
 
     response.once('finish', () => {
       const durationSeconds = Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
@@ -43,6 +80,8 @@ export const createHttpMetricsMiddleware =
         method: request.method,
         endpoint: routePathOf(request),
         status_class: statusClassOf(response.statusCode),
+        status_code: String(response.statusCode),
+        error_code: errorCodeLabelOf(response.statusCode, capturedErrorCode),
       };
 
       appMetrics.httpRequestDurationSeconds.observe(labels, durationSeconds);

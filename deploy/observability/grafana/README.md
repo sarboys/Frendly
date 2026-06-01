@@ -60,6 +60,16 @@ GRAFANA_SERVE_FROM_SUB_PATH=true
 
 Dashboard JSON files live in `deploy/observability/grafana/dashboards/`.
 
+Use `Frendly API Operations` for manual backend checks. It shows:
+
+- request rate and request count by endpoint
+- 4xx, 5xx, status code and API error code
+- p95 latency by endpoint
+- requests slower than 5 seconds
+- unmatched 404 scanner traffic
+- WebSocket errors
+- worker failures and outbox lag
+
 Grafana provisions Prometheus and all Frendly dashboards automatically from:
 
 - `deploy/observability/grafana/provisioning/datasources/prometheus.yml`

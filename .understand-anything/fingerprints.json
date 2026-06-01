@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "2806771107d40fb84f7117b9aec7a8090b2a9ce6",
-  "generatedAt": "2026-06-01T12:04:57.796Z",
+  "gitCommitHash": "ee1ea33f2cbfb39b08c3a6cebf8f8c3b13b34bc3",
+  "generatedAt": "2026-06-01T12:39:57.988Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -11199,7 +11199,7 @@
     },
     "backend/apps/api/src/common/http-metrics.middleware.ts": {
       "filePath": "backend/apps/api/src/common/http-metrics.middleware.ts",
-      "contentHash": "e9d3539e1b818cc0b50c30178a61b881a4988417c6e35554b54ca22f85317577",
+      "contentHash": "d367d1654dc6192e345a2601867bd9fda79d22a84847d5e9c86b41a60439e758",
       "functions": [
         {
           "name": "statusClassOf",
@@ -11215,7 +11215,7 @@
             "request"
           ],
           "exported": false,
-          "lineCount": 12
+          "lineCount": 11
         },
         {
           "name": "payloadBytesOf",
@@ -11226,12 +11226,37 @@
           "lineCount": 11
         },
         {
+          "name": "safeErrorCodeOf",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "errorCodeFromPayload",
+          "params": [
+            "payload"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "errorCodeLabelOf",
+          "params": [
+            "statusCode",
+            "errorCode"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
           "name": "createHttpMetricsMiddleware",
           "params": [
             "service"
           ],
           "exported": true,
-          "lineCount": 23
+          "lineCount": 32
         }
       ],
       "classes": [],
@@ -11254,7 +11279,7 @@
       "exports": [
         "createHttpMetricsMiddleware"
       ],
-      "totalLines": 58,
+      "totalLines": 97,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/common/media-presenters.ts": {
@@ -28361,7 +28386,7 @@
     },
     "backend/packages/database/src/metrics.ts": {
       "filePath": "backend/packages/database/src/metrics.ts",
-      "contentHash": "deb0f67c9e76de61f3d4d0d0bb0a48e7966478ce36f00cc113d8a169a946fe45",
+      "contentHash": "0f85d5b8bbbb1eee413cb7bac117098fdc560692cd1f39498035fa83dcfd8ee3",
       "functions": [
         {
           "name": "bindPrismaMetrics",

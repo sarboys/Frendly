@@ -1,0 +1,560 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window]))"
+        }
+      ],
+      "title": "Current RPS",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\",status_class=\"4xx\"}[$window]))"
+        }
+      ],
+      "title": "4xx in window",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\",status_class=\"5xx\"}[$window]))"
+        }
+      ],
+      "title": "5xx in window",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\",status_class=~\"4xx|5xx\"}[$window])) / clamp_min(sum(rate(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window])), 0.001)"
+        }
+      ],
+      "title": "Error rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frendly_http_request_duration_seconds_bucket{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window])) by (le))"
+        }
+      ],
+      "title": "p95 latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window])) - sum(increase(frendly_http_request_duration_seconds_bucket{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\",le=\"5\"}[$window]))"
+        }
+      ],
+      "title": "Requests over 5s",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "topk(15, sum(rate(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window])) by (method, endpoint, status_class))",
+          "legendFormat": "{{method}} {{endpoint}} {{status_class}}"
+        }
+      ],
+      "title": "Request rate by endpoint",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 8,
+      "targets": [
+        {
+          "expr": "topk(15, histogram_quantile(0.95, sum(rate(frendly_http_request_duration_seconds_bucket{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window])) by (le, method, endpoint)))",
+          "legendFormat": "{{method}} {{endpoint}} p95"
+        }
+      ],
+      "title": "Slow endpoints p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 9,
+      "targets": [
+        {
+          "expr": "topk(50, sum(increase(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window])) by (method, endpoint, status_class))",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "title": "Endpoint request counts",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 10,
+      "targets": [
+        {
+          "expr": "topk(50, sum(increase(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\",status_class=~\"4xx|5xx\"}[$window])) by (method, endpoint, status_class, status_code, error_code))",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "title": "Errors by endpoint and code",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 11,
+      "targets": [
+        {
+          "expr": "topk(50, histogram_quantile(0.95, sum(rate(frendly_http_request_duration_seconds_bucket{service=~\"$service\",endpoint=~\"$endpoint\",endpoint!~\"/health|/metrics|unmatched\"}[$window])) by (le, method, endpoint)))",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "title": "Endpoint p95 latency",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 28
+      },
+      "id": 12,
+      "targets": [
+        {
+          "expr": "sum(increase(frendly_http_request_duration_seconds_count{service=~\"$service\",endpoint=\"unmatched\"}[$window])) by (method, status_class, status_code)",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "title": "Unmatched 404 and scanner traffic",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 28
+      },
+      "id": 13,
+      "targets": [
+        {
+          "expr": "topk(20, sum(rate(frendly_websocket_dropped_total[$window])) by (reason, event_type))",
+          "legendFormat": "{{reason}} {{event_type}}"
+        },
+        {
+          "expr": "topk(20, sum(rate(frendly_websocket_sync_requests_total{status!=\"ok\"}[$window])) by (status))",
+          "legendFormat": "sync {{status}}"
+        }
+      ],
+      "title": "WebSocket errors",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 28
+      },
+      "id": 14,
+      "targets": [
+        {
+          "expr": "sum(increase(frendly_worker_permanent_failures_total[$window])) by (service, job_type)",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "max(frendly_worker_outbox_lag_seconds) by (service, event_type)",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "title": "Worker failures and lag",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "frendly",
+    "api",
+    "operations"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "5m",
+          "value": "5m"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Window",
+        "multi": false,
+        "name": "window",
+        "options": [
+          {
+            "selected": true,
+            "text": "5m",
+            "value": "5m"
+          },
+          {
+            "selected": false,
+            "text": "15m",
+            "value": "15m"
+          },
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "1h"
+          },
+          {
+            "selected": false,
+            "text": "6h",
+            "value": "6h"
+          },
+          {
+            "selected": false,
+            "text": "24h",
+            "value": "24h"
+          }
+        ],
+        "query": "5m,15m,1h,6h,24h",
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "api",
+          "value": "api"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(frendly_http_request_duration_seconds_count, service)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Service",
+        "multi": true,
+        "name": "service",
+        "options": [],
+        "query": {
+          "query": "label_values(frendly_http_request_duration_seconds_count, service)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(frendly_http_request_duration_seconds_count{endpoint=~\"/(admin|events|profile|dating|chats|affiche|evening|media|uploads|communities|drops|payments|settings|subscriptions|notifications|reports|venues|users|auth|telegram|stories|safety|support).*\"}, endpoint)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Endpoint",
+        "multi": true,
+        "name": "endpoint",
+        "options": [],
+        "query": {
+          "query": "label_values(frendly_http_request_duration_seconds_count{endpoint=~\"/(admin|events|profile|dating|chats|affiche|evening|media|uploads|communities|drops|payments|settings|subscriptions|notifications|reports|venues|users|auth|telegram|stories|safety|support).*\"}, endpoint)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Frendly API Operations",
+  "uid": "frendly-api-operations",
+  "version": 1
+}
