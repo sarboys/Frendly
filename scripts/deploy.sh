@@ -69,6 +69,32 @@ read_env_value() {
   awk -F= -v key="$key" '$1 == key { sub(/^[^=]*=/, ""); print; exit }' "$ENV_FILE"
 }
 
+append_database_url_param() {
+  local url="$1"
+  local param="$2"
+
+  if [[ "$url" == *"?"* ]]; then
+    printf '%s&%s' "$url" "$param"
+  else
+    printf '%s?%s' "$url" "$param"
+  fi
+}
+
+build_migrate_database_url() {
+  local direct_url="$1"
+
+  if [ -z "$direct_url" ]; then
+    return
+  fi
+
+  if [[ "$direct_url" == *"connection_limit="* ]]; then
+    printf '%s' "$direct_url"
+    return
+  fi
+
+  append_database_url_param "$direct_url" "connection_limit=1"
+}
+
 COMPOSE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-$(read_env_value COMPOSE_EXTRA_FILES)}"
 CORE_SERVICES="${CORE_SERVICES:-$(read_env_value CORE_SERVICES)}"
 RUNTIME_SERVICES="${RUNTIME_SERVICES:-$(read_env_value RUNTIME_SERVICES)}"
@@ -121,6 +147,24 @@ fi
 
 docker_compose() {
   docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" "$@"
+}
+
+run_migrate() {
+  local direct_url
+  local migrate_database_url
+
+  direct_url="$(read_env_value DATABASE_DIRECT_URL)"
+  migrate_database_url="$(build_migrate_database_url "$direct_url")"
+
+  if [ -n "$migrate_database_url" ]; then
+    docker_compose run --rm --no-deps \
+      -e DATABASE_DIRECT_URL="$migrate_database_url" \
+      -e DATABASE_URL="$migrate_database_url" \
+      migrate
+    return
+  fi
+
+  docker_compose run --rm --no-deps migrate
 }
 
 verify_scale_nginx_routes() {
@@ -269,11 +313,7 @@ if [[ " ${CORE_SERVICES} " != *" pgbouncer "* ]]; then
   echo "External PgBouncer mode detected. Local pgbouncer service is not part of CORE_SERVICES."
 fi
 
-if [[ " ${CORE_SERVICES} " == *" postgres "* ]]; then
-  docker_compose up --build migrate
-else
-  docker_compose run --rm --no-deps migrate
-fi
+run_migrate
 verify_postgis_event_feed
 docker_compose rm -sf migrate || true
 docker_compose up -d --build --no-deps "${RUNTIME_SCALE_ARGS[@]}" "${RUNTIME_SERVICE_ARGS[@]}"
