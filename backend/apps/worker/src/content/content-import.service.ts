@@ -316,7 +316,7 @@ export class ContentImportService {
         sourceItemId: row.sourceItemId,
         imageUrl: row.imageUrl,
       } as any);
-      if (!next.imageUrl || next.imageUrl === row.imageUrl) {
+      if (next.imageUrl === row.imageUrl) {
         continue;
       }
 

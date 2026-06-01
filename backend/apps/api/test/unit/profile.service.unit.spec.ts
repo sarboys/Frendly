@@ -142,6 +142,41 @@ describe('ProfileService', () => {
     expect(userFindUnique).not.toHaveBeenCalled();
   });
 
+  it('uses process cache for repeated current profile reads', async () => {
+    const cache = {
+      getJson: jest.fn().mockResolvedValue({
+        id: 'user-me',
+        displayName: 'Никита',
+      }),
+      setJson: jest.fn(),
+      delete: jest.fn(),
+    };
+    const userFindUnique = jest.fn();
+    const service = new ProfileService(
+      {
+        client: {
+          user: {
+            findUnique: userFindUnique,
+          },
+        },
+      } as any,
+      cache as any,
+    );
+
+    await expect(service.getProfile('user-me')).resolves.toEqual({
+      id: 'user-me',
+      displayName: 'Никита',
+    });
+    await expect(service.getProfile('user-me')).resolves.toEqual({
+      id: 'user-me',
+      displayName: 'Никита',
+    });
+
+    expect(cache.getJson).toHaveBeenCalledTimes(1);
+    expect(cache.setJson).not.toHaveBeenCalled();
+    expect(userFindUnique).not.toHaveBeenCalled();
+  });
+
   it('stores current profile on cache miss', async () => {
     const cache = {
       getJson: jest.fn().mockResolvedValue(null),

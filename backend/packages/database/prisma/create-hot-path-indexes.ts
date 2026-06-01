@@ -56,10 +56,6 @@ const statements: ConcurrentIndexStatement[] = [
     sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "ChatMember_userId_unreadCount_idx" ON "ChatMember"("userId", "unreadCount") WHERE "unreadCount" > 0',
   },
   {
-    name: 'Message_chatId_createdAt_senderId_idx',
-    sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "Message_chatId_createdAt_senderId_idx" ON "Message"("chatId", "createdAt", "senderId")',
-  },
-  {
     name: 'Notification_userId_unread_non_message_idx',
     sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS "Notification_userId_unread_non_message_idx" ON "Notification"("userId", "createdAt", "id") WHERE "readAt" IS NULL AND "kind" <> \'message\'::"NotificationKind"',
   },

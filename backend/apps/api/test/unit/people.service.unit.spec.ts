@@ -664,6 +664,8 @@ describe('PeopleService unit', () => {
         discoverable: true,
         showAge: true,
       },
+      hostedEvents: [],
+      eventParticipants: [],
     });
     const service = new PeopleService({
       client: {
@@ -744,7 +746,99 @@ describe('PeopleService unit', () => {
             showAge: true,
           },
         },
+        hostedEvents: expect.any(Object),
+        eventParticipants: expect.any(Object),
       },
+    });
+  });
+
+  it('returns upcoming public meetings on a person profile', async () => {
+    const upcoming = {
+      id: 'event-1',
+      title: 'Кофе на крыше',
+      description: 'Встречаемся вечером',
+      emoji: '☕',
+      startsAt: new Date('2030-06-02T16:00:00.000Z'),
+      place: 'Rooftop',
+      city: 'Москва',
+      distanceKm: 0,
+      latitude: 55.75,
+      longitude: 37.61,
+      capacity: 6,
+      vibe: 'calm',
+      tone: 'warm',
+      hostNote: null,
+      lifestyle: 'neutral',
+      priceMode: 'free',
+      priceAmountFrom: null,
+      priceAmountTo: null,
+      accessMode: 'open',
+      genderMode: 'all',
+      visibilityMode: 'public',
+      requiresVerification: false,
+      requiresFrendlyPlus: false,
+      joinMode: 'open',
+      isDate: false,
+      eveningRouteId: null,
+      hostId: 'user-peer',
+      coverAsset: null,
+      participants: [],
+      _count: { participants: 1 },
+      liveState: null,
+    };
+    const service = new PeopleService({
+      client: {
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'user-peer',
+            displayName: 'Аня',
+            online: true,
+            verified: false,
+            subscriptions: [],
+            profile: {
+              age: 27,
+              birthDate: null,
+              gender: 'female',
+              city: 'Москва',
+              area: 'Центр',
+              bio: 'Кино и кофе',
+              vibe: 'Спокойно',
+              rating: 0,
+              meetupCount: 0,
+              avatarAssetId: null,
+              avatarUrl: null,
+              photos: [],
+            },
+            onboarding: {
+              interests: ['кино'],
+              intent: 'friends',
+              completedAt: new Date('2026-05-16T10:00:00.000Z'),
+            },
+            settings: {
+              discoverable: true,
+              showAge: true,
+            },
+            hostedEvents: [upcoming],
+            eventParticipants: [],
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const profile = await service.getPersonProfile('user-me', 'user-peer');
+
+    expect(profile).toMatchObject({
+      upcomingEvents: [
+        {
+          id: 'event-1',
+          title: 'Кофе на крыше',
+          place: 'Rooftop',
+        },
+      ],
     });
   });
 

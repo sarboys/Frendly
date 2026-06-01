@@ -126,6 +126,20 @@ const websocketMembershipCacheTotal = new Counter({
   registers: [registry],
 });
 
+const websocketMessageWriteActive = new Gauge({
+  name: 'frendly_websocket_message_write_active',
+  help: 'Active WebSocket message write operations by service.',
+  labelNames: ['service'],
+  registers: [registry],
+});
+
+const websocketMessageWriteQueueDepth = new Gauge({
+  name: 'frendly_websocket_message_write_queue_depth',
+  help: 'Queued WebSocket message write operations by service.',
+  labelNames: ['service'],
+  registers: [registry],
+});
+
 const workerOutboxPending = new Gauge({
   name: 'frendly_worker_outbox_pending',
   help: 'Pending outbox events by service and event type.',
@@ -241,6 +255,8 @@ export const appMetrics = {
   websocketDroppedTotal,
   websocketSyncRequestsTotal,
   websocketMembershipCacheTotal,
+  websocketMessageWriteActive,
+  websocketMessageWriteQueueDepth,
   workerOutboxPending,
   workerOutboxLagSeconds,
   workerJobDurationSeconds,

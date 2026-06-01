@@ -236,17 +236,10 @@ describe('ChatsService unit', () => {
             orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
             take: 8,
           }),
-          messages: expect.objectContaining({
-            where: {
-              senderId: {
-                notIn: ['blocked-user'],
-              },
-            },
-            take: 1,
-          }),
         }),
       }),
     );
+    expect(chatFindMany.mock.calls[0]?.[0].select).not.toHaveProperty('messages');
     expect(chatFindMany.mock.calls[0]?.[0].select.eveningSession.select._count)
       .toEqual({
         select: {
@@ -257,6 +250,63 @@ describe('ChatsService unit', () => {
           },
         },
       });
+  });
+
+  it('loads chat list last messages without relation row fanout', async () => {
+    const chat = {
+      ...makeChatListItem('chat-bounded', new Date('2026-04-24T12:00:00.000Z')),
+      messages: [],
+    } as any;
+    const lastMessage = makeMessage(
+      'message-bounded',
+      new Date('2026-04-24T12:30:00.000Z'),
+    );
+    const chatFindMany = jest.fn().mockResolvedValue([chat]);
+    const queryRaw = jest.fn().mockResolvedValue([
+      { id: 'message-bounded', chatId: 'chat-bounded' },
+    ]);
+    const messageFindMany = jest.fn().mockResolvedValue([lastMessage]);
+    const service = new ChatsService({
+      client: {
+        $queryRaw: queryRaw,
+        chat: {
+          findMany: chatFindMany,
+        },
+        message: {
+          findMany: messageFindMany,
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        ...makeSocialClient(),
+      },
+    } as any);
+
+    const result = await service.listChats('user-me', 'meetup', { limit: 20 });
+
+    expect(chatFindMany.mock.calls[0]?.[0].select).not.toHaveProperty('messages');
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(messageFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: {
+            in: ['message-bounded'],
+          },
+        },
+        select: expect.objectContaining({
+          attachments: expect.anything(),
+          sender: expect.anything(),
+        }),
+      }),
+    );
+    expect(result.items[0]).toMatchObject({
+      id: 'chat-bounded',
+      lastMessageId: 'message-bounded',
+      lastMessage: 'Message message-bounded',
+    });
   });
 
   it('selects attachment variants for chat message history', async () => {

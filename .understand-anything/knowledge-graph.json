@@ -24,8 +24,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-05-31T11:33:07.368Z",
-    "gitCommitHash": "a9f422aeaa2b4d1d40cd1acfc895adc30674a329"
+    "analyzedAt": "2026-06-01T05:08:05.608Z",
+    "gitCommitHash": "101215da8d5ff2420ef80d1cd647d1cce839d838"
   },
   "nodes": [
     {
@@ -12879,8 +12879,8 @@
       "name": "ChatsService",
       "filePath": "backend/apps/api/src/services/chats.service.ts",
       "lineRange": [
-        171,
-        1809
+        174,
+        1876
       ],
       "summary": "ChatsService in chats.service.ts.",
       "tags": [
@@ -12939,8 +12939,8 @@
       "name": "DatingService",
       "filePath": "backend/apps/api/src/services/dating.service.ts",
       "lineRange": [
-        242,
-        2025
+        256,
+        2111
       ],
       "summary": "DatingService in dating.service.ts.",
       "tags": [
@@ -15451,8 +15451,8 @@
       "name": "mapOnboarding",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        57,
-        97
+        58,
+        98
       ],
       "summary": "mapOnboarding in onboarding.service.ts.",
       "tags": [
@@ -15468,8 +15468,8 @@
       "name": "formatDateOnly",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        99,
-        109
+        100,
+        110
       ],
       "summary": "formatDateOnly in onboarding.service.ts.",
       "tags": [
@@ -15485,8 +15485,8 @@
       "name": "parseBirthDate",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        111,
-        144
+        112,
+        145
       ],
       "summary": "parseBirthDate in onboarding.service.ts.",
       "tags": [
@@ -15502,8 +15502,8 @@
       "name": "calculateAge",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        146,
-        157
+        147,
+        158
       ],
       "summary": "calculateAge in onboarding.service.ts.",
       "tags": [
@@ -15519,8 +15519,8 @@
       "name": "normalizeEmail",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        159,
-        173
+        160,
+        174
       ],
       "summary": "normalizeEmail in onboarding.service.ts.",
       "tags": [
@@ -15536,8 +15536,8 @@
       "name": "normalizePhoneNumber",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        175,
-        199
+        176,
+        200
       ],
       "summary": "normalizePhoneNumber in onboarding.service.ts.",
       "tags": [
@@ -15553,8 +15553,8 @@
       "name": "normalizeDisplayName",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        201,
-        215
+        202,
+        216
       ],
       "summary": "normalizeDisplayName in onboarding.service.ts.",
       "tags": [
@@ -15570,8 +15570,8 @@
       "name": "normalizeOptionalProfileText",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        217,
-        228
+        218,
+        229
       ],
       "summary": "normalizeOptionalProfileText in onboarding.service.ts.",
       "tags": [
@@ -15587,8 +15587,8 @@
       "name": "requiredContactFor",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        230,
-        241
+        231,
+        242
       ],
       "summary": "requiredContactFor in onboarding.service.ts.",
       "tags": [
@@ -15604,8 +15604,8 @@
       "name": "contactAlreadyUsedError",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        624,
-        631
+        627,
+        634
       ],
       "summary": "contactAlreadyUsedError in onboarding.service.ts.",
       "tags": [
@@ -15621,8 +15621,8 @@
       "name": "contactFieldFromUniqueError",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        633,
-        649
+        636,
+        652
       ],
       "summary": "contactFieldFromUniqueError in onboarding.service.ts.",
       "tags": [
@@ -15638,8 +15638,8 @@
       "name": "OnboardingService",
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
       "lineRange": [
-        244,
-        622
+        245,
+        625
       ],
       "summary": "OnboardingService in onboarding.service.ts.",
       "tags": [
@@ -16018,8 +16018,8 @@
       "name": "PeopleService",
       "filePath": "backend/apps/api/src/services/people.service.ts",
       "lineRange": [
-        49,
-        1240
+        115,
+        1376
       ],
       "summary": "PeopleService in people.service.ts.",
       "tags": [
@@ -16478,8 +16478,8 @@
       "name": "ProfileService",
       "filePath": "backend/apps/api/src/services/profile.service.ts",
       "lineRange": [
-        113,
-        1855
+        114,
+        1869
       ],
       "summary": "ProfileService in profile.service.ts.",
       "tags": [
@@ -17177,8 +17177,8 @@
       "name": "ChatServerError",
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
       "lineRange": [
-        49,
-        56
+        77,
+        84
       ],
       "summary": "ChatServerError in chat-server.service.ts.",
       "tags": [
@@ -17194,8 +17194,8 @@
       "name": "ChatServerService",
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
       "lineRange": [
-        166,
-        2040
+        189,
+        2548
       ],
       "summary": "ChatServerService in chat-server.service.ts.",
       "tags": [
@@ -17684,7 +17684,7 @@
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
         325,
-        332
+        333
       ],
       "summary": "isAllowedActionUrl in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17700,8 +17700,8 @@
       "name": "parseUrl",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        334,
-        340
+        335,
+        341
       ],
       "summary": "parseUrl in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17717,8 +17717,8 @@
       "name": "hostMatches",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        342,
-        344
+        343,
+        345
       ],
       "summary": "hostMatches in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17734,8 +17734,8 @@
       "name": "readField",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        346,
-        353
+        347,
+        354
       ],
       "summary": "readField in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17751,8 +17751,8 @@
       "name": "mapCategory",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        355,
-        361
+        356,
+        362
       ],
       "summary": "mapCategory in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17768,8 +17768,8 @@
       "name": "cleanHtml",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        363,
-        372
+        364,
+        373
       ],
       "summary": "cleanHtml in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17785,8 +17785,8 @@
       "name": "normalizeImageUrl",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        374,
-        388
+        375,
+        389
       ],
       "summary": "normalizeImageUrl in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17802,8 +17802,8 @@
       "name": "parseWebsites",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        390,
-        397
+        391,
+        398
       ],
       "summary": "parseWebsites in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17819,8 +17819,8 @@
       "name": "decodeEntities",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        399,
-        422
+        400,
+        423
       ],
       "summary": "decodeEntities in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17836,8 +17836,8 @@
       "name": "safeCodePoint",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        424,
-        430
+        425,
+        431
       ],
       "summary": "safeCodePoint in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17853,8 +17853,8 @@
       "name": "parseMoscowDate",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        432,
-        442
+        433,
+        443
       ],
       "summary": "parseMoscowDate in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17870,8 +17870,8 @@
       "name": "normalizeCity",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        444,
-        462
+        445,
+        463
       ],
       "summary": "normalizeCity in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17887,8 +17887,8 @@
       "name": "ensureTrailingSlash",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        464,
-        466
+        465,
+        467
       ],
       "summary": "ensureTrailingSlash in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17904,8 +17904,8 @@
       "name": "object",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        468,
-        470
+        469,
+        471
       ],
       "summary": "object in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17921,8 +17921,8 @@
       "name": "array",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        472,
-        477
+        473,
+        478
       ],
       "summary": "array in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17938,8 +17938,8 @@
       "name": "text",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        479,
-        488
+        480,
+        489
       ],
       "summary": "text in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17955,8 +17955,8 @@
       "name": "numberFromString",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        490,
-        496
+        491,
+        497
       ],
       "summary": "numberFromString in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17972,8 +17972,8 @@
       "name": "number",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        498,
-        507
+        499,
+        508
       ],
       "summary": "number in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -17989,8 +17989,8 @@
       "name": "integer",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        509,
-        512
+        510,
+        513
       ],
       "summary": "integer in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -18006,8 +18006,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
       "lineRange": [
-        514,
-        517
+        515,
+        518
       ],
       "summary": "positiveInt in advcake-ticketland.adapter.ts.",
       "tags": [
@@ -18171,13 +18171,30 @@
       "type": "file",
       "name": "content-image-mirror.service.ts",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
-      "summary": "content-image-mirror.service.ts contains 1 classes, 9 functions.",
+      "summary": "content-image-mirror.service.ts contains 2 classes, 10 functions.",
       "tags": [
         "backend",
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:isPermanentImageStatus",
+      "type": "function",
+      "name": "isPermanentImageStatus",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        284,
+        286
+      ],
+      "summary": "isPermanentImageStatus in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:isHttpsUrl",
@@ -18185,8 +18202,8 @@
       "name": "isHttpsUrl",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        253,
-        260
+        288,
+        295
       ],
       "summary": "isHttpsUrl in content-image-mirror.service.ts.",
       "tags": [
@@ -18194,7 +18211,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:normalizedContentType",
@@ -18202,8 +18219,8 @@
       "name": "normalizedContentType",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        262,
-        265
+        297,
+        300
       ],
       "summary": "normalizedContentType in content-image-mirror.service.ts.",
       "tags": [
@@ -18211,7 +18228,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:extensionFor",
@@ -18219,8 +18236,8 @@
       "name": "extensionFor",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        267,
-        280
+        302,
+        315
       ],
       "summary": "extensionFor in content-image-mirror.service.ts.",
       "tags": [
@@ -18228,7 +18245,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:safePathSegment",
@@ -18236,8 +18253,8 @@
       "name": "safePathSegment",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        282,
-        288
+        317,
+        323
       ],
       "summary": "safePathSegment in content-image-mirror.service.ts.",
       "tags": [
@@ -18245,7 +18262,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:integer",
@@ -18253,8 +18270,8 @@
       "name": "integer",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        290,
-        296
+        325,
+        331
       ],
       "summary": "integer in content-image-mirror.service.ts.",
       "tags": [
@@ -18262,7 +18279,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:positiveInt",
@@ -18270,8 +18287,8 @@
       "name": "positiveInt",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        298,
-        304
+        333,
+        339
       ],
       "summary": "positiveInt in content-image-mirror.service.ts.",
       "tags": [
@@ -18279,7 +18296,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:sourceImageUrl",
@@ -18287,8 +18304,8 @@
       "name": "sourceImageUrl",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        306,
-        321
+        341,
+        356
       ],
       "summary": "sourceImageUrl in content-image-mirror.service.ts.",
       "tags": [
@@ -18296,7 +18313,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:imageHost",
@@ -18304,8 +18321,8 @@
       "name": "imageHost",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        323,
-        329
+        358,
+        364
       ],
       "summary": "imageHost in content-image-mirror.service.ts.",
       "tags": [
@@ -18313,7 +18330,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:sleep",
@@ -18321,8 +18338,8 @@
       "name": "sleep",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        331,
-        333
+        366,
+        368
       ],
       "summary": "sleep in content-image-mirror.service.ts.",
       "tags": [
@@ -18330,7 +18347,7 @@
         "function",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "class:backend/apps/worker/src/content/content-image-mirror.service.ts:ContentImageMirrorService",
@@ -18338,8 +18355,8 @@
       "name": "ContentImageMirrorService",
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
       "lineRange": [
-        36,
-        251
+        37,
+        276
       ],
       "summary": "ContentImageMirrorService in content-image-mirror.service.ts.",
       "tags": [
@@ -18347,7 +18364,24 @@
         "class",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/apps/worker/src/content/content-image-mirror.service.ts:PermanentImageFetchError",
+      "type": "class",
+      "name": "PermanentImageFetchError",
+      "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "lineRange": [
+        278,
+        282
+      ],
+      "summary": "PermanentImageFetchError in content-image-mirror.service.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/worker/src/content/content-import.service.ts",
@@ -22848,8 +22882,8 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2291,
-        2297
+        2556,
+        2562
       ],
       "summary": "csv in worker.service.ts.",
       "tags": [
@@ -22865,8 +22899,8 @@
       "name": "weekdayNumber",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2299,
-        2318
+        2564,
+        2583
       ],
       "summary": "weekdayNumber in worker.service.ts.",
       "tags": [
@@ -22882,8 +22916,8 @@
       "name": "addCalendarDays",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2320,
-        2331
+        2585,
+        2596
       ],
       "summary": "addCalendarDays in worker.service.ts.",
       "tags": [
@@ -22899,8 +22933,8 @@
       "name": "zonedDateTimeToUtc",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2333,
-        2346
+        2598,
+        2611
       ],
       "summary": "zonedDateTimeToUtc in worker.service.ts.",
       "tags": [
@@ -22916,8 +22950,8 @@
       "name": "timeZoneOffsetMs",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2348,
-        2370
+        2613,
+        2635
       ],
       "summary": "timeZoneOffsetMs in worker.service.ts.",
       "tags": [
@@ -22933,8 +22967,8 @@
       "name": "streamToBuffer",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2372,
-        2378
+        2637,
+        2643
       ],
       "summary": "streamToBuffer in worker.service.ts.",
       "tags": [
@@ -22950,8 +22984,8 @@
       "name": "WorkerService",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        70,
-        2289
+        84,
+        2554
       ],
       "summary": "WorkerService in worker.service.ts.",
       "tags": [
@@ -23532,8 +23566,8 @@
       "name": "main",
       "filePath": "backend/packages/database/prisma/create-hot-path-indexes.ts",
       "lineRange": [
-        136,
-        149
+        132,
+        145
       ],
       "summary": "main in create-hot-path-indexes.ts.",
       "tags": [
@@ -32020,6 +32054,32 @@
       "complexity": "simple"
     },
     {
+      "id": "table:backend/packages/database/prisma/migrations/20260531181000_drop_message_created_sender_hot_index/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260531181000_drop_message_created_sender_hot_index/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260601020000_drop_redundant_outbox_status_indexes/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260601020000_drop_redundant_outbox_status_indexes/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
       "id": "config:backend/packages/database/prisma/migrations/migration_lock.toml",
       "type": "config",
       "name": "migration_lock.toml",
@@ -33835,8 +33895,8 @@
       "name": "bindPrismaMetrics",
       "filePath": "backend/packages/database/src/metrics.ts",
       "lineRange": [
-        205,
-        225
+        219,
+        239
       ],
       "summary": "bindPrismaMetrics in metrics.ts.",
       "tags": [
@@ -33852,8 +33912,8 @@
       "name": "getMetricsContentType",
       "filePath": "backend/packages/database/src/metrics.ts",
       "lineRange": [
-        258,
-        258
+        274,
+        274
       ],
       "summary": "getMetricsContentType in metrics.ts.",
       "tags": [
@@ -33869,8 +33929,8 @@
       "name": "renderAppMetrics",
       "filePath": "backend/packages/database/src/metrics.ts",
       "lineRange": [
-        260,
-        260
+        276,
+        276
       ],
       "summary": "renderAppMetrics in metrics.ts.",
       "tags": [
@@ -36326,7 +36386,7 @@
       "type": "file",
       "name": "load-chat-ws.mjs",
       "filePath": "backend/scripts/load-chat-ws.mjs",
-      "summary": "load-chat-ws.mjs contains 23 functions.",
+      "summary": "load-chat-ws.mjs contains 29 functions.",
       "tags": [
         "backend",
         "code",
@@ -36340,8 +36400,8 @@
       "name": "parseArgs",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        20,
-        54
+        22,
+        61
       ],
       "summary": "parseArgs in load-chat-ws.mjs.",
       "tags": [
@@ -36357,8 +36417,8 @@
       "name": "deriveWsUrl",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        56,
-        62
+        63,
+        69
       ],
       "summary": "deriveWsUrl in load-chat-ws.mjs.",
       "tags": [
@@ -36374,10 +36434,112 @@
       "name": "positiveInt",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        64,
-        70
+        71,
+        77
       ],
       "summary": "positiveInt in load-chat-ws.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/load-chat-ws.mjs:parseReceiveMode",
+      "type": "function",
+      "name": "parseReceiveMode",
+      "filePath": "backend/scripts/load-chat-ws.mjs",
+      "lineRange": [
+        79,
+        81
+      ],
+      "summary": "parseReceiveMode in load-chat-ws.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/load-chat-ws.mjs:parseCloseMode",
+      "type": "function",
+      "name": "parseCloseMode",
+      "filePath": "backend/scripts/load-chat-ws.mjs",
+      "lineRange": [
+        83,
+        85
+      ],
+      "summary": "parseCloseMode in load-chat-ws.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/load-chat-ws.mjs:resolveEventSockets",
+      "type": "function",
+      "name": "resolveEventSockets",
+      "filePath": "backend/scripts/load-chat-ws.mjs",
+      "lineRange": [
+        87,
+        92
+      ],
+      "summary": "resolveEventSockets in load-chat-ws.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/load-chat-ws.mjs:eventSocketBufferStats",
+      "type": "function",
+      "name": "eventSocketBufferStats",
+      "filePath": "backend/scripts/load-chat-ws.mjs",
+      "lineRange": [
+        94,
+        108
+      ],
+      "summary": "eventSocketBufferStats in load-chat-ws.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/load-chat-ws.mjs:eventSendTiming",
+      "type": "function",
+      "name": "eventSendTiming",
+      "filePath": "backend/scripts/load-chat-ws.mjs",
+      "lineRange": [
+        110,
+        119
+      ],
+      "summary": "eventSendTiming in load-chat-ws.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/load-chat-ws.mjs:createClientMessageId",
+      "type": "function",
+      "name": "createClientMessageId",
+      "filePath": "backend/scripts/load-chat-ws.mjs",
+      "lineRange": [
+        121,
+        123
+      ],
+      "summary": "createClientMessageId in load-chat-ws.mjs.",
       "tags": [
         "backend",
         "function",
@@ -36391,8 +36553,8 @@
       "name": "sleep",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        72,
-        74
+        125,
+        127
       ],
       "summary": "sleep in load-chat-ws.mjs.",
       "tags": [
@@ -36408,8 +36570,8 @@
       "name": "percentile",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        76,
-        83
+        129,
+        136
       ],
       "summary": "percentile in load-chat-ws.mjs.",
       "tags": [
@@ -36425,8 +36587,8 @@
       "name": "getWebSocketCtor",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        85,
-        99
+        138,
+        152
       ],
       "summary": "getWebSocketCtor in load-chat-ws.mjs.",
       "tags": [
@@ -36442,8 +36604,8 @@
       "name": "addSocketListener",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        101,
-        107
+        154,
+        160
       ],
       "summary": "addSocketListener in load-chat-ws.mjs.",
       "tags": [
@@ -36459,8 +36621,8 @@
       "name": "removeSocketListener",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        109,
-        115
+        162,
+        168
       ],
       "summary": "removeSocketListener in load-chat-ws.mjs.",
       "tags": [
@@ -36476,8 +36638,8 @@
       "name": "socketSend",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        117,
-        119
+        170,
+        172
       ],
       "summary": "socketSend in load-chat-ws.mjs.",
       "tags": [
@@ -36493,8 +36655,8 @@
       "name": "parseSocketData",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        121,
-        124
+        174,
+        177
       ],
       "summary": "parseSocketData in load-chat-ws.mjs.",
       "tags": [
@@ -36510,8 +36672,8 @@
       "name": "requestJson",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        126,
-        140
+        179,
+        193
       ],
       "summary": "requestJson in load-chat-ws.mjs.",
       "tags": [
@@ -36527,8 +36689,8 @@
       "name": "loginUsers",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        142,
-        155
+        195,
+        208
       ],
       "summary": "loginUsers in load-chat-ws.mjs.",
       "tags": [
@@ -36544,8 +36706,8 @@
       "name": "authedJson",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        157,
-        165
+        210,
+        218
       ],
       "summary": "authedJson in load-chat-ws.mjs.",
       "tags": [
@@ -36561,8 +36723,8 @@
       "name": "ensureDirectChats",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        167,
-        186
+        220,
+        239
       ],
       "summary": "ensureDirectChats in load-chat-ws.mjs.",
       "tags": [
@@ -36578,8 +36740,8 @@
       "name": "listChats",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        188,
-        201
+        241,
+        254
       ],
       "summary": "listChats in load-chat-ws.mjs.",
       "tags": [
@@ -36595,8 +36757,8 @@
       "name": "buildTargets",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        203,
-        220
+        256,
+        273
       ],
       "summary": "buildTargets in load-chat-ws.mjs.",
       "tags": [
@@ -36612,8 +36774,8 @@
       "name": "waitForSocketMessage",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        222,
-        252
+        275,
+        305
       ],
       "summary": "waitForSocketMessage in load-chat-ws.mjs.",
       "tags": [
@@ -36629,8 +36791,8 @@
       "name": "openSocket",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        254,
-        284
+        307,
+        339
       ],
       "summary": "openSocket in load-chat-ws.mjs.",
       "tags": [
@@ -36646,8 +36808,8 @@
       "name": "connectOne",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        286,
-        318
+        341,
+        373
       ],
       "summary": "connectOne in load-chat-ws.mjs.",
       "tags": [
@@ -36663,8 +36825,8 @@
       "name": "openConnections",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        320,
-        369
+        375,
+        424
       ],
       "summary": "openConnections in load-chat-ws.mjs.",
       "tags": [
@@ -36680,8 +36842,8 @@
       "name": "runEvents",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        371,
-        444
+        426,
+        569
       ],
       "summary": "runEvents in load-chat-ws.mjs.",
       "tags": [
@@ -36697,8 +36859,8 @@
       "name": "closeSockets",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        446,
-        452
+        571,
+        581
       ],
       "summary": "closeSockets in load-chat-ws.mjs.",
       "tags": [
@@ -36714,8 +36876,8 @@
       "name": "main",
       "filePath": "backend/scripts/load-chat-ws.mjs",
       "lineRange": [
-        454,
-        504
+        583,
+        633
       ],
       "summary": "main in load-chat-ws.mjs.",
       "tags": [
@@ -36730,7 +36892,7 @@
       "type": "file",
       "name": "load-mixed-rps.mjs",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
-      "summary": "load-mixed-rps.mjs contains 10 functions.",
+      "summary": "load-mixed-rps.mjs contains 11 functions.",
       "tags": [
         "backend",
         "code",
@@ -36744,10 +36906,27 @@
       "name": "parseArgs",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        49,
-        88
+        50,
+        90
       ],
       "summary": "parseArgs in load-mixed-rps.mjs.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/load-mixed-rps.mjs:resolveEndpointMix",
+      "type": "function",
+      "name": "resolveEndpointMix",
+      "filePath": "backend/scripts/load-mixed-rps.mjs",
+      "lineRange": [
+        92,
+        107
+      ],
+      "summary": "resolveEndpointMix in load-mixed-rps.mjs.",
       "tags": [
         "backend",
         "function",
@@ -36761,8 +36940,8 @@
       "name": "parsePositiveInteger",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        90,
-        102
+        109,
+        121
       ],
       "summary": "parsePositiveInteger in load-mixed-rps.mjs.",
       "tags": [
@@ -36778,8 +36957,8 @@
       "name": "pickEndpoint",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        104,
-        116
+        123,
+        135
       ],
       "summary": "pickEndpoint in load-mixed-rps.mjs.",
       "tags": [
@@ -36795,8 +36974,8 @@
       "name": "percentile",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        118,
-        129
+        137,
+        148
       ],
       "summary": "percentile in load-mixed-rps.mjs.",
       "tags": [
@@ -36812,8 +36991,8 @@
       "name": "createEndpointStats",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        131,
-        140
+        150,
+        159
       ],
       "summary": "createEndpointStats in load-mixed-rps.mjs.",
       "tags": [
@@ -36829,8 +37008,8 @@
       "name": "publicEndpointStats",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        142,
-        155
+        161,
+        174
       ],
       "summary": "publicEndpointStats in load-mixed-rps.mjs.",
       "tags": [
@@ -36846,8 +37025,8 @@
       "name": "sleep",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        157,
-        165
+        176,
+        184
       ],
       "summary": "sleep in load-mixed-rps.mjs.",
       "tags": [
@@ -36863,8 +37042,8 @@
       "name": "createSlotWaiter",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        167,
-        181
+        186,
+        200
       ],
       "summary": "createSlotWaiter in load-mixed-rps.mjs.",
       "tags": [
@@ -36880,8 +37059,8 @@
       "name": "runRequest",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        183,
-        229
+        202,
+        248
       ],
       "summary": "runRequest in load-mixed-rps.mjs.",
       "tags": [
@@ -36897,8 +37076,8 @@
       "name": "main",
       "filePath": "backend/scripts/load-mixed-rps.mjs",
       "lineRange": [
-        231,
-        292
+        250,
+        313
       ],
       "summary": "main in load-mixed-rps.mjs.",
       "tags": [
@@ -45268,6 +45447,13 @@
     },
     {
       "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:isPermanentImageStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
       "target": "function:backend/apps/worker/src/content/content-image-mirror.service.ts:isHttpsUrl",
       "type": "contains",
       "direction": "forward",
@@ -45332,6 +45518,13 @@
     {
       "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
       "target": "class:backend/apps/worker/src/content/content-image-mirror.service.ts:ContentImageMirrorService",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/content/content-image-mirror.service.ts",
+      "target": "class:backend/apps/worker/src/content/content-image-mirror.service.ts:PermanentImageFetchError",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -51792,6 +51985,48 @@
     },
     {
       "source": "file:backend/scripts/load-chat-ws.mjs",
+      "target": "function:backend/scripts/load-chat-ws.mjs:parseReceiveMode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-chat-ws.mjs",
+      "target": "function:backend/scripts/load-chat-ws.mjs:parseCloseMode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-chat-ws.mjs",
+      "target": "function:backend/scripts/load-chat-ws.mjs:resolveEventSockets",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-chat-ws.mjs",
+      "target": "function:backend/scripts/load-chat-ws.mjs:eventSocketBufferStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-chat-ws.mjs",
+      "target": "function:backend/scripts/load-chat-ws.mjs:eventSendTiming",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-chat-ws.mjs",
+      "target": "function:backend/scripts/load-chat-ws.mjs:createClientMessageId",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-chat-ws.mjs",
       "target": "function:backend/scripts/load-chat-ws.mjs:sleep",
       "type": "contains",
       "direction": "forward",
@@ -51933,6 +52168,13 @@
     {
       "source": "file:backend/scripts/load-mixed-rps.mjs",
       "target": "function:backend/scripts/load-mixed-rps.mjs:parseArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/scripts/load-mixed-rps.mjs",
+      "target": "function:backend/scripts/load-mixed-rps.mjs:resolveEndpointMix",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -56125,7 +56367,7 @@
     },
     {
       "source": "file:backend/apps/api/src/services/dating.service.ts",
-      "target": "file:backend/apps/api/src/common/presenters.ts",
+      "target": "file:backend/apps/api/src/common/media-presenters.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -56581,6 +56823,13 @@
     {
       "source": "file:backend/apps/api/src/services/onboarding.service.ts",
       "target": "file:backend/apps/api/src/services/prisma.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/services/onboarding.service.ts",
+      "target": "file:backend/apps/api/src/services/profile.service.ts",
       "type": "imports",
       "direction": "forward",
       "weight": 0.7
@@ -59301,6 +59550,8 @@
         "table:backend/packages/database/prisma/migrations/20260526120000_free_meetup_weekly_limit/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260527120000_free_meetup_weekly_limit_7/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260529145000_evening_step_match_metadata/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260531181000_drop_message_created_sender_hot_index/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260601020000_drop_redundant_outbox_status_indexes/migration.sql",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",

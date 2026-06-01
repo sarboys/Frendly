@@ -35,6 +35,7 @@ const IMMUTABLE_MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const FR_PERIOD_DAY_MS = 24 * 60 * 60 * 1000;
 const FR_SEASON_HISTORY_LIMIT = 20;
 const FR_PROFILE_STATS_CACHE_SECONDS = 10;
+const PROFILE_MEMORY_CACHE_SECONDS = 1;
 const FR_SEASON_REWARDS = [
   {
     key: 'checkin-1',
@@ -143,8 +144,14 @@ export class ProfileService {
 
   async getProfile(userId: string) {
     const cacheKey = this.profileCacheKey(userId);
+    const memoryCached = this.getShortMemoryCache(cacheKey);
+    if (memoryCached != null) {
+      return memoryCached;
+    }
+
     const cached = await this.loadCachedProfile(cacheKey);
     if (cached != null) {
+      this.setShortMemoryCache(cacheKey, cached, PROFILE_MEMORY_CACHE_SECONDS);
       return cached;
     }
 
@@ -155,6 +162,7 @@ export class ProfileService {
 
     const loading = this.getBasicUser(userId)
       .then(async (profile) => {
+        this.setShortMemoryCache(cacheKey, profile, PROFILE_MEMORY_CACHE_SECONDS);
         await this.storeCachedProfile(cacheKey, profile);
         return profile;
       })
@@ -1129,9 +1137,11 @@ export class ProfileService {
     }
   }
 
-  private async clearProfileCache(userId: string): Promise<void> {
+  async clearProfileCache(userId: string): Promise<void> {
     try {
-      await this.redisCache?.delete(this.profileCacheKey(userId));
+      const cacheKey = this.profileCacheKey(userId);
+      this.shortMemoryCache.delete(cacheKey);
+      await this.redisCache?.delete(cacheKey);
     } catch {
       return;
     }
@@ -1185,9 +1195,13 @@ export class ProfileService {
     return entry.value;
   }
 
-  private setShortMemoryCache(cacheKey: string, value: unknown) {
+  private setShortMemoryCache(
+    cacheKey: string,
+    value: unknown,
+    ttlSeconds = FR_PROFILE_STATS_CACHE_SECONDS,
+  ) {
     this.shortMemoryCache.set(cacheKey, {
-      expiresAt: Date.now() + FR_PROFILE_STATS_CACHE_SECONDS * 1000,
+      expiresAt: Date.now() + ttlSeconds * 1000,
       value,
     });
   }

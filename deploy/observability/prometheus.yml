@@ -34,6 +34,10 @@ scrape_configs:
           - chat_b:3001
           - chat_c:3001
           - chat_d:3001
+          - chat_e:3001
+          - chat_f:3001
+          - chat_g:3001
+          - chat_h:3001
         labels:
           topology: scale
 

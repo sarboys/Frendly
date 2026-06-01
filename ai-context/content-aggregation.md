@@ -101,7 +101,7 @@ Secret rules:
 Affiliate URL rules:
 
 - Feed URL must be HTTPS and hosted by `feeds.advcake.ru`.
-- Action URL must be HTTPS and hosted by `go.avred.online`, `ticketland.ru` or `live.mts.ru`.
+- Action URL must be HTTPS and hosted by `go.avred.online`, `go.redav.online`, `ticketland.ru` or `live.mts.ru`.
 - Mobile opens paid ticket action through external browser or external app.
 - Payment is external only.
 

@@ -30,6 +30,9 @@ const LOCAL_CACHE_MAX_ENTRIES = 5000;
 const MEETUP_AUTO_FINISH_MS = 24 * 60 * 60 * 1000;
 type ChatListRequestKind = 'meetup' | 'direct' | 'community';
 type ChatListCachePayload = { etag: string; response: unknown };
+type ChatListLastMessage = Prisma.MessageGetPayload<{
+  select: typeof chatListLastMessageSelect;
+}>;
 
 const chatMessageMediaAssetSelect = {
   id: true,
@@ -392,16 +395,6 @@ export class ChatsService {
           orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
           take: CHAT_MEMBER_PREVIEW_LIMIT,
         },
-        messages: {
-          where: {
-            senderId: {
-              notIn: [...blockedUserIds],
-            },
-          },
-          select: chatListLastMessageSelect,
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
         eveningRoute: {
           select: {
             id: true,
@@ -479,11 +472,12 @@ export class ChatsService {
     });
     const hasMore = chats.length > take;
     const page = hasMore ? chats.slice(0, take) : chats;
-    const [memberStateByChatId, socialByUserId] = await Promise.all([
+    const [memberStateByChatId, lastMessageByChatId, socialByUserId] = await Promise.all([
       this.getChatListMemberStates(
         userId,
         page.map((chat) => chat.id),
       ),
+      this.getChatListLastMessages(page, blockedUserIds),
       kind === 'meetup' && includeSocial
         ? loadProfileSocialPreviews(
             this.prismaService.client,
@@ -498,7 +492,7 @@ export class ChatsService {
     const items = (
       await Promise.all(
       page.map(async (chat) => {
-        const lastMessage = chat.messages[0] ?? null;
+        const lastMessage = lastMessageByChatId.get(chat.id) ?? null;
         const lastMessagePreview = lastMessage
           ? buildMessagePreview({
               text: lastMessage.text,
@@ -1095,6 +1089,79 @@ export class ChatsService {
         },
       ]),
     );
+  }
+
+  private async getChatListLastMessages(
+    chats: Array<{ id: string; messages?: ChatListLastMessage[] }>,
+    blockedUserIds: Set<string>,
+  ): Promise<Map<string, ChatListLastMessage>> {
+    const embedded = new Map<string, ChatListLastMessage>();
+    for (const chat of chats) {
+      const message = chat.messages?.[0];
+      if (message) {
+        embedded.set(chat.id, message);
+      }
+    }
+
+    const chatIds = chats.map((chat) => chat.id);
+    if (
+      chatIds.length === 0 ||
+      typeof this.prismaService.client.$queryRaw !== 'function' ||
+      typeof this.prismaService.client.message?.findMany !== 'function'
+    ) {
+      return embedded;
+    }
+
+    const blockedSenderFilter =
+      blockedUserIds.size === 0
+        ? Prisma.empty
+        : Prisma.sql`AND message."senderId" NOT IN (${Prisma.join([...blockedUserIds])})`;
+    const chatValues = Prisma.join(
+      chatIds.map((chatId) => Prisma.sql`(${chatId})`),
+    );
+
+    const latestRows = await this.prismaService.client.$queryRaw<
+      Array<{ id: string; chatId: string }>
+    >(Prisma.sql`
+      WITH target_chats("chatId") AS (
+        VALUES ${chatValues}
+      )
+      SELECT latest."id", latest."chatId"
+      FROM target_chats
+      CROSS JOIN LATERAL (
+        SELECT message."id", message."chatId"
+        FROM "Message" message
+        WHERE message."chatId" = target_chats."chatId"
+          ${blockedSenderFilter}
+        ORDER BY message."createdAt" DESC, message."id" DESC
+        LIMIT 1
+      ) latest
+    `);
+
+    if (latestRows.length === 0) {
+      return new Map();
+    }
+
+    const chatIdByMessageId = new Map(
+      latestRows.map((row) => [row.id, row.chatId]),
+    );
+    const messages = await this.prismaService.client.message.findMany({
+      where: {
+        id: {
+          in: latestRows.map((row) => row.id),
+        },
+      },
+      select: chatListLastMessageSelect,
+    });
+
+    const byChatId = new Map<string, ChatListLastMessage>();
+    for (const message of messages) {
+      const chatId = chatIdByMessageId.get(message.id);
+      if (chatId) {
+        byChatId.set(chatId, message);
+      }
+    }
+    return byChatId;
   }
 
   private mapTicketSummary(event?: {

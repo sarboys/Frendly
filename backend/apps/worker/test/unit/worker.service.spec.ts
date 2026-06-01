@@ -548,6 +548,90 @@ describe('worker outbox recovery', () => {
     expect(maxActive).toBe(2);
   });
 
+  it('batches claimed chat unread fanout events by chat and actor', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'true';
+    const events = [
+      {
+        id: 'evt-1',
+        type: 'chat.unread_fanout',
+        payload: {
+          chatId: 'chat-1',
+          actorUserId: 'user-actor',
+          messageCreatedAt: '2026-05-30T10:00:00.000Z',
+        },
+        attempts: 1,
+        createdAt: new Date('2026-05-30T10:00:01.000Z'),
+      },
+      {
+        id: 'evt-2',
+        type: 'chat.unread_fanout',
+        payload: {
+          chatId: 'chat-1',
+          actorUserId: 'user-actor',
+          messageCreatedAt: '2026-05-30T10:00:02.000Z',
+        },
+        attempts: 1,
+        createdAt: new Date('2026-05-30T10:00:03.000Z'),
+      },
+    ];
+    const queryRaw = jest.fn()
+      .mockResolvedValueOnce(events)
+      .mockResolvedValueOnce([
+        {
+          user_id: 'user-recipient',
+          unread_count: BigInt(9),
+        },
+      ]);
+    const update = jest.fn().mockResolvedValue({});
+    const updateMany = jest.fn().mockResolvedValue({ count: 2 });
+    const prismaService = {
+      client: {
+        $queryRaw: queryRaw,
+        outboxEvent: {
+          update,
+          updateMany,
+        },
+      },
+    } as any;
+    const publishBusEvent = jest.requireMock('@big-break/database')
+      .publishBusEvent as jest.Mock;
+    const service = new WorkerService(prismaService);
+
+    await service.runOnce();
+
+    expect(queryRaw).toHaveBeenCalledTimes(2);
+    const batchUnreadQuery = queryRaw.mock.calls[1][0] as any;
+    const batchUnreadSql = Array.isArray(batchUnreadQuery)
+      ? batchUnreadQuery.join(' ')
+      : batchUnreadQuery.strings.join(' ');
+    expect(batchUnreadSql).toContain('message_events');
+    expect(batchUnreadSql).toContain('COUNT(*)');
+    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: {
+          in: ['evt-1', 'evt-2'],
+        },
+      },
+      data: {
+        status: 'done',
+        processedAt: expect.any(Date),
+        lockedAt: null,
+      },
+    });
+    expect(publishBusEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        type: 'unread.updated',
+        payload: {
+          userId: 'user-recipient',
+          chatId: 'chat-1',
+          unreadCount: 9,
+        },
+      },
+    );
+  });
+
   it('generates profile image variants during media finalize', async () => {
     const mediaAssetUpdate = jest.fn().mockResolvedValue({});
     const prismaService = {
@@ -1680,6 +1764,94 @@ describe('worker outbox recovery', () => {
       },
     );
     expect(queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('increments chat unread counts for new message fanout payloads', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
+    const previousBatchSize = process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE;
+    process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE = '2';
+    const now = Date.now();
+    const event = {
+      id: 'evt-message-increment',
+      type: 'chat.unread_fanout',
+      payload: {
+        chatId: 'chat-1',
+        actorUserId: 'user-me',
+        messageCreatedAt: '2026-05-31T12:00:00.000Z',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(now - 60_000),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const update = jest.fn().mockResolvedValue({});
+    const findMany = jest.fn().mockResolvedValue([
+      { id: 'member-1', userId: 'user-1' },
+      { id: 'member-2', userId: 'user-2' },
+    ]);
+    const queryRaw = jest.fn().mockResolvedValue([
+      {
+        user_id: 'user-1',
+        unread_count: BigInt(4),
+      },
+    ]);
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany,
+          update,
+        },
+        chatMember: {
+          findMany,
+        },
+        notification: {
+          findUnique: jest.fn(),
+        },
+        $queryRaw: queryRaw,
+        pushToken: {
+          findMany: jest.fn(),
+        },
+      },
+    } as any;
+    const publishBusEvent = jest.requireMock('@big-break/database')
+      .publishBusEvent as jest.Mock;
+    const service = new WorkerService(prismaService);
+
+    try {
+      await service.runOnce();
+    } finally {
+      if (previousBatchSize == null) {
+        delete process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE;
+      } else {
+        process.env.WORKER_MESSAGE_NOTIFICATION_BATCH_SIZE = previousBatchSize;
+      }
+    }
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    const unreadQuery = queryRaw.mock.calls[0][0] as any;
+    const unreadSql = Array.isArray(unreadQuery)
+      ? unreadQuery.join(' ')
+      : unreadQuery.strings.join(' ');
+    expect(unreadSql).toContain('SET "unreadCount" = cm."unreadCount" + 1');
+    expect(unreadSql).toContain('"lastReadAt" <');
+    expect(unreadSql).toContain('"UserBlock"');
+    expect(publishBusEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        type: 'unread.updated',
+        payload: {
+          userId: 'user-1',
+          chatId: 'chat-1',
+          unreadCount: 4,
+        },
+      },
+    );
   });
 
   it('uses batch outbox claim by default when raw SQL is available', async () => {

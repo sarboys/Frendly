@@ -2375,7 +2375,6 @@ model Message {
 
   @@unique([chatId, clientMessageId])
   @@index([chatId, createdAt, id])
-  @@index([chatId, createdAt, senderId])
   @@index([chatId, replyToMessageId])
 }
 
@@ -2542,9 +2541,6 @@ model OutboxEvent {
   processedAt DateTime?
   lastError   String?
   createdAt   DateTime     @default(now())
-
-  @@index([status, availableAt, createdAt])
-  @@index([status, lockedAt])
 }
 
 model RealtimeEvent {

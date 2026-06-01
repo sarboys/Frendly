@@ -51,6 +51,15 @@ function authenticatedState(userId: string, subscriptions: string[] = []) {
   };
 }
 
+function createMessageAuthorFindUniqueMock() {
+  return jest.fn().mockResolvedValue({
+    displayName: 'Никита',
+    profile: {
+      avatarUrl: null,
+    },
+  });
+}
+
 describe('ChatServerService unit', () => {
   beforeEach(() => {
     mockRedisPublish.mockClear();
@@ -656,6 +665,63 @@ describe('ChatServerService unit', () => {
     expect(unrelatedSocket.send).not.toHaveBeenCalled();
   });
 
+  it('skips block lookup when a chat event has no local subscribers', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const service = new ChatServerService({
+      client: {
+        userBlock: {
+          findMany,
+        },
+      },
+    } as any);
+
+    await (service as any).broadcastEvent({
+      type: 'message.created',
+      payload: {
+        chatId: 'chat-1',
+        senderId: 'user-actor',
+      },
+    });
+
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('does not rebroadcast a message to the socket that already received direct ack', async () => {
+    const service = createChatServiceForBroadcast();
+    const ackedSocket = createOpenSocket();
+    const otherSocket = createOpenSocket();
+
+    (service as any).stateBySocket.set(ackedSocket, {
+      userId: 'user-actor',
+      subscriptions: new Set(['chat-1']),
+    });
+    (service as any).stateBySocket.set(otherSocket, {
+      userId: 'user-other',
+      subscriptions: new Set(['chat-1']),
+    });
+    (service as any).socketsByChatId.set('chat-1', new Set([ackedSocket, otherSocket]));
+    (service as any).rememberDirectMessageAckedSocket(
+      {
+        chatId: 'chat-1',
+        senderId: 'user-actor',
+        clientMessageId: 'client-1',
+      },
+      ackedSocket,
+    );
+
+    await (service as any).broadcastEvent({
+      type: 'message.created',
+      payload: {
+        chatId: 'chat-1',
+        senderId: 'user-actor',
+        clientMessageId: 'client-1',
+      },
+    });
+
+    expect(ackedSocket.send).not.toHaveBeenCalled();
+    expect(otherSocket.send).toHaveBeenCalledTimes(1);
+  });
+
   it('broadcasts notification events only to sockets indexed by user id', async () => {
     const service = createChatServiceForBroadcast();
     const recipientSocket = createOpenSocket();
@@ -777,6 +843,131 @@ describe('ChatServerService unit', () => {
     expect(mockRedisPublish).toHaveBeenCalledTimes(1);
   });
 
+  it('uses a single raw statement for plain message writes when available', async () => {
+    const socket = createOpenSocket();
+    const queryRaw = jest.fn().mockResolvedValue([
+      {
+        realtime_event_id: '10',
+        unread_updates: [{ userId: 'user-peer', unreadCount: 3 }],
+      },
+    ]);
+    const transaction = jest.fn();
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'community',
+              event: null,
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        mediaAsset: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: createMessageAuthorFindUniqueMock(),
+        },
+        $queryRaw: queryRaw,
+        $transaction: transaction,
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(
+      socket,
+      authenticatedState('user-me', ['chat-1']),
+    );
+
+    await (service as any).sendMessage(socket, {
+      chatId: 'chat-1',
+      text: 'hello',
+      clientMessageId: 'client-1',
+    });
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(transaction).not.toHaveBeenCalled();
+    expect(mockRedisPublish).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining('"eventId":"10"'),
+    );
+    expect(mockRedisPublish).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining('"unreadCount":3'),
+    );
+  });
+
+  it('can move plain message unread updates to outbox', async () => {
+    const previousInlineUnread = process.env.CHAT_MESSAGE_INLINE_UNREAD_UPDATES;
+    process.env.CHAT_MESSAGE_INLINE_UNREAD_UPDATES = 'false';
+    try {
+      const socket = createOpenSocket();
+      const queryRaw = jest.fn().mockResolvedValue([
+        {
+          realtime_event_id: '10',
+        },
+      ]);
+      const service = new ChatServerService({
+        client: {
+          chatMember: {
+            findUnique: jest.fn().mockResolvedValue({
+              chat: {
+                kind: 'community',
+                event: null,
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          message: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          mediaAsset: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          user: {
+            findUnique: createMessageAuthorFindUniqueMock(),
+          },
+          $queryRaw: queryRaw,
+          $transaction: jest.fn(),
+        },
+      } as any);
+
+      (service as any).stateBySocket.set(
+        socket,
+        authenticatedState('user-me', ['chat-1']),
+      );
+
+      await (service as any).sendMessage(socket, {
+        chatId: 'chat-1',
+        text: 'hello',
+        clientMessageId: 'client-1',
+      });
+
+      expect(queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockRedisPublish).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('"eventId":"10"'),
+      );
+      expect(mockRedisPublish).not.toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('"unread.updated"'),
+      );
+    } finally {
+      if (previousInlineUnread == null) {
+        delete process.env.CHAT_MESSAGE_INLINE_UNREAD_UPDATES;
+      } else {
+        process.env.CHAT_MESSAGE_INLINE_UNREAD_UPDATES = previousInlineUnread;
+      }
+    }
+  });
+
   it('queues chat unread fanout outside the websocket send transaction',
     async () => {
       const socket = createOpenSocket();
@@ -833,6 +1024,7 @@ describe('ChatServerService unit', () => {
       });
       const messageFindFirst = jest.fn().mockResolvedValue(null);
       const mediaAssetFindMany = jest.fn().mockResolvedValue([]);
+      const userFindUnique = createMessageAuthorFindUniqueMock();
       const service = new ChatServerService({
         client: {
           chatMember: {
@@ -851,6 +1043,9 @@ describe('ChatServerService unit', () => {
           },
           mediaAsset: {
             findMany: mediaAssetFindMany,
+          },
+          user: {
+            findUnique: userFindUnique,
           },
           $transaction: transaction,
         },
@@ -874,8 +1069,21 @@ describe('ChatServerService unit', () => {
       expect(mediaAssetFindMany).not.toHaveBeenCalled();
       const createCall = txMessageCreate.mock.calls[0]?.[0];
       expect(createCall.data).not.toHaveProperty('attachments');
+      expect(createCall.select).not.toHaveProperty('sender');
       expect(createCall.select).not.toHaveProperty('attachments');
       expect(createCall.select).not.toHaveProperty('replyTo');
+      expect(userFindUnique).toHaveBeenCalledTimes(1);
+      expect(userFindUnique).toHaveBeenCalledWith({
+        where: { id: 'user-me' },
+        select: {
+          displayName: true,
+          profile: {
+            select: {
+              avatarUrl: true,
+            },
+          },
+        },
+      });
       expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
         maxWait: 10000,
         timeout: 10000,
@@ -886,10 +1094,200 @@ describe('ChatServerService unit', () => {
           payload: {
             chatId: 'community-chat',
             actorUserId: 'user-me',
+            messageCreatedAt: '2026-04-24T00:00:00.000Z',
           },
         },
       });
     });
+
+  it('sends a direct message ack after a successful write', async () => {
+    const socket = createOpenSocket();
+    const txMessageCreate = jest.fn(async (input) => ({
+      id: 'message-1',
+      chatId: input.data.chatId,
+      senderId: input.data.senderId,
+      text: input.data.text,
+      clientMessageId: input.data.clientMessageId,
+      locationLatitude: null,
+      locationLongitude: null,
+      locationLabel: null,
+      locationExpiresAt: null,
+      createdAt: new Date('2026-04-24T00:00:00.000Z'),
+    }));
+    const service = new ChatServerService({
+      client: {
+        chatMember: {
+          findUnique: jest.fn().mockResolvedValue({
+            chat: {
+              kind: 'community',
+              event: null,
+            },
+          }),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        message: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        mediaAsset: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: createMessageAuthorFindUniqueMock(),
+        },
+        $transaction: jest.fn(async (callback) =>
+          callback({
+            message: {
+              create: txMessageCreate,
+            },
+            chat: {
+              update: jest.fn().mockResolvedValue({}),
+            },
+            realtimeEvent: {
+              create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
+            },
+            outboxEvent: {
+              create: jest.fn().mockResolvedValue({}),
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    (service as any).stateBySocket.set(
+      socket,
+      authenticatedState('user-me', ['chat-1']),
+    );
+
+    await (service as any).sendMessage(socket, {
+      chatId: 'chat-1',
+      text: 'hello',
+      clientMessageId: 'client-1',
+    });
+
+    const sent = JSON.parse(socket.send.mock.calls[0][0]);
+    expect(sent).toMatchObject({
+      type: 'message.created',
+      payload: {
+        id: 'message-1',
+        chatId: 'chat-1',
+        senderId: 'user-me',
+        clientMessageId: 'client-1',
+        eventId: '10',
+      },
+    });
+    expect((service as any).directMessageAckedSockets.size).toBe(1);
+    expect(mockRedisPublish).toHaveBeenCalledTimes(1);
+  });
+
+  it('bounds concurrent message write transactions', async () => {
+    const previousConcurrency = process.env.CHAT_MESSAGE_WRITE_CONCURRENCY;
+    process.env.CHAT_MESSAGE_WRITE_CONCURRENCY = '1';
+    try {
+      const socket = createOpenSocket();
+      let releaseFirstTransaction: (() => void) | undefined;
+      const txMessageCreate = jest.fn(async (input) => ({
+        id: `message-${input.data.clientMessageId}`,
+        chatId: input.data.chatId,
+        senderId: input.data.senderId,
+        text: input.data.text,
+        clientMessageId: input.data.clientMessageId,
+        locationLatitude: null,
+        locationLongitude: null,
+        locationLabel: null,
+        locationExpiresAt: null,
+        createdAt: new Date('2026-04-24T00:00:00.000Z'),
+        sender: {
+          displayName: 'Никита',
+          profile: {
+            avatarUrl: null,
+          },
+        },
+        replyTo: null,
+        attachments: [],
+      }));
+      const transaction = jest.fn(async (callback) => {
+        if (transaction.mock.calls.length === 1) {
+          await new Promise<void>((resolve) => {
+            releaseFirstTransaction = resolve;
+          });
+        }
+        return callback({
+          message: {
+            create: txMessageCreate,
+          },
+          chat: {
+            update: jest.fn().mockResolvedValue({}),
+          },
+          realtimeEvent: {
+            create: jest.fn().mockResolvedValue({ id: BigInt(10) }),
+          },
+          outboxEvent: {
+            create: jest.fn().mockResolvedValue({}),
+          },
+        });
+      });
+      const service = new ChatServerService({
+        client: {
+          chatMember: {
+            findUnique: jest.fn().mockResolvedValue({
+              chat: {
+                kind: 'community',
+                event: null,
+              },
+            }),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          message: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          mediaAsset: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          user: {
+            findUnique: createMessageAuthorFindUniqueMock(),
+          },
+          $transaction: transaction,
+        },
+      } as any);
+
+      (service as any).stateBySocket.set(
+        socket,
+        authenticatedState('user-me', ['chat-1']),
+      );
+
+      const first = (service as any).sendMessage(socket, {
+        chatId: 'chat-1',
+        text: 'hello 1',
+        clientMessageId: 'client-1',
+      });
+      await new Promise((resolve) => setImmediate(resolve));
+
+      const second = (service as any).sendMessage(socket, {
+        chatId: 'chat-1',
+        text: 'hello 2',
+        clientMessageId: 'client-2',
+      });
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(transaction).toHaveBeenCalledTimes(1);
+
+      releaseFirstTransaction?.();
+      await first;
+      await second;
+
+      expect(transaction).toHaveBeenCalledTimes(2);
+    } finally {
+      if (previousConcurrency == null) {
+        delete process.env.CHAT_MESSAGE_WRITE_CONCURRENCY;
+      } else {
+        process.env.CHAT_MESSAGE_WRITE_CONCURRENCY = previousConcurrency;
+      }
+    }
+  });
 
   it('does not treat another sender message with the same client id as a retry', async () => {
     const socket = createOpenSocket();
@@ -919,6 +1317,9 @@ describe('ChatServerService unit', () => {
         },
         mediaAsset: {
           findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: createMessageAuthorFindUniqueMock(),
         },
         $transaction: jest.fn().mockRejectedValue(uniqueError),
       },
@@ -972,6 +1373,9 @@ describe('ChatServerService unit', () => {
         },
         mediaAsset: {
           findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: createMessageAuthorFindUniqueMock(),
         },
         $transaction: jest.fn(async (callback) =>
           callback({

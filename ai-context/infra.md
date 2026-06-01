@@ -47,9 +47,9 @@ postgres + redis
 - `admin_partner`: `partner.frendly.tech`.
 - `nginx`: public port `80`.
 
-Runtime services use pooled DB URL through PgBouncer. In external DB mode this points to `192.168.0.6:6432`. Migrations and concurrent index scripts use direct DB URL. In external DB mode this points to `192.168.0.6:5432`.
-Chat runtime can override the shared pooled URL with `CHAT_DATABASE_POOL_URL`, for example to give WebSocket event handling a higher Prisma `connection_limit` through PgBouncer without changing API pool settings.
-Current high-load chat evidence uses `CHAT_DATABASE_POOL_URL` with Prisma `connection_limit=30` for each chat container. DB-host PgBouncer uses `default_pool_size=100`, `reserve_pool_size=10`, while Postgres `max_connections` is 120. This is close to the DB connection ceiling; do not raise it further without DB sizing evidence.
+Runtime API and worker services use pooled DB URL through PgBouncer. In external DB mode this points to `192.168.0.6:6432`. Migrations and concurrent index scripts use direct DB URL. In external DB mode this points to `192.168.0.6:5432`.
+Chat runtime can override the shared pooled URL with `CHAT_DATABASE_POOL_URL`. Current high-load chat evidence uses a direct Postgres URL to `192.168.0.6:5432` with Prisma `connection_limit=10` for each chat container. This avoids PgBouncer becoming the `message.send` write bottleneck while keeping the DB connection budget below Postgres `max_connections=120`.
+With 8 chat containers, direct chat can use up to 80 Postgres connections. DB-host PgBouncer still serves API and worker traffic. Testing `connection_limit=12` improved combined chat ACK drain a little but drove DB connections to 117-119, too close to the current limit, so release env should stay at 10 unless DB sizing is changed.
 If `ENABLE_POSTGIS_EVENT_FEED=true`, deploy runs `db:verify:postgis:event-geo` through the migrate image before runtime containers start.
 
 Public routing:
@@ -82,7 +82,7 @@ Scrape targets:
 - API `/metrics` on `api:3000`.
 - Release scale API `/metrics` on `api_a:3000` through `api_h:3000`.
 - Chat `/metrics` on `chat:3001`.
-- Scale chat `/metrics` on `chat_a:3001` through `chat_d:3001`.
+- Scale chat `/metrics` on `chat_a:3001` through `chat_h:3001`.
 - Worker `/metrics` on `worker:3002`.
 - Scale workers `/metrics` on `worker_realtime:3002`, `worker_content:3002`, `worker_schedules:3002`.
 - node exporter.
@@ -94,7 +94,7 @@ Metrics privacy rules:
 
 - labels may include service, endpoint, method, status class, job type, event type, operation and status.
 - labels must not include user id, chat id, message id, token, media URL, object key, phone, email or request payload.
-- Chat scale metrics include membership cache hit or miss, sync request status, WebSocket drops and payload warning counts. Payload labels stay at service, event type and direction only.
+- Chat scale metrics include membership cache hit or miss, sync request status, WebSocket drops, payload warning counts and message write pipeline gauges. Payload labels stay at service, event type and direction only. Worker chat unread fanout uses incremental `ChatMember.unreadCount` updates for new message payloads with `messageCreatedAt`; older payloads fall back to full unread recount. High-load release env uses batch outbox claim with `WORKER_MAX_EVENTS_PER_RUN=1000` and `WORKER_OUTBOX_PROCESSING_CONCURRENCY=16`.
 
 Validation:
 
@@ -130,6 +130,14 @@ cd backend && node scripts/perf-20k-smoke.mjs --api https://api.frendly.tech --t
 
 Do not commit real tokens or production smoke output with secrets.
 
+Latest VPS1 scale evidence:
+
+- 1500 RPS mixed for 60 seconds passed with 4 load generators at 375 RPS each. Total was 90000 requests, 90000 ok, 0 errors, 0 timeouts. Per-generator p95 was 204-222 ms and p99 was 600-656 ms. API containers were mostly 58-77% CPU, nginx about 19-25%, DB showed no lock or pool wait bottleneck.
+- A single 1500 RPS generator for 60 seconds is not valid evidence for failure. It previously timed out while the load container itself saturated CPU. Use distributed generators for 1500 RPS HTTP checks.
+- `/events` isolated at 1500 RPS for 30 seconds passed with 0 errors. Event SQL was cheap in `pg_stat_statements`, while p99 came from API CPU and queueing. The event base feed cache is active because only a small fraction of requests reached event SQL.
+- `/profile/me` isolated at 1500 RPS passed only cleanly with 4 load generators after adding the 1 second process-local profile cache. Two 750 RPS generators can become client-limited on the larger JSON response.
+- Durable chat `message.send` at a 5000/sec target with 16 generators passed correctness, but not stable 5000/sec rate. The 30 second run after dropping redundant `OutboxEvent` status indexes sent 149760 messages, got 149760 ACKs, had 0 errors and 0 pending, and reached about 4780-4820 actual sends/sec. A 15 second control with 800 sockets sent 74880 messages, got 74880 ACKs, and had 0 pending or errors at about 4.8k/sec. DB evidence points at Postgres WAL writes as the remaining limiter.
+
 ## T-Bank payments
 
 - T-Bank secrets live only in env: `TBANK_TERMINAL_KEY`, `TBANK_PASSWORD`.
@@ -156,6 +164,7 @@ Do not commit real tokens or production smoke output with secrets.
 - Default worker path uses batch claim with `FOR UPDATE SKIP LOCKED` when raw SQL is available.
 - `WORKER_OUTBOX_BATCH_CLAIM=false` disables batch claim for sequential fallback.
 - `WORKER_OUTBOX_PROCESSING_CONCURRENCY` can raise concurrency after testing.
+- Hot outbox claiming uses partial indexes `OutboxEvent_pending_available_createdAt_id_idx` and `OutboxEvent_processing_lockedAt_id_idx`. The older full status indexes `OutboxEvent_status_availableAt_createdAt_idx` and `OutboxEvent_status_lockedAt_idx` were removed from Prisma schema and dropped on VPS1 because they added write/WAL cost while the hot worker path used the partial indexes. After large `message.send` tests, stale tuples in these partial indexes made empty worker claim rise to about 74 ms until `VACUUM ANALYZE`; `OutboxEvent` now has lower per-table autovacuum thresholds so claim stays cheap after bursty `pending -> done` updates.
 - Worker logs `[worker-outbox-backlog-age]` when claimed outbox age exceeds `WORKER_OUTBOX_BACKLOG_WARN_AGE_MS`, default `300000`.
 - `WORKER_PUSH_TOKEN_BATCH_SIZE` caps active push tokens loaded per dispatch, default `20`.
 - `WORKER_RETENTION_CLEANUP_ENABLED=true` enables DB retention cleanup.
@@ -164,7 +173,7 @@ Do not commit real tokens or production smoke output with secrets.
 - Default scheduled content sources are `kudago,advcake_ticketland`. Default production cities are the 30-city product list from `@big-break/database` `content-city-catalog`: Москва, Санкт-Петербург, Барнаул, Волгоград, Воронеж, Екатеринбург, Ижевск, Казань, Калининград, Кемерово, Краснодар, Красноярск, Махачкала, Набережные Челны, Нижний Новгород, Новосибирск, Омск, Пермь, Ростов-на-Дону, Самара, Саратов, Сочи, Ставрополь, Тольятти, Томск, Тюмень, Ульяновск, Уфа, Челябинск, Ярославль. KudaGo runs only for cities with a KudaGo code.
 - Manual admin import creates `ExternalImportRun.status=pending_manual`; worker scans those runs and performs KudaGo, AdvCake Ticketland or explicit Tomesto fetches outside the API request path. Timepad and Overpass are no longer accepted for new manual imports.
 - Tomesto is kept as an explicit manual import source and uses per-city slugs from `content-city-catalog`, for example `spb`, `nnovgorod`, `nabchelny`, `mahachkala`, `rostov`. Use `TOMESTO_REF_QUERY=...`, `TOMESTO_REQUEST_DELAY_MS=500`, `TOMESTO_CATALOG_REQUEST_DELAY_MS=150`, `TOMESTO_CATALOG_CONCURRENCY=5`, `TOMESTO_MAX_PAGES=10`, `TOMESTO_CATALOG_BATCH_SIZE=250`, `TOMESTO_CATALOG_FALLBACK_MAX_PAGES=250`, `TOMESTO_WINDOW_DAYS=30`, `TOMESTO_IMPORT_IMAGES=true`, `TOMESTO_PUBLIC_EVENTS_ENABLED=false`. Production compose passes these Tomesto env names and gives content import a 30 minute default timeout. Regular Tomesto import reads places, events and promos from list pages; events and promos stay hidden by default. Admin can also create `importMode=tomesto_places_catalog`, which reads `/<citySlug>/sitemap.xml`, imports only direct place pages in batches with catalog concurrency, updates run counters after each imported batch, and worker queues the next pending run with the next catalog offset until the sitemap is exhausted. If a catalog run is interrupted and becomes stale, worker marks it failed and queues a resume run from the same catalog offset. Manual admin import remains useful for smoke checks. Places refresh without a date period; Tomesto pages marked closed are stored with `raw.status.closed=true` and imported hidden. Events and promos use the Tomesto date window. Promos import hidden until a promo surface exists. Public attach candidates without valid coordinates are hidden during import, but raw rows are still upserted and `missingCoordsCount` still tracks them. Expected logs: INFO for import start with city and cityCode, sitemap discovered counts, catalog slice offsets, created runs, discovered counts and hidden counts, plus list-page 404 as pagination end; WARN for missing ref query, sitemap fallback or stale catalog resume; ERROR for other non-2xx Tomesto pages.
-- External content import mirrors imported image URLs to S3 under `external-content/...` and stores the resulting public asset URL back in `ExternalContentItem.imageUrl` when mirroring succeeds. Public Affiche API returns owned mirrored URLs as CDN public asset URLs and uses the `/affiche/images` fallback proxy only for allowed third-party HTTPS image URLs. If image download or S3 write fails, import keeps the source image URL and does not fail the run.
+- External content import mirrors imported image URLs to S3 under `external-content/...` and stores the resulting public asset URL back in `ExternalContentItem.imageUrl` when mirroring succeeds. Public Affiche API returns owned mirrored URLs as CDN public asset URLs and uses the `/affiche/images` fallback proxy only for allowed third-party HTTPS image URLs. If image download or S3 write fails, import keeps the source image URL and does not fail the run. Permanent image 404 or 410 clears `ExternalContentItem.imageUrl` so content backfill does not keep retrying dead third-party media.
 - Manual admin route generation creates `GeneratedRouteDraftBatch.status=pending_manual`; worker scans those batches and performs OpenRouter generation outside the API request path.
 - If OpenRouter returns invalid JSON, an empty route or times out, worker saves a deterministic fallback review draft from a nearby imported candidate cluster instead of leaving the run failed when enough candidates exist. Place-only fallback uses a larger place pool and picks different categories inside one walkable area.
 - Source env: `KUDAGO_BASE_URL`, `TIMEPAD_BASE_URL`, `TIMEPAD_API_TOKEN`, `OVERPASS_BASE_URL`, `ADVCAKE_API_PASS`, `ADVCAKE_BASE_URL`, `ADVCAKE_TICKETLAND_OFFER_ID`, `ADVCAKE_TICKETLAND_WEBSITES`, `ADVCAKE_FEED_FORMAT`, `ADVCAKE_FEED_MAX_BYTES`, `TOMESTO_BASE_URL`, `TOMESTO_REF_QUERY`, `TOMESTO_REQUEST_DELAY_MS`, `TOMESTO_CATALOG_REQUEST_DELAY_MS`, `TOMESTO_CATALOG_CONCURRENCY`, `TOMESTO_MAX_PAGES`, `TOMESTO_CATALOG_BATCH_SIZE`, `TOMESTO_CATALOG_FALLBACK_MAX_PAGES`, `TOMESTO_WINDOW_DAYS`, `TOMESTO_IMPORT_IMAGES`, `TOMESTO_PUBLIC_EVENTS_ENABLED`, `NOMINATIM_GEOCODER_ENABLED`, `NOMINATIM_BASE_URL`, `NOMINATIM_USER_AGENT`, `NOMINATIM_RATE_LIMIT_MS`, `YANDEX_GEOCODER_API_KEY`, `CONTENT_GEOCODER_API_KEY`, `YANDEX_GEOCODER_BASE_URL`, `CONTENT_GEOCODER_TIMEOUT_MS`. The real AdvCake pass, Tomesto ref query and geocoder keys must stay only in env and must not be written to logs. `ADVCAKE_TICKETLAND_OFFER_ID=663` is the combined AdvCake offer for `ticketland.ru | live.mts.ru`. Geocoder env is shared by API and worker through `@big-break/database` `VenueGeocoderClient`: API keeps Nominatim disabled by default via `API_NOMINATIM_GEOCODER_ENABLED=false` and uses Yandex for manual `POST /events` address resolution; worker uses Nominatim only for paid Ticketland rows without coordinates. Worker import and daily backfill first try an exact place match in DB, then Nominatim by `city + venueName` for reliable Ticketland venue names, then Yandex for address or fallback queries. Nominatim requires `NOMINATIM_USER_AGENT`, uses `countrycodes=ru`, validates result bbox and place-like categories, caches identical `city + venueName` queries in process and keeps a single worker-wide rate limit from `NOMINATIM_RATE_LIMIT_MS`, default `1200`. The daily worker backfill runs with `CONTENT_GEOCODER_BACKFILL_ENABLED=true`, `CONTENT_GEOCODER_BACKFILL_DAILY_AT=22:00` and `CONTENT_GEOCODER_DAILY_LIMIT=1000`; it scans future paid Ticketland rows without coordinates, prioritizes Москва, then Санкт-Петербург, then other cities, and stops for the day on Nominatim or Yandex 403 or 429.
@@ -268,11 +277,11 @@ Flow:
 - Production app path: `/opt/frendly`.
 - Deploy workflow and script discard tracked local changes in server checkouts before switching to the target branch, then use `flock` before Docker cleanup and compose recreate.
 - `scripts/deploy.sh` waits for `http://127.0.0.1/health` after compose recreate before returning. Defaults: `HEALTHCHECK_RETRIES=60`, `HEALTHCHECK_DELAY_SECONDS=5`, `HEALTHCHECK_TIMEOUT_SECONDS=10`.
-- Release scale compose: add `COMPOSE_EXTRA_FILES=compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b api_c api_d api_e api_f api_g api_h chat_a chat_b chat_c chat_d worker_realtime worker_content worker_schedules landing admin_internal admin_partner`.
+- Release scale compose: add `COMPOSE_EXTRA_FILES=compose.scale.yml` and `RUNTIME_SERVICES=api_a api_b api_c api_d api_e api_f api_g api_h chat_a chat_b chat_c chat_d chat_e chat_f chat_g chat_h worker_realtime worker_content worker_schedules landing admin_internal admin_partner`. For the 1500 message/sec chat gate, set `WORKER_REALTIME_SCALE=4`; deploy passes it as `--scale worker_realtime=4`.
 - In scale mode, `RUNTIME_SERVICES` must not include base `api`, `chat` or `worker`; `scripts/deploy.sh` rejects that combination.
 - External DB mode uses `CORE_SERVICES=redis`. This keeps local `postgres` and local `pgbouncer` stopped while `migrate` runs with `--no-deps` against the direct external DB URL.
 - Rollback to local DB mode uses `CORE_SERVICES=postgres redis pgbouncer`, `POSTGRESQL_HOST=postgres`, a local `DATABASE_DIRECT_URL` to `postgres:5432` and a local `DATABASE_POOL_URL` to `pgbouncer:6432`.
-- Release scale nginx config: `deploy/nginx/frendly.scale.conf` balances API through `api_a` to `api_h` and chat through `chat_a` to `chat_d`, while the default `deploy/nginx/frendly.conf` stays single-instance.
+- Release scale nginx config: `deploy/nginx/frendly.scale.conf` balances API through `api_a` to `api_h` and chat through `chat_a` to `chat_h`, while the default `deploy/nginx/frendly.conf` stays single-instance.
 - `scripts/deploy.sh` and `scripts/deploy-landing.sh` both read `COMPOSE_EXTRA_FILES` and `NGINX_SERVICE` from env or `.env.production`.
 - Worker role gates: `WORKER_OUTBOX_ENABLED`, `WORKER_CONTENT_ENABLED`, `WORKER_SCHEDULES_ENABLED`.
 - Landing repo syncs from `https://github.com/sarboys/frendly_landing.git`.

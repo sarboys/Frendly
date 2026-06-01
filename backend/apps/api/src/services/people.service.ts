@@ -6,9 +6,9 @@ import {
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
-import { ProfileReactionKind } from '@prisma/client';
+import { Prisma, ProfileReactionKind } from '@prisma/client';
 import { ApiError } from '../common/api-error';
-import { mapBasicProfile, mapProfilePhoto } from '../common/presenters';
+import { mapBasicProfile, mapEventSummary, mapProfilePhoto } from '../common/presenters';
 import {
   emptyProfileSocialPreview,
   loadProfileSocialPreviews,
@@ -36,6 +36,72 @@ type ProfileSocialSnapshot = {
   iSuper: boolean;
   followNotifications: boolean;
 };
+
+const PUBLIC_PROFILE_EVENT_LIMIT = 3;
+const PUBLIC_PROFILE_EVENT_PARTICIPANT_PREVIEW_LIMIT = 6;
+const publicProfileEventSelect = {
+  id: true,
+  title: true,
+  description: true,
+  emoji: true,
+  startsAt: true,
+  place: true,
+  city: true,
+  distanceKm: true,
+  latitude: true,
+  longitude: true,
+  capacity: true,
+  vibe: true,
+  tone: true,
+  hostNote: true,
+  lifestyle: true,
+  priceMode: true,
+  priceAmountFrom: true,
+  priceAmountTo: true,
+  accessMode: true,
+  genderMode: true,
+  visibilityMode: true,
+  requiresVerification: true,
+  requiresFrendlyPlus: true,
+  joinMode: true,
+  isDate: true,
+  eveningRouteId: true,
+  hostId: true,
+  coverAsset: {
+    select: {
+      id: true,
+      publicUrl: true,
+      variants: true,
+    },
+  },
+  participants: {
+    select: {
+      userId: true,
+      user: {
+        select: {
+          displayName: true,
+          profile: {
+            select: {
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+    take: PUBLIC_PROFILE_EVENT_PARTICIPANT_PREVIEW_LIMIT,
+  },
+  _count: {
+    select: {
+      participants: true,
+    },
+  },
+  liveState: {
+    select: {
+      status: true,
+    },
+  },
+} satisfies Prisma.EventSelect;
 
 type InviteState =
   | 'available'
@@ -649,12 +715,14 @@ export class PeopleService {
   }
 
   private async loadFreshPersonProfile(currentUserId: string, userId: string) {
-    if (currentUserId !== userId) {
-      const blockedUserIds = await this.getBlockedUserIds(currentUserId);
-      if (blockedUserIds.has(userId)) {
-        throw new ApiError(404, 'user_not_found', 'User not found');
-      }
+    const blockedUserIds =
+      currentUserId === userId
+        ? new Set<string>()
+        : await this.getBlockedUserIds(currentUserId);
+    if (blockedUserIds.has(userId)) {
+      throw new ApiError(404, 'user_not_found', 'User not found');
     }
+    const now = new Date();
 
     const user = await this.prismaService.client.user.findUnique({
       where: { id: userId },
@@ -718,6 +786,33 @@ export class PeopleService {
             showAge: true,
           },
         },
+        hostedEvents: {
+          where: {
+            canceledAt: null,
+            visibilityMode: 'public',
+            startsAt: { gte: now },
+          },
+          select: publicProfileEventSelect,
+          orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+          take: PUBLIC_PROFILE_EVENT_LIMIT,
+        },
+        eventParticipants: {
+          where: {
+            event: {
+              canceledAt: null,
+              visibilityMode: 'public',
+              startsAt: { gte: now },
+              hostId: { notIn: [...blockedUserIds] },
+            },
+          },
+          select: {
+            event: {
+              select: publicProfileEventSelect,
+            },
+          },
+          orderBy: [{ event: { startsAt: 'asc' } }, { eventId: 'asc' }],
+          take: PUBLIC_PROFILE_EVENT_LIMIT,
+        },
       },
     });
 
@@ -746,7 +841,48 @@ export class PeopleService {
           : [],
       intent: user.onboarding?.intent,
       social,
+      upcomingEvents: this.mapProfileUpcomingEvents(
+        user,
+        currentUserId,
+        blockedUserIds,
+      ),
     };
+  }
+
+  private mapProfileUpcomingEvents(
+    user: any,
+    currentUserId: string,
+    blockedUserIds: Set<string>,
+  ) {
+    const events = [
+      ...(user.hostedEvents ?? []),
+      ...(user.eventParticipants ?? []).map((row: any) => row.event),
+    ];
+    const seen = new Set<string>();
+    return events
+      .filter((event) => {
+        if (!event?.id || seen.has(event.id)) {
+          return false;
+        }
+        seen.add(event.id);
+        return true;
+      })
+      .sort((left, right) => {
+        const byDate = left.startsAt.getTime() - right.startsAt.getTime();
+        return byDate === 0 ? left.id.localeCompare(right.id) : byDate;
+      })
+      .slice(0, PUBLIC_PROFILE_EVENT_LIMIT)
+      .map((event) =>
+        mapEventSummary({
+          event,
+          participants: (event.participants ?? []).filter(
+            (participant: any) => !blockedUserIds.has(participant.userId),
+          ),
+          currentUserId,
+          participantCount: event._count?.participants,
+          liveState: event.liveState,
+        }),
+      );
   }
 
   async getProfileSocial(

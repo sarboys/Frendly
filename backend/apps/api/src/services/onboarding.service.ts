@@ -3,6 +3,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { ApiError } from '../common/api-error';
 import { mapProfilePhoto } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
+import { ProfileService } from './profile.service';
 import { RedisCacheService } from './redis-cache.service';
 
 type SessionProvider =
@@ -247,6 +248,7 @@ export class OnboardingService {
   constructor(
     private readonly prismaService: PrismaService,
     @Optional() private readonly redisCache?: RedisCacheService,
+    @Optional() private readonly profileService?: ProfileService,
   ) {}
 
   async getOnboarding(userId: string, sessionId?: string) {
@@ -517,6 +519,7 @@ export class OnboardingService {
         this.redisCache?.delete(this.onboardingCacheKey(userId, sessionId)),
         this.redisCache?.delete(['api', 'auth-me', 'v1', userId].join(':')),
         this.redisCache?.delete(['profile', 'me', 'v1', userId].join(':')),
+        this.profileService?.clearProfileCache(userId),
       ]);
       return response;
     } catch (error) {

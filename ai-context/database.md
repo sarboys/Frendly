@@ -59,6 +59,7 @@ Chat and realtime:
 - `ChatMember.unreadCount` stores materialized unread count.
 - `ChatMember.isPinned` and `pinnedAt` store per-user chat pin state for meetup and direct chat lists.
 - Evening chat summary is denormalized on `Chat`: `meetupPhase`, `meetupMode`, `currentStep`, `meetupStartsAt`, `meetupEndsAt`.
+- `Message` keeps indexes for id, `chatId + clientMessageId`, `chatId + createdAt + id`, and replies. The old `Message_chatId_createdAt_senderId_idx` was removed from schema and hot-path index creation because production index stats showed it was nearly unused while every chat write still had to maintain it.
 
 Media:
 
@@ -93,6 +94,7 @@ Drops:
 Notifications and async:
 
 - `Notification`, `PushToken`, `OutboxEvent`, `TelegramBotState`.
+- `OutboxEvent` hot worker scans use manual partial indexes for pending and processing rows. Do not add broad `status` indexes back without fresh `EXPLAIN` and write-load evidence, because they increase WAL on every chat message outbox write. `OutboxEvent` also has table-level autovacuum settings with lower vacuum and analyze thresholds because high-volume `pending -> done` updates can leave many dead tuples in the partial indexes.
 - `NotificationKind.verification` is used for verification approve and return notifications. Payloads use `source=verification` so mobile can refresh profile, verification and subscription state.
 
 Admin analytics:

@@ -263,6 +263,54 @@ describe('ContentImportService', () => {
     }));
   });
 
+  it('clears broken image URLs during image backfill', async () => {
+    const itemUpdate = jest.fn().mockResolvedValue({});
+    const imageMirror = {
+      mirrorExternalImage: jest.fn().mockResolvedValue({
+        sourceCode: 'kudago',
+        sourceItemId: 'event-1',
+        imageUrl: null,
+        imageVariants: {},
+      }),
+    };
+    const service = new ContentImportService(
+      prismaMock({
+        source: { id: 'source-1', code: 'kudago' },
+        itemFindMany: jest.fn().mockResolvedValue([
+          {
+            id: 'item-1',
+            sourceItemId: 'event-1',
+            title: 'Событие',
+            contentKind: 'event',
+            city: 'Москва',
+            timezone: 'Europe/Moscow',
+            imageVariants: null,
+            imageUrl: 'https://static.kudago.com/missing.webp',
+            source: { code: 'kudago' },
+          },
+        ]),
+        itemUpdate,
+      }) as any,
+      new ContentNormalizerService(),
+      registryMock({
+        code: 'kudago',
+        fetchItems: jest.fn().mockResolvedValue([]),
+      }),
+      imageMirror as any,
+    );
+
+    const result = await service.backfillMirroredImages({ city: 'Москва', limit: 1 });
+
+    expect(result).toEqual({ scanned: 1, mirrored: 1 });
+    expect(itemUpdate).toHaveBeenCalledWith({
+      where: { id: 'item-1' },
+      data: {
+        imageUrl: null,
+        imageVariants: {},
+      },
+    });
+  });
+
   it('preloads event duplicates once per source day instead of querying per item', async () => {
     const itemFindMany = jest.fn().mockResolvedValue([]);
     const service = new ContentImportService(

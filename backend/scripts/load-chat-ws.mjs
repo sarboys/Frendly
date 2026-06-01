@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
+import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
+import { pathToFileURL } from 'node:url';
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1';
 const DEFAULT_CONNECT_TIMEOUT_MS = 15000;
@@ -17,7 +19,7 @@ const TEST_PHONES = [
   '+79999999999',
 ];
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = new Map();
   for (let index = 2; index < argv.length; index += 1) {
     const key = argv[index];
@@ -48,6 +50,11 @@ function parseArgs(argv) {
     eventsSeconds: positiveInt(args.get('events-seconds'), 30),
     eventDrainSeconds: positiveInt(args.get('event-drain-seconds'), 2),
     eventType: args.get('event-type') ?? 'typing',
+    eventSenders: positiveInt(args.get('event-senders'), 0),
+    eventSendersUnsubscribe: args.get('event-senders-unsubscribe') === 'true',
+    sendBufferDrainMs: positiveInt(args.get('send-buffer-drain-ms'), 5000),
+    receiveMode: parseReceiveMode(args.get('receive-mode')),
+    closeMode: parseCloseMode(args.get('close-mode')),
     timeoutMs: positiveInt(args.get('timeout-ms'), DEFAULT_CONNECT_TIMEOUT_MS),
     reportEvery: positiveInt(args.get('report-every'), 1000),
   };
@@ -67,6 +74,52 @@ function positiveInt(value, fallback) {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : fallback;
+}
+
+function parseReceiveMode(value) {
+  return value === 'senders' ? 'senders' : 'all';
+}
+
+function parseCloseMode(value) {
+  return value === 'terminate' ? 'terminate' : 'close';
+}
+
+export function resolveEventSockets(config, sockets) {
+  if (config.eventSenders <= 0 || config.eventSenders >= sockets.length) {
+    return sockets;
+  }
+  return sockets.slice(0, config.eventSenders);
+}
+
+export function eventSocketBufferStats(sockets) {
+  let bytes = 0;
+  let maxBytes = 0;
+  let bufferedSockets = 0;
+  for (const entry of sockets) {
+    const bufferedAmount = Number(entry.socket?.bufferedAmount ?? 0);
+    if (!Number.isFinite(bufferedAmount) || bufferedAmount <= 0) {
+      continue;
+    }
+    bytes += bufferedAmount;
+    maxBytes = Math.max(maxBytes, bufferedAmount);
+    bufferedSockets += 1;
+  }
+  return { bytes, sockets: bufferedSockets, maxBytes };
+}
+
+export function eventSendTiming(sent, elapsedMs) {
+  const roundedElapsedMs = Math.max(0, Math.round(elapsedMs));
+  if (sent <= 0 || roundedElapsedMs <= 0) {
+    return { sendElapsedMs: roundedElapsedMs, actualSendRps: 0 };
+  }
+  return {
+    sendElapsedMs: roundedElapsedMs,
+    actualSendRps: Math.round((sent / roundedElapsedMs) * 1000),
+  };
+}
+
+export function createClientMessageId(runId, index) {
+  return `load-${runId}-${index}`;
 }
 
 function sleep(ms) {
@@ -261,6 +314,8 @@ async function openSocket(wsUrl, timeoutMs) {
     const timer = setTimeout(() => {
       cleanup();
       try {
+        socket.on?.('error', () => {});
+        socket.addEventListener?.('error', () => {});
         socket.close();
       } catch {}
       reject(new Error('open timeout'));
@@ -373,6 +428,8 @@ async function runEvents(config, sockets) {
     sent: 0,
     sendErrors: 0,
     received: 0,
+    messageAcks: 0,
+    messagePending: 0,
     errors: 0,
     errorCodes: {},
     errorMessages: {},
@@ -381,12 +438,34 @@ async function runEvents(config, sockets) {
     return stats;
   }
 
-  const handlers = sockets.map((entry) => {
+  const pendingMessageIds = new Set();
+  const eventSockets = resolveEventSockets(config, sockets);
+  if (config.eventSendersUnsubscribe) {
+    for (const entry of eventSockets) {
+      try {
+        socketSend(entry.socket, {
+          type: 'chat.unsubscribe',
+          payload: { chatId: entry.chatId },
+        });
+      } catch {}
+    }
+    await sleep(500);
+  }
+  const handlerSockets = config.receiveMode === 'senders' ? eventSockets : sockets;
+  const handlers = handlerSockets.map((entry) => {
     const handler = (message) => {
       try {
         const event = parseSocketData(message);
         if (event.type === 'typing.changed' || event.type === 'message.created') {
           stats.received += 1;
+          if (
+            config.eventType === 'message' &&
+            event.type === 'message.created' &&
+            typeof event.payload?.clientMessageId === 'string' &&
+            pendingMessageIds.delete(event.payload.clientMessageId)
+          ) {
+            stats.messageAcks += 1;
+          }
         } else if (event.type === 'error') {
           stats.errors += 1;
           const code = event.payload?.code ?? 'unknown';
@@ -402,22 +481,26 @@ async function runEvents(config, sockets) {
 
   const total = config.eventsRps * config.eventsSeconds;
   const intervalMs = 1000 / config.eventsRps;
-  const startedAt = performance.now();
+  const runId = randomUUID();
+  const sendStartedAt = performance.now();
+  let nextDueAt = performance.now();
 
   for (let index = 0; index < total; index += 1) {
-    const dueAt = startedAt + index * intervalMs;
-    const waitMs = dueAt - performance.now();
+    const waitMs = nextDueAt - performance.now();
     if (waitMs > 0) {
       await sleep(waitMs);
     }
-    const entry = sockets[index % sockets.length];
+    nextDueAt = Math.max(nextDueAt + intervalMs, performance.now());
+    const entry = eventSockets[index % eventSockets.length];
+    const clientMessageId = createClientMessageId(runId, index);
     try {
       if (config.eventType === 'message') {
+        pendingMessageIds.add(clientMessageId);
         socketSend(entry.socket, {
           type: 'message.send',
           payload: {
             chatId: entry.chatId,
-            clientMessageId: `load-${Date.now()}-${process.pid}-${index}`,
+            clientMessageId,
             text: `load message ${index}`,
           },
         });
@@ -432,21 +515,67 @@ async function runEvents(config, sockets) {
       }
       stats.sent += 1;
     } catch {
+      pendingMessageIds.delete(clientMessageId);
       stats.sendErrors += 1;
     }
   }
+  const sendTiming = eventSendTiming(stats.sent, performance.now() - sendStartedAt);
+  Object.assign(stats, sendTiming);
+
+  console.log(JSON.stringify({
+    phase: 'events-sent',
+    sent: stats.sent,
+    sendElapsedMs: stats.sendElapsedMs,
+    actualSendRps: stats.actualSendRps,
+    sendErrors: stats.sendErrors,
+    received: stats.received,
+    messageAcks: stats.messageAcks,
+    messagePending: pendingMessageIds.size,
+    errors: stats.errors,
+    sendBuffer: eventSocketBufferStats(eventSockets),
+  }));
+
+  const bufferDrainStartedAt = performance.now();
+  let sendBuffer = eventSocketBufferStats(eventSockets);
+  while (sendBuffer.bytes > 0 && performance.now() - bufferDrainStartedAt < config.sendBufferDrainMs) {
+    await sleep(100);
+    sendBuffer = eventSocketBufferStats(eventSockets);
+  }
+  console.log(JSON.stringify({
+    phase: 'events-send-buffer-drained',
+    elapsedMs: Math.round(performance.now() - bufferDrainStartedAt),
+    sendBuffer,
+  }));
 
   await sleep(config.eventDrainSeconds * 1000);
+  stats.messagePending = pendingMessageIds.size;
+  console.log(JSON.stringify({
+    phase: 'events-drained',
+    sent: stats.sent,
+    sendElapsedMs: stats.sendElapsedMs,
+    actualSendRps: stats.actualSendRps,
+    sendErrors: stats.sendErrors,
+    received: stats.received,
+    messageAcks: stats.messageAcks,
+    messagePending: stats.messagePending,
+    errors: stats.errors,
+    sendBuffer: eventSocketBufferStats(eventSockets),
+  }));
+
   for (const { socket, handler } of handlers) {
     removeSocketListener(socket, 'message', handler);
   }
   return stats;
 }
 
-function closeSockets(sockets) {
+export function closeSockets(sockets, mode = 'close') {
   for (const entry of sockets) {
     try {
-      entry.socket.close();
+      if (mode === 'terminate' && typeof entry.socket.terminate === 'function') {
+        entry.socket.terminate();
+      } else {
+        entry.socket.close();
+      }
     } catch {}
   }
 }
@@ -486,9 +615,7 @@ async function main() {
   if (config.holdSeconds > 0) {
     await sleep(config.holdSeconds * 1000);
   }
-  closeSockets(sockets);
-
-  console.log(JSON.stringify({
+  const result = {
     phase: 'result',
     connections: {
       attempted: stats.attempted,
@@ -500,10 +627,14 @@ async function main() {
       p99Ms: percentile(stats.connectLatencies, 99),
     },
     events: eventStats,
-  }, null, 2));
+  };
+  console.log(JSON.stringify(result, null, 2));
+  closeSockets(sockets, config.closeMode);
 }
 
-main().catch((error) => {
-  console.error(error?.message ?? error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error?.message ?? error);
+    process.exit(1);
+  });
+}

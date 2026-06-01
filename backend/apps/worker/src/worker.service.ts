@@ -61,6 +61,20 @@ type ClaimedOutboxEvent = {
   createdAt?: Date | null;
 };
 
+type BatchableChatUnreadFanoutEvent = {
+  id: string;
+  attempts: number;
+  chatId: string;
+  actorUserId: string;
+  messageCreatedAt: Date;
+};
+
+type ChatUnreadFanoutBatch = {
+  chatId: string;
+  actorUserId: string;
+  events: BatchableChatUnreadFanoutEvent[];
+};
+
 type DailyImportTime = {
   hour: number;
   minute: number;
@@ -619,13 +633,7 @@ export class WorkerService implements OnModuleDestroy {
       if (this.shouldUseBatchOutboxClaim()) {
         const events = await this.claimNextEvents();
         this.recordOutboxBacklogAge(events);
-        await this.runWithConcurrency(
-          events,
-          this.outboxProcessingConcurrency,
-          async (event) => {
-            await this.processEvent(event);
-          },
-        );
+        await this.processClaimedEvents(events);
         return;
       }
 
@@ -639,6 +647,112 @@ export class WorkerService implements OnModuleDestroy {
       }
     } finally {
       this.running = false;
+    }
+  }
+
+  private async processClaimedEvents(events: ClaimedOutboxEvent[]) {
+    const regularEvents: ClaimedOutboxEvent[] = [];
+    const unreadBatches = new Map<string, ChatUnreadFanoutBatch>();
+
+    for (const event of events) {
+      const batchable = this.parseBatchableChatUnreadFanoutEvent(event);
+      if (batchable == null) {
+        regularEvents.push(event);
+        continue;
+      }
+
+      const key = `${batchable.chatId}:${batchable.actorUserId}`;
+      const batch = unreadBatches.get(key);
+      if (batch) {
+        batch.events.push(batchable);
+      } else {
+        unreadBatches.set(key, {
+          chatId: batchable.chatId,
+          actorUserId: batchable.actorUserId,
+          events: [batchable],
+        });
+      }
+    }
+
+    await this.runWithConcurrency(
+      [
+        ...regularEvents.map((event) => ({
+          run: () => this.processEvent(event),
+        })),
+        ...[...unreadBatches.values()].map((batch) => ({
+          run: () => this.processChatUnreadFanoutBatch(batch),
+        })),
+      ],
+      this.outboxProcessingConcurrency,
+      async (task) => {
+        await task.run();
+      },
+    );
+  }
+
+  private parseBatchableChatUnreadFanoutEvent(
+    event: ClaimedOutboxEvent,
+  ): BatchableChatUnreadFanoutEvent | null {
+    if (event.type !== OUTBOX_EVENT_TYPES.chatUnreadFanout) {
+      return null;
+    }
+    if (event.payload == null || typeof event.payload !== 'object') {
+      return null;
+    }
+
+    const payload = event.payload as {
+      chatId?: unknown;
+      actorUserId?: unknown;
+      cursor?: unknown;
+      messageCreatedAt?: unknown;
+    };
+    if (payload.cursor != null) {
+      return null;
+    }
+    if (typeof payload.chatId !== 'string' || typeof payload.actorUserId !== 'string') {
+      return null;
+    }
+
+    const messageCreatedAt = this.parseMessageCreatedAt(payload.messageCreatedAt);
+    if (messageCreatedAt == null) {
+      return null;
+    }
+
+    return {
+      id: event.id,
+      attempts: event.attempts,
+      chatId: payload.chatId,
+      actorUserId: payload.actorUserId,
+      messageCreatedAt,
+    };
+  }
+
+  private async processChatUnreadFanoutBatch(batch: ChatUnreadFanoutBatch) {
+    const startedAt = process.hrtime.bigint();
+    try {
+      await this.incrementUnreadCountsForMessages(
+        batch.chatId,
+        batch.actorUserId,
+        batch.events.map((event) => event.messageCreatedAt),
+      );
+      await this.prismaService.client.outboxEvent.updateMany({
+        where: {
+          id: {
+            in: batch.events.map((event) => event.id),
+          },
+        },
+        data: {
+          status: 'done',
+          processedAt: new Date(),
+          lockedAt: null,
+        },
+      });
+      this.recordWorkerJobDuration(OUTBOX_EVENT_TYPES.chatUnreadFanout, 'ok', startedAt);
+    } catch (error) {
+      this.recordWorkerJobDuration(OUTBOX_EVENT_TYPES.chatUnreadFanout, 'error', startedAt);
+      await Promise.all(
+        batch.events.map((event) => this.handleFailure(event.id, event.attempts, error)),
+      );
     }
   }
 
@@ -702,6 +816,7 @@ export class WorkerService implements OnModuleDestroy {
             chatId?: string;
             actorUserId?: string;
             cursor?: string;
+            messageCreatedAt?: string;
           });
           break;
         case OUTBOX_EVENT_TYPES.messageNotificationFanout:
@@ -709,6 +824,7 @@ export class WorkerService implements OnModuleDestroy {
             chatId?: string;
             actorUserId?: string;
             cursor?: string;
+            messageCreatedAt?: string;
           });
           break;
         case OUTBOX_EVENT_TYPES.notificationCreate:
@@ -1761,6 +1877,7 @@ export class WorkerService implements OnModuleDestroy {
     chatId?: string;
     actorUserId?: string;
     cursor?: string;
+    messageCreatedAt?: string;
   }) {
     if (
       typeof payload.chatId !== 'string' ||
@@ -1807,14 +1924,162 @@ export class WorkerService implements OnModuleDestroy {
             chatId: payload.chatId,
             actorUserId: payload.actorUserId,
             cursor: page[page.length - 1]!.id,
+            messageCreatedAt: payload.messageCreatedAt,
           },
         },
       });
     }
 
-    await this.publishUnreadCounts(
-      payload.chatId,
-      page.map((member) => member.userId),
+    const messageCreatedAt = this.parseMessageCreatedAt(payload.messageCreatedAt);
+    if (messageCreatedAt != null) {
+      await this.incrementUnreadCountsForMessage(
+        payload.chatId,
+        payload.actorUserId,
+        page.map((member) => member.userId),
+        messageCreatedAt,
+      );
+      return;
+    }
+
+    await this.publishUnreadCounts(payload.chatId, page.map((member) => member.userId));
+  }
+
+  private parseMessageCreatedAt(value: unknown) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private async incrementUnreadCountsForMessage(
+    chatId: string,
+    actorUserId: string,
+    userIds: string[],
+    messageCreatedAt: Date,
+  ) {
+    if (userIds.length === 0) {
+      return;
+    }
+
+    const uniqueUserIds = [...new Set(userIds)];
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      user_id: string;
+      unread_count: bigint | number;
+    }>>`
+      UPDATE "ChatMember" cm
+      SET "unreadCount" = cm."unreadCount" + 1
+      WHERE cm."chatId" = ${chatId}
+        AND cm."userId" IN (${Prisma.join(uniqueUserIds)})
+        AND cm."userId" <> ${actorUserId}
+        AND (
+          cm."lastReadAt" IS NULL
+          OR cm."lastReadAt" < ${messageCreatedAt}
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "UserBlock" ub
+          WHERE (
+            ub."userId" = cm."userId"
+            AND ub."blockedUserId" = ${actorUserId}
+          )
+          OR (
+            ub."userId" = ${actorUserId}
+            AND ub."blockedUserId" = cm."userId"
+          )
+        )
+      RETURNING cm."userId" AS user_id, cm."unreadCount" AS unread_count
+    `;
+
+    await this.runWithConcurrency(
+      rows,
+      this.busPublishConcurrency,
+      async (row) => {
+        await publishBusEvent(this.redis, {
+          type: 'unread.updated',
+          payload: {
+            userId: row.user_id,
+            chatId,
+            unreadCount: Number(row.unread_count),
+          },
+        });
+      },
+    );
+  }
+
+  private async incrementUnreadCountsForMessages(
+    chatId: string,
+    actorUserId: string,
+    messageCreatedAtValues: Date[],
+  ) {
+    if (messageCreatedAtValues.length === 0) {
+      return;
+    }
+
+    const uniqueMessageCreatedAtValues = [
+      ...new Map(
+        messageCreatedAtValues.map((value) => [value.toISOString(), value]),
+      ).values(),
+    ];
+    const values = uniqueMessageCreatedAtValues.map((createdAt) =>
+      Prisma.sql`(${createdAt})`,
+    );
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      user_id: string;
+      unread_count: bigint | number;
+    }>>`
+      WITH message_events("createdAt") AS (
+        VALUES ${Prisma.join(values)}
+      ),
+      increments AS (
+        SELECT cm."userId" AS user_id, COUNT(*)::int AS increment_by
+        FROM "ChatMember" cm
+        JOIN message_events event
+          ON (
+            cm."lastReadAt" IS NULL
+            OR cm."lastReadAt" < event."createdAt"
+          )
+        WHERE cm."chatId" = ${chatId}
+          AND cm."userId" <> ${actorUserId}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "UserBlock" ub
+            WHERE (
+              ub."userId" = cm."userId"
+              AND ub."blockedUserId" = ${actorUserId}
+            )
+            OR (
+              ub."userId" = ${actorUserId}
+              AND ub."blockedUserId" = cm."userId"
+            )
+          )
+        GROUP BY cm."userId"
+      ),
+      updated AS (
+        UPDATE "ChatMember" cm
+        SET "unreadCount" = cm."unreadCount" + increments.increment_by
+        FROM increments
+        WHERE cm."chatId" = ${chatId}
+          AND cm."userId" = increments.user_id
+        RETURNING cm."userId" AS user_id, cm."unreadCount" AS unread_count
+      )
+      SELECT user_id, unread_count
+      FROM updated
+    `;
+
+    await this.runWithConcurrency(
+      rows,
+      this.busPublishConcurrency,
+      async (row) => {
+        await publishBusEvent(this.redis, {
+          type: 'unread.updated',
+          payload: {
+            userId: row.user_id,
+            chatId,
+            unreadCount: Number(row.unread_count),
+          },
+        });
+      },
     );
   }
 

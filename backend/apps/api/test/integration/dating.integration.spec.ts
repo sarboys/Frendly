@@ -38,7 +38,7 @@ describe('dating api flows', () => {
         plan: 'month',
         status: 'active',
         startedAt: new Date('2026-05-01T00:00:00.000Z'),
-        renewsAt: new Date('2026-06-01T00:00:00.000Z'),
+        renewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         trialEndsAt: null,
       },
     });
@@ -482,19 +482,13 @@ describe('dating api flows', () => {
         avatarUrl: expect.any(String),
         primaryPhoto: expect.objectContaining({
           url: expect.any(String),
-          media: expect.objectContaining({
-            visibility: 'public',
-            url: expect.any(String),
-          }),
         }),
       });
       expect(sonyaProfile.photos).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: photo.id,
-            media: expect.objectContaining({
-              visibility: 'public',
-            }),
+            url: expect.any(String),
           }),
         ]),
       );
@@ -515,7 +509,7 @@ describe('dating api flows', () => {
       const sonyaLike = likesResponse.body.items.find(
         (item: { userId: string }) => item.userId === 'user-sonya',
       );
-      expect(sonyaLike?.primaryPhoto?.media?.visibility).toBe('public');
+      expect(sonyaLike?.primaryPhoto?.url).toEqual(expect.any(String));
     } finally {
       await prisma.profilePhoto.deleteMany({
         where: { id: photo.id },

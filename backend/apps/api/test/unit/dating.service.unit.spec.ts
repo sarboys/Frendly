@@ -784,6 +784,85 @@ describe('DatingService unit', () => {
     });
   });
 
+  it('does not embed data URLs in dating profile photo payloads', async () => {
+    const service = new DatingService(
+      {
+        client: {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'user-me',
+              profile: {
+                gender: 'male',
+              },
+              onboarding: {
+                gender: 'male',
+                interests: [],
+              },
+            }),
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'user-anya',
+                displayName: 'Аня',
+                verified: true,
+                online: true,
+                profile: {
+                  age: 27,
+                  city: 'Москва',
+                  area: 'Патрики',
+                  bio: 'Люблю тихие бары.',
+                  vibe: 'Спокойно',
+                  avatarUrl: null,
+                  photos: [
+                    {
+                      id: 'photo-1',
+                      sortOrder: 0,
+                      mediaAsset: {
+                        id: 'asset-photo-1',
+                        kind: 'avatar',
+                        mimeType: 'image/svg+xml',
+                        byteSize: 1024,
+                        durationMs: null,
+                        publicUrl: 'data:image/svg+xml;base64,AAAA',
+                        variants: {
+                          card: {
+                            url: 'data:image/svg+xml;base64,BBBB',
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+                onboarding: {
+                  interests: ['вино'],
+                },
+              },
+            ]),
+          },
+          userBlock: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          datingAction: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        },
+      } as any,
+      {} as any,
+      plusAccess as any,
+    );
+
+    const result = await service.listDiscover('user-me');
+
+    expect(result.items[0]).toMatchObject({
+      avatarUrl: '/media/asset-photo-1',
+      primaryPhoto: {
+        id: 'photo-1',
+        url: '/media/asset-photo-1',
+        variants: {},
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain('data:image');
+  });
+
   it('bounds profile photos in dating list queries', async () => {
     const userFindMany = jest.fn().mockResolvedValue([]);
     const datingActionFindMany = jest.fn().mockResolvedValue([]);

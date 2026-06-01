@@ -91,6 +91,39 @@ describe('ContentImageMirrorService', () => {
     );
   });
 
+  it('drops permanently missing images without retrying the same 404', async () => {
+    process.env.CONTENT_IMPORT_IMAGE_RETRY_DELAY_MS = '1';
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response('missing', {
+        status: 404,
+        headers: {
+          'content-type': 'text/plain',
+        },
+      }) as any,
+    );
+    const service = new ContentImageMirrorService();
+
+    const result = await service.mirrorExternalImage({
+      sourceCode: 'kudago',
+      sourceItemId: 'event-missing-image',
+      imageUrl: 'https://static.kudago.com/missing.webp',
+    } as any);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(mockS3Send).not.toHaveBeenCalled();
+    expect(result.imageUrl).toBeNull();
+    expect(result.imageVariants).toEqual({});
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[content-import] image mirror skipped permanent failure',
+      expect.objectContaining({
+        sourceCode: 'kudago',
+        sourceItemId: 'event-missing-image',
+        reason: 'image_fetch_http_404',
+      }),
+    );
+  });
+
   it('returns responsive variants for imported event images', async () => {
     process.env.CONTENT_IMPORT_IMAGE_RETRY_DELAY_MS = '1';
     mockS3Send.mockRejectedValueOnce(new Error('missing')).mockResolvedValue({});

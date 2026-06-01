@@ -255,7 +255,7 @@ export function maskAdvCakeSecrets(value: string) {
   }
   return masked
     .replace(/https:\/\/feeds\.advcake\.[^\s"'<>]+/gi, 'https://feeds.advcake.***/***')
-    .replace(/https:\/\/go\.avred\.online\/[^\s"'<>]+/gi, 'https://go.avred.online/***');
+    .replace(/https:\/\/go\.(?:avred|redav)\.online\/[^\s"'<>]+/gi, 'https://go.***.online/***');
 }
 
 function extractOffers(payload: unknown): Record<string, unknown>[] {
@@ -326,6 +326,7 @@ function isAllowedActionUrl(value: string) {
   const url = parseUrl(value);
   return url?.protocol === 'https:' && hostMatches(url.hostname, [
     'go.avred.online',
+    'go.redav.online',
     'ticketland.ru',
     'live.mts.ru',
   ]);

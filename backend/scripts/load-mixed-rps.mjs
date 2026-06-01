@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { performance } from 'node:perf_hooks';
+import { pathToFileURL } from 'node:url';
 
 const DEFAULT_CITY = '\u041c\u043e\u0441\u043a\u0432\u0430';
 
-const endpointMix = [
+export const endpointMix = [
   {
     name: 'events',
     weight: 40,
@@ -46,7 +47,7 @@ const endpointMix = [
   },
 ];
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = new Map();
 
   for (let index = 2; index < argv.length; index += 1) {
@@ -74,6 +75,7 @@ function parseArgs(argv) {
     timeoutMs: parsePositiveInteger(args.get('timeout-ms'), 3000),
     connections: parsePositiveInteger(args.get('connections'), 1000),
     city: args.get('city') ?? DEFAULT_CITY,
+    only: args.get('only') ?? 'mixed',
   };
 
   if (!config.api) {
@@ -85,6 +87,23 @@ function parseArgs(argv) {
   }
 
   return config;
+}
+
+export function resolveEndpointMix(only) {
+  if (only == null || only === 'mixed') {
+    return endpointMix;
+  }
+
+  const endpoint = endpointMix.find((item) => item.name === only);
+  if (endpoint == null) {
+    throw new Error(
+      `Unknown --only endpoint. Expected one of: mixed, ${endpointMix
+        .map((item) => item.name)
+        .join(', ')}`,
+    );
+  }
+
+  return [{ ...endpoint, weight: 100 }];
 }
 
 function parsePositiveInteger(value, fallback) {
@@ -101,18 +120,18 @@ function parsePositiveInteger(value, fallback) {
   return Math.trunc(parsed);
 }
 
-function pickEndpoint(requestIndex) {
+export function pickEndpoint(requestIndex, mix = endpointMix) {
   const bucket = requestIndex % 100;
   let cursor = 0;
 
-  for (const endpoint of endpointMix) {
+  for (const endpoint of mix) {
     cursor += endpoint.weight;
     if (bucket < cursor) {
       return endpoint;
     }
   }
 
-  return endpointMix[endpointMix.length - 1];
+  return mix[mix.length - 1];
 }
 
 function percentile(values, p) {
@@ -232,8 +251,9 @@ async function main() {
   const config = parseArgs(process.argv);
   const totalRequests = config.rps * config.durationSeconds;
   const intervalMs = 1000 / config.rps;
+  const activeEndpointMix = resolveEndpointMix(config.only);
   const statsByEndpoint = Object.fromEntries(
-    endpointMix.map((endpoint) => [endpoint.name, createEndpointStats()]),
+    activeEndpointMix.map((endpoint) => [endpoint.name, createEndpointStats()]),
   );
   const totals = {
     startedRequests: 0,
@@ -256,7 +276,7 @@ async function main() {
       await slotWaiter.wait();
     }
 
-    const endpoint = pickEndpoint(index);
+    const endpoint = pickEndpoint(index, activeEndpointMix);
     inFlight += 1;
     const request = runRequest(config, endpoint, statsByEndpoint, totals)
       .finally(() => {
@@ -279,6 +299,7 @@ async function main() {
   console.log(JSON.stringify({
     targetRps: config.rps,
     durationSeconds: config.durationSeconds,
+    only: config.only,
     startedRequests: totals.startedRequests,
     completed: totals.completed,
     ok: totals.ok,
@@ -291,7 +312,9 @@ async function main() {
   }, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}

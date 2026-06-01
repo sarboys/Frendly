@@ -13,6 +13,7 @@ import {
 } from '@big-break/database';
 import Redis from 'ioredis';
 import { Server as HttpServer } from 'node:http';
+import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { RawData, WebSocket, WebSocketServer } from 'ws';
 import { PrismaService } from './prisma.service';
@@ -46,6 +47,33 @@ interface BlockedUserIdsCacheEntry {
   value: Set<string>;
 }
 
+interface MessageAuthorSnapshot {
+  displayName: string;
+  profile: { avatarUrl: string | null } | null;
+}
+
+interface MessageAuthorCacheEntry {
+  expiresAt: number;
+  value: MessageAuthorSnapshot;
+}
+
+interface MessageUnreadUpdate {
+  userId: string;
+  unreadCount: number;
+}
+
+interface MessageWriteResult {
+  created: Parameters<ChatServerService['mapMessage']>[0];
+  realtimeEventId: string;
+  unreadUpdates: MessageUnreadUpdate[];
+}
+
+type MessageWriteTask<T> = {
+  operation: () => Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: unknown) => void;
+};
+
 class ChatServerError extends Error {
   constructor(
     readonly code: string,
@@ -63,11 +91,16 @@ const DEFAULT_MEMBERSHIP_CACHE_MAX_ENTRIES = 10_000;
 const DEFAULT_AUTH_RECHECK_MS = 30_000;
 const DEFAULT_MESSAGE_TRANSACTION_MAX_WAIT_MS = 10_000;
 const DEFAULT_MESSAGE_TRANSACTION_TIMEOUT_MS = 10_000;
-const DEFAULT_MESSAGE_CHAT_TOUCH_INTERVAL_MS = 1000;
+const DEFAULT_MESSAGE_CHAT_TOUCH_INTERVAL_MS = 10_000;
+const DEFAULT_MESSAGE_WRITE_CONCURRENCY = 16;
+const DEFAULT_MESSAGE_WRITE_QUEUE_MAX = 1000;
 const AUTH_SESSION_CACHE_SECONDS = 5;
 const AUTH_SESSION_CACHE_MAX_ENTRIES = 10_000;
 const BLOCKED_USER_IDS_CACHE_SECONDS = 5;
 const BLOCKED_USER_IDS_CACHE_MAX_ENTRIES = 10_000;
+const MESSAGE_AUTHOR_CACHE_SECONDS = 30;
+const MESSAGE_AUTHOR_CACHE_MAX_ENTRIES = 10_000;
+const DIRECT_MESSAGE_ACK_SKIP_TTL_MS = 30_000;
 const DEFAULT_MAX_PAYLOAD_BYTES = 64 * 1024;
 const DEFAULT_MAX_MESSAGE_TEXT_LENGTH = 4000;
 const DEFAULT_MAX_ATTACHMENT_COUNT = 10;
@@ -150,16 +183,6 @@ const plainChatMessageSelect = {
   locationLabel: true,
   locationExpiresAt: true,
   createdAt: true,
-  sender: {
-    select: {
-      displayName: true,
-      profile: {
-        select: {
-          avatarUrl: true,
-        },
-      },
-    },
-  },
 } satisfies Prisma.MessageSelect;
 
 @Injectable()
@@ -213,6 +236,18 @@ export class ChatServerService implements OnModuleDestroy {
     process.env.CHAT_MESSAGE_CHAT_TOUCH_INTERVAL_MS,
     DEFAULT_MESSAGE_CHAT_TOUCH_INTERVAL_MS,
   );
+  private readonly messageWriteConcurrency = this.resolvePositiveInteger(
+    process.env.CHAT_MESSAGE_WRITE_CONCURRENCY,
+    DEFAULT_MESSAGE_WRITE_CONCURRENCY,
+  );
+  private readonly messageWriteQueueMax = this.resolvePositiveInteger(
+    process.env.CHAT_MESSAGE_WRITE_QUEUE_MAX,
+    DEFAULT_MESSAGE_WRITE_QUEUE_MAX,
+  );
+  private readonly messageInlineUnreadUpdates = this.resolveBoolean(
+    process.env.CHAT_MESSAGE_INLINE_UNREAD_UPDATES,
+    true,
+  );
   private readonly heartbeatIntervalMs = this.resolveDurationMs(
     process.env.CHAT_WS_HEARTBEAT_INTERVAL_MS,
     DEFAULT_HEARTBEAT_INTERVAL_MS,
@@ -227,7 +262,12 @@ export class ChatServerService implements OnModuleDestroy {
   >();
   private readonly blockedUserIdsCache = new Map<string, BlockedUserIdsCacheEntry>();
   private readonly pendingBlockedUserLoads = new Map<string, Promise<Set<string>>>();
+  private readonly messageAuthorCache = new Map<string, MessageAuthorCacheEntry>();
+  private readonly pendingMessageAuthorLoads = new Map<string, Promise<MessageAuthorSnapshot>>();
   private readonly lastMessageChatTouchAt = new Map<string, number>();
+  private readonly messageWriteQueue: Array<MessageWriteTask<any>> = [];
+  private readonly directMessageAckedSockets = new Map<string, Set<WebSocket>>();
+  private activeMessageWrites = 0;
   private readonly publisher: Redis = createRedisPublisher(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private readonly subscriber: Redis = createRedisSubscriber(process.env.REDIS_URL ?? 'redis://localhost:6379');
   private heartbeatTimer?: NodeJS.Timeout;
@@ -564,86 +604,107 @@ export class ChatServerService implements OnModuleDestroy {
       }
     }
 
-    let message: {
-      created: Parameters<ChatServerService['mapMessage']>[0];
-      realtimeEventId: string;
-    };
+    const isPlainMessage = readyAssets.length === 0 && !replyToMessageId;
+    const plainMessageAuthor = isPlainMessage
+      ? await this.getMessageAuthor(state.userId!)
+      : null;
+
+    let message: MessageWriteResult;
     try {
-      message = await this.prismaService.client.$transaction(
-        async (tx) => {
-          const now = new Date();
-          const isPlainMessage = readyAssets.length === 0 && !replyToMessageId;
-          const messageData = {
+      message = await this.enqueueMessageWrite<MessageWriteResult>(() => {
+        if (
+          isPlainMessage &&
+          plainMessageAuthor != null &&
+          typeof this.prismaService.client.$queryRaw === 'function'
+        ) {
+          return this.createPlainMessageFast({
             chatId,
             senderId: state.userId!,
             text,
             clientMessageId,
-            replyToMessageId,
-            locationLatitude: location?.latitude,
-            locationLongitude: location?.longitude,
-            locationLabel: location?.label,
-            locationExpiresAt: location?.expiresAt,
-            ...(readyAssets.length > 0
-              ? {
-                  attachments: {
-                    createMany: {
-                      data: readyAssets.map((asset) => ({
-                        mediaAssetId: asset.id,
-                      })),
-                    },
-                  },
-                }
-              : {}),
-          };
-          const created = isPlainMessage
-            ? {
-                ...(await tx.message.create({
-                  data: messageData,
-                  select: plainChatMessageSelect,
-                })),
-                replyTo: null,
-                attachments: [],
+            location,
+            author: plainMessageAuthor,
+          });
+        }
+
+        return this.prismaService.client.$transaction(
+            async (tx) => {
+              const now = new Date();
+              const messageData = {
+                chatId,
+                senderId: state.userId!,
+                text,
+                clientMessageId,
+                replyToMessageId,
+                locationLatitude: location?.latitude,
+                locationLongitude: location?.longitude,
+                locationLabel: location?.label,
+                locationExpiresAt: location?.expiresAt,
+                ...(readyAssets.length > 0
+                  ? {
+                      attachments: {
+                        createMany: {
+                          data: readyAssets.map((asset) => ({
+                            mediaAssetId: asset.id,
+                          })),
+                        },
+                      },
+                    }
+                  : {}),
+              };
+              const created = isPlainMessage
+                ? {
+                    ...(await tx.message.create({
+                      data: messageData,
+                      select: plainChatMessageSelect,
+                    })),
+                    sender: plainMessageAuthor!,
+                    replyTo: null,
+                    attachments: [],
+                  }
+                : await tx.message.create({
+                    data: messageData,
+                    select: chatMessageSelect,
+                  });
+
+              if (this.shouldTouchChatForMessage(chatId, now.getTime())) {
+                await tx.chat.update({
+                  where: { id: chatId },
+                  data: { updatedAt: now },
+                });
               }
-            : await tx.message.create({
-                data: messageData,
-                select: chatMessageSelect,
+
+              const realtimeEvent = await tx.realtimeEvent.create({
+                data: {
+                  chatId,
+                  eventType: 'message.created',
+                  payload: this.mapMessage(created),
+                },
               });
 
-          if (this.shouldTouchChatForMessage(chatId, now.getTime())) {
-            await tx.chat.update({
-              where: { id: chatId },
-              data: { updatedAt: now },
-            });
-          }
+              await tx.outboxEvent.create({
+                data: {
+                  type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
+                  payload: {
+                    chatId,
+                    actorUserId: state.userId!,
+                    messageCreatedAt: created.createdAt.toISOString(),
+                  },
+                },
+              });
 
-          const realtimeEvent = await tx.realtimeEvent.create({
-            data: {
-              chatId,
-              eventType: 'message.created',
-              payload: this.mapMessage(created),
+              return {
+                created,
+                realtimeEventId: realtimeEvent.id.toString(),
+                unreadUpdates: [],
+              };
             },
-          });
-
-          await tx.outboxEvent.create({
-            data: {
-              type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
-              payload: {
-                chatId,
-                actorUserId: state.userId!,
-              },
+            {
+              maxWait: this.messageTransactionMaxWaitMs,
+              timeout: this.messageTransactionTimeoutMs,
             },
-          });
-
-          return {
-            created,
-            realtimeEventId: realtimeEvent.id.toString(),
-          };
-        },
-        {
-          maxWait: this.messageTransactionMaxWaitMs,
-          timeout: this.messageTransactionTimeoutMs,
-        },
-      );
+          );
+      });
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         const existing = await this.prismaService.client.message.findFirst({
@@ -671,6 +732,17 @@ export class ChatServerService implements OnModuleDestroy {
       throw error;
     }
 
+    const directAckPayload = await this.mapMessageForUser(
+      message.created,
+      message.realtimeEventId,
+      state.userId!,
+    );
+    this.send(socket, {
+      type: 'message.created',
+      payload: directAckPayload,
+    });
+    this.rememberDirectMessageAckedSocket(directAckPayload, socket);
+
     await publishBusEvent(this.publisher, {
       type: 'message.created',
       payload: this.mapMessage(
@@ -678,17 +750,263 @@ export class ChatServerService implements OnModuleDestroy {
         message.realtimeEventId,
       ),
     });
+    await this.publishUnreadUpdates(message.created.chatId, message.unreadUpdates);
+  }
 
-    if (!state.subscriptions.has(chatId)) {
-      this.send(socket, {
-        type: 'message.created',
-        payload: await this.mapMessageForUser(
-          message.created,
-          message.realtimeEventId,
-          state.userId!,
-        ),
-      });
+  private enqueueMessageWrite<T>(operation: () => Promise<T>) {
+    if (
+      this.activeMessageWrites >= this.messageWriteConcurrency &&
+      this.messageWriteQueue.length >= this.messageWriteQueueMax
+    ) {
+      throw new ChatServerError(
+        'message_write_backpressure',
+        'Message write queue is full',
+      );
     }
+
+    return new Promise<T>((resolve, reject) => {
+      this.messageWriteQueue.push({ operation, resolve, reject });
+      this.updateMessageWriteMetrics();
+      this.drainMessageWriteQueue();
+    });
+  }
+
+  private drainMessageWriteQueue() {
+    while (
+      this.activeMessageWrites < this.messageWriteConcurrency &&
+      this.messageWriteQueue.length > 0
+    ) {
+      const task = this.messageWriteQueue.shift();
+      if (task == null) {
+        return;
+      }
+
+      this.activeMessageWrites += 1;
+      this.updateMessageWriteMetrics();
+
+      void Promise.resolve()
+        .then(task.operation)
+        .then(task.resolve, task.reject)
+        .finally(() => {
+          this.activeMessageWrites -= 1;
+          this.updateMessageWriteMetrics();
+          this.drainMessageWriteQueue();
+        });
+    }
+  }
+
+  private updateMessageWriteMetrics() {
+    appMetrics.websocketMessageWriteActive.set(
+      { service: METRICS_SERVICE },
+      this.activeMessageWrites,
+    );
+    appMetrics.websocketMessageWriteQueueDepth.set(
+      { service: METRICS_SERVICE },
+      this.messageWriteQueue.length,
+    );
+  }
+
+  private async createPlainMessageFast(params: {
+    chatId: string;
+    senderId: string;
+    text: string;
+    clientMessageId: string;
+    location: {
+      latitude: number;
+      longitude: number;
+      label: string | null;
+      expiresAt: Date;
+    } | null;
+    author: MessageAuthorSnapshot;
+  }) {
+    const now = new Date();
+    const messageId = randomUUID();
+    const outboxEventId = randomUUID();
+    const touchChat = this.shouldTouchChatForMessage(params.chatId, now.getTime());
+    const created = {
+      id: messageId,
+      chatId: params.chatId,
+      senderId: params.senderId,
+      text: params.text,
+      clientMessageId: params.clientMessageId,
+      locationLatitude: params.location?.latitude ?? null,
+      locationLongitude: params.location?.longitude ?? null,
+      locationLabel: params.location?.label ?? null,
+      locationExpiresAt: params.location?.expiresAt ?? null,
+      createdAt: now,
+      sender: params.author,
+      replyTo: null,
+      attachments: [],
+    };
+    const realtimePayload = JSON.stringify(this.mapMessage(created));
+    if (!this.messageInlineUnreadUpdates) {
+      const rows = await this.prismaService.client.$queryRaw<Array<{
+        realtime_event_id: string | bigint;
+      }>>(Prisma.sql`
+        WITH inserted_message AS (
+          INSERT INTO "Message" (
+            "id",
+            "chatId",
+            "senderId",
+            "text",
+            "clientMessageId",
+            "locationLatitude",
+            "locationLongitude",
+            "locationLabel",
+            "locationExpiresAt",
+            "createdAt"
+          )
+          VALUES (
+            ${messageId},
+            ${params.chatId},
+            ${params.senderId},
+            ${params.text},
+            ${params.clientMessageId},
+            ${created.locationLatitude},
+            ${created.locationLongitude},
+            ${created.locationLabel},
+            ${created.locationExpiresAt},
+            ${now}
+          )
+          RETURNING "id"
+        ),
+        touched_chat AS (
+          UPDATE "Chat"
+          SET "updatedAt" = ${now}
+          WHERE "id" = ${params.chatId}
+            AND ${touchChat}
+          RETURNING "id"
+        ),
+        inserted_realtime AS (
+          INSERT INTO "RealtimeEvent" ("chatId", "eventType", "payload", "createdAt")
+          SELECT ${params.chatId}, ${'message.created'}, ${realtimePayload}::jsonb, ${now}
+          FROM inserted_message
+          RETURNING "id"
+        ),
+        inserted_outbox AS (
+          INSERT INTO "OutboxEvent" ("id", "type", "payload", "createdAt", "availableAt")
+          SELECT
+            ${outboxEventId},
+            ${OUTBOX_EVENT_TYPES.chatUnreadFanout},
+            jsonb_build_object(
+              'chatId', ${params.chatId},
+              'actorUserId', ${params.senderId},
+              'messageCreatedAt', ${now.toISOString()}
+            ),
+            ${now},
+            ${now}
+          FROM inserted_message
+          RETURNING "id"
+        )
+        SELECT inserted_realtime."id"::text AS realtime_event_id
+        FROM inserted_realtime
+      `);
+
+      const realtimeEventId = rows[0]?.realtime_event_id;
+      if (realtimeEventId == null) {
+        throw new Error('Plain message insert did not return realtime event id');
+      }
+
+      return {
+        created,
+        realtimeEventId: realtimeEventId.toString(),
+        unreadUpdates: [],
+      };
+    }
+
+    const rows = await this.prismaService.client.$queryRaw<Array<{
+      realtime_event_id: string | bigint;
+      unread_updates?: unknown;
+    }>>(Prisma.sql`
+      WITH inserted_message AS (
+        INSERT INTO "Message" (
+          "id",
+          "chatId",
+          "senderId",
+          "text",
+          "clientMessageId",
+          "locationLatitude",
+          "locationLongitude",
+          "locationLabel",
+          "locationExpiresAt",
+          "createdAt"
+        )
+        VALUES (
+          ${messageId},
+          ${params.chatId},
+          ${params.senderId},
+          ${params.text},
+          ${params.clientMessageId},
+          ${created.locationLatitude},
+          ${created.locationLongitude},
+          ${created.locationLabel},
+          ${created.locationExpiresAt},
+          ${now}
+        )
+        RETURNING "id"
+      ),
+      touched_chat AS (
+        UPDATE "Chat"
+        SET "updatedAt" = ${now}
+        WHERE "id" = ${params.chatId}
+          AND ${touchChat}
+        RETURNING "id"
+      ),
+      inserted_realtime AS (
+        INSERT INTO "RealtimeEvent" ("chatId", "eventType", "payload", "createdAt")
+        SELECT ${params.chatId}, ${'message.created'}, ${realtimePayload}::jsonb, ${now}
+        FROM inserted_message
+        RETURNING "id"
+      ),
+      updated_unread AS (
+        UPDATE "ChatMember" cm
+        SET "unreadCount" = cm."unreadCount" + 1
+        WHERE cm."chatId" = ${params.chatId}
+          AND cm."userId" <> ${params.senderId}
+          AND (
+            cm."lastReadAt" IS NULL
+            OR cm."lastReadAt" < ${now}
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "UserBlock" ub
+            WHERE (
+              ub."userId" = cm."userId"
+              AND ub."blockedUserId" = ${params.senderId}
+            )
+            OR (
+              ub."userId" = ${params.senderId}
+              AND ub."blockedUserId" = cm."userId"
+            )
+          )
+        RETURNING cm."userId" AS user_id, cm."unreadCount" AS unread_count
+      )
+      SELECT
+        inserted_realtime."id"::text AS realtime_event_id,
+        COALESCE(
+          jsonb_agg(
+            jsonb_build_object(
+              'userId', updated_unread.user_id,
+              'unreadCount', updated_unread.unread_count
+            )
+          ) FILTER (WHERE updated_unread.user_id IS NOT NULL),
+          '[]'::jsonb
+        ) AS unread_updates
+      FROM inserted_realtime
+      LEFT JOIN updated_unread ON true
+      GROUP BY inserted_realtime."id"
+    `);
+
+    const realtimeEventId = rows[0]?.realtime_event_id;
+    if (realtimeEventId == null) {
+      throw new Error('Plain message insert did not return realtime event id');
+    }
+
+    return {
+      created,
+      realtimeEventId: realtimeEventId.toString(),
+      unreadUpdates: this.normalizeUnreadUpdates(rows[0]?.unread_updates),
+    };
   }
 
   private parseLocationPayload(value: unknown) {
@@ -726,9 +1044,16 @@ export class ChatServerService implements OnModuleDestroy {
   }
 
   private isUniqueConstraintError(error: unknown) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+      return false;
+    }
+    if (error.code === 'P2002') {
+      return true;
+    }
     return (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+      error.code === 'P2010' &&
+      typeof error.meta?.code === 'string' &&
+      error.meta.code === '23505'
     );
   }
 
@@ -1228,6 +1553,10 @@ export class ChatServerService implements OnModuleDestroy {
       }
     }
 
+    if (subscribedSockets.length === 0) {
+      return;
+    }
+
     const blockedUserIdsByUserId = await this.getBlockedUserIdsByUserIds(
       [...userIdsForBlockLookup],
     );
@@ -1247,6 +1576,10 @@ export class ChatServerService implements OnModuleDestroy {
         actorUserId !== state.userId &&
         actorBlockedUserIds.has(state.userId)
       ) {
+        continue;
+      }
+
+      if (this.shouldSkipDirectMessageAckedSocket(event, socket)) {
         continue;
       }
 
@@ -1319,6 +1652,106 @@ export class ChatServerService implements OnModuleDestroy {
     }
 
     return result;
+  }
+
+  private rememberDirectMessageAckedSocket(payload: unknown, socket: WebSocket) {
+    const key = this.directMessageAckKey(payload);
+    if (key == null) {
+      return;
+    }
+
+    const sockets = this.directMessageAckedSockets.get(key) ?? new Set<WebSocket>();
+    sockets.add(socket);
+    this.directMessageAckedSockets.set(key, sockets);
+
+    const timer = setTimeout(() => {
+      const current = this.directMessageAckedSockets.get(key);
+      if (current == null) {
+        return;
+      }
+      current.delete(socket);
+      if (current.size === 0) {
+        this.directMessageAckedSockets.delete(key);
+      }
+    }, DIRECT_MESSAGE_ACK_SKIP_TTL_MS);
+    timer.unref?.();
+  }
+
+  private shouldSkipDirectMessageAckedSocket(event: Envelope, socket: WebSocket) {
+    if (event.type !== 'message.created') {
+      return false;
+    }
+
+    const key = this.directMessageAckKey(event.payload);
+    if (key == null) {
+      return false;
+    }
+
+    return this.directMessageAckedSockets.get(key)?.has(socket) ?? false;
+  }
+
+  private directMessageAckKey(payload: unknown) {
+    if (payload == null || typeof payload !== 'object') {
+      return null;
+    }
+
+    const value = payload as Record<string, unknown>;
+    const chatId = typeof value.chatId === 'string' ? value.chatId : null;
+    const senderId = typeof value.senderId === 'string' ? value.senderId : null;
+    const clientMessageId =
+      typeof value.clientMessageId === 'string' ? value.clientMessageId : null;
+
+    if (chatId == null || senderId == null || clientMessageId == null) {
+      return null;
+    }
+
+    return `${chatId}:${senderId}:${clientMessageId}`;
+  }
+
+  private normalizeUnreadUpdates(value: unknown): MessageUnreadUpdate[] {
+    const items = typeof value === 'string' ? this.parseJsonArray(value) : value;
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items.flatMap((item) => {
+      if (item == null || typeof item !== 'object') {
+        return [];
+      }
+
+      const record = item as Record<string, unknown>;
+      const userId = typeof record.userId === 'string' ? record.userId : null;
+      const unreadCount = Number(record.unreadCount);
+      if (userId == null || !Number.isFinite(unreadCount)) {
+        return [];
+      }
+
+      return [{ userId, unreadCount }];
+    });
+  }
+
+  private parseJsonArray(value: string) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private async publishUnreadUpdates(chatId: string, updates: MessageUnreadUpdate[]) {
+    await Promise.all(
+      updates.map((update) =>
+        publishBusEvent(this.publisher, {
+          type: 'unread.updated',
+          payload: {
+            userId: update.userId,
+            chatId,
+            unreadCount: update.unreadCount,
+          },
+        }),
+      ),
+    );
   }
 
   private async requireAuthenticated(socket: WebSocket) {
@@ -1817,6 +2250,13 @@ export class ChatServerService implements OnModuleDestroy {
     return Math.max(1, Math.trunc(parsed));
   }
 
+  private resolveBoolean(raw: string | undefined, fallback: boolean) {
+    if (raw == null || raw.trim() === '') {
+      return fallback;
+    }
+    return !['0', 'false', 'off', 'no'].includes(raw.trim().toLowerCase());
+  }
+
   private async getBlockedUserIds(userId: string) {
     const cached = this.getBlockedUserIdsCache(userId);
     if (cached != null) {
@@ -1862,6 +2302,74 @@ export class ChatServerService implements OnModuleDestroy {
     this.blockedUserIdsCache.set(userId, {
       expiresAt: Date.now() + BLOCKED_USER_IDS_CACHE_SECONDS * 1000,
       value: blockedUserIds,
+    });
+  }
+
+  private async getMessageAuthor(userId: string): Promise<MessageAuthorSnapshot> {
+    const cached = this.getMessageAuthorCache(userId);
+    if (cached != null) {
+      return cached;
+    }
+
+    const pending = this.pendingMessageAuthorLoads.get(userId);
+    if (pending != null) {
+      return pending;
+    }
+
+    const loading = this.prismaService.client.user.findUnique({
+      where: { id: userId },
+      select: {
+        displayName: true,
+        profile: {
+          select: {
+            avatarUrl: true,
+          },
+        },
+      },
+    }).then((user) => {
+      if (user == null) {
+        throw new ChatServerError('stale_access_token', 'Access token is stale');
+      }
+
+      const author = {
+        displayName: user.displayName,
+        profile: user.profile ?? null,
+      };
+      this.setMessageAuthorCache(userId, author);
+      return author;
+    }).finally(() => {
+      this.pendingMessageAuthorLoads.delete(userId);
+    });
+
+    this.pendingMessageAuthorLoads.set(userId, loading);
+    return loading;
+  }
+
+  private getMessageAuthorCache(userId: string) {
+    const entry = this.messageAuthorCache.get(userId);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.messageAuthorCache.delete(userId);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setMessageAuthorCache(
+    userId: string,
+    author: MessageAuthorSnapshot,
+  ) {
+    if (this.messageAuthorCache.size >= MESSAGE_AUTHOR_CACHE_MAX_ENTRIES) {
+      const oldestKey = this.messageAuthorCache.keys().next().value;
+      if (oldestKey) {
+        this.messageAuthorCache.delete(oldestKey);
+      }
+    }
+    this.messageAuthorCache.set(userId, {
+      expiresAt: Date.now() + MESSAGE_AUTHOR_CACHE_SECONDS * 1000,
+      value: author,
     });
   }
 

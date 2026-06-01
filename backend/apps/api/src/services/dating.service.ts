@@ -3,12 +3,13 @@ import { createHash } from 'node:crypto';
 import { DatingActionKind, Prisma } from '@prisma/client';
 import {
   OUTBOX_EVENT_TYPES,
+  buildMediaProxyPath,
   decodeCursor,
   encodeCursor,
   getBlockedUserIds as loadBlockedUserIds,
 } from '@big-break/database';
 import { ApiError } from '../common/api-error';
-import { mapProfilePhoto } from '../common/presenters';
+import { mapMediaVariants } from '../common/media-presenters';
 import { PrismaService } from './prisma.service';
 import { PeopleService } from './people.service';
 import { RedisCacheService } from './redis-cache.service';
@@ -30,6 +31,11 @@ const FREE_SWIPE_HOURLY_LIMIT = 100;
 const MOSCOW_UTC_OFFSET_MS = 3 * 60 * 60 * 1000;
 const DATING_PROFILE_PHOTO_LIMIT = 6;
 const DATING_DISCOVER_CACHE_SECONDS = 5;
+const DATING_DISCOVER_LOCAL_CACHE_SECONDS =
+  process.env.NODE_ENV === 'test' ? 0 : 2;
+const DATING_DISCOVER_VERSION_LOCAL_CACHE_SECONDS =
+  process.env.NODE_ENV === 'test' ? 0 : 1;
+const DATING_DISCOVER_LOCAL_CACHE_MAX_ENTRIES = 1000;
 const DATING_LIMITS_CACHE_SECONDS = 5;
 const DATING_PROFILE_PHOTO_MEDIA_SELECT = {
   id: true,
@@ -192,6 +198,14 @@ type DatingDiscoverResult = {
   items: any[];
   nextCursor: string | null;
 };
+type DatingDiscoverLocalCacheEntry = {
+  expiresAt: number;
+  value: DatingDiscoverResult;
+};
+type DatingDiscoverVersionCacheEntry = {
+  expiresAt: number;
+  value: number;
+};
 
 const _datingLocationByCityArea: Record<
   string,
@@ -244,6 +258,10 @@ export class DatingService {
     string,
     Promise<DatingDiscoverResult>
   >();
+  private readonly datingDiscoverLocalCache =
+    new Map<string, DatingDiscoverLocalCacheEntry>();
+  private readonly datingDiscoverVersionCache =
+    new Map<string, DatingDiscoverVersionCacheEntry>();
   private readonly pendingLikesLoads = new Map<string, Promise<any>>();
   private readonly pendingLimitsLoads = new Map<string, Promise<any>>();
 
@@ -1438,9 +1456,7 @@ export class DatingService {
     const tags = (common.length > 0 ? common : interests).slice(0, 3);
     const photos = (user.profile?.photos ?? [])
       .sort((left, right) => left.sortOrder - right.sortOrder)
-      .map((photo) =>
-        mapProfilePhoto(photo as Parameters<typeof mapProfilePhoto>[0]),
-      );
+      .map((photo) => this.mapDatingProfilePhoto(photo));
     const primaryPhoto = photos.length == 0 ? null : photos[0]!;
 
     const city = user.profile?.city ?? user.onboarding?.city ?? null;
@@ -1487,6 +1503,22 @@ export class DatingService {
       verified: user.verified,
       online: user.online,
       createdAt: (user.createdAt ?? new Date(0)).toISOString(),
+    };
+  }
+
+  private mapDatingProfilePhoto(
+    photo: NonNullable<DatingProfileUser['profile']>['photos'][number],
+  ) {
+    const asset = photo.mediaAsset;
+    const publicUrl = asset.publicUrl?.trim() ?? null;
+    const embedsDataUrl = publicUrl?.startsWith('data:') === true;
+    return {
+      id: photo.id,
+      url: embedsDataUrl || publicUrl == null
+        ? buildMediaProxyPath(asset.id)
+        : publicUrl,
+      order: photo.sortOrder,
+      variants: embedsDataUrl ? {} : mapMediaVariants(asset.variants),
     };
   }
 
@@ -1841,10 +1873,7 @@ export class DatingService {
       return null;
     }
 
-    const version =
-      (await this.redisCache.getJson<number>(
-        this.datingDiscoverVersionKey(userId),
-      )) ?? 0;
+    const version = await this.getDatingDiscoverVersion(userId);
     const digest = createHash('sha1')
       .update(
         JSON.stringify({
@@ -1871,6 +1900,11 @@ export class DatingService {
       return null;
     }
 
+    const localCached = this.getDatingDiscoverLocalCache(cacheKey);
+    if (localCached != null) {
+      return localCached;
+    }
+
     const cached =
       await this.redisCache?.getJson<DatingDiscoverResult>(cacheKey);
     if (
@@ -1881,6 +1915,7 @@ export class DatingService {
       return null;
     }
 
+    this.setDatingDiscoverLocalCache(cacheKey, cached);
     return cached;
   }
 
@@ -1897,10 +1932,61 @@ export class DatingService {
       result,
       this.datingDiscoverCacheTtlSeconds(),
     );
+    this.setDatingDiscoverLocalCache(cacheKey, result);
   }
 
   private async incrementDatingDiscoverVersion(userId: string) {
     await this.redisCache?.increment(this.datingDiscoverVersionKey(userId));
+    this.datingDiscoverVersionCache.delete(userId);
+  }
+
+  private async getDatingDiscoverVersion(userId: string) {
+    const local = this.datingDiscoverVersionCache.get(userId);
+    if (local != null && local.expiresAt > Date.now()) {
+      return local.value;
+    }
+
+    const value =
+      (await this.redisCache?.getJson<number>(
+        this.datingDiscoverVersionKey(userId),
+      )) ?? 0;
+    this.datingDiscoverVersionCache.set(userId, {
+      expiresAt:
+        Date.now() + DATING_DISCOVER_VERSION_LOCAL_CACHE_SECONDS * 1000,
+      value,
+    });
+    return value;
+  }
+
+  private getDatingDiscoverLocalCache(cacheKey: string) {
+    const entry = this.datingDiscoverLocalCache.get(cacheKey);
+    if (entry == null) {
+      return null;
+    }
+    if (entry.expiresAt <= Date.now()) {
+      this.datingDiscoverLocalCache.delete(cacheKey);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setDatingDiscoverLocalCache(
+    cacheKey: string,
+    value: DatingDiscoverResult,
+  ) {
+    if (
+      this.datingDiscoverLocalCache.size >=
+      DATING_DISCOVER_LOCAL_CACHE_MAX_ENTRIES
+    ) {
+      const oldestKey = this.datingDiscoverLocalCache.keys().next().value;
+      if (oldestKey) {
+        this.datingDiscoverLocalCache.delete(oldestKey);
+      }
+    }
+    this.datingDiscoverLocalCache.set(cacheKey, {
+      expiresAt: Date.now() + DATING_DISCOVER_LOCAL_CACHE_SECONDS * 1000,
+      value,
+    });
   }
 
   private async datingLikesCacheKey(

@@ -30,6 +30,7 @@ export interface MirrorImageInput {
 type MirroredImageAsset = {
   imageUrl: string | null;
   imageVariants: Record<string, unknown>;
+  permanentFailure?: boolean;
 };
 
 @Injectable()
@@ -40,6 +41,14 @@ export class ContentImageMirrorService {
     item: NormalizedExternalContentItem,
   ): Promise<NormalizedExternalContentItem> {
     const mirrored = await this.mirrorImageAsset(item);
+    if (mirrored.permanentFailure) {
+      return {
+        ...item,
+        imageUrl: null,
+        imageVariants: {},
+      };
+    }
+
     if (!mirrored.imageUrl || mirrored.imageUrl === item.imageUrl) {
       return item;
     }
@@ -75,6 +84,16 @@ export class ContentImageMirrorService {
         imageVariants: await this.tryCreateVariants(objectKey, image.bytes),
       };
     } catch (caught) {
+      if (caught instanceof PermanentImageFetchError) {
+        console.warn('[content-import] image mirror skipped permanent failure', {
+          sourceCode: input.sourceCode,
+          sourceItemId: input.sourceItemId,
+          imageHost: imageHost(fetchUrl),
+          reason: caught.message,
+        });
+        return { imageUrl: null, imageVariants: {}, permanentFailure: true };
+      }
+
       console.warn('[content-import] image mirror failed', {
         sourceCode: input.sourceCode,
         sourceItemId: input.sourceItemId,
@@ -116,6 +135,9 @@ export class ContentImageMirrorService {
           return image;
         }
       } catch (caught) {
+        if (caught instanceof PermanentImageFetchError) {
+          throw caught;
+        }
         lastError = caught;
       }
 
@@ -155,6 +177,9 @@ export class ContentImageMirrorService {
         signal: controller.signal,
       });
       if (!response.ok) {
+        if (isPermanentImageStatus(response.status)) {
+          throw new PermanentImageFetchError(response.status);
+        }
         throw new Error(`image_fetch_http_${response.status}`);
       }
 
@@ -248,6 +273,16 @@ export class ContentImageMirrorService {
     this.s3 ??= createS3Client();
     return this.s3;
   }
+}
+
+class PermanentImageFetchError extends Error {
+  constructor(status: number) {
+    super(`image_fetch_http_${status}`);
+  }
+}
+
+function isPermanentImageStatus(status: number) {
+  return status === 404 || status === 410;
 }
 
 function isHttpsUrl(value: string) {

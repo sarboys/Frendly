@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "a9f422aeaa2b4d1d40cd1acfc895adc30674a329",
-  "generatedAt": "2026-05-31T11:33:08.052Z",
+  "gitCommitHash": "101215da8d5ff2420ef80d1cd647d1cce839d838",
+  "generatedAt": "2026-06-01T05:08:05.997Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -16447,7 +16447,7 @@
     },
     "backend/apps/api/src/services/chats.service.ts": {
       "filePath": "backend/apps/api/src/services/chats.service.ts",
-      "contentHash": "585999870a97d87f800ae88f5f17273fcb30ad921c61ec21c79c030cdb97647b",
+      "contentHash": "ced065ff7b719e55d13e30588598fe5807daae0b48cc6b34a6529efa9de0c669",
       "functions": [],
       "classes": [
         {
@@ -16472,6 +16472,7 @@
             "scheduleChatPayloadCleanup",
             "cleanupChatPayloadIfEmpty",
             "getChatListMemberStates",
+            "getChatListLastMessages",
             "mapTicketSummary",
             "mapEveningChatPhase",
             "phaseFromSession",
@@ -16507,7 +16508,7 @@
             "localReadMarkerCache"
           ],
           "exported": true,
-          "lineCount": 1639
+          "lineCount": 1703
         }
       ],
       "imports": [
@@ -16586,7 +16587,7 @@
       "exports": [
         "ChatsService"
       ],
-      "totalLines": 1810,
+      "totalLines": 1877,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/communities.service.ts": {
@@ -16735,7 +16736,7 @@
     },
     "backend/apps/api/src/services/dating.service.ts": {
       "filePath": "backend/apps/api/src/services/dating.service.ts",
-      "contentHash": "349212cf45eda735aff83a8ea277c867d7238f33fe5fb98a00ae37a0c814a882",
+      "contentHash": "28716d14591497a3bfd9a3c0fb16155b469d00bcf607e23a115514033c1f0e34",
       "functions": [],
       "classes": [
         {
@@ -16771,6 +16772,7 @@
             "currentRollingHourWindow",
             "currentMoscowDayWindow",
             "mapDatingProfile",
+            "mapDatingProfilePhoto",
             "resolveDatingProfileLocation",
             "normalizeLocationText",
             "deriveDistanceLabel",
@@ -16795,6 +16797,9 @@
             "readDatingDiscoverCache",
             "writeDatingDiscoverCache",
             "incrementDatingDiscoverVersion",
+            "getDatingDiscoverVersion",
+            "getDatingDiscoverLocalCache",
+            "setDatingDiscoverLocalCache",
             "datingLikesCacheKey",
             "incrementDatingLikesVersion",
             "datingLikesVersionKey",
@@ -16810,11 +16815,13 @@
           ],
           "properties": [
             "pendingDiscoverLoads",
+            "datingDiscoverLocalCache",
+            "datingDiscoverVersionCache",
             "pendingLikesLoads",
             "pendingLimitsLoads"
           ],
           "exported": true,
-          "lineCount": 1784
+          "lineCount": 1856
         }
       ],
       "imports": [
@@ -16842,6 +16849,7 @@
           "source": "@big-break/database",
           "specifiers": [
             "OUTBOX_EVENT_TYPES",
+            "buildMediaProxyPath",
             "decodeCursor",
             "encodeCursor",
             "loadBlockedUserIds"
@@ -16854,9 +16862,9 @@
           ]
         },
         {
-          "source": "../common/presenters",
+          "source": "../common/media-presenters",
           "specifiers": [
-            "mapProfilePhoto"
+            "mapMediaVariants"
           ]
         },
         {
@@ -16893,7 +16901,7 @@
       "exports": [
         "DatingService"
       ],
-      "totalLines": 2026,
+      "totalLines": 2112,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/drops-draw.service.ts": {
@@ -19575,7 +19583,7 @@
     },
     "backend/apps/api/src/services/onboarding.service.ts": {
       "filePath": "backend/apps/api/src/services/onboarding.service.ts",
-      "contentHash": "a022c2fdf6f5bc774fb5994370815d38957cdcf891f9c326d7e183abbe2727f8",
+      "contentHash": "ad79dedce440b94356ae68088c0f5a3fd0a736e19a3903d5fe572eac67b6eab1",
       "functions": [
         {
           "name": "mapOnboarding",
@@ -19688,7 +19696,7 @@
             "pendingOnboardingLoads"
           ],
           "exported": true,
-          "lineCount": 379
+          "lineCount": 381
         }
       ],
       "imports": [
@@ -19725,6 +19733,12 @@
           ]
         },
         {
+          "source": "./profile.service",
+          "specifiers": [
+            "ProfileService"
+          ]
+        },
+        {
           "source": "./redis-cache.service",
           "specifiers": [
             "RedisCacheService"
@@ -19734,7 +19748,7 @@
       "exports": [
         "OnboardingService"
       ],
-      "totalLines": 650,
+      "totalLines": 653,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/openrouter.service.ts": {
@@ -20343,7 +20357,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "9fe4f80cc14e9238312d4436bb8eb89159d3bbbd5df020cd2631c1c7554c313b",
+      "contentHash": "727880e614295c6bff89caae44cb75d80dac3d3eed4590f5d463260e46b97a41",
       "functions": [],
       "classes": [
         {
@@ -20364,6 +20378,7 @@
             "createOrGetDirectChat",
             "getPersonProfile",
             "loadFreshPersonProfile",
+            "mapProfileUpcomingEvents",
             "getProfileSocial",
             "loadFreshProfileSocial",
             "setFollow",
@@ -20392,7 +20407,7 @@
             "followingMemoryCache"
           ],
           "exported": true,
-          "lineCount": 1192
+          "lineCount": 1262
         }
       ],
       "imports": [
@@ -20416,6 +20431,7 @@
         {
           "source": "@prisma/client",
           "specifiers": [
+            "Prisma",
             "ProfileReactionKind"
           ]
         },
@@ -20429,6 +20445,7 @@
           "source": "../common/presenters",
           "specifiers": [
             "mapBasicProfile",
+            "mapEventSummary",
             "mapProfilePhoto"
           ]
         },
@@ -20461,7 +20478,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 1241,
+      "totalLines": 1377,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -20815,7 +20832,7 @@
     },
     "backend/apps/api/src/services/profile.service.ts": {
       "filePath": "backend/apps/api/src/services/profile.service.ts",
-      "contentHash": "2b38bf2cdbba5f8e05ebf646e86691ebb184309a2dc9310486883d9a17656693",
+      "contentHash": "f3b357faa385485c2f5ab31e1082d3a70b922640f6a16b0580eb7fd0cf9b8390",
       "functions": [],
       "classes": [
         {
@@ -20890,7 +20907,7 @@
             "s3Bucket"
           ],
           "exported": true,
-          "lineCount": 1743
+          "lineCount": 1756
         }
       ],
       "imports": [
@@ -20972,7 +20989,7 @@
         "MAX_PROFILE_ASSET_UPLOAD_BYTES",
         "ProfileService"
       ],
-      "totalLines": 1856,
+      "totalLines": 1870,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/redis-cache.service.ts": {
@@ -22394,7 +22411,7 @@
     },
     "backend/apps/chat/src/chat-server.service.ts": {
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
-      "contentHash": "035743741875c36b5e84fa44fc0db9ea1495cd80226f0ec06632e7d676f26088",
+      "contentHash": "b7ddd7a5ca8380e70f7eff01bbb4cdb86491375116a0e04b9813a29d184a947d",
       "functions": [],
       "classes": [
         {
@@ -22421,6 +22438,10 @@
             "subscribe",
             "unsubscribe",
             "sendMessage",
+            "enqueueMessageWrite",
+            "drainMessageWriteQueue",
+            "updateMessageWriteMetrics",
+            "createPlainMessageFast",
             "parseLocationPayload",
             "isUniqueConstraintError",
             "shouldTouchChatForMessage",
@@ -22434,6 +22455,12 @@
             "normalizeSyncEventLimit",
             "broadcastEvent",
             "getBlockedUserIdsByUserIds",
+            "rememberDirectMessageAckedSocket",
+            "shouldSkipDirectMessageAckedSocket",
+            "directMessageAckKey",
+            "normalizeUnreadUpdates",
+            "parseJsonArray",
+            "publishUnreadUpdates",
             "requireAuthenticated",
             "loadSession",
             "loadFreshSession",
@@ -22462,9 +22489,13 @@
             "pruneExpiredMembershipCacheEntries",
             "resolveDurationMs",
             "resolvePositiveInteger",
+            "resolveBoolean",
             "getBlockedUserIds",
             "getBlockedUserIdsCache",
             "setBlockedUserIdsCache",
+            "getMessageAuthor",
+            "getMessageAuthorCache",
+            "setMessageAuthorCache",
             "updateWebSocketGauges",
             "isUserBlocked",
             "getActorUserId",
@@ -22490,6 +22521,9 @@
             "messageTransactionMaxWaitMs",
             "messageTransactionTimeoutMs",
             "messageChatTouchIntervalMs",
+            "messageWriteConcurrency",
+            "messageWriteQueueMax",
+            "messageInlineUnreadUpdates",
             "heartbeatIntervalMs",
             "lastTypingSentAtBySocket",
             "membershipCache",
@@ -22498,13 +22532,18 @@
             "pendingAuthSessionLoads",
             "blockedUserIdsCache",
             "pendingBlockedUserLoads",
+            "messageAuthorCache",
+            "pendingMessageAuthorLoads",
             "lastMessageChatTouchAt",
+            "messageWriteQueue",
+            "directMessageAckedSockets",
+            "activeMessageWrites",
             "publisher",
             "subscriber",
             "heartbeatTimer"
           ],
           "exported": true,
-          "lineCount": 1875
+          "lineCount": 2360
         }
       ],
       "imports": [
@@ -22543,6 +22582,12 @@
           ]
         },
         {
+          "source": "node:crypto",
+          "specifiers": [
+            "randomUUID"
+          ]
+        },
+        {
           "source": "@prisma/client",
           "specifiers": [
             "Prisma"
@@ -22566,7 +22611,7 @@
       "exports": [
         "ChatServerService"
       ],
-      "totalLines": 2041,
+      "totalLines": 2549,
       "hasStructuralAnalysis": true
     },
     "backend/apps/chat/src/health.controller.ts": {
@@ -23022,7 +23067,7 @@
     },
     "backend/apps/worker/src/content/advcake-ticketland.adapter.ts": {
       "filePath": "backend/apps/worker/src/content/advcake-ticketland.adapter.ts",
-      "contentHash": "b2f3be68a53d6e29e5063d0a3f609e0f3226a5ba1fb4689098b07e7e05b44eb8",
+      "contentHash": "8b907759998112acf5c421002b7ec0a220dcdef78c6bc2911b1b0ee6523076f7",
       "functions": [
         {
           "name": "maskAdvCakeSecrets",
@@ -23073,7 +23118,7 @@
             "value"
           ],
           "exported": false,
-          "lineCount": 8
+          "lineCount": 9
         },
         {
           "name": "parseUrl",
@@ -23282,7 +23327,7 @@
         "AdvCakeTicketlandAdapter",
         "maskAdvCakeSecrets"
       ],
-      "totalLines": 518,
+      "totalLines": 519,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-deduplication.service.ts": {
@@ -23387,8 +23432,16 @@
     },
     "backend/apps/worker/src/content/content-image-mirror.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-image-mirror.service.ts",
-      "contentHash": "57e69f4d96f1d50098f920971fd7cd680c5fd470ed1e458fe5ece58e6148a1d8",
+      "contentHash": "9c48e75a4c2b1fb8ace686fa45f6bebed50932eb7f665480599579e37ae96b20",
       "functions": [
+        {
+          "name": "isPermanentImageStatus",
+          "params": [
+            "status"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
         {
           "name": "isHttpsUrl",
           "params": [
@@ -23482,7 +23535,16 @@
             "s3"
           ],
           "exported": true,
-          "lineCount": 216
+          "lineCount": 240
+        },
+        {
+          "name": "PermanentImageFetchError",
+          "methods": [
+            "constructor"
+          ],
+          "properties": [],
+          "exported": false,
+          "lineCount": 5
         }
       ],
       "imports": [
@@ -23532,12 +23594,12 @@
       "exports": [
         "ContentImageMirrorService"
       ],
-      "totalLines": 334,
+      "totalLines": 369,
       "hasStructuralAnalysis": true
     },
     "backend/apps/worker/src/content/content-import.service.ts": {
       "filePath": "backend/apps/worker/src/content/content-import.service.ts",
-      "contentHash": "35928c31146cf73a21faf545f87e32390e3031bbe2813295f0421b3dbd0b148e",
+      "contentHash": "4ac4383bd75002987b13c9480978d5b451c171205b75610bfa025c431a4e4182",
       "functions": [
         {
           "name": "safeJson",
@@ -26448,7 +26510,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "13f4ec8944845e901468bd25a5d924f76d64616f071885266f5b294db897900b",
+      "contentHash": "71cb4ffebaefa41f70eb39d1ed6fc9ce0b14f53584ce30c64d3f96a69f580b58",
       "functions": [
         {
           "name": "csv",
@@ -26534,6 +26596,9 @@
             "localDateParts",
             "runScheduledTask",
             "runOnce",
+            "processClaimedEvents",
+            "parseBatchableChatUnreadFanoutEvent",
+            "processChatUnreadFanoutBatch",
             "shouldUseBatchOutboxClaim",
             "recordOutboxBacklogAge",
             "processEvent",
@@ -26566,6 +26631,9 @@
             "createEveningChatUpdatedEvent",
             "handleUnreadFanout",
             "handleChatUnreadFanout",
+            "parseMessageCreatedAt",
+            "incrementUnreadCountsForMessage",
+            "incrementUnreadCountsForMessages",
             "publishUnreadCounts",
             "persistUnreadCounts",
             "runSystemNotificationScan",
@@ -26651,7 +26719,7 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 2220
+          "lineCount": 2471
         }
       ],
       "imports": [
@@ -26748,7 +26816,7 @@
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 2379,
+      "totalLines": 2644,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {
@@ -26904,7 +26972,7 @@
     },
     "backend/packages/database/prisma/create-hot-path-indexes.ts": {
       "filePath": "backend/packages/database/prisma/create-hot-path-indexes.ts",
-      "contentHash": "5762f8e7c97be4c0c8d8d2d0a919e6b6f3ca9dcc38b775a6ae9bd3ee000993e7",
+      "contentHash": "1f7de547e555fc083b8034b808276f504ab7ab29703864577223a131f2be29d3",
       "functions": [
         {
           "name": "main",
@@ -26930,7 +26998,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 159,
+      "totalLines": 155,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/prisma/delete-app-users.ts": {
@@ -28291,7 +28359,7 @@
     },
     "backend/packages/database/src/metrics.ts": {
       "filePath": "backend/packages/database/src/metrics.ts",
-      "contentHash": "33351289371f460249240f14e08e1189e26657b8c0d340f8cf7302791df5586a",
+      "contentHash": "deb0f67c9e76de61f3d4d0d0bb0a48e7966478ce36f00cc113d8a169a946fe45",
       "functions": [
         {
           "name": "bindPrismaMetrics",
@@ -28335,7 +28403,7 @@
         "getMetricsContentType",
         "renderAppMetrics"
       ],
-      "totalLines": 261,
+      "totalLines": 277,
       "hasStructuralAnalysis": true
     },
     "backend/packages/database/src/openrouter.ts": {
@@ -29835,15 +29903,15 @@
     },
     "backend/scripts/load-chat-ws.mjs": {
       "filePath": "backend/scripts/load-chat-ws.mjs",
-      "contentHash": "201e626e03fbff61ccd03aee59813d49bc11bb809802e53dd23be8b4f0e30d16",
+      "contentHash": "3b2cbac6a651ba44b38fccd5fd429129ddb85f45bfc08568d2b2fbbda84dfa8d",
       "functions": [
         {
           "name": "parseArgs",
           "params": [
             "argv"
           ],
-          "exported": false,
-          "lineCount": 35
+          "exported": true,
+          "lineCount": 40
         },
         {
           "name": "deriveWsUrl",
@@ -29861,6 +29929,57 @@
           ],
           "exported": false,
           "lineCount": 7
+        },
+        {
+          "name": "parseReceiveMode",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "parseCloseMode",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "resolveEventSockets",
+          "params": [
+            "config",
+            "sockets"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "eventSocketBufferStats",
+          "params": [
+            "sockets"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "eventSendTiming",
+          "params": [
+            "sent",
+            "elapsedMs"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "createClientMessageId",
+          "params": [
+            "runId",
+            "index"
+          ],
+          "exported": true,
+          "lineCount": 3
         },
         {
           "name": "sleep",
@@ -29994,7 +30113,7 @@
             "timeoutMs"
           ],
           "exported": false,
-          "lineCount": 31
+          "lineCount": 33
         },
         {
           "name": "connectOne",
@@ -30022,15 +30141,15 @@
             "sockets"
           ],
           "exported": false,
-          "lineCount": 74
+          "lineCount": 144
         },
         {
           "name": "closeSockets",
           "params": [
             "sockets"
           ],
-          "exported": false,
-          "lineCount": 7
+          "exported": true,
+          "lineCount": 11
         },
         {
           "name": "main",
@@ -30042,27 +30161,54 @@
       "classes": [],
       "imports": [
         {
+          "source": "node:crypto",
+          "specifiers": [
+            "randomUUID"
+          ]
+        },
+        {
           "source": "node:perf_hooks",
           "specifiers": [
             "performance"
           ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "pathToFileURL"
+          ]
         }
       ],
-      "exports": [],
-      "totalLines": 510,
+      "exports": [
+        "parseArgs",
+        "resolveEventSockets",
+        "eventSocketBufferStats",
+        "eventSendTiming",
+        "createClientMessageId",
+        "closeSockets"
+      ],
+      "totalLines": 641,
       "hasStructuralAnalysis": true
     },
     "backend/scripts/load-mixed-rps.mjs": {
       "filePath": "backend/scripts/load-mixed-rps.mjs",
-      "contentHash": "f4ce3ed0007e3cdf6763a9fa013b79b924d661698c9794143e3754a13b947b00",
+      "contentHash": "372546970fef0af956a2439f58ed46ccee2fdbffef504da06dc03366650aa37d",
       "functions": [
         {
           "name": "parseArgs",
           "params": [
             "argv"
           ],
-          "exported": false,
-          "lineCount": 40
+          "exported": true,
+          "lineCount": 41
+        },
+        {
+          "name": "resolveEndpointMix",
+          "params": [
+            "only"
+          ],
+          "exported": true,
+          "lineCount": 16
         },
         {
           "name": "parsePositiveInteger",
@@ -30078,7 +30224,7 @@
           "params": [
             "requestIndex"
           ],
-          "exported": false,
+          "exported": true,
           "lineCount": 13
         },
         {
@@ -30133,7 +30279,7 @@
           "name": "main",
           "params": [],
           "exported": false,
-          "lineCount": 62
+          "lineCount": 64
         }
       ],
       "classes": [],
@@ -30143,10 +30289,21 @@
           "specifiers": [
             "performance"
           ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "pathToFileURL"
+          ]
         }
       ],
-      "exports": [],
-      "totalLines": 298,
+      "exports": [
+        "endpointMix",
+        "parseArgs",
+        "resolveEndpointMix",
+        "pickEndpoint"
+      ],
+      "totalLines": 321,
       "hasStructuralAnalysis": true
     },
     "backend/scripts/perf-20k-smoke.mjs": {

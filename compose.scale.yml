@@ -1,7 +1,7 @@
 name: frendly-backend
 
 # Scale deploy runtime:
-# RUNTIME_SERVICES=api_a api_b api_c api_d api_e api_f api_g api_h chat_a chat_b chat_c chat_d worker_realtime worker_content worker_schedules landing admin_internal admin_partner
+# RUNTIME_SERVICES=api_a api_b api_c api_d api_e api_f api_g api_h chat_a chat_b chat_c chat_d chat_e chat_f chat_g chat_h worker_realtime worker_content worker_schedules landing admin_internal admin_partner
 # Do not include base api, chat or worker in scale mode.
 
 services:
@@ -89,6 +89,34 @@ services:
     environment:
       METRICS_SERVICE_NAME: chat_d
 
+  chat_e:
+    extends:
+      file: compose.prod.yml
+      service: chat
+    environment:
+      METRICS_SERVICE_NAME: chat_e
+
+  chat_f:
+    extends:
+      file: compose.prod.yml
+      service: chat
+    environment:
+      METRICS_SERVICE_NAME: chat_f
+
+  chat_g:
+    extends:
+      file: compose.prod.yml
+      service: chat
+    environment:
+      METRICS_SERVICE_NAME: chat_g
+
+  chat_h:
+    extends:
+      file: compose.prod.yml
+      service: chat
+    environment:
+      METRICS_SERVICE_NAME: chat_h
+
   worker_realtime:
     extends:
       file: compose.prod.yml
@@ -156,6 +184,14 @@ services:
       chat_c:
         condition: service_healthy
       chat_d:
+        condition: service_healthy
+      chat_e:
+        condition: service_healthy
+      chat_f:
+        condition: service_healthy
+      chat_g:
+        condition: service_healthy
+      chat_h:
         condition: service_healthy
       landing:
         condition: service_healthy

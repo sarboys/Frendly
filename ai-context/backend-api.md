@@ -152,8 +152,10 @@ People:
 - `DELETE /people/:userId/reactions/:kind`
 - `POST /people/:userId/direct-chat`
 - Public profile responses include `social` with follower, like, super-like counts and viewer flags. Profile social actions are independent from dating actions. Backend rejects follow, like and super-like on yourself.
+- Public profile responses include `upcomingEvents`, up to 3 nearest active public meetups where the user is host or participant. Canceled, non-public and past events are excluded.
 - New profile `like` and `super_like` reactions create deduped central `like` notifications with `payload.source=profile`, `payload.action`, `payload.userId` and `payload.userName`. Mobile opens `/u/:userId` from that payload.
 - Own profile and public profile payloads expose `frendlyPlus`, derived from the latest subscription. Active access means a live trial, active, or paid-through canceled subscription; expired or inactive subscriptions return `false`.
+- `GET /profile/me` uses Redis cache plus a short 1 second process-local L1 cache. Profile mutations clear both caches before returning the refreshed payload. This removes repeated Redis GET and JSON parse work from the hot startup path under high RPS.
 - `GET /people/following` accepts `eventId`, `q`, `cursor`, `limit` and returns only users followed by the current user, with social preview and `inviteState` for event invite UI.
 
 Verification:
@@ -332,7 +334,7 @@ Admin Evening route review:
 - Cursors carry sort keys plus id when possible.
 - Dating discover remains available to all authenticated users. Do not gate dating profiles or `POST /events` with `mode=dating` behind Frendly+.
 - `GET /dating/discover` accepts backend filters: `ageMin`, `ageMax`, `radiusKm` and comma-separated or repeated `interests`. Age is applied in the Prisma query. Interests are matched case-insensitively from onboarding JSON. Radius is approximate, based on known city/area coordinates for the viewer and candidate profiles. Discover ranks fresh profiles before old passes. Inside each cycle, candidates with more shared interests go first, then score by incoming likes, distance, verified and online state. Old `pass` rows enter a second cycle only after fresh profiles are exhausted. Previous `like` and `super_like` rows never return to the feed.
-- First-page `GET /dating/discover` is backed by a short per-user Redis cache, default 5 seconds through `DATING_DISCOVER_CACHE_SECONDS`. Cursor pages bypass this cache. `POST /dating/actions` invalidates the actor and target discover versions; `POST /dating/rewind` invalidates the actor version.
+- First-page `GET /dating/discover` is backed by a short per-user Redis cache, default 5 seconds through `DATING_DISCOVER_CACHE_SECONDS`, plus a small process-local L1 cache. Cursor pages bypass this cache. `POST /dating/actions` invalidates the actor and target discover versions; `POST /dating/rewind` invalidates the actor version. Dating profile photos use a slim public media shape and never embed `data:` URLs; legacy inline media falls back to `/media/:assetId`.
 - Dating discover profile payloads include `city`, `area`, `latitude`, `longitude`, `commonInterests` and `matchPercent`. `matchPercent` is high for shared interests and lower-capped when interests do not overlap. Coordinates are approximate from known city/area labels, with city-level fallback when area is unknown.
 - `POST /events` with `mode=dating` requires `inviteeUserId` and `sourceChatId` for an existing direct chat between host and invitee. Dating events stay private: the invitee cannot open event detail until the invite is accepted and they become a participant.
 - Declining a pending dating invite cancels the private dating event with `cancelReason=dating_invite_declined` and removes its meetup chat from user chat lists.

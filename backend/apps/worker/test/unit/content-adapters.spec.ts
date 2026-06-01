@@ -427,6 +427,19 @@ describe('content source adapters', () => {
     expect(items[0]?.category).toBe('sport');
   });
 
+  it('accepts the current AdvCake Ticketland redirect host', async () => {
+    process.env.ADVCAKE_API_PASS = 'fake-pass';
+    const adapter = new AdvCakeTicketlandAdapter();
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ feeds: [{ format: 'yml', url: 'https://feeds.advcake.ru/yml-feed' }] }) as any)
+      .mockResolvedValueOnce(textResponse(ticketlandYml({ url: 'https://go.redav.online/click' })) as any);
+
+    const items = await adapter.fetchItems(fetchInput());
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.actionUrl).toBe('https://go.redav.online/click');
+  });
+
   it('keeps Ticketland offers for supported import city regions', async () => {
     process.env.ADVCAKE_API_PASS = 'fake-pass';
     const adapter = new AdvCakeTicketlandAdapter();

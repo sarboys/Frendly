@@ -151,7 +151,7 @@ describe('AppOverlayService unit', () => {
             subscriptions: [
               {
                 status: 'active',
-                renewsAt: new Date('2026-06-01T00:00:00.000Z'),
+                renewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 trialEndsAt: null,
               },
             ],
@@ -247,7 +247,7 @@ describe('AppOverlayService unit', () => {
             subscriptions: [
               {
                 status: 'active',
-                renewsAt: new Date('2026-06-01T00:00:00.000Z'),
+                renewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 trialEndsAt: null,
               },
             ],

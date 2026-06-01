@@ -74,11 +74,13 @@ CORE_SERVICES="${CORE_SERVICES:-$(read_env_value CORE_SERVICES)}"
 RUNTIME_SERVICES="${RUNTIME_SERVICES:-$(read_env_value RUNTIME_SERVICES)}"
 NGINX_SERVICE="${NGINX_SERVICE:-$(read_env_value NGINX_SERVICE)}"
 ENABLE_POSTGIS_EVENT_FEED="${ENABLE_POSTGIS_EVENT_FEED:-$(read_env_value ENABLE_POSTGIS_EVENT_FEED)}"
+WORKER_REALTIME_SCALE="${WORKER_REALTIME_SCALE:-$(read_env_value WORKER_REALTIME_SCALE)}"
 
 CORE_SERVICES="${CORE_SERVICES:-postgres redis pgbouncer}"
 RUNTIME_SERVICES="${RUNTIME_SERVICES:-api chat worker landing admin_internal admin_partner}"
 NGINX_SERVICE="${NGINX_SERVICE:-nginx}"
 ENABLE_POSTGIS_EVENT_FEED="${ENABLE_POSTGIS_EVENT_FEED:-false}"
+WORKER_REALTIME_SCALE="${WORKER_REALTIME_SCALE:-1}"
 
 compose_extra_includes() {
   local expected_file="$1"
@@ -109,6 +111,13 @@ done
 read -r -a CORE_SERVICE_ARGS <<< "$CORE_SERVICES"
 read -r -a RUNTIME_SERVICE_ARGS <<< "$RUNTIME_SERVICES"
 read -r -a NGINX_SERVICE_ARGS <<< "$NGINX_SERVICE"
+RUNTIME_SCALE_ARGS=()
+
+if compose_extra_includes compose.scale.yml; then
+  if [[ " ${RUNTIME_SERVICES} " == *" worker_realtime "* ]] && [ "$WORKER_REALTIME_SCALE" != "1" ]; then
+    RUNTIME_SCALE_ARGS+=(--scale "worker_realtime=${WORKER_REALTIME_SCALE}")
+  fi
+fi
 
 docker_compose() {
   docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" "$@"
@@ -267,7 +276,7 @@ else
 fi
 verify_postgis_event_feed
 docker_compose rm -sf migrate || true
-docker_compose up -d --build --no-deps "${RUNTIME_SERVICE_ARGS[@]}"
+docker_compose up -d --build --no-deps "${RUNTIME_SCALE_ARGS[@]}" "${RUNTIME_SERVICE_ARGS[@]}"
 docker_compose up -d --no-deps --force-recreate "${NGINX_SERVICE_ARGS[@]}"
 docker_compose ps
 
