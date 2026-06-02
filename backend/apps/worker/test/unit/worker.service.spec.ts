@@ -1899,7 +1899,7 @@ describe('worker outbox recovery', () => {
         quietHours: false,
       },
     ]);
-    const findBlock = jest.fn().mockResolvedValue(null);
+    const findBlock = jest.fn().mockResolvedValue([]);
     const findPushTokens = jest.fn().mockResolvedValue([
       {
         provider: 'fcm',
@@ -1927,7 +1927,8 @@ describe('worker outbox recovery', () => {
           findMany: findSettings,
         },
         userBlock: {
-          findFirst: findBlock,
+          findMany: findBlock,
+          findFirst: jest.fn(),
         },
         pushToken: {
           findMany: findPushTokens,
@@ -1978,9 +1979,7 @@ describe('worker outbox recovery', () => {
     });
     expect(findPushTokens).toHaveBeenCalledWith({
       where: {
-        userId: {
-          in: ['user-recipient'],
-        },
+        userId: 'user-recipient',
         disabledAt: null,
       },
       select: {
@@ -2064,7 +2063,8 @@ describe('worker outbox recovery', () => {
           findMany: jest.fn().mockResolvedValue([]),
         },
         userBlock: {
-          findFirst: jest.fn().mockResolvedValue(null),
+          findMany: jest.fn().mockResolvedValue([]),
+          findFirst: jest.fn(),
         },
         pushToken: {
           findMany: jest.fn().mockResolvedValue([
@@ -2144,7 +2144,8 @@ describe('worker outbox recovery', () => {
           findMany: jest.fn().mockResolvedValue([]),
         },
         userBlock: {
-          findFirst: jest.fn().mockResolvedValue(null),
+          findMany: jest.fn().mockResolvedValue([]),
+          findFirst: jest.fn(),
         },
         pushToken: {
           findMany: jest.fn().mockResolvedValue([
@@ -2169,6 +2170,234 @@ describe('worker outbox recovery', () => {
     expect(unreadSpy).not.toHaveBeenCalled();
     expect(publishUnreadSpy).not.toHaveBeenCalled();
     expect(queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('message.notification_fanout caps push tokens per recipient, not globally', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
+    process.env.WORKER_PUSH_TOKEN_BATCH_SIZE = '1';
+    const event = {
+      id: 'evt-message-token-cap',
+      type: 'message.notification_fanout',
+      payload: {
+        chatId: 'chat-1',
+        actorUserId: 'user-sender',
+        messageId: 'message-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const findPushTokens = jest.fn()
+      .mockResolvedValueOnce([
+        {
+          userId: 'user-a',
+          provider: 'fcm',
+          token: 'token-a-newest',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          userId: 'user-b',
+          provider: 'fcm',
+          token: 'token-b-newest',
+        },
+      ]);
+    const send = jest.fn();
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          update: jest.fn().mockResolvedValue({}),
+          create: jest.fn(),
+        },
+        message: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'message-1',
+            chatId: 'chat-1',
+            senderId: 'user-sender',
+            text: 'Привет',
+            sender: {
+              displayName: 'Соня',
+            },
+            chat: {
+              kind: 'direct',
+              title: null,
+            },
+            attachments: [],
+          }),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 'member-a', userId: 'user-a' },
+            { id: 'member-b', userId: 'user-b' },
+          ]),
+        },
+        userSettings: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        userBlock: {
+          findMany: jest.fn().mockResolvedValue([]),
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        pushToken: {
+          findMany: findPushTokens,
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+    (service as any).resolveProvider = () => ({ send });
+
+    await service.runOnce();
+
+    expect(findPushTokens).toHaveBeenCalledTimes(2);
+    expect(findPushTokens).toHaveBeenNthCalledWith(1, {
+      where: {
+        userId: 'user-a',
+        disabledAt: null,
+      },
+      select: {
+        userId: true,
+        provider: true,
+        token: true,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: 1,
+    });
+    expect(findPushTokens).toHaveBeenNthCalledWith(2, {
+      where: {
+        userId: 'user-b',
+        disabledAt: null,
+      },
+      select: {
+        userId: true,
+        provider: true,
+        token: true,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: 1,
+    });
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      token: 'token-a-newest',
+    }));
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      token: 'token-b-newest',
+    }));
+  });
+
+  it('message.notification_fanout batches block lookup without per-recipient findFirst', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
+    const event = {
+      id: 'evt-message-block-batch',
+      type: 'message.notification_fanout',
+      payload: {
+        chatId: 'chat-1',
+        actorUserId: 'user-sender',
+        messageId: 'message-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const blockFindMany = jest.fn().mockResolvedValue([
+      {
+        userId: 'user-blocked',
+        blockedUserId: 'user-sender',
+      },
+    ]);
+    const blockFindFirst = jest.fn().mockResolvedValue(null);
+    const send = jest.fn();
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          update: jest.fn().mockResolvedValue({}),
+          create: jest.fn(),
+        },
+        message: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'message-1',
+            chatId: 'chat-1',
+            senderId: 'user-sender',
+            text: 'Привет',
+            sender: {
+              displayName: 'Соня',
+            },
+            chat: {
+              kind: 'direct',
+              title: null,
+            },
+            attachments: [],
+          }),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 'member-a', userId: 'user-allowed' },
+            { id: 'member-b', userId: 'user-blocked' },
+          ]),
+        },
+        userSettings: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        userBlock: {
+          findMany: blockFindMany,
+          findFirst: blockFindFirst,
+        },
+        pushToken: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-allowed',
+              provider: 'fcm',
+              token: 'token-allowed',
+            },
+          ]),
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+    (service as any).resolveProvider = () => ({ send });
+
+    await service.runOnce();
+
+    expect(blockFindMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          {
+            userId: 'user-sender',
+            blockedUserId: {
+              in: ['user-allowed', 'user-blocked'],
+            },
+          },
+          {
+            userId: {
+              in: ['user-allowed', 'user-blocked'],
+            },
+            blockedUserId: 'user-sender',
+          },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+    expect(blockFindFirst).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      token: 'token-allowed',
+    }));
   });
 
   it('uses batch outbox claim by default when raw SQL is available', async () => {

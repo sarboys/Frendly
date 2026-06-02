@@ -1455,21 +1455,7 @@ export class WorkerService implements OnModuleDestroy {
       return;
     }
 
-    const tokens = await this.prismaService.client.pushToken.findMany({
-      where: {
-        userId: {
-          in: recipientIds,
-        },
-        disabledAt: null,
-      },
-      select: {
-        userId: true,
-        provider: true,
-        token: true,
-      },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      take: this.pushTokenBatchSize * recipientIds.length,
-    });
+    const tokens = await this.loadChatPushTokensForRecipients(recipientIds);
     const data = {
       type: 'chat_message',
       chatId: payload.chatId,
@@ -1491,6 +1477,37 @@ export class WorkerService implements OnModuleDestroy {
         data,
       });
     });
+  }
+
+  private async loadChatPushTokensForRecipients(userIds: string[]) {
+    const tokens: Array<{
+      userId: string;
+      provider: 'fcm' | 'apns';
+      token: string;
+    }> = [];
+
+    await this.runWithConcurrency(
+      userIds,
+      this.pushConcurrency,
+      async (userId) => {
+        const userTokens = await this.prismaService.client.pushToken.findMany({
+          where: {
+            userId,
+            disabledAt: null,
+          },
+          select: {
+            userId: true,
+            provider: true,
+            token: true,
+          },
+          orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+          take: this.pushTokenBatchSize,
+        });
+        tokens.push(...userTokens);
+      },
+    );
+
+    return tokens;
   }
 
   private async filterPushAllowedRecipients(
@@ -1517,6 +1534,33 @@ export class WorkerService implements OnModuleDestroy {
     const settingsByUserId = new Map(
       settingsRows.map((settings) => [settings.userId, settings]),
     );
+    const blockRows = await this.prismaService.client.userBlock.findMany({
+      where: {
+        OR: [
+          {
+            userId: actorUserId,
+            blockedUserId: {
+              in: uniqueUserIds,
+            },
+          },
+          {
+            userId: {
+              in: uniqueUserIds,
+            },
+            blockedUserId: actorUserId,
+          },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+    const blockedUserIds = new Set(
+      blockRows.map((block) =>
+        block.userId === actorUserId ? block.blockedUserId : block.userId,
+      ),
+    );
     const allowed: string[] = [];
 
     for (const userId of uniqueUserIds) {
@@ -1524,7 +1568,7 @@ export class WorkerService implements OnModuleDestroy {
       if (settings?.allowPush === false || settings?.quietHours === true) {
         continue;
       }
-      if (await this.isUserHidden(userId, actorUserId)) {
+      if (blockedUserIds.has(userId)) {
         continue;
       }
       allowed.push(userId);
