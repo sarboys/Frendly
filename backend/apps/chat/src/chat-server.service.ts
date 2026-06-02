@@ -682,15 +682,13 @@ export class ChatServerService implements OnModuleDestroy {
                 },
               });
 
-              await tx.outboxEvent.create({
-                data: {
-                  type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
-                  payload: {
-                    chatId,
-                    actorUserId: state.userId!,
-                    messageCreatedAt: created.createdAt.toISOString(),
-                  },
-                },
+              await tx.outboxEvent.createMany({
+                data: this.messageOutboxRows({
+                  chatId,
+                  actorUserId: state.userId!,
+                  messageId: created.id,
+                  messageCreatedAt: created.createdAt,
+                }),
               });
 
               return {
@@ -821,7 +819,8 @@ export class ChatServerService implements OnModuleDestroy {
   }) {
     const now = new Date();
     const messageId = randomUUID();
-    const outboxEventId = randomUUID();
+    const unreadOutboxEventId = randomUUID();
+    const notificationOutboxEventId = randomUUID();
     const touchChat = this.shouldTouchChatForMessage(params.chatId, now.getTime());
     const created = {
       id: messageId,
@@ -886,16 +885,34 @@ export class ChatServerService implements OnModuleDestroy {
         inserted_outbox AS (
           INSERT INTO "OutboxEvent" ("id", "type", "payload", "createdAt", "availableAt")
           SELECT
-            ${outboxEventId},
-            ${OUTBOX_EVENT_TYPES.chatUnreadFanout},
-            jsonb_build_object(
-              'chatId', ${params.chatId},
-              'actorUserId', ${params.senderId},
-              'messageCreatedAt', ${now.toISOString()}
-            ),
+            outbox."id",
+            outbox."type",
+            outbox."payload",
             ${now},
             ${now}
           FROM inserted_message
+          CROSS JOIN (
+            VALUES
+              (
+                ${unreadOutboxEventId},
+                ${OUTBOX_EVENT_TYPES.chatUnreadFanout},
+                jsonb_build_object(
+                  'chatId', ${params.chatId},
+                  'actorUserId', ${params.senderId},
+                  'messageCreatedAt', ${now.toISOString()}
+                )
+              ),
+              (
+                ${notificationOutboxEventId},
+                ${OUTBOX_EVENT_TYPES.messageNotificationFanout},
+                jsonb_build_object(
+                  'chatId', ${params.chatId},
+                  'actorUserId', ${params.senderId},
+                  'messageId', ${messageId},
+                  'messageCreatedAt', ${now.toISOString()}
+                )
+              )
+          ) AS outbox("id", "type", "payload")
           RETURNING "id"
         )
         SELECT inserted_realtime."id"::text AS realtime_event_id
@@ -958,6 +975,22 @@ export class ChatServerService implements OnModuleDestroy {
         FROM inserted_message
         RETURNING "id"
       ),
+      inserted_outbox AS (
+        INSERT INTO "OutboxEvent" ("id", "type", "payload", "createdAt", "availableAt")
+        SELECT
+          ${notificationOutboxEventId},
+          ${OUTBOX_EVENT_TYPES.messageNotificationFanout},
+          jsonb_build_object(
+            'chatId', ${params.chatId},
+            'actorUserId', ${params.senderId},
+            'messageId', ${messageId},
+            'messageCreatedAt', ${now.toISOString()}
+          ),
+          ${now},
+          ${now}
+        FROM inserted_message
+        RETURNING "id"
+      ),
       updated_unread AS (
         UPDATE "ChatMember" cm
         SET "unreadCount" = cm."unreadCount" + 1
@@ -1007,6 +1040,34 @@ export class ChatServerService implements OnModuleDestroy {
       realtimeEventId: realtimeEventId.toString(),
       unreadUpdates: this.normalizeUnreadUpdates(rows[0]?.unread_updates),
     };
+  }
+
+  private messageOutboxRows(params: {
+    chatId: string;
+    actorUserId: string;
+    messageId: string;
+    messageCreatedAt: Date;
+  }) {
+    const messageCreatedAt = params.messageCreatedAt.toISOString();
+    return [
+      {
+        type: OUTBOX_EVENT_TYPES.chatUnreadFanout,
+        payload: {
+          chatId: params.chatId,
+          actorUserId: params.actorUserId,
+          messageCreatedAt,
+        },
+      },
+      {
+        type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
+        payload: {
+          chatId: params.chatId,
+          actorUserId: params.actorUserId,
+          messageId: params.messageId,
+          messageCreatedAt,
+        },
+      },
+    ];
   }
 
   private parseLocationPayload(value: unknown) {

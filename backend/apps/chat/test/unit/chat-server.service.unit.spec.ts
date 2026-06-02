@@ -843,6 +843,37 @@ describe('ChatServerService unit', () => {
     expect(mockRedisPublish).toHaveBeenCalledTimes(1);
   });
 
+  it('messageOutboxRows returns unread and notification fanout payloads', () => {
+    const service = new ChatServerService({ client: {} } as any);
+
+    const rows = (service as any).messageOutboxRows({
+      chatId: 'chat-1',
+      actorUserId: 'user-me',
+      messageId: 'message-1',
+      messageCreatedAt: new Date('2026-04-24T00:00:00.000Z'),
+    });
+
+    expect(rows).toEqual([
+      {
+        type: 'chat.unread_fanout',
+        payload: {
+          chatId: 'chat-1',
+          actorUserId: 'user-me',
+          messageCreatedAt: '2026-04-24T00:00:00.000Z',
+        },
+      },
+      {
+        type: 'message.notification_fanout',
+        payload: {
+          chatId: 'chat-1',
+          actorUserId: 'user-me',
+          messageId: 'message-1',
+          messageCreatedAt: '2026-04-24T00:00:00.000Z',
+        },
+      },
+    ]);
+  });
+
   it('uses a single raw statement for plain message writes when available', async () => {
     const socket = createOpenSocket();
     const queryRaw = jest.fn().mockResolvedValue([
@@ -891,6 +922,13 @@ describe('ChatServerService unit', () => {
     });
 
     expect(queryRaw).toHaveBeenCalledTimes(1);
+    const rawStatement = queryRaw.mock.calls[0]?.[0];
+    expect(rawStatement.sql).toContain("'messageId'");
+    expect(rawStatement.sql).toContain("'chatId'");
+    expect(rawStatement.sql).toContain("'actorUserId'");
+    expect(rawStatement.values).toContain('message.notification_fanout');
+    expect(rawStatement.values).toContain('chat-1');
+    expect(rawStatement.values).toContain('user-me');
     expect(transaction).not.toHaveBeenCalled();
     expect(mockRedisPublish).toHaveBeenCalledWith(
       expect.any(String),
@@ -951,6 +989,14 @@ describe('ChatServerService unit', () => {
       });
 
       expect(queryRaw).toHaveBeenCalledTimes(1);
+      const rawStatement = queryRaw.mock.calls[0]?.[0];
+      expect(rawStatement.sql).toContain("'messageId'");
+      expect(rawStatement.sql).toContain("'chatId'");
+      expect(rawStatement.sql).toContain("'actorUserId'");
+      expect(rawStatement.values).toContain('chat.unread_fanout');
+      expect(rawStatement.values).toContain('message.notification_fanout');
+      expect(rawStatement.values).toContain('chat-1');
+      expect(rawStatement.values).toContain('user-me');
       expect(mockRedisPublish).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('"eventId":"10"'),
@@ -1064,7 +1110,6 @@ describe('ChatServerService unit', () => {
 
       expect(txChatMemberFindMany).not.toHaveBeenCalled();
       expect(txNotificationCreateMany).not.toHaveBeenCalled();
-      expect(txOutboxCreateMany).not.toHaveBeenCalled();
       expect(messageFindFirst).not.toHaveBeenCalled();
       expect(mediaAssetFindMany).not.toHaveBeenCalled();
       const createCall = txMessageCreate.mock.calls[0]?.[0];
@@ -1088,15 +1133,27 @@ describe('ChatServerService unit', () => {
         maxWait: 10000,
         timeout: 10000,
       });
-      expect(txOutboxCreate).toHaveBeenCalledWith({
-        data: {
-          type: 'chat.unread_fanout',
-          payload: {
-            chatId: 'community-chat',
-            actorUserId: 'user-me',
-            messageCreatedAt: '2026-04-24T00:00:00.000Z',
+      expect(txOutboxCreate).not.toHaveBeenCalled();
+      expect(txOutboxCreateMany).toHaveBeenCalledWith({
+        data: [
+          {
+            payload: {
+              actorUserId: 'user-me',
+              chatId: 'community-chat',
+              messageCreatedAt: '2026-04-24T00:00:00.000Z',
+            },
+            type: 'chat.unread_fanout',
           },
-        },
+          {
+            payload: {
+              actorUserId: 'user-me',
+              chatId: 'community-chat',
+              messageCreatedAt: '2026-04-24T00:00:00.000Z',
+              messageId: 'message-1',
+            },
+            type: 'message.notification_fanout',
+          },
+        ],
       });
     });
 
@@ -1149,6 +1206,7 @@ describe('ChatServerService unit', () => {
             },
             outboxEvent: {
               create: jest.fn().mockResolvedValue({}),
+              createMany: jest.fn().mockResolvedValue({}),
             },
           }),
         ),
@@ -1225,6 +1283,7 @@ describe('ChatServerService unit', () => {
           },
           outboxEvent: {
             create: jest.fn().mockResolvedValue({}),
+            createMany: jest.fn().mockResolvedValue({}),
           },
         });
       });
@@ -1410,6 +1469,7 @@ describe('ChatServerService unit', () => {
             },
             outboxEvent: {
               create: jest.fn().mockResolvedValue({}),
+              createMany: jest.fn().mockResolvedValue({}),
             },
           }),
         ),
