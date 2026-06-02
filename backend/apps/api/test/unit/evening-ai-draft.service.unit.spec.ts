@@ -3503,6 +3503,155 @@ describe('EveningAiDraftService unit', () => {
     );
   });
 
+  it('exposes specific KudaGo activity roles to intent', async () => {
+    const { service, openRouter } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'activity',
+              preferredTerms: ['квест'],
+              avoidTerms: [],
+              instruction: 'Активность.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 40,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-quest',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Квест',
+            category: 'quest',
+            tags: ['quest', 'active'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceMode: 'paid',
+            priceFrom: 1500,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Квест',
+            vibe: 'Активно',
+            blurb: 'Один активный шаг.',
+            steps: [{ externalContentItemId: 'kudago-quest', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    await service.createDraft('user-1', {
+      prompt: 'хочу квест',
+      city: 'Москва',
+    });
+
+    const intentPrompt = JSON.parse(openRouter.generateJson.mock.calls[0][0].userPrompt);
+    const roles = intentPrompt.allowedRoles.map((role: any) => role.role);
+    expect(roles).toEqual(expect.arrayContaining([
+      'activity',
+      'culture',
+      'movie',
+      'viewpoint',
+      'shopping',
+      'wellness',
+    ]));
+  });
+
+  it('keeps culture candidates separate from active KudaGo candidates', async () => {
+    const { service } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          steps: [
+            {
+              role: 'culture',
+              preferredTerms: ['выставка'],
+              avoidTerms: [],
+              instruction: 'Нужна выставка.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 40,
+      },
+      externalItems: {
+        kudago: [
+          {
+            id: 'kudago-quest',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Квест с актерами',
+            category: 'quest',
+            tags: ['quest', 'active'],
+            startsAt: new Date('2099-06-01T18:00:00.000Z'),
+            priceMode: 'paid',
+            priceFrom: 1500,
+            sourceProvider: 'KudaGo',
+          },
+          {
+            id: 'kudago-exhibition',
+            source: { code: 'kudago', name: 'KudaGo' },
+            contentKind: 'event',
+            title: 'Выставка современного искусства',
+            category: 'culture',
+            tags: ['culture', 'exhibition', 'выставка'],
+            startsAt: new Date('2099-06-01T19:00:00.000Z'),
+            priceMode: 'paid',
+            priceFrom: 900,
+            sourceProvider: 'KudaGo',
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Культура',
+            vibe: 'Спокойно',
+            blurb: 'Первый ответ выбрал не ту категорию.',
+            steps: [{ externalContentItemId: 'kudago-quest', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 90,
+        },
+        {
+          parsedJson: {
+            title: 'Культура',
+            vibe: 'Спокойно',
+            blurb: 'Выбрана выставка.',
+            steps: [{ externalContentItemId: 'kudago-exhibition', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу выставку',
+      city: 'Москва',
+    });
+
+    expect(result.route.steps[0]).toEqual(expect.objectContaining({
+      title: 'Выставка современного искусства',
+      vibeTag: 'Культура',
+    }));
+  });
+
   it.each([
     {
       name: 'intent call fails',

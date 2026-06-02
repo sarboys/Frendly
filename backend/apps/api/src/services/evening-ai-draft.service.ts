@@ -124,13 +124,89 @@ const WALK_BLOCKED_CATEGORY_TERMS = [
   'club',
   'entertainment',
 ];
+const ACTIVITY_ROLE_TERMS = [
+  'активность',
+  'спорт',
+  'игр',
+  'адреналин',
+  'экстрим',
+  'картинг',
+  'квест',
+  'vr',
+  'виртуаль',
+  'батут',
+  'боулинг',
+  'лазертаг',
+  'аттракцион',
+  'active',
+  'sport',
+  'quest',
+  'game',
+];
+const ACTIVITY_ROLE_BLOCKED_TERMS = [
+  'выстав',
+  'музей',
+  'галере',
+  'экспозици',
+  'кино',
+  'кинопоказ',
+  'фильм',
+  'смотров',
+  'спа',
+  'баня',
+];
+const CULTURE_ROLE_TERMS = [
+  'выстав',
+  'музей',
+  'галере',
+  'лекци',
+  'арт',
+  'перформанс',
+  'экспозици',
+  'culture',
+  'exhibition',
+  'museum',
+  'gallery',
+  'lecture',
+  'art',
+];
+const CULTURE_ROLE_BLOCKED_TERMS = [
+  'картинг',
+  'квест',
+  'vr',
+  'батут',
+  'боулинг',
+  'лазертаг',
+  'аттракцион',
+  'кинотеатр',
+  'кинопоказ',
+];
+const MOVIE_ROLE_TERMS = [
+  'кино',
+  'фильм',
+  'кинопоказ',
+  'кинотеатр',
+  'open air cinema',
+  'movie',
+  'cinema',
+  'film',
+];
+const MOVIE_ROLE_BLOCKED_TERMS = ['спектак', 'стендап', 'концерт', 'музей', 'выстав', 'картинг'];
+const VIEWPOINT_ROLE_TERMS = ['смотров', 'крыша', 'вид', 'панорам', 'фотомест', 'viewpoint', 'rooftop', 'outdoor'];
+const SHOPPING_ROLE_TERMS = ['рынок', 'торговый центр', 'тц', 'магазин', 'маркет', 'шопинг', 'shopping', 'market'];
+const WELLNESS_ROLE_TERMS = ['спа', 'баня', 'массаж', 'йога', 'бассейн', 'сауна', 'spa', 'wellness', 'yoga'];
 
 type RouteRole =
   | 'place_food'
   | 'place_bar'
   | 'place_club'
   | 'show'
+  | 'activity'
+  | 'culture'
   | 'movie'
+  | 'viewpoint'
+  | 'shopping'
+  | 'wellness'
   | 'free_activity'
   | 'walk';
 
@@ -345,7 +421,12 @@ const ROUTE_ROLES: RouteRole[] = [
   'place_bar',
   'place_club',
   'show',
+  'activity',
+  'culture',
   'movie',
+  'viewpoint',
+  'shopping',
+  'wellness',
   'free_activity',
   'walk',
 ];
@@ -2480,10 +2561,10 @@ export class EveningAiDraftService {
     } else if (format === 'show') {
       add('show');
     } else if (format === 'active') {
-      add('free_activity');
+      add('activity');
     }
 
-    const fallbackCycle: RouteRole[] = ['place_food', 'show', 'walk', 'place_bar', 'free_activity'];
+    const fallbackCycle: RouteRole[] = ['place_food', 'show', 'walk', 'place_bar', 'activity'];
     let fallbackIndex = 0;
     while (roles.length < stepCount) {
       const uniqueFallback = fallbackCycle.find((role) => !roles.includes(role));
@@ -2497,7 +2578,16 @@ export class EveningAiDraftService {
     if (role === 'show') {
       return 'advcake_ticketland' as const;
     }
-    if (role === 'walk' || role === 'free_activity' || role === 'movie') {
+    if (
+      role === 'walk' ||
+      role === 'free_activity' ||
+      role === 'activity' ||
+      role === 'culture' ||
+      role === 'movie' ||
+      role === 'viewpoint' ||
+      role === 'shopping' ||
+      role === 'wellness'
+    ) {
       return 'kudago' as const;
     }
     return 'tomesto' as const;
@@ -2523,8 +2613,39 @@ export class EveningAiDraftService {
         return ['клуб', 'танцы', 'караоке', 'club'];
       case 'show':
         return ['стендап', 'спектакль', 'театр', 'концерт', 'джаз', 'шоу', 'опера', 'балет'];
+      case 'activity':
+        return [
+          'активность',
+          'спорт',
+          'игры',
+          'адреналин',
+          'картинг',
+          'квест',
+          'vr',
+          'батут',
+          'боулинг',
+          'лазертаг',
+          'аттракцион',
+        ];
+      case 'culture':
+        return [
+          'выставка',
+          'музей',
+          'галерея',
+          'лекция',
+          'арт',
+          'арт-пространство',
+          'перформанс',
+          'экспозиция',
+        ];
       case 'movie':
         return ['кино', 'фильм', 'сеанс', 'кинотеатр', 'movie', 'cinema', 'film'];
+      case 'viewpoint':
+        return ['смотровая', 'крыша', 'красивый вид', 'панорама', 'фотоместо', 'видовая'];
+      case 'shopping':
+        return ['рынок', 'торговый центр', 'тц', 'локальные магазины', 'магазин', 'маркет', 'шопинг'];
+      case 'wellness':
+        return ['спа', 'баня', 'массаж', 'йога', 'бассейн', 'сауна', 'wellness'];
       case 'walk':
         return ['прогулка', 'погулять', 'парк', 'маршрут', 'набережная', 'бульвар', 'экскурсия'];
       case 'free_activity':
@@ -2567,7 +2688,15 @@ export class EveningAiDraftService {
     if (role === 'show' || role === 'movie') {
       return 'show';
     }
-    if (role === 'walk' || role === 'free_activity') {
+    if (
+      role === 'walk' ||
+      role === 'free_activity' ||
+      role === 'activity' ||
+      role === 'culture' ||
+      role === 'viewpoint' ||
+      role === 'shopping' ||
+      role === 'wellness'
+    ) {
       return 'active';
     }
     if (role === 'place_bar' || role === 'place_club') {
@@ -2582,6 +2711,21 @@ export class EveningAiDraftService {
     }
     if (role === 'movie') {
       return '🎬';
+    }
+    if (role === 'activity') {
+      return '🎯';
+    }
+    if (role === 'culture') {
+      return '🎨';
+    }
+    if (role === 'viewpoint') {
+      return '📍';
+    }
+    if (role === 'shopping') {
+      return '🛍️';
+    }
+    if (role === 'wellness') {
+      return '🧘';
     }
     if (role === 'walk' || role === 'free_activity') {
       return '🌿';
@@ -2607,6 +2751,12 @@ export class EveningAiDraftService {
     }
     if (role === 'free_activity') {
       return 'Активность';
+    }
+    if (role === 'activity') {
+      return 'Активность';
+    }
+    if (role === 'culture') {
+      return 'Культура';
     }
     if (role === 'place_bar') {
       return 'Бар';
@@ -2640,11 +2790,26 @@ export class EveningAiDraftService {
     if (candidate.role === 'free_activity') {
       return 'Активность';
     }
+    if (candidate.role === 'activity') {
+      return 'Активность';
+    }
+    if (candidate.role === 'culture') {
+      return this.cultureTagLabel(candidate);
+    }
     if (candidate.role === 'show') {
       return this.showTagLabel(candidate);
     }
     if (candidate.role === 'movie') {
       return 'Кино';
+    }
+    if (candidate.role === 'viewpoint') {
+      return 'Вид';
+    }
+    if (candidate.role === 'shopping') {
+      return 'Шопинг';
+    }
+    if (candidate.role === 'wellness') {
+      return 'Wellness';
     }
     if (candidate.role === 'place_bar') {
       return this.barTagLabel(candidate);
@@ -2869,6 +3034,9 @@ export class EveningAiDraftService {
     if (candidate.role === 'walk' && !this.isWalkCandidate(candidate)) {
       return false;
     }
+    if (!this.isKudagoSubtypeCandidate(candidate, intent)) {
+      return false;
+    }
     if (hasExactPlaceIntent(intent) && !candidateMatchesExactPlace(candidate, intent)) {
       return false;
     }
@@ -2887,6 +3055,45 @@ export class EveningAiDraftService {
     return (
       candidateMatchesIntentTaxonomyTags(candidate, intent.taxonomyTags) ||
       candidateMatchesPreferredTerms(candidate, intent.preferredTerms)
+    );
+  }
+
+  private isKudagoSubtypeCandidate(candidate: CandidateCard, intent: RoleIntentHint) {
+    if (candidate.source !== 'kudago') {
+      return true;
+    }
+    switch (candidate.role) {
+      case 'activity':
+        return this.kudagoRoleMatches(candidate, intent, ACTIVITY_ROLE_TERMS, ACTIVITY_ROLE_BLOCKED_TERMS);
+      case 'culture':
+        return this.kudagoRoleMatches(candidate, intent, CULTURE_ROLE_TERMS, CULTURE_ROLE_BLOCKED_TERMS);
+      case 'movie':
+        return this.kudagoRoleMatches(candidate, intent, MOVIE_ROLE_TERMS, MOVIE_ROLE_BLOCKED_TERMS);
+      case 'viewpoint':
+        return this.kudagoRoleMatches(candidate, intent, VIEWPOINT_ROLE_TERMS, []);
+      case 'shopping':
+        return this.kudagoRoleMatches(candidate, intent, SHOPPING_ROLE_TERMS, []);
+      case 'wellness':
+        return this.kudagoRoleMatches(candidate, intent, WELLNESS_ROLE_TERMS, []);
+      default:
+        return true;
+    }
+  }
+
+  private kudagoRoleMatches(
+    candidate: CandidateCard,
+    intent: RoleIntentHint,
+    allowTerms: string[],
+    blockedTerms: string[],
+  ) {
+    const text = candidateSearchText(candidate);
+    if (blockedTerms.length > 0 && hasAny(text, blockedTerms)) {
+      return false;
+    }
+    return (
+      hasAny(text, allowTerms) ||
+      candidateMatchesPreferredTerms(candidate, intent.preferredTerms) ||
+      candidateMatchesIntentTaxonomyTags(candidate, intent.taxonomyTags)
     );
   }
 
@@ -2966,9 +3173,19 @@ export class EveningAiDraftService {
           meaning: 'театр, спектакль, стендап, концерт, джаз, шоу, опера, балет',
         },
         {
+          role: 'activity',
+          source: 'kudago',
+          meaning: 'картинг, квест, спорт, игры, VR, боулинг, лазертаг, аттракционы',
+        },
+        {
+          role: 'culture',
+          source: 'kudago',
+          meaning: 'музей, выставка, галерея, лекция, арт-пространство, перформанс',
+        },
+        {
           role: 'movie',
           source: 'kudago',
-          meaning: 'кино, фильм, киносеанс, кинотеатр',
+          meaning: 'кино, фильм, киносеанс, кинотеатр, показы под открытым небом',
         },
         {
           role: 'walk',
@@ -2976,9 +3193,19 @@ export class EveningAiDraftService {
           meaning: 'пешая прогулка, парк, маршрут, набережная, бульвар',
         },
         {
-          role: 'free_activity',
+          role: 'viewpoint',
           source: 'kudago',
-          meaning: 'активность, спорт, адреналин, картинг, квест, VR, батуты, аттракционы, выставка, перформанс',
+          meaning: 'смотровая, крыша, красивый вид, фотоместо',
+        },
+        {
+          role: 'shopping',
+          source: 'kudago',
+          meaning: 'рынок, торговый центр, локальные магазины, шопинг',
+        },
+        {
+          role: 'wellness',
+          source: 'kudago',
+          meaning: 'спа, баня, массаж, йога, бассейн, сауна',
         },
       ],
       availableTaxonomy: taxonomy,
@@ -2987,7 +3214,7 @@ export class EveningAiDraftService {
         'If stepCountMode is infer, choose the smallest coherent routeStepCount from minStepCount to maxStepCount.',
         'maxStepCount is only an upper limit, not a target.',
         'If the user asks for one simple activity or venue type, do not add unrelated roles.',
-        'Do not pad a simple request with unrelated roles such as show, walk or free_activity.',
+        'Do not pad a simple request with unrelated roles such as show, walk or activity.',
         'If one place or activity satisfies the prompt, routeStepCount may be 1.',
         'Only add roles that are directly implied by the prompt or by an explicit listed sequence.',
         'Infer prompt counts yourself from the user text.',
@@ -3008,8 +3235,13 @@ export class EveningAiDraftService {
         'For Tomesto food, bar and club steps, taxonomyTags are the primary structured filter. preferredTerms are only natural text hints.',
         'If the user mentions a dish, drink, cuisine, atmosphere, feature, place type, area or budget, infer matching taxonomyTags yourself using world knowledge and availableTaxonomy.',
         'If no availableTaxonomy tag fits, still return natural text terms in preferredTerms.',
-        'For sport or adrenaline requests prefer sport, karting, quests, VR, trampolines or attractions and do not add bars, shows or walks unless explicitly asked.',
-        'For gastro-tour, unusual cuisine, cocktails or new taste impressions, use place_food and place_bar only. Do not use free_activity unless the user explicitly asks for a non-food activity such as karting, quest, exhibition or performance.',
+        'For sport or adrenaline requests use activity and prefer sport, karting, quests, VR, trampolines or attractions. Do not add bars, shows or walks unless explicitly asked.',
+        'For exhibition, museum, gallery, lecture, art space or performance requests use culture, not activity.',
+        'For cinema, films, movie night, open-air screenings or film festival screenings use movie, not show or culture.',
+        'For viewpoint, rooftop, panorama or photo spot requests use viewpoint.',
+        'For market, mall, local shops or shopping requests use shopping.',
+        'For spa, bathhouse, massage, yoga, pool or sauna requests use wellness.',
+        'For gastro-tour, unusual cuisine, cocktails or new taste impressions, use place_food and place_bar only. Do not use activity unless the user explicitly asks for a non-food activity such as karting or quest.',
         'For a creative date with examples such as exhibition, performance or unusual place, treat the examples as one activity unless the user asks for a sequence or a specific step count.',
         'If the user says standup or bar as alternatives, choose place_bar unless the wording clearly requires a performance.',
         'If the user asks for cinema, movie or film, use movie, not show.',
@@ -3396,6 +3628,20 @@ export class EveningAiDraftService {
             ]),
       };
     });
+  }
+
+  private cultureTagLabel(candidate: CandidateCard) {
+    const text = candidateSearchText(candidate);
+    if (hasAny(text, ['выстав', 'экспозици'])) {
+      return 'Выставка';
+    }
+    if (hasAny(text, ['музей'])) {
+      return 'Музей';
+    }
+    if (hasAny(text, ['галере'])) {
+      return 'Галерея';
+    }
+    return 'Культура';
   }
 
   private routePromptCandidateStepMatches(
