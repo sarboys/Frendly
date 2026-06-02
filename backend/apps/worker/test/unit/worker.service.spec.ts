@@ -1854,6 +1854,323 @@ describe('worker outbox recovery', () => {
     );
   });
 
+  it('message.notification_fanout sends chat message push to recipient and skips sender by querying ChatMember with userId not actor', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
+    const now = Date.now();
+    const event = {
+      id: 'evt-message-push',
+      type: 'message.notification_fanout',
+      payload: {
+        chatId: 'chat-1',
+        actorUserId: 'user-sender',
+        messageId: 'message-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(now - 60_000),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const update = jest.fn().mockResolvedValue({});
+    const findMessage = jest.fn().mockResolvedValue({
+      id: 'message-1',
+      chatId: 'chat-1',
+      senderId: 'user-sender',
+      text: '  Привет\nкак дела?  ',
+      sender: {
+        displayName: '  Соня  ',
+      },
+      chat: {
+        kind: 'direct',
+        title: 'Личный чат',
+      },
+      attachments: [],
+    });
+    const findMembers = jest.fn().mockResolvedValue([
+      { id: 'member-1', userId: 'user-recipient' },
+    ]);
+    const findSettings = jest.fn().mockResolvedValue([
+      {
+        userId: 'user-recipient',
+        allowPush: true,
+        quietHours: false,
+      },
+    ]);
+    const findBlock = jest.fn().mockResolvedValue(null);
+    const findPushTokens = jest.fn().mockResolvedValue([
+      {
+        provider: 'fcm',
+        token: 'token-recipient',
+      },
+    ]);
+    const send = jest.fn();
+    const queryRaw = jest.fn();
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany,
+          update,
+          create: jest.fn(),
+        },
+        message: {
+          findUnique: findMessage,
+        },
+        chatMember: {
+          findMany: findMembers,
+        },
+        userSettings: {
+          findMany: findSettings,
+        },
+        userBlock: {
+          findFirst: findBlock,
+        },
+        pushToken: {
+          findMany: findPushTokens,
+        },
+        $queryRaw: queryRaw,
+      },
+    } as any;
+    const publishBusEvent = jest.requireMock('@big-break/database')
+      .publishBusEvent as jest.Mock;
+    const service = new WorkerService(prismaService);
+    (service as any).resolveProvider = () => ({ send });
+
+    await service.runOnce();
+
+    expect(findMessage).toHaveBeenCalledWith({
+      where: { id: 'message-1' },
+      select: expect.objectContaining({
+        id: true,
+        chatId: true,
+        senderId: true,
+        text: true,
+        sender: {
+          select: {
+            displayName: true,
+          },
+        },
+        chat: {
+          select: {
+            kind: true,
+            title: true,
+          },
+        },
+      }),
+    });
+    expect(findMembers).toHaveBeenCalledWith({
+      where: {
+        chatId: 'chat-1',
+        userId: {
+          not: 'user-sender',
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+      orderBy: { id: 'asc' },
+      take: 501,
+    });
+    expect(findPushTokens).toHaveBeenCalledWith({
+      where: {
+        userId: {
+          in: ['user-recipient'],
+        },
+        disabledAt: null,
+      },
+      select: {
+        userId: true,
+        provider: true,
+        token: true,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: 20,
+    });
+    expect(send).toHaveBeenCalledWith({
+      token: 'token-recipient',
+      title: 'Соня',
+      body: 'Привет как дела?',
+      data: {
+        type: 'chat_message',
+        chatId: 'chat-1',
+        messageId: 'message-1',
+        kind: 'direct',
+      },
+    });
+    expect(queryRaw).not.toHaveBeenCalled();
+    expect(publishBusEvent).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: 'unread.updated',
+      }),
+    );
+  });
+
+  it('media-only message.notification_fanout uses Новое сообщение', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
+    const event = {
+      id: 'evt-message-push-media',
+      type: 'message.notification_fanout',
+      payload: {
+        chatId: 'chat-1',
+        actorUserId: 'user-sender',
+        messageId: 'message-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const send = jest.fn();
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          update: jest.fn().mockResolvedValue({}),
+          create: jest.fn(),
+        },
+        message: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'message-1',
+            chatId: 'chat-1',
+            senderId: 'user-sender',
+            text: '   ',
+            sender: {
+              displayName: '',
+            },
+            chat: {
+              kind: 'event',
+              title: '  Вечер пятницы  ',
+            },
+            attachments: [{ id: 'attachment-1' }],
+          }),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 'member-1', userId: 'user-recipient' },
+          ]),
+        },
+        userSettings: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        userBlock: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        pushToken: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-recipient',
+              provider: 'fcm',
+              token: 'token-recipient',
+            },
+          ]),
+        },
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+    (service as any).resolveProvider = () => ({ send });
+
+    await service.runOnce();
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Вечер пятницы',
+        body: 'Новое сообщение',
+      }),
+    );
+  });
+
+  it('message.notification_fanout does not call publishUnreadCounts or unread path', async () => {
+    process.env.WORKER_OUTBOX_BATCH_CLAIM = 'false';
+    const event = {
+      id: 'evt-message-no-unread',
+      type: 'message.notification_fanout',
+      payload: {
+        chatId: 'chat-1',
+        actorUserId: 'user-sender',
+        messageId: 'message-1',
+      },
+      attempts: 0,
+      status: 'pending',
+      lockedAt: null,
+      createdAt: new Date(),
+    };
+    const findFirst = jest.fn()
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce(null);
+    const send = jest.fn();
+    const queryRaw = jest.fn();
+
+    const prismaService = {
+      client: {
+        outboxEvent: {
+          findFirst,
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          update: jest.fn().mockResolvedValue({}),
+          create: jest.fn(),
+        },
+        message: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'message-1',
+            chatId: 'chat-1',
+            senderId: 'user-sender',
+            text: 'Привет',
+            sender: {
+              displayName: 'Соня',
+            },
+            chat: {
+              kind: 'direct',
+              title: null,
+            },
+            attachments: [],
+          }),
+        },
+        chatMember: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 'member-1', userId: 'user-recipient' },
+          ]),
+        },
+        userSettings: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        userBlock: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        pushToken: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              userId: 'user-recipient',
+              provider: 'fcm',
+              token: 'token-recipient',
+            },
+          ]),
+        },
+        $queryRaw: queryRaw,
+      },
+    } as any;
+    const service = new WorkerService(prismaService);
+    const unreadSpy = jest.spyOn(service as any, 'handleChatUnreadFanout');
+    const publishUnreadSpy = jest.spyOn(service as any, 'publishUnreadCounts');
+    (service as any).resolveProvider = () => ({ send });
+
+    await service.runOnce();
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(unreadSpy).not.toHaveBeenCalled();
+    expect(publishUnreadSpy).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
   it('uses batch outbox claim by default when raw SQL is available', async () => {
     const events = [
       { id: 'evt-1', type: 'push.dispatch', payload: {}, attempts: 1 },

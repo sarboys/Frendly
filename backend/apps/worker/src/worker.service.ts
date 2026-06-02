@@ -820,11 +820,11 @@ export class WorkerService implements OnModuleDestroy {
           });
           break;
         case OUTBOX_EVENT_TYPES.messageNotificationFanout:
-          await this.handleChatUnreadFanout(event.payload as {
+          await this.handleMessageNotificationFanout(event.payload as {
             chatId?: string;
             actorUserId?: string;
+            messageId?: string;
             cursor?: string;
-            messageCreatedAt?: string;
           });
           break;
         case OUTBOX_EVENT_TYPES.notificationCreate:
@@ -1356,6 +1356,198 @@ export class WorkerService implements OnModuleDestroy {
         },
       });
     });
+  }
+
+  private async handleMessageNotificationFanout(payload: {
+    chatId?: string;
+    actorUserId?: string;
+    messageId?: string;
+    cursor?: string;
+  }) {
+    if (
+      typeof payload.chatId !== 'string' ||
+      typeof payload.actorUserId !== 'string' ||
+      typeof payload.messageId !== 'string'
+    ) {
+      return;
+    }
+
+    const message = await this.prismaService.client.message.findUnique({
+      where: { id: payload.messageId },
+      select: {
+        id: true,
+        chatId: true,
+        senderId: true,
+        text: true,
+        attachments: {
+          select: {
+            id: true,
+          },
+          take: 1,
+        },
+        sender: {
+          select: {
+            displayName: true,
+          },
+        },
+        chat: {
+          select: {
+            kind: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (
+      !message ||
+      message.chatId !== payload.chatId ||
+      message.senderId !== payload.actorUserId
+    ) {
+      return;
+    }
+
+    const members = await this.prismaService.client.chatMember.findMany({
+      where: {
+        chatId: payload.chatId,
+        userId: {
+          not: payload.actorUserId,
+        },
+        ...(typeof payload.cursor === 'string'
+          ? {
+              id: {
+                gt: payload.cursor,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+      orderBy: { id: 'asc' },
+      take: this.messageNotificationBatchSize + 1,
+    });
+    const hasMore = members.length > this.messageNotificationBatchSize;
+    const page = hasMore
+      ? members.slice(0, this.messageNotificationBatchSize)
+      : members;
+
+    if (hasMore && page.length > 0) {
+      await this.prismaService.client.outboxEvent.create({
+        data: {
+          type: OUTBOX_EVENT_TYPES.messageNotificationFanout,
+          payload: {
+            chatId: payload.chatId,
+            actorUserId: payload.actorUserId,
+            messageId: payload.messageId,
+            cursor: page[page.length - 1]!.id,
+          },
+        },
+      });
+    }
+
+    const recipientIds = await this.filterPushAllowedRecipients(
+      page.map((member) => member.userId),
+      payload.actorUserId,
+    );
+    if (recipientIds.length === 0) {
+      return;
+    }
+
+    const tokens = await this.prismaService.client.pushToken.findMany({
+      where: {
+        userId: {
+          in: recipientIds,
+        },
+        disabledAt: null,
+      },
+      select: {
+        userId: true,
+        provider: true,
+        token: true,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: this.pushTokenBatchSize * recipientIds.length,
+    });
+    const data = {
+      type: 'chat_message',
+      chatId: payload.chatId,
+      messageId: payload.messageId,
+      kind: String(message.chat.kind),
+    };
+    const title = this.chatPushTitle(
+      message.sender.displayName,
+      message.chat.title,
+    );
+    const body = this.chatPushBody(message.text);
+
+    await this.runWithConcurrency(tokens, this.pushConcurrency, async (token) => {
+      const provider = this.resolveProvider(token.provider);
+      await provider.send({
+        token: token.token,
+        title,
+        body,
+        data,
+      });
+    });
+  }
+
+  private async filterPushAllowedRecipients(
+    userIds: string[],
+    actorUserId: string,
+  ) {
+    const uniqueUserIds = [...new Set(userIds)];
+    if (uniqueUserIds.length === 0) {
+      return [];
+    }
+
+    const settingsRows = await this.prismaService.client.userSettings.findMany({
+      where: {
+        userId: {
+          in: uniqueUserIds,
+        },
+      },
+      select: {
+        userId: true,
+        allowPush: true,
+        quietHours: true,
+      },
+    });
+    const settingsByUserId = new Map(
+      settingsRows.map((settings) => [settings.userId, settings]),
+    );
+    const allowed: string[] = [];
+
+    for (const userId of uniqueUserIds) {
+      const settings = settingsByUserId.get(userId);
+      if (settings?.allowPush === false || settings?.quietHours === true) {
+        continue;
+      }
+      if (await this.isUserHidden(userId, actorUserId)) {
+        continue;
+      }
+      allowed.push(userId);
+    }
+
+    return allowed;
+  }
+
+  private chatPushTitle(senderDisplayName: string | null, chatTitle: string | null) {
+    const sender = oneLine(senderDisplayName);
+    if (sender) {
+      return sender.slice(0, 80);
+    }
+    const title = oneLine(chatTitle);
+    return title ? title.slice(0, 80) : 'Frendly';
+  }
+
+  private chatPushBody(text: string | null) {
+    const body = oneLine(text);
+    if (!body) {
+      return 'Новое сообщение';
+    }
+    return capWithSuffix(body, 120);
   }
 
   private async isUserHidden(userId: string, targetUserId: string) {
@@ -2559,6 +2751,17 @@ function csv(raw: string | undefined) {
   }
   const values = raw.split(',').map((item) => item.trim()).filter(Boolean);
   return values.length > 0 ? values : null;
+}
+
+function oneLine(value: string | null | undefined) {
+  return (value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function capWithSuffix(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.slice(0, Math.max(0, maxLength - 3))}...`;
 }
 
 function weekdayNumber(value: string | undefined) {
