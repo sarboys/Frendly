@@ -3995,6 +3995,143 @@ describe('EveningAiDraftService unit', () => {
     }));
   });
 
+  it('keeps the exact requested restaurant instead of replacing it', async () => {
+    const { service } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          stepCountReason: 'Пользователь просит конкретный ресторан.',
+          participantsCount: 0,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: 'Дата не указана.',
+          steps: [
+            {
+              role: 'place_food',
+              taxonomyTags: ['place:restaurant'],
+              preferredTerms: ['ресторан'],
+              avoidTerms: [],
+              exactPlaceNames: ['Aurora', 'Аврора'],
+              exactAddress: '',
+              instruction: 'Нужен ресторан Aurora.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-aurora',
+            title: 'Ресторан Аврора',
+            venueName: 'Аврора',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            placeKind: 'restaurant',
+            priceFrom: 2500,
+          },
+          {
+            id: 'tomesto-brix',
+            title: 'Brix',
+            venueName: 'Brix',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            placeKind: 'restaurant',
+            priceFrom: 2500,
+          },
+        ],
+      },
+      openRouterResponses: [
+        {
+          parsedJson: {
+            title: 'Ужин',
+            vibe: 'Точный ресторан.',
+            blurb: 'Первый ответ заменил ресторан.',
+            steps: [{ externalContentItemId: 'tomesto-brix', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 80,
+        },
+        {
+          parsedJson: {
+            title: 'Ужин',
+            vibe: 'Точный ресторан.',
+            blurb: 'Выбран запрошенный ресторан.',
+            steps: [{ externalContentItemId: 'tomesto-aurora', timeLabel: '19:00' }],
+          },
+          rawResponse: {},
+          model: 'openrouter/owl-alpha',
+          latencyMs: 90,
+        },
+      ],
+    });
+
+    const result = await service.createDraft('user-1', {
+      prompt: 'хочу ужин в ресторане Aurora',
+      city: 'Москва',
+    });
+
+    expect(result.route.steps[0]).toEqual(expect.objectContaining({
+      title: 'Ресторан Аврора',
+      ticketSourceCode: 'tomesto',
+    }));
+  });
+
+  it('returns exact place unavailable when requested restaurant is missing', async () => {
+    const { service } = createService({
+      intentResponse: {
+        parsedJson: {
+          routeStepCount: 1,
+          stepCountReason: 'Пользователь просит конкретный ресторан.',
+          participantsCount: 0,
+          dateMode: 'none',
+          localDate: '',
+          dateReason: 'Дата не указана.',
+          steps: [
+            {
+              role: 'place_food',
+              taxonomyTags: ['place:restaurant'],
+              preferredTerms: ['ресторан'],
+              avoidTerms: [],
+              exactPlaceNames: ['Aurora', 'Аврора'],
+              exactAddress: '',
+              instruction: 'Нужен ресторан Aurora.',
+            },
+          ],
+        },
+        rawResponse: {},
+        model: 'openrouter/owl-alpha',
+        latencyMs: 35,
+      },
+      externalItems: {
+        tomesto: [
+          {
+            id: 'tomesto-brix',
+            title: 'Brix',
+            venueName: 'Brix',
+            category: 'restaurant',
+            tags: ['occasion:food', 'place:restaurant'],
+            placeKind: 'restaurant',
+            priceFrom: 2500,
+          },
+        ],
+      },
+    });
+
+    await expect(
+      service.createDraft('user-1', {
+        prompt: 'хочу ужин в ресторане Aurora',
+        city: 'Москва',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'evening_ai_exact_place_not_available',
+    });
+  });
+
   it('defaults timed event candidates to today in the selected city timezone', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-05-16T19:30:00.000Z'));
 

@@ -240,6 +240,8 @@ type GeneratedIntentJson = {
     taxonomyTags?: unknown;
     preferredTerms?: unknown;
     avoidTerms?: unknown;
+    exactPlaceNames?: unknown;
+    exactAddress?: unknown;
     instruction?: unknown;
     locationMode?: unknown;
     locationKind?: unknown;
@@ -275,6 +277,8 @@ type RoleIntentHint = {
   taxonomyTags: string[];
   preferredTerms: string[];
   avoidTerms: string[];
+  exactPlaceNames: string[];
+  exactAddress: string | null;
   instruction: string | null;
   location: StepLocation;
 };
@@ -492,6 +496,10 @@ export class EveningAiDraftService {
       const candidates = candidatePack.candidates;
       candidateStats = candidatePack.candidateStats;
       const requiredRoles = this.requiredCandidateRoles(input, intent);
+      const exactPlaceError = this.missingExactPlace(input, intent, candidates);
+      if (exactPlaceError) {
+        throw exactPlaceError;
+      }
       if (
         candidates.length < MIN_STEP_COUNT ||
         (requiredRoles.length > 0 && !this.hasEnoughCandidatesForRoles(candidates, requiredRoles))
@@ -871,6 +879,36 @@ export class EveningAiDraftService {
       }
     }
     return true;
+  }
+
+  private missingExactPlace(
+    input: ParsedDraftInput,
+    intent: DraftIntent,
+    candidates: CandidateCard[],
+  ) {
+    for (const [index, hint] of intent.roleHints.entries()) {
+      if (!hasExactPlaceIntent(hint)) {
+        continue;
+      }
+      const role = intent.roles[index] ?? hint.role;
+      const roleCandidates = candidates.filter((candidate) => candidate.role === role);
+      if (roleCandidates.some((candidate) => candidateMatchesExactPlace(candidate, hint))) {
+        continue;
+      }
+      const requestedName = hint.exactPlaceNames[0] ?? hint.exactAddress ?? 'место';
+      return new ApiError(
+        404,
+        'evening_ai_exact_place_not_available',
+        `${this.exactPlaceRoleLabel(role)} «${displayExactPlaceName(requestedName)}» пока не подключен к партнерской программе`,
+        {
+          requestedName,
+          requestedAddress: hint.exactAddress,
+          role,
+          city: input.city,
+        },
+      );
+    }
+    return null;
   }
 
   private eveningAiModel() {
@@ -1941,6 +1979,8 @@ export class EveningAiDraftService {
         taxonomyTags: rawHints[index]?.taxonomyTags,
         preferredTerms: rawHints[index]?.preferredTerms,
         avoidTerms: rawHints[index]?.avoidTerms,
+        exactPlaceNames: rawHints[index]?.exactPlaceNames,
+        exactAddress: rawHints[index]?.exactAddress,
         instruction: rawHints[index]?.instruction,
         locationMode: rawLocation?.mode ?? rawHints[index]?.locationMode,
         locationKind: rawLocation?.kind ?? rawHints[index]?.locationKind,
@@ -2169,6 +2209,8 @@ export class EveningAiDraftService {
         taxonomyTags: [],
         preferredTerms: match.preferredTerms,
         avoidTerms: [],
+        exactPlaceNames: [],
+        exactAddress: null,
         instruction: null,
         location: emptyStepLocation(),
       })),
@@ -2300,6 +2342,8 @@ export class EveningAiDraftService {
         taxonomyTags: step?.taxonomyTags,
         preferredTerms: step?.preferredTerms,
         avoidTerms: step?.avoidTerms,
+        exactPlaceNames: step?.exactPlaceNames,
+        exactAddress: step?.exactAddress,
         instruction: step?.instruction,
         locationMode: step?.locationMode,
         locationKind: step?.locationKind,
@@ -2389,6 +2433,8 @@ export class EveningAiDraftService {
       taxonomyTags?: unknown;
       preferredTerms?: unknown;
       avoidTerms?: unknown;
+      exactPlaceNames?: unknown;
+      exactAddress?: unknown;
       instruction?: unknown;
       locationMode?: unknown;
       locationKind?: unknown;
@@ -2407,6 +2453,8 @@ export class EveningAiDraftService {
       taxonomyTags,
       preferredTerms,
       avoidTerms: uniqueStrings(stringArray(rawHint.avoidTerms, 10)),
+      exactPlaceNames: uniqueRawStrings(stringArray(rawHint.exactPlaceNames, 6)),
+      exactAddress: stringOrNull(rawHint.exactAddress),
       instruction: stringOrNull(rawHint.instruction),
       location: normalizeStepLocation(rawHint),
     };
@@ -2569,6 +2617,22 @@ export class EveningAiDraftService {
     return 'Еда';
   }
 
+  private exactPlaceRoleLabel(role: RouteRole) {
+    if (role === 'place_bar') {
+      return 'Бар';
+    }
+    if (role === 'place_club') {
+      return 'Клуб';
+    }
+    if (role === 'movie') {
+      return 'Кинотеатр';
+    }
+    if (role === 'show') {
+      return 'Площадка';
+    }
+    return 'Место';
+  }
+
   private tagLabelForCandidate(candidate: CandidateCard) {
     if (candidate.role === 'walk') {
       return 'Прогулка';
@@ -2673,6 +2737,9 @@ export class EveningAiDraftService {
       const matchedTagCount = countIntentTaxonomyTagMatches(candidate, intent.taxonomyTags);
       score += matchedTagCount > 0 ? -280 - matchedTagCount * 20 : 220;
     }
+    if (hasExactPlaceIntent(intent)) {
+      score += candidateMatchesExactPlace(candidate, intent) ? -520 : 520;
+    }
     if (intent.preferredTerms.length > 0) {
       const hasSpecificPreferred = hasSpecificPreferredTerms(intent.preferredTerms);
       if (hasSpecificPreferred) {
@@ -2732,6 +2799,12 @@ export class EveningAiDraftService {
         taxonomyTags: normalizeIntentTaxonomyTags(explicitHints.flatMap((hint) => hint.taxonomyTags)),
         preferredTerms: uniqueStrings(explicitHints.flatMap((hint) => hint.preferredTerms)),
         avoidTerms: uniqueStrings(explicitHints.flatMap((hint) => hint.avoidTerms)),
+        exactPlaceNames: uniqueRawStrings(explicitHints.flatMap((hint) => hint.exactPlaceNames)),
+        exactAddress:
+          explicitHints
+            .map((hint) => hint.exactAddress)
+            .find((value): value is string => typeof value === 'string' && value.length > 0) ??
+          null,
         instruction:
           explicitHints
             .map((hint) => hint.instruction)
@@ -2746,6 +2819,8 @@ export class EveningAiDraftService {
       taxonomyTags: [],
       preferredTerms: [],
       avoidTerms: [],
+      exactPlaceNames: [],
+      exactAddress: null,
       instruction: null,
       location: emptyStepLocation(),
     };
@@ -2792,6 +2867,9 @@ export class EveningAiDraftService {
 
   private isCandidateAllowedForIntent(candidate: CandidateCard, intent: RoleIntentHint) {
     if (candidate.role === 'walk' && !this.isWalkCandidate(candidate)) {
+      return false;
+    }
+    if (hasExactPlaceIntent(intent) && !candidateMatchesExactPlace(candidate, intent)) {
       return false;
     }
     if (
@@ -2936,6 +3014,9 @@ export class EveningAiDraftService {
         'If the user says standup or bar as alternatives, choose place_bar unless the wording clearly requires a performance.',
         'If the user asks for cinema, movie or film, use movie, not show.',
         'If the user asks for standup, keep preferredTerms specific to standup and avoid theatre, opera, operetta, musicals, ballet and concerts unless the user explicitly allows them.',
+        'If the user names a specific venue, restaurant, bar, club, cinema, museum or address, put possible names into exactPlaceNames and the address text into exactAddress.',
+        'For exactPlaceNames include Russian and Latin variants when obvious, for example Аврора and Aurora.',
+        'Do not use exactPlaceNames for generic types such as ресторан, выставка, кино or бар.',
         'preferredTerms must describe what the candidate should match.',
         'avoidTerms must describe wrong candidates for this step.',
         'For theatre requests prefer театр, спектакль, опера, балет, мюзикл and avoid музей, выставка.',
@@ -2995,6 +3076,11 @@ export class EveningAiDraftService {
                     type: 'array',
                     items: { type: 'string' },
                   },
+                  exactPlaceNames: {
+                    type: 'array',
+                    items: { type: 'string' },
+                  },
+                  exactAddress: { type: 'string' },
                   instruction: { type: 'string' },
                   locationMode: {
                     type: 'string',
@@ -3012,6 +3098,8 @@ export class EveningAiDraftService {
                   'taxonomyTags',
                   'preferredTerms',
                   'avoidTerms',
+                  'exactPlaceNames',
+                  'exactAddress',
                   'instruction',
                   'locationMode',
                   'locationKind',
@@ -3188,6 +3276,8 @@ export class EveningAiDraftService {
       fix:
         issue.code === 'location_mismatch'
           ? 'choose a candidate for this step with stepMatches.matchesLocation=true'
+          : issue.code === 'exact_place_mismatch'
+            ? 'choose a candidate for this step with stepMatches.matchesExactPlace=true'
           : issue.code === 'intent_mismatch'
             ? 'choose a candidate for this step with stepMatches.matchesTaxonomy=true or stepMatches.matchesSpecificPreferred=true'
             : 'choose another valid candidate for this step',
@@ -3279,6 +3369,11 @@ export class EveningAiDraftService {
             .filter((candidate) => candidateMatchesSpecificPreferredTerms(candidate, intent.preferredTerms))
             .map((candidate) => candidate.id)
         : [];
+      const exactCandidateIds = hasExactPlaceIntent(intent)
+        ? roleCandidates
+            .filter((candidate) => candidateMatchesExactPlace(candidate, intent))
+            .map((candidate) => candidate.id)
+        : [];
       const location = geoPolicy.steps[index]?.location ?? intent.location;
       const locationCandidateIds = hasStepLocation(location)
         ? roleCandidates
@@ -3290,12 +3385,15 @@ export class EveningAiDraftService {
         role,
         taxonomyCandidateIds,
         preferredCandidateIds,
+        exactCandidateIds,
         locationCandidateIds,
-        hardCandidateIds: intersectNonEmptyLists([
-          taxonomyCandidateIds,
-          preferredCandidateIds,
-          locationCandidateIds,
-        ]),
+        hardCandidateIds: exactCandidateIds.length > 0
+          ? exactCandidateIds
+          : intersectNonEmptyLists([
+              taxonomyCandidateIds,
+              preferredCandidateIds,
+              locationCandidateIds,
+            ]),
       };
     });
   }
@@ -3324,6 +3422,9 @@ export class EveningAiDraftService {
       const matchesSpecificPreferred = hasHardPreferred
         ? candidateMatchesSpecificPreferredTerms(candidate, intent.preferredTerms)
         : null;
+      const matchesExactPlace = hasExactPlaceIntent(intent)
+        ? candidateMatchesExactPlace(candidate, intent)
+        : null;
       const matchesLocation = hasStepLocation(location)
         ? candidateMatchesLocation(candidate, location)
         : null;
@@ -3333,10 +3434,12 @@ export class EveningAiDraftService {
           role,
           matchesTaxonomy,
           matchesSpecificPreferred,
+          matchesExactPlace,
           matchesLocation,
           hardValidationMatch:
             matchesTaxonomy !== false &&
             matchesSpecificPreferred !== false &&
+            matchesExactPlace !== false &&
             matchesLocation !== false,
         },
       ];
@@ -3470,6 +3573,18 @@ export class EveningAiDraftService {
         issues.push({
           code: 'intent_mismatch',
           message: 'Step does not match requested role details',
+          stepIndex: index,
+          externalContentItemId,
+        });
+      }
+      if (
+        hasExactPlaceIntent(intent) &&
+        roleCandidates.some((item) => candidateMatchesExactPlace(item, intent)) &&
+        !candidateMatchesExactPlace(candidate, intent)
+      ) {
+        issues.push({
+          code: 'exact_place_mismatch',
+          message: 'Step does not match requested exact place',
           stepIndex: index,
           externalContentItemId,
         });
@@ -4275,6 +4390,126 @@ function promptExplicitStepCount(prompt: string) {
     }
   }
   return null;
+}
+
+function hasExactPlaceIntent(intent: RoleIntentHint) {
+  return intent.exactPlaceNames.length > 0 || Boolean(intent.exactAddress);
+}
+
+function candidateMatchesExactPlace(candidate: CandidateCard, intent: RoleIntentHint) {
+  const requestedNames = exactPlaceComparableValues(intent.exactPlaceNames);
+  const requestedAddress = intent.exactAddress
+    ? exactPlaceComparableValues([intent.exactAddress])
+    : [];
+  const candidateNames = exactPlaceComparableValues([
+    candidate.title,
+    candidate.venueName,
+  ]);
+  const candidateAddress = exactPlaceComparableValues([candidate.address]);
+
+  if (
+    requestedNames.length > 0 &&
+    candidateNames.some((candidateName) =>
+      requestedNames.some((requestedName) => exactPlaceValuesMatch(candidateName, requestedName)),
+    )
+  ) {
+    return true;
+  }
+
+  return requestedAddress.length > 0 &&
+    candidateAddress.some((candidateValue) =>
+      requestedAddress.some((requestedValue) => exactPlaceValuesMatch(candidateValue, requestedValue)),
+    );
+}
+
+function exactPlaceComparableValues(values: Array<string | null | undefined>) {
+  const variants: string[] = [];
+  for (const rawValue of values) {
+    const value = stringOrNull(rawValue);
+    if (!value) {
+      continue;
+    }
+    const normalized = normalizeExactPlaceValue(value);
+    if (!normalized) {
+      continue;
+    }
+    variants.push(normalized);
+    const transliterated = normalizeExactPlaceValue(transliterateRu(normalized));
+    if (transliterated) {
+      variants.push(transliterated);
+    }
+    const compact = normalized.replace(/[^a-z0-9а-я]+/g, '');
+    if (compact) {
+      variants.push(compact);
+    }
+    const compactTranslit = transliterated?.replace(/[^a-z0-9]+/g, '');
+    if (compactTranslit) {
+      variants.push(compactTranslit);
+    }
+  }
+  return uniqueRawStrings(variants).filter((value) => value.length >= 3);
+}
+
+function exactPlaceValuesMatch(candidateValue: string, requestedValue: string) {
+  if (candidateValue === requestedValue) {
+    return true;
+  }
+  if (
+    candidateValue.length >= 4 &&
+    requestedValue.length >= 4 &&
+    (candidateValue.includes(requestedValue) || requestedValue.includes(candidateValue))
+  ) {
+    return true;
+  }
+  const maxDistance = Math.min(candidateValue.length, requestedValue.length) <= 6 ? 1 : 2;
+  return levenshteinDistance(candidateValue, requestedValue, maxDistance) <= maxDistance;
+}
+
+function displayExactPlaceName(value: string) {
+  return value
+    .split(/\s+/)
+    .map((part) => part.length > 0 ? part[0]!.toUpperCase() + part.slice(1) : part)
+    .join(' ');
+}
+
+function normalizeExactPlaceValue(value: string) {
+  return normalizeText(value)
+    .replace(/[«»"']/g, ' ')
+    .replace(
+      /(?:^|[^a-zа-я0-9])(?:ресторан|ресторане|кафе|кофейня|кофейне|бар|баре|клуб|клубе|кинотеатр|кинотеатре|музей|музее)(?=$|[^a-zа-я0-9])/g,
+      ' ',
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function levenshteinDistance(left: string, right: string, maxDistance: number) {
+  if (Math.abs(left.length - right.length) > maxDistance) {
+    return maxDistance + 1;
+  }
+  const previous = Array.from({ length: right.length + 1 }, (_item, index) => index);
+  const current = Array.from({ length: right.length + 1 }, () => 0);
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    current[0] = leftIndex;
+    let rowBest = current[0] ?? 0;
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const cost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      const value = Math.min(
+        (previous[rightIndex] ?? 0) + 1,
+        (current[rightIndex - 1] ?? 0) + 1,
+        (previous[rightIndex - 1] ?? 0) + cost,
+      );
+      current[rightIndex] = value;
+      rowBest = Math.min(rowBest, value);
+    }
+    if (rowBest > maxDistance) {
+      return maxDistance + 1;
+    }
+    for (let index = 0; index < previous.length; index += 1) {
+      previous[index] = current[index] ?? 0;
+    }
+  }
+  return previous[right.length] ?? maxDistance + 1;
 }
 
 function uniqueById<T extends { id?: unknown }>(items: T[]) {
