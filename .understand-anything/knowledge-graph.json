@@ -24,8 +24,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-06-03T02:14:51.648Z",
-    "gitCommitHash": "d43aa4a1697b20013aa78ac5467107fe308cb868"
+    "analyzedAt": "2026-06-03T03:45:24.351Z",
+    "gitCommitHash": "8548fa7b312adc6da7bc4cd55f8178752c8c9513"
   },
   "nodes": [
     {
@@ -11828,7 +11828,7 @@
       "filePath": "backend/apps/api/src/controllers/safety.controller.ts",
       "lineRange": [
         6,
-        76
+        84
       ],
       "summary": "SafetyController in safety.controller.ts.",
       "tags": [
@@ -16205,8 +16205,8 @@
       "name": "PeopleService",
       "filePath": "backend/apps/api/src/services/people.service.ts",
       "lineRange": [
-        115,
-        1376
+        116,
+        1395
       ],
       "summary": "PeopleService in people.service.ts.",
       "tags": [
@@ -16726,7 +16726,7 @@
       "filePath": "backend/apps/api/src/services/safety.service.ts",
       "lineRange": [
         13,
-        694
+        731
       ],
       "summary": "SafetyService in safety.service.ts.",
       "tags": [

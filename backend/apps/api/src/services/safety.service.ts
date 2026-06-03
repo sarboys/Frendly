@@ -388,6 +388,9 @@ export class SafetyService {
 
     await this.clearSafetyCache(userId);
     await this.clearSafetyCache(targetUserId);
+    if (blockRequested) {
+      await this.clearBlockedProfileCache(userId, targetUserId);
+    }
     this.clearListCaches(userId);
     this.clearListCaches(targetUserId);
 
@@ -472,12 +475,39 @@ export class SafetyService {
     });
 
     await this.clearSafetyCache(userId);
+    await this.clearBlockedProfileCache(userId, targetUserId);
     this.clearListCaches(userId);
 
     return {
       id: block.id,
       blockedUserId: block.blockedUserId,
       createdAt: block.createdAt.toISOString(),
+    };
+  }
+
+  async deleteBlock(userId: string, targetUserId: string) {
+    if (targetUserId.length === 0) {
+      throw new ApiError(400, 'invalid_block_payload', 'targetUserId is required');
+    }
+
+    if (targetUserId === userId) {
+      throw new ApiError(400, 'self_block_not_allowed', 'Cannot unblock yourself');
+    }
+
+    const result = await this.prismaService.client.userBlock.deleteMany({
+      where: {
+        userId,
+        blockedUserId: targetUserId,
+      },
+    });
+
+    await this.clearSafetyCache(userId);
+    await this.clearBlockedProfileCache(userId, targetUserId);
+    this.clearListCaches(userId);
+
+    return {
+      blockedUserId: targetUserId,
+      deleted: result.count > 0,
     };
   }
 
@@ -690,5 +720,12 @@ export class SafetyService {
 
   private async clearSafetyCache(userId: string) {
     await this.redisCache?.delete(this.safetyCacheKey(userId));
+  }
+
+  private async clearBlockedProfileCache(userId: string, targetUserId: string) {
+    await Promise.all([
+      this.redisCache?.delete(`people:profile:v1:${userId}:${targetUserId}`),
+      this.redisCache?.delete(`people:social:v1:${userId}:${targetUserId}`),
+    ]);
   }
 }

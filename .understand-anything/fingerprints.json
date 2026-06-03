@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "d43aa4a1697b20013aa78ac5467107fe308cb868",
-  "generatedAt": "2026-06-03T02:14:52.321Z",
+  "gitCommitHash": "8548fa7b312adc6da7bc4cd55f8178752c8c9513",
+  "generatedAt": "2026-06-03T03:45:24.684Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -14343,7 +14343,7 @@
     },
     "backend/apps/api/src/controllers/safety.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/safety.controller.ts",
-      "contentHash": "fd564a94ee845e233de8348d55f1b21b104a1dbb63f3afe3da6f912919a1c627",
+      "contentHash": "3b03cffaafd542e602a263ce506b6f9232bf218a09b3e4b248c07668fed96ec0",
       "functions": [],
       "classes": [
         {
@@ -14359,11 +14359,12 @@
             "createReport",
             "listBlocks",
             "createBlock",
+            "deleteBlock",
             "createSos"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 71
+          "lineCount": 79
         }
       ],
       "imports": [
@@ -14395,7 +14396,7 @@
       "exports": [
         "SafetyController"
       ],
-      "totalLines": 77,
+      "totalLines": 85,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/search.controller.ts": {
@@ -20477,7 +20478,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "727880e614295c6bff89caae44cb75d80dac3d3eed4590f5d463260e46b97a41",
+      "contentHash": "818ece211ae0cbe3b83f9d510d1b391ca2d17da60344e12ac64ec4882d4a9d6d",
       "functions": [],
       "classes": [
         {
@@ -20527,7 +20528,7 @@
             "followingMemoryCache"
           ],
           "exported": true,
-          "lineCount": 1262
+          "lineCount": 1280
         }
       ],
       "imports": [
@@ -20598,7 +20599,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 1377,
+      "totalLines": 1396,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {
@@ -21160,7 +21161,7 @@
     },
     "backend/apps/api/src/services/safety.service.ts": {
       "filePath": "backend/apps/api/src/services/safety.service.ts",
-      "contentHash": "ab23367eb45af9c5f97e2001060adb8fd1b323a40ad8b61ccffe18df622d4f81",
+      "contentHash": "6a0ecc8af03f129c327ef0a0ad53a4ca22fbcc730094af96d2bea2dec42f65f7",
       "functions": [],
       "classes": [
         {
@@ -21182,6 +21183,7 @@
             "createReport",
             "listBlocks",
             "createBlock",
+            "deleteBlock",
             "createSos",
             "normalizeContactChannel",
             "normalizeContactValue",
@@ -21189,7 +21191,8 @@
             "isTrustedContactDuplicateError",
             "buildReportLockKey",
             "safetyCacheKey",
-            "clearSafetyCache"
+            "clearSafetyCache",
+            "clearBlockedProfileCache"
           ],
           "properties": [
             "pendingSafetyLoads",
@@ -21197,7 +21200,7 @@
             "listMemoryCache"
           ],
           "exported": true,
-          "lineCount": 682
+          "lineCount": 719
         }
       ],
       "imports": [
@@ -21242,7 +21245,7 @@
       "exports": [
         "SafetyService"
       ],
-      "totalLines": 695,
+      "totalLines": 732,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/search.service.ts": {

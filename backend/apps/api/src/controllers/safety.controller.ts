@@ -66,6 +66,14 @@ export class SafetyController {
     return this.safetyService.createBlock(currentUser.userId, body);
   }
 
+  @Delete('blocks/:targetUserId')
+  deleteBlock(
+    @CurrentUser() currentUser: { userId: string },
+    @Param('targetUserId') targetUserId: string,
+  ) {
+    return this.safetyService.deleteBlock(currentUser.userId, targetUserId);
+  }
+
   @Post('safety/sos')
   createSos(
     @CurrentUser() currentUser: { userId: string },

@@ -46,6 +46,10 @@ Support:
 - `POST /support/telegram/start` is authenticated and returns `{ botUrl }` with a short `support_<token>` Telegram deep link. The token is stored hashed and expires quickly; never expose `userId` in the link.
 - Telegram support messages are handled through `/internal/telegram/dispatch` with `support_start`, `support_message` and `support_reply`. User messages go to the configured support group, and operator replies are sent back to the user's Telegram chat.
 
+Safety:
+
+- `GET /blocks`, `POST /blocks` and `DELETE /blocks/:targetUserId` manage the current user's blocked profiles. Create and delete clear safety, blocks list, public profile and profile social caches for the viewer-target pair. Delete returns `{ blockedUserId, deleted }`.
+
 App overlays:
 
 - `GET /app/overlay?platform=ios|android&buildNumber=<number>` is an authenticated mobile startup check. It returns `{ overlay, checkAfterSeconds }`. `overlay=null` means nothing should be shown. Version policy wins over campaigns.
@@ -159,7 +163,7 @@ People:
 - `PUT /people/:userId/reactions/:kind`
 - `DELETE /people/:userId/reactions/:kind`
 - `POST /people/:userId/direct-chat`
-- Public profile responses include `social` with follower, like, super-like counts and viewer flags. Profile social actions are independent from dating actions. Backend rejects follow, like and super-like on yourself.
+- Public profile responses include `social` with follower, like, super-like counts and viewer flags. `GET /people/:userId` and `GET /people/:userId/social` include `blockedByMe` when the current viewer blocked that profile, so mobile can show a blocked profile with only an unblock action. Profile social actions are independent from dating actions. Backend rejects follow, like and super-like on yourself.
 - Public profile responses include `upcomingEvents`, up to 3 nearest active public meetups where the user is host or participant. Canceled, non-public and past events are excluded.
 - New profile `like` and `super_like` reactions create deduped central `like` notifications with `payload.source=profile`, `payload.action`, `payload.userId` and `payload.userName`. Mobile opens `/u/:userId` from that payload.
 - Own profile and public profile payloads expose `frendlyPlus`, derived from the latest subscription. Active access means a live trial, active, or paid-through canceled subscription; expired or inactive subscriptions return `false`.

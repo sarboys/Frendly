@@ -35,6 +35,7 @@ type ProfileSocialSnapshot = {
   iLike: boolean;
   iSuper: boolean;
   followNotifications: boolean;
+  blockedByMe: boolean;
 };
 
 const PUBLIC_PROFILE_EVENT_LIMIT = 3;
@@ -719,9 +720,7 @@ export class PeopleService {
       currentUserId === userId
         ? new Set<string>()
         : await this.getBlockedUserIds(currentUserId);
-    if (blockedUserIds.has(userId)) {
-      throw new ApiError(404, 'user_not_found', 'User not found');
-    }
+    const blockedByMe = blockedUserIds.has(userId);
     const now = new Date();
 
     const user = await this.prismaService.client.user.findUnique({
@@ -841,10 +840,13 @@ export class PeopleService {
           : [],
       intent: user.onboarding?.intent,
       social,
+      blockedByMe,
       upcomingEvents: this.mapProfileUpcomingEvents(
         user,
         currentUserId,
-        blockedUserIds,
+        blockedByMe
+          ? new Set<string>([...blockedUserIds, userId])
+          : blockedUserIds,
       ),
     };
   }
@@ -919,6 +921,7 @@ export class PeopleService {
   ): Promise<ProfileSocialSnapshot> {
     await this.assertSocialTargetVisible(currentUserId, targetUserId, {
       allowSelf: true,
+      allowBlocked: true,
     });
     return this.getProfileSocialSnapshot(currentUserId, targetUserId);
   }
@@ -1139,7 +1142,7 @@ export class PeopleService {
   private async assertSocialTargetVisible(
     currentUserId: string,
     targetUserId: string,
-    options: { allowSelf?: boolean } = {},
+    options: { allowSelf?: boolean; allowBlocked?: boolean } = {},
   ) {
     if (currentUserId === targetUserId && options.allowSelf !== true) {
       throw new ApiError(
@@ -1151,7 +1154,7 @@ export class PeopleService {
 
     if (currentUserId !== targetUserId) {
       const blockedUserIds = await this.getBlockedUserIds(currentUserId);
-      if (blockedUserIds.has(targetUserId)) {
+      if (blockedUserIds.has(targetUserId) && options.allowBlocked !== true) {
         throw new ApiError(404, 'user_not_found', 'User not found');
       }
     }
@@ -1183,13 +1186,29 @@ export class PeopleService {
     currentUserId: string,
     targetUserId: string,
   ): Promise<ProfileSocialSnapshot> {
-    const previews = await loadProfileSocialPreviews(
-      this.prismaService.client,
-      currentUserId,
-      [targetUserId],
-    );
+    const [previews, block] = await Promise.all([
+      loadProfileSocialPreviews(
+        this.prismaService.client,
+        currentUserId,
+        [targetUserId],
+      ),
+      currentUserId === targetUserId
+        ? Promise.resolve(null)
+        : this.prismaService.client.userBlock.findUnique({
+            where: {
+              userId_blockedUserId: {
+                userId: currentUserId,
+                blockedUserId: targetUserId,
+              },
+            },
+            select: { id: true },
+          }),
+    ]);
 
-    return previews.get(targetUserId) ?? emptyProfileSocialPreview();
+    return {
+      ...(previews.get(targetUserId) ?? emptyProfileSocialPreview()),
+      blockedByMe: block != null,
+    };
   }
 
   private async loadInviteStates(
