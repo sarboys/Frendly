@@ -182,6 +182,81 @@ describe('SafetyService unit', () => {
     });
   });
 
+  it('reblocks a user when an active duplicate report already exists', async () => {
+    const userBlockUpsert = jest.fn().mockResolvedValue({
+      id: 'block-created',
+    });
+    const reportUpdate = jest.fn().mockResolvedValue({
+      id: 'report-existing',
+      status: 'open',
+      blockRequested: true,
+    });
+    const txExecuteRaw = jest.fn().mockResolvedValue(1);
+    const service = new SafetyService({
+      client: {
+        user: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'user-target' }),
+        },
+        userReport: {
+          findFirst: jest.fn().mockResolvedValue({ id: 'report-existing' }),
+        },
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            $executeRaw: txExecuteRaw,
+            userReport: {
+              findFirst: jest.fn().mockResolvedValue({
+                id: 'report-existing',
+                status: 'open',
+                blockRequested: false,
+              }),
+              update: reportUpdate,
+              create: jest.fn(),
+            },
+            userBlock: {
+              upsert: userBlockUpsert,
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    await expect(
+      service.createReport('user-me', {
+        targetUserId: 'user-target',
+        reason: 'spam',
+        blockRequested: true,
+      }),
+    ).resolves.toEqual({
+      id: 'report-existing',
+      status: 'open',
+      blockRequested: true,
+    });
+
+    expect(txExecuteRaw).toHaveBeenCalledTimes(1);
+    expect(reportUpdate).toHaveBeenCalledWith({
+      where: { id: 'report-existing' },
+      data: { blockRequested: true },
+      select: {
+        id: true,
+        status: true,
+        blockRequested: true,
+      },
+    });
+    expect(userBlockUpsert).toHaveBeenCalledWith({
+      where: {
+        userId_blockedUserId: {
+          userId: 'user-me',
+          blockedUserId: 'user-target',
+        },
+      },
+      update: {},
+      create: {
+        userId: 'user-me',
+        blockedUserId: 'user-target',
+      },
+    });
+  });
+
   it('maps trusted contact unique conflicts to duplicate errors', async () => {
     const create = jest.fn().mockRejectedValue({
       code: 'P2002',

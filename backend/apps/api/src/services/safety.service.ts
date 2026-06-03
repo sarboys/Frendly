@@ -327,7 +327,7 @@ export class SafetyService {
       throw new ApiError(404, 'user_not_found', 'Target user not found');
     }
 
-    if (existing) {
+    if (existing && !blockRequested) {
       throw new ApiError(409, 'duplicate_report', 'Report already exists');
     }
 
@@ -345,11 +345,45 @@ export class SafetyService {
             in: ['open', 'in_review'],
           },
         },
-        select: { id: true },
+        select: {
+          id: true,
+          status: true,
+          blockRequested: true,
+        },
       });
 
       if (activeReport) {
-        throw new ApiError(409, 'duplicate_report', 'Report already exists');
+        if (!blockRequested) {
+          throw new ApiError(409, 'duplicate_report', 'Report already exists');
+        }
+
+        const reportWithBlock = activeReport.blockRequested
+          ? activeReport
+          : await tx.userReport.update({
+              where: { id: activeReport.id },
+              data: { blockRequested: true },
+              select: {
+                id: true,
+                status: true,
+                blockRequested: true,
+              },
+            });
+
+        await tx.userBlock.upsert({
+          where: {
+            userId_blockedUserId: {
+              userId,
+              blockedUserId: targetUserId,
+            },
+          },
+          update: {},
+          create: {
+            userId,
+            blockedUserId: targetUserId,
+          },
+        });
+
+        return reportWithBlock;
       }
 
       const created = await tx.userReport.create({

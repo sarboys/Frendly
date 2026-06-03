@@ -49,6 +49,7 @@ Support:
 Safety:
 
 - `GET /blocks`, `POST /blocks` and `DELETE /blocks/:targetUserId` manage the current user's blocked profiles. Create and delete clear safety, blocks list, public profile and profile social caches for the viewer-target pair. Delete returns `{ blockedUserId, deleted }`.
+- `POST /reports` rejects duplicate active reports with `409 duplicate_report`, except when the duplicate request has `blockRequested: true`. In that case backend treats it as an idempotent re-block action, upserts `UserBlock`, marks the active report `blockRequested=true`, clears the same safety/profile caches, and returns the active report id.
 
 App overlays:
 
