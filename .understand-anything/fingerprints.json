@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "8548fa7b312adc6da7bc4cd55f8178752c8c9513",
-  "generatedAt": "2026-06-03T03:45:24.684Z",
+  "gitCommitHash": "703666dd9152e49136a93a9c382ab82ab6bee930",
+  "generatedAt": "2026-06-03T03:56:49.082Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -20478,7 +20478,7 @@
     },
     "backend/apps/api/src/services/people.service.ts": {
       "filePath": "backend/apps/api/src/services/people.service.ts",
-      "contentHash": "818ece211ae0cbe3b83f9d510d1b391ca2d17da60344e12ac64ec4882d4a9d6d",
+      "contentHash": "471c71f46494f4e22c402a4143ab8fc078ab113ea5862e6cdcbe340c81c300b3",
       "functions": [],
       "classes": [
         {
@@ -20528,7 +20528,7 @@
             "followingMemoryCache"
           ],
           "exported": true,
-          "lineCount": 1280
+          "lineCount": 1276
         }
       ],
       "imports": [
@@ -20599,7 +20599,7 @@
       "exports": [
         "PeopleService"
       ],
-      "totalLines": 1396,
+      "totalLines": 1392,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/phone-otp.service.ts": {

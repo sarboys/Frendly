@@ -59,7 +59,7 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/phone/request')
       .set('user-agent', `jest-auth-${++otpRequestCounter}`)
-      .send({ phoneNumber })
+      .send({ phoneNumber, acceptedTerms: true })
       .expect(201);
 
     return {
@@ -71,7 +71,7 @@ describe('auth flows', () => {
   const verifyPhoneCode = async (challengeId: string, code: string) => {
     return request(app.getHttpServer())
       .post('/auth/phone/verify')
-      .send({ challengeId, code });
+      .send({ challengeId, code, acceptedTerms: true });
   };
 
   const dispatchTelegram = async (body: Record<string, unknown>) => {
@@ -223,7 +223,7 @@ describe('auth flows', () => {
 
     const firstResponse = await request(app.getHttpServer())
       .post('/auth/google/verify')
-      .send({ idToken: 'google-id-token' })
+      .send({ idToken: 'google-id-token', acceptedTerms: true })
       .expect(201);
 
     expect(firstResponse.body.userId).toEqual(expect.any(String));
@@ -252,7 +252,7 @@ describe('auth flows', () => {
 
     const secondResponse = await request(app.getHttpServer())
       .post('/auth/google/verify')
-      .send({ idToken: 'google-id-token' })
+      .send({ idToken: 'google-id-token', acceptedTerms: true })
       .expect(201);
 
     expect(secondResponse.body.userId).toBe(firstResponse.body.userId);
@@ -273,6 +273,7 @@ describe('auth flows', () => {
       .post('/auth/yandex/verify')
       .send({
         oauthToken: 'yandex-oauth-token',
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -313,6 +314,7 @@ describe('auth flows', () => {
       .post('/auth/yandex/verify')
       .send({
         oauthToken: 'yandex-oauth-token',
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -347,6 +349,7 @@ describe('auth flows', () => {
       .post('/auth/yandex/verify')
       .send({
         oauthToken: 'yandex-oauth-token',
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -374,6 +377,7 @@ describe('auth flows', () => {
       .post('/auth/yandex/verify')
       .send({
         oauthToken: 'yandex-oauth-token',
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -387,6 +391,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: telegramSession.loginSessionId,
         code: telegramSession.code,
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -412,6 +417,7 @@ describe('auth flows', () => {
       .post('/auth/yandex/verify')
       .send({
         oauthToken: 'yandex-oauth-token',
+        acceptedTerms: true,
       });
 
     expect(response.status).toBe(409);
@@ -444,7 +450,7 @@ describe('auth flows', () => {
 
     const response = await request(app.getHttpServer())
       .post('/auth/phone/test-login')
-      .send({ phoneNumber: '+7 111 111 11 11' })
+      .send({ phoneNumber: '+7 111 111 11 11', acceptedTerms: true })
       .expect(201);
 
     expect(response.body.userId).toBe('user-me');
@@ -459,7 +465,7 @@ describe('auth flows', () => {
 
     const response = await request(app.getHttpServer())
       .post('/auth/phone/test-login')
-      .send({ phoneNumber: '+7 111 111 11 11' })
+      .send({ phoneNumber: '+7 111 111 11 11', acceptedTerms: true })
       .expect(201);
 
     expect(response.body.userId).toBe('user-me');
@@ -471,7 +477,7 @@ describe('auth flows', () => {
   it('logs into seeded oleg test phone through shortcut', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/phone/test-login')
-      .send({ phoneNumber: '+7 777 777 77 77' })
+      .send({ phoneNumber: '+7 777 777 77 77', acceptedTerms: true })
       .expect(201);
 
     expect(response.body.userId).toBe('user-oleg');
@@ -494,7 +500,7 @@ describe('auth flows', () => {
     try {
       const response = await request(app.getHttpServer())
         .post('/auth/phone/test-login')
-        .send({ phoneNumber: '+7 666 666 66 66' })
+        .send({ phoneNumber: '+7 666 666 66 66', acceptedTerms: true })
         .expect(201);
 
       expect(response.body.userId).toEqual(expect.any(String));
@@ -542,7 +548,7 @@ describe('auth flows', () => {
     const response = await request(app.getHttpServer())
       .post('/auth/phone/request')
       .set('user-agent', `jest-auth-${++otpRequestCounter}`)
-      .send({ phoneNumber: nextPhoneNumber() });
+      .send({ phoneNumber: nextPhoneNumber(), acceptedTerms: true });
 
     expect(response.status).toBe(503);
     expect(response.body.code).toBe('phone_auth_unavailable');
@@ -658,7 +664,7 @@ describe('auth flows', () => {
   it('starts telegram auth session and returns bot deep link', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/start')
-      .send({})
+      .send({ acceptedTerms: true })
       .expect(201);
 
     expect(response.body.loginSessionId).toEqual(expect.any(String));
@@ -744,12 +750,12 @@ describe('auth flows', () => {
 
     const firstResponse = await request(app.getHttpServer())
       .post('/auth/telegram/start')
-      .send({ startToken })
+      .send({ startToken, acceptedTerms: true })
       .expect(201);
 
     const secondResponse = await request(app.getHttpServer())
       .post('/auth/telegram/start')
-      .send({ startToken })
+      .send({ startToken, acceptedTerms: true })
       .expect(201);
 
     expect(secondResponse.body.loginSessionId).toBe(firstResponse.body.loginSessionId);
@@ -779,7 +785,7 @@ describe('auth flows', () => {
 
     const response = await request(app.getHttpServer())
       .post('/auth/telegram/start')
-      .send({ startToken })
+      .send({ startToken, acceptedTerms: true })
       .expect(201);
 
     expect(response.body.loginSessionId).toBe(loginSessionId);
@@ -796,7 +802,7 @@ describe('auth flows', () => {
 
     const startResponse = await request(app.getHttpServer())
       .post('/auth/telegram/start')
-      .send({ startToken })
+      .send({ startToken, acceptedTerms: true })
       .expect(201);
 
     expect(startResponse.body.loginSessionId).toBe(session.loginSessionId);
@@ -806,6 +812,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: session.loginSessionId,
         code: session.code,
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -816,7 +823,7 @@ describe('auth flows', () => {
   it('rejects telegram verify while contact is still missing', async () => {
     const startResponse = await request(app.getHttpServer())
       .post('/auth/telegram/start')
-      .send({})
+      .send({ acceptedTerms: true })
       .expect(201);
 
     const verifyResponse = await request(app.getHttpServer())
@@ -824,6 +831,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: startResponse.body.loginSessionId,
         code: '6543',
+        acceptedTerms: true,
       });
 
     expect(verifyResponse.status).toBe(400);
@@ -838,6 +846,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: session.loginSessionId,
         code: '0000',
+        acceptedTerms: true,
       });
 
     expect(response.status).toBe(400);
@@ -854,6 +863,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: session.loginSessionId,
         code: session.code,
+        acceptedTerms: true,
       });
 
     expect(response.status).toBe(400);
@@ -871,6 +881,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: session.loginSessionId,
         code: session.code,
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -1074,6 +1085,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: session.loginSessionId,
         code: session.code,
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -1114,6 +1126,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: session.loginSessionId,
         code: session.code,
+        acceptedTerms: true,
       });
 
     expect(response.status).toBe(409);
@@ -1132,6 +1145,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: session.loginSessionId,
         code: session.code,
+        acceptedTerms: true,
       })
       .expect(201);
 
@@ -1196,6 +1210,7 @@ describe('auth flows', () => {
       .send({
         loginSessionId: selectedSession.loginSessionId,
         code: sharedCode,
+        acceptedTerms: true,
       })
       .expect(201);
 

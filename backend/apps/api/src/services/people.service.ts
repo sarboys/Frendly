@@ -1186,28 +1186,24 @@ export class PeopleService {
     currentUserId: string,
     targetUserId: string,
   ): Promise<ProfileSocialSnapshot> {
-    const [previews, block] = await Promise.all([
+    const [previews, blocks] = await Promise.all([
       loadProfileSocialPreviews(
         this.prismaService.client,
         currentUserId,
         [targetUserId],
       ),
       currentUserId === targetUserId
-        ? Promise.resolve(null)
-        : this.prismaService.client.userBlock.findUnique({
-            where: {
-              userId_blockedUserId: {
-                userId: currentUserId,
-                blockedUserId: targetUserId,
-              },
-            },
-            select: { id: true },
+        ? Promise.resolve([])
+        : this.prismaService.client.userBlock.findMany({
+            where: { userId: currentUserId, blockedUserId: targetUserId },
+            select: { blockedUserId: true },
+            take: 1,
           }),
     ]);
 
     return {
       ...(previews.get(targetUserId) ?? emptyProfileSocialPreview()),
-      blockedByMe: block != null,
+      blockedByMe: blocks.some((block) => block.blockedUserId === targetUserId),
     };
   }
 

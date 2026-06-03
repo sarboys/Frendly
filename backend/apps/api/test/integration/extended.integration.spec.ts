@@ -447,7 +447,7 @@ describe('extended rollout api flows', () => {
     expect(secondPage.body.items[0].id).not.toBe(firstPage.body.items[0].id);
   });
 
-  it('hides blocked users from profile view and direct chat creation', async () => {
+  it('marks blocked users on profile view and hides direct chat creation', async () => {
     await prisma.userBlock.upsert({
       where: {
         userId_blockedUserId: {
@@ -466,8 +466,9 @@ describe('extended rollout api flows', () => {
       .get('/people/user-sonya')
       .set('authorization', `Bearer ${accessToken}`);
 
-    expect(profileResponse.status).toBe(404);
-    expect(profileResponse.body.code).toBe('user_not_found');
+    expect(profileResponse.status).toBe(200);
+    expect(profileResponse.body.blockedByMe).toBe(true);
+    expect(profileResponse.body.social.blockedByMe).toBe(true);
 
     const chatResponse = await request(app.getHttpServer())
       .post('/people/user-sonya/direct-chat')

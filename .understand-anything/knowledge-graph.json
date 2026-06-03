@@ -24,8 +24,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-06-03T03:45:24.351Z",
-    "gitCommitHash": "8548fa7b312adc6da7bc4cd55f8178752c8c9513"
+    "analyzedAt": "2026-06-03T03:56:48.742Z",
+    "gitCommitHash": "703666dd9152e49136a93a9c382ab82ab6bee930"
   },
   "nodes": [
     {
@@ -16206,7 +16206,7 @@
       "filePath": "backend/apps/api/src/services/people.service.ts",
       "lineRange": [
         116,
-        1395
+        1391
       ],
       "summary": "PeopleService in people.service.ts.",
       "tags": [
