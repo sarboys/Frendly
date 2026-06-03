@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "ee1ea33f2cbfb39b08c3a6cebf8f8c3b13b34bc3",
-  "generatedAt": "2026-06-01T12:39:57.988Z",
+  "gitCommitHash": "d43aa4a1697b20013aa78ac5467107fe308cb868",
+  "generatedAt": "2026-06-03T02:14:52.321Z",
   "files": {
     "admin/src/admin/AdminAuthGate.tsx": {
       "filePath": "admin/src/admin/AdminAuthGate.tsx",
@@ -12832,7 +12832,7 @@
     },
     "backend/apps/api/src/controllers/auth.controller.ts": {
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
-      "contentHash": "cca25d8d7373a6c4c3d2466f0f1794e4441af62acc8d1f5ae9d308d327218237",
+      "contentHash": "9ab68806fcadac103b64c0cf3f103dc12178be5e27da7e86c66e86dd1632135e",
       "functions": [],
       "classes": [
         {
@@ -12848,20 +12848,22 @@
           "name": "PhoneCodeRequest",
           "methods": [],
           "properties": [
-            "phoneNumber"
+            "phoneNumber",
+            "acceptedTerms"
           ],
           "exported": false,
-          "lineCount": 5
+          "lineCount": 8
         },
         {
           "name": "PhoneVerifyRequest",
           "methods": [],
           "properties": [
             "challengeId",
-            "code"
+            "code",
+            "acceptedTerms"
           ],
           "exported": false,
-          "lineCount": 9
+          "lineCount": 12
         },
         {
           "name": "RefreshRequest",
@@ -12877,37 +12879,53 @@
           "methods": [],
           "properties": [
             "loginSessionId",
-            "code"
+            "code",
+            "acceptedTerms"
           ],
           "exported": false,
-          "lineCount": 10
+          "lineCount": 13
         },
         {
           "name": "TelegramStartRequest",
           "methods": [],
           "properties": [
-            "startToken"
+            "startToken",
+            "acceptedTerms"
           ],
           "exported": false,
-          "lineCount": 5
+          "lineCount": 8
         },
         {
           "name": "GoogleVerifyRequest",
           "methods": [],
           "properties": [
-            "idToken"
+            "idToken",
+            "acceptedTerms"
           ],
           "exported": false,
-          "lineCount": 5
+          "lineCount": 8
         },
         {
           "name": "YandexVerifyRequest",
           "methods": [],
           "properties": [
-            "oauthToken"
+            "oauthToken",
+            "acceptedTerms"
           ],
           "exported": false,
-          "lineCount": 5
+          "lineCount": 8
+        },
+        {
+          "name": "AppleVerifyRequest",
+          "methods": [],
+          "properties": [
+            "identityToken",
+            "authorizationCode",
+            "fullName",
+            "acceptedTerms"
+          ],
+          "exported": false,
+          "lineCount": 16
         },
         {
           "name": "AuthController",
@@ -12922,12 +12940,14 @@
             "verifyTelegramAuth",
             "verifyGoogleAuth",
             "verifyYandexAuth",
+            "verifyAppleAuth",
             "logout",
-            "me"
+            "me",
+            "assertAcceptedTerms"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 128
+          "lineCount": 163
         }
       ],
       "imports": [
@@ -12950,11 +12970,18 @@
         {
           "source": "class-validator",
           "specifiers": [
+            "IsBoolean",
             "IsNotEmpty",
             "IsOptional",
             "IsString",
             "Length",
             "Matches"
+          ]
+        },
+        {
+          "source": "../common/api-error",
+          "specifiers": [
+            "ApiError"
           ]
         },
         {
@@ -12997,7 +13024,7 @@
       "exports": [
         "AuthController"
       ],
-      "totalLines": 197,
+      "totalLines": 268,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/controllers/chats.controller.ts": {
@@ -16359,7 +16386,7 @@
     },
     "backend/apps/api/src/services/auth.service.ts": {
       "filePath": "backend/apps/api/src/services/auth.service.ts",
-      "contentHash": "d498da07dd05ce007890dbb78efd73e34153760ea13d108f46f850582c1ab09d",
+      "contentHash": "4265fed7b4fd740cd1ad3781ae4ccae95d9179b3857e257611ed092e21a5c8c1",
       "functions": [],
       "classes": [
         {
@@ -16374,6 +16401,7 @@
             "logout",
             "findOrCreateUserByPhoneNumber",
             "createSessionRecord",
+            "recordLegalAcceptance",
             "writeAuditEvent",
             "toJsonValue",
             "requestId",
@@ -16394,7 +16422,7 @@
             "pendingMeLoads"
           ],
           "exported": true,
-          "lineCount": 882
+          "lineCount": 898
         }
       ],
       "imports": [
@@ -16467,7 +16495,7 @@
       "exports": [
         "AuthService"
       ],
-      "totalLines": 922,
+      "totalLines": 940,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/chats.service.ts": {
@@ -17254,7 +17282,7 @@
     },
     "backend/apps/api/src/services/evening-ai-draft.service.ts": {
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "contentHash": "1d4c56af4b9467c3a6c231b55f4f3ecbb5fbc312e0c77378178e7f8544e548fa",
+      "contentHash": "814cc409a388dc5ac354982104b84f81c34562644bc199df26e69863c82e6ad2",
       "functions": [
         {
           "name": "durationMsSince",
@@ -17559,6 +17587,66 @@
           ],
           "exported": false,
           "lineCount": 20
+        },
+        {
+          "name": "hasExactPlaceIntent",
+          "params": [
+            "intent"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "candidateMatchesExactPlace",
+          "params": [
+            "candidate",
+            "intent"
+          ],
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "exactPlaceComparableValues",
+          "params": [
+            "values"
+          ],
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "exactPlaceValuesMatch",
+          "params": [
+            "candidateValue",
+            "requestedValue"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "displayExactPlaceName",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "normalizeExactPlaceValue",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "levenshteinDistance",
+          "params": [
+            "left",
+            "right",
+            "maxDistance"
+          ],
+          "exported": false,
+          "lineCount": 28
         },
         {
           "name": "uniqueById",
@@ -18039,6 +18127,7 @@
             "routeWithRegeneratedStep",
             "logSlowDraftIfNeeded",
             "hasEnoughCandidatesForRoles",
+            "missingExactPlace",
             "eveningAiModel",
             "intentMaxTokens",
             "routeMaxTokens",
@@ -18093,6 +18182,7 @@
             "kindForRole",
             "emojiForRole",
             "labelForRole",
+            "exactPlaceRoleLabel",
             "tagLabelForCandidate",
             "foodTagLabel",
             "barTagLabel",
@@ -18104,6 +18194,8 @@
             "routeGeoPolicyForGeneration",
             "effectiveStepLocation",
             "isCandidateAllowedForIntent",
+            "isKudagoSubtypeCandidate",
+            "kudagoRoleMatches",
             "isWalkCandidate",
             "candidateTailScore",
             "intentSystemPrompt",
@@ -18116,6 +18208,7 @@
             "routeRetryCandidateIds",
             "routePromptCandidates",
             "routePromptStepRequirements",
+            "cultureTagLabel",
             "routePromptCandidateStepMatches",
             "responseFormat",
             "validateGeneratedRoute",
@@ -18133,7 +18226,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 3213
+          "lineCount": 3489
         }
       ],
       "imports": [
@@ -18199,7 +18292,7 @@
       "exports": [
         "EveningAiDraftService"
       ],
-      "totalLines": 5112,
+      "totalLines": 5593,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/evening-analytics.service.ts": {
@@ -21368,7 +21461,7 @@
     },
     "backend/apps/api/src/services/social-auth.service.ts": {
       "filePath": "backend/apps/api/src/services/social-auth.service.ts",
-      "contentHash": "7ff3414f43d48d87943a90f862fe1a0d959ad6cee38af3b17a015488531809bf",
+      "contentHash": "0f53dd8679650d05f86fb8983fcc5c9b2e773a83e110dfdeb49c8737f7beda71",
       "functions": [],
       "classes": [
         {
@@ -21377,6 +21470,7 @@
             "constructor",
             "verifyGoogleIdToken",
             "verifyYandexOAuthToken",
+            "verifyAppleIdentityToken",
             "createAppSession",
             "refreshExistingAccount",
             "createOrLinkUser",
@@ -21396,7 +21490,7 @@
             "logger"
           ],
           "exported": true,
-          "lineCount": 424
+          "lineCount": 450
         }
       ],
       "imports": [
@@ -21450,12 +21544,12 @@
       "exports": [
         "SocialAuthService"
       ],
-      "totalLines": 446,
+      "totalLines": 472,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/social-identity-verifier.service.ts": {
       "filePath": "backend/apps/api/src/services/social-identity-verifier.service.ts",
-      "contentHash": "0e5cc16db83902282476d5550ad5bdfe040e302c987f236b95f55c73d2f62e27",
+      "contentHash": "b8ae0b6875dedb48609403c55c8d9b65cc0f354ef97f23080d389d68cf45fa83",
       "functions": [],
       "classes": [
         {
@@ -21463,21 +21557,30 @@
           "methods": [
             "verifyGoogleIdToken",
             "verifyYandexOAuthToken",
+            "verifyAppleIdentityToken",
             "fetchYandexUserInfo",
             "fetchWithTimeout",
+            "parseAppleIdentityToken",
+            "appleJwkForKid",
+            "appleJwks",
+            "assertApplePayload",
             "googleClientIds",
             "yandexClientId",
+            "appleAudiences",
             "providerTimeoutMs",
             "pickYandexEmail",
             "pickYandexDisplayName",
-            "yandexAvatarUrl"
+            "yandexAvatarUrl",
+            "isAppleEmailVerified",
+            "clean"
           ],
           "properties": [
             "logger",
-            "googleClient"
+            "googleClient",
+            "appleKeysCache"
           ],
           "exported": true,
-          "lineCount": 180
+          "lineCount": 361
         }
       ],
       "imports": [
@@ -21495,6 +21598,13 @@
           ]
         },
         {
+          "source": "node:crypto",
+          "specifiers": [
+            "createPublicKey",
+            "verifySignature"
+          ]
+        },
+        {
           "source": "../common/api-error",
           "specifiers": [
             "ApiError"
@@ -21504,7 +21614,7 @@
       "exports": [
         "SocialIdentityVerifier"
       ],
-      "totalLines": 215,
+      "totalLines": 429,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/stories.service.ts": {
@@ -21840,7 +21950,7 @@
     },
     "backend/apps/api/src/services/telegram-auth.service.ts": {
       "filePath": "backend/apps/api/src/services/telegram-auth.service.ts",
-      "contentHash": "f21f3457757c3956a95fb513162ce63545271a2c29a70c5e33e05dc5a9a4ee47",
+      "contentHash": "0318866c73a1f855198bf1ac2c26a5cad3382b5ec2d76ae4f7b8f8f1a829b5b7",
       "functions": [],
       "classes": [
         {
@@ -21865,7 +21975,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 859
+          "lineCount": 860
         }
       ],
       "imports": [
@@ -21935,7 +22045,7 @@
       "exports": [
         "TelegramAuthService"
       ],
-      "totalLines": 898,
+      "totalLines": 899,
       "hasStructuralAnalysis": true
     },
     "backend/apps/api/src/services/tokens.service.ts": {
@@ -22438,7 +22548,7 @@
     },
     "backend/apps/chat/src/chat-server.service.ts": {
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
-      "contentHash": "b7ddd7a5ca8380e70f7eff01bbb4cdb86491375116a0e04b9813a29d184a947d",
+      "contentHash": "925c4df740490daba820058eeaff6d9f6c769adef39924c2352db63c2d7e9857",
       "functions": [],
       "classes": [
         {
@@ -22469,6 +22579,7 @@
             "drainMessageWriteQueue",
             "updateMessageWriteMetrics",
             "createPlainMessageFast",
+            "messageOutboxRows",
             "parseLocationPayload",
             "isUniqueConstraintError",
             "shouldTouchChatForMessage",
@@ -22570,7 +22681,7 @@
             "heartbeatTimer"
           ],
           "exported": true,
-          "lineCount": 2360
+          "lineCount": 2421
         }
       ],
       "imports": [
@@ -22638,7 +22749,7 @@
       "exports": [
         "ChatServerService"
       ],
-      "totalLines": 2549,
+      "totalLines": 2610,
       "hasStructuralAnalysis": true
     },
     "backend/apps/chat/src/health.controller.ts": {
@@ -26537,7 +26648,7 @@
     },
     "backend/apps/worker/src/worker.service.ts": {
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "contentHash": "71cb4ffebaefa41f70eb39d1ed6fc9ce0b14f53584ce30c64d3f96a69f580b58",
+      "contentHash": "a99a9beaf5dc2902aa6a615855ac8b4e9394e88ead21a897bc927550e70c002d",
       "functions": [
         {
           "name": "csv",
@@ -26546,6 +26657,23 @@
           ],
           "exported": false,
           "lineCount": 7
+        },
+        {
+          "name": "oneLine",
+          "params": [
+            "value"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "capWithSuffix",
+          "params": [
+            "value",
+            "maxLength"
+          ],
+          "exported": false,
+          "lineCount": 6
         },
         {
           "name": "weekdayNumber",
@@ -26644,6 +26772,11 @@
             "hasAllPublicCardImageVariants",
             "toPrivateMediaVariants",
             "handlePushDispatch",
+            "handleMessageNotificationFanout",
+            "loadChatPushTokensForRecipients",
+            "filterPushAllowedRecipients",
+            "chatPushTitle",
+            "chatPushBody",
             "isUserHidden",
             "handleNotificationCreate",
             "handleRealtimePublish",
@@ -26746,7 +26879,7 @@
             "apnsPushProvider"
           ],
           "exported": true,
-          "lineCount": 2471
+          "lineCount": 2707
         }
       ],
       "imports": [
@@ -26843,7 +26976,7 @@
       "exports": [
         "WorkerService"
       ],
-      "totalLines": 2644,
+      "totalLines": 2891,
       "hasStructuralAnalysis": true
     },
     "backend/jest.preset.js": {

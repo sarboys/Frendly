@@ -1,6 +1,6 @@
 # Auth Map
 
-Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route access.
+Use this for users, sessions, JWT, phone, Telegram, Google, Yandex, Apple and route access.
 
 ## Fast paths
 
@@ -8,7 +8,7 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - Flutter API retry: `mobile/lib/app/core/network/api_client.dart`.
 - Flutter auth config: `mobile/lib/app/core/config/backend_config.dart`.
 - Flutter auth screens: `features/welcome/`, `features/phone_auth/`, `features/telegram_auth/`, `features/onboarding/`.
-- Social auth controller: `mobile/lib/features/welcome/application/social_auth_controller.dart`.
+- Social auth clients: `mobile2/lib/features/welcome/application/google_auth_client.dart`, `yandex_auth_client.dart`, `apple_auth_client.dart`.
 - Router redirects: `mobile/lib/app/navigation/app_router.dart`.
 - API controller: `backend/apps/api/src/controllers/auth.controller.ts`.
 - API service: `backend/apps/api/src/services/auth.service.ts`.
@@ -18,7 +18,7 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - Admin guard: `backend/apps/api/src/common/admin-token.guard.ts`.
 - Public decorator: `backend/apps/api/src/common/public.decorator.ts`.
 - JWT helpers: `backend/packages/database/src/auth-tokens.ts`.
-- DB models: `Session`, `PhoneOtpChallenge`, `TelegramAccount`, `TelegramLoginSession`, `ExternalAuthAccount`, `AuthAuditEvent`, `AdminUser`, `AdminSession`, `AdminAuditEvent`.
+- DB models: `Session`, `PhoneOtpChallenge`, `TelegramAccount`, `TelegramLoginSession`, `ExternalAuthAccount`, `AuthAuditEvent`, `AdminUser`, `AdminSession`, `AdminAuditEvent`. `User` stores legal acceptance timestamps and `legalTermsVersion`.
 
 ## Tokens and sessions
 
@@ -58,6 +58,7 @@ Use this for users, sessions, JWT, phone, Telegram, Google, Yandex and route acc
 - `POST /auth/telegram/verify`
 - `POST /auth/google/verify`
 - `POST /auth/yandex/verify`
+- `POST /auth/apple/verify`
 
 Protected:
 
@@ -76,6 +77,7 @@ Admin protected auth:
 
 ## Phone auth
 
+- Public login start/verify endpoints require `acceptedTerms: true`. Successful phone, Telegram and social login records `User.legalTermsAcceptedAt`, `privacyPolicyAcceptedAt`, `communityRulesAcceptedAt` and `legalTermsVersion`.
 - OTP challenges are stored as `codeHash` and `codeSalt`, not raw code.
 - Request context and cooldown guard repeated sends.
 - Production delivery uses `PHONE_OTP_DELIVERY_WEBHOOK_URL`.
@@ -96,13 +98,16 @@ Admin protected auth:
 - Relay calls `/internal/telegram/dispatch` with `x-telegram-internal-secret`.
 - `TELEGRAM_INTERNAL_SECRET` fallback to bot token is allowed only outside production.
 
-## Google and Yandex
+## Google, Yandex and Apple
 
 - Google endpoint accepts mobile `idToken`.
 - Backend verifies Google token through server-side verifier.
 - Google email is linked only when provider marks it verified.
 - Yandex endpoint accepts native SDK OAuth token.
 - Backend fetches Yandex user info server-side and verifies `client_id`.
+- Apple endpoint accepts iOS `identityToken`, optional `authorizationCode` and optional `fullName`.
+- Backend verifies Apple JWT against Apple JWKS, issuer, audience and expiry. Configure audiences through `APPLE_SIGN_IN_AUDIENCES`, `APPLE_BUNDLE_ID` or `IOS_BUNDLE_ID`.
+- Apple email is linked only when Apple marks it verified. Private relay email is accepted as the user email when present in the verified token.
 - DB stores `ExternalAuthAccount` by `provider + providerUserId`.
 - No provider access token or auth code is stored.
 
@@ -111,6 +116,7 @@ Mobile config:
 - `BIG_BREAK_GOOGLE_CLIENT_ID`
 - `BIG_BREAK_GOOGLE_SERVER_CLIENT_ID`
 - `BIG_BREAK_YANDEX_CLIENT_ID`
+- iOS Sign in with Apple uses `sign_in_with_apple`; backend audience must match the app bundle id or configured Apple sign-in audience.
 
 Yandex native bridge:
 

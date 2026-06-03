@@ -30,8 +30,16 @@ Auth:
 - `POST /auth/telegram/verify`
 - `POST /auth/google/verify`
 - `POST /auth/yandex/verify`
+- `POST /auth/apple/verify`
 - `POST /auth/logout`
 - `GET /me`
+
+Auth login contract:
+
+- Public login start and verify payloads require `acceptedTerms: true`, except `/auth/dev/login` and `/auth/refresh`.
+- Phone request/test/verify, Telegram start/verify, Google verify, Yandex verify and Apple verify reject missing acceptance with `400 terms_not_accepted`.
+- Successful phone, Telegram and social login records legal, privacy and community-rules acceptance timestamps on `User`.
+- Apple verify accepts `{ identityToken, authorizationCode?, fullName?, acceptedTerms }`. Backend verifies the Apple JWT against Apple JWKS, issuer, configured audience and expiry before creating the session.
 
 Support:
 
@@ -60,7 +68,7 @@ Events:
 - `POST /events/:eventId/invites/:requestId/decline`
 - check-in, live, after-party, feedback endpoints live under `/events/:eventId/*`.
 - `GET /events/:eventId` includes `community: { id, name, avatar } | null` when the meetup was created from a community. Mobile uses it as the link back to the community from the meeting detail screen.
-- `GET /events` accepts `city`, `requiresVerification=true` and `requiresFrendlyPlus=true`; these filters can be combined with date, text, access and geo filters. City filtering uses stored `Event.city` in both Prisma and PostGIS list paths, so legacy events without city are excluded from city-scoped discovery.
+- `GET /events` accepts `city`, `requiresVerification=true`, `requiresFrendlyPlus=true` and `sort=time`; these filters can be combined with date, text, access and geo filters. `sort=time` orders by `startsAt ASC, id ASC` and does not lift boosted events above earlier events. City filtering uses stored `Event.city` in both Prisma and PostGIS list paths, so legacy events without city are excluded from city-scoped discovery.
 - `GET /events` may cache only the base public feed page in Redis for short TTLs. Text search bypasses this cache. Cache hits revalidate cached ids against current visibility and still load participant counts, participant previews, current join state, join requests, attendance and live state from Postgres, so viewer overlay stays live. Event create, direct join, leave and accepted invite increment `events:feed-version:v1:<city>` and that version is part of the cache key when present. No Redis key scan is used.
 - `POST /events` and `PATCH /host/events/:eventId` accept `joinMode` and `accessMode`. `open` joins directly, `request` requires `POST /events/:eventId/join-request` and host approval through `/host/requests/:requestId/approve|reject`.
 - `POST /events/:eventId/join-request` and `DELETE /events/:eventId/join-request` return the refreshed event detail/summary payload, not the raw request row, so mobile list and detail state keep the event id, image and viewer request status.

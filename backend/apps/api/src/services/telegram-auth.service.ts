@@ -390,6 +390,7 @@ export class TelegramAuthService {
         'telegram',
         tx,
       );
+      await this.authService.recordLegalAcceptance(user.id, tx);
 
       await this.writeAuditEvent(tx, {
         provider: 'telegram',

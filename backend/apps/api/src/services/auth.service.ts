@@ -22,13 +22,15 @@ import { RedisCacheService } from './redis-cache.service';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 const AUTH_ME_CACHE_SECONDS = 5;
+const LEGAL_TERMS_VERSION = '2026-06-02';
 type AuthSessionProvider =
   | 'dev'
   | 'phone_otp'
   | 'session'
   | 'telegram'
   | 'google'
-  | 'yandex';
+  | 'yandex'
+  | 'apple';
 
 interface AuthRequestMeta {
   requestId?: string;
@@ -354,6 +356,7 @@ export class AuthService {
           where: { id: challenge.id },
           data: { userId: user.id },
         });
+        await this.recordLegalAcceptance(user.id, tx);
         const session = await this.createSessionRecord(user.id, 'phone_otp', tx);
         this.logger.debug(
           `Verified phone OTP: requestId=${this.requestId(meta)} phone=${maskedPhone} userId=${user.id} sessionId=${session.sessionId}`,
@@ -420,6 +423,7 @@ export class AuthService {
       normalized,
     );
 
+    await this.recordLegalAcceptance(user.id);
     const session = await this.createSessionRecord(user.id, 'phone_otp');
     this.logger.log(
       `Issued test phone shortcut session: phone=${maskPhoneNumber(normalized)} userId=${user.id} isNewUser=${isNewUser}`,
@@ -637,6 +641,20 @@ export class AuthService {
         refreshToken: signRefreshToken(userId, sessionId, refreshTokenId),
       },
     };
+  }
+
+  async recordLegalAcceptance(userId: string, prisma?: DbClient) {
+    const acceptedAt = new Date();
+    const client = prisma ?? this.prismaService.client;
+    await client.user.updateMany({
+      where: { id: userId },
+      data: {
+        legalTermsAcceptedAt: acceptedAt,
+        legalTermsVersion: LEGAL_TERMS_VERSION,
+        privacyPolicyAcceptedAt: acceptedAt,
+        communityRulesAcceptedAt: acceptedAt,
+      },
+    });
   }
 
   private async writeAuditEvent(

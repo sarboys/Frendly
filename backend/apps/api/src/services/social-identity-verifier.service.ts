@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
+import { createPublicKey, verify as verifySignature } from 'node:crypto';
 import { ApiError } from '../common/api-error';
 
-export type SocialAuthProvider = 'google' | 'yandex';
+export type SocialAuthProvider = 'google' | 'yandex' | 'apple';
 
 export interface VerifiedSocialIdentity {
   provider: SocialAuthProvider;
@@ -31,10 +32,43 @@ interface YandexUserInfoResponse {
   default_avatar_id?: string;
 }
 
+interface AppleJwtHeader {
+  alg?: string;
+  kid?: string;
+}
+
+interface AppleIdentityTokenPayload {
+  iss?: string;
+  aud?: string | string[];
+  sub?: string;
+  email?: string;
+  email_verified?: boolean | string;
+  exp?: number;
+  iat?: number;
+}
+
+interface AppleJwk {
+  kid?: string;
+  alg?: string;
+  use?: string;
+  kty?: string;
+  n?: string;
+  e?: string;
+}
+
+interface AppleJwksResponse {
+  keys?: AppleJwk[];
+}
+
+const APPLE_ISSUER = 'https://appleid.apple.com';
+const APPLE_KEYS_URL = 'https://appleid.apple.com/auth/keys';
+const APPLE_JWKS_CACHE_MS = 6 * 60 * 60 * 1000;
+
 @Injectable()
 export class SocialIdentityVerifier {
   private readonly logger = new Logger(SocialIdentityVerifier.name);
   private readonly googleClient = new OAuth2Client();
+  private appleKeysCache?: { expiresAt: number; keys: AppleJwk[] };
 
   async verifyGoogleIdToken(idToken: string): Promise<VerifiedSocialIdentity> {
     const clientIds = this.googleClientIds();
@@ -116,6 +150,67 @@ export class SocialIdentityVerifier {
     };
   }
 
+  async verifyAppleIdentityToken(
+    identityToken: string,
+    params: { displayName?: string } = {},
+  ): Promise<VerifiedSocialIdentity> {
+    const audiences = this.appleAudiences();
+    if (audiences.length === 0) {
+      throw new ApiError(
+        503,
+        'apple_auth_unavailable',
+        'Apple auth is not configured',
+      );
+    }
+
+    const parsed = this.parseAppleIdentityToken(identityToken);
+    if (parsed.header.alg !== 'RS256' || !parsed.header.kid) {
+      throw new ApiError(
+        401,
+        'invalid_apple_token',
+        'Apple token is invalid',
+      );
+    }
+
+    const key = await this.appleJwkForKid(parsed.header.kid);
+    if (!key) {
+      throw new ApiError(
+        401,
+        'invalid_apple_token',
+        'Apple token is invalid',
+      );
+    }
+
+    const publicKey = createPublicKey({
+      key: key as any,
+      format: 'jwk',
+    });
+    const validSignature = verifySignature(
+      'RSA-SHA256',
+      Buffer.from(parsed.signingInput),
+      publicKey,
+      Buffer.from(parsed.signature, 'base64url'),
+    );
+    if (!validSignature) {
+      throw new ApiError(
+        401,
+        'invalid_apple_token',
+        'Apple token is invalid',
+      );
+    }
+
+    this.assertApplePayload(parsed.payload, audiences);
+    return {
+      provider: 'apple',
+      providerUserId: parsed.payload.sub!,
+      email: this.isAppleEmailVerified(parsed.payload)
+        ? parsed.payload.email
+        : undefined,
+      emailVerified: this.isAppleEmailVerified(parsed.payload),
+      displayName: this.clean(params.displayName),
+    };
+  }
+
   private async fetchYandexUserInfo(
     accessToken: string,
   ): Promise<YandexUserInfoResponse> {
@@ -168,6 +263,101 @@ export class SocialIdentityVerifier {
     }
   }
 
+  private parseAppleIdentityToken(identityToken: string) {
+    const parts = identityToken.trim().split('.');
+    if (parts.length !== 3 || parts.some((part) => part.length === 0)) {
+      throw new ApiError(
+        401,
+        'invalid_apple_token',
+        'Apple token is invalid',
+      );
+    }
+
+    const [headerPart, payloadPart, signaturePart] = parts as [
+      string,
+      string,
+      string,
+    ];
+    try {
+      return {
+        header: JSON.parse(
+          Buffer.from(headerPart, 'base64url').toString('utf8'),
+        ) as AppleJwtHeader,
+        payload: JSON.parse(
+          Buffer.from(payloadPart, 'base64url').toString('utf8'),
+        ) as AppleIdentityTokenPayload,
+        signingInput: `${headerPart}.${payloadPart}`,
+        signature: signaturePart,
+      };
+    } catch {
+      throw new ApiError(
+        401,
+        'invalid_apple_token',
+        'Apple token is invalid',
+      );
+    }
+  }
+
+  private async appleJwkForKid(kid: string) {
+    let keys = await this.appleJwks();
+    let key = keys.find(
+      (key) => key.kid === kid && key.kty === 'RSA' && key.use === 'sig',
+    );
+    if (!key) {
+      this.appleKeysCache = undefined;
+      keys = await this.appleJwks();
+      key = keys.find(
+        (key) => key.kid === kid && key.kty === 'RSA' && key.use === 'sig',
+      );
+    }
+    return key;
+  }
+
+  private async appleJwks() {
+    const cached = this.appleKeysCache;
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.keys;
+    }
+
+    const response = await this.fetchWithTimeout(APPLE_KEYS_URL, {});
+    if (!response.ok) {
+      throw new ApiError(
+        503,
+        'social_auth_provider_unavailable',
+        'Social auth provider is unavailable',
+      );
+    }
+    const json = (await response.json()) as AppleJwksResponse;
+    const keys = Array.isArray(json.keys) ? json.keys : [];
+    this.appleKeysCache = {
+      expiresAt: Date.now() + APPLE_JWKS_CACHE_MS,
+      keys,
+    };
+    return keys;
+  }
+
+  private assertApplePayload(
+    payload: AppleIdentityTokenPayload,
+    audiences: string[],
+  ) {
+    const now = Math.floor(Date.now() / 1000);
+    const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (
+      payload.iss !== APPLE_ISSUER ||
+      !payload.sub ||
+      !aud.some((item) => item != null && audiences.includes(item)) ||
+      typeof payload.exp !== 'number' ||
+      payload.exp <= now ||
+      (typeof payload.iat === 'number' && payload.iat > now + 300)
+    ) {
+      throw new ApiError(
+        401,
+        'invalid_apple_token',
+        'Apple token is invalid',
+      );
+    }
+  }
+
   private googleClientIds() {
     const raw =
       process.env.GOOGLE_OAUTH_CLIENT_IDS ??
@@ -186,6 +376,18 @@ export class SocialIdentityVerifier {
       process.env.YANDEX_CLIENT_ID ??
       ''
     ).trim();
+  }
+
+  private appleAudiences() {
+    const raw =
+      process.env.APPLE_SIGN_IN_AUDIENCES ??
+      process.env.APPLE_BUNDLE_ID ??
+      process.env.IOS_BUNDLE_ID ??
+      '';
+    return raw
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   private providerTimeoutMs() {
@@ -210,5 +412,17 @@ export class SocialIdentityVerifier {
       return undefined;
     }
     return `https://avatars.yandex.net/get-yapic/${avatarId}/islands-200`;
+  }
+
+  private isAppleEmailVerified(payload: AppleIdentityTokenPayload) {
+    return (
+      payload.email != null &&
+      (payload.email_verified === true || payload.email_verified === 'true')
+    );
+  }
+
+  private clean(value?: string) {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
   }
 }

@@ -56,6 +56,27 @@ export class SocialAuthService {
     return this.createAppSession(identity, meta);
   }
 
+  async verifyAppleIdentityToken(
+    identityToken: string,
+    params: { displayName?: string } = {},
+    meta: AuthRequestMeta = {},
+  ) {
+    const trimmed = identityToken.trim();
+    if (!trimmed) {
+      throw new ApiError(
+        400,
+        'invalid_apple_token',
+        'Apple token is required',
+      );
+    }
+
+    const identity = await this.identityVerifier.verifyAppleIdentityToken(
+      trimmed,
+      { displayName: params.displayName },
+    );
+    return this.createAppSession(identity, meta);
+  }
+
   private async createAppSession(
     identity: VerifiedSocialIdentity,
     meta: AuthRequestMeta,
@@ -97,6 +118,7 @@ export class SocialAuthService {
           identity.provider,
           tx,
         );
+        await this.authService.recordLegalAcceptance(userResult.user.id, tx);
         await this.writeAuditEvent(tx, {
           provider: identity.provider,
           result: 'success',
@@ -176,7 +198,8 @@ export class SocialAuthService {
     const canLinkByEmail =
       normalizedEmail != null &&
       (identity.provider === 'yandex' ||
-        (identity.provider === 'google' && identity.emailVerified === true));
+        ((identity.provider === 'google' || identity.provider === 'apple') &&
+          identity.emailVerified === true));
     const existingUser = canLinkByEmail
       ? await tx.user.findUnique({ where: { email: normalizedEmail } })
       : null;
@@ -373,7 +396,10 @@ export class SocialAuthService {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return undefined;
     }
-    if (identity.provider === 'google' && identity.emailVerified !== true) {
+    if (
+      (identity.provider === 'google' || identity.provider === 'apple') &&
+      identity.emailVerified !== true
+    ) {
       return undefined;
     }
     return email;

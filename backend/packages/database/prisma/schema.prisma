@@ -325,6 +325,7 @@ enum AuthProvider {
   telegram
   google
   yandex
+  apple
 }
 
 enum AuthAuditKind {
@@ -359,6 +360,10 @@ model User {
   status                             String                      @default("active")
   suspendedAt                        DateTime?
   suspensionReason                   String?
+  legalTermsAcceptedAt               DateTime?
+  legalTermsVersion                  String?
+  privacyPolicyAcceptedAt            DateTime?
+  communityRulesAcceptedAt           DateTime?
   createdAt                          DateTime                    @default(now())
   updatedAt                          DateTime                    @updatedAt
   profile                            Profile?

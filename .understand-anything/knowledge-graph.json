@@ -24,8 +24,8 @@
       "React",
       "Vite"
     ],
-    "analyzedAt": "2026-06-01T12:39:57.653Z",
-    "gitCommitHash": "ee1ea33f2cbfb39b08c3a6cebf8f8c3b13b34bc3"
+    "analyzedAt": "2026-06-03T02:14:51.648Z",
+    "gitCommitHash": "d43aa4a1697b20013aa78ac5467107fe308cb868"
   },
   "nodes": [
     {
@@ -10915,7 +10915,7 @@
       "type": "file",
       "name": "auth.controller.ts",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
-      "summary": "auth.controller.ts contains 9 classes.",
+      "summary": "auth.controller.ts contains 10 classes.",
       "tags": [
         "backend",
         "code",
@@ -10929,8 +10929,8 @@
       "name": "DevLoginRequestBody",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        11,
-        15
+        12,
+        16
       ],
       "summary": "DevLoginRequestBody in auth.controller.ts.",
       "tags": [
@@ -10946,8 +10946,8 @@
       "name": "PhoneCodeRequest",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        17,
-        21
+        18,
+        25
       ],
       "summary": "PhoneCodeRequest in auth.controller.ts.",
       "tags": [
@@ -10963,8 +10963,8 @@
       "name": "PhoneVerifyRequest",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        23,
-        31
+        27,
+        38
       ],
       "summary": "PhoneVerifyRequest in auth.controller.ts.",
       "tags": [
@@ -10980,8 +10980,8 @@
       "name": "RefreshRequest",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        33,
-        37
+        40,
+        44
       ],
       "summary": "RefreshRequest in auth.controller.ts.",
       "tags": [
@@ -10997,8 +10997,8 @@
       "name": "TelegramVerifyRequest",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        39,
-        48
+        46,
+        58
       ],
       "summary": "TelegramVerifyRequest in auth.controller.ts.",
       "tags": [
@@ -11014,8 +11014,8 @@
       "name": "TelegramStartRequest",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        50,
-        54
+        60,
+        67
       ],
       "summary": "TelegramStartRequest in auth.controller.ts.",
       "tags": [
@@ -11031,8 +11031,8 @@
       "name": "GoogleVerifyRequest",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        56,
-        60
+        69,
+        76
       ],
       "summary": "GoogleVerifyRequest in auth.controller.ts.",
       "tags": [
@@ -11048,10 +11048,27 @@
       "name": "YandexVerifyRequest",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        62,
-        66
+        78,
+        85
       ],
       "summary": "YandexVerifyRequest in auth.controller.ts.",
+      "tags": [
+        "backend",
+        "class",
+        "structure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/apps/api/src/controllers/auth.controller.ts:AppleVerifyRequest",
+      "type": "class",
+      "name": "AppleVerifyRequest",
+      "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
+      "lineRange": [
+        87,
+        102
+      ],
+      "summary": "AppleVerifyRequest in auth.controller.ts.",
       "tags": [
         "backend",
         "class",
@@ -11065,8 +11082,8 @@
       "name": "AuthController",
       "filePath": "backend/apps/api/src/controllers/auth.controller.ts",
       "lineRange": [
-        69,
-        196
+        105,
+        267
       ],
       "summary": "AuthController in auth.controller.ts.",
       "tags": [
@@ -12900,8 +12917,8 @@
       "name": "AuthService",
       "filePath": "backend/apps/api/src/services/auth.service.ts",
       "lineRange": [
-        40,
-        921
+        42,
+        939
       ],
       "summary": "AuthService in auth.service.ts.",
       "tags": [
@@ -13096,7 +13113,7 @@
       "type": "file",
       "name": "evening-ai-draft.service.ts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
-      "summary": "evening-ai-draft.service.ts contains 2 classes, 87 functions.",
+      "summary": "evening-ai-draft.service.ts contains 2 classes, 94 functions.",
       "tags": [
         "backend",
         "code",
@@ -13110,8 +13127,8 @@
       "name": "durationMsSince",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3649,
-        3651
+        4010,
+        4012
       ],
       "summary": "durationMsSince in evening-ai-draft.service.ts.",
       "tags": [
@@ -13127,8 +13144,8 @@
       "name": "roundDurationMs",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3653,
-        3655
+        4014,
+        4016
       ],
       "summary": "roundDurationMs in evening-ai-draft.service.ts.",
       "tags": [
@@ -13144,8 +13161,8 @@
       "name": "emptyCandidateStats",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3657,
-        3664
+        4018,
+        4025
       ],
       "summary": "emptyCandidateStats in evening-ai-draft.service.ts.",
       "tags": [
@@ -13161,8 +13178,8 @@
       "name": "addCandidateSourceCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3666,
-        3679
+        4027,
+        4040
       ],
       "summary": "addCandidateSourceCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -13178,8 +13195,8 @@
       "name": "generatedRouteStatus",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3681,
-        3685
+        4042,
+        4046
       ],
       "summary": "generatedRouteStatus in evening-ai-draft.service.ts.",
       "tags": [
@@ -13195,8 +13212,8 @@
       "name": "areaOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3924,
-        3940
+        4285,
+        4301
       ],
       "summary": "areaOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13212,8 +13229,8 @@
       "name": "emptyStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3942,
-        3950
+        4303,
+        4311
       ],
       "summary": "emptyStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13229,8 +13246,8 @@
       "name": "normalizeStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3952,
-        3991
+        4313,
+        4352
       ],
       "summary": "normalizeStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13246,8 +13263,8 @@
       "name": "normalizeStepLocationMode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        3993,
-        3999
+        4354,
+        4360
       ],
       "summary": "normalizeStepLocationMode in evening-ai-draft.service.ts.",
       "tags": [
@@ -13263,8 +13280,8 @@
       "name": "normalizeStepLocationKind",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4001,
-        4007
+        4362,
+        4368
       ],
       "summary": "normalizeStepLocationKind in evening-ai-draft.service.ts.",
       "tags": [
@@ -13280,8 +13297,8 @@
       "name": "stepLocationCode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4009,
-        4018
+        4370,
+        4379
       ],
       "summary": "stepLocationCode in evening-ai-draft.service.ts.",
       "tags": [
@@ -13297,8 +13314,8 @@
       "name": "metroLocationCode",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4020,
-        4041
+        4381,
+        4402
       ],
       "summary": "metroLocationCode in evening-ai-draft.service.ts.",
       "tags": [
@@ -13314,8 +13331,8 @@
       "name": "metroSlugFromToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4043,
-        4052
+        4404,
+        4413
       ],
       "summary": "metroSlugFromToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -13331,8 +13348,8 @@
       "name": "stepLocationTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4054,
-        4071
+        4415,
+        4432
       ],
       "summary": "stepLocationTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13348,8 +13365,8 @@
       "name": "hasStepLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4073,
-        4075
+        4434,
+        4436
       ],
       "summary": "hasStepLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13365,8 +13382,8 @@
       "name": "candidateMatchesLocation",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4077,
-        4089
+        4438,
+        4450
       ],
       "summary": "candidateMatchesLocation in evening-ai-draft.service.ts.",
       "tags": [
@@ -13382,8 +13399,8 @@
       "name": "locationAnchor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4091,
-        4100
+        4452,
+        4461
       ],
       "summary": "locationAnchor in evening-ai-draft.service.ts.",
       "tags": [
@@ -13399,8 +13416,8 @@
       "name": "locationRadiusKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4102,
-        4110
+        4463,
+        4471
       ],
       "summary": "locationRadiusKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -13416,8 +13433,8 @@
       "name": "hasCandidateCoords",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4131,
-        4135
+        4492,
+        4496
       ],
       "summary": "hasCandidateCoords in evening-ai-draft.service.ts.",
       "tags": [
@@ -13433,8 +13450,8 @@
       "name": "fallbackPointForInput",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4137,
-        4146
+        4498,
+        4507
       ],
       "summary": "fallbackPointForInput in evening-ai-draft.service.ts.",
       "tags": [
@@ -13450,8 +13467,8 @@
       "name": "stringOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4148,
-        4150
+        4509,
+        4511
       ],
       "summary": "stringOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13467,8 +13484,8 @@
       "name": "integerFromEnv",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4152,
-        4159
+        4513,
+        4520
       ],
       "summary": "integerFromEnv in evening-ai-draft.service.ts.",
       "tags": [
@@ -13484,8 +13501,8 @@
       "name": "budgetOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4161,
-        4174
+        4522,
+        4535
       ],
       "summary": "budgetOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13501,8 +13518,8 @@
       "name": "timezoneForCity",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4176,
-        4178
+        4537,
+        4539
       ],
       "summary": "timezoneForCity in evening-ai-draft.service.ts.",
       "tags": [
@@ -13518,8 +13535,8 @@
       "name": "stringArray",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4180,
-        4188
+        4541,
+        4549
       ],
       "summary": "stringArray in evening-ai-draft.service.ts.",
       "tags": [
@@ -13535,8 +13552,8 @@
       "name": "uniqueNumbers",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4190,
-        4192
+        4551,
+        4553
       ],
       "summary": "uniqueNumbers in evening-ai-draft.service.ts.",
       "tags": [
@@ -13552,8 +13569,8 @@
       "name": "numberOrNull",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4194,
-        4199
+        4555,
+        4560
       ],
       "summary": "numberOrNull in evening-ai-draft.service.ts.",
       "tags": [
@@ -13569,8 +13586,8 @@
       "name": "normalizeTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4201,
-        4209
+        4562,
+        4570
       ],
       "summary": "normalizeTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -13586,8 +13603,8 @@
       "name": "normalizeText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4211,
-        4213
+        4572,
+        4574
       ],
       "summary": "normalizeText in evening-ai-draft.service.ts.",
       "tags": [
@@ -13603,8 +13620,8 @@
       "name": "hasAny",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4215,
-        4217
+        4576,
+        4578
       ],
       "summary": "hasAny in evening-ai-draft.service.ts.",
       "tags": [
@@ -13620,8 +13637,8 @@
       "name": "firstTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4219,
-        4227
+        4580,
+        4588
       ],
       "summary": "firstTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -13637,8 +13654,8 @@
       "name": "promptTermIndex",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4229,
-        4239
+        4590,
+        4600
       ],
       "summary": "promptTermIndex in evening-ai-draft.service.ts.",
       "tags": [
@@ -13654,8 +13671,8 @@
       "name": "uniqueStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4241,
-        4243
+        4602,
+        4604
       ],
       "summary": "uniqueStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -13671,8 +13688,8 @@
       "name": "uniqueRawStrings",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4245,
-        4247
+        4606,
+        4608
       ],
       "summary": "uniqueRawStrings in evening-ai-draft.service.ts.",
       "tags": [
@@ -13688,8 +13705,8 @@
       "name": "intersectNonEmptyLists",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4249,
-        4257
+        4610,
+        4618
       ],
       "summary": "intersectNonEmptyLists in evening-ai-draft.service.ts.",
       "tags": [
@@ -13705,10 +13722,129 @@
       "name": "promptExplicitStepCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4259,
-        4278
+        4620,
+        4639
       ],
       "summary": "promptExplicitStepCount in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasExactPlaceIntent",
+      "type": "function",
+      "name": "hasExactPlaceIntent",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4641,
+        4643
+      ],
+      "summary": "hasExactPlaceIntent in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesExactPlace",
+      "type": "function",
+      "name": "candidateMatchesExactPlace",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4645,
+        4669
+      ],
+      "summary": "candidateMatchesExactPlace in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:exactPlaceComparableValues",
+      "type": "function",
+      "name": "exactPlaceComparableValues",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4671,
+        4697
+      ],
+      "summary": "exactPlaceComparableValues in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:exactPlaceValuesMatch",
+      "type": "function",
+      "name": "exactPlaceValuesMatch",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4699,
+        4712
+      ],
+      "summary": "exactPlaceValuesMatch in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:displayExactPlaceName",
+      "type": "function",
+      "name": "displayExactPlaceName",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4714,
+        4719
+      ],
+      "summary": "displayExactPlaceName in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeExactPlaceValue",
+      "type": "function",
+      "name": "normalizeExactPlaceValue",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4721,
+        4730
+      ],
+      "summary": "normalizeExactPlaceValue in evening-ai-draft.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:levenshteinDistance",
+      "type": "function",
+      "name": "levenshteinDistance",
+      "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "lineRange": [
+        4732,
+        4759
+      ],
+      "summary": "levenshteinDistance in evening-ai-draft.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -13722,8 +13858,8 @@
       "name": "uniqueById",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4280,
-        4289
+        4761,
+        4770
       ],
       "summary": "uniqueById in evening-ai-draft.service.ts.",
       "tags": [
@@ -13739,8 +13875,8 @@
       "name": "taxonomyFromRows",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4291,
-        4306
+        4772,
+        4787
       ],
       "summary": "taxonomyFromRows in evening-ai-draft.service.ts.",
       "tags": [
@@ -13756,8 +13892,8 @@
       "name": "taxonomyTagsByPrefix",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4308,
-        4310
+        4789,
+        4791
       ],
       "summary": "taxonomyTagsByPrefix in evening-ai-draft.service.ts.",
       "tags": [
@@ -13773,8 +13909,8 @@
       "name": "shouldUseBarAlternative",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4312,
-        4325
+        4793,
+        4806
       ],
       "summary": "shouldUseBarAlternative in evening-ai-draft.service.ts.",
       "tags": [
@@ -13790,8 +13926,8 @@
       "name": "candidateSearchText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4327,
-        4341
+        4808,
+        4822
       ],
       "summary": "candidateSearchText in evening-ai-draft.service.ts.",
       "tags": [
@@ -13807,8 +13943,8 @@
       "name": "candidateMatchesTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4343,
-        4352
+        4824,
+        4833
       ],
       "summary": "candidateMatchesTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13824,8 +13960,8 @@
       "name": "candidateMatchesPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4354,
-        4358
+        4835,
+        4839
       ],
       "summary": "candidateMatchesPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13841,8 +13977,8 @@
       "name": "hasSpecificPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4360,
-        4362
+        4841,
+        4843
       ],
       "summary": "hasSpecificPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13858,8 +13994,8 @@
       "name": "candidateMatchesSpecificPreferredTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4364,
-        4377
+        4845,
+        4858
       ],
       "summary": "candidateMatchesSpecificPreferredTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -13875,8 +14011,8 @@
       "name": "candidateMatchesIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4379,
-        4381
+        4860,
+        4862
       ],
       "summary": "candidateMatchesIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -13892,8 +14028,8 @@
       "name": "placeMatchMetadata",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4383,
-        4409
+        4864,
+        4890
       ],
       "summary": "placeMatchMetadata in evening-ai-draft.service.ts.",
       "tags": [
@@ -13909,8 +14045,8 @@
       "name": "substitutionReasonForMissingTraits",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4411,
-        4428
+        4892,
+        4909
       ],
       "summary": "substitutionReasonForMissingTraits in evening-ai-draft.service.ts.",
       "tags": [
@@ -13926,8 +14062,8 @@
       "name": "countIntentTaxonomyTagMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4430,
-        4437
+        4911,
+        4918
       ],
       "summary": "countIntentTaxonomyTagMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -13943,8 +14079,8 @@
       "name": "isStrongTomestoTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4439,
-        4449
+        4920,
+        4930
       ],
       "summary": "isStrongTomestoTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -13960,8 +14096,8 @@
       "name": "todayEventDateWindow",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4457,
-        4465
+        4938,
+        4946
       ],
       "summary": "todayEventDateWindow in evening-ai-draft.service.ts.",
       "tags": [
@@ -13977,8 +14113,8 @@
       "name": "localDateFromIsoDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4467,
-        4470
+        4948,
+        4951
       ],
       "summary": "localDateFromIsoDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -13994,8 +14130,8 @@
       "name": "eventDateWindowFromStored",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4472,
-        4488
+        4953,
+        4969
       ],
       "summary": "eventDateWindowFromStored in evening-ai-draft.service.ts.",
       "tags": [
@@ -14011,8 +14147,8 @@
       "name": "eventDateWindowForLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4490,
-        4504
+        4971,
+        4985
       ],
       "summary": "eventDateWindowForLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -14028,8 +14164,8 @@
       "name": "localDateFromValues",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4506,
-        4526
+        4987,
+        5007
       ],
       "summary": "localDateFromValues in evening-ai-draft.service.ts.",
       "tags": [
@@ -14045,8 +14181,8 @@
       "name": "zonedDateParts",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4528,
-        4541
+        5009,
+        5022
       ],
       "summary": "zonedDateParts in evening-ai-draft.service.ts.",
       "tags": [
@@ -14062,8 +14198,8 @@
       "name": "localDateIso",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4543,
-        4545
+        5024,
+        5026
       ],
       "summary": "localDateIso in evening-ai-draft.service.ts.",
       "tags": [
@@ -14079,8 +14215,8 @@
       "name": "zonedTimeToUtc",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4547,
-        4577
+        5028,
+        5058
       ],
       "summary": "zonedTimeToUtc in evening-ai-draft.service.ts.",
       "tags": [
@@ -14096,8 +14232,8 @@
       "name": "sameLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4579,
-        4581
+        5060,
+        5062
       ],
       "summary": "sameLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -14113,8 +14249,8 @@
       "name": "compareLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4583,
-        4585
+        5064,
+        5066
       ],
       "summary": "compareLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -14130,8 +14266,8 @@
       "name": "validLocalDate",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4587,
-        4592
+        5068,
+        5073
       ],
       "summary": "validLocalDate in evening-ai-draft.service.ts.",
       "tags": [
@@ -14147,8 +14283,8 @@
       "name": "intentStepCountFromGenerated",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4594,
-        4600
+        5075,
+        5081
       ],
       "summary": "intentStepCountFromGenerated in evening-ai-draft.service.ts.",
       "tags": [
@@ -14164,8 +14300,8 @@
       "name": "normalizedCount",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4602,
-        4617
+        5083,
+        5098
       ],
       "summary": "normalizedCount in evening-ai-draft.service.ts.",
       "tags": [
@@ -14181,8 +14317,8 @@
       "name": "taxonomyTagQueriesForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4758,
-        4792
+        5239,
+        5273
       ],
       "summary": "taxonomyTagQueriesForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -14198,8 +14334,8 @@
       "name": "specificTaxonomyTagsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4794,
-        4815
+        5275,
+        5296
       ],
       "summary": "specificTaxonomyTagsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -14215,8 +14351,8 @@
       "name": "normalizeIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4817,
-        4823
+        5298,
+        5304
       ],
       "summary": "normalizeIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -14232,8 +14368,8 @@
       "name": "explicitIntentTaxonomyTagsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4825,
-        4834
+        5306,
+        5315
       ],
       "summary": "explicitIntentTaxonomyTagsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -14249,8 +14385,8 @@
       "name": "effectiveIntentTaxonomyTags",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4836,
-        4844
+        5317,
+        5325
       ],
       "summary": "effectiveIntentTaxonomyTags in evening-ai-draft.service.ts.",
       "tags": [
@@ -14266,8 +14402,8 @@
       "name": "isIntentTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4846,
-        4858
+        5327,
+        5339
       ],
       "summary": "isIntentTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -14283,8 +14419,8 @@
       "name": "isStrongIntentTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4860,
-        4867
+        5341,
+        5348
       ],
       "summary": "isStrongIntentTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -14300,8 +14436,8 @@
       "name": "specificTextTermsForTerms",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4869,
-        4893
+        5350,
+        5374
       ],
       "summary": "specificTextTermsForTerms in evening-ai-draft.service.ts.",
       "tags": [
@@ -14317,8 +14453,8 @@
       "name": "isSpecificTaxonomyTag",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4895,
-        4904
+        5376,
+        5385
       ],
       "summary": "isSpecificTaxonomyTag in evening-ai-draft.service.ts.",
       "tags": [
@@ -14334,8 +14470,8 @@
       "name": "isSpecificDynamicTaxonomyTerm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4906,
-        4915
+        5387,
+        5396
       ],
       "summary": "isSpecificDynamicTaxonomyTerm in evening-ai-draft.service.ts.",
       "tags": [
@@ -14351,8 +14487,8 @@
       "name": "taxonomyTagsForNormalizedToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4917,
-        4932
+        5398,
+        5413
       ],
       "summary": "taxonomyTagsForNormalizedToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -14368,8 +14504,8 @@
       "name": "taxonomyTermMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4951,
-        4953
+        5432,
+        5434
       ],
       "summary": "taxonomyTermMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -14385,8 +14521,8 @@
       "name": "taxonomyAliasMatches",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4955,
-        4960
+        5436,
+        5441
       ],
       "summary": "taxonomyAliasMatches in evening-ai-draft.service.ts.",
       "tags": [
@@ -14402,8 +14538,8 @@
       "name": "escapeRegExp",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4962,
-        4964
+        5443,
+        5445
       ],
       "summary": "escapeRegExp in evening-ai-draft.service.ts.",
       "tags": [
@@ -14419,8 +14555,8 @@
       "name": "normalizeTaxonomyToken",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4966,
-        4973
+        5447,
+        5454
       ],
       "summary": "normalizeTaxonomyToken in evening-ai-draft.service.ts.",
       "tags": [
@@ -14436,8 +14572,8 @@
       "name": "transliterateRu",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        4975,
-        5011
+        5456,
+        5492
       ],
       "summary": "transliterateRu in evening-ai-draft.service.ts.",
       "tags": [
@@ -14453,8 +14589,8 @@
       "name": "budgetFromText",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5013,
-        5033
+        5494,
+        5514
       ],
       "summary": "budgetFromText in evening-ai-draft.service.ts.",
       "tags": [
@@ -14470,8 +14606,8 @@
       "name": "areaTermsFor",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5035,
-        5044
+        5516,
+        5525
       ],
       "summary": "areaTermsFor in evening-ai-draft.service.ts.",
       "tags": [
@@ -14487,8 +14623,8 @@
       "name": "displayAreaForRoute",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5046,
-        5076
+        5527,
+        5557
       ],
       "summary": "displayAreaForRoute in evening-ai-draft.service.ts.",
       "tags": [
@@ -14504,8 +14640,8 @@
       "name": "roundCoord",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5078,
-        5080
+        5559,
+        5561
       ],
       "summary": "roundCoord in evening-ai-draft.service.ts.",
       "tags": [
@@ -14521,8 +14657,8 @@
       "name": "pad2",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5082,
-        5084
+        5563,
+        5565
       ],
       "summary": "pad2 in evening-ai-draft.service.ts.",
       "tags": [
@@ -14538,8 +14674,8 @@
       "name": "stableHash",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5086,
-        5092
+        5567,
+        5573
       ],
       "summary": "stableHash in evening-ai-draft.service.ts.",
       "tags": [
@@ -14555,8 +14691,8 @@
       "name": "geoDistanceKm",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5094,
-        5107
+        5575,
+        5588
       ],
       "summary": "geoDistanceKm in evening-ai-draft.service.ts.",
       "tags": [
@@ -14572,8 +14708,8 @@
       "name": "toRad",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        5109,
-        5111
+        5590,
+        5592
       ],
       "summary": "toRad in evening-ai-draft.service.ts.",
       "tags": [
@@ -14589,8 +14725,8 @@
       "name": "AiDraftPhaseTracker",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        374,
-        432
+        459,
+        517
       ],
       "summary": "AiDraftPhaseTracker in evening-ai-draft.service.ts.",
       "tags": [
@@ -14606,8 +14742,8 @@
       "name": "EveningAiDraftService",
       "filePath": "backend/apps/api/src/services/evening-ai-draft.service.ts",
       "lineRange": [
-        435,
-        3647
+        520,
+        4008
       ],
       "summary": "EveningAiDraftService in evening-ai-draft.service.ts.",
       "tags": [
@@ -16727,7 +16863,7 @@
       "filePath": "backend/apps/api/src/services/social-auth.service.ts",
       "lineRange": [
         22,
-        445
+        471
       ],
       "summary": "SocialAuthService in social-auth.service.ts.",
       "tags": [
@@ -16748,7 +16884,7 @@
         "code",
         "typescript"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "class:backend/apps/api/src/services/social-identity-verifier.service.ts:SocialIdentityVerifier",
@@ -16756,8 +16892,8 @@
       "name": "SocialIdentityVerifier",
       "filePath": "backend/apps/api/src/services/social-identity-verifier.service.ts",
       "lineRange": [
-        35,
-        214
+        68,
+        428
       ],
       "summary": "SocialIdentityVerifier in social-identity-verifier.service.ts.",
       "tags": [
@@ -16765,7 +16901,7 @@
         "class",
         "structure"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "file:backend/apps/api/src/services/stories.service.ts",
@@ -16924,7 +17060,7 @@
       "filePath": "backend/apps/api/src/services/telegram-auth.service.ts",
       "lineRange": [
         39,
-        897
+        898
       ],
       "summary": "TelegramAuthService in telegram-auth.service.ts.",
       "tags": [
@@ -17246,7 +17382,7 @@
       "filePath": "backend/apps/chat/src/chat-server.service.ts",
       "lineRange": [
         189,
-        2548
+        2609
       ],
       "summary": "ChatServerService in chat-server.service.ts.",
       "tags": [
@@ -22919,7 +23055,7 @@
       "type": "file",
       "name": "worker.service.ts",
       "filePath": "backend/apps/worker/src/worker.service.ts",
-      "summary": "worker.service.ts contains 1 classes, 6 functions.",
+      "summary": "worker.service.ts contains 1 classes, 8 functions.",
       "tags": [
         "backend",
         "code",
@@ -22933,10 +23069,44 @@
       "name": "csv",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2556,
-        2562
+        2792,
+        2798
       ],
       "summary": "csv in worker.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/worker.service.ts:oneLine",
+      "type": "function",
+      "name": "oneLine",
+      "filePath": "backend/apps/worker/src/worker.service.ts",
+      "lineRange": [
+        2800,
+        2802
+      ],
+      "summary": "oneLine in worker.service.ts.",
+      "tags": [
+        "backend",
+        "function",
+        "structure"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/apps/worker/src/worker.service.ts:capWithSuffix",
+      "type": "function",
+      "name": "capWithSuffix",
+      "filePath": "backend/apps/worker/src/worker.service.ts",
+      "lineRange": [
+        2804,
+        2809
+      ],
+      "summary": "capWithSuffix in worker.service.ts.",
       "tags": [
         "backend",
         "function",
@@ -22950,8 +23120,8 @@
       "name": "weekdayNumber",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2564,
-        2583
+        2811,
+        2830
       ],
       "summary": "weekdayNumber in worker.service.ts.",
       "tags": [
@@ -22967,8 +23137,8 @@
       "name": "addCalendarDays",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2585,
-        2596
+        2832,
+        2843
       ],
       "summary": "addCalendarDays in worker.service.ts.",
       "tags": [
@@ -22984,8 +23154,8 @@
       "name": "zonedDateTimeToUtc",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2598,
-        2611
+        2845,
+        2858
       ],
       "summary": "zonedDateTimeToUtc in worker.service.ts.",
       "tags": [
@@ -23001,8 +23171,8 @@
       "name": "timeZoneOffsetMs",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2613,
-        2635
+        2860,
+        2882
       ],
       "summary": "timeZoneOffsetMs in worker.service.ts.",
       "tags": [
@@ -23018,8 +23188,8 @@
       "name": "streamToBuffer",
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
-        2637,
-        2643
+        2884,
+        2890
       ],
       "summary": "streamToBuffer in worker.service.ts.",
       "tags": [
@@ -23036,7 +23206,7 @@
       "filePath": "backend/apps/worker/src/worker.service.ts",
       "lineRange": [
         84,
-        2554
+        2790
       ],
       "summary": "WorkerService in worker.service.ts.",
       "tags": [
@@ -32122,6 +32292,19 @@
       "type": "table",
       "name": "migration.sql",
       "filePath": "backend/packages/database/prisma/migrations/20260601020000_drop_redundant_outbox_status_indexes/migration.sql",
+      "summary": "migration.sql is a data file for backend.",
+      "tags": [
+        "backend",
+        "data",
+        "sql"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "table:backend/packages/database/prisma/migrations/20260602120000_apple_auth_and_legal_acceptance/migration.sql",
+      "type": "table",
+      "name": "migration.sql",
+      "filePath": "backend/packages/database/prisma/migrations/20260602120000_apple_auth_and_legal_acceptance/migration.sql",
       "summary": "migration.sql is a data file for backend.",
       "tags": [
         "backend",
@@ -43243,6 +43426,13 @@
     },
     {
       "source": "file:backend/apps/api/src/controllers/auth.controller.ts",
+      "target": "class:backend/apps/api/src/controllers/auth.controller.ts:AppleVerifyRequest",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/auth.controller.ts",
       "target": "class:backend/apps/api/src/controllers/auth.controller.ts:AuthController",
       "type": "contains",
       "direction": "forward",
@@ -44042,6 +44232,55 @@
     {
       "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
       "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:promptExplicitStepCount",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:hasExactPlaceIntent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:candidateMatchesExactPlace",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:exactPlaceComparableValues",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:exactPlaceValuesMatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:displayExactPlaceName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:normalizeExactPlaceValue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/api/src/services/evening-ai-draft.service.ts",
+      "target": "function:backend/apps/api/src/services/evening-ai-draft.service.ts:levenshteinDistance",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -47360,6 +47599,20 @@
     {
       "source": "file:backend/apps/worker/src/worker.service.ts",
       "target": "function:backend/apps/worker/src/worker.service.ts:csv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/worker.service.ts",
+      "target": "function:backend/apps/worker/src/worker.service.ts:oneLine",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/apps/worker/src/worker.service.ts",
+      "target": "function:backend/apps/worker/src/worker.service.ts:capWithSuffix",
       "type": "contains",
       "direction": "forward",
       "weight": 1
@@ -55472,6 +55725,13 @@
     },
     {
       "source": "file:backend/apps/api/src/controllers/auth.controller.ts",
+      "target": "file:backend/apps/api/src/common/api-error.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/apps/api/src/controllers/auth.controller.ts",
       "target": "file:backend/apps/api/src/common/current-user.decorator.ts",
       "type": "imports",
       "direction": "forward",
@@ -59637,6 +59897,7 @@
         "table:backend/packages/database/prisma/migrations/20260529145000_evening_step_match_metadata/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260531181000_drop_message_created_sender_hot_index/migration.sql",
         "table:backend/packages/database/prisma/migrations/20260601020000_drop_redundant_outbox_status_indexes/migration.sql",
+        "table:backend/packages/database/prisma/migrations/20260602120000_apple_auth_and_legal_acceptance/migration.sql",
         "config:backend/packages/database/prisma/migrations/migration_lock.toml",
         "file:backend/packages/database/prisma/reset-test-users.ts",
         "schema:backend/packages/database/prisma/schema.prisma",
