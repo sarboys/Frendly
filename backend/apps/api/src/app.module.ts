@@ -10,6 +10,7 @@ import { AdminDropsController } from './controllers/admin-drops.controller';
 import { AdminEveningController } from './controllers/admin-evening.controller';
 import { AdminMeetupsController } from './controllers/admin-meetups.controller';
 import { AdminPartnerAccountsController } from './controllers/admin-partner-accounts.controller';
+import { AdminReportsController } from './controllers/admin-reports.controller';
 import { AdminSubscriptionSettingsController } from './controllers/admin-subscription-settings.controller';
 import { AdminUsersController } from './controllers/admin-users.controller';
 import { AdminVerificationController } from './controllers/admin-verification.controller';
@@ -63,6 +64,7 @@ import { AdminEveningAnalyticsService } from './services/admin-evening-analytics
 import { AdminEveningAiService } from './services/admin-evening-ai.service';
 import { AdminEveningRouteService } from './services/admin-evening-route.service';
 import { AdminMeetupsService } from './services/admin-meetups.service';
+import { AdminReportsService } from './services/admin-reports.service';
 import { AdminRouteReviewService } from './services/admin-route-review.service';
 import { AdminUsersService } from './services/admin-users.service';
 import { AdminVenueService } from './services/admin-venue.service';
@@ -72,6 +74,7 @@ import { AppOverlayService } from './services/app-overlay.service';
 import { AppleInAppPurchaseService } from './services/apple-in-app-purchase.service';
 import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
+import { ContentModerationService } from './services/content-moderation.service';
 import { DatingService } from './services/dating.service';
 import { DropsDrawService } from './services/drops-draw.service';
 import { DropsRewardService } from './services/drops-reward.service';
@@ -126,6 +129,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     AdminAuthController,
     AdminDropsController,
     AdminPartnerAccountsController,
+    AdminReportsController,
     AdminSubscriptionSettingsController,
     AdminUsersController,
     AdminVerificationController,
@@ -177,6 +181,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     AdminEveningAiService,
     AdminEveningRouteService,
     AdminMeetupsService,
+    AdminReportsService,
     AdminRouteReviewService,
     AdminUsersService,
     AdminVenueService,
@@ -188,6 +193,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     AuthService,
     ChatsService,
     CommunitiesService,
+    ContentModerationService,
     DatingService,
     DropsDrawService,
     DropsRewardService,

@@ -2265,6 +2265,25 @@ describe('EventsService unit', () => {
     expect(eventCreate).not.toHaveBeenCalled();
   });
 
+  it('rejects meetup creation when user text fails content moderation', async () => {
+    const { service, eventCreate } = makeCreateEventService();
+
+    await expect(
+      service.createEvent('host-1', {
+        ...createEventPayload(),
+        description: 'После встречи можно купить наркотики без вопросов',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'content_moderation_rejected',
+      details: {
+        field: 'description',
+        reason: 'drugs',
+      },
+    });
+    expect(eventCreate).not.toHaveBeenCalled();
+  });
+
   it('does not limit weekly meetup creation for Frendly Plus hosts', async () => {
     const { service, eventCreate } = makeCreateEventService({
       hostPremium: true,

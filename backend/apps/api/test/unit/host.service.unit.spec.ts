@@ -407,6 +407,37 @@ describe('HostService unit', () => {
     expect(eventUpdate).not.toHaveBeenCalled();
   });
 
+  it('rejects hosted event update when user text fails content moderation', async () => {
+    const eventUpdate = jest.fn();
+    const service = new HostService({
+      client: {
+        event: {
+          findFirst: jest.fn().mockResolvedValue({
+            id: 'event-1',
+            _count: { participants: 1 },
+          }),
+          update: eventUpdate,
+        },
+      },
+    } as any);
+    jest.spyOn(service, 'getHostedEvent').mockResolvedValue({ id: 'event-1' } as any);
+
+    await expect(
+      service.updateHostedEvent('host-user', 'event-1', {
+        ...hostedEventUpdatePayload(),
+        title: 'Встреча с cocaine',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'content_moderation_rejected',
+      details: {
+        field: 'title',
+        reason: 'drugs',
+      },
+    });
+    expect(eventUpdate).not.toHaveBeenCalled();
+  });
+
   it('saves selected city when host updates event', async () => {
     const eventUpdate = jest.fn().mockResolvedValue({ id: 'event-1' });
     const service = new HostService({

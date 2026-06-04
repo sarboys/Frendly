@@ -41,6 +41,7 @@ import {
   eventsFeedCacheTtlSeconds,
   shouldBypassEventsFeedCache,
 } from './events-feed-cache';
+import { ContentModerationService } from './content-moderation.service';
 import { VenueGeocoderService } from './venue-geocoder.service';
 
 type EventGeoPoint = {
@@ -349,6 +350,8 @@ export class EventsService {
     private readonly subscriptionService: SubscriptionService,
     @Optional() private readonly venueGeocoder?: VenueGeocoderService,
     @Optional() private readonly redisCache?: RedisCacheService,
+    @Optional()
+    private readonly contentModerationService = new ContentModerationService(),
   ) {}
 
   async listEvents(
@@ -1912,6 +1915,13 @@ export class EventsService {
         'title, description and place are required',
       );
     }
+    this.contentModerationService.assertAllowed([
+      { field: 'title', value: title },
+      { field: 'description', value: description },
+      { field: 'place', value: place },
+      { field: 'vibe', value: vibe },
+      { field: 'rules', value: rules?.join('\n') },
+    ]);
 
     if (inviteeUserId === userId) {
       throw new ApiError(400, 'invalid_invitee', 'Invitee cannot be the host');

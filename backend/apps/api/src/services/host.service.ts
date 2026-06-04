@@ -22,6 +22,7 @@ import {
   mapUserPreview,
 } from '../common/presenters';
 import { assertEventCapacityAvailable } from './event-capacity';
+import { ContentModerationService } from './content-moderation.service';
 import { DropsRewardService } from './drops-reward.service';
 import { PrismaService } from './prisma.service';
 import { RedisCacheService } from './redis-cache.service';
@@ -90,6 +91,8 @@ export class HostService {
     private readonly prismaService: PrismaService,
     private readonly dropsRewardService?: DropsRewardService,
     @Optional() private readonly redisCache?: RedisCacheService,
+    @Optional()
+    private readonly contentModerationService = new ContentModerationService(),
   ) {}
 
   async getDashboard(
@@ -522,6 +525,12 @@ export class HostService {
     }
 
     const parsedData = this.parseHostedEventUpdate(body);
+    this.contentModerationService.assertAllowed([
+      { field: 'title', value: parsedData.title as string },
+      { field: 'description', value: parsedData.description as string },
+      { field: 'place', value: parsedData.place as string },
+      { field: 'vibe', value: parsedData.vibe as string },
+    ]);
     await this.assertHostCanUseEntryRequirements(userId, parsedData);
     const data: Prisma.EventUncheckedUpdateInput = { ...parsedData };
     if (Object.prototype.hasOwnProperty.call(body, 'coverAssetId')) {
