@@ -645,11 +645,22 @@ describe('extended rollout api flows', () => {
       .set('authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(plans.body.plans).toHaveLength(2);
-    expect(plans.body.plans[0]).toMatchObject({
-      id: 'month',
-      tokenCost: 799,
-    });
+    expect(plans.body.plans).toMatchObject([
+      {
+        id: 'month',
+        tokenCost: 799,
+      },
+      {
+        id: 'quarter',
+        tokenCost: 1797,
+        tokenMonthlyCost: 599,
+      },
+      {
+        id: 'year',
+        tokenCost: 4788,
+        tokenMonthlyCost: 399,
+      },
+    ]);
 
     await setTokenBalance('user-me', 799);
 
