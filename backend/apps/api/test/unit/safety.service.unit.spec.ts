@@ -132,6 +132,74 @@ describe('SafetyService unit', () => {
     expect(reportCreate).not.toHaveBeenCalled();
   });
 
+  it('creates an event content report without blocking the host', async () => {
+    const reportCreate = jest.fn().mockResolvedValue({
+      id: 'report-event',
+      status: 'open',
+      blockRequested: false,
+      targetEventId: 'event-1',
+    });
+    const userBlockUpsert = jest.fn();
+    const txExecuteRaw = jest.fn().mockResolvedValue(1);
+    const service = new SafetyService({
+      client: {
+        event: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'event-1',
+            hostId: 'host-1',
+          }),
+        },
+        userReport: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        $transaction: jest.fn((callback: any) =>
+          callback({
+            $executeRaw: txExecuteRaw,
+            userReport: {
+              findFirst: jest.fn().mockResolvedValue(null),
+              create: reportCreate,
+            },
+            userBlock: {
+              upsert: userBlockUpsert,
+            },
+          }),
+        ),
+      },
+    } as any);
+
+    await expect(
+      service.createReport('user-me', {
+        targetType: 'event',
+        targetEventId: 'event-1',
+        reason: 'bad_content',
+        blockRequested: true,
+      }),
+    ).resolves.toEqual({
+      id: 'report-event',
+      status: 'open',
+      blockRequested: false,
+      targetEventId: 'event-1',
+    });
+
+    expect(reportCreate).toHaveBeenCalledWith({
+      data: {
+        reporterId: 'user-me',
+        targetUserId: 'host-1',
+        targetEventId: 'event-1',
+        reason: 'bad_content',
+        details: '',
+        blockRequested: false,
+      },
+      select: {
+        id: true,
+        status: true,
+        blockRequested: true,
+        targetEventId: true,
+      },
+    });
+    expect(userBlockUpsert).not.toHaveBeenCalled();
+  });
+
   it('starts active report lookup while report target is still loading', async () => {
     let resolveTarget!: (value: { id: string }) => void;
     const targetFindUnique = jest.fn(
@@ -167,6 +235,7 @@ describe('SafetyService unit', () => {
       where: {
         reporterId: 'user-me',
         targetUserId: 'user-target',
+        targetEventId: null,
         status: {
           in: ['open', 'in_review'],
         },
@@ -426,6 +495,7 @@ describe('SafetyService unit', () => {
       select: {
         id: true,
         targetUserId: true,
+        targetEventId: true,
         reason: true,
         details: true,
         status: true,

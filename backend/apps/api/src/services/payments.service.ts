@@ -12,6 +12,7 @@ import { SubscriptionService } from './subscription.service';
 import { TbankAcquiringService } from './tbank-acquiring.service';
 import { TokensService } from './tokens.service';
 import { RedisCacheService } from './redis-cache.service';
+import { AppleInAppPurchaseService } from './apple-in-app-purchase.service';
 import {
   type PaymentProduct,
   type PaymentProductKindValue,
@@ -39,6 +40,7 @@ export class PaymentsService {
     private readonly subscriptionService: SubscriptionService,
     private readonly tokensService: TokensService,
     @Optional() private readonly redisCache?: RedisCacheService,
+    @Optional() private readonly appleIap?: AppleInAppPurchaseService,
   ) {}
 
   async getCatalog(userId?: string) {
@@ -88,6 +90,7 @@ export class PaymentsService {
         durationDays: product.durationDays,
         badge: product.badge,
         benefits: product.benefits,
+        appleProductId: this.appleProductId('subscription', product.id),
       })),
       plusBenefits: subscriptionCatalog.plusBenefits,
       tokenPacks: this.catalogTokenPacks(subscriptionCatalog).map((product) =>
@@ -264,6 +267,118 @@ export class PaymentsService {
 
     await this.markPaymentStatus(orderId, this.mapTbankStatus(status), status, body);
     return 'OK';
+  }
+
+  async confirmApplePurchase(userId: string, body: Record<string, unknown>) {
+    if (!this.appleIap) {
+      throw new ApiError(
+        503,
+        'apple_iap_disabled',
+        'Apple In-App Purchase is not configured',
+      );
+    }
+
+    const productKind = this.cleanText(body.productKind);
+    const productId = this.cleanText(body.productId);
+    const appleProductId = this.cleanText(body.appleProductId);
+    const transactionId = this.cleanText(body.transactionId);
+    const verificationData = this.cleanText(body.verificationData);
+    if (
+      (productKind !== 'tokens' && productKind !== 'subscription') ||
+      !productId ||
+      !appleProductId ||
+      !verificationData
+    ) {
+      throw new ApiError(
+        400,
+        'apple_iap_payload_invalid',
+        'Apple purchase payload is invalid',
+      );
+    }
+
+    const product =
+      productKind === 'tokens'
+        ? await this.findCatalogTokenPack(productId)
+        : await this.findCatalogSubscriptionProduct(productId);
+    const expectedAppleProductId = this.appleProductId(product.kind, product.id);
+    if (appleProductId !== expectedAppleProductId) {
+      throw new ApiError(
+        400,
+        'apple_iap_product_unknown',
+        'Apple product id is not in the catalog',
+      );
+    }
+
+    const verified = await this.appleIap.verifyTransaction({
+      transactionId,
+      verificationData,
+    });
+    if (verified.productId !== expectedAppleProductId) {
+      throw new ApiError(
+        409,
+        'apple_iap_product_mismatch',
+        'Apple transaction product does not match the requested product',
+      );
+    }
+
+    const existing = await this.prismaService.client.paymentOrder.findUnique({
+      where: { providerPaymentId: verified.transactionId },
+    });
+    if (existing) {
+      if (existing.userId !== userId) {
+        throw new ApiError(
+          404,
+          'payment_order_not_found',
+          'Payment order not found',
+        );
+      }
+      if (existing.status === PaymentOrderStatus.confirmed) {
+        return this.mapOrder(existing);
+      }
+      return this.confirmPaymentOrder({
+        orderId: existing.orderId,
+        paymentId: verified.transactionId,
+        amountKopecks: existing.amountKopecks,
+        rawStatus: 'APPLE_CONFIRMED',
+        rawNotification: {
+          environment: verified.environment,
+          transaction: verified.raw,
+        },
+      });
+    }
+
+    const order = await this.prismaService.client.paymentOrder.create({
+      data: {
+        userId,
+        provider: PaymentProvider.apple,
+        providerPaymentId: verified.transactionId,
+        productKind: product.kind as PaymentProductKind,
+        productId: product.id,
+        amountKopecks: product.amountKopecks,
+        currency: 'RUB',
+        orderId: this.createAppleOrderId(verified.transactionId),
+        status: PaymentOrderStatus.pending,
+        rawStatus: 'APPLE_VERIFIED',
+        rawNotification: this.jsonValue({
+          environment: verified.environment,
+          transaction: verified.raw,
+        }),
+        ...(product.kind === 'tokens'
+          ? { productSnapshot: this.tokenPackSnapshot(product) }
+          : {}),
+      },
+    });
+
+    return this.confirmPaymentOrder({
+      orderId: order.orderId,
+      paymentId: verified.transactionId,
+      amountKopecks: product.amountKopecks,
+      rawStatus: 'APPLE_CONFIRMED',
+      rawNotification: {
+        environment: verified.environment,
+        transaction: verified.raw,
+      },
+    });
   }
 
   async confirmPaymentOrder(input: ConfirmPaymentInput) {
@@ -445,6 +560,31 @@ export class PaymentsService {
     return product;
   }
 
+  private async findCatalogSubscriptionProduct(productId: string): Promise<PaymentProduct> {
+    const catalog = await this.subscriptionService.getCatalog();
+    const product = catalog.plans.find((item: any) => item.id === productId);
+    if (!product) {
+      throw new ApiError(400, 'invalid_subscription_plan', 'Subscription plan is invalid');
+    }
+    const priceRub = Number(product.priceRub ?? 0);
+    const tokenCost = Number(product.tokenCost ?? priceRub);
+    return {
+      kind: 'subscription',
+      id: String(product.id),
+      label: String(product.label ?? 'Frendly+'),
+      description: String(product.description ?? 'Frendly+'),
+      amountKopecks: priceRub * 100,
+      priceRub,
+      priceMonthlyRub: Number(product.priceMonthlyRub ?? priceRub),
+      tokenCost,
+      tokenMonthlyCost: Number(product.tokenMonthlyCost ?? tokenCost),
+      trialDays: Number(product.trialDays ?? 0),
+      durationDays: Number(product.durationDays ?? 30),
+      badge: typeof product.badge === 'string' ? product.badge : null,
+      benefits: Array.isArray(product.benefits) ? product.benefits : [],
+    };
+  }
+
   private async resolveTokenDiscountPercent(userId?: string) {
     if (!userId) {
       return 0;
@@ -497,6 +637,7 @@ export class PaymentsService {
       originalPriceRub: discountPercent > 0 ? product.priceRub : null,
       discountPercent,
       best: product.best,
+      appleProductId: this.appleProductId('tokens', product.id),
     };
   }
 
@@ -546,6 +687,38 @@ export class PaymentsService {
 
   private createOrderId() {
     return `fr_${randomUUID().replace(/-/g, '').slice(0, 24)}`;
+  }
+
+  private createAppleOrderId(transactionId: string) {
+    const normalized = transactionId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48);
+    return `apple_${normalized || randomUUID().replace(/-/g, '').slice(0, 24)}`;
+  }
+
+  private appleProductId(productKind: PaymentProductKindValue, productId: string) {
+    const overrides = this.appleProductIdOverrides();
+    const key = `${productKind}:${productId}`;
+    return overrides[key] ?? `frendly.${productKind === 'subscription' ? 'plus' : 'tokens'}.${productId}`;
+  }
+
+  private appleProductIdOverrides() {
+    const raw = process.env.APPLE_IAP_PRODUCT_IDS;
+    if (!raw) {
+      return {};
+    }
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.entries(parsed)
+          .filter(([, value]) => typeof value === 'string' && value.trim())
+          .map(([key, value]) => [key, String(value).trim()]),
+      );
+    } catch (_) {
+      return {};
+    }
+  }
+
+  private cleanText(value: unknown) {
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
 
   private notificationUrl() {

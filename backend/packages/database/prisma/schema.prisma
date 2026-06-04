@@ -286,6 +286,7 @@ enum SubscriptionStatus {
 
 enum PaymentProvider {
   tbank
+  apple
 }
 
 enum PaymentProductKind {
@@ -787,6 +788,7 @@ model Event {
   tokenPromotions   TokenPromotion[]
   dropRewardEvents  DropRewardEvent[]
   safetySosAlerts   SafetySosAlert[]
+  reports           UserReport[]
   chat              Chat?
   sourceChats       Chat[]              @relation("ChatSourceEvent")
   createdAt         DateTime            @default(now())
@@ -1783,6 +1785,7 @@ model UserReport {
   id             String       @id @default(cuid())
   reporterId     String
   targetUserId   String
+  targetEventId  String?
   reason         String
   details        String?
   status         ReportStatus @default(open)
@@ -1791,9 +1794,11 @@ model UserReport {
   updatedAt      DateTime     @updatedAt
   reporter       User         @relation("UserReportsSent", fields: [reporterId], references: [id], onDelete: Cascade)
   targetUser     User         @relation("UserReportsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetEvent    Event?       @relation(fields: [targetEventId], references: [id], onDelete: Cascade)
 
   @@index([reporterId, status, createdAt, id])
   @@index([targetUserId, status, createdAt, id])
+  @@index([targetEventId, status, createdAt, id])
 }
 
 model UserBlock {

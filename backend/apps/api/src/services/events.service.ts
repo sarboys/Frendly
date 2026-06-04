@@ -384,9 +384,10 @@ export class EventsService {
     params: EventListParams,
     earlyCacheKey: string | null,
   ): Promise<EventListResponse> {
-    const [blockedUserIds, userGender] = await Promise.all([
+    const [blockedUserIds, userGender, reportedEventIds] = await Promise.all([
       this.getBlockedUserIds(userId),
       this.getUserGender(userId),
+      this.getReportedEventIds(userId),
     ]);
     const take = this.normalizeListLimit(params.limit);
     const filter = params.filter as EventFilter | undefined;
@@ -398,6 +399,7 @@ export class EventsService {
       const where = this.buildListWhere(
         userId,
         blockedUserIds,
+        reportedEventIds,
         userGender,
         filter,
         {
@@ -419,6 +421,7 @@ export class EventsService {
         take,
         radiusKm: params.radiusKm,
         blockedUserIds,
+        reportedEventIds,
         userId,
         userGender,
         filter,
@@ -530,6 +533,7 @@ export class EventsService {
       userId,
       params,
       blockedUserIds,
+      reportedEventIds,
     )
       ? earlyCacheKey ?? await this.eventsFeedCacheKey(userId, params)
       : null;
@@ -551,6 +555,7 @@ export class EventsService {
               cachedPage,
               userId,
               blockedUserIds,
+              reportedEventIds,
               userGender,
               filter,
               {
@@ -3159,6 +3164,7 @@ export class EventsService {
   private buildListWhere(
     userId: string,
     blockedUserIds: Set<string>,
+    reportedEventIds: Set<string>,
     userGender: 'male' | 'female' | null,
     filter: EventFilter | undefined,
     params: {
@@ -3217,6 +3223,13 @@ export class EventsService {
       },
       AND: conditions,
     };
+    if (reportedEventIds.size > 0) {
+      conditions.push({
+        id: {
+          notIn: [...reportedEventIds],
+        },
+      });
+    }
     const now = new Date();
     const recentStartBoundary = this.recentEventStartBoundary(now);
 
@@ -3528,11 +3541,13 @@ export class EventsService {
       q?: string;
     },
     blockedUserIds: Set<string>,
+    reportedEventIds: Set<string>,
   ) {
     if (
       this.redisCache == null ||
       shouldBypassEventsFeedCache(params) ||
-      blockedUserIds.size > 0
+      blockedUserIds.size > 0 ||
+      reportedEventIds.size > 0
     ) {
       return false;
     }
@@ -3545,6 +3560,10 @@ export class EventsService {
     params: EventListParams,
   ): Promise<string | null> {
     if (this.redisCache == null || shouldBypassEventsFeedCache(params)) {
+      return null;
+    }
+
+    if (await this.hasReportedEventEntries(userId)) {
       return null;
     }
 
@@ -3699,6 +3718,7 @@ export class EventsService {
     events: any[],
     userId: string,
     blockedUserIds: Set<string>,
+    reportedEventIds: Set<string>,
     userGender: 'male' | 'female' | null,
     filter: EventFilter | undefined,
     params: {
@@ -3722,6 +3742,7 @@ export class EventsService {
     const where = this.buildListWhere(
       userId,
       blockedUserIds,
+      reportedEventIds,
       userGender,
       filter,
       params,
@@ -4134,6 +4155,7 @@ export class EventsService {
     take: number;
     radiusKm?: number;
     blockedUserIds: Set<string>;
+    reportedEventIds: Set<string>;
     userId: string;
     userGender?: string | null;
     filter?: EventFilter;
@@ -4215,6 +4237,10 @@ export class EventsService {
       params.blockedUserIds.size === 0
         ? Prisma.empty
         : Prisma.sql`AND e."hostId" NOT IN (${Prisma.join([...params.blockedUserIds])})`;
+    const reportedEventFilter =
+      params.reportedEventIds.size === 0
+        ? Prisma.empty
+        : Prisma.sql`AND e."id" NOT IN (${Prisma.join([...params.reportedEventIds])})`;
     const cursorPositionFilter =
       params.cursorEvent == null
         ? Prisma.empty
@@ -4279,6 +4305,7 @@ export class EventsService {
           ${requiresFrendlyPlusFilter}
           ${priceFilter}
           ${blockedHostFilter}
+          ${reportedEventFilter}
           AND (
             (
               e."latitude" IS NOT NULL
@@ -5288,6 +5315,59 @@ export class EventsService {
 
   private async getBlockedUserIds(userId: string) {
     return loadBlockedUserIds(this.prismaService.client, userId);
+  }
+
+  private async getReportedEventIds(userId: string) {
+    const userReport = this.prismaService.client.userReport as
+      | { findMany?: (args: unknown) => Promise<Array<{ targetEventId: string | null }>> }
+      | undefined;
+    if (userReport?.findMany == null) {
+      return new Set<string>();
+    }
+
+    const reports = await userReport.findMany({
+      where: {
+        reporterId: userId,
+        targetEventId: {
+          not: null,
+        },
+      },
+      select: {
+        targetEventId: true,
+      },
+    });
+
+    return new Set(
+      reports
+        .map((report) => report.targetEventId)
+        .filter(
+          (eventId): eventId is string =>
+            typeof eventId === 'string' && eventId.length > 0,
+        ),
+    );
+  }
+
+  private async hasReportedEventEntries(userId: string) {
+    const userReport = this.prismaService.client.userReport as
+      | { findFirst?: (args: unknown) => Promise<{ id: string } | null> }
+      | undefined;
+    if (userReport?.findFirst == null) {
+      return false;
+    }
+
+    const report = await userReport.findFirst({
+      where: {
+        reporterId: userId,
+        targetEventId: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return report != null;
   }
 
   private async getUserGender(userId: string) {

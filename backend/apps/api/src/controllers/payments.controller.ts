@@ -20,6 +20,14 @@ export class PaymentsController {
     return this.paymentsService.initPayment(currentUser.userId, body);
   }
 
+  @Post('apple/confirm')
+  confirmApplePurchase(
+    @CurrentUser() currentUser: { userId: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.paymentsService.confirmApplePurchase(currentUser.userId, body);
+  }
+
   @Post(':orderId/check')
   checkPayment(
     @CurrentUser() currentUser: { userId: string },

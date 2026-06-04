@@ -45,6 +45,19 @@ describe('PaymentsService unit', () => {
             benefits: [],
           },
           {
+            id: 'quarter',
+            label: '3 месяца',
+            description: 'Frendly+ на 3 месяца',
+            priceRub: 1797,
+            priceMonthlyRub: 599,
+            tokenCost: 1797,
+            tokenMonthlyCost: 599,
+            trialDays: 0,
+            durationDays: 90,
+            badge: '-25%',
+            benefits: [],
+          },
+          {
             id: 'year',
             label: 'Годовой',
             description: 'Frendly+ на год',
@@ -96,6 +109,8 @@ describe('PaymentsService unit', () => {
       tbank as any,
       subscription as any,
       tokens as any,
+      overrides.redisCache,
+      overrides.appleIap,
     );
     return { service, prismaClient, tbank, subscription, tokens };
   };
@@ -265,6 +280,23 @@ describe('PaymentsService unit', () => {
     });
     expect(tbank.isEnabled).toHaveBeenCalled();
     expect(subscription.getCatalog).toHaveBeenCalled();
+  });
+
+  it('returns App Store product id for the quarter subscription', async () => {
+    const { service } = makeService();
+
+    await expect(service.getCatalog('user-free')).resolves.toMatchObject({
+      subscriptions: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'quarter',
+          productKind: 'subscription',
+          appleProductId: 'frendly.plus.quarter',
+          tokenCost: 1797,
+          tokenMonthlyCost: 599,
+          durationDays: 90,
+        }),
+      ]),
+    });
   });
 
   it('returns discounted token packs for Frendly Plus users', async () => {
@@ -496,5 +528,131 @@ describe('PaymentsService unit', () => {
       prismaClient,
     );
     expect(subscription.activatePaidSubscription).not.toHaveBeenCalled();
+  });
+
+  it('confirms Apple token purchase and credits tokens once', async () => {
+    const appleIap = {
+      verifyTransaction: jest.fn().mockResolvedValue({
+        transactionId: 'tx-1',
+        productId: 'frendly.tokens.p2',
+        environment: 'Sandbox',
+        raw: { transactionId: 'tx-1', productId: 'frendly.tokens.p2' },
+      }),
+    };
+    const { service, prismaClient, tokens, subscription } = makeService({
+      appleIap,
+    });
+    prismaClient.paymentOrder.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'order-db-1',
+        orderId: 'apple_tx-1',
+        userId: 'user-1',
+        provider: 'apple',
+        providerPaymentId: 'tx-1',
+        productKind: 'tokens',
+        productId: 'p2',
+        amountKopecks: 49900,
+        status: 'pending',
+        productSnapshot: {
+          id: 'p2',
+          tokens: 350,
+          bonus: 0,
+        },
+      });
+    prismaClient.paymentOrder.create.mockResolvedValue({
+      id: 'order-db-1',
+      orderId: 'apple_tx-1',
+      userId: 'user-1',
+      provider: 'apple',
+      providerPaymentId: 'tx-1',
+      productKind: 'tokens',
+      productId: 'p2',
+      amountKopecks: 49900,
+      status: 'pending',
+      productSnapshot: {
+        id: 'p2',
+        tokens: 350,
+        bonus: 0,
+      },
+    });
+    prismaClient.paymentOrder.update.mockResolvedValue({
+      id: 'order-db-1',
+      orderId: 'apple_tx-1',
+      userId: 'user-1',
+      provider: 'apple',
+      providerPaymentId: 'tx-1',
+      productKind: 'tokens',
+      productId: 'p2',
+      amountKopecks: 49900,
+      status: 'confirmed',
+      productSnapshot: {
+        id: 'p2',
+        tokens: 350,
+        bonus: 0,
+      },
+    });
+
+    await service.confirmApplePurchase('user-1', {
+      productKind: 'tokens',
+      productId: 'p2',
+      appleProductId: 'frendly.tokens.p2',
+      transactionId: 'tx-1',
+      verificationData: 'signed-transaction',
+    });
+
+    expect(appleIap.verifyTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-1',
+      verificationData: 'signed-transaction',
+    });
+    expect(prismaClient.paymentOrder.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          provider: 'apple',
+          providerPaymentId: 'tx-1',
+          productKind: 'tokens',
+          productId: 'p2',
+          amountKopecks: 49900,
+        }),
+      }),
+    );
+    expect(tokens.creditPurchasedTokens).toHaveBeenCalledWith(
+      'user-1',
+      {
+        packId: 'p2',
+        tokens: 350,
+        bonus: 0,
+      },
+      'order-db-1',
+      prismaClient,
+    );
+    expect(subscription.activatePaidSubscription).not.toHaveBeenCalled();
+  });
+
+  it('rejects Apple purchase when transaction product id does not match catalog', async () => {
+    const appleIap = {
+      verifyTransaction: jest.fn().mockResolvedValue({
+        transactionId: 'tx-1',
+        productId: 'frendly.tokens.p1',
+        environment: 'Sandbox',
+        raw: { transactionId: 'tx-1', productId: 'frendly.tokens.p1' },
+      }),
+    };
+    const { service, prismaClient } = makeService({ appleIap });
+
+    await expect(
+      service.confirmApplePurchase('user-1', {
+        productKind: 'tokens',
+        productId: 'p2',
+        appleProductId: 'frendly.tokens.p2',
+        transactionId: 'tx-1',
+        verificationData: 'signed-transaction',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'apple_iap_product_mismatch',
+    });
+    expect(prismaClient.paymentOrder.create).not.toHaveBeenCalled();
   });
 });

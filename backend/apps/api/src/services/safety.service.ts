@@ -1,13 +1,20 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { ReportStatus, type Prisma } from '@prisma/client';
 import { OUTBOX_EVENT_TYPES } from '@big-break/database';
 import { ApiError } from '../common/api-error';
 import { PrismaService } from './prisma.service';
 import { RedisCacheService } from './redis-cache.service';
 
 type TrustedContactChannel = 'phone' | 'telegram' | 'email';
+type ReportTarget = {
+  kind: 'user' | 'event';
+  targetUserId: string;
+  targetEventId: string | null;
+};
 
 const SAFETY_LIST_CACHE_SECONDS = 10;
+const ACTIVE_REPORT_STATUSES = [ReportStatus.open, ReportStatus.in_review];
 
 @Injectable()
 export class SafetyService {
@@ -266,6 +273,7 @@ export class SafetyService {
       select: {
         id: true,
         targetUserId: true,
+        targetEventId: true,
         reason: true,
         details: true,
         status: true,
@@ -278,6 +286,12 @@ export class SafetyService {
         return reports.map((report) => ({
           id: report.id,
           targetUserId: report.targetUserId,
+          ...(report.targetEventId == null
+            ? {}
+            : {
+                targetEventId: report.targetEventId,
+                targetType: 'event',
+              }),
           reason: report.reason,
           details: report.details,
           status: report.status,
@@ -289,16 +303,16 @@ export class SafetyService {
   }
 
   async createReport(userId: string, body: Record<string, unknown>) {
-    const targetUserId = typeof body.targetUserId === 'string' ? body.targetUserId : '';
     const reason = typeof body.reason === 'string' ? body.reason : '';
     const details = typeof body.details === 'string' ? body.details.trim() : '';
-    const blockRequested = body.blockRequested === true;
+    const target = await this.resolveReportTarget(body);
+    const blockRequested = target.kind === 'user' && body.blockRequested === true;
 
-    if (targetUserId.length === 0 || reason.length === 0) {
-      throw new ApiError(400, 'invalid_report_payload', 'targetUserId and reason are required');
+    if (reason.length === 0) {
+      throw new ApiError(400, 'invalid_report_payload', 'reason is required');
     }
 
-    if (targetUserId === userId) {
+    if (target.targetUserId === userId) {
       throw new ApiError(400, 'self_report_not_allowed', 'Cannot report yourself');
     }
 
@@ -307,18 +321,14 @@ export class SafetyService {
     }
 
     const [targetUser, existing] = await Promise.all([
-      this.prismaService.client.user.findUnique({
-        where: { id: targetUserId },
-        select: { id: true },
-      }),
+      target.kind === 'user'
+        ? this.prismaService.client.user.findUnique({
+            where: { id: target.targetUserId },
+            select: { id: true },
+          })
+        : Promise.resolve({ id: target.targetUserId }),
       this.prismaService.client.userReport.findFirst({
-        where: {
-          reporterId: userId,
-          targetUserId,
-          status: {
-            in: ['open', 'in_review'],
-          },
-        },
+        where: this.activeReportWhere(userId, target),
         select: { id: true },
       }),
     ]);
@@ -332,23 +342,23 @@ export class SafetyService {
     }
 
     const report = await this.prismaService.client.$transaction(async (tx) => {
-      const reportLockKey = this.buildReportLockKey(userId, targetUserId);
+      const reportLockKey = this.buildReportLockKey(
+        userId,
+        target.targetEventId == null
+          ? target.targetUserId
+          : `event:${target.targetEventId}`,
+      );
       await tx.$executeRaw`
         SELECT pg_advisory_xact_lock(${reportLockKey}::bigint)
       `;
 
       const activeReport = await tx.userReport.findFirst({
-        where: {
-          reporterId: userId,
-          targetUserId,
-          status: {
-            in: ['open', 'in_review'],
-          },
-        },
+        where: this.activeReportWhere(userId, target),
         select: {
           id: true,
           status: true,
           blockRequested: true,
+          targetEventId: true,
         },
       });
 
@@ -373,13 +383,13 @@ export class SafetyService {
           where: {
             userId_blockedUserId: {
               userId,
-              blockedUserId: targetUserId,
+              blockedUserId: target.targetUserId,
             },
           },
           update: {},
           create: {
             userId,
-            blockedUserId: targetUserId,
+            blockedUserId: target.targetUserId,
           },
         });
 
@@ -389,7 +399,8 @@ export class SafetyService {
       const created = await tx.userReport.create({
         data: {
           reporterId: userId,
-          targetUserId,
+          targetUserId: target.targetUserId,
+          targetEventId: target.targetEventId,
           reason,
           details,
           blockRequested,
@@ -398,6 +409,7 @@ export class SafetyService {
           id: true,
           status: true,
           blockRequested: true,
+          targetEventId: true,
         },
       });
 
@@ -406,13 +418,13 @@ export class SafetyService {
           where: {
             userId_blockedUserId: {
               userId,
-              blockedUserId: targetUserId,
+              blockedUserId: target.targetUserId,
             },
           },
           update: {},
           create: {
             userId,
-            blockedUserId: targetUserId,
+            blockedUserId: target.targetUserId,
           },
         });
       }
@@ -421,18 +433,29 @@ export class SafetyService {
     });
 
     await this.clearSafetyCache(userId);
-    await this.clearSafetyCache(targetUserId);
+    await this.clearSafetyCache(target.targetUserId);
     if (blockRequested) {
-      await this.clearBlockedProfileCache(userId, targetUserId);
+      await this.clearBlockedProfileCache(userId, target.targetUserId);
     }
     this.clearListCaches(userId);
-    this.clearListCaches(targetUserId);
+    this.clearListCaches(target.targetUserId);
 
-    return {
+    const reportTargetEventId = (report as { targetEventId?: string | null })
+      .targetEventId;
+    const response: {
+      id: string;
+      status: string;
+      blockRequested: boolean;
+      targetEventId?: string;
+    } = {
       id: report.id,
       status: report.status,
       blockRequested: report.blockRequested,
     };
+    if (reportTargetEventId != null) {
+      response.targetEventId = reportTargetEventId;
+    }
+    return response;
   }
 
   async listBlocks(userId: string) {
@@ -733,6 +756,83 @@ export class SafetyService {
       (target.includes('phoneNumber') ||
         (target.includes('channel') && target.includes('value')))
     );
+  }
+
+  private async resolveReportTarget(
+    body: Record<string, unknown>,
+  ): Promise<ReportTarget> {
+    const targetType = body.targetType === 'event' ? 'event' : 'user';
+
+    if (targetType === 'event') {
+      const targetEventId =
+        typeof body.targetEventId === 'string' ? body.targetEventId.trim() : '';
+      if (targetEventId.length === 0) {
+        throw new ApiError(
+          400,
+          'invalid_report_payload',
+          'targetEventId is required',
+        );
+      }
+
+      const event = await this.prismaService.client.event.findUnique({
+        where: { id: targetEventId },
+        select: {
+          id: true,
+          hostId: true,
+        },
+      });
+
+      if (event == null) {
+        throw new ApiError(404, 'event_not_found', 'Event not found');
+      }
+
+      return {
+        kind: 'event',
+        targetUserId: event.hostId,
+        targetEventId: event.id,
+      };
+    }
+
+    const targetUserId =
+      typeof body.targetUserId === 'string' ? body.targetUserId : '';
+    if (targetUserId.length === 0) {
+      throw new ApiError(
+        400,
+        'invalid_report_payload',
+        'targetUserId and reason are required',
+      );
+    }
+
+    return {
+      kind: 'user',
+      targetUserId,
+      targetEventId: null,
+    };
+  }
+
+  private activeReportWhere(
+    userId: string,
+    target: ReportTarget,
+  ): Prisma.UserReportWhereInput {
+    const base = {
+      reporterId: userId,
+      status: {
+        in: ACTIVE_REPORT_STATUSES,
+      },
+    };
+
+    if (target.kind === 'event') {
+      return {
+        ...base,
+        targetEventId: target.targetEventId,
+      };
+    }
+
+    return {
+      ...base,
+      targetUserId: target.targetUserId,
+      targetEventId: null,
+    };
   }
 
   private buildReportLockKey(userId: string, targetUserId: string) {

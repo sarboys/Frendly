@@ -216,6 +216,47 @@ describe('SubscriptionService unit', () => {
     );
   });
 
+  it('uses month, quarter and year plans in the fallback catalog', async () => {
+    const service = new SubscriptionService(
+      {
+        client: {},
+      } as any,
+      tokensService as any,
+    );
+
+    await expect(service.getPlans()).resolves.toMatchObject({
+      plans: [
+        {
+          id: 'month',
+          label: 'Месячный',
+          priceRub: 799,
+          priceMonthlyRub: 799,
+          tokenCost: 799,
+          tokenMonthlyCost: 799,
+          durationDays: 30,
+        },
+        {
+          id: 'quarter',
+          label: '3 месяца',
+          priceRub: 1797,
+          priceMonthlyRub: 599,
+          tokenCost: 1797,
+          tokenMonthlyCost: 599,
+          durationDays: 90,
+        },
+        {
+          id: 'year',
+          label: 'Годовой',
+          priceRub: 4788,
+          priceMonthlyRub: 399,
+          tokenCost: 4788,
+          tokenMonthlyCost: 399,
+          durationDays: 365,
+        },
+      ],
+    });
+  });
+
   it('returns active catalog plans and editable benefits from database', async () => {
     const prismaClient: any = {
       subscriptionCatalogPlan: {

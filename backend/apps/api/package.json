@@ -16,6 +16,7 @@
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js --runInBand test/integration"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "^1.6.0",
     "@aws-sdk/client-s3": "^3.787.0",
     "@aws-sdk/s3-request-presigner": "^3.787.0",
     "@big-break/contracts": "workspace:*",

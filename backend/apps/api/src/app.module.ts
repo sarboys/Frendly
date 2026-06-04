@@ -69,6 +69,7 @@ import { AdminVenueService } from './services/admin-venue.service';
 import { AfficheService } from './services/affiche.service';
 import { AfterDarkService } from './services/after-dark.service';
 import { AppOverlayService } from './services/app-overlay.service';
+import { AppleInAppPurchaseService } from './services/apple-in-app-purchase.service';
 import { ChatsService } from './services/chats.service';
 import { CommunitiesService } from './services/communities.service';
 import { DatingService } from './services/dating.service';
@@ -182,6 +183,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     AfficheService,
     AfterDarkService,
     AppOverlayService,
+    AppleInAppPurchaseService,
     AdminAuthService,
     AuthService,
     ChatsService,
