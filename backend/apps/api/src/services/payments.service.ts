@@ -35,6 +35,34 @@ type InitPaymentOptions = {
   checkoutToken?: string | null;
 };
 
+type TokenPackSnapshot = {
+  id: string;
+  label: string;
+  description: string;
+  priceRub: number;
+  originalPriceRub: number | null;
+  discountPercent: number;
+  amountKopecks: number;
+  tokens: number;
+  bonus: number;
+};
+
+type CheckoutBundleSnapshot = {
+  kind: 'checkout_bundle';
+  subscription: {
+    id: string;
+    label: string;
+    priceRub: number;
+    amountKopecks: number;
+  };
+  tokenPack: TokenPackSnapshot | null;
+};
+
+type ResolvedPaymentProduct = PaymentProduct & {
+  productSnapshot?: Prisma.InputJsonValue;
+  receiptName?: string;
+};
+
 @Injectable()
 export class PaymentsService {
   private readonly pendingCatalogLoads = new Map<string, Promise<any>>();
@@ -135,23 +163,17 @@ export class PaymentsService {
     }
 
     const productKind = typeof body.productKind === 'string' ? body.productKind : '';
-    const productId = typeof body.productId === 'string' ? body.productId : '';
-    if (productKind === 'subscription' && !options.allowSubscription) {
+    if (
+      (productKind === 'subscription' || productKind === 'bundle') &&
+      !options.allowSubscription
+    ) {
       throw new ApiError(
         400,
         'subscription_paid_with_tokens',
         'Frendly+ is paid with tokens',
       );
     }
-    const product =
-      productKind === 'subscription'
-        ? await this.findCatalogSubscriptionProduct(productId)
-        : productKind === 'tokens'
-        ? await this.resolveTokenPaymentProductForUser(userId, productId)
-        : await this.resolvePaymentProductForUser(
-            userId,
-            findPaymentProduct(productKind, productId),
-          );
+    const product = await this.resolveInitPaymentProduct(userId, body);
     const buyer = await this.prismaService.client.user.findUnique({
       where: { id: userId },
       select: {
@@ -176,9 +198,11 @@ export class PaymentsService {
         orderId: this.createOrderId(),
         status: PaymentOrderStatus.pending,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-        ...(product.kind === 'tokens'
-          ? { productSnapshot: this.tokenPackSnapshot(product) }
-          : {}),
+        ...(product.productSnapshot != null
+          ? { productSnapshot: product.productSnapshot }
+          : product.kind === 'tokens'
+            ? { productSnapshot: this.tokenPackSnapshot(product) }
+            : {}),
       },
     });
 
@@ -451,6 +475,15 @@ export class PaymentsService {
           order.id,
           client,
         );
+        const bundle = this.parseCheckoutBundleSnapshot(order.productSnapshot);
+        if (bundle?.tokenPack != null) {
+          await this.tokensService.creditPurchasedTokens(
+            order.userId,
+            bundle.tokenPack,
+            order.id,
+            client,
+          );
+        }
       } else if (order.productKind === PaymentProductKind.tokens) {
         const snapshot = this.parseTokenPackSnapshot(order.productSnapshot);
         await this.tokensService.creditPurchasedTokens(
@@ -547,6 +580,69 @@ export class PaymentsService {
       ...product,
       amountKopecks,
       priceRub: Math.floor(amountKopecks / 100),
+    };
+  }
+
+  private async resolveInitPaymentProduct(
+    userId: string,
+    body: Record<string, unknown>,
+  ): Promise<ResolvedPaymentProduct> {
+    const productKind = typeof body.productKind === 'string' ? body.productKind : '';
+    const productId = typeof body.productId === 'string' ? body.productId : '';
+    if (productKind === 'bundle') {
+      return this.resolveCheckoutBundleProduct(userId, body);
+    }
+    if (productKind === 'subscription') {
+      return this.findCatalogSubscriptionProduct(productId);
+    }
+    if (productKind === 'tokens') {
+      return this.resolveTokenPaymentProductForUser(userId, productId);
+    }
+    return this.resolvePaymentProductForUser(
+      userId,
+      findPaymentProduct(productKind, productId),
+    );
+  }
+
+  private async resolveCheckoutBundleProduct(
+    userId: string,
+    body: Record<string, unknown>,
+  ): Promise<ResolvedPaymentProduct> {
+    const subscriptionProductId = this.cleanText(body.subscriptionProductId);
+    const tokenProductId = this.cleanText(body.tokenProductId);
+    if (!subscriptionProductId) {
+      throw new ApiError(
+        400,
+        'invalid_checkout_bundle',
+        'Checkout bundle requires subscription',
+      );
+    }
+    const subscription = await this.findCatalogSubscriptionProduct(subscriptionProductId);
+    const tokenPack = tokenProductId
+      ? await this.resolveTokenPaymentProductForUser(userId, tokenProductId)
+      : null;
+    const amountKopecks =
+      subscription.amountKopecks + (tokenPack?.amountKopecks ?? 0);
+    const tokenLabel = tokenPack
+      ? ` + ${tokenPack.tokens + tokenPack.bonus} FT`
+      : '';
+    const snapshot: CheckoutBundleSnapshot = {
+      kind: 'checkout_bundle',
+      subscription: {
+        id: subscription.id,
+        label: subscription.label,
+        priceRub: subscription.priceRub,
+        amountKopecks: subscription.amountKopecks,
+      },
+      tokenPack: tokenPack == null ? null : this.tokenPackSnapshot(tokenPack),
+    };
+    return {
+      ...subscription,
+      amountKopecks,
+      priceRub: Math.floor(amountKopecks / 100),
+      description: `Frendly+${tokenLabel}`,
+      productSnapshot: snapshot as Prisma.InputJsonValue,
+      receiptName: tokenPack == null ? 'Frendly+' : 'Frendly+ и FT',
     };
   }
 
@@ -702,6 +798,20 @@ export class PaymentsService {
     return { packId, tokens, bonus };
   }
 
+  private parseCheckoutBundleSnapshot(value: unknown) {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    const raw = value as Record<string, unknown>;
+    if (raw.kind !== 'checkout_bundle') {
+      return null;
+    }
+    const tokenPack = this.parseTokenPackSnapshot(raw.tokenPack);
+    return {
+      tokenPack,
+    };
+  }
+
   private discountAmountToWholeRubles(amountKopecks: number, discountPercent: number) {
     const amountRub = amountKopecks / 100;
     const discountedRub = Math.round(
@@ -795,7 +905,7 @@ export class PaymentsService {
   }
 
   private receiptPayload(
-    product: PaymentProduct,
+    product: ResolvedPaymentProduct,
     buyer: { email: string | null; phoneNumber: string | null },
   ) {
     if (process.env.TBANK_RECEIPT_ENABLED !== 'true') {
@@ -809,7 +919,9 @@ export class PaymentsService {
     if (!contact) {
       return {};
     }
-    const itemName = product.kind === 'subscription' ? 'Frendly+' : 'Frendly Tokens';
+    const itemName =
+      product.receiptName ??
+      (product.kind === 'subscription' ? 'Frendly+' : 'Frendly Tokens');
     return {
       Receipt: {
         ...contact,
