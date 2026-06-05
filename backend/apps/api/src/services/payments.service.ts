@@ -30,6 +30,11 @@ type ConfirmPaymentInput = {
   rawNotification?: Record<string, unknown>;
 };
 
+type InitPaymentOptions = {
+  allowSubscription?: boolean;
+  checkoutToken?: string | null;
+};
+
 @Injectable()
 export class PaymentsService {
   private readonly pendingCatalogLoads = new Map<string, Promise<any>>();
@@ -109,13 +114,29 @@ export class PaymentsService {
   }
 
   async initPayment(userId: string, body: Record<string, unknown>) {
+    return this.initPaymentInternal(userId, body);
+  }
+
+  async initCheckoutPayment(userId: string, body: Record<string, unknown>) {
+    return this.initPaymentInternal(userId, body, {
+      allowSubscription: true,
+      checkoutToken:
+        typeof body.checkoutToken === 'string' ? body.checkoutToken : null,
+    });
+  }
+
+  private async initPaymentInternal(
+    userId: string,
+    body: Record<string, unknown>,
+    options: InitPaymentOptions = {},
+  ) {
     if (!this.tbank.isEnabled()) {
       throw new ApiError(503, 'tbank_disabled', 'T-Bank payments are disabled');
     }
 
     const productKind = typeof body.productKind === 'string' ? body.productKind : '';
     const productId = typeof body.productId === 'string' ? body.productId : '';
-    if (productKind === 'subscription') {
+    if (productKind === 'subscription' && !options.allowSubscription) {
       throw new ApiError(
         400,
         'subscription_paid_with_tokens',
@@ -123,7 +144,9 @@ export class PaymentsService {
       );
     }
     const product =
-      productKind === 'tokens'
+      productKind === 'subscription'
+        ? await this.findCatalogSubscriptionProduct(productId)
+        : productKind === 'tokens'
         ? await this.resolveTokenPaymentProductForUser(userId, productId)
         : await this.resolvePaymentProductForUser(
             userId,
@@ -165,8 +188,13 @@ export class PaymentsService {
         OrderId: order.orderId,
         Description: product.description,
         NotificationURL: this.notificationUrl(),
-        SuccessURL: this.returnUrl('success', order.orderId, product.kind),
-        FailURL: this.returnUrl('fail', order.orderId, product.kind),
+        SuccessURL: this.returnUrl(
+          'success',
+          order.orderId,
+          product.kind,
+          options,
+        ),
+        FailURL: this.returnUrl('fail', order.orderId, product.kind, options),
         PayType: 'O',
         ...this.receiptPayload(product, buyer),
       });
@@ -737,13 +765,33 @@ export class PaymentsService {
     result: 'success' | 'fail',
     orderId: string,
     productKind: PaymentProductKindValue,
+    options: InitPaymentOptions = {},
   ) {
+    const checkoutToken = options.checkoutToken?.trim();
+    if (checkoutToken) {
+      const baseUrl = this.checkoutBaseUrl();
+      const params = new URLSearchParams({
+        orderId,
+        productKind,
+      });
+      return `${baseUrl}/checkout/${encodeURIComponent(checkoutToken)}/payment/${result}?${params.toString()}`;
+    }
     const scheme = process.env.APP_DEEP_LINK_SCHEME?.trim() || 'frendly';
     const params = new URLSearchParams({
       orderId,
       productKind,
     });
     return `${scheme}://payment/${result}?${params.toString()}`;
+  }
+
+  private checkoutBaseUrl() {
+    return (
+      process.env.CHECKOUT_PUBLIC_URL ??
+      process.env.PUBLIC_LANDING_URL ??
+      'https://frendly.tech'
+    )
+      .trim()
+      .replace(/\/+$/, '');
   }
 
   private receiptPayload(

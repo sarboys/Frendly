@@ -404,6 +404,74 @@ describe('PaymentsService unit', () => {
     expect(tbank.initPayment).not.toHaveBeenCalled();
   });
 
+  it('allows checkout T-Bank subscription payment init with landing return URLs', async () => {
+    process.env.PAYMENTS_TBANK_ENABLED = 'true';
+    process.env.PUBLIC_API_URL = 'https://api.test';
+
+    const { service, prismaClient, tbank } = makeService();
+    prismaClient.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      email: 'u@test.dev',
+      phoneNumber: '+79990000000',
+    });
+    prismaClient.paymentOrder.create.mockResolvedValue({
+      id: 'order-db-1',
+      orderId: 'fr_sub_1',
+      amountKopecks: 79900,
+      productKind: 'subscription',
+      productId: 'month',
+      status: 'pending',
+    });
+    prismaClient.paymentOrder.update.mockResolvedValue({
+      orderId: 'fr_sub_1',
+      providerPaymentId: 'payment-sub-1',
+      paymentUrl: 'https://pay.test/subscription',
+      status: 'pending',
+      productKind: 'subscription',
+      productId: 'month',
+    });
+    tbank.initPayment.mockResolvedValue({
+      Success: true,
+      PaymentId: 'payment-sub-1',
+      PaymentURL: 'https://pay.test/subscription',
+      Status: 'NEW',
+    });
+
+    await expect(
+      service.initCheckoutPayment('user-1', {
+        productKind: 'subscription',
+        productId: 'month',
+        checkoutToken: 'checkout-token',
+      }),
+    ).resolves.toMatchObject({
+      orderId: 'fr_sub_1',
+      paymentId: 'payment-sub-1',
+      paymentUrl: 'https://pay.test/subscription',
+      status: 'pending',
+      productKind: 'subscription',
+      productId: 'month',
+    });
+
+    expect(prismaClient.paymentOrder.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          productKind: 'subscription',
+          productId: 'month',
+          amountKopecks: 79900,
+        }),
+      }),
+    );
+    expect(tbank.initPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        Amount: 79900,
+        Description: 'Frendly+ на месяц',
+        SuccessURL: expect.stringContaining('/checkout/checkout-token/payment/success'),
+        FailURL: expect.stringContaining('/checkout/checkout-token/payment/fail'),
+      }),
+    );
+  });
+
   it('does not check a payment order owned by another user', async () => {
     const { service, prismaClient, tbank } = makeService();
     prismaClient.paymentOrder.findUnique.mockResolvedValue({

@@ -19,6 +19,7 @@ import { AfficheController } from './controllers/affiche.controller';
 import { AfterDarkController } from './controllers/after-dark.controller';
 import { AppOverlayController } from './controllers/app-overlay.controller';
 import { ChatsController } from './controllers/chats.controller';
+import { CheckoutController } from './controllers/checkout.controller';
 import { CommunitiesController } from './controllers/communities.controller';
 import { DatingController } from './controllers/dating.controller';
 import { DropsController } from './controllers/drops.controller';
@@ -73,6 +74,7 @@ import { AfterDarkService } from './services/after-dark.service';
 import { AppOverlayService } from './services/app-overlay.service';
 import { AppleInAppPurchaseService } from './services/apple-in-app-purchase.service';
 import { ChatsService } from './services/chats.service';
+import { CheckoutService } from './services/checkout.service';
 import { CommunitiesService } from './services/communities.service';
 import { ContentModerationService } from './services/content-moderation.service';
 import { DatingService } from './services/dating.service';
@@ -139,6 +141,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     AppOverlayController,
     AuthController,
     ChatsController,
+    CheckoutController,
     CommunitiesController,
     DatingController,
     DropsController,
@@ -192,6 +195,7 @@ import { VenueGeocoderService } from './services/venue-geocoder.service';
     AdminAuthService,
     AuthService,
     ChatsService,
+    CheckoutService,
     CommunitiesService,
     ContentModerationService,
     DatingService,
